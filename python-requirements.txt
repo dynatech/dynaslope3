@@ -1,0 +1,26 @@
+Note: Install packages using conda first. <ex. conda install autopep8>
+Only use pip if packages are not available in conda. <ex. pip install marshmallow-sqlalchemy>
+You can safely ignore the version on installing packages.
+
+
+Package                Version   
+---------------------- ----------  
+autopep8               1.4.3     
+bcrypt                 3.1.6        
+Flask                  1.0.2     
+Flask-Bcrypt           0.7.1     
+Flask-Cors             3.0.7     
+Flask-JWT-Extended     3.16.0    
+Flask-Login            0.4.1     
+flask-marshmallow      0.9.0     
+Flask-SQLAlchemy       2.3.2         
+marshmallow            2.18.0    
+marshmallow-sqlalchemy 0.16.0       
+mysqlclient            1.4.1     
+pep8                   1.7.1     
+pip                    18.1         
+PyJWT                  1.7.1     
+pylint                 2.2.2     
+pylint-flask           0.5       
+pylint-plugin-utils    0.4           
+SQLAlchemy             1.2.16 
