@@ -2,7 +2,11 @@
 
 ## Development Notes
 
-Change the Python path variable on ***.env*** file to our Python folder project.
+Create an ***.env*** file on our Python folder project and put your Python path variable.
+
+```sh
+$ PYTHONPATH=\path\to\project\folder
+```
 
 ### Commit instructions
 
@@ -23,7 +27,7 @@ Examples:
 
 ## Running the Server
 
-Set the following system variables on command line then run the Flask App (use ***SET*** on Windows and ***EXPORT*** on Linux environment):
+Set the following system variables on command line then run the Flask App (use ***SET*** on Windows and ***export*** on Linux environment):
 ```sh
 $ SET FLASK_CONFIG=environment
 $ SET FLASK_APP=run.py
