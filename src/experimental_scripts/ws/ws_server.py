@@ -4,43 +4,56 @@ import RPi.GPIO as GPIO
 import serial
 import time, sys
 import datetime
+import array as arr
+import json
 
 P_BUTTON = 24 # Button, adapt to your wiring
 SERIAL_PORT_GLOBE = "/dev/ttyUSB1" #Globe
 SERIAL_PORT_SMART = "/dev/ttyUSB0" #Smart
+LOOP = 1
+TIME_OUT = 3
+SER = None
 
 def setupGSMModule():
-    GPIO.setmode(GPIO.BOARD)
-    GPIO.setup(P_BUTTON, GPIO.IN, GPIO.PUD_UP)
+	global SER
+	SER = serial.Serial(SERIAL_PORT_GLOBE, baudrate = 9600, timeout = 5)
+	GPIO.setmode(GPIO.BOARD)
+	GPIO.setup(P_BUTTON, GPIO.IN, GPIO.PUD_UP)
+	SER.write(str.encode("AT+CMGF=1\r"))
 
-def parseMobileNumber():
-	print("TEST")
+def parseMobileNumber(number):
+	temp = number[-10:]
+	return "63"+temp
 
-def sendGSM(msg):
-	ser = serial.Serial(SERIAL_PORT_GLOBE, baudrate = 9600, timeout = 5)
-	setupGSMModule()
-	ser.write(str.encode("AT+CMGF=1\r")) # set to text mode
-	time.sleep(1)
-	ser.write(str.encode('AT+CMGDA="DEL ALL"\r')) # delete all SMS
-	time.sleep(1)
-	ser.write(str.encode('AT+CMGS="+639675980463"\r'))
-	time.sleep(1)
+def sendGSM(msg, number):
+	global SER
+	SER.write(str.encode('AT+CMGS="+'+number+'"\r'))
+	time.sleep(3)
 	temp = msg.split("\\n")
 	for line in temp:
-		print(line)
-		ser.write(str.encode(line+chr(13)))
-	ser.write(str.encode(chr(26)))
-	print ("Sending SMS with status info:" + msg)
+		SER.write(str.encode(line))
+	SER.write(str.encode(chr(26)))
+	SER.reset_input_buffer()
+	time.sleep(3)
+	print ("Sending SMS with info:" + msg)
+	return SER.read(SER.inWaiting())
 
 async def response(websocket, path):
 	msg = await websocket.recv()
+	data = json.loads(msg)
 	start_time = time.time()
-	print("We got the message from the client: ",msg)
-	# sendGSM(msg)
+	print("Received server data: ",data)
+	parsed_number = parseMobileNumber(data[1])
+	temp = sendGSM(data[2], parsed_number)
+	if (temp.decode("utf-8").find('OK') and temp.decode("utf-8").find("+CMGS")):
+		status = 1
+	else:
+		status = 0
 	print("--- %s seconds ---" % (time.time() - start_time))
-	await websocket.send("I can confirm I got your message!") #Response
+	await websocket.send(json.dumps({"status": status, "outbox_id": data[0]})) #Response
 
 if __name__ == "__main__":
+	setupGSMModule()
 	start_server = websockets.serve(response, 'localhost', 1234)
 	asyncio.get_event_loop().run_until_complete(start_server)
 	asyncio.get_event_loop().run_forever()
