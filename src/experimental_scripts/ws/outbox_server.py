@@ -39,21 +39,27 @@ def sendGSM(msg, number):
 	return SER.read(SER.inWaiting())
 
 async def response(websocket, path):
-	msg = await websocket.recv()
-	data = json.loads(msg)
-	start_time = time.time()
-	print("Received server data: ",data)
-	parsed_number = parseMobileNumber(data[1])
-	temp = sendGSM(data[2], parsed_number)
-	if (temp.decode("utf-8").find('OK') and temp.decode("utf-8").find("+CMGS")):
-		status = 1
-	else:
-		status = 0
-	print("--- %s seconds ---" % (time.time() - start_time))
-	await websocket.send(json.dumps({"status": status, "outbox_id": data[0]})) #Response
+	# while LOOP == 1:
+	try:
+		msg = await websocket.recv()
+		data = json.loads(msg)
+		start_time = time.time()
+		print("Received server data: ",data)
+		parsed_number = parseMobileNumber(data[1])
+		temp = sendGSM(data[2], parsed_number)
+		if (temp.decode("utf-8").find('OK') and temp.decode("utf-8").find("+CMGS")):
+			status = 1
+		else:
+			status = 0
+		print("--- %s seconds ---" % (time.time() - start_time))
+		await websocket.send(json.dumps({"status": status, "outbox_id": data[0]})) #Response
+	except Exception as e:
+		print(e)
+	finally:
+		print("DO NOTHING..\n\n")
 
 if __name__ == "__main__":
 	setupGSMModule()
 	start_server = websockets.serve(response, 'localhost', 1234)
 	asyncio.get_event_loop().run_until_complete(start_server)
-	asyncio.get_event_loop().run_forever()
+	asyncio.get_event_loop().run_forever()		
