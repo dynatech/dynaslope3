@@ -62,4 +62,7 @@ def create_app(config_name):
     from src.api.test_controller import TEST_BLUEPRINT
     app.register_blueprint(TEST_BLUEPRINT, url_prefix="/api")
 
+    from src.api.utils import UTILITIES_BLUEPRINT
+    app.register_blueprint(UTILITIES_BLUEPRINT, url_prefix="/api/utils")
+
     return app
