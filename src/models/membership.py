@@ -27,7 +27,8 @@ class Membership(UserMixin, DB.Model):
     salt = DB.Column(DB.String(200))
 
     def __repr__(self):
-        return f"Type <{self.__class__.__name__}>"
+        return (f"Type <{self.__class__.__name__}> Membership ID: {self.membership_id}"
+                f" User ID: {self.user_fk_id}")
 
 
 class MembershipSchema(MARSHMALLOW.ModelSchema):
