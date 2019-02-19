@@ -464,9 +464,9 @@ class MonitoringEQ(UserMixin, DB.Model):
 
     id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trigger_id = DB.Column(DB.Integer)
-    magnitude = DB.Column(DB.Float(2,1))
-    latitude = DB.Column(DB.Float(9,6))
-    longitude = DB.Column(DB.Float(9,6))
+    magnitude = DB.Column(DB.Float(2, 1))
+    latitude = DB.Column(DB.Float(9, 6))
+    longitude = DB.Column(DB.Float(9, 6))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> ID: {self.id}"
