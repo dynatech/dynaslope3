@@ -6,6 +6,7 @@ import time, sys
 import datetime
 import array as arr
 import json
+import sys
 
 P_BUTTON = 24 # Button, adapt to your wiring
 SERIAL_PORT_GLOBE = "/dev/ttyUSB1" #Globe
@@ -16,10 +17,27 @@ SER = None
 
 def setupGSMModule():
 	global SER
-	SER = serial.Serial(SERIAL_PORT_GLOBE, baudrate = 9600, timeout = 5)
-	GPIO.setmode(GPIO.BOARD)
-	GPIO.setup(P_BUTTON, GPIO.IN, GPIO.PUD_UP)
-	SER.write(str.encode("AT+CMGF=1\r"))
+	if sys.argv[1] == '-g':
+		port = SERIAL_PORT_GLOBE
+	elif sys.argv[1] == '-s':
+		port = SERIAL_PORT_SMART
+	else:
+		print("GSM Port unknown...")
+		print("Exiting...")
+		sys.exit(0)
+
+	print("Connecting to GSM Port..")
+	try:
+		SER = serial.Serial(port, baudrate = 9600, timeout = 5)
+		GPIO.setmode(GPIO.BOARD)
+		GPIO.setup(P_BUTTON, GPIO.IN, GPIO.PUD_UP)
+		SER.write(str.encode("AT+CMGF=1\r"))
+		print("Connected to GSM Port:", port)
+		print("Websocket port:",sys.argv[2])
+	except Exception as e:
+		print("Error connecting to specified port..\n")
+		print("Error: ",e)
+
 
 def parseMobileNumber(number):
 	temp = number[-10:]
@@ -37,6 +55,11 @@ def sendGSM(msg, number):
 	time.sleep(3)
 	print ("Sending SMS with info:" + msg)
 	return SER.read(SER.inWaiting())
+
+def setupWebsocketServer(websocket, ws_port, host='localhost'):
+	start_server = websockets.serve(response, 'localhost', sys.argv[2])
+	asyncio.get_event_loop().run_until_complete(start_server)
+	asyncio.get_event_loop().run_forever()
 
 async def response(websocket, path):
 	# while LOOP == 1:
@@ -56,10 +79,8 @@ async def response(websocket, path):
 	except Exception as e:
 		print(e)
 	finally:
-		print("DO NOTHING..\n\n")
+		print("Waiting for request...\n")
 
 if __name__ == "__main__":
 	setupGSMModule()
-	start_server = websockets.serve(response, 'localhost', 1234)
-	asyncio.get_event_loop().run_until_complete(start_server)
-	asyncio.get_event_loop().run_forever()		
+	setupWebsocketServer(response, sys.argv[2])	

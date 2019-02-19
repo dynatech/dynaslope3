@@ -4,14 +4,14 @@ import json
 import MySQLdb
 import time
 import datetime
-
+import sys
 
 LOOP = 1
 TIME_OUT = 3
 INCREAMENT = 0
 
-async def message():
-	async with websockets.connect("ws://localhost:1234") as socket:
+async def message(port):
+	async with websockets.connect("ws://localhost:"+port) as socket:
 		global LOOP, TIME_OUT, INCREAMENT
 		# while LOOP == 1:
 		sms_collection = checkUnsentSMS()
@@ -74,4 +74,4 @@ def updateSendStatus(data):
 
 if __name__ == "__main__":
 	while LOOP == 1:
-		asyncio.new_event_loop().run_until_complete(message())
+		asyncio.new_event_loop().run_until_complete(message(sys.argv[1]))
