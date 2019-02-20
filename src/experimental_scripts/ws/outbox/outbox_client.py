@@ -79,7 +79,8 @@ def updateSendStatus(data):
         str(current_date)+"', send_status = '5' WHERE outbox_id = '" + \
         str(data["outbox_id"])+"'"
     update_status = updateQuery(update_sms_status_query)
-    return update_status
+    return 1
+
 
 if __name__ == "__main__":
     while LOOP == 1:

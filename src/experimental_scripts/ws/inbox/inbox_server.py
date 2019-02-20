@@ -19,7 +19,6 @@ async def response(websocket, path):
     try:
         msg = await websocket.recv()
         data = msg
-        start_time = time.time()
         print("Received server data: ", data)
         await websocket.send("ACK")
     except Exception as e:
