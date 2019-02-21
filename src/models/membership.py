@@ -6,7 +6,6 @@ Membership table (and related tables)
 from flask_login import UserMixin
 from connection import DB, MARSHMALLOW
 
-
 class Membership(UserMixin, DB.Model):
     """
     Class representation of Membership table

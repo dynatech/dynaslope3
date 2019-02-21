@@ -9,6 +9,7 @@ from flask_marshmallow import Marshmallow
 from flask_login import LoginManager
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
+from flask_socketio import SocketIO
 from flask_jwt_extended import JWTManager, create_access_token
 
 from config import APP_CONFIG
@@ -18,6 +19,7 @@ MARSHMALLOW = Marshmallow()
 BCRYPT = Bcrypt()
 JWT = JWTManager()
 LOGIN_MANAGER = LoginManager()
+SOCKETIO = SocketIO()
 
 
 def create_app(config_name):
@@ -45,6 +47,7 @@ def create_app(config_name):
     BCRYPT.init_app(app)
     JWT.init_app(app)
     CORS(app)
+    SOCKETIO.init_app(app)
 
     @app.route("/hello")
     def hello_world():
@@ -64,5 +67,9 @@ def create_app(config_name):
 
     from src.api.utils import UTILITIES_BLUEPRINT
     app.register_blueprint(UTILITIES_BLUEPRINT, url_prefix="/api/utils")
+
+    from src.api.inbox_controller import INBOX_BLUEPRINT, GET_DATA_BLUEPRINT
+    app.register_blueprint(INBOX_BLUEPRINT, url_prefix="/api")
+    app.register_blueprint(GET_DATA_BLUEPRINT, url_prefix="/api")
 
     return app

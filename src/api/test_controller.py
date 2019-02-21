@@ -28,7 +28,7 @@ def get_one_member():
     # /my-route?page=10&filter=test   -> page: 10  filter: 'test'
     # /my-route?page=10&filter=10     -> page: 10  filter: '10'
 
-    member = Membership.query.first()
+    member = Membership.query.all()
     membership_schema = MembershipSchema()
     output = membership_schema.dump(member).data
     return jsonify(output)
