@@ -68,8 +68,7 @@ def create_app(config_name):
     from src.api.utils import UTILITIES_BLUEPRINT
     app.register_blueprint(UTILITIES_BLUEPRINT, url_prefix="/api/utils")
 
-    from src.api.inbox_controller import INBOX_BLUEPRINT, GET_DATA_BLUEPRINT
+    from src.api.inbox_controller import INBOX_BLUEPRINT
     app.register_blueprint(INBOX_BLUEPRINT, url_prefix="/api")
-    app.register_blueprint(GET_DATA_BLUEPRINT, url_prefix="/api")
 
     return app

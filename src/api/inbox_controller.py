@@ -7,16 +7,16 @@ NAMING CONVENTION
 """
 
 import json
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO, emit
 from flask import Blueprint, jsonify
-from connection import DB
+from connection import DB, SOCKETIO
 from src.models.smsinbox_users import SmsInboxUsers, SmsInboxUsersSchema
 from src.models.user_mobile import UserMobile, UserMobileSchema
 from src.models.users import Users, UsersSchema
 
 INBOX_BLUEPRINT = Blueprint("inbox_blueprint", __name__)
-GET_DATA_BLUEPRINT = Blueprint("get_data_blueprint", __name__)
-SOCKETIO = SocketIO()
+# SOCKET_BLUEPRINT = Blueprint("sockets", __name__)
+# SOCKETIO = SocketIO()
 
 @INBOX_BLUEPRINT.route("/inbox_controller/get_unregistered_inbox", methods=["GET"])
 def get_unregistered_inbox(is_api = 1):
@@ -51,3 +51,8 @@ def get_unregistered_inbox(is_api = 1):
         return_data = jsonify(final_data)
 
     return return_data
+
+@SOCKETIO.on('/socket/inbox_controller/get_some_data')
+def new_function(methods=['GET', 'POST']):
+    data = get_unregistered_inbox(1)
+    emit('dataResponse', data, callback='Successfully loaded inbox')
