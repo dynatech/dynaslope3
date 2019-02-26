@@ -22,21 +22,12 @@ class MonitoringEvents(UserMixin, DB.Model):
     latest_trigger_id = DB.Column(DB.Integer)
     validity = DB.Column(DB.DateTime)
     status = DB.Column(DB.String(20), nullable=False)
-    # releases = DB.relationship("MonitoringReleases", backref="MonitoringEvents", lazy=True)
+    # releases =  relationship("MonitoringReleases", backref="Event", lazy="dynamic")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
                 f" Site ID: {self.site_id} Validity: {self.validity}"
                 f" Status: {self.status}")
-
-
-class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Events class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringEvents
 
 
 class MonitoringReleases(UserMixin, DB.Model):
@@ -63,15 +54,6 @@ class MonitoringReleases(UserMixin, DB.Model):
                 f" Int Alert Lvl: {self.internal_alert_level} Bulletin No: {self.bulletin_number}")
 
 
-class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Releases class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringReleases
-
-
 class MonitoringTriggers(UserMixin, DB.Model):
     """
     Class representation of public_alert_trigger table
@@ -92,15 +74,6 @@ class MonitoringTriggers(UserMixin, DB.Model):
                 f" TS: {self.timestamp}")
 
 
-class MonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Trigger class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringTriggers
-
-
 class MonitoringBulletinTracker(UserMixin, DB.Model):
     """
     Class representation of bulletin_tracker table
@@ -114,15 +87,6 @@ class MonitoringBulletinTracker(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
                 f" TS: {self.bulletin_number}")
-
-
-class MonitoringBulletinTrackerSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Bulletin Tracker class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringBulletinTracker
 
 
 class MonitoringAlertStatus(UserMixin, DB.Model):
@@ -146,15 +110,6 @@ class MonitoringAlertStatus(UserMixin, DB.Model):
                 f" Trigger ID: {self.trigger_id} Alert Status: {self.alert_status}")
 
 
-class MonitoringAlertStatusSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Alert Status class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringBulletinTracker
-
-
 class MonitoringOperationalTriggers(UserMixin, DB.Model):
     """
     Class representation of operational_triggers table
@@ -172,14 +127,6 @@ class MonitoringOperationalTriggers(UserMixin, DB.Model):
         return (f"Type <{self.__class__.__name__}> OP Trigger ID: {self.trigger_id}"
                 f" Site ID: {self.trigger_id}")
 
-
-class MonitoringOperationalTriggersSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Operational Triggers class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringOperationalTriggers
 
 
 class MonitoringOperationalTriggersSymbols(UserMixin, DB.Model):
@@ -200,15 +147,6 @@ class MonitoringOperationalTriggersSymbols(UserMixin, DB.Model):
                 f" Alert Symbol: {self.alert_symbol} Alert Desc: {self.alert_description}")
 
 
-class MonitoringOperationalTriggersSymbolsSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Operational Triggers Symbols class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringOperationalTriggersSymbols
-
-
 class MonitoringTriggerHierarchies(UserMixin, DB.Model):
     """
     Class representation of trigger_hierarchies table
@@ -223,15 +161,6 @@ class MonitoringTriggerHierarchies(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Source ID: {self.source_id}"
                 f" Trig Source: {self.trigger_source} Hierarchy ID: {self.hierarchy_id}")
-
-
-class MonitoringTriggerHierarchiesSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Trigger Hierarchies class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringTriggerHierarchies
 
 
 class MonitoringInternalAlertSymbols(UserMixin, DB.Model):
@@ -253,15 +182,6 @@ class MonitoringInternalAlertSymbols(UserMixin, DB.Model):
                 f" Alert Symbol: {self.alert_symbol}")
 
 
-class MonitoringInternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Internal Alert Symbols class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringInternalAlertSymbols
-
-
 class MonitoringEndOfShiftAnalysis(UserMixin, DB.Model):
     """
     Class representation of end_of_shift_analysis table
@@ -276,15 +196,6 @@ class MonitoringEndOfShiftAnalysis(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
                 f" Shift Start: {self.shift_start} Analysis: {self.analysis}")
-
-
-class MonitoringEndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring End of Shift Analysis class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringEndOfShiftAnalysis
 
 
 class MonitoringIssuesAndReminders(UserMixin, DB.Model):
@@ -306,15 +217,6 @@ class MonitoringIssuesAndReminders(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> IAR ID: {self.iar_id}"
                 f" Detail: {self.detail} Analysis: {self.user_id}")
-
-
-class MonitoringIssuesAndRemindersSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Issues And Reminders class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringIssuesAndReminders
 
 
 class MonitoringLUTAlerts(UserMixin, DB.Model):
@@ -339,15 +241,6 @@ class MonitoringLUTAlerts(UserMixin, DB.Model):
                 f" Pub Alert Desc: {self.public_alert_desc}")
 
 
-class MonitoringLUTAlertsSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Lookup Table Alerts class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringLUTAlerts
-
-
 class MonitoringLUTResponses(UserMixin, DB.Model):
     """
     Class representation of lut_responses table
@@ -367,15 +260,6 @@ class MonitoringLUTResponses(UserMixin, DB.Model):
                 f" Response Comm: {self.response_community}")
 
 
-class MonitoringLUTResponsesSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Lookup Table Responses class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringLUTResponses
-
-
 class MonitoringLUTTriggers(UserMixin, DB.Model):
     """
     Class representation of lut_triggers table
@@ -390,15 +274,6 @@ class MonitoringLUTTriggers(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger Type: {self.trigger_type}"
                 f" Detailed Desc: {self.detailed_desc}")
-
-
-class MonitoringLUTTriggersSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Lookup Table Triggers class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringLUTTriggers
 
 
 class MonitoringManifestationFeatures(UserMixin, DB.Model):
@@ -419,15 +294,6 @@ class MonitoringManifestationFeatures(UserMixin, DB.Model):
                 f" Site ID: {self.site_id} Feature Type: {self.feature_type}")
 
 
-class MonitoringManifestationFeaturesSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Manifestation Features class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringManifestationFeatures
-
-
 class MonitoringNarratives(UserMixin, DB.Model):
     """
     Class representation of narratives table
@@ -446,15 +312,6 @@ class MonitoringNarratives(UserMixin, DB.Model):
                 f" site_id: {self.site_id} Narrative: {self.narrative}")
 
 
-class MonitoringNarrativesSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Narrative class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringManifestationFeatures
-
-
 class MonitoringEQ(UserMixin, DB.Model):
     """
     Class representation of public_alert_eq table
@@ -471,15 +328,6 @@ class MonitoringEQ(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> ID: {self.id}"
                 f" Magnitude: {self.magnitude} Trigger ID: {self.trigger_id}")
-
-
-class MonitoringEQSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring EQ class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringEQ
 
 
 class MonitoringManifestation(UserMixin, DB.Model):
@@ -504,15 +352,6 @@ class MonitoringManifestation(UserMixin, DB.Model):
                 f" ts_observance: {self.ts_observance} Remarks: {self.remarks}")
 
 
-class MonitoringManifestationSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Manifestation class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringManifestation
-
-
 class MonitoringOnDemand(UserMixin, DB.Model):
     """
     Class representation of public_alert_on_demand table
@@ -530,15 +369,6 @@ class MonitoringOnDemand(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> ID: {self.id}"
                 f" Reason: {self.reason} TS: {self.ts}")
-
-
-class MonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring On Demand class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringOnDemand
 
 
 class MonitoringSymbols(UserMixin, DB.Model):
@@ -559,6 +389,181 @@ class MonitoringSymbols(UserMixin, DB.Model):
         return (f"Type <{self.__class__.__name__}> Public Symbol ID: {self.pub_sym_id}"
                 f" Alert Symbol: {self.alert_symbol} Alert Type: {self.alert_type}")
 
+# END OF CLASS DECLARATIONS
+
+
+# START OF SCHEMAS DECLARATIONS
+
+class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Events class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringEvents
+
+
+class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Releases class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringReleases
+
+
+class MonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Trigger class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringTriggers
+
+
+class MonitoringBulletinTrackerSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Bulletin Tracker class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringBulletinTracker
+
+
+class MonitoringAlertStatusSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Alert Status class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringBulletinTracker
+
+
+class MonitoringOperationalTriggersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Operational Triggers class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringOperationalTriggers
+
+
+class MonitoringOperationalTriggersSymbolsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Operational Triggers Symbols class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringOperationalTriggersSymbols
+
+
+class MonitoringTriggerHierarchiesSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Trigger Hierarchies class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringTriggerHierarchies
+
+
+class MonitoringInternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Internal Alert Symbols class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringInternalAlertSymbols
+
+
+class MonitoringEndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring End of Shift Analysis class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringEndOfShiftAnalysis
+
+
+class MonitoringIssuesAndRemindersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Issues And Reminders class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringIssuesAndReminders
+
+
+class MonitoringLUTAlertsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Lookup Table Alerts class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringLUTAlerts
+
+
+class MonitoringLUTResponsesSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Lookup Table Responses class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringLUTResponses
+
+
+class MonitoringLUTTriggersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Lookup Table Triggers class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringLUTTriggers
+
+
+class MonitoringManifestationFeaturesSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Manifestation Features class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringManifestationFeatures
+
+
+class MonitoringNarrativesSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Narrative class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringManifestationFeatures
+
+
+class MonitoringEQSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring EQ class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringEQ
+
+
+class MonitoringManifestationSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Manifestation class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringManifestation
+
+
+class MonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring On Demand class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringOnDemand
+
 
 class MonitoringSymbolsSchema(MARSHMALLOW.ModelSchema):
     """
@@ -567,3 +572,5 @@ class MonitoringSymbolsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringSymbols
+
+# END OF SCHEMAS DECLARATIONS
