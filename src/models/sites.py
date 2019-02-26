@@ -28,6 +28,9 @@ class Sites(UserMixin, DB.Model):
     barangay = DB.Column(DB.String(255), nullable=False)
     psgc = DB.Column(DB.Integer, nullable=False)
 
+    events = DB.relationship(
+        "MonitoringEvents", backref="site", lazy=True)
+
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
                 f" Site Code: {self.site_code}")

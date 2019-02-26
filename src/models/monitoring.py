@@ -6,6 +6,7 @@ Monitoring tables
 import datetime
 from flask_login import UserMixin
 from connection import DB, MARSHMALLOW
+from marshmallow import fields
 
 
 class MonitoringEvents(UserMixin, DB.Model):
@@ -16,27 +17,21 @@ class MonitoringEvents(UserMixin, DB.Model):
     __tablename__ = "public_alert_event"
 
     event_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    site_id = DB.Column(DB.Integer, nullable=False)
-    event_start = DB.Column(DB.DateTime, nullable=False, default="0000-00-00 00:00:00")
+    site_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "sites.site_id"), nullable=False)
+    event_start = DB.Column(DB.DateTime, nullable=False,
+                            default="0000-00-00 00:00:00")
     latest_release_id = DB.Column(DB.Integer)
     latest_trigger_id = DB.Column(DB.Integer)
     validity = DB.Column(DB.DateTime)
     status = DB.Column(DB.String(20), nullable=False)
-    # releases = DB.relationship("MonitoringReleases", backref="MonitoringEvents", lazy=True)
+    releases = DB.relationship(
+        "MonitoringReleases", backref="event", lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
                 f" Site ID: {self.site_id} Validity: {self.validity}"
                 f" Status: {self.status}")
-
-
-class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Events class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringEvents
 
 
 class MonitoringReleases(UserMixin, DB.Model):
@@ -47,9 +42,10 @@ class MonitoringReleases(UserMixin, DB.Model):
     __tablename__ = "public_alert_release"
 
     release_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    # event_id = DB.Column(DB.Integer(11), DB.ForeignKey("monitoringevents.event_id"), nullable=False)
-    event_id = DB.Column(DB.Integer, nullable=False)
-    data_timestamp = DB.Column(DB.DateTime, nullable=False, default="0000-00-00 00:00:00")
+    event_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "public_alert_event.event_id"), nullable=False)
+    data_timestamp = DB.Column(
+        DB.DateTime, nullable=False, default="0000-00-00 00:00:00")
     internal_alert_level = DB.Column(DB.String(10), nullable=False)
     release_time = DB.Column(DB.DateTime, nullable=False)
     comments = DB.Column(DB.String(200))
@@ -63,10 +59,27 @@ class MonitoringReleases(UserMixin, DB.Model):
                 f" Int Alert Lvl: {self.internal_alert_level} Bulletin No: {self.bulletin_number}")
 
 
+class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Monitoring Events class
+    """
+    releases = fields.Nested("MonitoringReleasesSchema",
+                             many=True, exclude=("event", ))
+    site = fields.Nested("SitesSchema", exclude=("events", ))
+    site_id = fields.Integer()
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringEvents
+
+
 class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Releases class
     """
+    event = fields.Nested(MonitoringEventsSchema, exclude=("releases", "site"))
+    event_id = fields.Integer()
+
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringReleases
@@ -83,7 +96,8 @@ class MonitoringTriggers(UserMixin, DB.Model):
     event_id = DB.Column(DB.Integer, nullable=False)
     release_id = DB.Column(DB.Integer, nullable=False)
     trigger_type = DB.Column(DB.String(3), nullable=False)
-    timestamp = DB.Column(DB.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    timestamp = DB.Column(DB.DateTime, nullable=False,
+                          default=datetime.datetime.utcnow)
     info = DB.Column(DB.String(360))
 
     def __repr__(self):
@@ -324,7 +338,8 @@ class MonitoringLUTAlerts(UserMixin, DB.Model):
 
     __tablename__ = "lut_alerts"
 
-    internal_alert_level = DB.Column(DB.String(8), primary_key=True, nullable=False)
+    internal_alert_level = DB.Column(
+        DB.String(8), primary_key=True, nullable=False)
     internal_alert_desc = DB.Column(DB.String(128), nullable=False)
     public_alert_level = DB.Column(DB.String(8), nullable=False)
     public_alert_desc = DB.Column(DB.String(125), nullable=False)
@@ -355,7 +370,8 @@ class MonitoringLUTResponses(UserMixin, DB.Model):
 
     __tablename__ = "lut_responses"
 
-    public_alert_level = DB.Column(DB.String(8), primary_key=True, nullable=False)
+    public_alert_level = DB.Column(
+        DB.String(8), primary_key=True, nullable=False)
     recommended_response = DB.Column(DB.String(200))
     response_llmc_lgu = DB.Column(DB.String(200), nullable=False)
     response_community = DB.Column(DB.String(200), nullable=False)
@@ -412,7 +428,6 @@ class MonitoringManifestationFeatures(UserMixin, DB.Model):
     site_id = DB.Column(DB.Integer, nullable=False)
     feature_type = DB.Column(DB.String(20), nullable=False)
     feature_name = DB.Column(DB.String(20))
-
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Feature ID: {self.feature_id}"

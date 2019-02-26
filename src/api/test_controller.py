@@ -7,7 +7,10 @@ NAMING CONVENTION
 """
 
 from flask import Blueprint, jsonify
+from connection import DB, MARSHMALLOW
+from marshmallow import fields
 from src.models.membership import Membership, MembershipSchema
+from src.models.monitoring import MonitoringEvents, MonitoringReleases, MonitoringEventsSchema, MonitoringReleasesSchema
 
 TEST_BLUEPRINT = Blueprint("test_blueprint", __name__)
 
@@ -43,3 +46,80 @@ def get_all_members():
     membership_schema = MembershipSchema(many=True)
     output = membership_schema.dump(members).data
     return jsonify(output)
+
+
+@TEST_BLUEPRINT.route("/test_controller/get_all_event_ids_only", methods=["GET"])
+def get_all_event_ids_only():
+    """
+    Sample implementation of querying select columns instead of returning all (*)
+    """
+    events = DB.session.query(MonitoringEvents.event_id).order_by(DB.desc(
+        MonitoringEvents.event_id)).filter(MonitoringEvents.status == "finished").all()
+
+    event_data = MonitoringEventsSchema(many=True).dump(events).data
+    return jsonify(event_data)
+
+
+@TEST_BLUEPRINT.route("/test_controller/get_all_events", methods=["GET"])
+def get_all_events():
+    """
+    Sample implementation of querying all columns of a table (default)
+    """
+    events = MonitoringEvents.query.order_by(DB.desc(
+        MonitoringEvents.event_id)).filter(MonitoringEvents.status == "finished").all()
+
+    event_data = MonitoringEventsSchema(many=True).dump(events).data
+    return jsonify(event_data)
+
+
+@TEST_BLUEPRINT.route("/test_controller/get_all_events_wo_relationship", methods=["GET"])
+def get_all_events_wo_relationship():
+    """
+    Sample implementation of preventing lazy load on relationship
+    """
+    events = MonitoringEvents.query.options(DB.raiseload(MonitoringEvents.releases)).filter(
+        MonitoringEvents.status == "finished").order_by(DB.desc(MonitoringEvents.event_id)).all()
+
+    event_data = MonitoringEventsSchema(
+        many=True, exclude=("releases", )).dump(events).data
+    return jsonify(event_data)
+
+
+@TEST_BLUEPRINT.route("/test_controller/get_releases_of_an_event/<event_id>", methods=["GET"])
+def get_releases_of_an_event(event_id):
+    """
+    Sample implementation of joins with parameter
+    """
+    releases = MonitoringReleases.query.join(MonitoringEvents).order_by(DB.desc(
+        MonitoringEvents.event_id)).filter(MonitoringEvents.event_id == event_id).all()
+
+    releases_data = MonitoringReleasesSchema(many=True).dump(releases).data
+    return jsonify(releases_data)
+
+
+class SmartNested(fields.Nested):
+
+    def serialize(self, attr, obj, accessor=None):
+        if attr not in obj.__dict__:
+            return {'id': int(getattr(obj, attr + '_id'))}
+        return super(SmartNested, self).serialize(attr, obj, accessor)
+
+
+class TestSchema1(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Membership class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringEvents
+
+
+class TestSchema2(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Membership class
+    """
+    event = SmartNested(TestSchema1)
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringReleases
