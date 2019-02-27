@@ -7,10 +7,10 @@ NAMING CONVENTION
 """
 
 from flask import Blueprint, jsonify
-from connection import DB, MARSHMALLOW
-from marshmallow import fields
+from connection import DB
 from src.models.membership import Membership, MembershipSchema
-from src.models.monitoring import MonitoringEvents, MonitoringReleases, MonitoringEventsSchema, MonitoringReleasesSchema
+from src.models.monitoring import (MonitoringEvents, MonitoringReleases,
+                                   MonitoringEventsSchema, MonitoringReleasesSchema)
 
 TEST_BLUEPRINT = Blueprint("test_blueprint", __name__)
 
@@ -95,31 +95,3 @@ def get_releases_of_an_event(event_id):
 
     releases_data = MonitoringReleasesSchema(many=True).dump(releases).data
     return jsonify(releases_data)
-
-
-class SmartNested(fields.Nested):
-
-    def serialize(self, attr, obj, accessor=None):
-        if attr not in obj.__dict__:
-            return {'id': int(getattr(obj, attr + '_id'))}
-        return super(SmartNested, self).serialize(attr, obj, accessor)
-
-
-class TestSchema1(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Membership class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringEvents
-
-
-class TestSchema2(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Membership class
-    """
-    event = SmartNested(TestSchema1)
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringReleases

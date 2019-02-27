@@ -5,8 +5,8 @@ Monitoring tables
 
 import datetime
 from flask_login import UserMixin
-from connection import DB, MARSHMALLOW
 from marshmallow import fields
+from connection import DB, MARSHMALLOW
 
 
 class MonitoringEvents(UserMixin, DB.Model):
@@ -57,32 +57,6 @@ class MonitoringReleases(UserMixin, DB.Model):
         return (f"Type <{self.__class__.__name__}> Release ID: {self.release_id}"
                 f" Event ID: {self.event_id} Data TS: {self.data_timestamp}"
                 f" Int Alert Lvl: {self.internal_alert_level} Bulletin No: {self.bulletin_number}")
-
-
-class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Events class
-    """
-    releases = fields.Nested("MonitoringReleasesSchema",
-                             many=True, exclude=("event", ))
-    site = fields.Nested("SitesSchema", exclude=("events", ))
-    site_id = fields.Integer()
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringEvents
-
-
-class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Releases class
-    """
-    event = fields.Nested(MonitoringEventsSchema, exclude=("releases", "site"))
-    event_id = fields.Integer()
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringReleases
 
 
 class MonitoringTriggers(UserMixin, DB.Model):
@@ -208,7 +182,7 @@ class MonitoringInternalAlertSymbols(UserMixin, DB.Model):
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Internal Sym ID: {self.internal_sym_id}"
-                # must change database column name to alert_description instead of 'alert description'
+                # must change db column name to alert_description instead of 'alert description'
                 # f" Alert Symbol: {self.alert_symbol} Alert Desc: {self.alert_description}")
                 f" Alert Symbol: {self.alert_symbol}")
 
@@ -414,7 +388,8 @@ class MonitoringSymbols(UserMixin, DB.Model):
     alert_symbol = DB.Column(DB.String(5), nullable=False)
     alert_level = DB.Column(DB.Integer, nullable=False)
     alert_type = DB.Column(DB.String(7))
-    # DB column 'recommended response' literally has a whitespace. Should change into underscore in the future
+    # DB column 'recommended response' literally has a whitespace.
+    # Should change into underscore in the future
     # recommended response = DB.Column(DB.String(200))
 
     def __repr__(self):
@@ -430,6 +405,11 @@ class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Events class
     """
+    releases = fields.Nested("MonitoringReleasesSchema",
+                             many=True, exclude=("event", ))
+    site = fields.Nested("SitesSchema", exclude=("events", ))
+    site_id = fields.Integer()
+
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringEvents
@@ -439,6 +419,9 @@ class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Releases class
     """
+    event = fields.Nested(MonitoringEventsSchema, exclude=("releases", "site"))
+    event_id = fields.Integer()
+
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringReleases
