@@ -5,6 +5,7 @@ Sites table (and related tables)
 
 from flask_login import UserMixin
 from sqlalchemy.dialects.mysql import TINYINT
+from marshmallow import fields
 from connection import DB, MARSHMALLOW
 
 
@@ -28,9 +29,6 @@ class Sites(UserMixin, DB.Model):
     barangay = DB.Column(DB.String(255), nullable=False)
     psgc = DB.Column(DB.Integer, nullable=False)
 
-    events = DB.relationship(
-        "MonitoringEvents", backref="site", lazy=True)
-
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
                 f" Site Code: {self.site_code}")
@@ -40,6 +38,8 @@ class SitesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Sites class
     """
+
     class Meta:
         """Saves table class structure as schema model"""
         model = Sites
+        ordered = False

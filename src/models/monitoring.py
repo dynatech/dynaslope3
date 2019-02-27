@@ -27,6 +27,8 @@ class MonitoringEvents(UserMixin, DB.Model):
     status = DB.Column(DB.String(20), nullable=False)
     releases = DB.relationship(
         "MonitoringReleases", backref="event", lazy="subquery")
+    site = DB.relationship(
+        "Sites", backref=DB.backref("events", lazy="dynamic"))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
