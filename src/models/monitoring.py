@@ -107,10 +107,9 @@ class MonitoringManifestation(UserMixin, DB.Model):
     validator = DB.Column(DB.Integer, DB.ForeignKey("users.user_id"))
     op_trigger = DB.Column(DB.Integer, nullable=False)
 
-    release = DB.relationship("MonitoringReleases", backref="manifestation_details", lazy=True)
+    releaser = DB.relationship("MonitoringReleases", backref="manifestation_details", lazy=True)
 
-    # manifestation_feature = DB.relationship("MonitoringManifestationFeatures",
-    # backref="manifestation_feature", lazy=True)
+    # manifestation_feature = DB.relationship("MonitoringManifestationFeatures", backref="manifestation", lazy=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Manifestation ID: {self.manifestation_id}"
@@ -130,7 +129,7 @@ class MonitoringManifestationFeatures(UserMixin, DB.Model):
     feature_type = DB.Column(DB.String(20), nullable=False)
     feature_name = DB.Column(DB.String(20))
 
-    site = DB.relationship("Sites", backref=DB.backref("manifestation_features", lazy="dynamic"))
+    # site = DB.relationship("Sites", backref=DB.backref("manifestation_features", lazy="dynamic"))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Feature ID: {self.feature_id}"
@@ -445,7 +444,7 @@ class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
     event = fields.Nested(MonitoringEventsSchema, exclude=("releases", "site", "triggers"))
     event_id = fields.Integer()
 
-    manifestation_details = fields.Nested("MonitoringManifestationSchema")
+    manifestation_details = fields.Nested("MonitoringManifestationSchema", many=True)
 
     triggers = fields.Nested("MonitoringTriggersSchema", many=True, exclude=("release", "event"))
 
@@ -603,7 +602,7 @@ class MonitoringManifestationSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Manifestation class
     """
-    feature = fields.Nested("MonitoringManifestationSchema")
+    manifestation_feature = fields.Nested("MonitoringManifestationFeaturesSchema", many=True)
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringManifestation
