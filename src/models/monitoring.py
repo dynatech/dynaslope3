@@ -7,6 +7,7 @@ import datetime
 from flask_login import UserMixin
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
+from src.models.users import (Users, UsersSchema)
 
 
 class MonitoringEvents(UserMixin, DB.Model):
@@ -55,10 +56,13 @@ class MonitoringReleases(UserMixin, DB.Model):
     reporter_id_mt = DB.Column(DB.Integer, nullable=False)
     reporter_id_ct = DB.Column(DB.Integer, nullable=False)
 
+    triggers = DB.relationship("MonitoringTriggers", backref="release", lazy="subquery")
+
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Release ID: {self.release_id}"
                 f" Event ID: {self.event_id} Data TS: {self.data_timestamp}"
-                f" Int Alert Lvl: {self.internal_alert_level} Bulletin No: {self.bulletin_number}")
+                f" Int Alert Lvl: {self.internal_alert_level} Bulletin No: {self.bulletin_number}"
+                f" Release: {self.internal_alert_level} ")
 
 
 class MonitoringTriggers(UserMixin, DB.Model):
@@ -69,17 +73,109 @@ class MonitoringTriggers(UserMixin, DB.Model):
     __tablename__ = "public_alert_trigger"
 
     trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    event_id = DB.Column(DB.Integer, nullable=False)
-    release_id = DB.Column(DB.Integer, nullable=False)
+    event_id = DB.Column(DB.Integer, DB.ForeignKey("public_alert_event.event_id"), nullable=False)
+    release_id = DB.Column(DB.Integer, DB.ForeignKey("public_alert_release.release_id"),
+    nullable=False)
     trigger_type = DB.Column(DB.String(3), nullable=False)
     timestamp = DB.Column(DB.DateTime, nullable=False,
                           default=datetime.datetime.utcnow)
     info = DB.Column(DB.String(360))
 
+    event = DB.relationship(
+        "MonitoringEvents", backref=DB.backref("triggers", lazy="dynamic"))
+
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger ID: {self.trigger_id}"
                 f" Release ID: {self.release_id} Trigger Type: {self.trigger_type}"
                 f" TS: {self.timestamp}")
+
+
+class MonitoringManifestation(UserMixin, DB.Model):
+    """
+    Class representation of public_alert_manifestation table
+    """
+
+    __tablename__ = "public_alert_manifestation"
+
+    manifestation_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    release_id = DB.Column(DB.Integer, DB.ForeignKey("public_alert_release.release_id"))
+    feature_id = DB.Column(DB.Integer, DB.ForeignKey("manifestation_features.feature_id"), nullable=False)
+    ts_observance = DB.Column(DB.DateTime, nullable=False)
+    reporter = DB.Column(DB.String(50), nullable=False)
+    remarks = DB.Column(DB.String(500))
+    narrative = DB.Column(DB.String(500))
+    validator = DB.Column(DB.Integer, DB.ForeignKey("users.user_id"))
+    op_trigger = DB.Column(DB.Integer, nullable=False)
+
+    release = DB.relationship("MonitoringReleases", backref="manifestation_details", lazy=True)
+
+    # manifestation_feature = DB.relationship("MonitoringManifestationFeatures",
+    # backref="manifestation_feature", lazy=True)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Manifestation ID: {self.manifestation_id}"
+                f" ts_observance: {self.ts_observance} Remarks: {self.remarks}"
+                f" release: {self.release}")
+
+
+class MonitoringManifestationFeatures(UserMixin, DB.Model):
+    """
+    Class representation of manifestation_features table
+    """
+
+    __tablename__ = "manifestation_features"
+
+    feature_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    site_id = DB.Column(DB.Integer, DB.ForeignKey("sites.site_id"), nullable=False)
+    feature_type = DB.Column(DB.String(20), nullable=False)
+    feature_name = DB.Column(DB.String(20))
+
+    site = DB.relationship("Sites", backref=DB.backref("manifestation_features", lazy="dynamic"))
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Feature ID: {self.feature_id}"
+                f" Site ID: {self.site_id} Feature Type: {self.feature_type}")
+
+
+class MonitoringOnDemand(UserMixin, DB.Model):
+    """
+    Class representation of public_alert_on_demand table
+    """
+
+    __tablename__ = "public_alert_on_demand"
+
+    id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    trigger_id = DB.Column(DB.Integer, DB.ForeignKey("public_alert_trigger.trigger_id"), nullable=False)
+    ts = DB.Column(DB.DateTime)
+    is_lgu = DB.Column(DB.Boolean)
+    is_llmc = DB.Column(DB.Boolean)
+    reason = DB.Column(DB.String(200), nullable=False)
+
+    trigger = DB.relationship(MonitoringTriggers, backref=DB.backref("on_demand_details", lazy=True, uselist=False))
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> ID: {self.id}"
+                f" Reason: {self.reason} TS: {self.ts}")
+
+
+class MonitoringEQ(UserMixin, DB.Model):
+    """
+    Class representation of public_alert_eq table
+    """
+
+    __tablename__ = "public_alert_eq"
+
+    id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    trigger_id = DB.Column(DB.Integer, DB.ForeignKey("public_alert_trigger.trigger_id"))
+    magnitude = DB.Column(DB.Float(2, 1))
+    latitude = DB.Column(DB.Float(9, 6))
+    longitude = DB.Column(DB.Float(9, 6))
+
+    trigger = DB.relationship(MonitoringTriggers, backref=DB.backref("eq_details", lazy=True, uselist=False))
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> ID: {self.id}"
+                f" Magnitude: {self.magnitude} Trigger ID: {self.trigger_id}")
 
 
 class MonitoringBulletinTracker(UserMixin, DB.Model):
@@ -285,23 +381,6 @@ class MonitoringLUTTriggers(UserMixin, DB.Model):
                 f" Detailed Desc: {self.detailed_desc}")
 
 
-class MonitoringManifestationFeatures(UserMixin, DB.Model):
-    """
-    Class representation of manifestation_features table
-    """
-
-    __tablename__ = "manifestation_features"
-
-    feature_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    site_id = DB.Column(DB.Integer, nullable=False)
-    feature_type = DB.Column(DB.String(20), nullable=False)
-    feature_name = DB.Column(DB.String(20))
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Feature ID: {self.feature_id}"
-                f" Site ID: {self.site_id} Feature Type: {self.feature_type}")
-
-
 class MonitoringNarratives(UserMixin, DB.Model):
     """
     Class representation of narratives table
@@ -318,65 +397,6 @@ class MonitoringNarratives(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> ID: {self.id}"
                 f" site_id: {self.site_id} Narrative: {self.narrative}")
-
-
-class MonitoringEQ(UserMixin, DB.Model):
-    """
-    Class representation of public_alert_eq table
-    """
-
-    __tablename__ = "public_alert_eq"
-
-    id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    trigger_id = DB.Column(DB.Integer)
-    magnitude = DB.Column(DB.Float(2, 1))
-    latitude = DB.Column(DB.Float(9, 6))
-    longitude = DB.Column(DB.Float(9, 6))
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> ID: {self.id}"
-                f" Magnitude: {self.magnitude} Trigger ID: {self.trigger_id}")
-
-
-class MonitoringManifestation(UserMixin, DB.Model):
-    """
-    Class representation of public_alert_manifestation table
-    """
-
-    __tablename__ = "public_alert_manifestation"
-
-    manifestation_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    release_id = DB.Column(DB.Integer)
-    feature_id = DB.Column(DB.Integer, nullable=False)
-    ts_observance = DB.Column(DB.DateTime, nullable=False)
-    reporter = DB.Column(DB.String(50), nullable=False)
-    remarks = DB.Column(DB.String(500))
-    narrative = DB.Column(DB.String(500))
-    validator = DB.Column(DB.Integer)
-    op_trigger = DB.Column(DB.Integer, nullable=False)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Manifestation ID: {self.manifestation_id}"
-                f" ts_observance: {self.ts_observance} Remarks: {self.remarks}")
-
-
-class MonitoringOnDemand(UserMixin, DB.Model):
-    """
-    Class representation of public_alert_on_demand table
-    """
-
-    __tablename__ = "public_alert_on_demand"
-
-    id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    trigger_id = DB.Column(DB.Integer, nullable=False)
-    ts = DB.Column(DB.DateTime)
-    is_lgu = DB.Column(DB.Boolean)
-    is_llmc = DB.Column(DB.Boolean)
-    reason = DB.Column(DB.String(200), nullable=False)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> ID: {self.id}"
-                f" Reason: {self.reason} TS: {self.ts}")
 
 
 class MonitoringSymbols(UserMixin, DB.Model):
@@ -409,7 +429,8 @@ class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
     """
     releases = fields.Nested("MonitoringReleasesSchema",
                              many=True, exclude=("event", ))
-    site = fields.Nested("SitesSchema", exclude=("events", ))
+    site = fields.Nested("SitesSchema", exclude=[
+        "events", "active", "psgc"])
     site_id = fields.Integer()
 
     class Meta:
@@ -421,8 +442,17 @@ class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Releases class
     """
-    event = fields.Nested(MonitoringEventsSchema, exclude=("releases", "site"))
+    event = fields.Nested(MonitoringEventsSchema, exclude=("releases", "site", "triggers"))
     event_id = fields.Integer()
+
+    manifestation_details = fields.Nested("MonitoringManifestationSchema")
+
+    triggers = fields.Nested("MonitoringTriggersSchema", many=True, exclude=("release", "event"))
+
+    reporter_mt = fields.Nested(
+        UsersSchema, only=["user_id", "firstname", "lastname"])
+    reporter_ct = fields.Nested(
+        UsersSchema, only=["user_id", "firstname", "lastname"])
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -433,6 +463,8 @@ class MonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Trigger class
     """
+    on_demand_details = fields.Nested("MonitoringOnDemandSchema")
+    eq_details = fields.Nested("MonitoringEQSchema")
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringTriggers
@@ -559,6 +591,9 @@ class MonitoringEQSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring EQ class
     """
+    magnitude = fields.Float(as_string=True)
+    latitude = fields.Float(as_string=True)
+    longitude = fields.Float(as_string=True)
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringEQ
@@ -568,6 +603,7 @@ class MonitoringManifestationSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Manifestation class
     """
+    feature = fields.Nested("MonitoringManifestationSchema")
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringManifestation
