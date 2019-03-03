@@ -59,3 +59,5 @@ target/
 # Project-related Folders
 instance/
 .env
+.pytest_cache
+.vscode
