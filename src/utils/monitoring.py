@@ -2,41 +2,53 @@
 Utility file for Monitoring Tables
 Contains functions for getting and accesing Sites table only
 """
-
-from connection import DB
 from src.models.monitoring import MonitoringEvents, MonitoringReleases
-# from sqlalchemy.orm import aliased
 
 
-def get_ongoing_and_extended_events():
+def get_public_alert_level(internal_alert_level, return_triggers=False):
+    alert = internal_alert_level.split("-")
+
+    try:
+        public_alert, trigger_str = alert
+
+        if public_alert == "ND":
+            public_alert = "A1"
+    except ValueError:
+        trigger_str = None
+        public_alert = "A0"
+
+    if return_triggers:
+        return public_alert, trigger_str
+
+    return public_alert
+
+
+def get_monitoring_events(event_id=None):
     """
-    Function that gets all site data by site code
+    Returns event details with corresponding site details. Receives an event_id from flask request.
+
+    Args: event_id
+
+    Note: From pubrelease.php getEvent
     """
-    ongoing_extended_events = DB.session.query(MonitoringEvents, MonitoringReleases).select_from(
-        MonitoringEvents
-        ).join(
-            MonitoringReleases, MonitoringEvents.event_id == MonitoringReleases.event_id
-            ).all()[0:2]
 
-    final_data = []
-    for event, release in ongoing_extended_events:
-        e_dict = row2dict(event)
-        r_dict = row2dict(release)
-        merged = {**e_dict, **r_dict}
-        final_data.append(merged)
-
-    # final_data -> for testing only
-    return final_data
-    # return ongoing_extended_events
-
-
-def row2dict(row):
     """
-    This converts rows into dictionary.
-    Source: https://stackoverflow.com/questions/1958219/convert-sqlalchemy-row-object-to-python-dict
+    NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
     """
-    dictionary = {}
-    for column in row.__table__.columns:
-        dictionary[column.name] = str(getattr(row, column.name))
+    if event_id is None:
+        event = MonitoringEvents.query.all()
+    else:
+        event = MonitoringEvents.query.filter(
+            MonitoringEvents.event_id == event_id).first()
 
-    return dictionary
+    return event
+
+
+def get_monitoring_release(release_id):
+    """
+    Something
+    """
+    release = MonitoringReleases.query.filter(
+        MonitoringReleases.release_id == release_id).first()
+
+    return release
