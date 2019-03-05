@@ -1,5 +1,6 @@
 from connection import DB, MARSHMALLOW
 
+
 class UserMobile(DB.Model):
     __tablename__ = "user_mobile"
 
