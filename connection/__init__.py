@@ -65,6 +65,9 @@ def create_app(config_name):
     from src.api.sites import SITES_BLUEPRINT
     app.register_blueprint(SITES_BLUEPRINT, url_prefix="/api")
 
+    from src.api.monitoring import MONITORING_BLUEPRINT
+    app.register_blueprint(MONITORING_BLUEPRINT, url_prefix="/api")
+
     from src.api.test_controller import TEST_BLUEPRINT
     app.register_blueprint(TEST_BLUEPRINT, url_prefix="/api")
 
