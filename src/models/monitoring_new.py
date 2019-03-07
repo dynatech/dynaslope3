@@ -168,7 +168,7 @@ class MonitoringOnDemand(UserMixin, DB.Model):
         "narratives.narrative_id"))
 
     trigger_misc = DB.relationship(
-        "monitoring_triggers_misc", backref="on_demand", lazy=True)
+        "MonitoringTriggersMisc", backref="on_demand", lazy=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger Misc ID: {self.trig_misc_id}"
@@ -190,7 +190,7 @@ class MonitoringEarthquake(UserMixin, DB.Model):
     longitude = DB.Column(DB.Float(9, 6), nullable=False)
 
     trigger_misc = DB.relationship(
-        "monitoring_triggers_misc", backref="eq", lazy=True)
+        "MonitoringTriggersMisc", backref="eq", lazy=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> EQ ID: {self.eq_id}"
@@ -220,15 +220,15 @@ class MonitoringMoms(UserMixin, DB.Model):
     trigger_misc = DB.relationship(
         "MonitoringTriggersMisc", backref="moms", lazy=True)
     narrative = DB.relationship(
-        "Users", backref="narrative",
+        "Users", backref="moms_narrative",
         primaryjoin="MonitoringMoms.narrative_id==Narratives.user_id",
         lazy="joined", innerjoin=True)
     reporter = DB.relationship(
-        "Users", backref="reporter",
+        "Users", backref="moms_reporter",
         primaryjoin="MonitoringMoms.reporter_id==Users.user_id",
         lazy="joined", innerjoin=True)
     validator = DB.relationship(
-        "Users", backref="validator",
+        "Users", backref="moms_validator",
         primaryjoin="MonitoringMoms.validator_id==Users.user_id",
         lazy="joined", innerjoin=True)
 
@@ -252,9 +252,9 @@ class MomsInstance(UserMixin, DB.Model):
     feature_name = DB.Column(DB.String(45))
 
     site = DB.relationship("Sites", backref=DB.backref(
-        "moms_instance", lazy="dynamic"))
+        "moms_instance_site", lazy="dynamic"))
     feature = DB.relationship(
-        "MomsFeatures", backref=DB.backref("moms_instance", lazy="dynamic"))
+        "MomsFeatures", backref=DB.backref("moms_instance_feature", lazy="dynamic"))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Instance ID: {self.instance_id}"
