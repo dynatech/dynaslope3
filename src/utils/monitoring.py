@@ -3,7 +3,9 @@ Utility file for Monitoring Tables
 Contains functions for getting and accesing Sites table only
 """
 from datetime import datetime, timedelta, time
-from src.models.monitoring import MonitoringEvents, MonitoringReleases
+from connection import DB
+from src.models.monitoring import (
+    MonitoringEvents, MonitoringReleases, MonitoringTriggers)
 
 
 def get_public_alert_level(internal_alert_level, return_triggers=False):
@@ -97,3 +99,43 @@ def get_monitoring_release(release_id):
         MonitoringReleases.release_id == release_id).first()
 
     return release
+
+
+# def get_active_monitoring_events():
+#     """
+#     Translated to Python by: Louie
+
+#     Get active monitoring events. Does not need any parameters, just get everything.
+#     """
+#     # active_events = MonitoringEvents.query.filter(
+#     #     MonitoringEvents.status.in_(["on-going", "extended"]))
+#     active_events = MonitoringEvents.query.filter(
+#         MonitoringEvents.status.in_(["finished"])).first()
+
+#     return active_events
+
+
+def get_active_monitoring_events():
+    """
+    Translated to Python by: Louie
+
+    Similar to CI Implem
+    """
+    # active_events = MonitoringEvents.query.order_by(DB.desc(MonitoringEvents.event_id)).filter(
+    #     MonitoringEvents.status.in_(["on-going", "extended"]))
+    active_events = MonitoringEvents.query.order_by(DB.desc(
+        MonitoringEvents.event_id)).filter(MonitoringEvents.status == "finished")
+
+    for index, event in enumerate(active_events):
+        event_id = event.event_id
+        releases = MonitoringReleases.query.order_by(DB.desc(
+            MonitoringReleases.release_id)).filter(MonitoringReleases.event_id == event_id).first()
+
+        triggers = MonitoringTriggers.query.order_by(DB.desc(
+            MonitoringTriggers.trigger_id)).filter(MonitoringTriggers.event_id == event_id).first()
+
+        merged = releases + triggers
+
+        active_events[index] = event + merged
+
+    return active_events
