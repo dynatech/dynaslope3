@@ -166,7 +166,13 @@ class MonitoringOnDemand(UserMixin, DB.Model):
     request_ts = DB.Column(DB.DateTime, nullable=False)
     narrative_id = DB.Column(DB.Integer, DB.ForeignKey(
         "narratives.narrative_id"))
+    reporter_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "comms_db.users.user_id"), nullable=False)
 
+    reporter = DB.relationship(
+        "Users", backref="od_reporter",
+        primaryjoin="MonitoringOnDemand.reporter_id==Users.user_id",
+        lazy="joined", innerjoin=True)
     trigger_misc = DB.relationship(
         "MonitoringTriggersMisc", backref="on_demand", lazy=True)
 
