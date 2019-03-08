@@ -8,8 +8,10 @@ NAMING CONVENTION
 
 from flask import Blueprint, jsonify
 from connection import DB
-from src.models.monitoring import MonitoringEventsSchema, MonitoringReleasesSchema
-from src.utils.monitoring import get_monitoring_events, get_monitoring_release
+from src.models.monitoring import (
+    MonitoringEventsSchema, MonitoringReleasesSchema)
+from src.utils.monitoring import (
+    get_monitoring_events, get_monitoring_release, get_active_monitoring_events)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -43,42 +45,17 @@ def wrap_get_monitoring_release(release_id):
     return jsonify(releases_data)
 
 
-# @MONITORING_BLUEPRINT.route("/monitoring_controller/get_all_releases_per_event/<event_id>", methods=["GET"])
-# def get_all_releases_per_event(event_id):
-#     """
-#     Function that get one member and outputs as json string. Receives an value using flask request
-#     Args: event_id - received through Flask Request.
-#     Note: From pubrelease_model and pubrelease controller.
-#     """
-#     # Use the following implementation if one of the joined tables is from another database.
-#     # Also, use aliases if needed.
-#     user_mt = DB.aliased(Users)
-#     user_ct = DB.aliased(Users)
-#     releases = DB.session.query(MonitoringReleases, user_mt, user_ct).join(
-#         user_mt, MonitoringReleases.reporter_id_mt == user_mt.user_id).join(
-#             user_ct, MonitoringReleases.reporter_id_ct == user_ct.user_id).order_by(
-#                 DB.desc(MonitoringReleases.release_id)).filter(
-#                     MonitoringReleases.event_id == event_id).all()
-#     releases_data = []
-#     for release, mt, ct in releases:
-#         user_schema = UsersSchema(only=("firstname", "lastname"))
-#         user_mt = user_schema.dump(mt).data
-#         user_ct = user_schema.dump(ct).data
-#         release_data = MonitoringReleasesSchema().dump(release).data
-#         release_data["reporter_mt"] = user_mt
-#         release_data["reporter_ct"] = user_ct
-#         releases_data.append(release_data)
-#     # releases_data = MonitoringReleasesSchema(
-#     #     many=True).dump(releases).data
-#     return jsonify(releases_data)
-# @MONITORING_BLUEPRINT.route("/monitoring_controller/get_event_with_site_details/<event_id>", methods=["GET"])
-# def get_event_with_site_details(event_id):
-#     """
-#     Returns event details with corresponding site details. Receives an event_id from flask request.
-#     Args: event_id
-#     Note: From pubrelease.php getEvent
-#     """
-#     events = MonitoringEvents.query.order_by(DB.desc(
-#         MonitoringEvents.event_id)).filter(MonitoringEvents.event_id == event_id).all()
-#     event_data = MonitoringEventsSchema(many=True).dump(events).data
-#     return jsonify(event_data)
+@MONITORING_BLUEPRINT.route("/monitoring/get_active_monitoring_events", methods=["GET"])
+def wrap_get_active_monitoring_events():
+    """
+    Translated to Python by: Louie
+
+    Get active monitoring events. Does not need any parameters, just get everything. 
+    """
+    active_events = get_active_monitoring_events()
+
+    # FOLLOWING CODE NEEDS TO BE MODIFIED TO HANDLE RELATIONSHIPS (IF NEEDED)
+    active_events_data = MonitoringEventsSchema(
+        many=True).dump(active_events).data
+
+    # return jsonify(active_events_data)
