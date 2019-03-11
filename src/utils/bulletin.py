@@ -3,7 +3,11 @@ Utility file for Monitoring Tables
 Contains functions for getting and accesing Sites table only
 """
 import re
-from src.models.monitoring import LUTResponses
+from connection import DB
+from marshmallow import fields
+from src.models.monitoring import (MonitoringReleases, MonitoringReleasesSchema,
+                                   MonitoringTriggers,
+                                   LUTResponses, LUTResponsesSchema)
 from src.utils.monitoring import get_public_alert_level, get_monitoring_release
 
 
@@ -125,8 +129,25 @@ def create_monitoring_bulletin(release_id):
     """
     release = get_monitoring_release(release_id)
     alert_description = get_alert_description(release.internal_alert_level)
-
     release.alert_description = alert_description
-    release.alert_responses = LUTResponses.query.filter()
 
-    return release
+    public_alert = get_public_alert_level(release.internal_alert_level)
+    release.alert_responses = LUTResponses.query.filter(
+        LUTResponses.public_alert_level == public_alert).first()
+
+    triggers = MonitoringTriggers.query.filter(
+        MonitoringTriggers.event_id == release.event_id).order_by(
+            DB.desc(MonitoringTriggers.timestamp)).all()
+
+    print()
+    for trigger in triggers:
+        print(
+            f"Row: {trigger.trigger_type}, {trigger.timestamp}, {trigger.event_id}")
+    print()
+
+    return BulletinSchema().dump(release).data
+
+
+class BulletinSchema(MonitoringReleasesSchema, LUTResponsesSchema):
+    alert_description = fields.String()
+    alert_responses = fields.Nested(LUTResponsesSchema)

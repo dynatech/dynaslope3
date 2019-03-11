@@ -1,4 +1,3 @@
-from src.utils.bulletin import create_monitoring_bulletin
 """
 Sample Controller File
 
@@ -12,6 +11,7 @@ from connection import DB
 from src.models.membership import Membership, MembershipSchema
 from src.models.monitoring import (MonitoringEvents, MonitoringReleases,
                                    MonitoringEventsSchema, MonitoringReleasesSchema)
+from src.utils.bulletin import create_monitoring_bulletin
 
 TEST_BLUEPRINT = Blueprint("test_blueprint", __name__)
 
@@ -100,7 +100,7 @@ def get_releases_of_an_event(event_id):
 
 @TEST_BLUEPRINT.route("/test_controller/create_bulletin", methods=["GET"])
 def test():
-    a = create_monitoring_bulletin(21433)
-    release = MonitoringReleasesSchema().dump(a).data
-    release["alert_description"] = a.alert_description
-    return jsonify(release)
+    a = create_monitoring_bulletin(19842)
+    # release = MonitoringReleasesSchema().dump(a).data
+    # release["alert_description"] = a.alert_description
+    return jsonify(a)
