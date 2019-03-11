@@ -36,7 +36,7 @@ class GsmModem:
         self.defaults = DefaultSettings()
         self.ser_port = ser_port
         self.ser_baud = ser_baud
-        self.gsm = self.initializeSerial()
+        self.gsm = self.initialize_serial()
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(pow_pin, GPIO.OUT)
@@ -45,7 +45,7 @@ class GsmModem:
         self.pow_pin = pow_pin
         self.ring_pin = ring_pin
 
-    def initializeSerial(self):
+    def initialize_serial(self):
         print('Connecting to GSM modem at', self.ser_port)
 
         gsm = serial.Serial()
@@ -57,7 +57,7 @@ class GsmModem:
 
         return gsm
 
-    def setGSMDefaults(self):
+    def set_gsm_defaults(self):
         GPIO.output(self.pow_pin, 0)
         time.sleep(
             int(self.defaults['GSM_DEFAULT_SETTINGS']['POWER_ON_DELAY']))
@@ -66,19 +66,19 @@ class GsmModem:
                 self.gsm.write(str.encode('AT\r\n'))
                 time.sleep(float(self.defaults['GSM_DEFAULT_SETTINGS']['WAIT_FOR_BYTES_DELAY']))
             print("<< Switching to no-echo mode: ", end=" ")
-            print(self.executeATCmd('ATE0').strip('\r\n'))
+            print(self.execute_atcmd('ATE0').strip('\r\n'))
             print("<< Switching to PDU mode: ", end=" ")
             print(re.sub(r"[\n\t\s]*", "",
-                         self.executeATCmd('AT+CMGF=0').rstrip('\r\n')))
+                         self.execute_atcmd('AT+CMGF=0').rstrip('\r\n')))
             print("<< Disabling unsolicited CMTI: ", end=" ")
             print(
-                re.sub(r"[\n\t\s]*", "", self.executeATCmd('AT+CNMI=2,0,0,0,0').rstrip('\r\n')))
+                re.sub(r"[\n\t\s]*", "", self.execute_atcmd('AT+CNMI=2,0,0,0,0').rstrip('\r\n')))
             return True
         except AttributeError:
             print("")
             return None
 
-    def executeATCmd(self, cmd="", expected_reply='OK'):
+    def execute_atcmd(self, cmd="", expected_reply='OK'):
         if cmd == "":
             raise ValueError("No cmd given")
         try:
@@ -105,8 +105,8 @@ class GsmModem:
         except serial.SerialException:
             print("NO SERIAL COMMUNICATION (gsm_cmd)")
 
-    def getAllSMS(self):
-        allmsgs = 'd' + self.executeATCmd('AT+CMGL=4')
+    def get_all_sms(self):
+        allmsgs = 'd' + self.execute_atcmd('AT+CMGL=4')
         allmsgs = re.findall("(?<=\+CMGL:).+\r\n.+(?=\n*\r\n\r\n)", allmsgs)
         msglist = []
 
@@ -156,7 +156,7 @@ class GsmModem:
                 continue
         return msglist
 
-    def sendSMS(self, msg, number):
+    def send_sms(self, msg, number):
         try:
             pdulist = PduDecoder.encodeSmsSubmitPdu(number, msg, 0, None)
             temp = pdulist[0]
@@ -214,62 +214,62 @@ class GsmModem:
                 count += 1
         return 0
 
-        def manage_multi_messages(self, smsdata):
-            if 'ref' not in smsdata:
-                return smsdata
-            sms_ref = smsdata['ref']
-            multipart_sms = mc.get("multipart_sms")
-            if multipart_sms is None:
-                multipart_sms = {}
-                print("multipart_sms in None")
+    def manage_multi_messages(self, smsdata):
+        if 'ref' not in smsdata:
+            return smsdata
+        sms_ref = smsdata['ref']
+        multipart_sms = mc.get("multipart_sms")
+        if multipart_sms is None:
+            multipart_sms = {}
+            print("multipart_sms in None")
 
-            if sms_ref not in multipart_sms:
-                multipart_sms[sms_ref] = {}
-                multipart_sms[sms_ref]['date'] = smsdata['date']
-                multipart_sms[sms_ref]['number'] = smsdata['number']
-                # multipart_sms[sms_ref]['cnt'] = smsdata['cnt']
-                multipart_sms[sms_ref]['seq_rec'] = 0
+        if sms_ref not in multipart_sms:
+            multipart_sms[sms_ref] = {}
+            multipart_sms[sms_ref]['date'] = smsdata['date']
+            multipart_sms[sms_ref]['number'] = smsdata['number']
+            # multipart_sms[sms_ref]['cnt'] = smsdata['cnt']
+            multipart_sms[sms_ref]['seq_rec'] = 0
 
-            multipart_sms[sms_ref][smsdata['seq']] = smsdata['text']
-            print("Sequence no: %d/%d" % (smsdata['seq'], smsdata['cnt']))
-            multipart_sms[sms_ref]['seq_rec'] += 1
+        multipart_sms[sms_ref][smsdata['seq']] = smsdata['text']
+        print("Sequence no: %d/%d" % (smsdata['seq'], smsdata['cnt']))
+        multipart_sms[sms_ref]['seq_rec'] += 1
 
-            smsdata_complete = ""
+        smsdata_complete = ""
 
-            if multipart_sms[sms_ref]['seq_rec'] == smsdata['cnt']:
-                multipart_sms[sms_ref]['text'] = ""
-                for i in range(1, smsdata['cnt']+1):
-                    try:
-                        multipart_sms[sms_ref]['text'] += multipart_sms[sms_ref][i]
-                    except KeyError:
-                        print(">> Error in reading multipart_sms.", )
-                        print("Text replace with empty line.")
+        if multipart_sms[sms_ref]['seq_rec'] == smsdata['cnt']:
+            multipart_sms[sms_ref]['text'] = ""
+            for i in range(1, smsdata['cnt']+1):
+                try:
+                    multipart_sms[sms_ref]['text'] += multipart_sms[sms_ref][i]
+                except KeyError:
+                    print(">> Error in reading multipart_sms.", )
+                    print("Text replace with empty line.")
 
-                # print multipart_sms[sms_ref]['text'] | DONT USE THIS
+            # print multipart_sms[sms_ref]['text'] | DONT USE THIS
 
-                smsdata_complete = multipart_sms[sms_ref]
+            smsdata_complete = multipart_sms[sms_ref]
 
-                del multipart_sms[sms_ref]
-            else:
-                print("Incomplete message")
+            del multipart_sms[sms_ref]
+        else:
+            print("Incomplete message")
 
-            mc.set("multipart_sms", multipart_sms)
-            return smsdata_complete
+        mc.set("multipart_sms", multipart_sms)
+        return smsdata_complete
 
-    def countSMS(self):
+    def count_sms(self):
         while True:
             b = ''
             c = ''
-            b = self.executeATCmd("AT+CPMS?")
+            b = self.execute_atcmd("AT+CPMS?")
 
             try:
                 c = int(b.split(',')[1])
                 if c > 0:
-                    print('\n>> Received', c, 'message/s; CSQ:', self.getCSQ())
+                    print('\n>> Received', c, 'message/s; CSQ:', self.get_csq())
 
                 return c
             except IndexError:
-                print('countSMS b = ', b)
+                print('count_sms b = ', b)
                 if b:
                     return 0
                 else:
@@ -283,8 +283,8 @@ class GsmModem:
                 print(">> TypeError")
                 return -2
 
-    def getCSQ(self):
-        csq_reply = self.executeATCmd("AT+CSQ")
+    def get_csq(self):
+        csq_reply = self.execute_atcmd("AT+CSQ")
 
         try:
             csq_val = int(re.search("(?<=: )\d{1,2}(?=,)", csq_reply).group(0))
@@ -292,13 +292,13 @@ class GsmModem:
         except (ValueError, AttributeError, TypeError) as e:
             raise ResetException
 
-    def deleteSMS(self, module):
+    def delete_sms(self, module):
         print("\n>> Deleting all read messages")
         try:
             if module == 1:
-                self.executeATCmd("AT+CMGD=0,2").strip()
+                self.execute_atcmd("AT+CMGD=0,2").strip()
             elif module == 2:
-                self.executeATCmd("AT+CMGDA=1").strip()
+                self.execute_atcmd("AT+CMGDA=1").strip()
             else:
                 raise ValueError("Unknown module type")
 
@@ -309,15 +309,15 @@ class GsmModem:
 
 if __name__ == "__main__":
     init = GsmModem()
-    print("Connection Status:", init.setGSMDefaults())
+    print("Connection Status:", init.set_gsm_defaults())
     # print("----------------- READING SMS-----------------")
-    # print(type(init.getAllSMS()), init.getAllSMS())
+    # print(type(init.get_all_sms()), init.get_all_sms())
     # print("----------------- SENDING SMS-----------------")
     counter = 0
     while True:
-    	init.sendSMS('SPAM# :'+str(counter), '639175394337')
+    	init.send_sms('SPAM# :'+str(counter), '639175394337')
     	counter = counter+1
     # print("----------------- Counting SMS-----------------")
-    # print(init.countSMS())
+    # print(init.count_sms())
     # print("----------------- Deleting SMS-----------------")
-    # print(init.deleteSMS(2))
+    # print(init.delete_sms(2))
