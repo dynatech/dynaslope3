@@ -15,6 +15,7 @@ class Sites(UserMixin, DB.Model):
     """
 
     __tablename__ = "sites"
+    __bind_key__ = "senslopedb"
 
     site_id = DB.Column(TINYINT, primary_key=True)
     site_code = DB.Column(DB.String(3), nullable=False)
@@ -24,7 +25,6 @@ class Sites(UserMixin, DB.Model):
     municipality = DB.Column(DB.String(45), nullable=False)
     province = DB.Column(DB.String(45), nullable=False)
     region = DB.Column(DB.String(45), nullable=False)
-    psgc = DB.Column(DB.Integer)
     active = DB.Column(DB.Boolean, nullable=False, default=True)
     barangay = DB.Column(DB.String(255), nullable=False)
     psgc = DB.Column(DB.Integer, nullable=False)

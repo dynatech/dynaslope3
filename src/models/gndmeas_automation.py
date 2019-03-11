@@ -1,5 +1,6 @@
 from connection import DB, MARSHMALLOW
 
+
 class GndmeasAutomation(DB.Model):
     __tablename__ = "gndmeas_automation"
 
@@ -14,9 +15,12 @@ class GndmeasAutomation(DB.Model):
     timestamp = DB.Column(DB.String(45))
     status = DB.Column(DB.String(4))
     modified = DB.Column(DB.String(45))
- 
+    user_id = DB.Column(
+        DB.Integer, DB.ForeignKey("users.user_id"))
+
     def __repr__(self):
         return f"{self.msg}\n"
+
 
 class GndmeasAutomationSchema(MARSHMALLOW.ModelSchema):
     class Meta:

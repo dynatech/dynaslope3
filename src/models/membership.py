@@ -20,7 +20,8 @@ class Membership(UserMixin, DB.Model):
     __bind_key__ = "comms_db"
 
     membership_id = DB.Column(DB.Integer, primary_key=True)
-    user_fk_id = DB.Column(DB.Integer, nullable=False)
+    user_fk_id = DB.Column(
+        DB.Integer, DB.ForeignKey("users.user_id"))
     username = DB.Column(DB.String(45))
     password = DB.Column(DB.String(200))
     is_active = DB.Column(DB.Boolean, nullable=False, default=True)

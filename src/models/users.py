@@ -1,12 +1,20 @@
+"""
+File containing class representation of
+tables of users
+"""
+
 import datetime
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
 
 
 class Users(DB.Model):
+    """
+    Class representation of users table
+    """
     __tablename__ = "users"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __table_args__ = {"schema": "comms_db_2"}
 
     user_id = DB.Column(DB.Integer, primary_key=True)
     salutation = DB.Column(DB.String(15))
@@ -22,51 +30,228 @@ class Users(DB.Model):
         return f"Type <{self.firstname}>"
 
 
-# class UsersRelationship(Users):
-#     __tablename__ = "users"
-#     __bind_key__ = "comms_db"
-#     __table_args__ = {"schema": "comms_db"}
+class UsersRelationship(Users):
+    """
+    Class representation of users relation in mobile and organization of users
+    """
+    __tablename__ = "users"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db_2"}
 
-#     mobile_numbers = DB.relationship(
-#         "UserMobile", backref=DB.backref("user", lazy="joined", innerjoin=True),
-#         primaryjoin="UsersRelationship.user_id==UserMobile.user_id", lazy="subquery")
+    mobile_numbers = DB.relationship(
+        "UserMobile", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        primaryjoin="UsersRelationship.user_id==UserMobile.user_id", lazy="subquery")
 
-#     def __repr__(self):
-#         return f"Type relationship"
+    organizations = DB.relationship(
+        "UserOrganization", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        primaryjoin="UsersRelationship.user_id==UserOrganization.user_id", lazy="subquery")
+
+    user_hierarchy = DB.relationship(
+        "UserHierarchy", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        primaryjoin="UsersRelationship.user_id==UserHierarchy.fk_user_id", lazy="subquery")
+
+    user_team = DB.relationship(
+        "UserTeamMembers", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        primaryjoin="UsersRelationship.user_id==UserTeamMembers.users_users_id", lazy="subquery")
+
+    def __repr__(self):
+        return f"Type relationship"
 
 
-# class UserMobile(DB.Model):
-#     __tablename__ = "user_mobile"
-#     __bind_key__ = "comms_db"
-#     __table_args__ = {"schema": "comms_db"}
+class UserMobile(DB.Model):
+    """
+    Class representation of user mobile table
+    """
+    __tablename__ = "user_mobile"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db_2"}
 
-#     mobile_id = DB.Column(DB.Integer, primary_key=True)
-#     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-#         "comms_db.users.user_id"), nullable=False)
-#     sim_num = DB.Column(DB.String(30))
-#     priority = DB.Column(DB.Integer, nullable=False)
-#     mobile_status = DB.Column(DB.Integer, nullable=False)
-#     gsm_id = DB.Column(DB.Integer, nullable=False)
+    mobile_id = DB.Column(DB.Integer, primary_key=True)
+    user_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "comms_db_2.users.user_id"), nullable=False)
+    sim_num = DB.Column(DB.String(30))
+    priority = DB.Column(DB.Integer, nullable=False)
+    mobile_status = DB.Column(DB.Integer, nullable=False)
+    gsm_id = DB.Column(DB.Integer, nullable=False)
 
-#     def __repr__(self):
-#         return (f"{self.sim_num}")
+    def __repr__(self):
+        return (f"{self.sim_num}")
+
+
+class UserOrganization(DB.Model):
+    """
+    Class representation of user_organization table
+    """
+
+    __tablename__ = "user_organization"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db_2"}
+
+    org_id = DB.Column(DB.Integer, primary_key=True)
+    user_id = DB.Column(
+        DB.Integer, DB.ForeignKey("comms_db_2.users.user_id"))
+    fk_site_id = DB.Column(
+        DB.Integer, DB.ForeignKey("sites.site_id"))
+    org_name = DB.Column(DB.String(45))
+    scope = DB.Column(DB.Integer, nullable=True)
+
+    site = DB.relationship(
+        "Sites", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        primaryjoin="UserOrganization.fk_site_id==Sites.site_id", lazy="subquery")
+
+    def __repr__(self):
+        return (f"{self.org_name}")
+
+
+class UserLandlines(DB.Model):
+    """
+    Class representation of user_landlines table
+    """
+    __tablename__ = "user_landlines"
+
+    __bind_key__ = "comms_db"
+
+    landline_id = DB.Column(DB.Integer, primary_key=True)
+    user_id = DB.Column(
+        DB.Integer, DB.ForeignKey("users.user_id"))
+    landline_num = DB.Column(DB.String(30))
+    remarks = DB.Column(DB.String(45))
+
+    def __repr__(self):
+        return (f"Type <{self.landline_num}")
+
+
+class UserHierarchy(DB.Model):
+    __tablename__ = "user_hierarchy"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db_2"}
+
+    user_hierarchy_id = DB.Column(DB.Integer, primary_key=True)
+    fk_user_id = DB.Column(
+        DB.Integer, DB.ForeignKey("comms_db_2.users.user_id"))
+    fk_user_organization_id = DB.Column(
+        DB.Integer, DB.ForeignKey("comms_db_2.user_organization.org_id"))
+    fk_site_id = DB.Column(
+        DB.Integer, DB.ForeignKey("sites.site_id"))
+    priority = DB.Column(DB.Integer, nullable=False)
+
+    def __repr__(self):
+        return f"Type <{self.priority}>"
+
+
+class UserTeams(DB.Model):
+    __tablename__ = "user_teams"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db_2"}
+
+    team_id = DB.Column(DB.Integer, primary_key=True)
+    team_code = DB.Column(DB.String(20))
+    team_name = DB.Column(DB.String(20))
+    remarks = DB.Column(DB.String(45))
+
+    def __repr__(self):
+        return f"{self.team_code}"
+
+
+class UserTeamMembers(DB.Model):
+    __tablename__ = "user_team_members"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db_2"}
+
+    members_id = DB.Column(DB.Integer, primary_key=True)
+    users_users_id = DB.Column(
+        DB.Integer, DB.ForeignKey("comms_db_2.users.user_id"))
+    dewsl_teams_team_id = DB.Column(
+        DB.Integer, DB.ForeignKey("comms_db_2.user_teams.team_id"))
+
+    user_team = DB.relationship(
+        "UserTeams", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        primaryjoin="UserTeamMembers.dewsl_teams_team_id==UserTeams.team_id", lazy="subquery")
+
+    def __repr__(self):
+        return (f"Member ID : {self.members_id} | User ID : {self.users_users_id}| Dewsl Team ID : {self.dewsl_teams_team_id} \n")
 
 
 class UsersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Users class
+    """
     class Meta:
+        """Saves table class structure as schema model"""
         model = Users
 
 
-# class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
-#     mobile_numbers = fields.Nested(
-#         "UserMobileSchema1", many=True, exclude=("user",))
+class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Users Relationships
+    """
+    mobile_numbers = fields.Nested(
+        "UserMobileSchema", many=True, exclude=("user",))
 
-#     class Meta:
-#         model = UsersRelationship
+    organizations = fields.Nested(
+        "UserOrganizationSchema", many=True, exclude=("user",))
+
+    user_hierarchy = fields.Nested(
+        "UserHierarchySchema", many=True, exclude=("user",))
+
+    user_team = fields.Nested(
+        "UserTeamMembersSchema", many=True, exclude=("user",))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UsersRelationship
 
 
-# class UserMobileSchema(MARSHMALLOW.ModelSchema):
-#     user = fields.Nested(UsersSchema)
+class UserMobileSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of User Mobile class
+    """
+    user = fields.Nested(UsersSchema, many=True)
 
-#     class Meta:
-#         model = UserMobile
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UserMobile
+
+
+class UserOrganizationSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of User Organization class
+    """
+    site = fields.Nested("SitesSchema")
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UserOrganization
+
+
+class UserHierarchySchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Users class
+    """
+
+    user = fields.Nested(UsersSchema)
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UserHierarchy
+
+
+class UserTeamsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Users class
+    """
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UserTeams
+
+
+class UserTeamMembersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Users class
+    """
+    user_team = fields.Nested("UserTeamsSchema", exclude=("user",))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UserTeamMembers
