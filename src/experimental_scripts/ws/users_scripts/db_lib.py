@@ -27,7 +27,7 @@ class DatabaseConnection:
 
 		while True:
 			try:
-				db, cur = self.dbConnect(
+				db, cur = self.db_connect(
 					self.db_cred['CBEWSL_DB_CREDENTIALS']['db_comms'])
 				query = ("select t1.stat_id,t1.mobile_id,t1.gsm_id,t1.outbox_id,"
 						 "t2.sms_msg from "
@@ -49,9 +49,9 @@ class DatabaseConnection:
 				print('10.')
 				time.sleep(20)
 
-	def getAllLoggersMobile(self, sim_num):
+	def get_all_logger_mobile(self, sim_num):
 		try:
-			db, cur = self.dbConnect(
+			db, cur = self.db_connect(
 				self.db_cred['CBEWSL_DB_CREDENTIALS']['db_comms'])
 			query = ("SELECT * FROM (SELECT "
 						"t1.mobile_id, t1.sim_num, t1.gsm_id "
@@ -76,9 +76,9 @@ class DatabaseConnection:
 		except MySQLdb.OperationalError:
 			time.sleep(20)
 
-	def getAllUsersMobile(self, sim_num, mobile_id_flag=False):
+	def get_all_user_mobile(self, sim_num, mobile_id_flag=False):
 		try:
-			db, cur = self.dbConnect(
+			db, cur = self.db_connect(
 				self.db_cred['CBEWSL_DB_CREDENTIALS']['db_comms'])
 			if mobile_id_flag == False:
 				query = "select mobile_id, sim_num, gsm_id from user_mobile where sim_num like '%"+sim_num+"%'"
@@ -118,16 +118,16 @@ class DatabaseConnection:
 			sms_msg = msg.data
 			read_status = 0
 
-			query_loggers = self.writeLoggerSMS(msg, gsm_id, ts_sms, ts_stored, sms_msg)
+			query_loggers = self.write_logger_sms(msg, gsm_id, ts_sms, ts_stored, sms_msg)
 			if (query_loggers == -1):
-				query_users = self.writeUserSMS(msg, gsm_id, ts_sms, ts_stored, sms_msg)
+				query_users = self.write_users_sms(msg, gsm_id, ts_sms, ts_stored, sms_msg)
 		
 
-	def writeLoggerSMS(self, msg, gsm_id, ts_sms, ts_stored, sms_msg):
+	def write_logger_sms(self, msg, gsm_id, ts_sms, ts_stored, sms_msg):
 		loggers_count = 0
 		query_loggers = ("insert into smsinbox_loggers (ts_sms, ts_stored, mobile_id, "
 			"sms_msg,read_status,gsm_id) values ")
-		logger_mobile_sim_nums = self.getAllLoggersMobile(msg.simnum[-10:])
+		logger_mobile_sim_nums = self.get_all_logger_mobile(msg.simnum[-10:])
 		if len(logger_mobile_sim_nums) != 0:
 			logger_mobile_sim_nums = {sim_num: mobile_id for (mobile_id, sim_num,
 									gsm_id) in logger_mobile_sim_nums}
@@ -139,16 +139,16 @@ class DatabaseConnection:
 
 			query_loggers = query_loggers[:-1]
 			print(">> Data logger SMS...")
-			result = self.writeToDB(query=query_loggers)
+			result = self.write_to_db(query=query_loggers)
 			return result
 		else:
 			return -1
 
-	def writeUserSMS(self, msg, gsm_id, ts_sms, ts_stored, sms_msg):
+	def write_users_sms(self, msg, gsm_id, ts_sms, ts_stored, sms_msg):
 		users_count = 0
 		query_users = ("insert into smsinbox_users (ts_sms, ts_stored, mobile_id, "
 		   "sms_msg,gsm_id) values ")
-		user_mobile_sim_nums = self.getAllUsersMobile(msg.simnum[:10])
+		user_mobile_sim_nums = self.get_all_user_mobile(msg.simnum[:10])
 		if len(user_mobile_sim_nums) != 0:
 			user_mobile_sim_nums = {sim_num: mobile_id for (mobile_id, sim_num,
 									gsm_id) in user_mobile_sim_nums}
@@ -159,14 +159,14 @@ class DatabaseConnection:
 			
 			query_users = query_users[:-1]
 			print(">> Users SMS...")
-			result = self.writeToDB(query=query_users)
+			result = self.write_to_db(query=query_users)
 			return result
 		else:
 			return -1
 
-	def writeToDB(self, query, last_insert_id=False):
+	def write_to_db(self, query, last_insert_id=False):
 		ret_val = None
-		db, cur = self.dbConnect(
+		db, cur = self.db_connect(
 			self.db_cred['CBEWSL_DB_CREDENTIALS']['db_comms'])
 
 		try:
@@ -196,9 +196,9 @@ class DatabaseConnection:
 			db.close()
 			return ret_val
 
-	def readDB(self, query):
+	def read_db(self, query):
 		try:
-			db, cur = self.dbConnect(
+			db, cur = self.db_connect(
 				self.db_cred['CBEWSL_DB_CREDENTIALS']['db_comms'])
 			a = cur.execute(query)
 			out = []
@@ -211,7 +211,7 @@ class DatabaseConnection:
 			print("MySQLdb OP Error:", mysqle)
 			time.sleep(20)
 
-	def dbConnect(self, schema):
+	def db_connect(self, schema):
 		try:
 			db = MySQLdb.connect(self.db_cred['CBEWSL_DB_CREDENTIALS']['host'],
 								 self.db_cred['CBEWSL_DB_CREDENTIALS']['user'],
@@ -228,7 +228,7 @@ class DatabaseConnection:
 			print("MySQL Error:", e)
 			return False
 
-	def updateSentStatus(self, table='', status_list='', resource="sms_data"):
+	def update_sent_status(self, table='', status_list='', resource="sms_data"):
 		if not table:
 			raise ValueError("No table definition")
 
@@ -246,13 +246,13 @@ class DatabaseConnection:
 		query += (" on duplicate key update stat_id=values(stat_id), "
 				  "send_status=send_status+values(send_status),ts_sent=values(ts_sent)")
 
-		self.writeToDB(query=query, last_insert_id=False)
+		self.write_to_db(query=query, last_insert_id=False)
 
-	def getGsmInfo(self, gsm_id):
+	def get_gsm_info(self, gsm_id):
 		gsm_dict = {}
 		query = "SELECT * FROM comms_db.gsm_modules where gsm_id = '" + \
 			str(gsm_id)+"';"
-		gsm_info = self.readDB(query)  # Refactor this
+		gsm_info = self.read_db(query)  # Refactor this
 		for gsm_id, gsm_server_id, gsm_name, sim_num, network, port, pwr, rng, module_type in gsm_info:
 			gsm_dict['gsm_id'] = gsm_id
 			gsm_dict['gsm_server_id'] = gsm_server_id

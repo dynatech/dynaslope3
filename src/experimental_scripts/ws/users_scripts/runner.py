@@ -34,7 +34,7 @@ class GsmServer:
 			sys.exit()
 
 	def get_gsm_modules(self, gsm_id):
-		gsm_modules = db.getGsmInfo(gsm_id)
+		gsm_modules = db.get_gsm_info(gsm_id)
 		return gsm_modules
 
 	def try_sending_messages(self, gsm_mod, gsm_info):
@@ -49,24 +49,24 @@ class GsmServer:
 		logruntimeflag = True
 		checkIfActive = True
 		print(">> GSM Server Active:", gsm_info['name'])
-		print(">> CSQ:", gsm_mod.getCSQ())
+		print(">> CSQ:", gsm_mod.get_csq())
 		print(">> Initialization duration:",
 			  (time.time() - start_time), " seconds")
 		while True:
-			m = gsm_mod.countSMS()
+			m = gsm_mod.count_sms()
 			if m > 0:
-				allmsgs = gsm_mod.getAllSMS()
+				allmsgs = gsm_mod.get_all_sms()
 				try:
 					db.write_inbox(allmsgs, gsm_info)
 					print(">> Writing SMS to Database...")
 				except KeyboardInterrupt:
 					print(">> Error: May be an empty line.. skipping message storing")
 
-				gsm_mod.deleteSMS(gsm_info["module"])
+				gsm_mod.delete_sms(gsm_info["module"])
 
 				print(dt.today().strftime(
 					">> Server active as of: %A, %B %d, %Y, %X"))
-				print(">> CSQ:", gsm_mod.getCSQ())
+				print(">> CSQ:", gsm_mod.get_csq())
 				self.try_sending_messages(gsm_mod, gsm_info)
 			elif m == 0:
 				self.try_sending_messages(gsm_mod, gsm_info)
@@ -75,7 +75,7 @@ class GsmServer:
 					if checkIfActive:
 						print(dt.today().strftime(
 							">> Server active as of: %A, %B %d, %Y, %X"))
-						print(">> CSQ:", gsm_mod.getCSQ())
+						print(">> CSQ:", gsm_mod.get_csq())
 					checkIfActive = False
 				else:
 					checkIfActive = True
@@ -105,7 +105,7 @@ class GsmServer:
 			return
 
 		for msg in allmsgs:
-			table_mobile = db.getAllUsersMobile(msg[1], mobile_id_flag=True)
+			table_mobile = db.get_all_user_mobile(msg[1], mobile_id_flag=True)
 			inv_table_mobile = {mobile_id: sim_num for (mobile_id, sim_num,
 														gsm_id) in table_mobile}
 			mobile_container.append(inv_table_mobile)
@@ -124,7 +124,7 @@ class GsmServer:
 					
 		# if len(error_stat_list) > 0:
 		# 	print(">> Ignoring invalid messages...")
-		# 	db.updateSentStatus(table, error_stat_list)
+		# 	db.update_sent_status(table, error_stat_list)
 		# 	print("done")
 
 		if len(msglist) == 0:
@@ -139,7 +139,7 @@ class GsmServer:
 				num_prefix = re.match(
 					"^ *((0)|(63))9\d\d", msg[0].simnum).group()
 				num_prefix = num_prefix.strip()
-				ret = gsm.sendSMS(msg[0].data, msg[0].simnum.strip())
+				ret = gsm.send_sms(msg[0].data, msg[0].simnum.strip())
 
 				today = dt.today().strftime("%Y-%m-%d %H:%M:%S")
 				if ret:
@@ -151,7 +151,7 @@ class GsmServer:
 				status_list.append(stat)
 			except Exception as e:
 				print('>> Error:', e)
-		db.updateSentStatus(table, status_list)
+		db.update_sent_status(table, status_list)
 
 
 if __name__ == "__main__":
@@ -159,7 +159,7 @@ if __name__ == "__main__":
 	initialize_gsm = GsmServer()
 	args = initialize_gsm.get_arguments()
 	db = dbLib.DatabaseConnection()
-	gsm_modules = db.getGsmInfo(args.gsm_id)
+	gsm_modules = db.get_gsm_info(args.gsm_id)
 	config = configparser.ConfigParser()
 	config.read('../utils/config.cnf')
 
@@ -189,7 +189,7 @@ if __name__ == "__main__":
 		raise ValueError(">> Error: no com port found")
 
 	try:
-		gsm_defaults = initialize_gsm_modules.setGSMDefaults()
+		gsm_defaults = initialize_gsm_modules.set_gsm_defaults()
 	except Exception as e:
 		print(e)
 		print(">> Error: initializing default settings.")
