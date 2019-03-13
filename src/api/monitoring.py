@@ -9,7 +9,7 @@ NAMING CONVENTION
 from flask import Blueprint, jsonify
 from connection import DB
 from src.models.monitoring import (
-    MonitoringEventsSchema, MonitoringReleasesSchema)
+    OldMonitoringEventsSchema, OldMonitoringReleasesSchema)
 from src.utils.monitoring import (
     get_monitoring_events, get_monitoring_release, get_active_monitoring_events)
 
@@ -24,10 +24,10 @@ def wrap_get_monitoring_events(event_id=None):
     NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
     """
     event = get_monitoring_events(event_id)
-    event_schema = MonitoringEventsSchema()
+    event_schema = OldMonitoringEventsSchema()
 
     if event_id is None:
-        event_schema = MonitoringEventsSchema(many=True)
+        event_schema = OldMonitoringEventsSchema(many=True)
 
     event_data = event_schema.dump(event).data
 
@@ -40,7 +40,7 @@ def wrap_get_monitoring_release(release_id):
     Something
     """
     release = get_monitoring_release(release_id)
-    releases_data = MonitoringReleasesSchema().dump(release).data
+    releases_data = OldMonitoringReleasesSchema().dump(release).data
 
     return jsonify(releases_data)
 
@@ -55,7 +55,7 @@ def wrap_get_active_monitoring_events():
     active_events = get_active_monitoring_events()
 
     # FOLLOWING CODE NEEDS TO BE MODIFIED TO HANDLE RELATIONSHIPS (IF NEEDED)
-    active_events_data = MonitoringEventsSchema(
+    active_events_data = OldMonitoringEventsSchema(
         many=True).dump(active_events).data
 
     # return jsonify(active_events_data)

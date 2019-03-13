@@ -11,7 +11,7 @@ from src.models.users import Users, UsersSchema
 from src.models.narratives import Narratives, NarrativesSchema
 
 
-class NewMonitoringEvents(UserMixin, DB.Model):
+class MonitoringEvents(UserMixin, DB.Model):
     """
     Class representation of monitoring_events table
     """
@@ -27,7 +27,7 @@ class NewMonitoringEvents(UserMixin, DB.Model):
     status = DB.Column(DB.String(20), nullable=False)
 
     event_alerts = DB.relationship(
-        "NewMonitoringEventAlerts", backref="event", lazy="dynamic")
+        "MonitoringEventAlerts", backref="event", lazy="dynamic")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
@@ -35,7 +35,7 @@ class NewMonitoringEvents(UserMixin, DB.Model):
                 f" Status: {self.status}")
 
 
-class NewMonitoringEventAlerts(UserMixin, DB.Model):
+class MonitoringEventAlerts(UserMixin, DB.Model):
     """
     Class representation of monitoring_event_alerts table
     """
@@ -57,7 +57,7 @@ class NewMonitoringEventAlerts(UserMixin, DB.Model):
                 f" ts_start: {self.ts_start} ts_end: {self.ts_end}")
 
 
-class NewMonitoringReleases(UserMixin, DB.Model):
+class MonitoringReleases(UserMixin, DB.Model):
     """
     Class representation of monitoring_releases table
     """
@@ -74,10 +74,10 @@ class NewMonitoringReleases(UserMixin, DB.Model):
     bulletin_number = DB.Column(DB.Integer, nullable=False)
 
     triggers = DB.relationship(
-        "NewMonitoringTriggers", backref="release", lazy="dynamic")
+        "MonitoringTriggers", backref="release", lazy="dynamic")
 
     release_publisher = DB.relationship(
-        "NewMonitoringReleasePublishers", backref=DB.backref("release", lazy="joined", innerjoin=True))
+        "MonitoringReleasePublishers", backref=DB.backref("release", lazy="joined", innerjoin=True))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Release ID: {self.release_id}"
@@ -85,7 +85,7 @@ class NewMonitoringReleases(UserMixin, DB.Model):
                 f" Release Time: {self.release_time} Bulletin No: {self.bulletin_number}")
 
 
-class NewMonitoringReleasePublishers(UserMixin, DB.Model):
+class MonitoringReleasePublishers(UserMixin, DB.Model):
     """
     Class representation of monitoring_release_publishers table
     """
@@ -101,7 +101,7 @@ class NewMonitoringReleasePublishers(UserMixin, DB.Model):
 
     user_details = DB.relationship(
         "Users", backref="publisher",
-        primaryjoin="NewMonitoringReleasePublishers.user_id==Users.user_id",
+        primaryjoin="MonitoringReleasePublishers.user_id==Users.user_id",
         lazy="joined", innerjoin=True)
 
     def __repr__(self):
@@ -110,7 +110,7 @@ class NewMonitoringReleasePublishers(UserMixin, DB.Model):
                 f" User Details: {self.user_details}")
 
 
-class NewMonitoringTriggers(UserMixin, DB.Model):
+class MonitoringTriggers(UserMixin, DB.Model):
     """
     Class representation of monitoring_triggers table
     """
@@ -131,7 +131,7 @@ class NewMonitoringTriggers(UserMixin, DB.Model):
                 f" TS: {self.ts} Info: {self.info}")
 
 
-class NewMonitoringTriggersMisc(UserMixin, DB.Model):
+class MonitoringTriggersMisc(UserMixin, DB.Model):
     """
     Class representation of monitoring_release_publishers table
     """
@@ -149,7 +149,7 @@ class NewMonitoringTriggersMisc(UserMixin, DB.Model):
         "monitoring_moms.moms_id"))
 
     trigger_parent = DB.relationship(
-        "NewMonitoringTriggers", backref="trigger_misc", lazy="subquery")
+        "MonitoringTriggers", backref="trigger_misc", lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger Misc ID: {self.trig_misc_id}"
@@ -157,7 +157,7 @@ class NewMonitoringTriggersMisc(UserMixin, DB.Model):
                 f" EQ ID: {self.eq_id} MOMS ID: {self.moms_id}")
 
 
-class NewMonitoringOnDemand(UserMixin, DB.Model):
+class MonitoringOnDemand(UserMixin, DB.Model):
     """
     Class representation of monitoring_on_demand table
     """
@@ -173,17 +173,17 @@ class NewMonitoringOnDemand(UserMixin, DB.Model):
 
     reporter = DB.relationship(
         "Users", backref="od_reporter",
-        primaryjoin="NewMonitoringOnDemand.reporter_id==Users.user_id",
+        primaryjoin="MonitoringOnDemand.reporter_id==Users.user_id",
         lazy="joined", innerjoin=True)
     trigger_misc = DB.relationship(
-        "NewMonitoringTriggersMisc", backref="on_demand", lazy=True)
+        "MonitoringTriggersMisc", backref="on_demand", lazy=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> OD ID: {self.od_id}"
                 f" Request TS: {self.request_ts} Reporter: {self.reporter}")
 
 
-class NewMonitoringEarthquake(UserMixin, DB.Model):
+class MonitoringEarthquake(UserMixin, DB.Model):
     """
     Class representation of monitoring_earthquake table
     """
@@ -196,14 +196,14 @@ class NewMonitoringEarthquake(UserMixin, DB.Model):
     longitude = DB.Column(DB.Float(9, 6), nullable=False)
 
     trigger_misc = DB.relationship(
-        "NewMonitoringTriggersMisc", backref="eq", primaryjoin="NewMonitoringTriggersMisc.eq_id==NewMonitoringEarthquake.eq_id")
+        "MonitoringTriggersMisc", backref="eq", primaryjoin="MonitoringTriggersMisc.eq_id==MonitoringEarthquake.eq_id")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> EQ ID: {self.eq_id}"
                 f" Magnitude: {self.magnitude}")
 
 
-class NewMonitoringMoms(UserMixin, DB.Model):
+class MonitoringMoms(UserMixin, DB.Model):
     """
     Class representation of monitoring_moms table
     """
@@ -224,18 +224,18 @@ class NewMonitoringMoms(UserMixin, DB.Model):
     op_trigger = DB.Column(DB.Integer, nullable=False)
 
     trigger_misc = DB.relationship(
-        "NewMonitoringTriggersMisc", backref="moms", lazy=True)
+        "MonitoringTriggersMisc", backref="moms", lazy=True)
     narrative = DB.relationship(
         "Narratives", backref="moms_narrative",
-        primaryjoin="NewMonitoringMoms.narrative_id==Narratives.id",
+        primaryjoin="MonitoringMoms.narrative_id==Narratives.id",
         lazy="joined", innerjoin=True)
     reporter = DB.relationship(
         "Users", backref="moms_reporter",
-        primaryjoin="NewMonitoringMoms.reporter_id==Users.user_id",
+        primaryjoin="MonitoringMoms.reporter_id==Users.user_id",
         lazy="joined", innerjoin=True)
     validator = DB.relationship(
         "Users", backref="moms_validator",
-        primaryjoin="NewMonitoringMoms.validator_id==Users.user_id",
+        primaryjoin="MonitoringMoms.validator_id==Users.user_id",
         lazy="joined", innerjoin=True)
 
     def __repr__(self):
@@ -243,7 +243,7 @@ class NewMonitoringMoms(UserMixin, DB.Model):
                 f" observance ts: {self.observance_ts} Remarks: {self.remarks}")
 
 
-class NewMomsInstances(UserMixin, DB.Model):
+class MomsInstances(UserMixin, DB.Model):
     """
     Class representation of moms_instances table
     """
@@ -260,14 +260,14 @@ class NewMomsInstances(UserMixin, DB.Model):
     site = DB.relationship("Sites", backref=DB.backref(
         "moms_instance_site", lazy="dynamic"))
     feature = DB.relationship(
-        "NewMomsFeatures", backref=DB.backref("moms_instance_feature", lazy="dynamic"))
+        "MomsFeatures", backref=DB.backref("moms_instance_feature", lazy="dynamic"))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Instance ID: {self.instance_id}"
                 f" Site ID: {self.site_id} Feature Name: {self.feature_name}")
 
 
-class NewMomsFeatures(UserMixin, DB.Model):
+class MomsFeatures(UserMixin, DB.Model):
     """
     Class representation of moms_features table
     """
@@ -288,11 +288,11 @@ class NewMomsFeatures(UserMixin, DB.Model):
 # START OF SCHEMAS DECLARATIONS
 
 
-class NewMonitoringEventsSchema(MARSHMALLOW.ModelSchema):
+class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Events class
     """
-    event_alerts = fields.Nested("NewMonitoringEventAlertsSchema",
+    event_alerts = fields.Nested("MonitoringEventAlertsSchema",
                                  many=True, exclude=("event", ))
     site = fields.Nested("SitesSchema", exclude=[
         "events", "active", "psgc"])
@@ -300,108 +300,108 @@ class NewMonitoringEventsSchema(MARSHMALLOW.ModelSchema):
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = NewMonitoringEvents
+        model = MonitoringEvents
 
 
-class NewMonitoringEventAlertsSchema(MARSHMALLOW.ModelSchema):
+class MonitoringEventAlertsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Event Alerts class
     """
-    event = fields.Nested(NewMonitoringEventsSchema,
+    event = fields.Nested(MonitoringEventsSchema,
                           exclude=("event_alerts", ))
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = NewMonitoringEventAlerts
+        model = MonitoringEventAlerts
 
 
-class NewMonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
+class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Releases class
     """
-    event_alert = fields.Nested(NewMonitoringEventAlertsSchema,
+    event_alert = fields.Nested(MonitoringEventAlertsSchema,
                                 exclude=("releases", ))
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = NewMonitoringReleases
+        model = MonitoringReleases
 
 
-class NewMonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
+class MonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Triggers class
     """
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = NewMonitoringTriggers
+        model = MonitoringTriggers
 
 
-class NewMonitoringReleasePublishersSchema(MARSHMALLOW.ModelSchema):
+class MonitoringReleasePublishersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Release Publishers class
     """
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = NewMonitoringReleasePublishers
+        model = MonitoringReleasePublishers
 
 
-class NewMonitoringTriggersMiscSchema(MARSHMALLOW.ModelSchema):
+class MonitoringTriggersMiscSchema(MARSHMALLOW.ModelSchema):
     """
-    Schema representation of NewMonitoringTriggersMisc class
+    Schema representation of MonitoringTriggersMisc class
     """
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = NewMonitoringTriggersMisc
+        model = MonitoringTriggersMisc
 
 
-class NewMonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
+class MonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring On Demand class
     """
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = NewMonitoringOnDemand
+        model = MonitoringOnDemand
 
 
-class NewMonitoringEarthquakeSchema(MARSHMALLOW.ModelSchema):
+class MonitoringEarthquakeSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Earthquake class
     """
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = NewMonitoringEarthquake
+        model = MonitoringEarthquake
 
 
-class NewMonitoringMomsSchema(MARSHMALLOW.ModelSchema):
+class MonitoringMomsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Moms class
     """
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = NewMonitoringMoms
+        model = MonitoringMoms
 
 
-class NewMomsInstancesSchema(MARSHMALLOW.ModelSchema):
+class MomsInstancesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Moms Instance class
     """
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = NewMomsInstances
+        model = MomsInstances
 
 
-class NewMomsFeaturesSchema(MARSHMALLOW.ModelSchema):
+class MomsFeaturesSchema(MARSHMALLOW.ModelSchema):
     """
-    Schema representation of NewMomsFeatures class
+    Schema representation of MomsFeatures class
     """
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = NewMomsFeatures
+        model = MomsFeatures

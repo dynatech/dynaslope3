@@ -5,7 +5,7 @@ Sites Functions Controller File
 from flask import Blueprint, jsonify
 from src.utils.sites import get_sites_data, get_site_events
 from src.models.sites import SitesSchema
-from src.models.monitoring import MonitoringEventsSchema
+from src.models.monitoring import OldMonitoringEventsSchema
 
 SITES_BLUEPRINT = Blueprint("sites_blueprint", __name__)
 
@@ -31,7 +31,7 @@ def wrap_get_site_events(site_code):
     Route function that gets all events from a site along with all events
     """
     site, events = get_site_events(site_code=site_code)
-    events_json = MonitoringEventsSchema(many=True, exclude=(
+    events_json = OldMonitoringEventsSchema(many=True, exclude=(
         "releases", "site")).dump(events).data
     site_json = SitesSchema().dump(site).data
     return jsonify({"site": site_json, "events": events_json})

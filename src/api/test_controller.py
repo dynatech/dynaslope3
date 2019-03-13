@@ -9,8 +9,8 @@ NAMING CONVENTION
 from flask import Blueprint, jsonify
 from connection import DB
 from src.models.membership import Membership, MembershipSchema
-from src.models.monitoring import (MonitoringEvents, MonitoringReleases,
-                                   MonitoringEventsSchema, MonitoringReleasesSchema)
+from src.models.monitoring import (OldMonitoringEvents, OldMonitoringReleases,
+                                   OldMonitoringEventsSchema, OldMonitoringReleasesSchema)
 from src.utils.bulletin import create_monitoring_bulletin
 
 TEST_BLUEPRINT = Blueprint("test_blueprint", __name__)
@@ -57,7 +57,7 @@ def get_all_event_ids_only():
     events = DB.session.query(MonitoringEvents.event_id).order_by(DB.desc(
         MonitoringEvents.event_id)).filter(MonitoringEvents.status == "finished").all()
 
-    event_data = MonitoringEventsSchema(many=True).dump(events).data
+    event_data = OldMonitoringEventsSchema(many=True).dump(events).data
     return jsonify(event_data)
 
 
@@ -69,7 +69,7 @@ def get_all_events():
     events = MonitoringEvents.query.order_by(DB.desc(
         MonitoringEvents.event_id)).filter(MonitoringEvents.status == "finished").all()
 
-    event_data = MonitoringEventsSchema(many=True).dump(events).data
+    event_data = OldMonitoringEventsSchema(many=True).dump(events).data
     return jsonify(event_data)
 
 
@@ -81,7 +81,7 @@ def get_all_events_wo_relationship():
     events = MonitoringEvents.query.options(DB.raiseload(MonitoringEvents.releases)).filter(
         MonitoringEvents.status == "finished").order_by(DB.desc(MonitoringEvents.event_id)).all()
 
-    event_data = MonitoringEventsSchema(
+    event_data = OldMonitoringEventsSchema(
         many=True, exclude=("releases", )).dump(events).data
     return jsonify(event_data)
 
@@ -91,16 +91,16 @@ def get_releases_of_an_event(event_id):
     """
     Sample implementation of joins with parameter
     """
-    releases = MonitoringReleases.query.join(MonitoringEvents).order_by(DB.desc(
+    releases = OldMonitoringReleases.query.join(MonitoringEvents).order_by(DB.desc(
         MonitoringEvents.event_id)).filter(MonitoringEvents.event_id == event_id).all()
 
-    releases_data = MonitoringReleasesSchema(many=True).dump(releases).data
+    releases_data = OldMonitoringReleasesSchema(many=True).dump(releases).data
     return jsonify(releases_data)
 
 
 @TEST_BLUEPRINT.route("/test_controller/create_bulletin", methods=["GET"])
 def test():
     a = create_monitoring_bulletin(19842)
-    # release = MonitoringReleasesSchema().dump(a).data
+    # release = OldMonitoringReleasesSchema().dump(a).data
     # release["alert_description"] = a.alert_description
     return jsonify(a)

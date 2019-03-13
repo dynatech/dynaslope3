@@ -7,12 +7,12 @@ from connection import DB
 from src.models.sites import Sites
 from src.models.users import Users
 from src.models.monitoring import (
-    MonitoringEvents as old_events_class, MonitoringReleases as old_releases_class,
-    MonitoringTriggers as old_triggers_class, MonitoringManifestation as old_manifestation_class,
-    MonitoringManifestationFeatures as old_momfeat_class, MonitoringOnDemand as old_od_class,
-    MonitoringEQ as old_eq_class, MonitoringInternalAlertSymbols,
+    OldMonitoringEvents, OldMonitoringManifestation,
+    OldMonitoringManifestationFeatures,
+    MonitoringInternalAlertSymbols,
     MonitoringAlertSymbols
 )
+
 
 from src.models.monitoring_new import *
 from src.models.narratives import Narratives
@@ -29,22 +29,22 @@ EVENT_STATUS = {
 
 
 def get_events():
-    # return old_events_class.query.order_by(
-    #     old_events_class.event_start).all()[0:250]
-    # return old_events_class.query.filter(old_events_class.site_id == 47).order_by(
-        # old_events_class.event_start).all()[0:100]
-    return old_events_class.query.filter(old_events_class.event_id == 51).all()
+    # return OldMonitoringEvents.query.order_by(
+    #     OldMonitoringEvents.event_start).all()[0:250]
+    # return OldMonitoringEvents.query.filter(OldMonitoringEvents.site_id == 47).order_by(
+        # OldMonitoringEvents.event_start).all()[0:100]
+    return OldMonitoringEvents.query.filter(OldMonitoringEvents.event_id == 51).all()
 
 
 def get_last_site_event(site_id):
-    return NewMonitoringEvents.query.filter(NewMonitoringEvents.site_id == site_id).order_by(
-        DB.desc(NewMonitoringEvents.event_start)).first()
+    return MonitoringEvents.query.filter(MonitoringEvents.site_id == site_id).order_by(
+        DB.desc(MonitoringEvents.event_start)).first()
 
 
 def get_last_event_alert(event_id):
-    return NewMonitoringEventAlerts.query.filter(
-        NewMonitoringEventAlerts.event_id == event_id).order_by(
-            DB.desc(NewMonitoringEventAlerts.ts_start)).first()
+    return MonitoringEventAlerts.query.filter(
+        MonitoringEventAlerts.event_id == event_id).order_by(
+            DB.desc(MonitoringEventAlerts.ts_start)).first()
 
 
 def insert_event_alert(release, ts_start_for_next_event):
@@ -71,7 +71,7 @@ def insert_event_alert(release, ts_start_for_next_event):
         old_pub_sym_id = 10
 
     if old_pub_sym_id != new_pub_sym_id:
-        new_ea = NewMonitoringEventAlerts(
+        new_ea = MonitoringEventAlerts(
             event_id=event_id,
             pub_sym_id=new_pub_sym_id,
             ts_start=data_timestamp
@@ -118,7 +118,7 @@ def insert_to_on_demand_table(trigger, site_id):
     narrative_id = insert_to_narratives_table(
         od_details.reason, od_details.ts, site_id, trigger.event_id)
 
-    on_demand = NewMonitoringOnDemand(
+    on_demand = MonitoringOnDemand(
         od_id=od_details.id,
         request_ts=od_details.ts,
         reporter_id=0,
@@ -132,7 +132,7 @@ def insert_to_on_demand_table(trigger, site_id):
 def insert_to_eq_table(trigger):
     eq_details = trigger.eq_details
 
-    eq = NewMonitoringEarthquake(
+    eq = MonitoringEarthquake(
         eq_id=eq_details.id,
         magnitude=eq_details.magnitude,
         latitude=eq_details.latitude,
@@ -145,8 +145,8 @@ def insert_to_eq_table(trigger):
 
 
 def get_feature_id(feature_type):
-    feature = NewMomsFeatures.query.filter(
-        NewMomsFeatures.feature_type == feature_type).first()
+    feature = MomsFeatures.query.filter(
+        MomsFeatures.feature_type == feature_type).first()
 
     if feature is None:
         if feature_type == "slide" or feature_type == "fall":
@@ -165,14 +165,14 @@ def get_feature_id(feature_type):
 def insert_to_moms_instances_table(feature):
     feature_id = get_feature_id(feature.feature_type)
 
-    result = NewMomsInstances.query.filter(
-        NewMomsInstances.site_id == feature.site_id and
-        NewMomsInstances.feature_id == feature_id and
-        NewMomsInstances.feature_name == feature.feature_name).first()
+    result = MomsInstances.query.filter(
+        MomsInstances.site_id == feature.site_id and
+        MomsInstances.feature_id == feature_id and
+        MomsInstances.feature_name == feature.feature_name).first()
 
     if result is None:
         # If not exists, insert new instance
-        moms_instance = NewMomsInstances(
+        moms_instance = MomsInstances(
             site_id=feature.site_id,
             feature_id=feature_id,
             feature_name=feature.feature_name
@@ -190,8 +190,8 @@ def insert_to_moms_instances_table(feature):
 
 
 def get_moms_feature_details(feature_id):
-    feature = old_momfeat_class.query.filter(
-        old_momfeat_class.feature_id == feature_id).first()
+    feature = OldMonitoringManifestationFeatures.query.filter(
+            OldMonitoringManifestationFeatures.feature_id == feature_id).first()
     return feature
 
 
@@ -205,7 +205,7 @@ def insert_to_moms_table(release):
         narrative_id = insert_to_narratives_table(
             mom.narrative, mom.ts_observance, feature.site_id, release.event_id)
 
-        moms_entry = NewMonitoringMoms(
+        moms_entry = MonitoringMoms(
             moms_id=mom.manifestation_id,
             instance_id=instance_id,
             observance_ts=mom.ts_observance,
@@ -222,8 +222,8 @@ def insert_to_moms_table(release):
 
 
 def insert_non_triggering_to_moms_table():
-    non_trig_moms = old_manifestation_class.query.filter(
-        old_manifestation_class.op_trigger == 0).all()
+    non_trig_moms = OldMonitoringManifestation.query.filter(
+        OldMonitoringManifestation.op_trigger == 0).all()
 
     for mom in non_trig_moms:
         feature = get_moms_feature_details(mom.feature_id)
@@ -236,7 +236,7 @@ def insert_non_triggering_to_moms_table():
         narrative_id = insert_to_narratives_table(
             mom.narrative, mom.ts_observance, feature.site_id, event_id)
 
-        moms_entry = NewMonitoringMoms(
+        moms_entry = MonitoringMoms(
             moms_id=mom.manifestation_id,
             instance_id=instance_id,
             observance_ts=mom.ts_observance,
@@ -301,7 +301,7 @@ def main():
             to_add_new_event = True
 
         if to_add_new_event:
-            new_event = NewMonitoringEvents(
+            new_event = MonitoringEvents(
                 event_id=event.event_id,
                 site_id=site_id,
                 event_start=event_start,
@@ -333,7 +333,7 @@ def process_event_releases(releases, site_id, last_event_alert, ts_start_for_nex
 
         release_id = release.release_id
 
-        new_release = NewMonitoringReleases(
+        new_release = MonitoringReleases(
             release_id=release_id,
             event_alert_id=event_alert_id,
             data_ts=release.data_timestamp,
@@ -360,7 +360,7 @@ def process_event_triggers(triggers, release, site_id):
         internal_symbol = get_internal_symbol(trigger)
         internal_sym_id = internal_symbol.internal_sym_id
 
-        new_trigger = NewMonitoringTriggers(
+        new_trigger = MonitoringTriggers(
             trigger_id=trigger_id,
             release_id=release.release_id,
             internal_sym_id=internal_sym_id,
@@ -381,7 +381,7 @@ def process_event_triggers(triggers, release, site_id):
             elif trigger_source == "moms":
                 moms_id = insert_to_moms_table(release)
 
-            trigger_misc = NewMonitoringTriggersMisc(
+            trigger_misc = MonitoringTriggersMisc(
                 trigger_id=trigger_id,
                 od_id=od_id,
                 eq_id=eq_id,
@@ -393,11 +393,11 @@ def process_event_triggers(triggers, release, site_id):
 
 
 def prepare_release_publishers(release_id, release):
-    publisher_mt = NewMonitoringReleasePublishers(
+    publisher_mt = MonitoringReleasePublishers(
         release_id=release_id, user_id=release.reporter_id_mt, role="mt"
     )
 
-    publisher_ct = NewMonitoringReleasePublishers(
+    publisher_ct = MonitoringReleasePublishers(
         release_id=release_id, user_id=release.reporter_id_ct, role="ct"
     )
     return publisher_ct, publisher_mt

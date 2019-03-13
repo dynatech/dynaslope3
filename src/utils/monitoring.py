@@ -5,7 +5,7 @@ Contains functions for getting and accesing Sites table only
 from datetime import datetime, timedelta, time
 from connection import DB
 from src.models.monitoring import (
-    MonitoringEvents, MonitoringReleases, MonitoringTriggers)
+    OldMonitoringEvents, OldMonitoringReleases, OldMonitoringTriggers)
 
 
 def get_public_alert_level(internal_alert_level, return_triggers=False, include_ND=False):
@@ -89,10 +89,10 @@ def get_monitoring_events(event_id=None):
 
     # NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
     if event_id is None:
-        event = MonitoringEvents.query.all()
+        event = OldMonitoringEvents.query.all()
     else:
-        event = MonitoringEvents.query.filter(
-            MonitoringEvents.event_id == event_id).first()
+        event = OldMonitoringEvents.query.filter(
+            OldMonitoringEvents.event_id == event_id).first()
 
     return event
 
@@ -101,8 +101,8 @@ def get_monitoring_release(release_id):
     """
     Something
     """
-    release = MonitoringReleases.query.filter(
-        MonitoringReleases.release_id == release_id).first()
+    release = OldMonitoringReleases.query.filter(
+        OldMonitoringReleases.release_id == release_id).first()
 
     return release
 
@@ -113,10 +113,10 @@ def get_monitoring_release(release_id):
 
 #     Get active monitoring events. Does not need any parameters, just get everything.
 #     """
-#     # active_events = MonitoringEvents.query.filter(
-#     #     MonitoringEvents.status.in_(["on-going", "extended"]))
-#     active_events = MonitoringEvents.query.filter(
-#         MonitoringEvents.status.in_(["finished"])).first()
+#     # active_events = OldMonitoringEvents.query.filter(
+#     #     OldMonitoringEvents.status.in_(["on-going", "extended"]))
+#     active_events = OldMonitoringEvents.query.filter(
+#         OldMonitoringEvents.status.in_(["finished"])).first()
 
 #     return active_events
 
@@ -127,18 +127,18 @@ def get_active_monitoring_events():
 
     Similar to CI Implem
     """
-    # active_events = MonitoringEvents.query.order_by(DB.desc(MonitoringEvents.event_id)).filter(
-    #     MonitoringEvents.status.in_(["on-going", "extended"]))
-    active_events = MonitoringEvents.query.order_by(DB.desc(
-        MonitoringEvents.event_id)).filter(MonitoringEvents.status == "finished")
+    # active_events = OldMonitoringEvents.query.order_by(DB.desc(OldMonitoringEvents.event_id)).filter(
+    #     OldMonitoringEvents.status.in_(["on-going", "extended"]))
+    active_events = OldMonitoringEvents.query.order_by(DB.desc(
+        OldMonitoringEvents.event_id)).filter(OldMonitoringEvents.status == "finished")
 
     for index, event in enumerate(active_events):
         event_id = event.event_id
-        releases = MonitoringReleases.query.order_by(DB.desc(
-            MonitoringReleases.release_id)).filter(MonitoringReleases.event_id == event_id).first()
+        releases = OldMonitoringReleases.query.order_by(DB.desc(
+            OldMonitoringReleases.release_id)).filter(OldMonitoringReleases.event_id == event_id).first()
 
-        triggers = MonitoringTriggers.query.order_by(DB.desc(
-            MonitoringTriggers.trigger_id)).filter(MonitoringTriggers.event_id == event_id).first()
+        triggers = OldMonitoringTriggers.query.order_by(DB.desc(
+            OldMonitoringTriggers.trigger_id)).filter(OldMonitoringTriggers.event_id == event_id).first()
 
         merged = releases + triggers
 

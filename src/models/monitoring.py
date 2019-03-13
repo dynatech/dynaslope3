@@ -11,7 +11,7 @@ from src.models.users import UsersSchema
 from src.models.sites import Sites  # Loader lang
 
 
-class MonitoringEvents(UserMixin, DB.Model):
+class OldMonitoringEvents(UserMixin, DB.Model):
     """
     Class representation of public_alert_event table
     """
@@ -26,7 +26,7 @@ class MonitoringEvents(UserMixin, DB.Model):
     validity = DB.Column(DB.DateTime)
     status = DB.Column(DB.String(20), nullable=False)
     releases = DB.relationship(
-        "MonitoringReleases", backref="event", lazy="dynamic")
+        "OldMonitoringReleases", backref="event", lazy="dynamic")
     site = DB.relationship(
         "Sites", backref=DB.backref("events", lazy="dynamic"))
 
@@ -36,7 +36,7 @@ class MonitoringEvents(UserMixin, DB.Model):
                 f" Status: {self.status}")
 
 
-class MonitoringReleases(UserMixin, DB.Model):
+class OldMonitoringReleases(UserMixin, DB.Model):
     """
     Class representation of public_alert_release table
     """
@@ -58,12 +58,12 @@ class MonitoringReleases(UserMixin, DB.Model):
         "comms_db.users.user_id"), nullable=False)
 
     triggers = DB.relationship(
-        "MonitoringTriggers", backref="release", lazy="subquery")
+        "OldMonitoringTriggers", backref="release", lazy="subquery")
 
     reporter_mt = DB.relationship(
-        "Users", backref="reporter_mts", primaryjoin="MonitoringReleases.reporter_id_mt==Users.user_id", lazy="joined")
+        "Users", backref="reporter_mts", primaryjoin="OldMonitoringReleases.reporter_id_mt==Users.user_id", lazy="joined")
     reporter_ct = DB.relationship(
-        "Users", backref="reporter_cts", primaryjoin="MonitoringReleases.reporter_id_ct==Users.user_id", lazy="joined")
+        "Users", backref="reporter_cts", primaryjoin="OldMonitoringReleases.reporter_id_ct==Users.user_id", lazy="joined")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Release ID: {self.release_id}"
@@ -72,7 +72,7 @@ class MonitoringReleases(UserMixin, DB.Model):
                 f" Release: {self.internal_alert_level} ")
 
 
-class MonitoringTriggers(UserMixin, DB.Model):
+class OldMonitoringTriggers(UserMixin, DB.Model):
     """
     Class representation of public_alert_trigger table
     """
@@ -90,7 +90,7 @@ class MonitoringTriggers(UserMixin, DB.Model):
     info = DB.Column(DB.String(360))
 
     # event = DB.relationship(
-    #     "MonitoringEvents", backref=DB.backref("triggers", lazy="dynamic"))
+    #     "OldMonitoringEvents", backref=DB.backref("triggers", lazy="dynamic"))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger ID: {self.trigger_id}"
@@ -98,7 +98,7 @@ class MonitoringTriggers(UserMixin, DB.Model):
                 f" TS: {self.timestamp}")
 
 
-class MonitoringManifestation(UserMixin, DB.Model):
+class OldMonitoringManifestation(UserMixin, DB.Model):
     """
     Class representation of public_alert_manifestation table
     """
@@ -118,9 +118,9 @@ class MonitoringManifestation(UserMixin, DB.Model):
     op_trigger = DB.Column(DB.Integer, nullable=False)
 
     release = DB.relationship(
-        "MonitoringReleases", backref=DB.backref("manifestation_details", lazy=True))
+        "OldMonitoringReleases", backref=DB.backref("manifestation_details", lazy=True))
 
-    # manifestation_feature = DB.relationship("MonitoringManifestationFeatures", backref="manifestation", lazy=True)
+    # manifestation_feature = DB.relationship("OldMonitoringManifestationFeatures", backref="manifestation", lazy=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Manifestation ID: {self.manifestation_id}"
@@ -128,7 +128,7 @@ class MonitoringManifestation(UserMixin, DB.Model):
                 f" release: {self.release}")
 
 
-class MonitoringManifestationFeatures(UserMixin, DB.Model):
+class OldMonitoringManifestationFeatures(UserMixin, DB.Model):
     """
     Class representation of manifestation_features table
     """
@@ -148,7 +148,7 @@ class MonitoringManifestationFeatures(UserMixin, DB.Model):
                 f" Site ID: {self.site_id} Feature Type: {self.feature_type}")
 
 
-class MonitoringOnDemand(UserMixin, DB.Model):
+class OldMonitoringOnDemand(UserMixin, DB.Model):
     """
     Class representation of public_alert_on_demand table
     """
@@ -163,7 +163,7 @@ class MonitoringOnDemand(UserMixin, DB.Model):
     is_llmc = DB.Column(DB.Boolean)
     reason = DB.Column(DB.String(200), nullable=False)
 
-    trigger = DB.relationship(MonitoringTriggers, backref=DB.backref(
+    trigger = DB.relationship(OldMonitoringTriggers, backref=DB.backref(
         "on_demand_details", lazy="subquery", uselist=False))
 
     def __repr__(self):
@@ -171,7 +171,7 @@ class MonitoringOnDemand(UserMixin, DB.Model):
                 f" Reason: {self.reason} TS: {self.ts}")
 
 
-class MonitoringEQ(UserMixin, DB.Model):
+class OldMonitoringEQ(UserMixin, DB.Model):
     """
     Class representation of public_alert_eq table
     """
@@ -185,7 +185,7 @@ class MonitoringEQ(UserMixin, DB.Model):
     latitude = DB.Column(DB.Float(9, 6))
     longitude = DB.Column(DB.Float(9, 6))
 
-    trigger = DB.relationship(MonitoringTriggers, backref=DB.backref(
+    trigger = DB.relationship(OldMonitoringTriggers, backref=DB.backref(
         "eq_details", lazy="subquery", uselist=False))
 
     def __repr__(self):
@@ -384,11 +384,11 @@ class MonitoringAlertSymbols(UserMixin, DB.Model):
 
 # START OF SCHEMAS DECLARATIONS
 
-class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
+class OldMonitoringEventsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Events class
     """
-    releases = fields.Nested("MonitoringReleasesSchema",
+    releases = fields.Nested("OldMonitoringReleasesSchema",
                              many=True, exclude=("event", ))
     site = fields.Nested("SitesSchema", exclude=[
         "events", "active", "psgc"])
@@ -396,20 +396,20 @@ class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = MonitoringEvents
+        model = OldMonitoringEvents
 
 
-class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
+class OldMonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Releases class
     """
-    event = fields.Nested(MonitoringEventsSchema,
+    event = fields.Nested(OldMonitoringEventsSchema,
                           exclude=("releases", "triggers"))
 
     manifestation_details = fields.Nested(
-        "MonitoringManifestationSchema", many=True)
+        "OldMonitoringManifestationSchema", many=True)
 
-    triggers = fields.Nested("MonitoringTriggersSchema",
+    triggers = fields.Nested("OldMonitoringTriggersSchema",
                              many=True, exclude=("release", "event"))
 
     reporter_mt = fields.Nested(
@@ -419,21 +419,21 @@ class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = MonitoringReleases
+        model = OldMonitoringReleases
 
 
-class MonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
+class OldMonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Trigger class
     """
     release_id = fields.Integer()
-    release = fields.Nested(MonitoringReleasesSchema, exclude=("triggers", ))
-    on_demand_details = fields.Nested("MonitoringOnDemandSchema")
-    eq_details = fields.Nested("MonitoringEQSchema")
+    release = fields.Nested(OldMonitoringReleasesSchema, exclude=("triggers", ))
+    on_demand_details = fields.Nested("OldMonitoringOnDemandSchema")
+    eq_details = fields.Nested("OldMonitoringEQSchema")
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = MonitoringTriggers
+        model = OldMonitoringTriggers
 
 
 class MonitoringBulletinTrackerSchema(MARSHMALLOW.ModelSchema):
@@ -517,16 +517,16 @@ class LUTTriggersSchema(MARSHMALLOW.ModelSchema):
         model = LUTTriggers
 
 
-class MonitoringManifestationFeaturesSchema(MARSHMALLOW.ModelSchema):
+class OldMonitoringManifestationFeaturesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Manifestation Features class
     """
     class Meta:
         """Saves table class structure as schema model"""
-        model = MonitoringManifestationFeatures
+        model = OldMonitoringManifestationFeatures
 
 
-class MonitoringEQSchema(MARSHMALLOW.ModelSchema):
+class OldMonitoringEQSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring EQ class
     """
@@ -536,28 +536,28 @@ class MonitoringEQSchema(MARSHMALLOW.ModelSchema):
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = MonitoringEQ
+        model = OldMonitoringEQ
 
 
-class MonitoringManifestationSchema(MARSHMALLOW.ModelSchema):
+class OldMonitoringManifestationSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Manifestation class
     """
     manifestation_feature = fields.Nested(
-        "MonitoringManifestationFeaturesSchema", many=True)
+        "OldMonitoringManifestationFeaturesSchema", many=True)
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = MonitoringManifestation
+        model = OldMonitoringManifestation
 
 
-class MonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
+class OldMonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring On Demand class
     """
     class Meta:
         """Saves table class structure as schema model"""
-        model = MonitoringOnDemand
+        model = OldMonitoringOnDemand
 
 
 class MonitoringAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
