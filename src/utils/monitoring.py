@@ -8,7 +8,7 @@ from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringTriggers)
 
 
-def get_public_alert_level(internal_alert_level, return_triggers=False):
+def get_public_alert_level(internal_alert_level, return_triggers=False, include_ND=False):
     alert = internal_alert_level.split("-")
 
     try:
@@ -16,9 +16,15 @@ def get_public_alert_level(internal_alert_level, return_triggers=False):
 
         if public_alert == "ND":
             public_alert = "A1"
+
+            if include_ND:
+                trigger_str = internal_alert_level
     except ValueError:
-        trigger_str = None
         public_alert = "A0"
+        trigger_str = None
+
+        if internal_alert_level == "ND":
+            trigger_str = "ND"
 
     if return_triggers:
         return public_alert, trigger_str

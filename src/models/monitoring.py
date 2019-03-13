@@ -61,9 +61,9 @@ class MonitoringReleases(UserMixin, DB.Model):
         "MonitoringTriggers", backref="release", lazy="subquery")
 
     reporter_mt = DB.relationship(
-        "Users", backref="reporter_mts", primaryjoin="MonitoringReleases.reporter_id_mt==Users.user_id", lazy="joined", innerjoin=True)
+        "Users", backref="reporter_mts", primaryjoin="MonitoringReleases.reporter_id_mt==Users.user_id", lazy="joined")
     reporter_ct = DB.relationship(
-        "Users", backref="reporter_cts", primaryjoin="MonitoringReleases.reporter_id_ct==Users.user_id", lazy="joined", innerjoin=True)
+        "Users", backref="reporter_cts", primaryjoin="MonitoringReleases.reporter_id_ct==Users.user_id", lazy="joined")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Release ID: {self.release_id}"
@@ -117,8 +117,8 @@ class MonitoringManifestation(UserMixin, DB.Model):
     validator = DB.Column(DB.Integer, DB.ForeignKey("comms_db.users.user_id"))
     op_trigger = DB.Column(DB.Integer, nullable=False)
 
-    releaser = DB.relationship(
-        "MonitoringReleases", backref=DB.backref("manifestation_details", lazy="subquery"))
+    release = DB.relationship(
+        "MonitoringReleases", backref=DB.backref("manifestation_details", lazy=True))
 
     # manifestation_feature = DB.relationship("MonitoringManifestationFeatures", backref="manifestation", lazy=True)
 
@@ -208,27 +208,6 @@ class MonitoringBulletinTracker(UserMixin, DB.Model):
                 f" TS: {self.bulletin_number}")
 
 
-class MonitoringAlertStatus(UserMixin, DB.Model):
-    """
-    Class representation of alert_status table
-    """
-
-    __tablename__ = "alert_status"
-
-    stat_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    ts_last_retrigger = DB.Column(DB.DateTime)
-    trigger_id = DB.Column(DB.Integer)
-    ts_set = DB.Column(DB.DateTime)
-    ts_ack = DB.Column(DB.DateTime)
-    alert_status = DB.Column(DB.Integer)
-    remarks = DB.Column(DB.String(450))
-    user_id = DB.Column(DB.Integer)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Stat ID: {self.stat_id}"
-                f" Trigger ID: {self.trigger_id} Alert Status: {self.alert_status}")
-
-
 class MonitoringOperationalTriggers(UserMixin, DB.Model):
     """
     Class representation of operational_triggers table
@@ -247,6 +226,29 @@ class MonitoringOperationalTriggers(UserMixin, DB.Model):
                 f" Site ID: {self.trigger_id}")
 
 
+class MonitoringInternalAlertSymbols(UserMixin, DB.Model):
+    """
+    Class representation of internal_alert_symbols table
+    """
+
+    __tablename__ = "internal_alert_symbols"
+
+    internal_sym_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    alert_symbol = DB.Column(DB.String(4), nullable=False)
+    trigger_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "operational_trigger_symbols.trigger_sym_id"), nullable=False)
+    # alert_description = DB.Column(DB.String(120))
+
+    op_trigger_symbol = DB.relationship(
+        "MonitoringOperationalTriggersSymbols", backref="int_alert_symbols", lazy=True)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Internal Sym ID: {self.internal_sym_id}"
+                # must change db column name to alert_description instead of 'alert description'
+                # f" Alert Symbol: {self.alert_symbol} Alert Desc: {self.alert_description}")
+                f" Alert Symbol: {self.alert_symbol}")
+
+
 class MonitoringOperationalTriggersSymbols(UserMixin, DB.Model):
     """
     Class representation of operational_triggers table
@@ -258,7 +260,11 @@ class MonitoringOperationalTriggersSymbols(UserMixin, DB.Model):
     alert_level = DB.Column(DB.Integer, nullable=False)
     alert_symbol = DB.Column(DB.String(2), nullable=False)
     alert_description = DB.Column(DB.String(100), nullable=False)
-    source_id = DB.Column(DB.Integer)
+    source_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "trigger_hierarchies.source_id"), nullable=False)
+
+    trigger_hierarchy = DB.relationship(
+        "MonitoringTriggerHierarchies", backref="op_trigger_symbols", lazy=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger Symbol ID: {self.trigger_sym_id}"
@@ -279,25 +285,6 @@ class MonitoringTriggerHierarchies(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Source ID: {self.source_id}"
                 f" Trig Source: {self.trigger_source} Hierarchy ID: {self.hierarchy_id}")
-
-
-class MonitoringInternalAlertSymbols(UserMixin, DB.Model):
-    """
-    Class representation of internal_alert_symbols table
-    """
-
-    __tablename__ = "internal_alert_symbols"
-
-    internal_sym_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    alert_symbol = DB.Column(DB.String(4), nullable=False)
-    trigger_sym_id = DB.Column(DB.Integer, nullable=False)
-    # alert_description = DB.Column(DB.String(120))
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Internal Sym ID: {self.internal_sym_id}"
-                # must change db column name to alert_description instead of 'alert description'
-                # f" Alert Symbol: {self.alert_symbol} Alert Desc: {self.alert_description}")
-                f" Alert Symbol: {self.alert_symbol}")
 
 
 class MonitoringEndOfShiftAnalysis(UserMixin, DB.Model):
@@ -373,25 +360,7 @@ class LUTTriggers(UserMixin, DB.Model):
                 f" Detailed Desc: {self.detailed_desc}")
 
 
-class MonitoringNarratives(UserMixin, DB.Model):
-    """
-    Class representation of narratives table
-    """
-
-    __tablename__ = "narratives"
-
-    id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    site_id = DB.Column(DB.Integer)
-    event_id = DB.Column(DB.Integer)
-    timestamp = DB.Column(DB.DateTime)
-    narrative = DB.Column(DB.String(1000))
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> ID: {self.id}"
-                f" site_id: {self.site_id} Narrative: {self.narrative}")
-
-
-class MonitoringSymbols(UserMixin, DB.Model):
+class MonitoringAlertSymbols(UserMixin, DB.Model):
     """
     Class representation of public_alert_symbols table
     """
@@ -470,15 +439,6 @@ class MonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
 class MonitoringBulletinTrackerSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Bulletin Tracker class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringBulletinTracker
-
-
-class MonitoringAlertStatusSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Alert Status class
     """
     class Meta:
         """Saves table class structure as schema model"""
@@ -566,15 +526,6 @@ class MonitoringManifestationFeaturesSchema(MARSHMALLOW.ModelSchema):
         model = MonitoringManifestationFeatures
 
 
-class MonitoringNarrativesSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Narrative class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringManifestationFeatures
-
-
 class MonitoringEQSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring EQ class
@@ -609,12 +560,12 @@ class MonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
         model = MonitoringOnDemand
 
 
-class MonitoringSymbolsSchema(MARSHMALLOW.ModelSchema):
+class MonitoringAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Alert Symbols class
     """
     class Meta:
         """Saves table class structure as schema model"""
-        model = MonitoringSymbols
+        model = MonitoringAlertSymbols
 
 # END OF SCHEMAS DECLARATIONS
