@@ -5,10 +5,9 @@ Contains functions for getting and accesing Sites table only
 import re
 from connection import DB
 from marshmallow import fields
-from src.models.monitoring import (OldMonitoringReleases, OldMonitoringReleasesSchema,
-                                   OldMonitoringTriggers,
-                                   LUTResponses, LUTResponsesSchema)
-from src.utils.monitoring import get_public_alert_level, get_monitoring_release
+from src.models.monitoring import (MonitoringReleases, MonitoringReleasesSchema,
+                                   MonitoringTriggers, LUTResponses, LUTResponsesSchema)
+from src.utils.monitoring import get_public_alert_level, get_monitoring_releases
 
 
 class AlertDescriptionProcessor:
@@ -127,7 +126,7 @@ def create_monitoring_bulletin(release_id):
     """
     Creates monitoring bulletin
     """
-    release = get_monitoring_release(release_id)
+    release = get_monitoring_releases(release_id)
     alert_description = get_alert_description(release.internal_alert_level)
     release.alert_description = alert_description
 
@@ -135,9 +134,9 @@ def create_monitoring_bulletin(release_id):
     release.alert_responses = LUTResponses.query.filter(
         LUTResponses.public_alert_level == public_alert).first()
 
-    triggers = OldMonitoringTriggers.query.filter(
-        OldMonitoringTriggers.event_id == release.event_id).order_by(
-            DB.desc(OldMonitoringTriggers.timestamp)).all()
+    triggers = MonitoringTriggers.query.filter(
+        MonitoringTriggers.event_id == release.event_id).order_by(
+            DB.desc(MonitoringTriggers.timestamp)).all()
 
     print()
     for trigger in triggers:
@@ -148,6 +147,6 @@ def create_monitoring_bulletin(release_id):
     return BulletinSchema().dump(release).data
 
 
-class BulletinSchema(OldMonitoringReleasesSchema, LUTResponsesSchema):
+class BulletinSchema(MonitoringReleasesSchema, LUTResponsesSchema):
     alert_description = fields.String()
     alert_responses = fields.Nested(LUTResponsesSchema)
