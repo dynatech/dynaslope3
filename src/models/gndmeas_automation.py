@@ -1,27 +1,35 @@
+import datetime
 from connection import DB, MARSHMALLOW
 
 
 class GndmeasAutomation(DB.Model):
+    """
+    Class representation of gndmeas_automation table
+    """
     __tablename__ = "gndmeas_automation"
-
-    __bind_key__ = "comms_db"
+    __bind_key__ = "ewi_db"
+    __table_args__ = {"schema": "ewi_db"}
 
     automation_id = DB.Column(DB.Integer, primary_key=True)
     type = DB.Column(DB.String(45))
-    msg = DB.Column(DB.String(1000))
-    office_recipients = DB.Column(DB.String(45))
-    site = DB.Column(DB.String(4))
-    altered_template = DB.Column(DB.String(45))
-    timestamp = DB.Column(DB.String(45))
-    status = DB.Column(DB.String(4))
-    modified = DB.Column(DB.String(45))
-    user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("users.user_id"))
+    message = DB.Column(DB.String(200))
+    recipient = DB.Column(DB.String(45))
+    site_id = DB.Column(
+        DB.Integer, DB.ForeignKey("sites.site_id"))
+    altered_template = DB.Column(DB.Integer, nullable=False)
+    ts_release = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
+    send_status = DB.Column(DB.Integer, nullable=False)
+    modified = DB.Column(DB.Integer, nullable=False)
+    automation_category_id = DB.Column(DB.Integer, nullable=False)
 
     def __repr__(self):
         return f"{self.msg}\n"
 
 
 class GndmeasAutomationSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of GndmeasAutomation class
+    """
     class Meta:
+        """Saves table class structure as schema model"""
         model = GndmeasAutomation

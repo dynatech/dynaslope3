@@ -103,7 +103,7 @@ class MonitoringReleasePublishers(UserMixin, DB.Model):
     release_id = DB.Column(DB.Integer, DB.ForeignKey(
         "monitoring_releases.release_id"), nullable=False)
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db.users.user_id"), nullable=False)
+        "comms_db_2.users.user_id"), nullable=False)
     role = DB.Column(DB.String(45))
 
     user_details = DB.relationship(
@@ -185,7 +185,7 @@ class MonitoringOnDemand(UserMixin, DB.Model):
     narrative_id = DB.Column(DB.Integer, DB.ForeignKey(
         "narratives.id"))
     reporter_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db.users.user_id"), nullable=False)
+        "comms_db_2.users.user_id"), nullable=False)
 
     reporter = DB.relationship(
         "Users", backref="od_reporter",
@@ -256,12 +256,12 @@ class MonitoringMoms(UserMixin, DB.Model):
         "moms_instances.instance_id"), nullable=False)
     observance_ts = DB.Column(DB.DateTime, nullable=False)
     reporter_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db.users.user_id"), nullable=False)
+        "comms_db_2.users.user_id"), nullable=False)
     remarks = DB.Column(DB.String(500), nullable=False)
     narrative_id = DB.Column(DB.Integer, DB.ForeignKey(
         "narratives.id"), nullable=False)
     validator_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db.users.user_id"), nullable=False)
+        "comms_db_2.users.user_id"), nullable=False)
     op_trigger = DB.Column(DB.Integer, nullable=False)
 
     narrative = DB.relationship(
@@ -435,7 +435,7 @@ class IssuesAndReminders(UserMixin, DB.Model):
     iar_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     detail = DB.Column(DB.String(360), nullable=False)
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db.users.user_id"), nullable=False)
+        "comms_db_2.users.user_id"), nullable=False)
     ts_posted = DB.Column(DB.DateTime, nullable=False)
     event_id = DB.Column(DB.Integer, DB.ForeignKey(
         "monitoring_events.event_id"), nullable=False)

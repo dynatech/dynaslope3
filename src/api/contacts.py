@@ -11,13 +11,13 @@ from src.models.sites import Sites, SitesSchema
 CONTACTS_BLUEPRINT = Blueprint("contacts_blueprint", __name__)
 
 
-@CONTACTS_BLUEPRINT.route("/contacts", methods=["GET"])
+@CONTACTS_BLUEPRINT.route("/contacts/get_all_contacts", methods=["GET"])
 def get_all_contacts():
     """
     Function that get contacts as json string
     """
 
-    employee_query = employee_query = UsersRelationship.query.filter(
+    employee_query = UsersRelationship.query.filter(
         UsersRelationship.organizations == None, UsersRelationship.firstname.notlike("%UNKNOWN%")).all()
     employee_result = UsersRelationshipSchema(exclude=("organizations", "user_hierarchy", "user_team",),
                                               many=True).dump(employee_query).data
@@ -32,10 +32,10 @@ def get_all_contacts():
     community_result = UsersRelationshipSchema(exclude=("user_hierarchy", "user_team",),
                                                many=True).dump(community_query).data
 
-    return jsonify({"employee": employee_result, "community": community_result, "unknown": unknown_result})
+    return jsonify({"community": community_result, "employee": employee_result, "unknown": unknown_result})
 
 
-@CONTACTS_BLUEPRINT.route("/contact_suggestion", methods=["GET"])
+@CONTACTS_BLUEPRINT.route("/contacts/contact_suggestion", methods=["GET"])
 def get_contact_suggestions():
     """
     Function that get all contact for search
@@ -49,14 +49,18 @@ def get_contact_suggestions():
     return jsonify({"contacts": contact_suggestion_result})
 
 
-@CONTACTS_BLUEPRINT.route("/contact_details", methods=["GET"])
+@CONTACTS_BLUEPRINT.route("/contacts/contact_details", methods=["GET"])
 def get_contact_details():
     """
     Function that get contacts contact as json string
     """
-    user_id = 76  # for testing
+    user_id = 526  # for testing
     contact_details_query = UsersRelationship.query.filter(
-        UsersRelationship.firstname.notlike("%UNKNOWN%"), UsersRelationship.mobile_numbers != None, UsersRelationship.firstname != None, UsersRelationship.lastname != None, UsersRelationship.user_id == user_id).first()
+        UsersRelationship.firstname.notlike("%UNKNOWN%"),
+        UsersRelationship.mobile_numbers != None,
+        UsersRelationship.firstname != None,
+        UsersRelationship.lastname != None,
+        UsersRelationship.user_id == user_id).first()
 
     contact_details_result = UsersRelationshipSchema().dump(
         contact_details_query).data
@@ -64,18 +68,21 @@ def get_contact_details():
     return jsonify({"contact_details": contact_details_result})
 
 
+@CONTACTS_BLUEPRINT.route("/contacts/insert_new_contact", methods=["GET"])
 def insert_new_contact():
     """
     Function that add new contact
     """
 
 
+@CONTACTS_BLUEPRINT.route("/contacts/update_contact", methods=["GET"])
 def update_contact():
     """
     Function that update contact
     """
 
 
+@CONTACTS_BLUEPRINT.route("/contacts/delete_contact", methods=["GET"])
 def delete_contact():
     """
     Function that delete contact
