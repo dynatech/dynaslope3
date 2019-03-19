@@ -9,9 +9,9 @@ NAMING CONVENTION
 from flask import Blueprint, jsonify
 from connection import DB
 from src.models.monitoring import (
-    OldMonitoringEventsSchema, OldMonitoringReleasesSchema)
+    MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema)
 from src.utils.monitoring import (
-    get_monitoring_events, get_monitoring_release, get_active_monitoring_events)
+    get_monitoring_events, get_monitoring_releases, get_active_monitoring_events)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -24,23 +24,29 @@ def wrap_get_monitoring_events(event_id=None):
     NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
     """
     event = get_monitoring_events(event_id)
-    event_schema = OldMonitoringEventsSchema()
+    event_schema = MonitoringEventsSchema()
 
     if event_id is None:
-        event_schema = OldMonitoringEventsSchema(many=True)
+        event_schema = MonitoringEventsSchema(many=True)
 
     event_data = event_schema.dump(event).data
 
     return jsonify(event_data)
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_release/<release_id>", methods=["GET"])
-def wrap_get_monitoring_release(release_id):
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases", methods=["GET"])
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases/<release_id>", methods=["GET"])
+def wrap_get_monitoring_releases(release_id=None):
     """
-    Something
+    Gets a single release with the specificied ID
     """
-    release = get_monitoring_release(release_id)
-    releases_data = OldMonitoringReleasesSchema().dump(release).data
+    release = get_monitoring_releases(release_id)
+    release_schema = MonitoringReleasesSchema()
+
+    if release_id is None:
+        release_schema = MonitoringReleasesSchema(many=True)
+
+    releases_data = release_schema.dump(release).data
 
     return jsonify(releases_data)
 
@@ -48,14 +54,11 @@ def wrap_get_monitoring_release(release_id):
 @MONITORING_BLUEPRINT.route("/monitoring/get_active_monitoring_events", methods=["GET"])
 def wrap_get_active_monitoring_events():
     """
-    Translated to Python by: Louie
-
-    Get active monitoring events. Does not need any parameters, just get everything. 
+        Get active monitoring events. Does not need any parameters, just get everything. 
     """
     active_events = get_active_monitoring_events()
 
-    # FOLLOWING CODE NEEDS TO BE MODIFIED TO HANDLE RELATIONSHIPS (IF NEEDED)
-    active_events_data = OldMonitoringEventsSchema(
+    active_events_data = MonitoringEventAlertsSchema(
         many=True).dump(active_events).data
 
-    # return jsonify(active_events_data)
+    return jsonify(active_events_data)

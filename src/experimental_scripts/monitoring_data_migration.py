@@ -6,15 +6,13 @@ from pprint import pprint
 from connection import DB
 from src.models.sites import Sites
 from src.models.users import Users
-from src.models.monitoring import (
+from src.models.monitoring_old import (
     OldMonitoringEvents, OldMonitoringManifestation,
-    OldMonitoringManifestationFeatures,
-    MonitoringInternalAlertSymbols,
-    MonitoringAlertSymbols
+    OldMonitoringManifestationFeatures
 )
 
 
-from src.models.monitoring_new import *
+from src.models.monitoring import *
 from src.models.narratives import Narratives
 
 from src.utils.monitoring import get_public_alert_level
@@ -29,11 +27,10 @@ EVENT_STATUS = {
 
 
 def get_events():
-    # return OldMonitoringEvents.query.order_by(
-    #     OldMonitoringEvents.event_start).all()[0:250]
-    # return OldMonitoringEvents.query.filter(OldMonitoringEvents.site_id == 47).order_by(
-        # OldMonitoringEvents.event_start).all()[0:100]
-    return OldMonitoringEvents.query.filter(OldMonitoringEvents.event_id == 51).all()
+    return OldMonitoringEvents.query.order_by(
+        OldMonitoringEvents.event_start).all()
+    # return OldMonitoringEvents.query.filter(OldMonitoringEvents.site_id == 12).order_by(OldMonitoringEvents.event_start).all()
+    # return OldMonitoringEvents.query.filter(OldMonitoringEvents.event_id == 51).all()
 
 
 def get_last_site_event(site_id):
@@ -58,8 +55,8 @@ def insert_event_alert(release, ts_start_for_next_event):
     public_alert, trigger_list = get_public_alert_level(
         internal_alert, return_triggers=True, include_ND=True)
 
-    sym = MonitoringAlertSymbols.query.filter(
-        MonitoringAlertSymbols.alert_symbol == public_alert).first()
+    sym = PublicAlertSymbols.query.filter(
+        PublicAlertSymbols.alert_symbol == public_alert).first()
     new_pub_sym_id = sym.pub_sym_id
 
     last_event_alert = get_last_event_alert(event_id)
@@ -91,8 +88,8 @@ def insert_event_alert(release, ts_start_for_next_event):
 
 
 def get_internal_symbol(trigger):
-    internal_symbol = MonitoringInternalAlertSymbols.query.filter(
-        MonitoringInternalAlertSymbols.alert_symbol == trigger.trigger_type).first()
+    internal_symbol = InternalAlertSymbols.query.filter(
+        InternalAlertSymbols.alert_symbol == trigger.trigger_type).first()
     return internal_symbol
 
 
@@ -121,7 +118,7 @@ def insert_to_on_demand_table(trigger, site_id):
     on_demand = MonitoringOnDemand(
         od_id=od_details.id,
         request_ts=od_details.ts,
-        reporter_id=0,
+        reporter_id=2,
         narrative_id=narrative_id
     )
     DB.session.add(on_demand)
@@ -150,7 +147,7 @@ def get_feature_id(feature_type):
 
     if feature is None:
         if feature_type == "slide" or feature_type == "fall":
-            feature_id = 7 # Slope Failure
+            feature_id = 7  # Slope Failure
         elif feature_type == "depression":
             feature_id = 8
         elif feature_type == "pond":
@@ -161,6 +158,7 @@ def get_feature_id(feature_type):
         feature_id = feature.feature_id
 
     return feature_id
+
 
 def insert_to_moms_instances_table(feature):
     feature_id = get_feature_id(feature.feature_type)
@@ -191,12 +189,13 @@ def insert_to_moms_instances_table(feature):
 
 def get_moms_feature_details(feature_id):
     feature = OldMonitoringManifestationFeatures.query.filter(
-            OldMonitoringManifestationFeatures.feature_id == feature_id).first()
+        OldMonitoringManifestationFeatures.feature_id == feature_id).first()
     return feature
 
 
 def insert_to_moms_table(release):
     moms_details = release.manifestation_details
+    id_list = []
 
     for mom in moms_details:
         feature = get_moms_feature_details(mom.feature_id)
@@ -209,7 +208,7 @@ def insert_to_moms_table(release):
             moms_id=mom.manifestation_id,
             instance_id=instance_id,
             observance_ts=mom.ts_observance,
-            reporter_id=0,
+            reporter_id=2,
             remarks=mom.remarks,
             narrative_id=narrative_id,
             validator_id=mom.validator,
@@ -218,12 +217,13 @@ def insert_to_moms_table(release):
 
         DB.session.add(moms_entry)
 
-    return moms_entry.moms_id
+        id_list.append(moms_entry.moms_id)
 
+    return id_list
 
 def insert_non_triggering_to_moms_table():
     non_trig_moms = OldMonitoringManifestation.query.filter(
-        OldMonitoringManifestation.op_trigger == 0).all()
+        OldMonitoringManifestation.op_trigger == 0, OldMonitoringManifestation.release_id==None).all()
 
     for mom in non_trig_moms:
         feature = get_moms_feature_details(mom.feature_id)
@@ -240,7 +240,7 @@ def insert_non_triggering_to_moms_table():
             moms_id=mom.manifestation_id,
             instance_id=instance_id,
             observance_ts=mom.ts_observance,
-            reporter_id=0,
+            reporter_id=2,
             remarks=mom.remarks,
             narrative_id=narrative_id,
             validator_id=mom.validator,
@@ -313,7 +313,7 @@ def main():
 
         releases = event.releases.all()
         process_event_releases(releases, site_id, last_event_alert, ts_start_for_next_event)
-        
+
     # For testing - Inserts moms without release_id
     # insert_non_triggering_to_moms_table()
 
@@ -326,7 +326,8 @@ def process_event_releases(releases, site_id, last_event_alert, ts_start_for_nex
             release.internal_alert_level, return_triggers=True, include_ND=True)
 
         if last_event_alert is None or ts_start_for_next_event is not None:
-            event_alert_id, trigger_list = insert_event_alert(release, ts_start_for_next_event)
+            event_alert_id, trigger_list = insert_event_alert(
+                release, ts_start_for_next_event)
         else:  # created so that routine releases with no event alerts in between
             # will belong to same event_alert_ids
             event_alert_id = last_event_alert.event_alert_id
@@ -372,22 +373,33 @@ def process_event_triggers(triggers, release, site_id):
         if trigger_source in ["on demand", "earthquake", "moms"]:
             od_id = None
             eq_id = None
-            moms_id = None
+            has_moms = None
 
             if trigger_source == "on demand":
                 od_id = insert_to_on_demand_table(trigger, site_id)
             elif trigger_source == "earthquake":
                 eq_id = insert_to_eq_table(trigger)
             elif trigger_source == "moms":
-                moms_id = insert_to_moms_table(release)
+                has_moms = True
+                id_list = insert_to_moms_table(release)
 
             trigger_misc = MonitoringTriggersMisc(
                 trigger_id=trigger_id,
                 od_id=od_id,
                 eq_id=eq_id,
-                moms_id=moms_id)
+                has_moms=has_moms)
 
             DB.session.add(trigger_misc)
+            DB.session.flush()
+
+            if has_moms:
+                for i in id_list:
+                    moms_release = MonitoringMomsReleases(
+                        trig_misc_id=trigger_misc.trig_misc_id,
+                        moms_id=i
+                    )
+
+                    DB.session.add(moms_release)
 
         DB.session.add(new_trigger)
 
