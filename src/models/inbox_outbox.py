@@ -28,8 +28,8 @@ class SmsInboxUsers(DB.Model):
     #     DB.Integer, DB.ForeignKey("comms_db_2.gsm_modules.gsm_id"))
     gsm_id = DB.Column(DB.Integer, nullable=False)
 
-    mobile_number = DB.relationship(
-        "UserMobile", backref=DB.backref("messages", lazy="subquery"), lazy=True)
+    # mobile_number = DB.relationship(
+    #     "UserMobile", backref=DB.backref("messages", lazy="subquery"), lazy=True)
 
     def __repr__(self):
         return f"Type <{self.__class__.__name__}>"
@@ -43,8 +43,9 @@ class SmsQuickInboxRelationship(SmsInboxUsers):
     __bind_key__ = "comms_db"
     __table_args__ = {"schema": "comms_db_2"}
 
-    number = DB.relationship(
-        "UserMobile", backref=DB.backref("quick_inbox", lazy="joined", uselist=True), lazy="subquery", uselist=True)
+    mobile_number = DB.relationship(
+        "UserMobile", backref=DB.backref(
+            "quick_inbox", lazy="joined"), lazy="subquery")
 
     def __repr__(self):
         return f"Type relationship"
@@ -57,7 +58,7 @@ class SmsInboxUnregisterRelationship(SmsInboxUsers):
 
     mobile_number = DB.relationship(
         "UserMobile", backref=DB.backref(
-            "unregistered", lazy="joined", uselist=True), lazy="subquery", uselist=True)
+            "unregistered", lazy="joined"), lazy="subquery")
 
     def __repr__(self):
         return f"Type relationship"
@@ -118,7 +119,6 @@ class SmsInboxUsersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
     """
-    mobile_number = fields.Nested("UserMobileSchema")
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -170,7 +170,7 @@ class SmsQuickInboxRelationshipSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
     """
-    number = fields.Nested("UserMobileSchema")
+    mobile_number = fields.Nested("UserMobileSchema")
 
     class Meta:
         """Saves table class structure as schema model"""

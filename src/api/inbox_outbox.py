@@ -41,12 +41,14 @@ def get_inbox():
 
 @INBOX_OUTBOX_BLUEPRINT.route("/inbox_outbox/quick_inbox", methods=["GET"])
 def quick_inbox():
-    quick_inbox_query = SmsInboxUsers.query.limit(10).all()
+    quick_inbox_query = SmsQuickInboxRelationship.query.join(
+        UserMobile).join(Users).filter(
+        SmsQuickInboxRelationship.ts_sms >= text("NOW() - INTERVAL 50 DAY")).order_by("inbox_id desc").limit(10).all()
+    print(quick_inbox_query)
+    quick_inbox_result = SmsQuickInboxRelationshipSchema(
+        many=True).dump(quick_inbox_query).data
 
-    quick_inbox_result = SmsInboxUsersSchema(
-        many=True, exclude=("mobile_number.user.user_hierarchy", "mobile_number.user.user_team")).dump(quick_inbox_query).data
-
-    return jsonify(quick_inbox_result)
+    return jsonify("quick_inbox_result")
 
 
 @INBOX_OUTBOX_BLUEPRINT.route("/inbox_outbox/unregistered_inbox", methods=["GET"])
@@ -67,7 +69,8 @@ def unregistered_inbox():
         Users.firstname.like("%UNKNOWN%")).order_by("inbox_id desc").all()
 
     # unregistered_data = []
-
+    unregistered_inbox_result = SmsInboxUnregisterRelationshipSchema(
+        many=True).dump(unregistered_inbox_query).data
     # for inbox in unregistered_inbox_query:
     #     query = SmsInboxUnregisterRelationship.query.filter(
     #         SmsInboxUnregisterRelationship.inbox_id == inbox.inbox_id).first()
@@ -76,4 +79,4 @@ def unregistered_inbox():
 
     #     unregistered_data.append(query_result)
 
-    return jsonify(unregistered_data)
+    return jsonify(unregistered_inbox_result)
