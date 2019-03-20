@@ -14,18 +14,18 @@ class SmsInboxUsers(DB.Model):
     """
     __tablename__ = "smsinbox_users"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     inbox_id = DB.Column(DB.Integer, primary_key=True)
     ts_sms = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
     ts_stored = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
     mobile_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_2.user_mobile.mobile_id"))
+        DB.Integer, DB.ForeignKey("comms_db.user_mobile.mobile_id"))
     sms_msg = DB.Column(DB.String(1000))
     read_status = DB.Column(DB.Integer, nullable=False)
     web_status = DB.Column(DB.Integer, nullable=False)
     # gsm_id = DB.Column(
-    #     DB.Integer, DB.ForeignKey("comms_db_2.gsm_modules.gsm_id"))
+    #     DB.Integer, DB.ForeignKey("comms_db.gsm_modules.gsm_id"))
     gsm_id = DB.Column(DB.Integer, nullable=False)
 
     # mobile_number = DB.relationship(
@@ -41,7 +41,7 @@ class SmsQuickInboxRelationship(SmsInboxUsers):
     """
     __tablename__ = "smsinbox_users"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     mobile_number = DB.relationship(
         "UserMobile", backref=DB.backref(
@@ -54,7 +54,7 @@ class SmsQuickInboxRelationship(SmsInboxUsers):
 class SmsInboxUnregisterRelationship(SmsInboxUsers):
     __tablename__ = "smsinbox_users"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     mobile_number = DB.relationship(
         "UserMobile", backref=DB.backref(
@@ -70,7 +70,7 @@ class SmsOutboxUsers(DB.Model):
     """
     __tablename__ = "smsoutbox_users"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     outbox_id = DB.Column(DB.Integer, primary_key=True)
     ts_written = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
@@ -86,13 +86,13 @@ class SmsOutboxUserStatus(DB.Model):
     """
     __tablename__ = "smsoutbox_user_status"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     stat_id = DB.Column(DB.Integer, primary_key=True)
     outbox_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_2.smsoutbox_users.outbox_id"))
+        DB.Integer, DB.ForeignKey("comms_db.smsoutbox_users.outbox_id"))
     mobile_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_2.user_mobile.mobile_id"))
+        DB.Integer, DB.ForeignKey("comms_db.user_mobile.mobile_id"))
     ts_sent = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
     send_status = DB.Column(DB.Integer, nullable=False)
     event_id_reference = DB.Column(DB.Integer, nullable=False)
@@ -105,7 +105,7 @@ class SmsOutboxUserStatus(DB.Model):
 class SmsOutboxUserStatusRelationship(SmsOutboxUserStatus):
     __tablename__ = "smsoutbox_user_status"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     sms_outbox = DB.relationship(
         "SmsOutboxUsers", backref=DB.backref(

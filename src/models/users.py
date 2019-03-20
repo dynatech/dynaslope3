@@ -13,7 +13,7 @@ class Users(DB.Model):
     """
     __tablename__ = "users"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     user_id = DB.Column(DB.Integer, primary_key=True)
     salutation = DB.Column(DB.String(15))
@@ -35,7 +35,7 @@ class UsersRelationship(Users):
     """
     __tablename__ = "users"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     mobile_numbers = DB.relationship(
         "UserMobile", backref=DB.backref("user", lazy="joined"), lazy="subquery")
@@ -59,11 +59,11 @@ class UserMobile(DB.Model):
     """
     __tablename__ = "user_mobile"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     mobile_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db_2.users.user_id"), nullable=False)
+        "comms_db.users.user_id"), nullable=False)
     sim_num = DB.Column(DB.String(30))
     priority = DB.Column(DB.Integer, nullable=False)
     mobile_status = DB.Column(DB.Integer, nullable=False)
@@ -80,11 +80,11 @@ class UserOrganization(DB.Model):
 
     __tablename__ = "user_organization"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     org_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_2.users.user_id"))
+        DB.Integer, DB.ForeignKey("comms_db.users.user_id"))
     fk_site_id = DB.Column(
         DB.Integer, DB.ForeignKey("sites.site_id"))
     org_name = DB.Column(DB.String(45))
@@ -119,13 +119,13 @@ class UserLandlines(DB.Model):
 class UserHierarchy(DB.Model):
     __tablename__ = "user_hierarchy"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     user_hierarchy_id = DB.Column(DB.Integer, primary_key=True)
     fk_user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_2.users.user_id"))
+        DB.Integer, DB.ForeignKey("comms_db.users.user_id"))
     fk_user_organization_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_2.user_organization.org_id"))
+        DB.Integer, DB.ForeignKey("comms_db.user_organization.org_id"))
     fk_site_id = DB.Column(
         DB.Integer, DB.ForeignKey("sites.site_id"))
     priority = DB.Column(DB.Integer, nullable=False)
@@ -137,7 +137,7 @@ class UserHierarchy(DB.Model):
 class UserTeams(DB.Model):
     __tablename__ = "user_teams"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     team_id = DB.Column(DB.Integer, primary_key=True)
     team_code = DB.Column(DB.String(20))
@@ -151,13 +151,13 @@ class UserTeams(DB.Model):
 class UserTeamMembers(DB.Model):
     __tablename__ = "user_team_members"
     __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db_2"}
+    __table_args__ = {"schema": "comms_db"}
 
     members_id = DB.Column(DB.Integer, primary_key=True)
     users_users_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_2.users.user_id"))
+        DB.Integer, DB.ForeignKey("comms_db.users.user_id"))
     dewsl_teams_team_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_2.user_teams.team_id"))
+        DB.Integer, DB.ForeignKey("comms_db.user_teams.team_id"))
 
     user_team = DB.relationship(
         "UserTeams", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
