@@ -43,12 +43,15 @@ def get_inbox():
 def quick_inbox():
     quick_inbox_query = SmsQuickInboxRelationship.query.join(
         UserMobile).join(Users).filter(
-        SmsQuickInboxRelationship.ts_sms >= text("NOW() - INTERVAL 50 DAY")).order_by("inbox_id desc").limit(10).all()
-    print(quick_inbox_query)
+        SmsInboxUnregisterRelationship.ts_sms >= text("NOW() - INTERVAL 100 DAY")).order_by("inbox_id desc").all()
     quick_inbox_result = SmsQuickInboxRelationshipSchema(
         many=True).dump(quick_inbox_query).data
 
-    return jsonify("quick_inbox_result")
+    return jsonify(quick_inbox_result)
+
+
+def mysql_quick_inbox():
+    return ""
 
 
 @INBOX_OUTBOX_BLUEPRINT.route("/inbox_outbox/unregistered_inbox", methods=["GET"])
