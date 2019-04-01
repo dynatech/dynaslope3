@@ -19,46 +19,43 @@ class SmsInboxUsers(DB.Model):
     inbox_id = DB.Column(DB.Integer, primary_key=True)
     ts_sms = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
     ts_stored = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
-    mobile_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.user_mobile.mobile_id"))
+    # mobile_id = DB.Column(
+    #     DB.Integer, DB.ForeignKey("comms_db.user_mobile.mobile_id"))
+    mobile_id = DB.Column(DB.Integer, nullable=False)
     sms_msg = DB.Column(DB.String(1000))
     read_status = DB.Column(DB.Integer, nullable=False)
     web_status = DB.Column(DB.Integer, nullable=False)
-    # gsm_id = DB.Column(
-    #     DB.Integer, DB.ForeignKey("comms_db.gsm_modules.gsm_id"))
-    gsm_id = DB.Column(DB.Integer, nullable=False)
-
-    # mobile_number = DB.relationship(
-    #     "UserMobile", backref=DB.backref("messages", lazy="subquery"), lazy=True)
+    gsm_id = DB.Column(
+        DB.Integer, DB.ForeignKey("comms_db.gsm_modules.gsm_id"))
 
     def __repr__(self):
         return f"Type <{self.__class__.__name__}>"
 
 
-class SmsQuickInboxRelationship(SmsInboxUsers):
-    """
-    Class representation of smsinbox_users table
-    """
-    __tablename__ = "smsinbox_users"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+# class SmsQuickInboxRelationship(SmsInboxUsers):
+#     """
+#     Class representation of smsinbox_users table
+#     """
+#     __tablename__ = "smsinbox_users"
+#     __bind_key__ = "comms_db"
+#     __table_args__ = {"schema": "comms_db"}
 
-    mobile_number = DB.relationship(
-        "UserMobile", backref=DB.backref(
-            "quick_inbox", lazy="joined"), lazy="subquery")
+#     mobile_number = DB.relationship(
+#         "UserMobile", backref=DB.backref(
+#             "quick_inbox", lazy=True), lazy="subquery")
 
-    def __repr__(self):
-        return f"Type relationship"
+#     def __repr__(self):
+#         return f"Type relationship"
 
 
-class SmsInboxUnregisterRelationship(SmsInboxUsers):
-    __tablename__ = "smsinbox_users"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+# class SmsInboxUnregisterRelationship(SmsInboxUsers):
+#     __tablename__ = "smsinbox_users"
+#     __bind_key__ = "comms_db"
+#     __table_args__ = {"schema": "comms_db"}
 
-    mobile_number = DB.relationship(
-        "UserMobile", backref=DB.backref(
-            "unregistered", lazy="joined"), lazy="subquery")
+#     mobile_number = DB.relationship(
+#         "UserMobile", backref=DB.backref(
+#             "unregistered", lazy=True), lazy="subquery")
 
     def __repr__(self):
         return f"Type relationship"
@@ -91,8 +88,9 @@ class SmsOutboxUserStatus(DB.Model):
     stat_id = DB.Column(DB.Integer, primary_key=True)
     outbox_id = DB.Column(
         DB.Integer, DB.ForeignKey("comms_db.smsoutbox_users.outbox_id"))
-    mobile_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.user_mobile.mobile_id"))
+    # mobile_id = DB.Column(
+    #     DB.Integer, DB.ForeignKey("comms_db.user_mobile.mobile_id"))
+    mobile_id = DB.Column(DB.Integer, nullable=False)
     ts_sent = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
     send_status = DB.Column(DB.Integer, nullable=False)
     event_id_reference = DB.Column(DB.Integer, nullable=False)
@@ -102,17 +100,17 @@ class SmsOutboxUserStatus(DB.Model):
         return f"Type <{self.__class__.__name__}>"
 
 
-class SmsOutboxUserStatusRelationship(SmsOutboxUserStatus):
-    __tablename__ = "smsoutbox_user_status"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+# class SmsOutboxUserStatusRelationship(SmsOutboxUserStatus):
+#     __tablename__ = "smsoutbox_user_status"
+#     __bind_key__ = "comms_db"
+#     __table_args__ = {"schema": "comms_db"}
 
-    sms_outbox = DB.relationship(
-        "SmsOutboxUsers", backref=DB.backref(
-            "outbox", lazy="joined"), lazy="subquery")
+#     sms_outbox = DB.relationship(
+#         "SmsOutboxUsers", backref=DB.backref(
+#             "outbox", lazy=True), lazy="subquery")
 
-    def __repr__(self):
-        return f"Type <{self.__class__.__name__}>"
+#     def __repr__(self):
+#         return f"Type <{self.__class__.__name__}>"
 
 
 class SmsInboxUsersSchema(MARSHMALLOW.ModelSchema):
@@ -144,34 +142,34 @@ class SmsOutboxUserStatusSchema(MARSHMALLOW.ModelSchema):
         model = SmsOutboxUserStatus
 
 
-class SmsOutboxUserStatusRelationshipSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Users class
-    """
-    sms_outbox = fields.Nested(SmsOutboxUsersSchema, exclude=("outbox",))
+# class SmsOutboxUserStatusRelationshipSchema(MARSHMALLOW.ModelSchema):
+#     """
+#     Schema representation of Users class
+#     """
+#     sms_outbox = fields.Nested(SmsOutboxUsersSchema, exclude=("outbox",))
 
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = SmsOutboxUserStatusRelationship
-
-
-class SmsInboxUnregisterRelationshipSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Users class
-    """
-    mobile_number = fields.Nested("UserMobileSchema")
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = SmsInboxUnregisterRelationship
+#     class Meta:
+#         """Saves table class structure as schema model"""
+#         model = SmsOutboxUserStatusRelationship
 
 
-class SmsQuickInboxRelationshipSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Users class
-    """
-    mobile_number = fields.Nested("UserMobileSchema")
+# class SmsInboxUnregisterRelationshipSchema(MARSHMALLOW.ModelSchema):
+#     """
+#     Schema representation of Users class
+#     """
+#     mobile_number = fields.Nested("UserMobileSchema")
 
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = SmsQuickInboxRelationship
+#     class Meta:
+#         """Saves table class structure as schema model"""
+#         model = SmsInboxUnregisterRelationship
+
+
+# class SmsQuickInboxRelationshipSchema(MARSHMALLOW.ModelSchema):
+#     """
+#     Schema representation of Users class
+#     """
+#     mobile_number = fields.Nested("UserMobileSchema")
+
+#     class Meta:
+#         """Saves table class structure as schema model"""
+#         model = SmsQuickInboxRelationship
