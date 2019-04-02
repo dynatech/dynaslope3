@@ -8,28 +8,19 @@ from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts)
 
 
-def get_public_alert_level(internal_alert_level, return_triggers=False, include_ND=False):
-    alert = internal_alert_level.split("-")
+def process_trigger_list(trigger_list, include_ND=False):
+    """
+    Sample docstring
+    """
+    if "-" in trigger_list:
+        nd_alert, trigger_str = trigger_list
+    else:
+        trigger_str = trigger_list
 
-    try:
-        public_alert, trigger_str = alert
+    if include_ND:
+        return nd_alert, trigger_str
 
-        if public_alert == "ND":
-            public_alert = "A1"
-
-            if include_ND:
-                trigger_str = internal_alert_level
-    except ValueError:
-        public_alert = "A0"
-        trigger_str = None
-
-        if internal_alert_level == "ND":
-            trigger_str = "ND"
-
-    if return_triggers:
-        return public_alert, trigger_str
-
-    return public_alert
+    return trigger_str
 
 
 def round_to_nearest_release_time(data_ts):
@@ -65,7 +56,7 @@ def compute_event_validity(data_ts, public_alert):
     Returns datetime
     """
 
-    dt = round_to_nearest_release_time(data_ts)
+    rounded_data_ts = round_to_nearest_release_time(data_ts)
     if public_alert in ["A1", "A2"]:
         add_day = 1
     elif public_alert == "A3":
@@ -73,7 +64,7 @@ def compute_event_validity(data_ts, public_alert):
     else:
         raise ValueError("Public alert accepted is A1/2/3 only")
 
-    validity = dt + timedelta(add_day)
+    validity = rounded_data_ts + timedelta(add_day)
 
     return validity
 
@@ -121,16 +112,16 @@ def get_monitoring_events(event_id=None):
     return event
 
 
+# LOUIE - changed the filter to "not" None and "== 4" instead of is None and != 1
+# for testing purposes only
 def get_active_monitoring_events():
     """
-    Translated to Python by: Louie
-
-    Similar to CI Implem
+    Gets Active Events based on MonitoringEventAlerts data.
     """
 
     active_events = MonitoringEventAlerts.query.order_by(DB.desc(
         MonitoringEventAlerts.ts_start)).filter(
-            MonitoringEventAlerts.ts_end is None,
-            MonitoringEventAlerts.pub_sym_id != 1).all()
+            MonitoringEventAlerts.ts_end is not None,
+            MonitoringEventAlerts.pub_sym_id == 4).all()
 
     return active_events

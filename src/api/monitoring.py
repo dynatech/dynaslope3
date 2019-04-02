@@ -7,7 +7,6 @@ NAMING CONVENTION
 """
 
 from flask import Blueprint, jsonify
-from connection import DB
 from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema)
 from src.utils.monitoring import (
@@ -54,7 +53,7 @@ def wrap_get_monitoring_releases(release_id=None):
 @MONITORING_BLUEPRINT.route("/monitoring/get_active_monitoring_events", methods=["GET"])
 def wrap_get_active_monitoring_events():
     """
-        Get active monitoring events. Does not need any parameters, just get everything. 
+        Get active monitoring events. Does not need any parameters, just get everything.
     """
     active_events = get_active_monitoring_events()
 

@@ -3,11 +3,12 @@ Utility file for Monitoring Tables
 Contains functions for getting and accesing Sites table only
 """
 import re
+from pprint import pprint
 from connection import DB
 from marshmallow import fields
 from src.models.monitoring import (MonitoringReleases, MonitoringReleasesSchema,
                                    MonitoringTriggers, LUTResponses, LUTResponsesSchema)
-from src.utils.monitoring import get_public_alert_level, get_monitoring_releases
+from src.utils.monitoring import get_monitoring_releases, process_trigger_list
 
 
 class AlertDescriptionProcessor:
@@ -101,15 +102,15 @@ class AlertDescriptionProcessor:
         return alert_description
 
 
-def get_alert_description(internal_alert_level):
+def get_alert_description(public_alert_level, trigger_list):
     """
     Get internal alert description
     """
     alert_description = ""
-    public_alert, trigger_str = get_public_alert_level(
-        internal_alert_level, return_triggers=True)
 
-    if public_alert == "A0":
+    trigger_str = process_trigger_list(trigger_list)
+
+    if public_alert_level == "A0":
         alert_description = "No significant ground movement***OR***Movement reduced to non-significant rates"
         return alert_description
 
@@ -127,26 +128,36 @@ def create_monitoring_bulletin(release_id):
     Creates monitoring bulletin
     """
     release = get_monitoring_releases(release_id)
-    alert_description = get_alert_description(release.internal_alert_level)
+    event_alert = release.event_alert
+    public_alert = event_alert.public_alert
+
+    alert_description = get_alert_description(
+        public_alert.alert_level, release.trigger_list)
     release.alert_description = alert_description
 
-    public_alert = get_public_alert_level(release.internal_alert_level)
-    release.alert_responses = LUTResponses.query.filter(
-        LUTResponses.public_alert_level == public_alert).first()
+    # alert_description = get_alert_description(release.internal_alert_level)
+    # release.alert_description = alert_description
 
-    triggers = MonitoringTriggers.query.filter(
-        MonitoringTriggers.event_id == release.event_id).order_by(
-            DB.desc(MonitoringTriggers.timestamp)).all()
+    # public_alert = get_public_alert_level(release.internal_alert_level)
+    # release.alert_responses = LUTResponses.query.filter(
+    #     LUTResponses.public_alert_level == public_alert).first()
 
-    print()
-    for trigger in triggers:
-        print(
-            f"Row: {trigger.trigger_type}, {trigger.timestamp}, {trigger.event_id}")
-    print()
+    # triggers = MonitoringTriggers.query.filter(
+    #     MonitoringTriggers.event_id == release.event_id).order_by(
+    #         DB.desc(MonitoringTriggers.timestamp)).all()
 
-    return BulletinSchema().dump(release).data
+    # print()
+    # for trigger in triggers:
+    #     print(
+    #         f"Row: {trigger.trigger_type}, {trigger.timestamp}, {trigger.event_id}")
+    # print()
+
+    # return BulletinSchema().dump(release).data
 
 
 class BulletinSchema(MonitoringReleasesSchema, LUTResponsesSchema):
+    """
+    Just a sample docstring.
+    """
     alert_description = fields.String()
     alert_responses = fields.Nested(LUTResponsesSchema)

@@ -38,16 +38,16 @@ class UsersRelationship(Users):
     __table_args__ = {"schema": "comms_db"}
 
     mobile_numbers = DB.relationship(
-        "UserMobile", backref=DB.backref("user", lazy="joined"), lazy="subquery")
+        "UserMobile", backref=DB.backref("user", lazy=True), lazy="subquery")
 
     organizations = DB.relationship(
-        "UserOrganization", backref=DB.backref("user", lazy="joined"), lazy="subquery")
+        "UserOrganization", backref=DB.backref("user", lazy=True), lazy="subquery")
 
     user_hierarchy = DB.relationship(
-        "UserHierarchy", backref=DB.backref("user", lazy="joined"), lazy="subquery")
+        "UserHierarchy", backref=DB.backref("user", lazy=True), lazy="subquery")
 
     team = DB.relationship(
-        "UserTeamMembers", backref=DB.backref("user", lazy="joined"), lazy="subquery")
+        "UserTeamMembers", backref=DB.backref("user", lazy=True), lazy="subquery")
 
     def __repr__(self):
         return f"Type relationship"
@@ -70,7 +70,7 @@ class UserMobile(DB.Model):
     gsm_id = DB.Column(DB.Integer, nullable=False)
 
     def __repr__(self):
-        return (f"{self.sim_num}")
+        return f"{self.sim_num}"
 
 
 class UserOrganization(DB.Model):
@@ -95,7 +95,7 @@ class UserOrganization(DB.Model):
         primaryjoin="UserOrganization.fk_site_id==Sites.site_id", lazy=True)
 
     def __repr__(self):
-        return (f"{self.org_name}")
+        return f"{self.org_name}"
 
 
 class UserLandlines(DB.Model):
@@ -113,10 +113,13 @@ class UserLandlines(DB.Model):
     remarks = DB.Column(DB.String(45))
 
     def __repr__(self):
-        return (f"Type <{self.landline_num}")
+        return f"Type <{self.landline_num}"
 
 
 class UserHierarchy(DB.Model):
+    """
+    Class representation of user_hierarchy table
+    """
     __tablename__ = "user_hierarchy"
     __bind_key__ = "comms_db"
     __table_args__ = {"schema": "comms_db"}
@@ -135,6 +138,9 @@ class UserHierarchy(DB.Model):
 
 
 class UserTeams(DB.Model):
+    """
+    Class representation of user_teams table
+    """
     __tablename__ = "user_teams"
     __bind_key__ = "comms_db"
     __table_args__ = {"schema": "comms_db"}
@@ -149,6 +155,9 @@ class UserTeams(DB.Model):
 
 
 class UserTeamMembers(DB.Model):
+    """
+    Class representation of user_team_members table
+    """
     __tablename__ = "user_team_members"
     __bind_key__ = "comms_db"
     __table_args__ = {"schema": "comms_db"}
@@ -163,7 +172,8 @@ class UserTeamMembers(DB.Model):
         "UserTeams", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
 
     def __repr__(self):
-        return (f"Member ID : {self.members_id} | User ID : {self.users_users_id}| Dewsl Team ID : {self.dewsl_teams_team_id} \n")
+        return (f"Member ID : {self.members_id} | User ID : {self.users_users_id}"
+                f"Dewsl Team ID : {self.dewsl_teams_team_id} \n")
 
 
 class UsersSchema(MARSHMALLOW.ModelSchema):

@@ -7,17 +7,17 @@ from src.utils.bulletin import (
     get_alert_description, AlertDescriptionProcessor, create_monitoring_bulletin)
 
 
-@pytest.mark.parametrize("internal_alert, result",
+@pytest.mark.parametrize("public_alert_level, trigger_list, result",
                          [
-                             ("ND", "No significant ground movement***OR***Movement reduced to non-significant rates"),
-                             ("A1-R", "Recent rainfall may trigger landslide")
+                             ("A0", "ND", "No significant ground movement***OR***Movement reduced to non-significant rates"),
+                             ("A1", "R", "Recent rainfall may trigger landslide")
                          ]
                          )
-def test_get_alert_description(internal_alert, result):
+def test_get_alert_description(public_alert_level, trigger_list, result):
     """
     Something
     """
-    assert get_alert_description(internal_alert) == result
+    assert get_alert_description(public_alert_level, trigger_list) == result
 
 
 def test_AlertDescriptionProcessor():
@@ -33,5 +33,5 @@ def test_create_monitoring_bulletin():
     """
     Something
     """
-    a = create_monitoring_bulletin(21433)
+    a = create_monitoring_bulletin(19291)
     assert a == ""

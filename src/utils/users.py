@@ -5,12 +5,11 @@ and related tables
 """
 
 from flask import jsonify
-from pprint import pprint
 from connection import DB
 from src.models.sites import Sites
 from src.models.users import (
     Users, UsersRelationship, UserOrganization,
-    UserMobile, UsersSchema, UsersRelationshipSchema
+    UsersSchema, UsersRelationshipSchema
 )
 
 PROP_DICT = {
@@ -29,11 +28,23 @@ def get_users(
         include_team=False,
         return_schema_format=False,
         user_group="dynaslope",
-        filter_by_site=[],
-        filter_by_org=[]):
+        filter_by_site=None,
+        filter_by_org=None):
     """
-    Function that gets all Dynaslope users all related data
+    General function that gets all users and their related data
+
+    return_schema_format (bool): When true, returns the users data
+                                 as loaded schema instead of raw SQL result
+    user_group (str): Can be dynaslope or community
+    filter_by_site (list): contains list of site codes to
+                        filter. Default value is empty list
+    filter_by_org (list): contains list of organizations to
+                        filter (i.e. LEWC, BLGU, etc).
+                        Default value is empty list
     """
+    filter_by_site = filter_by_site or []
+    filter_by_org = filter_by_org or []
+
     include_list = [
         ("mob", include_mobile_nums),
         ("org", include_orgs),
@@ -130,14 +141,20 @@ def get_community_users(
         include_hierarchy=False,
         include_team=False,
         return_schema_format=False,
-        filter_by_site=[],
-        filter_by_org=[]):
+        filter_by_site=None,
+        filter_by_org=None):
     """
     Function that gets all commmunity users and related data
 
-    filter_by_site_code (list): contains list of site codes to
-                                filter. Default value is empty list
+    filter_by_site (list): contains list of site codes to
+                        filter. Default value is empty list
+    filter_by_org (list): contains list of organizations to
+                        filter (i.e. LEWC, BLGU, etc).
+                        Default value is empty list
     """
+    filter_by_site = filter_by_site or []
+    filter_by_org = filter_by_org or []
+
     users = get_users(
         include_relationships=include_relationships,
         include_mobile_nums=include_mobile_nums,
@@ -154,6 +171,11 @@ def get_community_users(
 
 
 def include_loading(include_list):
+    """
+    Helper function that returns a list of SQLAlchemy
+    load relationships - either raiseload or subqueryload
+    depending on relationship
+    """
     relationship_list = []
     for include_item in include_list:
         prop = PROP_DICT[include_item[0]]
@@ -168,6 +190,10 @@ def include_loading(include_list):
 
 
 def prepare_excludes(include_list):
+    """
+    Helper function that returns a list of
+    excluded relationships due to raised loading
+    """
     exclude = []
     for include_item in include_list:
         if not include_item[1]:
