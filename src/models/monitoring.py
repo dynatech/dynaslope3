@@ -164,7 +164,7 @@ class MonitoringTriggersMisc(UserMixin, DB.Model):
     trigger_parent = DB.relationship(
         "MonitoringTriggers",
         backref=DB.backref(
-            "trigger_misc", lazy="joined", innerjoin=True, uselist=False),
+            "trigger_misc", lazy="joined", uselist=False),
         lazy="subquery", uselist=False)
 
     def __repr__(self):

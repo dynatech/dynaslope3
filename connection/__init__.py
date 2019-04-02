@@ -49,9 +49,9 @@ def create_app(config_name):
     CORS(app)
     SOCKETIO.init_app(app)
 
-    @app.route("/hello")
-    def hello_world():
-        return "Hello, world!"
+    # @app.route("/hello")
+    # def hello_world():
+    #     return "Hello, world!"
 
     #####################################################
     # Import all created blueprint from each controller
@@ -65,8 +65,26 @@ def create_app(config_name):
     from src.api.sites import SITES_BLUEPRINT
     app.register_blueprint(SITES_BLUEPRINT, url_prefix="/api")
 
+    from src.api.narratives import NARRATIVES_BLUEPRINT
+    app.register_blueprint(NARRATIVES_BLUEPRINT, url_prefix="/api")
+
     from src.api.monitoring import MONITORING_BLUEPRINT
     app.register_blueprint(MONITORING_BLUEPRINT, url_prefix="/api")
+
+    # Do we really need to make individual blueprint for each data category? Or should
+    # we put this in a single "monitoring" api?
+    from src.api.end_of_shift import END_OF_SHIFT_BLUEPRINT
+    app.register_blueprint(END_OF_SHIFT_BLUEPRINT, url_prefix="/api")
+
+    # Do we really need to make individual blueprint for each data category? Or should
+    # we put this in a single "analysis" api?
+    from src.api.subsurface import SUBSURFACE_BLUEPRINT
+    app.register_blueprint(SUBSURFACE_BLUEPRINT, url_prefix="/api")
+
+    # Do we really need to make individual blueprint for each data category? Or should
+    # we put this in a single "analysis" api?
+    from src.api.surficial import SURFICIAL_BLUEPRINT
+    app.register_blueprint(SURFICIAL_BLUEPRINT, url_prefix="/api")
 
     from src.api.test_controller import TEST_BLUEPRINT
     app.register_blueprint(TEST_BLUEPRINT, url_prefix="/api")
@@ -85,5 +103,8 @@ def create_app(config_name):
 
     from src.api.general_data_tag import GENERAL_DATA_TAG_BLUEPRINT
     app.register_blueprint(GENERAL_DATA_TAG_BLUEPRINT, url_prefix="/api")
+
+    from src.api.routine import ROUTINE_BLUEPRINT
+    app.register_blueprint(ROUTINE_BLUEPRINT, url_prefix="/api")
 
     return app

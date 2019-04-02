@@ -12,8 +12,8 @@ from src.models.membership import Membership, MembershipSchema
 from src.models.monitoring import (MonitoringEvents, MonitoringReleases,
                                    MonitoringEventsSchema, MonitoringReleasesSchema,
                                    MonitoringTriggers, MonitoringTriggersSchema)
-from src.utils.users import get_dynaslope_users, get_community_users
-from src.utils.bulletin import create_monitoring_bulletin
+from src.models.sites import Sites
+from src.utils.users import get_community_users
 
 TEST_BLUEPRINT = Blueprint("test_blueprint", __name__)
 
@@ -119,18 +119,47 @@ def get_releases_of_an_event_args():
     return jsonify(releases_data)
 
 
+@TEST_BLUEPRINT.route("/test_controller/get_releases_of_shift/<start>/<end>", methods=["GET"])
+def get_releases_of_shift(start, end):
+    """
+    ARGS TYPE of Parameter filter.
+
+    This is the args type implementation of the previous function that gets releases
+    of an event. Make sure you import "request" from "flask"
+        from flask import request
+    """
+
+    # filter_var = mr.data_ts > start and mr.data_ts <= end
+
+    # releases = MonitoringReleases.query.join(MonitoringEvents).order_by(DB.desc(
+    #     MonitoringEvents.event_id)).filter(MonitoringEvents.event_id == event_id).all()
+
+    releases = MonitoringReleases.query.filter(
+        MonitoringReleases.data_ts > start, MonitoringReleases.data_ts <= end).all()[0:5]
+
+    releases_data = MonitoringReleasesSchema(many=True).dump(releases).data
+    return jsonify(releases_data)
+
+
 @TEST_BLUEPRINT.route("/test_controller/test/<bol>", methods=["GET"])
 def test(bol):
-    b = True if bol == "True" else False
+    """
+        just a test
+    """
     # a = get_dynaslope_users(return_schema_format=True,
     #                         include_team=True)
-    a = get_community_users(
-        include_orgs=True, return_schema_format=True, filter_by_site=["bak"], filter_by_org=["blgu"])
-    return a
+    print(bol)
+    a_var = get_community_users(
+        include_orgs=True, return_schema_format=True,
+        filter_by_site=["bak"], filter_by_org=["blgu"])
+    return a_var
 
 
 @TEST_BLUEPRINT.route("/test_controller/get_trigger_by_id/<trigger_id>", methods=["GET"])
 def get_trigger_by_id(trigger_id):
+    """
+    Returns triggers by id
+    """
     trigger_details = MonitoringTriggers.query.filter(
         MonitoringTriggers.trigger_id == trigger_id).first()
     trigger = MonitoringTriggersSchema().dump(trigger_details).data

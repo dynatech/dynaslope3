@@ -15,7 +15,28 @@ from src.models.monitoring_old import (
 from src.models.monitoring import *
 from src.models.narratives import Narratives
 
-from src.utils.monitoring import get_public_alert_level
+def get_public_alert_level(internal_alert_level, return_triggers=False, include_ND=False):
+    alert = internal_alert_level.split("-")
+
+    try:
+        public_alert, trigger_str = alert
+
+        if public_alert == "ND":
+            public_alert = "A1"
+
+            if include_ND:
+                trigger_str = internal_alert_level
+    except ValueError:
+        public_alert = "A0"
+        trigger_str = None
+
+        if internal_alert_level == "ND":
+            trigger_str = "ND"
+
+    if return_triggers:
+        return public_alert, trigger_str
+
+    return public_alert
 
 EVENT_STATUS = {
     "on-going": 2,

@@ -57,7 +57,6 @@ def get_contact_details():
     user_id = 526  # for testing
     contact_details_query = UsersRelationship.query.filter(
         UsersRelationship.firstname.notlike("%UNKNOWN%"),
-        UsersRelationship.mobile_numbers != None,
         UsersRelationship.firstname != None,
         UsersRelationship.lastname != None,
         UsersRelationship.user_id == user_id).first()

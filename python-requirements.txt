@@ -24,4 +24,6 @@ PyJWT                  1.7.1
 pylint                 2.2.2     
 pylint-flask           0.5       
 pylint-plugin-utils    0.4           
-SQLAlchemy             1.2.16 
+SQLAlchemy             1.2.16
+selenium
+phantomjs
