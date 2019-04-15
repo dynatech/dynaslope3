@@ -15,7 +15,8 @@ class Sites(UserMixin, DB.Model):
     """
 
     __tablename__ = "sites"
-    __bind_key__ = "senslopedb"
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
 
     site_id = DB.Column(TINYINT, primary_key=True)
     site_code = DB.Column(DB.String(3), nullable=False)

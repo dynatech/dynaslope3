@@ -12,21 +12,21 @@ class Users(DB.Model):
     Class representation of users table
     """
     __tablename__ = "users"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
 
     user_id = DB.Column(DB.Integer, primary_key=True)
     salutation = DB.Column(DB.String(15))
-    firstname = DB.Column(DB.String(45))
-    middlename = DB.Column(DB.String(45))
-    lastname = DB.Column(DB.String(45))
+    first_name = DB.Column(DB.String(45))
+    middle_name = DB.Column(DB.String(45))
+    last_name = DB.Column(DB.String(45))
     nickname = DB.Column(DB.String(45))
     sex = DB.Column(DB.String(1))
     status = DB.Column(DB.Integer, nullable=True)
     birthday = DB.Column(DB.Integer, nullable=True)
 
     def __repr__(self):
-        return f"Type <{self.firstname}>"
+        return f"Type <{self.first_name}>"
 
 
 class UsersRelationship(Users):
@@ -34,8 +34,8 @@ class UsersRelationship(Users):
     Class representation of users relation in mobile and organization of users
     """
     __tablename__ = "users"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
 
     mobile_numbers = DB.relationship(
         "UserMobile", backref=DB.backref("user", lazy=True), lazy="subquery")
@@ -63,7 +63,7 @@ class UserMobile(DB.Model):
 
     mobile_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db.users.user_id"), nullable=False)
+        "commons_db.users.user_id"), nullable=False)
     sim_num = DB.Column(DB.String(30))
     priority = DB.Column(DB.Integer, nullable=False)
     mobile_status = DB.Column(DB.Integer, nullable=False)
@@ -79,14 +79,14 @@ class UserOrganization(DB.Model):
     """
 
     __tablename__ = "user_organization"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
 
     org_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.users.user_id"))
+        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
     fk_site_id = DB.Column(
-        DB.Integer, DB.ForeignKey("sites.site_id"))
+        DB.Integer, DB.ForeignKey("commons_db.sites.site_id"))
     org_name = DB.Column(DB.String(45))
     scope = DB.Column(DB.Integer, nullable=True)
 
@@ -126,9 +126,9 @@ class UserHierarchy(DB.Model):
 
     user_hierarchy_id = DB.Column(DB.Integer, primary_key=True)
     fk_user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.users.user_id"))
+        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
     fk_user_organization_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.user_organization.org_id"))
+        DB.Integer, DB.ForeignKey("commons_db.user_organization.org_id"))
     fk_site_id = DB.Column(
         DB.Integer, DB.ForeignKey("sites.site_id"))
     priority = DB.Column(DB.Integer, nullable=False)
@@ -142,8 +142,8 @@ class UserTeams(DB.Model):
     Class representation of user_teams table
     """
     __tablename__ = "user_teams"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
 
     team_id = DB.Column(DB.Integer, primary_key=True)
     team_code = DB.Column(DB.String(20))
@@ -159,14 +159,14 @@ class UserTeamMembers(DB.Model):
     Class representation of user_team_members table
     """
     __tablename__ = "user_team_members"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
 
     members_id = DB.Column(DB.Integer, primary_key=True)
     users_users_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.users.user_id"))
+        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
     dewsl_teams_team_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.user_teams.team_id"))
+        DB.Integer, DB.ForeignKey("commons_db.user_teams.team_id"))
 
     user_team = DB.relationship(
         "UserTeams", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")

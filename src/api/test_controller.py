@@ -165,3 +165,35 @@ def get_trigger_by_id(trigger_id):
     trigger = MonitoringTriggersSchema().dump(trigger_details).data
     # release["alert_description"] = a.alert_description
     return jsonify(trigger)
+
+
+def insert_new_event(event_details):
+    """
+    Just a sample code as reference for inserting data.
+    """
+
+    new_insert = MonitoringEvents(
+        site_id=event_details.site_id,
+        event_start=event_details.event_start,
+        validity=event_details.validity,
+        status=event_details.status
+    )
+    DB.session.add(new_insert)
+    DB.session.flush()
+
+    new_insert_id = new_insert.event_id
+
+    return new_insert_id
+
+
+def update_event_status(id, event_details):
+    """
+    Just a sample code as reference for updating data.
+    """
+    updated_row = MonitoringEvents.query.filter(event_id == id).first()
+
+    updated_row.status = event_details.validity
+
+    DB.session.commit()
+
+    return new_insert_id

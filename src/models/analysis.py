@@ -21,6 +21,8 @@ class EndOfShiftAnalysis(UserMixin, DB.Model):
     """
 
     __tablename__ = "end_of_shift_analysis"
+    __bind_key__ = "ewi_db"
+    __table_args__ = {"schema": "ewi_db"}
 
     # event_id = DB.Column(DB.Integer, DB.ForeignKey(
     #     "monitoring_events.event_id"), nullable=False)
@@ -87,7 +89,7 @@ class Markers(UserMixin, DB.Model):
 
     marker_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "sites.site_id"), nullable=False)
+        "commons_db.sites.site_id"), nullable=False)
     description = DB.Column(DB.String(50))
     latitude = DB.Column(DB.Float(9, 6))
     longitude = DB.Column(DB.Float(9, 6))
@@ -152,7 +154,7 @@ class MarkerObservations(UserMixin, DB.Model):
 
     mo_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "sites.site_id"), nullable=False)
+        "commons_db.sites.site_id"), nullable=False)
     ts = DB.Column(DB.DateTime)
     meas_type = DB.Column(DB.String(10))
     observer_name = DB.Column(DB.String(100))

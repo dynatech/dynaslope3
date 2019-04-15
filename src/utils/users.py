@@ -93,7 +93,7 @@ def get_users(
             filter_list.append(Sites.site_code.in_(filter_by_site))
 
     users = users_query.filter(
-        *filter_list, users_model.firstname.notlike("%UNKNOWN%")).all()
+        *filter_list, users_model.first_name.notlike("%UNKNOWN%")).all()
 
     if return_schema_format:
         if include_relationships or has_includes:
