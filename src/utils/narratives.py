@@ -37,5 +37,36 @@ def get_narratives(filter_type=None, filter_id=None, start=None, end=None):
     return narratives
 
 
+def write_narratives_to_db(site_id, timestamp, narrative, event_id=None):
+    """
+    Insert method for narratives table. Returns new narrative ID.
+
+    Args:
+        site_id (Integer)
+        event_id (Integer) - not required
+        timestamp  (DateTime)
+        narratives (String)
+
+    Returns narrative ID.
+    """
+    try:
+        narrative = Narratives(
+            site_id=site_id,
+            event_id=event_id,
+            timestamp=timestamp,
+            narrative=narrative
+        )
+        DB.session.add(narrative)
+        DB.session.flush()
+
+        new_narrative_id = narrative.id
+    except Exception as err:
+        print(err)
+        DB.rollback()
+        raise
+
+    return new_narrative_id
+
+
 # def get_narratives_based_on_timestamps(start_time, end_time):
 #     print()

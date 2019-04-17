@@ -233,7 +233,7 @@ def write_monitoring_moms_to_db(moms_details):
         DB.session.add(moms)
         DB.session.flush()
 
-        new_moms_id = moms.od_id
+        new_moms_id = moms.moms_id
         return_data = new_moms_id
 
     except Exception as err:
