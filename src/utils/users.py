@@ -27,6 +27,7 @@ def get_users(
         include_hierarchy=False,
         include_team=False,
         return_schema_format=False,
+        return_jsonify_format=False,
         user_group="dynaslope",
         filter_by_site=None,
         filter_by_org=None):
@@ -82,7 +83,7 @@ def get_users(
         filter_list.append(filter_var)
 
     if user_group != "dynaslope":
-        if filter_by_org:
+        if filter_by_org:                                                                                                                                   
             if include_relationships or has_includes:
                 users_query = users_query.join(
                     UserOrganization)
@@ -106,7 +107,10 @@ def get_users(
         else:
             data = UsersSchema(many=True).dump(users).data
 
-        return jsonify(data)
+        if return_jsonify_format:
+            return jsonify(data)
+        else:
+            return data
 
     return users
 
@@ -117,7 +121,8 @@ def get_dynaslope_users(
         include_orgs=False,
         include_hierarchy=False,
         include_team=False,
-        return_schema_format=False):
+        return_schema_format=False,
+        return_jsonify_format=False):
     """
     Function that gets all Dynaslope users and related data
     """
@@ -128,6 +133,7 @@ def get_dynaslope_users(
         include_hierarchy=include_hierarchy,
         include_team=include_team,
         return_schema_format=return_schema_format,
+        return_jsonify_format=return_jsonify_format,
         user_group="dynaslope"
     )
 

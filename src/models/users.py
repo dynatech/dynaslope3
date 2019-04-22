@@ -103,12 +103,12 @@ class UserLandlines(DB.Model):
     Class representation of user_landlines table
     """
     __tablename__ = "user_landlines"
-
     __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db"}
 
     landline_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("users.user_id"))
+        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
     landline_num = DB.Column(DB.String(30))
     remarks = DB.Column(DB.String(45))
 
@@ -165,7 +165,7 @@ class UserTeamMembers(DB.Model):
     members_id = DB.Column(DB.Integer, primary_key=True)
     users_users_id = DB.Column(
         DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
-    dewsl_teams_team_id = DB.Column(
+    user_teams_team_id = DB.Column(
         DB.Integer, DB.ForeignKey("commons_db.user_teams.team_id"))
 
     user_team = DB.relationship(
@@ -174,6 +174,23 @@ class UserTeamMembers(DB.Model):
     def __repr__(self):
         return (f"Member ID : {self.members_id} | User ID : {self.users_users_id}"
                 f"Dewsl Team ID : {self.dewsl_teams_team_id} \n")
+
+
+class UserEmails(DB.Model):
+    """
+    Class representation of user_teams table
+    """
+    __tablename__ = "user_emails"
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
+
+    email_id = DB.Column(DB.Integer, primary_key=True)
+    user_id = DB.Column(
+        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
+    email = DB.Column(DB.String(45))
+
+    def __repr__(self):
+        return f"{self.email}"
 
 
 class UsersSchema(MARSHMALLOW.ModelSchema):
@@ -259,3 +276,13 @@ class UserTeamMembersSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = UserTeamMembers
+
+
+class UserEmailsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Users class
+    """
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UserEmails
