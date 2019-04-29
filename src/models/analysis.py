@@ -15,30 +15,6 @@ from src.models.sites import (Sites, SitesSchema)
 # Start of Class Declarations #
 ###############################
 
-class EndOfShiftAnalysis(UserMixin, DB.Model):
-    """
-    Class representation of end_of_shift_analysis table
-    """
-
-    __tablename__ = "end_of_shift_analysis"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
-
-    # event_id = DB.Column(DB.Integer, DB.ForeignKey(
-    #     "monitoring_events.event_id"), nullable=False)
-    event_id = DB.Column(DB.Integer, nullable=False)
-    shift_start = DB.Column(DB.DateTime, primary_key=True, nullable=False)
-    analysis = DB.Column(DB.String(1500))
-
-    # event = DB.relationship(
-    #     "MonitoringEvents", backref="eos_analysis",
-    #     primaryjoin="EndOfShiftAnalysis.event_id==MonitoringEvents.event_id",
-    #     lazy="joined", innerjoin=True)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
-                f"Shift Start: {self.shift_start} Analysis: {self.analysis}")
-
 
 class EarthquakeAlerts(UserMixin, DB.Model):
     """
@@ -347,16 +323,6 @@ class TSMAlerts(UserMixin, DB.Model):
 ################################
 # Start of Schema Declarations #
 ################################
-
-class EndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of EndOfShiftAnalysis class
-    """
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = EndOfShiftAnalysis
-
 
 class EarthquakeAlertsSchema(MARSHMALLOW.ModelSchema):
     """

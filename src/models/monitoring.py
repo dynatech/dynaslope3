@@ -90,7 +90,8 @@ class MonitoringReleases(UserMixin, DB.Model):
         "MonitoringTriggers", backref="release", lazy="dynamic")
 
     release_publishers = DB.relationship(
-        "MonitoringReleasePublishers", backref=DB.backref("releases", lazy="joined", innerjoin=True))
+        "MonitoringReleasePublishers", backref=DB.backref("releases",
+                                                          lazy="joined", innerjoin=True))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Release ID: {self.release_id}"
@@ -137,8 +138,8 @@ class MonitoringTriggers(UserMixin, DB.Model):
     trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     release_id = DB.Column(DB.Integer, DB.ForeignKey("ewi_db.monitoring_releases.release_id"),
                            nullable=False)
-    internal_sym_id = DB.Column(DB.Integer, DB.ForeignKey("ewi_db.internal_alert_symbols.internal_sym_id"),
-                                nullable=False)
+    internal_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "ewi_db.internal_alert_symbols.internal_sym_id"), nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
     info = DB.Column(DB.String(360))
 
@@ -232,7 +233,8 @@ class MonitoringEarthquake(UserMixin, DB.Model):
     longitude = DB.Column(DB.Float(9, 6), nullable=False)
 
     trigger_misc = DB.relationship(
-        "MonitoringTriggersMisc", backref="eq", primaryjoin="MonitoringTriggersMisc.eq_id==MonitoringEarthquake.eq_id")
+        "MonitoringTriggersMisc", backref="eq",
+        primaryjoin="MonitoringTriggersMisc.eq_id==MonitoringEarthquake.eq_id")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> EQ ID: {self.eq_id}"
@@ -529,6 +531,28 @@ class LUTTriggers(UserMixin, DB.Model):
         return (f"Type <{self.__class__.__name__}> Trigger Type: {self.trigger_type}"
                 f" Detailed Desc: {self.detailed_desc}")
 
+
+class EndOfShiftAnalysis(UserMixin, DB.Model):
+    """
+    Class representation of end_of_shift_analysis table
+    """
+
+    __tablename__ = "end_of_shift_analysis"
+    __bind_key__ = "ewi_db"
+    __table_args__ = {"schema": "ewi_db"}
+
+    event_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "ewi_db.monitoring_events.event_id"), nullable=False)
+    shift_start = DB.Column(DB.DateTime, primary_key=True, nullable=False)
+    analysis = DB.Column(DB.String(1500))
+
+    event = DB.relationship(
+        "MonitoringEvents", backref="eos_analysis", lazy="joined")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
+                f"Shift Start: {self.shift_start} Analysis: {self.analysis}")
+
 # END OF CLASS DECLARATIONS
 
 
@@ -779,3 +803,13 @@ class LUTTriggersSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = LUTTriggers
+
+
+class EndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of EndOfShiftAnalysis class
+    """
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = EndOfShiftAnalysis

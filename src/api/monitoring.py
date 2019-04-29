@@ -21,7 +21,7 @@ from src.utils.monitoring import (
     get_active_monitoring_events, get_current_monitoring_instance_per_site,
     compute_event_validity, round_to_nearest_release_time, get_pub_sym_id,
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
-    write_monitoring_earthquake_to_db)
+    write_monitoring_earthquake_to_db, get_internal_alert_symbol)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -92,6 +92,7 @@ def wrap_get_pub_sym_id(alert_level):
 
 def is_new_monitoring_instance(new_status, current_status):
     """
+    Checks is new.
     """
     is_new = False
     if new_status != current_status:
@@ -361,20 +362,6 @@ def write_monitoring_moms_releases_to_db(trig_misc_id, moms_id):
         raise
 
 
-def get_internal_alert_symbol(internal_sym_id):
-    """
-    """
-    try:
-        internal_symbol = InternalAlertSymbols.query.filter(
-            InternalAlertSymbols.internal_sym_id == internal_sym_id).first()
-        alert_symbol = internal_symbol.alert_symbol
-    except Exception as err:
-        print(err)
-        raise
-
-    return alert_symbol
-
-
 def is_rain_surficial_subsurface_trigger(alert_symbol):
     flag = False
     if alert_symbol in ["R", "S", "s", "G", "g"]:
@@ -482,6 +469,7 @@ def insert_ewi_release(instance_details, release_details, publisher_details, tri
 
 def update_event_validity(new_validity, event_id):
     """
+    Adjust validity
     """
     try:
         event = MonitoringEvents.query.filter(

@@ -8,7 +8,8 @@ from connection import DB
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
-    MonitoringTriggersMisc, MomsInstances, PublicAlertSymbols)
+    MonitoringTriggersMisc, MomsInstances, PublicAlertSymbols,
+    InternalAlertSymbols)
 
 
 def process_trigger_list(trigger_list, include_ND=False):
@@ -77,7 +78,7 @@ def get_pub_sym_id(alert_level):
     Returns the pub_sym_id of the specified alert_level
 
     Args:
-        alert_level (int)
+        alert_level (String)
 
     Returns ID (integer)
     """
@@ -86,6 +87,34 @@ def get_pub_sym_id(alert_level):
 
     return public_alert_symbol.pub_sym_id
 
+
+def get_public_alert_level(pub_sym_id):
+    """
+    Returns the alert_level of the specified pub_sym_id
+
+    Args:
+        pub_sym_id (int)
+
+    Returns ID (integer)
+    """
+    public_alert_symbol = PublicAlertSymbols.query.filter(
+        PublicAlertSymbols.pub_sym_id == pub_sym_id).first()
+
+    return public_alert_symbol.alert_level
+
+
+def get_internal_alert_symbol(internal_sym_id):
+    """
+    """
+    try:
+        internal_symbol = InternalAlertSymbols.query.filter(
+            InternalAlertSymbols.internal_sym_id == internal_sym_id).first()
+        alert_symbol = internal_symbol.alert_symbol
+    except Exception as err:
+        print(err)
+        raise
+
+    return alert_symbol
 #############################################
 #   MONITORING_RELEASES RELATED FUNCTIONS   #
 #############################################
@@ -270,3 +299,11 @@ def write_monitoring_earthquake_to_db(eq_details):
         raise
 
     return return_data
+
+
+def build_internal_alert_level(pub_sym_id, trigger_list):
+    alert_level = get_public_alert_level(pub_sym_id)
+
+    internal_alert_level = f"{alert_level}-{trigger_list}"
+
+    return internal_alert_level
