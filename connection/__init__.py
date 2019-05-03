@@ -8,7 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_login import LoginManager
 from flask_cors import CORS
-from flask_bcrypt import Bcrypt
+# from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO
 from flask_jwt_extended import JWTManager, create_access_token
 
@@ -16,7 +16,7 @@ from config import APP_CONFIG
 
 DB = SQLAlchemy()
 MARSHMALLOW = Marshmallow()
-BCRYPT = Bcrypt()
+# # BCRYPT = Bcrypt()
 JWT = JWTManager()
 LOGIN_MANAGER = LoginManager()
 SOCKETIO = SocketIO()
@@ -44,7 +44,7 @@ def create_app(config_name):
     LOGIN_MANAGER.init_app(app)
     LOGIN_MANAGER.login_message = "You must be logged in to access this page."
 
-    BCRYPT.init_app(app)
+    # BCRYPT.init_app(app)
     JWT.init_app(app)
     CORS(app)
     SOCKETIO.init_app(app)
