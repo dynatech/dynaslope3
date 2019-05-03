@@ -193,6 +193,29 @@ class UserEmails(DB.Model):
         return f"{self.email}"
 
 
+class UserAccounts(DB.Model):
+    """
+    Class representation of user_teams table
+    """
+    __tablename__ = "user_accounts"
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
+
+    account_id = DB.Column(DB.Integer, primary_key=True)
+    user_fk_id = DB.Column(
+        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
+    username = DB.Column(DB.String(45))
+    password = DB.Column(DB.String(200))
+    is_active = DB.Column(DB.Integer, nullable=True)
+    salt = DB.Column(DB.String(200))
+
+    user = DB.relationship(
+        "Users", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
+
+    def __repr__(self):
+        return f"{self.email}"
+
+
 class UsersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
@@ -286,3 +309,15 @@ class UserEmailsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = UserEmails
+
+
+class UserAccountsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Users class
+    """
+
+    user = fields.Nested(UsersSchema)
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UserAccounts

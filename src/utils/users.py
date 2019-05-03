@@ -83,7 +83,7 @@ def get_users(
         filter_list.append(filter_var)
 
     if user_group != "dynaslope":
-        if filter_by_org:                                                                                                                                   
+        if filter_by_org:
             if include_relationships or has_includes:
                 users_query = users_query.join(
                     UserOrganization)
@@ -206,3 +206,8 @@ def prepare_excludes(include_list):
             exclude.append(PROP_DICT[include_item[0]])
 
     return exclude
+
+
+def login(data):
+
+    return "wqewqewe"

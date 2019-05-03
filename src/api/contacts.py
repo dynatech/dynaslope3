@@ -173,8 +173,8 @@ def get_contact_details():
     Function that get contacts contact as json string
     """
     data = {
-        "user_id": 85,
-        "account_type": "employee"
+        "user_id": 106,
+        "account_type": "comm"
     }
 
     account_type = data["account_type"]
@@ -217,15 +217,13 @@ def get_community_data(data):
     user_data = get_user_data(user_id)
     user_mobile = get_user_mobile_numbers(user_id)
     user_landline = get_user_landline_numbers(user_id)
-    user_site = "get_user_site"
-    user_org = "get_user_org"
+    user_site_and_org = get_user_site_and_org(user_id)
 
     data = {
         "user_information": user_data,
         "user_mobile_numbers": user_mobile,
         "user_landline_numbers": user_landline,
-        "user_site": user_site,
-        "user_org": user_org
+        "user_site_and_org": user_site_and_org,
     }
 
     return data
@@ -362,10 +360,34 @@ def get_user_emails(user_id):
     return user_email_data
 
 
-def get_user_site_and_org():
+def get_user_site_and_org(user_id):
     """
     Function that get user org and site
     """
+
+    query = text("SELECT * FROM commons_db.user_organization "
+                 "WHERE commons_db.user_organization.user_id = " + str(user_id))
+
+    result = DB.engine.execute(query)
+    user_site_data = []
+    user_org_data = []
+
+    for row in result:
+        site_id = row["fk_site_id"]
+        org_name = row["org_name"].upper()
+
+        if site_id not in user_site_data:
+            user_site_data.append(site_id)
+
+        if org_name not in user_org_data:
+            user_org_data.append(org_name)
+
+    data = {
+        "sites": user_site_data,
+        "orgs": user_org_data
+    }
+
+    return data
 
 
 @CONTACTS_BLUEPRINT.route("/contacts/save_contact", methods=["GET"])
@@ -404,13 +426,15 @@ def save_contact():
 
         if account_type == "employee":
             user_id = save_user_data(data, save_type)
-            save_user_team_data(data, user_id, save_type)
-            save_user_email(data, user_id, save_type)
+            save_employee_team_data(data, user_id, save_type)
+            save_employee_email_data(data, user_id, save_type)
             save_user_mobile_number(data, user_id, save_type)
             save_user_landline_number(data, user_id, save_type)
         else:
-            print("comm")
-            # user_id = save_user_data(data, save_type)
+            user_id = save_user_data(data, save_type)
+            save_user_mobile_number(data, user_id, save_type)
+            save_user_landline_number(data, user_id, save_type)
+            #save_community_site_and_org(data, user_id, save_type)
 
         DB.session.commit()
     except Exception as err:
@@ -445,7 +469,7 @@ def save_user_data(data, save_type):
     return user_id
 
 
-def save_user_email(data, user_id, save_type):
+def save_employee_email_data(data, user_id, save_type):
     """
     Function that save user email
     """
@@ -468,7 +492,6 @@ def save_user_email(data, user_id, save_type):
                     DB.session.add(insert_new_email)
                     DB.session.flush()
                 else:
-                    print("email already exists")
                     update_email = UserEmails.query.get(row["email_id"])
                     update_email.email = row["email"]
         else:
@@ -488,7 +511,7 @@ def test_get_no_dup():
         print(row)
 
 
-def save_user_team_data(data, user_id, save_type):
+def save_employee_team_data(data, user_id, save_type):
     """
     Function that save user team data
     """

@@ -107,4 +107,10 @@ def create_app(config_name):
     from src.api.routine import ROUTINE_BLUEPRINT
     app.register_blueprint(ROUTINE_BLUEPRINT, url_prefix="/api")
 
+    from src.api.ewi_templates import EWI_TEMPLATE_BLUEPRINT
+    app.register_blueprint(EWI_TEMPLATE_BLUEPRINT, url_prefix="/api")
+
+    from src.api.login import LOGIN_BLUEPRINT
+    app.register_blueprint(LOGIN_BLUEPRINT, url_prefix="/api")
+
     return app
