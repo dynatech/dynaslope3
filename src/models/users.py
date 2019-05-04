@@ -216,6 +216,30 @@ class UserAccounts(DB.Model):
         return f"{self.email}"
 
 
+class PendingAccounts(DB.Model):
+    """
+    Class representation of user_teams table
+    """
+    __tablename__ = "pending_accounts"
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
+
+    pending_account_id = DB.Column(DB.Integer, primary_key=True)
+    username = DB.Column(DB.String(45))
+    password = DB.Column(DB.String(200))
+    first_name = DB.Column(DB.String(45))
+    last_name = DB.Column(DB.String(45))
+    birthday = DB.Column(DB.String(25))
+    sex = DB.Column(DB.String(10))
+    salutation = DB.Column(DB.String(10))
+    mobile_number = DB.Column(DB.String(12))
+    validation_code = DB.Column(DB.String(4))
+    role = DB.Column(DB.Integer, nullable=False)
+
+    def __repr__(self):
+        return f"{self.email}"
+
+
 class UsersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
@@ -321,3 +345,13 @@ class UserAccountsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = UserAccounts
+
+
+class PendingAccountsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Users class
+    """
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = PendingAccounts

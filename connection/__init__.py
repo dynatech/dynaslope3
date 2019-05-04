@@ -113,4 +113,7 @@ def create_app(config_name):
     from src.api.login import LOGIN_BLUEPRINT
     app.register_blueprint(LOGIN_BLUEPRINT, url_prefix="/api")
 
+    from src.api.register import REGISTER_BLUEPRINT
+    app.register_blueprint(REGISTER_BLUEPRINT, url_prefix="/api")
+
     return app

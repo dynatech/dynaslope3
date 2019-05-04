@@ -17,18 +17,21 @@ def user_login():
 
     status = False
     role = "admin"  # (admin, user, publ ic)
+    user_data = "None"
     result = get_account(username, password)
-    if(result == True):
+    if(result["status"] == True):
         status = True
         message = "Successfuly logged in!"
+        user_data = result["user_data"]
     else:
         status = False
         message = "Invalid Account"
 
-    feedback = {                                                                                                                                                                                                                                                                    
+    feedback = {
         "status": status,
         "message": message,
-        "role": role
+        "role": role,
+        "user_data": user_data
     }
 
     return jsonify(feedback)
@@ -47,8 +50,13 @@ def get_account(username, password):
     result = UserAccountsSchema().dump(query).data
 
     if(password == result["password"]):
-        return True
+        data = {
+            "status": True,
+            "user_data": result
+        }
     else:
-        return False
+        data = {
+            "status": False
+        }
 
-
+    return data
