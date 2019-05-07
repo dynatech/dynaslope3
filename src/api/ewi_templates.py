@@ -1,5 +1,5 @@
 """
-Inbox Functions Controller File
+EWI Functions Controller File
 """
 
 from flask import Blueprint, jsonify

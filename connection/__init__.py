@@ -116,4 +116,17 @@ def create_app(config_name):
     from src.api.register import REGISTER_BLUEPRINT
     app.register_blueprint(REGISTER_BLUEPRINT, url_prefix="/api")
 
+    from src.api.family_profile import FAMILY_PROFILE_BLUEPRINT
+    app.register_blueprint(FAMILY_PROFILE_BLUEPRINT, url_prefix="/api")
+
+    from src.api.risk_assessment_summary import RISK_ASSESSMENT_BLUEPRINT
+    app.register_blueprint(RISK_ASSESSMENT_BLUEPRINT, url_prefix="/api")
+
+    from src.api.hazard_data import HAZARD_DATA_BLUEPRINT
+    app.register_blueprint(HAZARD_DATA_BLUEPRINT, url_prefix="/api")
+
+    from src.api.resources_and_capacities import RESOURCES_AND_CAPACITIES_BLUEPRINT
+    app.register_blueprint(
+        RESOURCES_AND_CAPACITIES_BLUEPRINT, url_prefix="/api")
+
     return app

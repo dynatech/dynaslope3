@@ -50,43 +50,22 @@ def insert_pending_account(data):
                                          first_name=first_name, last_name=last_name, sex=sex, birthday=birthday, mobile_number=mobile_number, validation_code=validation_code, role=0)
         DB.session.add(insert_account)
         DB.session.commit()
-        write_message(
-            name=first_name+" "+last_name, mobile_number=mobile_number, mobile_id=30, validation_code=validation_code)
 
-    except Exception as err:
-        print("MAY ERROR")
-        DB.session.rollback()
-        return False
-
-    return True
-
-
-def write_message(name, mobile_number, mobile_id, validation_code):
-    try:
+        name = first_name+" "+last_name
         message = str("CBEWS-L Account Approval\n\n"
                       "Name: "+name+"\n"
                       "Mobile #: "+mobile_number+"\n"
                       "Validation Code: "+validation_code+"\n"
                       "Role: 1 for Public Account, 2 for Staff Account, 3 for Admin Account.\n\n"
                       "Reply: validate <validation_code> <role>\nExample: validate CBWS 2")
+        write_message(
+            message=message, mobile_id=30)
 
-        current_date_time = time.strftime('%Y-%m-%d %H:%M:%S')
-        insert_message = SmsOutboxUsers(
-            ts_written=current_date_time, sms_msg=message)
-        DB.session.add(insert_message)
-        DB.session.flush()
-
-        latest_outbox_id = insert_message.outbox_id
-        returned_gsm_id = get_gsm_id(int(mobile_id))
-        insert_message_status = SmsOutboxUserStatus(
-            outbox_id=latest_outbox_id, mobile_id=mobile_id, ts_sent=current_date_time, send_status=0, event_id_reference=0, gsm_id=int(returned_gsm_id['gsm_id']))
-        DB.session.add(insert_message_status)
-        DB.session.commit()
     except Exception as err:
-        print(err)
-        print("MAY ERROR 2")
+        print("MAY ERROR")
         DB.session.rollback()
         return False
+
     return True
 
 
@@ -139,10 +118,7 @@ def forgot_password():
             account_id = row["account_id"]
 
     new_password = generate_validation_code()
-    encode_password = str.encode(new_password)
-    hash_object = hashlib.sha512(encode_password)
-    hex_digest_password = hash_object.hexdigest()
-    password = str(hex_digest_password)
+    password = hash_password(new_password)
 
     update_account = UserAccounts.query.get(account_id)
     update_account.password = password
@@ -151,20 +127,44 @@ def forgot_password():
     message = str("CBEWS-L Account New Password\n\n"
                   "You new password is : "+new_password)
 
-    current_date_time = time.strftime('%Y-%m-%d %H:%M:%S')
-    insert_message = SmsOutboxUsers(
-        ts_written=current_date_time, sms_msg=message)
-    DB.session.add(insert_message)
-    DB.session.flush()
-
-    latest_outbox_id = insert_message.outbox_id
-    returned_gsm_id = get_gsm_id(int(mobile_id))
-    insert_message_status = SmsOutboxUserStatus(
-        outbox_id=latest_outbox_id, mobile_id=mobile_id, ts_sent=current_date_time, send_status=0, event_id_reference=0, gsm_id=int(returned_gsm_id['gsm_id']))
-    DB.session.add(insert_message_status)
-    DB.session.commit()
+    write_message(
+        message=message, mobile_id=30)
 
     return jsonify({"status": True, "message": "Message successfully send to you mobile number!"})
+
+
+def hash_password(password):
+
+    encode_password = str.encode(password)
+    hash_object = hashlib.sha512(encode_password)
+    hex_digest_password = hash_object.hexdigest()
+    password = str(hex_digest_password)
+
+    return password
+
+
+def write_message(message, mobile_id):
+    try:
+
+        current_date_time = time.strftime('%Y-%m-%d %H:%M:%S')
+        insert_message = SmsOutboxUsers(
+            ts_written=current_date_time, sms_msg=message)
+        DB.session.add(insert_message)
+        DB.session.flush()
+
+        latest_outbox_id = insert_message.outbox_id
+        returned_gsm_id = get_gsm_id(int(mobile_id))
+        insert_message_status = SmsOutboxUserStatus(
+            outbox_id=latest_outbox_id, mobile_id=mobile_id, ts_sent=current_date_time, send_status=0, event_id_reference=0, gsm_id=int(returned_gsm_id['gsm_id']))
+        DB.session.add(insert_message_status)
+        DB.session.commit()
+    except Exception as err:
+        print(err)
+        print("MAY ERROR 2")
+        DB.session.rollback()
+        return False
+
+    return True
 
 
 def generate_validation_code(size=4, chars=string.ascii_uppercase + string.digits):
