@@ -23,7 +23,11 @@ def get_all_risk_assessment_summary():
 
 @RISK_ASSESSMENT_BLUEPRINT.route("/risk_assesment_summary/get_risk_assessment_summary_data", methods=["GET"])
 def get_risk_assessment_summary_data():
-    summary_id = 1
+     # data = request.get_json()
+    data = {
+        "summary_id": 1
+    }
+    summary_id = data["summary_id"]
     query = RiskAssessmentSummary.query.filter(
         RiskAssessmentSummary.summary_id == summary_id).first()
 

@@ -129,4 +129,8 @@ def create_app(config_name):
     app.register_blueprint(
         RESOURCES_AND_CAPACITIES_BLUEPRINT, url_prefix="/api")
 
+    from src.api.field_survey_logs import FIELD_SURVEY_LOGS_BLUEPRINT
+    app.register_blueprint(
+        FIELD_SURVEY_LOGS_BLUEPRINT, url_prefix="/api")
+
     return app

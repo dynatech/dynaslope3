@@ -23,7 +23,11 @@ def get_all_resources_and_capacities():
 
 @RESOURCES_AND_CAPACITIES_BLUEPRINT.route("/resources_and_capacities/get_resources_and_capacities_data", methods=["GET"])
 def get_resources_and_capacities_data():
-    resources_and_capacities_id = 1
+    # data = request.get_json()
+    data = {
+        "resources_and_capacities_id": 1
+    }
+    resources_and_capacities_id = data["resources_and_capacities_id"]
     query = ResourcesAndCapacities.query.filter(
         ResourcesAndCapacities.resources_and_capacities_id == resources_and_capacities_id).first()
 

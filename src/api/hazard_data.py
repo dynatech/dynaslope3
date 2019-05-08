@@ -23,7 +23,11 @@ def get_all_hazard_data():
 
 @HAZARD_DATA_BLUEPRINT.route("/hazard_data/get_hazard_data", methods=["GET"])
 def get_hazard_data():
-    hazard_data_id = 1
+    # data = request.get_json()
+    data = {
+        "hazard_data_id": 1
+    }
+    hazard_data_id = data["hazard_data_id"]
     query = HazardData.query.filter(
         HazardData.hazard_data_id == hazard_data_id).first()
 

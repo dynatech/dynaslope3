@@ -62,7 +62,7 @@ def insert_pending_account(data):
             message=message, mobile_id=30)
 
     except Exception as err:
-        print("MAY ERROR")
+        print(err)
         DB.session.rollback()
         return False
 
@@ -160,7 +160,6 @@ def write_message(message, mobile_id):
         DB.session.commit()
     except Exception as err:
         print(err)
-        print("MAY ERROR 2")
         DB.session.rollback()
         return False
 

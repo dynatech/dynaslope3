@@ -10,4 +10,4 @@ CONFIG_NAME = os.getenv("FLASK_CONFIG")
 APP = create_app(CONFIG_NAME)
 
 if __name__ == "__main__":
-    SOCKETIO.run(APP, host='192.168.150.167', port=5000, debug=True)
+    SOCKETIO.run(APP, host='192.168.150.253', port=5000, debug=True)

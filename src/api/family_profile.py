@@ -22,7 +22,12 @@ def get_all_family_profile():
 
 @FAMILY_PROFILE_BLUEPRINT.route("/family_profile/get_family_profile_data", methods=["GET"])
 def get_family_profile_data():
-    family_profile_id = 1
+    # data = request.get_json()
+    data = {
+        "family_profile_id": 1
+    }
+
+    family_profile_id = data["family_profile_id"]
     query = FamilyProfile.query.filter(
         FamilyProfile.family_profile_id == family_profile_id).first()
 
