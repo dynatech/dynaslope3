@@ -80,22 +80,6 @@ def round_data_ts(date_time):
     return date_time
 
 
-def get_public_alert_symbols():
-    """
-    Gets all public alert symbols and saves to a "Global" dictionary
-    """
-    pas = PublicAlertSymbols
-    pas_list = []
-    symbols = pas.query.all()
-
-    for row in symbols:
-        obj = row2dict(row)
-        pas_list.append(obj)
-
-    return pas_list
-    # return json.dumps(pas_symbols[0], indent=2)
-
-
 def check_if_routine_or_event(pub_sym_id):
     """
     """
@@ -105,6 +89,27 @@ def check_if_routine_or_event(pub_sym_id):
         return "routine"
 
     return "event"
+
+
+def drop_duplicates_list_of_dict(input_list, parameter, param_2=None):
+    """
+    NOTE: Parked because of many complications
+    """
+    new_list = []
+    comparator = []
+
+    print("paramter", parameter)
+    for item in input_list:
+        if param_2 is None:
+            com = item.parameter
+        else:
+            com = item.parameter.param_2
+
+        comparator.append(com)
+        if not (com in comparator and comparator.count(com) > 1):
+            new_list.append(item)
+
+    return new_list
 
 
 def get_latest_public_alerts(public_alerts_row, end, return_one=False):
@@ -140,49 +145,27 @@ def get_event_start_timestamp(public_alerts_row):
 
     # max of three previous positive alert
     recent_p_alerts = public_alerts_row.order_by(
-        DB.desc(pa.ts)).filter(pa.pub_sym_id > 1).all()[0:10]
+        DB.desc(pa.ts)).filter(pa.pub_sym_id > 1).all()[0:3]
 
     if len(recent_p_alerts) == 1:
         # 1 previous positive alert
-        print()
-        print("ONE PUTA")
-        print()
         start_ts = recent_p_alerts[0].ts
 
     elif len(recent_p_alerts) == 2:
         # 2 previous positive alert
-        print()
-        print("TWO PUTA")
-        print()
         if recent_p_alerts[0].ts - recent_p_alerts[1].ts <= timedelta(minutes=30):
             start_ts = recent_p_alerts[1].ts
         else:
             start_ts = recent_p_alerts[0].ts
 
-    elif len(recent_p_alerts) >= 3:
+    elif len(recent_p_alerts) == 3:
         # 3 previous positive alert
-
-        print()
-        print("THREE PUTA")
-        print(recent_p_alerts[0].ts)
-        print(recent_p_alerts[1].ts)
-        print(recent_p_alerts[2].ts)
-        print()
         if recent_p_alerts[0].ts - recent_p_alerts[1].ts_updated <= timedelta(minutes=30):
             if recent_p_alerts[1].ts - recent_p_alerts[2].ts_updated <= timedelta(minutes=30):
                 start_ts = recent_p_alerts[2].ts
-                print()
-                print("One if three previous")
-                print()
             else:
                 start_ts = recent_p_alerts[1].ts
-                print()
-                print("One if two previous")
-                print()
         else:
-            print()
-            print("LABAS PUTA")
-            print()
             start_ts = recent_p_alerts[0].ts
 
     else:
@@ -224,15 +207,28 @@ def get_trigger_hierarchy(trigger_source=None):
     return symbol
 
 
-def get_internal_alert_symbols(trigger_type=None):
+def get_internal_alert_symbols(sym_id_list, nd_source_id):
     """
     Returns an appender base query containing all internal alert symbols.
     """
     ias = InternalAlertSymbols
 
-    symbol = ias.query.all()
+    symbols = ias.query.all()
 
-    return symbol
+    symbols_list = []
+    for symbol in symbols:
+        if symbol.trigger_symbol.trigger_sym_id in sym_id_list or (symbol.trigger_symbol.source_id in nd_source_id and symbol.trigger_symbol.alert_level):
+            symbols_list.append(symbol)
+            print("pasok")
+        else:
+            print("di pasok")
+    var_checker(" Internal DF Symbol", symbols_list)
+    # if trigger_source is None:
+    #     symbol = ias.query.all()
+    # else:
+    #     symbol = ias.query.filter(ias.trigger)
+
+    return symbols_list
 
 
 def get_monitoring_start_ts(monitoring_type, site_public_alerts, end, site):
@@ -255,7 +251,10 @@ def get_monitoring_start_ts(monitoring_type, site_public_alerts, end, site):
 
 def get_highest_public_alert(last_positive_triggers):
     """
-    Sample
+    Returns the maximum public alert. Only returns the compared alert levels stored in a list.
+
+    Args:
+        last_positive_triggers: List of OperationalTriggers class.
     """
     public_alerts = []
     for last_positive_trigger in last_positive_triggers:
@@ -272,10 +271,6 @@ def get_tsm_alert(site_tsm_sensors, end):
     """
     ta = TSMAlerts
     tsm_alerts_list = []
-    print()
-    print(end)
-    print(end - timedelta(minutes=30))
-    print()
     for sensor in site_tsm_sensors.all():
         active_alerts = sensor.tsm_alert.filter(
             ta.ts <= end, ta.ts_updated >= end - timedelta(minutes=30))
@@ -288,6 +283,99 @@ def get_tsm_alert(site_tsm_sensors, end):
             print("FAIL")
 
     return tsm_alerts_list
+
+
+def get_internal_alert(positive_triggers_list, release_op_trigger_list):
+    """
+    Sample
+    """
+    # Declare the essential lists
+    highest_positive_triggers_list = []
+    with_data_list = []
+    final_data_list = []
+    no_data_list = []
+
+    # Get a sorted list of historical triggers
+    highest_positive_triggers_list = sorted(
+        positive_triggers_list, key=lambda x: x.trigger_symbol.alert_level)
+    var_checker("Highest Positive Triggers",
+                highest_positive_triggers_list, True)
+
+    # Eliminate duplicates
+    # Note: Just a comparator. Needs to be refactored to accomodate any needs.
+    comparator = []
+    unique_list = []
+    for item in highest_positive_triggers_list:
+        com = item.trigger_symbol.source_id
+        comparator.append(com)
+        if not (com in comparator and comparator.count(com) > 1):
+            unique_list.append(item)
+    highest_positive_triggers_list = unique_list
+    var_checker(f" Unique List", highest_positive_triggers_list, True)
+
+    # Get recent triggers that has data
+    with_data_ids = []
+    for item in release_op_trigger_list:
+        if item.trigger_symbol.alert_level != -1:
+            with_data_list.append(item)
+            with_data_ids.append(item.trigger_symbol.source_id)
+    var_checker("With data", with_data_list, True)
+    var_checker("With data IDS", with_data_ids, True)
+
+    # Compare historical triggers with recent triggers that have data.
+    comparator = []
+    for item in highest_positive_triggers_list:
+        com = item.trigger_symbol.source_id
+        if com in with_data_ids:
+            final_data_list.append(item)
+        else:
+            no_data_list.append(item)
+
+    var_checker(" Historical triggers that has data", final_data_list, True)
+    var_checker(" Historical triggers that has no data", no_data_list, True)
+
+    # On Demand
+    # Check if general list of triggers has on demand
+    # Note: final_data_list append is my interpretation of DF.append. PLease confirm with Kevin
+    on_demand_id = get_trigger_hierarchy(
+        "on demand").trigger_symbol[0].internal_alert_symbol[0].trigger_sym_id
+    on_demand_list = []
+    for item in final_data_list:
+        if item.trigger_sym_id == on_demand_id:
+            on_demand_list.append(item)
+            final_data_list.append(item)
+    var_checker(" On Demand List", on_demand_list, True)
+
+    # Earthquake
+    earthquake_id = get_trigger_hierarchy(
+        "earthquake").trigger_symbol[0].internal_alert_symbol[0].trigger_sym_id
+    var_checker(" Earthquake ID", earthquake_id, True)
+
+    # Check if general list of triggers has on demand
+    # Note: final_data_list append is my interpretation of DF.append. PLease confirm with Kevin
+    earthquake_list = []
+    for item in final_data_list:
+        if item.trigger_sym_id == earthquake_id:
+            earthquake_list.append(item)
+            final_data_list.append(item)
+    var_checker(" Earthquake List", earthquake_list, True)
+
+    # Get trigger_sym_ids of final data list
+    sym_id_list = []
+    for item in final_data_list:
+        sym_id_list.append(item.trigger_sym_id)
+    var_checker(" Sym ID List", sym_id_list, True)
+
+    # Get source ids of NDs
+    nd_source_id = []
+    for item in no_data_list:
+        nd_source_id.append(item.trigger_symbol.source_id)
+    var_checker(" ND Source ID", nd_source_id, True)
+
+    internal_df = get_internal_alert_symbols(sym_id_list, nd_source_id)
+    var_checker(" Internal DF", internal_df, True)
+
+    return "internal_df"
 
 
 def main(end=None, is_test=None, site_code=None):
@@ -347,21 +435,21 @@ def main(end=None, is_test=None, site_code=None):
             OperationalTriggers.ts_updated >= round_of_to_release_time(end) - timedelta(hours=4)).distinct()
 
         # Get the source ID of subsurface
-        subsurface_id = get_trigger_hierarchy("subsurface").source_id
+        subsurface_source_id = get_trigger_hierarchy("subsurface").source_id
         # Get the source ID of surficial
-        surficial_id = get_trigger_hierarchy("surficial").source_id
+        surficial_source_id = get_trigger_hierarchy("surficial").source_id
 
         # Remove subsurface triggers? (ASK KEVIN)
         release_op_trigger_list = []
         for release_op_trigger in release_op_triggers.all():
-            if not (release_op_trigger.trigger_symbol.source_id == subsurface_id and release_op_trigger.ts_updated < end):
+            if not (release_op_trigger.trigger_symbol.source_id == subsurface_source_id and release_op_trigger.ts_updated < end):
                 release_op_trigger_list.append(release_op_trigger)
 
         # Get surficial triggers? (ASK KEVIN)
         positive_triggers_list = []
         for op_trigger in op_triggers.all():
             op_trig = op_trigger.trigger_symbol
-            if op_trig.alert_level > 0 and not (op_trig.alert_level == 1 and op_trig.source_id == surficial_id):
+            if op_trig.alert_level > 0 and not (op_trig.alert_level == 1 and op_trig.source_id == surficial_source_id):
                 positive_triggers_list.append(op_trigger)
 
         # Remove duplicates
@@ -376,33 +464,53 @@ def main(end=None, is_test=None, site_code=None):
         else:
             surficial_ts = datetime.strptime(end, "%Y-%m-%d")
 
-        surficial_alerts_list = []
-        for op_trigger in op_triggers.all():
-            if op_trigger.trigger_symbol.source_id == surficial_id and op_trigger.ts_updated >= surficial_ts:
-                surficial_alerts_list.append(op_trigger)
-            else:
-                surficial_alerts = -1
-        if surficial_alerts_list:
-            surficial_alerts = surficial_alerts_list
-
-        # Get Rainfall
-        rainfall_id = get_trigger_hierarchy("rainfall").source_id
-        rainfall_alerts_list = []
-        for op_trigger in op_triggers.all():
-            if op_trigger.trigger_symbol.source_id == rainfall_id and op_trigger.ts_updated >= surficial_ts - timedelta(minutes=30):
-                rainfall_alerts_list.append(op_trigger)
-            else:
-                rainfall_alerts = -1
-        if rainfall_alerts_list:
-            rainfall_alerts = rainfall_alerts_list
-
         ######################
         # GET TRIGGER ALERTS #
         ######################
-        # Get subsurface triggers
+        # Get subsurface
         subsurface_alerts_list = get_tsm_alert(site_tsm_sensors, end)
 
-        # GENERAL PRINTER
+        # Get surficial
+        surficial_alerts = []
+        for op_trigger in op_triggers.all():
+            if op_trigger.trigger_symbol.source_id == surficial_source_id and op_trigger.ts_updated >= surficial_ts:
+                surficial_alerts.append(op_trigger)
+            else:
+                surficial_alerts_list = -1
+        if surficial_alerts:
+            surficial_alerts_list = surficial_alerts
+
+        # Get Rainfall
+        rainfall_source_id = get_trigger_hierarchy("rainfall").source_id
+        rainfall_alerts = []
+        for op_trigger in op_triggers.all():
+            if op_trigger.trigger_symbol.source_id == rainfall_source_id and op_trigger.ts_updated >= surficial_ts - timedelta(minutes=30):
+                rainfall_alerts.append(op_trigger)
+            else:
+                rainfall_alerts_list = -1
+        if rainfall_alerts:
+            rainfall_alerts_list = rainfall_alerts
+
+        ###################
+        # INTERNAL ALERTS #
+        ###################
+        internal_source_id = get_trigger_hierarchy("internal").source_id
+
+        if highest_public_alert > 0:
+            validity = max(positive_triggers_list,
+                           key=lambda x: x.ts_updated).ts_updated + timedelta(days=1)
+            rounded_validity = round_of_to_release_time(validity)
+
+            if highest_public_alert == 3:
+                rounded_validity += timedelta(days=1)
+
+            # internal alert based on positive triggers and data presence
+            internal_df = get_internal_alert(
+                positive_triggers_list, release_op_trigger_list)
+
+        ######################
+        # !!!! PRINTERS !!!! #
+        ######################
         var_checker(
             f"{monitoring_type.upper()} - {latest_site_public_alert.public_id} Start of Site: {site.site_code.upper()}", monitoring_start_ts, True)
         var_checker(
@@ -417,9 +525,13 @@ def main(end=None, is_test=None, site_code=None):
             f" Public Alert", highest_public_alert, True)
         var_checker(f" TSM Sensors", site_tsm_sensors.all(), True)
         var_checker(f" Subsurface Triggers", subsurface_alerts_list, True)
-        var_checker(f" Surficial Alert", surficial_alerts, True)
-        var_checker(f" Rainfall ID", rainfall_id, True)
-        var_checker(f" Rainfall Alert", rainfall_alerts, True)
+        var_checker(f" Surficial Alert", surficial_alerts_list, True)
+        var_checker(f" Rainfall ID", rainfall_source_id, True)
+        var_checker(f" Rainfall Alert", rainfall_alerts_list, True)
+        var_checker(f" Validity", validity, True)
+        var_checker(f" Rounded Up Validity", rounded_validity, True)
+        var_checker(f" Internal DF", get_internal_alert(
+            positive_triggers_list, release_op_trigger_list), True)
 
         print()
 
@@ -429,6 +541,6 @@ def main(end=None, is_test=None, site_code=None):
 
 if __name__ == "__main__":
     # main("2019-01-20 07:30:00", True, "lab")
-    main("2018-11-30 14:30:00", True, "ime")
-    # main("2018-12-24 07:20:00", True, "lpa")
+    # main("2018-11-30 14:30:00", True, "ime")
+    main("2018-12-24 07:20:00", True, "lpa")
     # main()

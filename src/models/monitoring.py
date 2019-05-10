@@ -411,11 +411,12 @@ class OperationalTriggerSymbols(UserMixin, DB.Model):
         "ewi_db.trigger_hierarchies.source_id"), nullable=False)
 
     trigger_hierarchy = DB.relationship(
-        "TriggerHierarchies", backref="op_trigger_symbols", lazy=True)
+        "TriggerHierarchies", backref="trigger_symbol", lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger Symbol ID: {self.trigger_sym_id}"
-                f" Alert Symbol: {self.alert_symbol} Alert Desc: {self.alert_description}")
+                f" Alert Symbol: {self.alert_symbol} Alert Desc: {self.alert_description}"
+                f" Source ID: {self.source_id} | Trigger_Hierarchy {self.trigger_hierarchy}")
 
 
 class TriggerHierarchies(UserMixin, DB.Model):
@@ -451,14 +452,14 @@ class InternalAlertSymbols(UserMixin, DB.Model):
         "ewi_db.operational_trigger_symbols.trigger_sym_id"), nullable=False)
     alert_description = DB.Column(DB.String(120))
 
-    op_trigger_symbol = DB.relationship(
-        "OperationalTriggerSymbols", backref="internal_alert_symbols", lazy=True)
+    trigger_symbol = DB.relationship(
+        "OperationalTriggerSymbols", backref="internal_alert_symbol", lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Internal Sym ID: {self.internal_sym_id}"
                 f"Alert Symbol: {self.alert_symbol} Trigger Sym ID: {self.trigger_sym_id}"
                 f"Alert Description: {self.alert_description} "
-                f"OP Trigger Symbols: {self.op_trigger_symbol}")
+                f"OP Trigger Symbols: {self.trigger_symbol}")
 
 
 class IssuesAndReminders(UserMixin, DB.Model):
@@ -552,6 +553,65 @@ class EndOfShiftAnalysis(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
                 f"Shift Start: {self.shift_start} Analysis: {self.analysis}")
+
+
+class OperationalTriggers(UserMixin, DB.Model):
+    """
+    Class representation of operational_triggers
+    """
+
+    __tablename__ = "operational_triggers"
+    __bind_key__ = "ewi_db"
+    __table_args__ = {"schema": "ewi_db"}
+
+    trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    ts = DB.Column(DB.DateTime, nullable=False)
+    site_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.sites.site_id"), nullable=False)
+    trigger_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "ewi_db.operational_trigger_symbols.trigger_sym_id"), nullable=False)
+    ts_updated = DB.Column(DB.DateTime, nullable=False)
+
+    site = DB.relationship(
+        "Sites", backref=DB.backref("operational_triggers", lazy="dynamic"), lazy="subquery")
+
+    trigger_symbol = DB.relationship(
+        "OperationalTriggerSymbols", backref="operational_trigger", lazy="subquery")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Trigger_ID: {self.trigger_id}"
+                f"Site_ID: {self.site_id} trigger_sym_id: {self.trigger_sym_id}"
+                f"ts: {self.ts} ts_updated: {self.ts_updated}"
+                f"alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}")
+
+
+class PublicAlerts(UserMixin, DB.Model):
+    """
+    Class representation of public_alerts
+    """
+
+    __tablename__ = "public_alerts"
+    __bind_key__ = "ewi_db"
+    __table_args__ = {"schema": "ewi_db"}
+
+    public_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    ts = DB.Column(DB.DateTime, nullable=False)
+    site_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.sites.site_id"), nullable=False)
+    pub_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "ewi_db.public_alert_symbols.pub_sym_id"), nullable=False)
+    ts_updated = DB.Column(DB.DateTime, nullable=False)
+
+    site = DB.relationship(
+        "Sites", backref=DB.backref("public_alerts", lazy="dynamic"), lazy="subquery")
+
+    alert_symbol = DB.relationship(
+        "PublicAlertSymbols", backref="public_alerts", lazy="subquery")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Public_ID: {self.public_id}"
+                f" Site_ID: {self.site_id} pub_sym_id: {self.pub_sym_id}"
+                f" TS: {self.ts} TS_UPDATED: {self.ts_updated}")
 
 # END OF CLASS DECLARATIONS
 
