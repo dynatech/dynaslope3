@@ -22,6 +22,7 @@ PROP_DICT = {
 
 def get_users(
         include_relationships=False,
+        include_inactive=False,
         include_mobile_nums=False,
         include_orgs=False,
         include_hierarchy=False,
@@ -92,6 +93,9 @@ def get_users(
             users_query = users_query.join(Sites)
             filter_list.append(Sites.site_code.in_(filter_by_site))
 
+    if not include_inactive:
+        filter_list.append(Users.status == 1)
+
     users = users_query.filter(
         *filter_list, users_model.first_name.notlike("%UNKNOWN%")).all()
 
@@ -113,6 +117,7 @@ def get_users(
 
 def get_dynaslope_users(
         include_relationships=False,
+        include_inactive=False,
         include_mobile_nums=False,
         include_orgs=False,
         include_hierarchy=False,
@@ -123,6 +128,7 @@ def get_dynaslope_users(
     """
     users = get_users(
         include_relationships=include_relationships,
+        include_inactive=include_inactive,
         include_mobile_nums=include_mobile_nums,
         include_orgs=include_orgs,
         include_hierarchy=include_hierarchy,

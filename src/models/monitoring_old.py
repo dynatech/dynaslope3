@@ -396,9 +396,9 @@ class OldMonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
                              many=True, exclude=("release", "event"))
 
     reporter_mt = fields.Nested(
-        UsersSchema, only=["user_id", "firstname", "lastname"])
+        UsersSchema, only=["user_id", "first_name", "last_name"])
     reporter_ct = fields.Nested(
-        UsersSchema, only=["user_id", "firstname", "lastname"])
+        UsersSchema, only=["user_id", "first_name", "last_name"])
 
     class Meta:
         """Saves table class structure as schema model"""
