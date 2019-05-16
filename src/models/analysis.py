@@ -227,11 +227,15 @@ class RainfallAlerts(UserMixin, DB.Model):
 
     ra_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
-    site_id = DB.Column(DB.Integer)
+    site_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.sites.site_id"), nullable=False)
     rain_id = DB.Column(DB.Integer, nullable=False)
     rain_alert = DB.Column(DB.String(2))
     cumulative = DB.Column(DB.Float(5, 2))
     threshold = DB.Column(DB.Float(5, 2))
+
+    site = DB.relationship(
+        "Sites", backref=DB.backref("rainfall_alerts", lazy="dynamic"), lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Rain Alert ID: {self.ra_id}"

@@ -7,10 +7,11 @@ from datetime import datetime, timedelta, time
 from flask import jsonify
 
 from src.models.monitoring import (
-    PublicAlerts, PublicAlertSymbols,
-    OperationalTriggers, InternalAlertSymbols,
-    TriggerHierarchies)
-from src.models.analysis import (TSMSensors, TSMAlerts)
+    PublicAlerts, PublicAlertSymbols as pas,
+    # Get the trigger_sym_id of Rx rainfall alert
+    OperationalTriggers, OperationalTriggerSymbols as ots,
+    InternalAlertSymbols as ias, TriggerHierarchies)
+from src.models.analysis import (TSMSensors, TSMAlerts, RainfallAlerts)
 from src.utils.sites import get_sites_data
 
 
@@ -174,9 +175,9 @@ def get_event_start_timestamp(public_alerts_row):
     return start_ts
 
 
-def get_operational_trigger(operational_triggers, start_monitor, end):
+def get_operational_trigger_within_monitoring_period(operational_triggers, start_monitor, end):
     """Returns an appender base query containing alert level on each operational trigger
-    from start of monitoring.
+    from start of monitoring to end.
 
     Args:
         site_id (dataframe): ID each site.
@@ -207,26 +208,17 @@ def get_trigger_hierarchy(trigger_source=None):
     return symbol
 
 
-def get_internal_alert_symbols(sym_id_list, nd_source_id):
+def get_internal_alert_symbols(sym_id_list, nd_source_id_list):
     """
     Returns an appender base query containing all internal alert symbols.
     """
-    ias = InternalAlertSymbols
 
     symbols = ias.query.all()
 
     symbols_list = []
     for symbol in symbols:
-        if symbol.trigger_symbol.trigger_sym_id in sym_id_list or (symbol.trigger_symbol.source_id in nd_source_id and symbol.trigger_symbol.alert_level):
+        if symbol.trigger_symbol.trigger_sym_id in sym_id_list or (symbol.trigger_symbol.source_id in nd_source_id_list and symbol.trigger_symbol.alert_level):
             symbols_list.append(symbol)
-            print("pasok")
-        else:
-            print("di pasok")
-    var_checker(" Internal DF Symbol", symbols_list)
-    # if trigger_source is None:
-    #     symbol = ias.query.all()
-    # else:
-    #     symbol = ias.query.filter(ias.trigger)
 
     return symbols_list
 
@@ -249,15 +241,15 @@ def get_monitoring_start_ts(monitoring_type, site_public_alerts, end, site):
     return monitoring_start_ts
 
 
-def get_highest_public_alert(last_positive_triggers):
+def get_highest_public_alert(unique_last_positive_triggers):
     """
     Returns the maximum public alert. Only returns the compared alert levels stored in a list.
 
     Args:
-        last_positive_triggers: List of OperationalTriggers class.
+        unique_last_positive_triggers: List of OperationalTriggers class.
     """
     public_alerts = []
-    for last_positive_trigger in last_positive_triggers:
+    for last_positive_trigger in unique_last_positive_triggers:
         public_alerts.append(
             last_positive_trigger.trigger_symbol.alert_level)
     highest_public_alert = max(public_alerts + [0])
@@ -285,6 +277,37 @@ def get_tsm_alert(site_tsm_sensors, end):
     return tsm_alerts_list
 
 
+def get_source_max_alert_level(source_id):
+    """
+    Returns maximum alert level per source. 
+
+    Note: NotUnitTestable
+    """
+
+    trigger_symbols = ots.query.filter(ots.source_id == source_id).order_by(
+        DB.desc(ots.alert_level)).first()
+
+    return trigger_symbols
+
+
+def replace_nd_internal_alert_symbol(no_data):
+    """
+    Replace internal alert sysmbol for each event triggers that currently has no data
+    """
+
+    source_id = no_data.trigger_symbol.source_id
+    alert_level = no_data.trigger_symbol.alert_level
+    max_alert_level = get_source_max_alert_level(source_id)
+
+    if alert_level < max_alert_level:
+        no_data.alert_symbol.lower()
+
+    var_checker(" no data ", no_data, True)
+    var_checker(" no data alert symbol", no_data.alert_symbol, True)
+
+    return no_data
+
+
 def get_internal_alert(positive_triggers_list, release_op_trigger_list):
     """
     Sample
@@ -298,8 +321,6 @@ def get_internal_alert(positive_triggers_list, release_op_trigger_list):
     # Get a sorted list of historical triggers
     highest_positive_triggers_list = sorted(
         positive_triggers_list, key=lambda x: x.trigger_symbol.alert_level)
-    var_checker("Highest Positive Triggers",
-                highest_positive_triggers_list, True)
 
     # Eliminate duplicates
     # Note: Just a comparator. Needs to be refactored to accomodate any needs.
@@ -311,7 +332,6 @@ def get_internal_alert(positive_triggers_list, release_op_trigger_list):
         if not (com in comparator and comparator.count(com) > 1):
             unique_list.append(item)
     highest_positive_triggers_list = unique_list
-    var_checker(f" Unique List", highest_positive_triggers_list, True)
 
     # Get recent triggers that has data
     with_data_ids = []
@@ -322,7 +342,8 @@ def get_internal_alert(positive_triggers_list, release_op_trigger_list):
     var_checker("With data", with_data_list, True)
     var_checker("With data IDS", with_data_ids, True)
 
-    # Compare historical triggers with recent triggers that have data.
+    # Compare historical triggers with recent triggers that have data and have
+    # no data.
     comparator = []
     for item in highest_positive_triggers_list:
         com = item.trigger_symbol.source_id
@@ -367,15 +388,82 @@ def get_internal_alert(positive_triggers_list, release_op_trigger_list):
     var_checker(" Sym ID List", sym_id_list, True)
 
     # Get source ids of NDs
-    nd_source_id = []
+    nd_source_id_list = []
+    unique_no_data_list = []
+    comparator = []
     for item in no_data_list:
-        nd_source_id.append(item.trigger_symbol.source_id)
-    var_checker(" ND Source ID", nd_source_id, True)
+        nd_source_id_list.append(item.trigger_symbol.source_id)
 
-    internal_df = get_internal_alert_symbols(sym_id_list, nd_source_id)
-    var_checker(" Internal DF", internal_df, True)
+        # Get unique nd_list
+        com = item.trigger_symbol.source_id
+        comparator.append(com)
+        if not (com in comparator and comparator.count(com) > 1):
+            unique_no_data_list.append(item)
 
-    return "internal_df"
+    var_checker(" ND Source ID", nd_source_id_list, True)
+    var_checker(" Unique No Data List", unique_no_data_list, True)
+
+    internal_df = get_internal_alert_symbols(sym_id_list, nd_source_id_list)
+
+    # Check if no_data_list has data
+    no_data_list = False
+    if no_data_list:
+        print("!!!!!!!!!!!!!!!!!")
+        print("NO DATA")
+        print("!!!!!!!!!!!!!!!!!")
+        # Eliminate duplicates
+        # Note: Just a comparator. Needs to be refactored to accomodate any needs.
+        nd_internal_df = []
+        for no_data_op_trigger in unique_no_data_list:
+            no_data_op_trigger = replace_nd_internal_alert_symbol(
+                no_data_op_trigger)
+            nd_internal_df.append(no_data_op_trigger)
+        internal_df = nd_internal_df
+
+    # Check if there are duplicates in internal_df
+    comparator = []
+    unique_list = []
+    for item in internal_df:
+        comparator.append(item)
+        if not (com in comparator and comparator.count(com) > 1):
+            unique_list.append(item)
+    internal_df = unique_list
+
+    return internal_df
+
+
+def replace_rainfall_alert_if_rx(site_rainfall_alerts, internal_df, end, rainfall_source_id, rain_75_id):
+    """
+    Sample
+    """
+    internal_df_source_id_list = []
+    is_rx = False
+    if site_rainfall_alerts.all():
+        is_rx = True
+        for item in internal_df:
+            internal_df_source_id_list.append(item.trigger_symbol.source_id)
+        var_checker(" internal_df_source_id_list",
+                    internal_df_source_id_list, True)
+
+        if rain_75_id in internal_df_source_id_list:
+            rain_alert = ias.query.filter(
+                ias.trigger_sym_id == rain_75_id).alert_symbol
+            trigger_sym_id = ias.query.filter(
+                ias.trigger_sym_id == rain_75_id).trigger_sym_id
+
+            for item in internal_df:
+                if item.trigger_symbol.source_id == rainfall_source_id:
+                    item.alert_symbol = rain_alert
+                    item.trigger_sym_id = trigger_sym_id
+        else:
+            print("Do that")
+            rain_df = ias.query.filter(
+                ias.trigger_sym_id == rain_75_id).first()
+            rain_df.alert_symbol = rain_df.alert_symbol.lower()
+            var_checker(" RAIN DF", rain_df, True)
+            internal_df.append(rain_df)
+
+    return internal_df, is_rx
 
 
 def main(end=None, is_test=None, site_code=None):
@@ -392,10 +480,14 @@ def main(end=None, is_test=None, site_code=None):
 
     end = round_data_ts(end)
 
-    if is_test is True:
+    if is_test is True and site_code is not None:
         active_sites = [get_sites_data(site_code)]
+    elif is_test is True and site_code is None:
+        active_sites = get_sites_data()
+        do_not_write_to_db = True
     else:
         active_sites = get_sites_data()
+        do_not_write_to_db = False
 
     ######################################
     # LOOP THROUGH ACTIVE SITES PROVIDED #
@@ -405,6 +497,8 @@ def main(end=None, is_test=None, site_code=None):
         site_public_alerts = site.public_alerts
         site_operational_triggers = site.operational_triggers
         site_tsm_sensors = site.tsm_sensors
+        site_rainfall_alerts = site.rainfall_alerts.filter(
+            RainfallAlerts.ts == end)
 
         # Get the single latest recent public_alert pub_sym_id entry for
         # current site then get it's alert type.
@@ -427,16 +521,14 @@ def main(end=None, is_test=None, site_code=None):
         # GET PUBLIC ALERT LEVEL #
         ##########################
         # Get all operational triggers of the site.
-        op_triggers = get_operational_trigger(
+        op_triggers = get_operational_trigger_within_monitoring_period(
             site_operational_triggers, monitoring_start_ts, end)
         # Get the triggers within 4 hours before the release AND use "distinct" to remove duplicates
         # ASK KEVIN on distinct and drop duplicates
         release_op_triggers = op_triggers.filter(
             OperationalTriggers.ts_updated >= round_of_to_release_time(end) - timedelta(hours=4)).distinct()
 
-        # Get the source ID of subsurface
         subsurface_source_id = get_trigger_hierarchy("subsurface").source_id
-        # Get the source ID of surficial
         surficial_source_id = get_trigger_hierarchy("surficial").source_id
 
         # Remove subsurface triggers? (ASK KEVIN)
@@ -453,16 +545,18 @@ def main(end=None, is_test=None, site_code=None):
                 positive_triggers_list.append(op_trigger)
 
         # Remove duplicates
-        last_positive_triggers = list(dict.fromkeys(positive_triggers_list))
+        unique_last_positive_triggers = list(
+            dict.fromkeys(positive_triggers_list))
 
         # Get highest public alert level
-        highest_public_alert = get_highest_public_alert(last_positive_triggers)
+        highest_public_alert = get_highest_public_alert(
+            unique_last_positive_triggers)
 
         # Get surficial
         if highest_public_alert > 0:
             surficial_ts = round_of_to_release_time(end) - timedelta(hours=4)
         else:
-            surficial_ts = datetime.strptime(end, "%Y-%m-%d")
+            surficial_ts = end
 
         ######################
         # GET TRIGGER ALERTS #
@@ -497,6 +591,7 @@ def main(end=None, is_test=None, site_code=None):
         internal_source_id = get_trigger_hierarchy("internal").source_id
 
         if highest_public_alert > 0:
+            print("== OVER ZERO!")
             validity = max(positive_triggers_list,
                            key=lambda x: x.ts_updated).ts_updated + timedelta(days=1)
             rounded_validity = round_of_to_release_time(validity)
@@ -508,30 +603,59 @@ def main(end=None, is_test=None, site_code=None):
             internal_df = get_internal_alert(
                 positive_triggers_list, release_op_trigger_list)
 
+            # Get the trigger_sym_id of Rx rainfall alert
+            rain_75_id = ots.query.filter(
+                ots.alert_level == -2).first().trigger_sym_id
+
+            if rainfall_alerts_list == 0 and end >= (validity - timedelta(minutes=30)):
+                internal_df, is_rx = replace_rainfall_alert_if_rx(
+                    site_rainfall_alerts, internal_df, end, rainfall_source_id, rain_75_id)
+
+                # Is is_rx True
+                if is_rx:
+                    rainfall_alerts_list = -2
+
+            internal_df = sorted(
+                internal_df, key=lambda x: x.trigger_symbol.trigger_hierarchy.source_id)
+            internal_alert = "".join(internal_df[0].alert_symbol)
+
+            if highest_public_alert > 1:
+                public_alert_symbol = pas.query.filter(
+                    pas.alert_level == highest_public_alert).first().alert_symbol
+                internal_alert = public_alert_symbol + '-' + internal_alert
+
+        # ground data presence: subsurface, surficial, moms
+        if public_alert <= 1:
+            # if surficial_alerts_list == -1 and 
+            print("sub")
+
         ######################
         # !!!! PRINTERS !!!! #
         ######################
         var_checker(
             f"{monitoring_type.upper()} - {latest_site_public_alert.public_id} Start of Site: {site.site_code.upper()}", monitoring_start_ts, True)
+        # var_checker(
+        #     f" release_op_triggers", release_op_triggers.all(), True)
         var_checker(
-            f" release_op_triggers", release_op_triggers.all(), True)
+            " RENEWED release_op_trig", release_op_trigger_list, True)
         var_checker(
-            f" RENEWED release_op_trig", release_op_trigger_list, True)
+            " Positive Triggers", positive_triggers_list, True)
         var_checker(
-            f" Positive Triggers", positive_triggers_list, True)
+            " LAST Positive Triggers", unique_last_positive_triggers, True)
         var_checker(
-            f" LAST Positive Triggers", last_positive_triggers, True)
-        var_checker(
-            f" Public Alert", highest_public_alert, True)
-        var_checker(f" TSM Sensors", site_tsm_sensors.all(), True)
-        var_checker(f" Subsurface Triggers", subsurface_alerts_list, True)
-        var_checker(f" Surficial Alert", surficial_alerts_list, True)
-        var_checker(f" Rainfall ID", rainfall_source_id, True)
-        var_checker(f" Rainfall Alert", rainfall_alerts_list, True)
-        var_checker(f" Validity", validity, True)
-        var_checker(f" Rounded Up Validity", rounded_validity, True)
-        var_checker(f" Internal DF", get_internal_alert(
+            " Public Alert", highest_public_alert, True)
+        var_checker(" TSM Sensors", site_tsm_sensors.all(), True)
+        var_checker(" Subsurface Triggers", subsurface_alerts_list, True)
+        var_checker(" Surficial Alert", surficial_alerts_list, True)
+        var_checker(" Rainfall ID", rainfall_source_id, True)
+        var_checker(" Rainfall Alert", rainfall_alerts_list, True)
+        var_checker(" Validity", validity, True)
+        var_checker(" Rounded Up Validity", rounded_validity, True)
+        # var_checker(" Internal DF", internal_df, True)
+        var_checker(" Internal DF", get_internal_alert(
             positive_triggers_list, release_op_trigger_list), True)
+        var_checker(" Rainfall Alerts", site_rainfall_alerts, True)
+        var_checker(" Internal Alert String", internal_alert, True)
 
         print()
 
@@ -541,6 +665,7 @@ def main(end=None, is_test=None, site_code=None):
 
 if __name__ == "__main__":
     # main("2019-01-20 07:30:00", True, "lab")
-    # main("2018-11-30 14:30:00", True, "ime")
-    main("2018-12-24 07:20:00", True, "lpa")
-    # main()
+    main("2018-11-30 14:30:00", True, "ime")
+    # main("2018-12-24 07:20:00", True, "lpa")
+    # main("2018-09-04 09:30:00", True, "mar")
+    # main("2018-11-30 14:30:00", True)
