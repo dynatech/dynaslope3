@@ -77,7 +77,8 @@ class Markers(UserMixin, DB.Model):
     longitude = DB.Column(DB.Float(9, 6))
     in_use = DB.Column(DB.Boolean)
 
-    site = DB.relationship("Sites", backref="marker", lazy=True)
+    site = DB.relationship(
+        "Sites", backref=DB.backref("markers", lazy="dynamic"), lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Marker ID: {self.marker_id}"
@@ -100,8 +101,8 @@ class MarkerHistory(UserMixin, DB.Model):
     ts = DB.Column(DB.DateTime)
     event = DB.Column(DB.String(20))
 
-    # marker = DB.relationship(
-    #     "Markers", backref="marker_history", lazy="subquery")
+    marker = DB.relationship(
+        "Markers", backref=DB.backref("marker_histories", lazy="dynamic"), lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> History ID: {self.history_id}"
@@ -123,8 +124,8 @@ class MarkerNames(UserMixin, DB.Model):
         "analysis_db.marker_history.history_id"), nullable=False)
     marker_name = DB.Column(DB.String(20))
 
-    # history = DB.relationship(
-    #     "MarkerHistory", backref="marker_name", lazy="subquery")
+    history = DB.relationship(
+        "MarkerHistory", backref="marker_names", lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Name ID: {self.name_id}"
@@ -229,13 +230,17 @@ class RainfallAlerts(UserMixin, DB.Model):
     ts = DB.Column(DB.DateTime, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.sites.site_id"), nullable=False)
-    rain_id = DB.Column(DB.Integer, nullable=False)
+    rain_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "analysis_db.rainfall_gauges.rain_id"), nullable=False)
     rain_alert = DB.Column(DB.String(2))
     cumulative = DB.Column(DB.Float(5, 2))
     threshold = DB.Column(DB.Float(5, 2))
 
     site = DB.relationship(
         "Sites", backref=DB.backref("rainfall_alerts", lazy="dynamic"), lazy="subquery")
+
+    rainfall_gauge = DB.relationship("RainfallGauges", backref=DB.backref(
+        "rainfall_alerts", lazy="dynamic"), lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Rain Alert ID: {self.ra_id}"
@@ -253,9 +258,13 @@ class RainfallThresholds(UserMixin, DB.Model):
     __table_args__ = {"schema": "analysis_db"}
 
     rt_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    site_id = DB.Column(DB.Integer, nullable=False)
+    site_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.sites.site_id"), nullable=False)
     threshold_name = DB.Column(DB.String(12), nullable=False)
     threshold_value = DB.Column(DB.Float(8, 5), nullable=False)
+
+    site = DB.relationship(
+        "Sites", backref=DB.backref("rainfall_thresholds", lazy="dynamic"), lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Rain Threshold ID: {self.rt_id}"
@@ -295,9 +304,17 @@ class RainfallPriorities(UserMixin, DB.Model):
     __table_args__ = {"schema": "analysis_db"}
 
     priority_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    rain_id = DB.Column(DB.String(5), nullable=False)
-    site_id = DB.Column(DB.String(3), nullable=False)
+    rain_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "analysis_db.rainfall_gauges.rain_id"), nullable=False)
+    site_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.sites.site_id"), nullable=False)
     distance = DB.Column(DB.Float(5, 2), nullable=False)
+
+    site = DB.relationship(
+        "Sites", backref=DB.backref("rainfall_priorities", lazy="dynamic"), lazy="subquery")
+
+    rainfall_gauge = DB.relationship("RainfallGauges", backref=DB.backref(
+        "rainfall_priorities", lazy="dynamic"), lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Priority ID: {self.priority_id}"
@@ -363,6 +380,36 @@ class TSMSensors(UserMixin, DB.Model):
                 f"Date Activated: {self.date_activated}")
 
 
+class NodeAlerts(UserMixin, DB.Model):
+    """
+    Class representation of node_alerts table
+    """
+
+    __tablename__ = "node_alerts"
+    __bind_key__ = "analysis_db"
+    __table_args__ = {"schema": "analysis_db"}
+
+    na_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    ts = DB.Column(DB.DateTime, nullable=False)
+    tsm_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "analysis_db.tsm_sensors.tsm_id"), nullable=False)
+    # Node ID, no need  for relationships for the moment
+    node_id = DB.Column(DB.Integer, nullable=False)
+    disp_alert = DB.Column(DB.Integer, nullable=False)
+    vel_alert = DB.Column(DB.String(10), nullable=False)
+    na_status = DB.Column(DB.Integer)
+
+    tsm_sensor = DB.relationship("TSMSensors", backref=DB.backref(
+        "node_alerts", lazy="dynamic"), lazy="subquery")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> NodeAlert ID: {self.na_id}"
+                f" ts: {self.ts} tsm_id: {self.tsm_id} node_id: {self.node_id}"
+                f" disp_alert: {self.disp_alert}"
+                f" vel_alert: {self.vel_alert} na_status: {self.na_status}"
+                f" || tsm_sensor: {self.tsm_sensor}")
+
+
 class Loggers(UserMixin, DB.Model):
     """
     Class representation of loggers table
@@ -415,6 +462,40 @@ class LoggerModels(UserMixin, DB.Model):
         return (f"Type <{self.__class__.__name__}> TSM ID: {self.tsm_id}"
                 f" TSM Name: {self.tsm_name} Number of Segments: {self.number_of_segments}"
                 f"Date Activated: {self.date_activated}")
+
+
+class AlertStatus(UserMixin, DB.Model):
+    """
+    Class representation of alert_status table
+    """
+
+    __tablename__ = "alert_status"
+    __bind_key__ = "analysis_db"
+    __table_args__ = {"schema": "analysis_db"}
+
+    stat_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    ts_last_retrigger = DB.Column(DB.DateTime)
+    trigger_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "ewi_db.operational_triggers.trigger_id"))
+    ts_set = DB.Column(DB.DateTime)
+    ts_ack = DB.Column(DB.DateTime)
+    alert_status = DB.Column(DB.Integer)
+    remarks = DB.Column(DB.String(450))
+    user_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.users.user_id"), nullable=False)
+
+    trigger = DB.relationship("OperationalTriggers",
+                              backref="alert_status", lazy="subquery")
+
+    user = DB.relationship(
+        "Users", backref=DB.backref("alert_status_ack", lazy="dynamic"), lazy="subquery")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> stat ID: {self.stat_id}"
+                f" ts_last_retrigger: {self.ts_last_retrigger} ts_set: {self.ts_set}"
+                f" ts_ack: {self.ts_ack} alert_status: {self.alert_status}"
+                f" remarks: {self.remarks} user_id: {self.user_id}"
+                f" || TRIGGER: {self.trigger} || USER_ACK: {self.user}")
 
 
 #############################

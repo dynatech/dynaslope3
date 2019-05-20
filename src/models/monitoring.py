@@ -421,7 +421,7 @@ class OperationalTriggers(UserMixin, DB.Model):
         return (f"Type <{self.__class__.__name__}> Trigger_ID: {self.trigger_id}"
                 f" Site_ID: {self.site_id} trigger_sym_id: {self.trigger_sym_id}"
                 f" ts: {self.ts} ts_updated: {self.ts_updated}"
-                f" alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}")
+                f" | TRIGGER SYMBOL alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}")
 
 
 class OperationalTriggerSymbols(UserMixin, DB.Model):
