@@ -484,7 +484,7 @@ class InternalAlertSymbols(UserMixin, DB.Model):
     alert_description = DB.Column(DB.String(120))
 
     trigger_symbol = DB.relationship(
-        "OperationalTriggerSymbols", backref="internal_alert_symbol", lazy="subquery")
+        "OperationalTriggerSymbols", backref=DB.backref("internal_alert_symbol", uselist=False), lazy="subquery", uselist=False)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Internal Sym ID: {self.internal_sym_id}"

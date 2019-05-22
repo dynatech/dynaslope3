@@ -9,6 +9,7 @@ from marshmallow import fields
 from connection import DB, MARSHMALLOW
 from src.models.monitoring import (MonitoringEvents, MonitoringEventsSchema)
 from src.models.sites import (Sites, SitesSchema)
+from src.models.users import (Users, UsersSchema)
 
 
 ###############################
@@ -485,7 +486,7 @@ class AlertStatus(UserMixin, DB.Model):
         "commons_db.users.user_id"), nullable=False)
 
     trigger = DB.relationship("OperationalTriggers",
-                              backref="alert_status", lazy="subquery")
+                              backref=DB.backref("alert_status", lazy="subquery", uselist=False), lazy="subquery")
 
     user = DB.relationship(
         "Users", backref=DB.backref("alert_status_ack", lazy="dynamic"), lazy="subquery")
@@ -495,7 +496,7 @@ class AlertStatus(UserMixin, DB.Model):
                 f" ts_last_retrigger: {self.ts_last_retrigger} ts_set: {self.ts_set}"
                 f" ts_ack: {self.ts_ack} alert_status: {self.alert_status}"
                 f" remarks: {self.remarks} user_id: {self.user_id}"
-                f" || TRIGGER: {self.trigger} || USER_ACK: {self.user}")
+                f" || TRIGGER: {self.trigger} || user: {self.user}")
 
 
 #############################
@@ -655,3 +656,18 @@ class TSMAlertsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = TSMAlerts
+
+
+class AlertStatusSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of AlertStatus class
+    """
+
+    user = fields.Nested(UsersSchema, exclude=("alert_status", ))
+    ts_ack = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_last_retrigger = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_set = fields.DateTime("%Y-%m-%d %H:%M:%S")
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = AlertStatus

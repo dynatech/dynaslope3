@@ -1,6 +1,7 @@
 
 import pprint
-import os, json
+import os
+import json
 import tech_info_maker
 from run import APP
 from connection import DB
@@ -13,12 +14,13 @@ from src.models.monitoring import (
     # Get the trigger_sym_id of Rx rainfall alert
     OperationalTriggers as ot, OperationalTriggerSymbols as ots,
     InternalAlertSymbols as ias, TriggerHierarchies)
-from src.models.analysis import (TSMSensors, TSMAlerts, RainfallAlerts, AlertStatus as a_s)
+from src.models.analysis import (
+    TSMSensors, TSMAlerts, RainfallAlerts, AlertStatus as a_s, AlertStatusSchema)
 from src.utils.sites import get_sites_data
+
 
 INTERNAL_ALERT_SYMBOLS = ias.query.all()
 PUBLIC_ALERT_SYMBOLS = pas.query.all()
-OPERATIONAL_TRIGGER_SYMBOLS = ots.query.all()
 
 
 def var_checker(var_name, var, have_spaces=False):
@@ -125,7 +127,7 @@ def get_latest_public_alerts(public_alerts_row, end, return_one=False):
     """
 
     most_recent = public_alerts_row.order_by(DB.desc(pa.ts)).filter(
-        or_(pa.ts_updated <= end, and_(pa.ts_updated >= end, pa.ts <= end)))
+        or_(pa.ts_updated <= end, and_(pa.ts <= end, end <= pa.ts_updated)))
 
     if return_one is True:
         return most_recent.first()
@@ -235,8 +237,6 @@ def get_monitoring_start_ts(monitoring_type, site_public_alerts, end, site_code)
         # Event. Get most recent alert event
         monitoring_start_ts = get_event_start_timestamp(
             site_public_alerts)
-        var_checker(
-            f"{site_code.upper()} - Monitoring Start Timestamp", monitoring_start_ts)
     else:
         # Routine. Get the time of the previous day.
         monitoring_start_ts = end - timedelta(days=1)
@@ -275,17 +275,6 @@ def get_tsm_alert(site_tsm_sensors, end):
         if active_alerts.all():
             for active_alert in active_alerts.all():
                 tsm_alerts_list.append(active_alert)
-        else:
-            dummy_sensor = t_sensor()
-            empty = ta(
-                ta_id=None,
-                ts=None,
-                tsm_id=None,
-                alert_level=None,
-                ts_updated=None,
-                tsm_sensor=dummy_sensor
-            )
-            tsm_alerts_list.append(empty)
 
     return tsm_alerts_list
 
@@ -315,168 +304,130 @@ def replace_nd_internal_alert_symbol(no_data):
     if alert_level < max_alert_level:
         no_data.alert_symbol.lower()
 
-    var_checker(" no data ", no_data, True)
-    var_checker(" no data alert symbol", no_data.alert_symbol, True)
-
     return no_data
 
 
-def get_internal_alert(positive_triggers_list, release_op_trigger_list):
+def get_processed_internal_alert_symbols(unique_positive_triggers, release_op_trigger_list):
     """
     Sample
     """
     # Declare the essential lists
-    highest_positive_triggers_list = []
-    with_data_list = []
-    final_data_list = []
+    sorted_positive_triggers_list = []
     no_data_list = []
 
     # Get a sorted list of historical triggers
-    highest_positive_triggers_list = sorted(
-        positive_triggers_list, key=lambda x: x.trigger_symbol.alert_level)
+    sorted_positive_triggers_list = sorted(
+        unique_positive_triggers, key=lambda x: x.trigger_symbol.alert_level, reverse=True)
+    var_checker("SORTED POS TRIG LIST", sorted_positive_triggers_list, True)
 
     # Eliminate duplicates
     # Note: Just a comparator. Needs to be refactored to accomodate any needs.
     comparator = []
     unique_list = []
-    for item in highest_positive_triggers_list:
+    for item in sorted_positive_triggers_list:
         com = item.trigger_symbol.source_id
-        comparator.append(com)
-        if not (com in comparator and comparator.count(com) > 1):
+
+        to_append = False
+        if not comparator:
+            to_append = True
+        elif not com in comparator:
+            to_append = True
+
+        if to_append:            
+            comparator.append(com)
             unique_list.append(item)
-    highest_positive_triggers_list = unique_list
 
-    # Get recent triggers that has data
-    with_data_ids = []
-    for item in release_op_trigger_list:
-        if item.trigger_symbol.alert_level != -1:
-            with_data_list.append(item)
-            with_data_ids.append(item.trigger_symbol.source_id)
-    var_checker("With data", with_data_list, True)
-    var_checker("With data IDS", with_data_ids, True)
+    sorted_positive_triggers_list = unique_list
 
-    # Compare historical triggers with recent triggers that have data and have
-    # no data.
-    comparator = []
-    for item in highest_positive_triggers_list:
-        com = item.trigger_symbol.source_id
-        if com in with_data_ids:
-            final_data_list.append(item)
-        else:
-            no_data_list.append(item)
 
-    var_checker(" Historical triggers that has data", final_data_list, True)
-    var_checker(" Historical triggers that has no data", no_data_list, True)
+    # Get a sorted list of release triggers
+    sorted_release_triggers_list = sorted(
+        release_op_trigger_list, key=lambda x: x.ts_updated, reverse=True)
+    var_checker("SORTED REL TRIG LIST", sorted_release_triggers_list, True)
 
-    # On Demand
-    # Check if general list of triggers has on demand
-    # Note: final_data_list append is my interpretation of DF.append. PLease confirm with Kevin
-    on_demand_id = get_trigger_hierarchy(
-        "on demand").trigger_symbol[0].internal_alert_symbol[0].trigger_sym_id
-    on_demand_list = []
-    for item in final_data_list:
-        if item.trigger_sym_id == on_demand_id:
-            on_demand_list.append(item)
-            final_data_list.append(item)
-    var_checker(" On Demand List", on_demand_list, True)
-
-    # Earthquake
-    earthquake_id = get_trigger_hierarchy(
-        "earthquake").trigger_symbol[0].internal_alert_symbol[0].trigger_sym_id
-    var_checker(" Earthquake ID", earthquake_id, True)
-
-    # Check if general list of triggers has on demand
-    # Note: final_data_list append is my interpretation of DF.append. PLease confirm with Kevin
-    earthquake_list = []
-    for item in final_data_list:
-        if item.trigger_sym_id == earthquake_id:
-            earthquake_list.append(item)
-            final_data_list.append(item)
-    var_checker(" Earthquake List", earthquake_list, True)
-
-    # Get trigger_sym_ids of final data list
-    sym_id_list = []
-    for item in final_data_list:
-        sym_id_list.append(item.trigger_sym_id)
-    var_checker(" Sym ID List", sym_id_list, True)
-
-    # Get source ids of NDs
-    nd_source_id_list = []
-    unique_no_data_list = []
-    comparator = []
-    for item in no_data_list:
-        nd_source_id_list.append(item.trigger_symbol.source_id)
-
-        # Get unique nd_list
-        com = item.trigger_symbol.source_id
-        comparator.append(com)
-        if not (com in comparator and comparator.count(com) > 1):
-            unique_no_data_list.append(item)
-
-    var_checker(" ND Source ID", nd_source_id_list, True)
-    var_checker(" Unique No Data List", unique_no_data_list, True)
-
-    internal_df = get_internal_alert_symbols(sym_id_list, nd_source_id_list)
-
-    # Check if no_data_list has data
-    no_data_list = False
-    if no_data_list:
-        print("!!!!!!!!!!!!!!!!!")
-        print("NO DATA")
-        print("!!!!!!!!!!!!!!!!!")
-        # Eliminate duplicates
-        # Note: Just a comparator. Needs to be refactored to accomodate any needs.
-        nd_internal_df = []
-        for no_data_op_trigger in unique_no_data_list:
-            no_data_op_trigger = replace_nd_internal_alert_symbol(
-                no_data_op_trigger)
-            nd_internal_df.append(no_data_op_trigger)
-        internal_df = nd_internal_df
-
-    # Check if there are duplicates in internal_df
     comparator = []
     unique_list = []
-    for item in internal_df:
-        comparator.append(item)
-        if not (com in comparator and comparator.count(com) > 1):
-            unique_list.append(item)
-    internal_df = unique_list
+    no_surficial_data_presence = True
+    for release_op_trig in sorted_release_triggers_list:
+        com = release_op_trig.trigger_symbol.source_id
 
-    return internal_df
+        if release_op_trig.trigger_symbol.trigger_hierarchy.trigger_source == "surficial":
+            no_surficial_data_presence = False
+        else:
+            to_append = False
+            if release_op_trig.trigger_symbol.alert_level == -1:
+                if not comparator:
+                    to_append = True
+                elif not com in comparator:
+                    to_append = True
+
+            if to_append:
+                comparator.append(com)
+                unique_list.append(release_op_trig)
+
+    no_data_list = unique_list
+
+    var_checker("SORTED UNIQUE POS TRIG LIST", sorted_positive_triggers_list, True)
+    var_checker("NO DATA LIST", no_data_list, True)
+
+    for pos_trig in sorted_positive_triggers_list:
+        source_id = pos_trig.trigger_symbol.source_id
+        has_no_data = False
+
+        if pos_trig.trigger_symbol.trigger_hierarchy.trigger_source == "surficial" and no_surficial_data_presence:
+            nd_internal_symbol = ots.query.filter(ots.alert_level == -1, \
+                    ots.source_id == pos_trig.trigger_symbol.source_id).first().internal_alert_symbol.alert_symbol
+            has_no_data = True
+        else:
+            for no_data in no_data_list:
+                var_checker("internal symbol", pos_trig.internal_alert_symbol, True)
+
+                if no_data.trigger_symbol.source_id == source_id:
+                    nd_internal_symbol = no_data.trigger_symbol.internal_alert_symbol.alert_symbol
+                    has_no_data = True
+
+        if has_no_data:
+            if pos_trig.trigger_symbol.alert_level < get_source_max_alert_level(source_id).alert_level:
+                nd_internal_symbol = nd_internal_symbol.lower()
+
+            pos_trig.trigger_symbol.internal_alert_symbol.alert_symbol = nd_internal_symbol
+                
+    var_checker("MANIPULATED POS TRIG", sorted_positive_triggers_list, True)
+
+    return sorted_positive_triggers_list
 
 
-def replace_rainfall_alert_if_rx(site_rainfall_alerts, internal_df, end, rainfall_source_id, rain_75_id):
+def replace_rainfall_alert_if_rx(site_rainfall_alerts, internal_df, rainfall_source_id, rain_75_id):
     """
     Sample
     """
     internal_df_source_id_list = []
     is_rx = False
+    rx_symbol = None
+    query_result = ias.query.filter(ias.trigger_sym_id == rain_75_id)
+
     if site_rainfall_alerts.all():
         is_rx = True
-        for item in internal_df:
-            internal_df_source_id_list.append(item.trigger_symbol.source_id)
-        var_checker(" internal_df_source_id_list",
-                    internal_df_source_id_list, True)
+        has_rainfall = False
+        rain_trigger_index = None
 
-        if rain_75_id in internal_df_source_id_list:
-            rain_alert = ias.query.filter(
-                ias.trigger_sym_id == rain_75_id).alert_symbol
-            trigger_sym_id = ias.query.filter(
-                ias.trigger_sym_id == rain_75_id).trigger_sym_id
+        for index, item in enumerate(internal_df):
+            internal_df_source_id_list.append(item.trigger_symbol.trigger_sym_id)
+            if item.trigger_symbol.source_id == rainfall_source_id:
+                has_rainfall = True
+                rain_trigger_index = index
+                break
+    
+        if has_rainfall:
+            rain_alert = query_result.alert_symbol
+            trigger_sym_id = query_result.trigger_sym_id
 
-            for item in internal_df:
-                if item.trigger_symbol.source_id == rainfall_source_id:
-                    item.alert_symbol = rain_alert
-                    item.trigger_sym_id = trigger_sym_id
+            internal_df[rain_trigger_index].alert_symbol = rain_alert
+            internal_df[rain_trigger_index].trigger_sym_id = trigger_sym_id
         else:
-            print("Do that")
-            rain_df = ias.query.filter(
-                ias.trigger_sym_id == rain_75_id).first()
-            rain_df.alert_symbol = rain_df.alert_symbol.lower()
-            var_checker(" RAIN DF", rain_df, True)
-            internal_df.append(rain_df)
+            rx_symbol = query_result.first().alert_symbol.lower()
 
-    return internal_df, is_rx
+    return internal_df, is_rx, rx_symbol
 
 
 def get_pub_alert_symbols(alert_level, return_data="alert_symbol"):
@@ -491,6 +442,7 @@ def get_pub_alert_symbols(alert_level, return_data="alert_symbol"):
 
 
 def get_non_rainfall_alert_level_list(internal_df):
+    # REFACTOR TO ACCOMODATE OTHER THAN RAINFALL
     non_rainfall_alert_level_list = []
     for item in internal_df:
         if item.trigger_symbol.trigger_hierarchy.trigger_source != "rainfall":
@@ -564,31 +516,61 @@ def get_internal_alert_symbol_ground_and_source(ground_alert, internal_source_id
     return pub_internal
 
 
-def get_prepared_recent_retriggers(not_empty=True, last_positive_triggers=None):
+def get_prepared_recent_retriggers(not_empty=True, positive_triggers_list=None, invalid_dict=None):
     """
     Prepare the most recent trigger
     Remove unnecessary attributes and convert SQLAlchemy row into a dict.
     Convert ts_updated to str
 
     Args: 
-    last_positive_triggers - list containing the most recent positive trigger (SQLAlchemy row)
+    positive_triggers_list - list containing the most recent positive trigger (SQLAlchemy row)
     """
     recent_triggers_list = []
+    var_checker("positive_triggers_list", positive_triggers_list, True)
+
     if not_empty:
-        for item in last_positive_triggers:
+        for item in positive_triggers_list:
+            # Include invalids as a dictionary
+            final_invalid_dict = {}
+            try:
+                invalid_entry = invalid_dict[item.trigger_sym_id]
+                invalid_details_dict = AlertStatusSchema().dump(invalid_entry).data
+ 
+                final_invalid_dict = {
+                    "invalid": True,
+                    "invalid_details": invalid_details_dict
+                }
+            except:
+                # pass
+                raise
+
+            trigger_type = item.trigger_symbol.trigger_hierarchy.trigger_source
+            # Form a dictionary that will hold all trigger details
             trigger_dict = {
+                "trigger_type": trigger_type,
                 "trigger_id": item.trigger_id,
-                "alert": item.trigger_symbol.alert_level,
+                "alert": item.trigger_symbol.alert_symbol,
                 "ts_updated": str(item.ts_updated)
             }
+
+            # Prepare the tech_info of the trigger
+            trigger_tech_info = tech_info_maker.main(item)
+
+            if trigger_type == "rainfall":
+                rainfall = {
+                    "rain_gauge": trigger_tech_info["rain_gauge"],
+                    "tech_info": trigger_tech_info["tech_info_string"]
+                }
+                trigger_dict.update(rainfall)
+            elif trigger_type == "subsurface":
+                trigger_dict["tech_info"] = trigger_tech_info
+
+            # Add the invalid details same level to the dictionary attributes
+            trigger_dict.update(final_invalid_dict)
+
             recent_triggers_list.append(trigger_dict)
-            print(recent_triggers_list)
     else:
-        trigger_dict = {
-            "trigger_id": "",
-            "alert": "",
-            "ts_updated": ""
-        }
+        trigger_dict = {}
         recent_triggers_list.append(trigger_dict)
 
     return recent_triggers_list
@@ -609,29 +591,77 @@ def get_prepared_subsurface_alert_list(subsurface_alerts_list):
     return new_subsurface_alerts_list
 
 
-def write_to_db_public_alerts(site_public_dict):
+def write_to_db_public_alerts(output_dict, initial_public_alert_row):
     """
     SQLAlchemy DB writer function.
+
+    Args:
+        output_dict (dictionary) - the generated public_alert for each site
+        initial_public_alert_row (PublicAlert class) - the previous public_alert before the script run
     """
     try:
-        new_pub_alert = PublicAlerts(
-            ts=site_public_dict["ts"],
-            site_id=site_public_dict["site_id"],
-            pub_sym_id=site_public_dict["pub_sym_id"],
-            ts_updated=site_public_dict["ts_updated"]
-        )
-        DB.session.add(new_pub_alert)
-        DB.session.flush()
-        new_public_id = new_pub_alert.public_id
+        prev_alert_symbol = initial_public_alert_row.alert_symbol.alert_symbol
+        is_new_public_alert = prev_alert_symbol != output_dict["pub_alert_symbol"]
+
+        # Update the previous public alert first
+        initial_public_alert_row.ts_updated = output_dict["ts"]
+
+        # If the alert symbol is different, create a new entry
+        if is_new_public_alert:
+            new_pub_alert = pa(
+                ts=output_dict["ts"],
+                site_id=output_dict["site_id"],
+                pub_sym_id=output_dict["pub_sym_id"],
+                ts_updated=output_dict["ts_updated"]
+            )
+            DB.session.add(new_pub_alert)
+            DB.session.flush()
+            new_public_id = new_pub_alert.public_id
+
+        # If no problems, commit
+        DB.session.commit()
+
     except Exception as err:
-        DB.session.rollback()
         print(err)
+        DB.session.rollback()
         raise
 
     return new_public_id
 
 
-def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
+def create_internal_alert(highest_public_alert, ground_alert, internal_source_id, internal_df):
+    """
+    """
+    internal_alert = ""
+    public_alert_symbol = get_pub_alert_symbols(
+        highest_public_alert, "alert_symbol")
+
+    if ground_alert == -1 and highest_public_alert <= 1:
+        public_alert_symbol = get_internal_alert_symbol_ground_and_source(
+            ground_alert, internal_source_id)
+
+    internal_alert = public_alert_symbol
+    
+    if highest_public_alert > 0:
+        internal_alert += "-"
+
+        sorted_internal_df = sorted(internal_df, key=lambda x: x.trigger_symbol.trigger_hierarchy.hierarchy_id, reverse=True)
+
+        var_checker("sorted internal df", sorted_internal_df, True)
+
+        internal_alert_symbols = []
+        for item in sorted_internal_df:
+            internal_alert_symbols.append(item.trigger_symbol.internal_alert_symbol.alert_symbol)
+        
+        internal_alert_triggers = "".join(internal_alert_symbols)
+        internal_alert += internal_alert_triggers
+
+    var_checker("INTERNAL ALERT STRING FINAL", internal_alert, True)
+
+    return internal_alert
+
+
+def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db, pas_map):
     ######################################
     # LOOP THROUGH ACTIVE SITES PROVIDED #
     ######################################
@@ -650,8 +680,6 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
         # current site then get it's alert type.
         latest_site_public_alert = get_latest_public_alerts(
             site_public_alerts, end, True)
-        
-        var_checker(" LATEST SITE PUBLIC ALERT", latest_site_public_alert, True)
 
         # Check if event or routine
         monitoring_type = check_if_routine_or_event(
@@ -680,20 +708,33 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
         subsurface_source_id = get_trigger_hierarchy("subsurface").source_id
         surficial_source_id = get_trigger_hierarchy("surficial").source_id
 
-        # Remove subsurface triggers? (ASK KEVIN)
+        # Remove subsurface triggers
+        # Window time to get data presence for subsurface is for actual monitoring runtime (XX:30)
         release_op_trigger_list = []
         for release_op_trigger in release_op_triggers.all():
             if not (release_op_trigger.trigger_symbol.source_id == subsurface_source_id and release_op_trigger.ts_updated < end):
                 release_op_trigger_list.append(release_op_trigger)
 
-        # Get surficial triggers? (ASK KEVIN)
+        # Get surficial triggers
+        # Window time for surficial data presence is the 4-hour range from release time
         positive_triggers_list = []
         for op_trigger in op_triggers_list.all():
             op_trig = op_trigger.trigger_symbol
-            if op_trig.alert_level > 0 and not (op_trig.alert_level == 1 and op_trig.source_id == surficial_source_id):
+            # Filter for g0t alerts (surficial trending alerts for validation)
+            g0t_filter = not (op_trig.alert_level ==
+                              1 and op_trig.source_id == surficial_source_id)
+            if op_trig.alert_level > 0 and g0t_filter:
                 positive_triggers_list.append(op_trigger)
 
-        # Remove duplicates and get the last positive trigger
+        var_checker("POSITIVE TRIGGERS", positive_triggers_list, True)
+        #######################
+        # INVALIDS PROCESSING #
+        #######################
+        invalids_dict = get_invalids(end, positive_triggers_list)
+        var_checker("INVALIDS DICT", invalids_dict, True)
+
+        # Remove duplicates per unique trigger_source (e.g. subsurface, surficial)
+        # and operational trigger alert level combination.
         comparator_1 = []
         comparator_2 = []
         unique_list = []
@@ -704,7 +745,8 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
             comparator_2.append(com_2)
             if not ((com_1 in comparator_1 and com_2 in comparator_2) and (comparator_1.count(com_1) > 1 and comparator_2.count(com_2) > 1)):
                 unique_list.append(item)
-        last_positive_triggers = unique_list
+        unique_positive_triggers = unique_list
+        # var_checker(" LAST POSITIVE TRIGGERS", unique_positive_triggers, True)
 
         # Get highest public alert level
         highest_public_alert = get_highest_public_alert(
@@ -725,26 +767,21 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
             subsurface_alerts_list)
 
         # Get surficial
-        surficial_alerts = []
+        current_surficial_alert = -1
         for op_trigger in op_triggers_list.all():
             if op_trigger.trigger_symbol.source_id == surficial_source_id and op_trigger.ts_updated >= surficial_ts:
-                surficial_alerts.append(op_trigger)
-            else:
-                surficial_alerts_list = -1
-        if surficial_alerts:
-            surficial_alerts_list = surficial_alerts[0].trigger_symbol.alert_level
+                surficial_entry = op_trigger
+                current_surficial_alert = surficial_entry.trigger_symbol.alert_level
+                break
 
         # Get Rainfall
         rainfall_source_id = get_trigger_hierarchy("rainfall").source_id
-        rainfall_alerts = []
+        current_rainfall_alert = -1
         for op_trigger in op_triggers_list.all():
             if op_trigger.trigger_symbol.source_id == rainfall_source_id and op_trigger.ts_updated >= surficial_ts - timedelta(minutes=30):
-                print("MERON RAINFALL")
-                rainfall_alerts.append(op_trigger)
-        if rainfall_alerts:
-            rainfall_alerts_list = rainfall_alerts[0].trigger_symbol.alert_level
-        else:
-            rainfall_alerts_list = -1
+                rainfall_entry = op_trigger
+                current_rainfall_alert = rainfall_entry.trigger_symbol.alert_level
+                break
 
         ###################
         # INTERNAL ALERTS #
@@ -752,7 +789,6 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
         internal_source_id = get_trigger_hierarchy("internal").source_id
 
         if highest_public_alert > 0:
-            print("== OVER ZERO!")
             validity = max(positive_triggers_list,
                            key=lambda x: x.ts_updated).ts_updated + timedelta(days=1)
             validity = round_of_to_release_time(validity)
@@ -761,29 +797,32 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
                 validity += timedelta(days=1)
 
             # internal alert based on positive triggers and data presence
-            internal_df = get_internal_alert(
-                positive_triggers_list, release_op_trigger_list)
+            internal_df = get_processed_internal_alert_symbols(
+                unique_positive_triggers, release_op_trigger_list)
+
+            var_checker("INTERNAL DF", internal_df, True)
 
             # Get the trigger_sym_id of Rx rainfall alert
             rain_75_id = ots.query.filter(
                 ots.alert_level == -2).first().trigger_sym_id
 
-            if rainfall_alerts_list == 0 and end >= (validity - timedelta(minutes=30)):
-                internal_df, is_rx = replace_rainfall_alert_if_rx(
-                    site_rainfall_alerts, internal_df, end, rainfall_source_id, rain_75_id)
+            if current_rainfall_alert == 0 and end >= (validity - timedelta(minutes=30)):
+                internal_df, is_rx, rx_symbol = replace_rainfall_alert_if_rx(
+                    site_rainfall_alerts, internal_df, rainfall_source_id, rain_75_id)
 
                 # Is is_rx True
                 if is_rx:
-                    rainfall_alerts_list = -2
+                    current_rainfall_alert = -2
 
-            internal_df = sorted(
-                internal_df, key=lambda x: x.trigger_symbol.trigger_hierarchy.source_id)
-            internal_alert = "".join(internal_df[0].alert_symbol)
+            # internal_df = sorted(
+            #     internal_df, key=lambda x: x.trigger_symbol.trigger_hierarchy.source_id)
+            # internal_alert = "".join(internal_df[0].alert_symbol)
+            # var_checker("internal alert", internal_alert, True)
 
-            if highest_public_alert > 1:
-                public_alert_symbol = get_pub_alert_symbols(
-                    highest_public_alert, "alert_symbol")
-                internal_alert = public_alert_symbol + '-' + internal_alert
+            # if highest_public_alert > 1:
+            #     public_alert_symbol = get_pub_alert_symbols(
+            #         highest_public_alert, "alert_symbol")
+            #     internal_alert = public_alert_symbol + '-' + internal_alert
 
             ground_alert_levels_list = get_non_rainfall_alert_level_list(
                 internal_df)
@@ -793,49 +832,31 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
         #####################################################
 
         if highest_public_alert <= 1:
-            print(" PUBLIC ALERT LESS THAN EQUAL 1!")
-            print()
             tsm_with_data = []
             for subsurface in subsurface_alerts_list:
                 if subsurface["alert_level"] != -1:
                     tsm_with_data.append(subsurface)
 
             # Check if ground (surficial and sub) has data
-            if surficial_alerts_list == -1 and len(tsm_with_data) == 0:
+            if current_surficial_alert == -1 and len(tsm_with_data) == 0:
                 ground_alert = -1
             else:
                 ground_alert = 0
-
-            # Get the pub_internal
-            pub_internal = ""
-            if highest_public_alert == 0 or ground_alert == -1:
-                # Just a loop to find the appropriate alert symbol
-                pub_internal = get_internal_alert_symbol_ground_and_source(
-                    ground_alert, internal_source_id)
-                if highest_public_alert == 0:
-                    internal_alert = ""
-                    hyphen = ""
-                else:
-                    hyphen = "-"
-            else:
-                pub_internal = get_pub_alert_symbols(
-                    highest_public_alert, "alert_symbol")
-                hyphen = "-"
-                var_checker(" pub_internal", pub_internal)
-
-            internal_alert = pub_internal + hyphen + internal_alert
-
         elif -1 in ground_alert_levels_list:
             ground_alert = -1
         else:
-            ground_alert = -1
             ground_alert = 0
+
+        internal_alert = create_internal_alert(highest_public_alert, ground_alert, internal_source_id, internal_df)
+        var_checker("Internal Alert String", internal_alert, True)
 
         ################
         # PUBLIC ALERT #
         ################
         # Lowering: Check if end of validity and not rain75
+        for_lowering = False
         if highest_public_alert > 0:
+            # Refactor time options on release time
             is_release_time_run = end.time() in [time(3, 30), time(7, 30),
                                                  time(11, 30), time(
                                                      15, 30), time(19, 30),
@@ -847,22 +868,26 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
             trigger_sym_id_list = get_internal_df_attribute(
                 internal_df, "trigger_sym_id", "list")
 
+            has_rx_in_triggers = rain_75_id in trigger_sym_id_list
+            is_below_3_day_rule = validity + \
+                timedelta(days=3) > end + timedelta(minutes=30)
+            has_no_ground_alert = ground_alert == -1
+
             # check if end of validity: lower alert if with data and not rain75
             if validity > (end + timedelta(minutes=30)):
                 pass
-            elif (rain_75_id in trigger_sym_id_list) or (validity + timedelta(days=3) > end + timedelta(minutes=30)) and (ground_alert == -1) or is_not_yet_write_time:
+            elif has_rx_in_triggers or (is_below_3_day_rule and has_no_ground_alert) or is_not_yet_write_time:
                 validity = round_of_to_release_time(end)
 
                 if is_release_time_run:
                     if not(is_45_minute_beyond):
                         do_not_write_to_db = True
             else:
-                validity = ""
-                highest_public_alert = 0
-                internal_alert = get_internal_alert_symbol_ground_and_source(
-                    ground_alert, internal_source_id)
-
+                for_lowering = True
         else:
+            for_lowering = True
+
+        if for_lowering:
             validity = ""
             highest_public_alert = 0
             internal_alert = get_internal_alert_symbol_ground_and_source(
@@ -880,18 +905,9 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
         # most recent retrigger of positive operational triggers
         try:
             triggers = get_prepared_recent_retriggers(
-                True, last_positive_triggers)
+                True, unique_positive_triggers, invalids_dict)
         except:
-            triggers = get_prepared_recent_retriggers(False)
-
-
-        # technical info for bulletin release
-        # SKIPPED DUE TO THE NEED TO CREATE ANOTHER MODULE FOR TECHINFOMAKER
-        try:
-            tech_info = tech_info_maker.main(positive_triggers_list)
-        except Exception as err:
             raise
-
 
         # Get the TIMESTAMP
         # Get the VALIDITY
@@ -903,7 +919,9 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
             timestamp = max(op_trig_with_data_list,
                             key=lambda x: x.ts_updated).ts_updated
             timestamp = round_data_ts(timestamp)
+            var_checker("ROUNDED TIMESTAMP FROM COMPLIC", timestamp, True)
         except:
+            print("timestamp EQUALS end")
             timestamp = end
 
         if timestamp > end or (int(start_time.strftime('%M')) >= 45
@@ -917,20 +935,20 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
         public_dict = {"ts": timestamp, "site_id": site_id,
                        "site_code": site_code, "public_alert": highest_public_alert,
                        "internal_alert": internal_alert, "validity": validity,
-                       "subsurface": subsurface_alerts_list, "surficial": surficial_alerts_list,
-                       "rainfall": rainfall_alerts_list, "triggers": triggers,
-                       "tech_info": tech_info
+                       "subsurface": subsurface_alerts_list, "surficial": current_surficial_alert,
+                       "rainfall": current_rainfall_alert, "triggers": triggers
                        }
-        var_checker(" public_dict", public_dict, True)
+        # var_checker(" GENERATED ALERT FOR JSON", public_dict, True)
 
         # writes public alert to database
         pub_sym_id = get_pub_alert_symbols(highest_public_alert, "pub_sym_id")
-        var_checker(" pub_sym_id", pub_sym_id, True)
+
         site_public_dict = {
             "ts": end, "site_id": site_id,
-            "pub_sym_id": pub_sym_id, "ts_updated": end
+            "pub_sym_id": pub_sym_id, "ts_updated": end,
+            "pub_alert_symbol": pas_map[("pub_sym_id", pub_sym_id)]
         }
-        var_checker(" site_public_dict", site_public_dict, True)
+        # var_checker(" site_public_dict", site_public_dict, True)
 
         # onset trigger
         try:
@@ -942,48 +960,26 @@ def get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db):
         # TRY TO WRITE TO DB PUBLIC_ALERTS #
         ####################################
         if not do_not_write_to_db:
-            print(" OH NO DO NOT WRITE!")
-            # new_public_alert_id = write_to_db_public_alerts(site_public_dict)
+            print(" WRITING TO DB!")
+            # try:
+            #     new_public_alert_id = write_to_db_public_alerts(
+            #         site_public_dict, latest_site_public_alert)
+            #     var_checker("NEW PUBLIC ALERT WRITTEN", f"ID of new public alert is {new_public_alert_id}", True)
+            # except Exception as err:
+            #     print(err)
+            #     DB.session.rollback()
+            #     raise
             # var_checker(" NEW PUBLIC ALERT HAS BEEN WRITTEN",
             #             new_public_alert_id, True)
-            # # Commit only when there are no problems
-            # DB.session.commit()
         else:
-            print()
+
             print(" NOTHING HAS BEEN WRITTEN")
-            print()
 
-
-        
         ######################
         # !!!! PRINTERS !!!! #
         ######################
         var_checker(f"{monitoring_type.upper()} - {latest_site_public_alert.public_id} Start of Site: {site_code.upper()}",
                     monitoring_start_ts, True)
-        # var_checker(
-        #     f" op_triggers", op_triggers_list.all(), True)                    
-        # # var_checker(
-        # #     f" release_op_triggers", release_op_triggers.all(), True)
-        # var_checker(
-        #     " RENEWED release_op_trig", release_op_trigger_list, True)
-        var_checker(
-            " Positive Triggers", positive_triggers_list, True)
-        # var_checker(
-        #     " LAST Positive Triggers", last_positive_triggers, True)
-        # var_checker(
-        #     " Public Alert", highest_public_alert, True)
-        # var_checker(" TSM Sensors", site_tsm_sensors.all(), True)
-        # var_checker(" Subsurface Triggers", subsurface_alerts_list, True)
-        # var_checker(" Surficial Alert", surficial_alerts_list, True)
-        # var_checker(" Rainfall ID", rainfall_source_id, True)
-        # var_checker(" Rainfall Alert", rainfall_alerts_list, True)
-        # var_checker(" Validity", validity, True)
-        # # var_checker(" Internal DF", internal_df, True)
-        # var_checker(" Internal DF", get_internal_alert(
-        #     positive_triggers_list, release_op_trigger_list), True)
-        # var_checker(" Internal Alert String", internal_alert, True)
-        # var_checker(" Ground Alert Levels List",
-        #             ground_alert_levels_list, True)
 
         site_public_alerts_list.append(public_dict)
 
@@ -999,55 +995,71 @@ def replace_public_symbol(symbol_map, value):
             return item.alert_symbol
 
 
-def get_current_alerts(pa_event):
+def get_invalids(end, positive_triggers_list):
     """
     Sample
-
-    Args: Receives public_alerts
     """
-    site_id = pa_event.site_id
-    start_ts = pa_event.ts
-    public_alert_symbols = pa_event.alert_symbol.alert_symbol
+    # This is similar to getting the latest public alert
+    # but since we are looking for latest public alerts that are above A0,
+    # we needed to modify it a bit
+    invalids_dict = {}
+    for item in positive_triggers_list:
+        if item.alert_status and item.alert_status.alert_status == -1:
+            # invalid_alert_status_list.append(item.alert_status)
+            trigger_sym_id = item.trigger_sym_id
+            if trigger_sym_id in invalids_dict:
+                if invalids_dict[trigger_sym_id].ts_ack < item.alert_status.ts_ack:
+                    invalids_dict[trigger_sym_id] = item.alert_status
+            else:
+                invalids_dict[trigger_sym_id] = item.alert_status
 
-    current_alerts = ot.query.filter(ot.site_id == site_id, ot.ts >= start_ts)
-
-    new_list = []
-    for item in current_alerts.all():
-        if item.site.public_alerts.order_by(DB.desc(pa.public_id)).first().alert_symbol.alert_symbol == public_alert_symbols:
-            new_list.append(item)
-
-    return new_list
+    return invalids_dict
 
 
-def get_current_events(end):
+def create_pas_map():
     """
-    PENDING: GET MOST RECENT ALERT HISTORY
+    Create a map for public alert symbols that uses alert_level as key.
     """
-    res = pa.query.filter(pa.ts_updated >= end).order_by(DB.desc(pa.ts_updated)).all()
-    current_events_list = []
-    comparator = []
-    for item in res:
-        com = item.site_id
-        comparator.append(com)
-        if not (com in comparator and comparator.count(com) > 1):
-            if item.alert_symbol.alert_level > 0:
-                current_events_list.append(item)
-    return current_events_list
+    custom_map = {}
+    public_symbols_list = pas.query.all()
+    for item in public_symbols_list:
+        custom_map[("alert_level", (item.alert_level))] = item.alert_symbol
+        custom_map[("pub_sym_id", (item.pub_sym_id))] = item.pub_sym_id
+
+    return custom_map
+
+
+def create_ots_map():
+    """
+    Creates a map for operational trigger symbols that uses tuples as keys.
+    """
+    custom_map = {}
+    ots_symbols_list = ots.query.all()
+    for item in ots_symbols_list:
+        custom_map[(item.trigger_hierarchy.trigger_source,
+                    item.alert_level)] = item.alert_symbol
+
+    return custom_map
 
 
 def main(end=None, is_test=None, site_code=None):
     ########################
     # INITIALIZE VARIABLES #
     ########################
+
     start_time = datetime.now()
     print(start_time)
+    ots_map = create_ots_map()
+    pas_map = create_pas_map()
 
     if end is None:
         end = datetime.now()
+        var_checker("END IS", end, True)
     else:
         end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
 
     end = round_data_ts(end)
+    var_checker("rounded down end", end, True)
 
     if is_test is True and site_code is not None:
         active_sites = [get_sites_data(site_code)]
@@ -1056,91 +1068,31 @@ def main(end=None, is_test=None, site_code=None):
         active_sites = get_sites_data()
         do_not_write_to_db = True
     else:
+        do_not_write_to_db = False
         active_sites = get_sites_data()
 
-    alerts = get_site_public_alerts(active_sites, start_time, end, do_not_write_to_db)
-
+    alerts = get_site_public_alerts(
+        active_sites, start_time, end, do_not_write_to_db, pas_map)
 
     for item in alerts:
         # Replace the public symbol of public_alert
         # E.g. - 1 -> A1, 2 -> A2
-        item["public_alert"] = replace_public_symbol(PUBLIC_ALERT_SYMBOLS, item["public_alert"])
+        item["public_alert"] = pas_map[("alert_level", item["public_alert"])]
 
         # Replace trigger symbol based from Alert Level provided per type
         # E.g. Subsurface lvl2 -> L2, Surficial lvl3 -> l3
-        for sub_item in OPERATIONAL_TRIGGER_SYMBOLS:
-            if sub_item.trigger_hierarchy.trigger_source == "rainfall" and sub_item.alert_level == item["rainfall"]:
-                new_rain_symbol = sub_item.alert_symbol
-            elif sub_item.trigger_hierarchy.trigger_source == "surficial" and sub_item.alert_level == item["surficial"]:
-                new_surficial_symbol = sub_item.alert_symbol
-            elif sub_item.trigger_hierarchy.trigger_source == "subsurface":
-                if item["subsurface"][0]["alert_level"] is None:
-                    new_subsurface_symbol = "Empty"
-                elif sub_item.alert_level == item["subsurface"][0]["alert_level"]:
-                    new_subsurface_symbol = sub_item.alert_symbol
 
-        item["rainfall"] = new_rain_symbol
-        item["surficial"] = new_surficial_symbol
-        item["subsurface"] = new_subsurface_symbol
+        item["rainfall"] = ots_map[("rainfall", item["rainfall"])]
+        item["surficial"] = ots_map[("surficial", item["surficial"])]
 
-        for sub_sub_item in item["triggers"]:
-            sub_sub_item["alert_symbol"] = ots.query.filter(ots.alert_level == sub_sub_item["alert"]).first().alert_symbol
+        for subsurface in item["subsurface"]:
+            subsurface["alert_level"] = ots_map[(
+                "subsurface", subsurface["alert_level"])]
 
-    var_checker(" NEW ALERTS", alerts, True)
-
-    # PROCESS THE INVALIDS
-    current_public_alert_events = get_current_events(end)
-    var_checker(" current_events", current_public_alert_events, True)
-
-    new_list = []
-    for pa_event in current_public_alert_events:
-        current_alerts = get_current_alerts(pa_event)
-        new_list.extend(current_alerts)
-
-    columns = []
-    for invalid in new_list:
-        alert_status_obj = invalid.alert_status
-        var_checker("ALERT STATUS", alert_status_obj, True)
-        first_name = invalid.alert_status[0].user.first_name
-        last_name = invalid.alert_status[0].user.last_name
-        full_name = f"{first_name} {last_name}"
-        invalid_trigger = {
-            "iomp": full_name, 
-            "site_code": invalid.site.site_code,
-            "alert_symbol": invalid.trigger_symbol.alert_symbol,
-            "ts_last_retrigger": invalid.alert_status[0].ts_last_retrigger,
-            "remarks": invalid.alert_status[0].remarks,
-            "trigger_source": invalid.trigger_symbol.trigger_hierarchy.trigger_source,
-            "alert_status": invalid.alert_status[0].alert_status,
-            "public_alert_symbol": invalid.site.public_alerts.order_by(DB.desc(pa.public_id)).first().alert_symbol.alert_symbol
-        }
-        columns.append(invalid_trigger)
-
-    var_checker("COLUMNS", columns, True)
-
-    # FIND UNIQUE SITES
-    unique_site_codes = []
-    unique_site_entries = []
-    comparator = []
-    for item in new_list:
-        com = item.site_id
-        comparator.append(com)
-        if not (com in comparator and comparator.count(com) > 1):
-            unique_site_codes.append(item.site.site_code)
-            unique_site_entries.append(item)
-
-    var_checker("UNIQUENESS-CODES", unique_site_codes, True)
-    var_checker("UNIQUENESS-ENTRY", unique_site_entries, True)
-        
-
-
-    var_checker(f" NEW CURRENT ALERTS with length of {len(new_list)}", new_list, True)
-
-    # output_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+    var_checker("!!! THE ALERTS !!!", alerts, True)
     # SAMPLE WRITE
     json_form = json.dumps(alerts)
-    output_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-    with open('/var/www/dynaslope3/'+'PublicAlertRefDB.json', 'w') as w:
+    with open('/var/www/dynaslope3/'+'generated_alerts.json', 'w') as w:
         w.write(json_form)
 
     script_end = datetime.now()
@@ -1148,8 +1100,17 @@ def main(end=None, is_test=None, site_code=None):
 
 
 if __name__ == "__main__":
-    # main("2019-01-20 07:30:00", True, "lab")
+    # REAL THING
+    # main()
+
+    # L2
     main("2018-11-30 14:30:00", True, "ime")
+    # main("2019-01-20 07:30:00", True, "lab")
+
+    # Invalids
+    # main("2019-05-19 23:30:00", True, "lab")
+    # main("2019-01-25 07:00:00", True, "loo")
+
     # main("2018-12-24 07:20:00", True, "lpa")
     # main("2018-09-04 09:30:00", True, "mar")
 
@@ -1158,5 +1119,9 @@ if __name__ == "__main__":
 
     # l2 surficial
     # main("2018-12-26 11:00:00", True, "lpa")
-    
-    # main("2018-11-30 14:30:00", True)
+
+    # DEBUGGING LIST
+    # main("2019-05-22 15:05:00", True, "hin")
+    # main("2019-05-22 15:05:00", True, "blc")
+    # main("2019-05-22 16:09:34", True)
+    # main("2019-05-22 16:09:34", True, "lab")
