@@ -140,13 +140,16 @@ def get_rainfall_tech_info(rainfall_alert_details):
     """
     one_day_data = None
     three_day_data = None
-    days = []
-    cumulatives = []
-    thresholds = []
 
     # NOTE: The use of .all() does not affect the iterability of the SQLAlchemy row.
     # for item in rainfall_alert_details:
+    # var_checker("RAINFALL DETAILS", rainfall_alert_details.all(), True)
+
     for item in rainfall_alert_details.all():
+        days = []
+        cumulatives = []
+        thresholds = []
+
         rain_gauge_name = item.rainfall_gauge.gauge_name
         data_source = item.rainfall_gauge.data_source
 
@@ -177,7 +180,10 @@ def get_rainfall_tech_info(rainfall_alert_details):
     cumulative = " and ".join(cumulatives)
     threshold = " and ".join(thresholds)
 
-    rain_tech_info = f"RAIN {rain_gauge_name}: {day} cumulative rainfall ({cumulative} mm) exceeded threshold ({threshold} mm)"
+    rain_tech_info = {}
+    rain_tech_info["rain_gauge"] = f"RAIN_{rain_gauge_name}"
+    rain_tech_info[
+        "tech_info_string"] = f"RAIN {rain_gauge_name}: {day} cumulative rainfall ({cumulative} mm) exceeded threshold ({threshold} mm)"
 
     return rain_tech_info
 
@@ -218,7 +224,7 @@ def format_node_details(triggers):
     else:
         sorted_nodes = sorted(col_list, key=lambda x: x.node_id)
         node_details.append(
-            f"{i.upper()}(nodes {', '.join(str(v.node_id) for v in sorted_nodes)})")
+            f"{i.upper()} (nodes {', '.join(str(v.node_id) for v in sorted_nodes)})")
 
     return ", ".join(node_details)
 
@@ -279,12 +285,10 @@ def get_subsurface_tech_info(subsurface_alerts):
             unique_list.append(item)
     subsurface_alerts = unique_list
 
-    var_checker("SUBSURFACE ALERTS", subsurface_alerts, True)
-
     l2_triggers = []
     l3_triggers = []
     for item in subsurface_alerts:
-        if item.disp_alert == 3 or item.vel_alert == 2:
+        if item.disp_alert == 2 or item.vel_alert == 2:
             l2_triggers.append(item)
         if item.disp_alert == 3 or item.vel_alert == 3:
             l3_triggers.append(item)
@@ -294,48 +298,39 @@ def get_subsurface_tech_info(subsurface_alerts):
     for index, group in enumerate(group_array):
         if group:
             tech_info = formulate_subsurface_tech_info(group)
-            subsurface_tech_info["L" + str(index+2)] = tech_info
+            # Commented the following code because according to Senior SRS, only the string is needed.
+            # subsurface_tech_info["L" + str(index+2)] = tech_info
+            subsurface_tech_info = tech_info
 
     return subsurface_tech_info
 
 
-def main(trigger_list):
+def main(trigger):
     """
     Return tech_info
     """
-    technical_info = {}
+    site_id = trigger.site_id
+    latest_trigger_ts = trigger.ts_updated
+    trigger_source = trigger.trigger_symbol.trigger_hierarchy.trigger_source
+    start_ts = round_of_to_release_time(
+        latest_trigger_ts) - timedelta(hours=4)
 
-    var_checker(" TRIGGER_LIST", trigger_list, True)
-
-    # GROUP into TRIGGERS LIST
-    grouped_triggers = group_by(trigger_list)
-    var_checker(" GROUPED", grouped_triggers, True)
-
-    for index, group in enumerate(grouped_triggers):
-        trigger = group[1][0]
-        site_id = trigger.site_id
-        latest_trigger_ts = trigger.ts_updated
-        trigger_source = trigger.trigger_symbol.trigger_hierarchy.trigger_source
-        start_ts = round_of_to_release_time(
-            latest_trigger_ts) - timedelta(hours=4)
-        print("TS SHITS")
-        print(latest_trigger_ts, start_ts)
-
-        if trigger_source == 'subsurface':
-            subsurface_alerts = get_subsurface_alerts(
-                site_id, start_ts, latest_trigger_ts)
-            technical_info['subsurface'] = get_subsurface_tech_info(
-                subsurface_alerts)
-        elif trigger_source == 'rainfall':
-            rainfall_alerts = get_rainfall_alerts(site_id, latest_trigger_ts)
-            technical_info['rainfall'] = get_rainfall_tech_info(
-                rainfall_alerts)
-        elif trigger_source == 'surficial':
-            surficial_alert_details = get_surficial_alerts(
-                site_id, latest_trigger_ts)
-            technical_info['surficial'] = get_surficial_tech_info(
-                surficial_alert_details)
-        else:
-            print("BUBU may mali sa code mo.")
+    if trigger_source == 'subsurface':
+        subsurface_alerts = get_subsurface_alerts(
+            site_id, start_ts, latest_trigger_ts)
+        technical_info = get_subsurface_tech_info(
+            subsurface_alerts)
+    elif trigger_source == 'rainfall':
+        rainfall_alerts = get_rainfall_alerts(site_id, latest_trigger_ts)
+        # Something special with rainfall. Attaches data source with the tech_info
+        technical_info = get_rainfall_tech_info(
+            rainfall_alerts)
+    elif trigger_source == 'surficial':
+        surficial_alert_details = get_surficial_alerts(
+            site_id, latest_trigger_ts)
+        technical_info = get_surficial_tech_info(
+            surficial_alert_details)
+    else:
+        raise Exception("Something wrong in tech_info_maker")
 
     return technical_info
