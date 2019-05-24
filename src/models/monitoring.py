@@ -300,10 +300,10 @@ class MonitoringMoms(UserMixin, DB.Model):
         lazy="joined", innerjoin=True)
 
     # Louie - New Relationship
-    instance_details = DB.relationship(
-        "MomsInstances", backref="moms",
-        primaryjoin="MonitoringMoms.instance_id==MomsInstances.instance_id",
-        lazy="joined", innerjoin=True)
+    moms_instance = DB.relationship(
+        "MomsInstances", backref=DB.backref("moms", lazy="dynamic"), 
+        primaryjoin="MonitoringMoms.instance_id==MomsInstances.instance_id", 
+        innerjoin=True, lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> MOMS ID: {self.moms_id}"

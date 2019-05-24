@@ -1,3 +1,14 @@
+"""
+Public Alert Generator (Py3) version 0.2
+======
+For use of Dynaslope Early Warning System
+
+Implemented in Python 3 and SQLAlchemy by:
+    Kevin Dhale Dela Cruz
+    John Louie Nepomuceno
+
+May 2019
+"""
 
 import pprint
 import os
@@ -7,7 +18,6 @@ from run import APP
 from connection import DB
 from sqlalchemy import and_, or_
 from datetime import datetime, timedelta, time
-from flask import jsonify
 
 from src.models.monitoring import (
     PublicAlerts as pa, PublicAlertSymbols as pas,
@@ -15,8 +25,8 @@ from src.models.monitoring import (
     OperationalTriggers as ot, OperationalTriggerSymbols as ots,
     InternalAlertSymbols as ias, TriggerHierarchies)
 from src.models.analysis import (
-    TSMSensors, TSMAlerts, RainfallAlerts,
-    AlertStatus as a_s, AlertStatusSchema)
+    TSMAlerts, RainfallAlerts,
+    AlertStatusSchema)
 from src.utils.sites import get_sites_data
 from src.utils.monitoring import round_to_nearest_release_time
 
@@ -261,17 +271,6 @@ def get_prepared_recent_retriggers(not_empty=True, positive_triggers_list=None, 
     return recent_triggers_list
 
 
-def get_internal_alert_symbol_ground_and_source(ground_alert, internal_source_id):
-    """
-    Gets the internal alert symbol based on ground_alert and internal_source_id
-    """
-    for item in INTERNAL_ALERT_SYMBOLS:
-        if item.trigger_symbol.alert_level == ground_alert and item.trigger_symbol.source_id == internal_source_id:
-            pub_internal = item.alert_symbol
-            break
-
-    return pub_internal
-
 def create_internal_alert(
         highest_public_alert, ground_alert, 
         internal_source_id, processed_triggers_list, has_rx_symbol=None):
@@ -289,7 +288,7 @@ def create_internal_alert(
         internal_alert += "-"
 
         sorted_processed_triggers_list = sorted(processed_triggers_list,
-                                key=lambda x: x.trigger_symbol.trigger_hierarchy.hierarchy_id, reverse=True)
+                                key=lambda x: x.trigger_symbol.trigger_hierarchy.hierarchy_id)
 
         internal_alert_symbols = []
         for item in sorted_processed_triggers_list:
@@ -337,7 +336,7 @@ def replace_rainfall_alert_if_rx(s_rain_alerts_query, processed_triggers_list, r
 
 
 def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
-                                          no_surficial_data_presence, no_data_list):
+                                          no_surficial_data_presence, no_moms_data_presence, no_data_list):
     """
     Replace alert symbol of entries on positive triggers list
     based on the current no data presence (no_data_list)
@@ -355,6 +354,12 @@ def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
             surficial_nd_symbol = ots.query.filter(
                 ots.alert_level == -1, ots.source_id == pos_trig_symbol.source_id).first()
             nd_internal_symbol = surficial_nd_symbol.internal_alert_symbol.alert_symbol
+            has_no_data = True
+        elif pos_trig_symbol.trigger_hierarchy.trigger_source == "moms" \
+                and no_moms_data_presence:
+            moms_nd_symbol = ots.query.filter(
+                ots.alert_level == -1, ots.source_id == pos_trig_symbol.source_id).first()
+            nd_internal_symbol = moms_nd_symbol.internal_alert_symbol.alert_symbol
             has_no_data = True
         else:
             for no_data in no_data_list:
@@ -378,8 +383,10 @@ def extract_no_data_triggers(release_op_trigger_list):
     """
     Check for no data presence for all release triggers
 
-    Note: Surficial data does not produce alert level -1 entry
-          on operational_triggers table
+    Note: Surficial and moms triggers do not produce alert 
+          level -1 entry on operational_triggers table
+          Only rainfall and subsurface triggers are producing 
+          -1 (no_data) entry on operational_triggers table
 
     returns list of op_trigger entries with no data (alert level -1)
     """
@@ -390,11 +397,14 @@ def extract_no_data_triggers(release_op_trigger_list):
     comparator = []
     unique_list = []
     no_surficial_data_presence = True
+    no_moms_data_presence = True
     for release_op_trig in sorted_release_triggers_list:
         com = release_op_trig.trigger_symbol.source_id
 
         if release_op_trig.trigger_symbol.trigger_hierarchy.trigger_source == "surficial":
             no_surficial_data_presence = False
+        if release_op_trig.trigger_symbol.trigger_hierarchy.trigger_source == "moms":
+            no_moms_data_presence = False
         else:
             to_append = False
             if release_op_trig.trigger_symbol.alert_level == -1:
@@ -408,7 +418,7 @@ def extract_no_data_triggers(release_op_trigger_list):
                 unique_list.append(release_op_trig)
 
     no_data_list = unique_list
-    return no_surficial_data_presence, no_data_list
+    return no_surficial_data_presence, no_moms_data_presence, no_data_list
 
 
 def extract_highest_unique_triggers_per_type(unique_positive_triggers_list):
@@ -444,7 +454,7 @@ def extract_highest_unique_triggers_per_type(unique_positive_triggers_list):
 
 def get_processed_internal_alert_symbols(unique_positive_triggers_list, release_op_trigger_list):
     """
-    Returns an updated unique_positive_triggers_list 
+    Returns an updated unique_positive_triggers_list
     (i.e. alert_symbols appropriated to no data)
 
     List returned will be used mainly in internal alert level generation
@@ -456,11 +466,11 @@ def get_processed_internal_alert_symbols(unique_positive_triggers_list, release_
     highest_unique_positive_triggers_list = extract_highest_unique_triggers_per_type(
         unique_positive_triggers_list)
     # Get a sorted list of release triggers
-    no_surficial_data_presence, no_data_list = extract_no_data_triggers(
+    no_surficial_data_presence, no_moms_data_presence, no_data_list = extract_no_data_triggers(
         release_op_trigger_list)
 
     updated_h_u_p_t_list = update_positive_triggers_with_no_data(
-        highest_unique_positive_triggers_list, no_surficial_data_presence, no_data_list)
+        highest_unique_positive_triggers_list, no_surficial_data_presence, no_moms_data_presence, no_data_list)
 
     return updated_h_u_p_t_list
 
@@ -491,18 +501,18 @@ def get_tsm_alert(s_tsm_sensors_query, query_ts_end):
     return tsm_alerts_list
 
 
-def get_surficial_window_ts(highest_public_alert, query_ts_end):
+def get_moms_and_surficial_window_ts(highest_public_alert, query_ts_end):
     """
-    Returns the timestamp to be used in querying surficial data
-    that will be used in checking surficial alerts
-    AND surficial data presence
+    Returns the timestamp to be used in querying surficial and moms data
+    that will be used in checking surficial and moms alerts
+    AND surficial and moms data presence
     """
     if highest_public_alert > 0:
-        surficial_window_ts = round_to_nearest_release_time(
+        window_ts = round_to_nearest_release_time(
             query_ts_end) - timedelta(hours=4)
     else:
-        surficial_window_ts = query_ts_end
-    return surficial_window_ts
+        window_ts = query_ts_end
+    return window_ts
 
 
 def get_highest_public_alert(positive_triggers_list):
@@ -746,15 +756,17 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         highest_public_alert = get_highest_public_alert(
             positive_triggers_list)
 
-        # Get surficial data presence window timestamp query
-        surficial_window_ts = get_surficial_window_ts(
+        # Get surficial and moms data presence window timestamp query
+        surficial_moms_window_ts = get_moms_and_surficial_window_ts(
             highest_public_alert, query_ts_end)
 
         # Get current surficial and rainfall alert levels
         rainfall_source_id = get_trigger_hierarchy("rainfall").source_id
-        current_rainfall_alert, current_surficial_alert = get_current_rainfall_and_surficial_alerts(
-            op_triggers_list, surficial_source_id, rainfall_source_id,
-            surficial_window_ts, query_ts_end)
+        moms_source_id = get_trigger_hierarchy("moms").source_id
+        current_rainfall_alert, current_surficial_alert, current_moms_alert = \
+            get_current_rain_surficial_and_moms_alerts(op_triggers_list, \
+                surficial_source_id, rainfall_source_id, moms_source_id, \
+                    surficial_moms_window_ts, query_ts_end)
 
         ###################
         # INTERNAL ALERTS #
@@ -791,7 +803,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             # Process rainfall trigger if above 75% threshold
             if current_rainfall_alert == 0 and query_ts_end >= (validity - timedelta(minutes=30)):
                 processed_triggers_list, has_rx_symbol = replace_rainfall_alert_if_rx(s_rain_alerts_query,
-                                                        processed_triggers_list, rain_trigger_index)
+                                    processed_triggers_list, rain_trigger_index)
+
                 if has_rx_symbol:
                     current_rainfall_alert = -2
 
@@ -805,6 +818,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                     tsm_with_data.append(subsurface)
 
             # Check if ground (surficial and sub) has data
+            # NOTE: To add special handling on sites without alerts and also no sensors and markers
             if current_surficial_alert == -1 and not tsm_with_data:
                 ground_alert = -1
             else:
@@ -895,12 +909,20 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             subsurface["alert_level"] = OTS_MAP[(
                 "subsurface", subsurface["alert_level"])]
 
-        public_dict = {"ts": timestamp, "site_id": site_id,
-                       "site_code": site_code, "public_alert": PAS_MAP[("alert_symbol", highest_public_alert)],
-                       "internal_alert": internal_alert, "validity": validity,
-                       "subsurface": subsurface_alerts_list, "surficial": OTS_MAP[("surficial", current_surficial_alert)],
-                       "rainfall": OTS_MAP[("rainfall", current_rainfall_alert)], "triggers": triggers
-                       }
+        # FORM THE SITE PUBLIC ALERT FOR GENERATED ALERTS
+        public_dict = {
+            "ts": timestamp, 
+            "site_id": site_id,
+            "site_code": site_code, 
+            "public_alert": PAS_MAP[("alert_symbol", highest_public_alert)],
+            "internal_alert": internal_alert, 
+            "validity": validity,
+            "subsurface": subsurface_alerts_list, 
+            "surficial": OTS_MAP[("surficial", current_surficial_alert)],
+            "rainfall": OTS_MAP[("rainfall", current_rainfall_alert)],  
+            "moms": OTS_MAP[("moms", current_moms_alert)],
+            "triggers": triggers
+        }
 
         # USE TS_ONSET
         try:
@@ -944,31 +966,35 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
     return site_public_alerts_list
 
 
-def get_current_rainfall_and_surficial_alerts(op_triggers_list, surficial_source_id,
-                                              rainfall_source_id, surficial_window_ts, query_ts_end):
+def get_current_rain_surficial_and_moms_alerts(op_triggers_list, surficial_source_id,
+                                              rainfall_source_id, moms_source_id, surficial_moms_window_ts, query_ts_end):
     current_surficial_alert = -1
     current_rainfall_alert = -1
+    current_moms_alert = -1
 
     for op_trigger in op_triggers_list:
         op_t_source_id = op_trigger.trigger_symbol.source_id
         op_t_alert_level = op_trigger.trigger_symbol.alert_level
 
-        if op_t_source_id in [surficial_source_id, rainfall_source_id]:
-            if op_t_source_id == surficial_source_id:
-                ts_comparator = surficial_window_ts
+        if op_t_source_id in [rainfall_source_id, surficial_source_id, moms_source_id]:
+            if op_t_source_id in [surficial_source_id, moms_source_id]:
+                ts_comparator = surficial_moms_window_ts
             else:
                 ts_comparator = query_ts_end - timedelta(minutes=30)
 
             if op_trigger.ts_updated >= ts_comparator:
                 if op_t_source_id == surficial_source_id:
                     current_surficial_alert = op_t_alert_level
-                else:
+                elif op_t_source_id == rainfall_source_id:
                     current_rainfall_alert = op_t_alert_level
+                else:
+                    current_moms_alert = op_t_alert_level
 
-        if current_rainfall_alert > -1 and current_surficial_alert > -1:
+        if current_rainfall_alert > -1 and current_surficial_alert > -1 and \
+            current_surficial_alert > -1:
             break
 
-    return current_rainfall_alert, current_surficial_alert
+    return current_rainfall_alert, current_surficial_alert, current_moms_alert
 
 
 IAS_MAP = create_symbols_map("internal_alert_symbols")
@@ -996,14 +1022,20 @@ def main(query_ts_end=None, is_test=False, site_code=None):
     generated_alerts = get_site_public_alerts(
         active_sites, query_ts_start, query_ts_end, do_not_write_to_db)
 
-    # SAMPLE WRITE
-    json_form = json.dumps(generated_alerts)
-    with open('/var/www/dynaslope3/'+'generated_alerts.json', 'w') as w:
-        w.write(json_form)
+    # Convert data to JSON
+    json_data = json.dumps(generated_alerts)
+
+    # Write to specified filepath and filename
+    with open('/var/www/dynaslope3/'+'generated_alerts.json', 'w') as file_path:
+        file_path.write(json_data)
 
     script_end = datetime.now()
     print(f"Runtime: {script_end - query_ts_start}")
 if __name__ == "__main__":
-    main("2018-11-30 14:30:00", True, "ime")
+    # main("2018-11-30 14:30:00", True, "ime")
     # main("2018-12-26 11:00:00", True, "lpa")
     # main("2019-05-22 16:09:34", True)
+    # MOMS
+    main("2019-01-22 08:00:00", True, "dad")
+    # main("2018-08-20 06:00:00", True, "tue")
+    

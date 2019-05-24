@@ -221,28 +221,14 @@ def get_formatted_shift_narratives(shift_narratives):
     return narrative_string
 
 
-def get_release_publishers_initials(release):
+def get_release_publishers_initials(first_name, last_name):
     """
     Return the MT and CT publishers
     """
-    publishers = release.release_publishers
 
-    for publisher in publishers:
-        if publisher.role == "mt":
-            mt_firstname = publisher.user_details.first_name
-            mt_lastname = publisher.user_details.last_name
-            mt_initials = mt_firstname[0].upper() + mt_lastname[0].upper()
-        else:
-            ct_firstname = publisher.user_details.first_name
-            ct_lastname = publisher.user_details.last_name
-            ct_initials = ct_firstname[0].upper() + ct_lastname[0].upper()
+    initials = first_name[0].upper() + last_name[0].upper()
 
-    publishers = {
-        "mt": mt_initials,
-        "ct": ct_initials
-    }
-
-    return publishers
+    return initials
 
 
 @END_OF_SHIFT_BLUEPRINT.route(
@@ -259,7 +245,24 @@ def get_end_of_shift_report(shift_start, event_id):
 
     eos_data = get_end_of_shift_data(start_ts, end_ts, event_id)
 
-    publishers = get_release_publishers_initials(eos_data["releases"][-1])
+    # GET THE INITIALS FOR THE END OF SHIFT REPORTERS
+    for publisher in eos_data["releases"][-1].release_publishers:
+        user_details = publisher.user_details
+        pub_firstname = user_details.first_name
+        pub_lastname = user_details.last_name
+
+        initials = get_release_publishers_initials(pub_firstname, pub_lastname)
+
+        if publisher.role == "mt":
+            mt_initials = initials
+        else:
+            ct_initials = initials
+
+    publishers = {
+        "mt": mt_initials,
+        "ct": ct_initials
+    }
+    # Got the publishers
 
     eos_head = f"<strong>END-OF-SHIFT REPORT ({publishers['mt']}, \
         {publishers['ct']})</strong> <br />"

@@ -486,7 +486,9 @@ class AlertStatus(UserMixin, DB.Model):
         "commons_db.users.user_id"), nullable=False)
 
     trigger = DB.relationship("OperationalTriggers",
-                              backref=DB.backref("alert_status", lazy="subquery", uselist=False), lazy="subquery")
+                              backref=DB.backref("alert_status", lazy="subquery", uselist=False),
+                              primaryjoin="AlertStatus.trigger_id==OperationalTriggers.trigger_id",
+                              lazy="joined", innerjoin=True)
 
     user = DB.relationship(
         "Users", backref=DB.backref("alert_status_ack", lazy="dynamic"), lazy="subquery")

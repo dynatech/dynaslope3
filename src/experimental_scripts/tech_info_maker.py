@@ -1,13 +1,13 @@
 import pprint
 import itertools
-from operator import itemgetter
 from datetime import datetime, timedelta, time
 from connection import DB
 from run import APP
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 from src.models.analysis import (
     RainfallAlerts as ra, MarkerAlerts as ma, MarkerHistory as mh,
     NodeAlerts as na)
+from src.models.monitoring import (MonitoringMoms as mm)
 
 
 def var_checker(var_name, var, have_spaces=False):
@@ -63,6 +63,71 @@ def round_of_to_release_time(date_time):
         date_time = datetime.combine(date_time.date(), time((quotient+1)*4, 0))
 
     return date_time
+
+
+#####################################
+# DATA PROCESSING CODES BEYOND HERE #
+#####################################
+
+
+def get_moms_tech_info(moms_alert_details):
+    """
+    Sample
+    """
+    m2_triggers_features = []
+    m3_triggers_features = []
+    moms_tech_info = {}
+    moms_parts = []
+
+    for item in moms_alert_details:
+        feature = item.moms_instance.feature.feature_type
+        if item.op_trigger == 2:
+            m2_triggers_features.append(feature)
+        elif item.op_trigger == 3:
+            m3_triggers_features.append(feature)
+  
+
+    significant = ", ".join(m2_triggers_features)
+    critical = ", ".join(m3_triggers_features)
+
+    if m2_triggers_features:
+        significant_word = "significant"
+        if len(m2_triggers_features) == 1:
+            significant_word = significant_word.capitalize()
+        moms_parts.append(f"{significant_word} ({significant})")
+    
+    if m3_triggers_features:
+        critical_word = "critical"
+        if len(m3_triggers_features) == 1:
+            critical_word = critical_word.capitalize()
+        moms_parts.append(f"{critical_word} ({critical})")
+
+    multiple = ""
+    feature = "feature"
+    if len(moms_alert_details) > 1:
+        multiple = "Multiple "
+        feature = "features"
+
+    day = " and ".join(moms_parts)
+    moms_tech_info = f"{multiple}{day} {feature} observed in site."
+    return moms_tech_info
+
+
+def get_moms_alerts(site_id, latest_trigger_ts):
+    """
+    Get MOMS alerts
+    """
+    moms_alerts_list = []
+
+    # op_trigger is same concept with alert_level
+    moms_alerts = mm.query.filter(
+        mm.observance_ts == latest_trigger_ts, mm.op_trigger > 0) 
+
+    for item in moms_alerts.all():
+        if item.moms_instance.site_id == site_id:
+            moms_alerts_list.append(item)
+
+    return moms_alerts_list
 
 
 def formulate_surficial_tech_info(surficial_alert_detail):
@@ -330,6 +395,13 @@ def main(trigger):
             site_id, latest_trigger_ts)
         technical_info = get_surficial_tech_info(
             surficial_alert_details)
+    elif trigger_source == 'moms':
+        moms_alert_details = get_moms_alerts(site_id, latest_trigger_ts)
+        technical_info = get_moms_tech_info(moms_alert_details)
+    elif trigger_source == 'on demand':
+        technical_info = ""
+    elif trigger_source == 'earthquake':
+        technical_info = ""
     else:
         raise Exception("Something wrong in tech_info_maker")
 
