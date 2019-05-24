@@ -405,6 +405,7 @@ def insert_ewi_release(instance_details, release_details, publisher_details, tri
                         info = trigger["consolidated_tech_info"]
                         timestamp = release_details["data_ts"]
                         observance_ts = moms_details["observance_ts"]
+                        # op_trigger (alert level) of moms should come from triggers of generated alerts
                         moms_details["op_trigger"] = instance_details["alert_level"]
                         narrative = moms_details["report_narrative"]
                         moms_details["narrative_id"] = write_narratives_to_db(
