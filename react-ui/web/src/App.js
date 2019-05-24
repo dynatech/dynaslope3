@@ -1,47 +1,41 @@
 import React, { Component } from "react";
-import logo from "./logo.svg";
-import "./App.css";
+import { BrowserRouter } from "react-router-dom";
+import { Header, Footer, Navigation } from "./components/layouts";
+import RoutesCollection from "./Routes";
 
-// class App extends Component {
-//     render () {
-//         return (
-//             <div className="App">
-//                 <header className="App-header">
-//                     <img src={logo} className="App-logo" alt="logo" />
-//                     <p>
-//             Edit <code>src/App.js</code> and save to reload.
-//                     </p>
-//                     <a
-//                         className="App-link"
-//                         href="https://reactjs.org"
-//                         target="_blank"
-//                         rel="noopener noreferrer"
-//                     >
-//             Learn React
-//                     </a>
-//                 </header>
-//             </div>
-//         );
-//     }
-// }
+class App extends Component {
+    state = {
+        drawer: false
+    }
 
-const App = () => (
-    <div className="App">
-        <header className="App-header">
-            <img src={logo} className="App-logo" alt="logo" />
-            <p>
-            Edit <code>src/App.js</code> and save to reload.
-            </p>
-            <a
-                className="App-link"
-                href="https://reactjs.org"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-            Learn React
-            </a>
-        </header>
-    </div>
-);
+    toggleDrawer = (isOpen) => () => {
+        this.setState({
+            drawer: isOpen,
+        });
+    };
+  
+    render () {
+        const { drawer } = this.state;
+
+        return (
+            <BrowserRouter>
+                <Header drawerHandler={this.toggleDrawer}/>
+                <Navigation drawerHandler={this.toggleDrawer} drawer={drawer}/>
+                
+                <RoutesCollection />
+                
+                <Footer />
+            </BrowserRouter>
+        );
+    }
+}
+
+// const App = () => (
+//     <Fragment>
+//         <Header />
+//         <Container />
+//         <Footer />
+//     </Fragment>
+// );
 
 export default App;

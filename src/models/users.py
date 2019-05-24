@@ -124,7 +124,7 @@ class UserHierarchy(DB.Model):
     __bind_key__ = "comms_db"
     __table_args__ = {"schema": "comms_db"}
 
-    user_hierarchy_id = DB.Column(DB.Integer, primary_key=True)
+    contact_hierarchy_id = DB.Column(DB.Integer, primary_key=True)
     fk_user_id = DB.Column(
         DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
     fk_user_organization_id = DB.Column(

@@ -10,8 +10,6 @@ from src.models.monitoring_old import (
     OldMonitoringEvents, OldMonitoringManifestation,
     OldMonitoringManifestationFeatures
 )
-
-
 from src.models.monitoring import *
 from src.models.narratives import Narratives
 
