@@ -7,12 +7,15 @@ from connection import DB
 from src.models.sites import Sites
 
 
-def get_sites_data(site_code=None):
+def get_sites_data(site_code=None, include_test=False):
     """
     Function that gets basic site data by site code
     """
     if site_code is None:
-        site = Sites.query.all()
+        if include_test:
+            site = Sites.query.all()
+        else:
+            site = Sites.query.filter(Sites.active == 1).all()
     else:
         site = Sites.query.filter_by(site_code=site_code).first()
 
