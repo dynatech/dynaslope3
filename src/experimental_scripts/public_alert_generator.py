@@ -10,21 +10,16 @@ Implemented in Python 3 and SQLAlchemy by:
 May 2019
 """
 
-import sys
-sys.path.append(
-    r"D:\Users\swat-dynaslope\Documents\DYNASLOPE-3.0\dynaslope3-final")
 import pprint
 import os
 import json
-import tech_info_maker
-# from run import APP
 from connection import DB
+from config import APP_CONFIG
 from sqlalchemy import and_, or_
 from datetime import datetime, timedelta, time
-
+from src.experimental_scripts import tech_info_maker
 from src.models.monitoring import (
     PublicAlerts as pa, PublicAlertSymbols as pas,
-    # Get the trigger_sym_id of Rx rainfall alert
     OperationalTriggers as ot, OperationalTriggerSymbols as ots,
     InternalAlertSymbols as ias, TriggerHierarchies)
 from src.models.analysis import (
@@ -1015,7 +1010,7 @@ def main(query_ts_end=None, is_test=False, site_code=None):
     json_data = json.dumps(generated_alerts)
 
     # Write to specified filepath and filename
-    with open('D:/Users/swat-dynaslope/Documents/DYNASLOPE-3.0/'+'generated_alerts.json', 'w') as file_path:
+    with open(APP_CONFIG["generated_alerts_path"] + "generated_alerts.json", "w") as file_path:
         file_path.write(json_data)
 
     script_end = datetime.now()
