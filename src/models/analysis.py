@@ -359,7 +359,6 @@ class TSMSensors(UserMixin, DB.Model):
         "commons_db.sites.site_id"), nullable=False)
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
         "analysis_db.loggers.logger_id"), nullable=False)
-    tsm_name = DB.Column(DB.String(7))
     date_activated = DB.Column(DB.Date)
     date_deactivated = DB.Column(DB.Date)
     segment_length = DB.Column(DB.Float)
@@ -367,13 +366,13 @@ class TSMSensors(UserMixin, DB.Model):
     version = DB.Column(DB.Integer)
 
     site = DB.relationship("Sites", backref=DB.backref(
-        "tsm_sensors", lazy="dynamic"))
+        "tsm_sensors", lazy="subquery"))
 
     tsm_alert = DB.relationship(
-        "TSMAlerts", backref="tsm_sensor", lazy="dynamic")
+        "TSMAlerts", backref=DB.backref("tsm_sensor", lazy="joined", innerjoin=True), lazy="dynamic")
 
     logger = DB.relationship(
-        "Loggers", backref="tsm_sensor", lazy="subquery")
+        "Loggers", backref="tsm_sensor", lazy="joined", innerjoin=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> TSM ID: {self.tsm_id}"
@@ -486,12 +485,13 @@ class AlertStatus(UserMixin, DB.Model):
         "commons_db.users.user_id"), nullable=False)
 
     trigger = DB.relationship("OperationalTriggers",
-                              backref=DB.backref("alert_status", lazy="subquery", uselist=False),
+                              backref=DB.backref(
+                                  "alert_status", lazy="select", uselist=False),
                               primaryjoin="AlertStatus.trigger_id==OperationalTriggers.trigger_id",
                               lazy="joined", innerjoin=True)
 
     user = DB.relationship(
-        "Users", backref=DB.backref("alert_status_ack", lazy="dynamic"), lazy="subquery")
+        "Users", backref=DB.backref("alert_status_ack", lazy="dynamic"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> stat ID: {self.stat_id}"

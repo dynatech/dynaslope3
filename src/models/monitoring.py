@@ -301,8 +301,8 @@ class MonitoringMoms(UserMixin, DB.Model):
 
     # Louie - New Relationship
     moms_instance = DB.relationship(
-        "MomsInstances", backref=DB.backref("moms", lazy="dynamic"), 
-        primaryjoin="MonitoringMoms.instance_id==MomsInstances.instance_id", 
+        "MomsInstances", backref=DB.backref("moms", lazy="dynamic"),
+        primaryjoin="MonitoringMoms.instance_id==MomsInstances.instance_id",
         innerjoin=True, lazy="subquery")
 
     def __repr__(self):
@@ -412,10 +412,10 @@ class OperationalTriggers(UserMixin, DB.Model):
     ts_updated = DB.Column(DB.DateTime, nullable=False)
 
     site = DB.relationship(
-        "Sites", backref=DB.backref("operational_triggers", lazy="dynamic"), lazy="subquery")
+        "Sites", backref=DB.backref("operational_triggers", lazy="dynamic"), lazy="select")
 
     trigger_symbol = DB.relationship(
-        "OperationalTriggerSymbols", backref="operational_trigger", lazy="subquery")
+        "OperationalTriggerSymbols", backref="operational_trigger", lazy="joined", innerjoin=True)#lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger_ID: {self.trigger_id}"
@@ -441,7 +441,7 @@ class OperationalTriggerSymbols(UserMixin, DB.Model):
         "ewi_db.trigger_hierarchies.source_id"), nullable=False)
 
     trigger_hierarchy = DB.relationship(
-        "TriggerHierarchies", backref="trigger_symbol", lazy="subquery")
+        "TriggerHierarchies", backref="trigger_symbol", lazy="joined", innerjoin=True) # lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger Symbol ID: {self.trigger_sym_id}"
@@ -484,7 +484,8 @@ class InternalAlertSymbols(UserMixin, DB.Model):
     alert_description = DB.Column(DB.String(120))
 
     trigger_symbol = DB.relationship(
-        "OperationalTriggerSymbols", backref=DB.backref("internal_alert_symbol", uselist=False), lazy="subquery", uselist=False)
+        "OperationalTriggerSymbols", lazy="select", uselist=False,
+        backref=DB.backref("internal_alert_symbol", lazy="joined", innerjoin=True, uselist=False))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Internal Sym ID: {self.internal_sym_id}"
@@ -604,10 +605,12 @@ class PublicAlerts(UserMixin, DB.Model):
     ts_updated = DB.Column(DB.DateTime, nullable=False)
 
     site = DB.relationship(
-        "Sites", backref=DB.backref("public_alerts", lazy="dynamic"), lazy="subquery")
+        "Sites", backref=DB.backref("public_alerts", lazy="dynamic"),
+        lazy="select")
+        # primaryjoin="PublicAlerts.site_id==Sites.site_id", lazy="joined", innerjoin=True)
 
     alert_symbol = DB.relationship(
-        "PublicAlertSymbols", backref="public_alerts", lazy="subquery")
+        "PublicAlertSymbols", backref="public_alerts", lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Public_ID: {self.public_id}"

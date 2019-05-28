@@ -1,3 +1,6 @@
+import sys
+sys.path.append(
+    r"D:\Users\swat-dynaslope\Documents\DYNASLOPE-3.0\dynaslope3-final")
 import pprint
 import itertools
 from datetime import datetime, timedelta, time
@@ -25,6 +28,8 @@ def var_checker(var_name, var, have_spaces=False):
         pp = pprint.PrettyPrinter(indent=4)
         pp.pprint(var)
 
+# NOTE: Delete if not needed
+
 
 def group_by(pos_trig_list):
     """
@@ -41,6 +46,7 @@ def group_by(pos_trig_list):
     return group_list
 
 
+# NOTE: OPTIMIZE (IMPORT IF MUST)
 def round_of_to_release_time(date_time):
     """
     Rounds time to 4/8/12 AM/PM.
@@ -58,9 +64,11 @@ def round_of_to_release_time(date_time):
     quotient = int(time_hour / 4)
 
     if quotient == 5:
-        date_time = datetime.combine(date_time.date()+timedelta(1), time(0, 0))
+        date_time = datetime.combine(
+            date_time.date() + timedelta(1), time(0, 0))
     else:
-        date_time = datetime.combine(date_time.date(), time((quotient+1)*4, 0))
+        date_time = datetime.combine(
+            date_time.date(), time((quotient + 1) * 4, 0))
 
     return date_time
 
@@ -85,7 +93,6 @@ def get_moms_tech_info(moms_alert_details):
             m2_triggers_features.append(feature)
         elif item.op_trigger == 3:
             m3_triggers_features.append(feature)
-  
 
     significant = ", ".join(m2_triggers_features)
     critical = ", ".join(m3_triggers_features)
@@ -95,7 +102,7 @@ def get_moms_tech_info(moms_alert_details):
         if len(m2_triggers_features) == 1:
             significant_word = significant_word.capitalize()
         moms_parts.append(f"{significant_word} ({significant})")
-    
+
     if m3_triggers_features:
         critical_word = "critical"
         if len(m3_triggers_features) == 1:
@@ -121,7 +128,7 @@ def get_moms_alerts(site_id, latest_trigger_ts):
 
     # op_trigger is same concept with alert_level
     moms_alerts = mm.query.filter(
-        mm.observance_ts == latest_trigger_ts, mm.op_trigger > 0) 
+        mm.observance_ts == latest_trigger_ts, mm.op_trigger > 0)
 
     for item in moms_alerts.all():
         if item.moms_instance.site_id == site_id:
@@ -183,7 +190,8 @@ def get_surficial_tech_info(surficial_alert_details):
         for index, group in enumerate(group_array):
             if group:
                 tech_info = formulate_surficial_tech_info(group)
-                surficial_tech_info["l" + str(index+2)] = tech_info
+                # NOTE: ano yung "l" dito? l2/l3? Updae code if kailangan for g2/3 (use maps)
+                surficial_tech_info["l" + str(index + 2)] = tech_info
 
     return surficial_tech_info
 
@@ -193,6 +201,7 @@ def get_rainfall_alerts(site_id, latest_trigger_ts):
     Query rainfall alerts
     Non-Testable
     """
+    # NOTE: lipat yung .all() here
     rain_alerts = ra.query.filter(
         ra.site_id == site_id, ra.ts == latest_trigger_ts)
 
@@ -257,13 +266,14 @@ def get_subsurface_alerts(site_id, start_ts, latest_trigger_ts):
     """
     Sample
     """
-    row = na.query.filter(na.ts >= start_ts, na.ts <=
-                          latest_trigger_ts).order_by(DB.desc(na.na_id))
+    # NOTE: OPTIMIZE: Use TSMSensor instead of NodeAlerts OR use join() query
+    row = na.query.filter(na.ts >= start_ts, na.ts
+                          <= latest_trigger_ts).order_by(DB.desc(na.na_id))
 
     subsurface_alerts = []
     for item in row.all():
         sensor = item.tsm_sensor
-        if sensor.site_id == site_id and sensor.site.site_code in sensor.tsm_name:
+        if sensor.site_id == site_id and sensor.site.site_code in sensor.logger.logger_name:
             subsurface_alerts.append(item)
 
     return subsurface_alerts
@@ -275,13 +285,15 @@ def format_node_details(triggers):
     """
     node_details = []
     tsm_name_list = []
+
+    # NOTE: OPTIMIZE
     for item in triggers:
-        tsm_name_list.append(item.tsm_sensor.tsm_name)
+        tsm_name_list.append(item.tsm_sensor.logger.logger_name)
 
     for i in tsm_name_list:
         col_list = []
         for trigger in triggers:
-            if trigger.tsm_sensor.tsm_name == i:
+            if trigger.tsm_sensor.logger.logger_name == i:
                 col_list.append(trigger)
 
     if len(col_list) == 1:
@@ -343,7 +355,7 @@ def get_subsurface_tech_info(subsurface_alerts):
     unique_list = []
     comparator = []
     for item in subsurface_alerts:
-        com1 = item.tsm_sensor.tsm_name
+        com1 = item.tsm_sensor.logger.logger_name
         com2 = item.node_id
         comparator.append((com1, com2))
         if not ((com1, com2) in comparator and comparator.count((com1, com2)) > 1):
