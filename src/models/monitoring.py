@@ -8,6 +8,7 @@ from flask_login import UserMixin
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
 from src.models.users import UsersSchema
+from src.models.narratives import Narratives
 
 
 class MonitoringEvents(UserMixin, DB.Model):
@@ -56,7 +57,7 @@ class MonitoringEventAlerts(UserMixin, DB.Model):
         DB.DateTime, default=datetime.datetime.utcnow, nullable=False)
     ts_end = DB.Column(DB.DateTime)
 
-    public_alert_symbols = DB.relationship(
+    public_alert_symbol = DB.relationship(
         "PublicAlertSymbols", backref=DB.backref("event_alerts", lazy="dynamic"), lazy="select")
     releases = DB.relationship(
         "MonitoringReleases", backref="event_alert", lazy="subquery")
@@ -643,7 +644,7 @@ class MonitoringEventAlertsSchema(MARSHMALLOW.ModelSchema):
     """
     event = fields.Nested(MonitoringEventsSchema,
                           exclude=("event_alerts", ))
-    public_alert_symbols = fields.Nested(
+    public_alert_symbol = fields.Nested(
         "PublicAlertSymbolsSchema", exclude=("event_alerts", ))
     releases = fields.Nested("MonitoringReleasesSchema",
                              many=True, exclude=("event_alert", ))
