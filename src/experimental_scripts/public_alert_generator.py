@@ -1010,7 +1010,11 @@ def main(query_ts_end=None, is_test=False, site_code=None):
     json_data = json.dumps(generated_alerts)
 
     # Write to specified filepath and filename
-    with open(APP_CONFIG["generated_alerts_path"] + "generated_alerts.json", "w") as file_path:
+    directory = APP_CONFIG["generated_alerts_path"]
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    
+    with open(directory + "generated_alerts.json", "w") as file_path:
         file_path.write(json_data)
 
     script_end = datetime.now()
