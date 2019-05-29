@@ -2,7 +2,7 @@
 Candidate Alerts Generator (Py3) version 0.2
 ======
 For use of Dynaslope Early Warning System
-The main focus of Candidate Alerts Generator is to suggest 
+The main focus of Candidate Alerts Generator is to suggest
 Alerts to be released to a release time especially when
 it is due.
 It works by checking the current status of a site from the DB
@@ -16,15 +16,18 @@ May 2019
 """
 
 import json
+import os
+import requests
 from datetime import datetime, timedelta, time
 from run import APP
 from connection import DB
+from config import APP_CONFIG
 
 from src.models.monitoring import (
     MonitoringEvents as me, MonitoringEventAlerts as mea,
     OperationalTriggerSymbols as ots, InternalAlertSymbols as ias)
 from src.utils.sites import get_sites_data
-from src.utils.extra import var_checker
+from src.utils.extra import var_checker, get_routine_sites
 
 
 ##########################
@@ -56,6 +59,7 @@ def get_generated_alerts_list_from_file(filepath, filename):
     generated_alerts_list = []
     full_filepath = filepath + filename
     print(f"Getting data from {full_filepath}")
+    print()
 
     with open(full_filepath) as json_file:
         gen_alert_data = json.load(json_file)
@@ -65,6 +69,18 @@ def get_generated_alerts_list_from_file(filepath, filename):
 
 ###################
 # Data processors #
+###################
+
+
+def check_if_extended(validity, data_ts, data_time, is_extended_entry):
+    is_extended_entry = validity < data_ts and data_ts < (
+        validity + timedelta(days=3))
+    is_extended_release = datetime.strptime(
+        "11:00:00", "%H:%M:%S") < \
+        data_time < \
+        datetime.strptime("13:00:00", "%H:%M:%S")
+    return is_extended_entry, is_extended_release
+
 
 def format_alerts_for_ewi_insert(alert_entry, general_status):
     """
@@ -73,20 +89,28 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
     Publisher details will come from user entry form
     """
     site_id = alert_entry["site_id"]
-    alert_level = int(alert_entry["public_alert"][1])
+    site_code = alert_entry["site_code"]
+    alert_level = alert_entry["alert_level"]
     internal_alert = alert_entry["internal_alert"]
     data_ts = alert_entry["ts"]
 
-     # On_set, re-release, raising
+    # On_set, re-release, raising
     if general_status in ["valid", "partially_invalid", "invalid"]:
-        entry_type = 2 # Event Entry type
-        trigger_list = internal_alert.split("-")[1] # Get the internal alerts string only
+        entry_type = 2  # Event Entry type
+
+        # Completely invalid alert will not be processed by insert_ewi
+        if general_status == "invalid":
+            entry_type = -1
+
+        # Get the internal alerts string only
+        trigger_list = internal_alert.split("-")[1]
 
         formatted_alerts_for_ewi = {
             "general_status": general_status,
             "site_id": site_id,
+            "site_code": site_code,
             "routine_sites_ids": [],
-            "entry_type": entry_type, # 2
+            "entry_type": entry_type,  # 2
             "alert_level": alert_level,
             "release_details": {
                 "data_ts": data_ts,
@@ -98,33 +122,70 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         trigger_list_arr = []
         for trigger in triggers:
             trig_dict = {
-                "internal_sym_id" : trigger["internal_sym_id"],
-                "consolidated_tech_info" : trigger["tech_info"],
-                "invalid": trigger["invalid"]
+                "internal_sym_id": trigger["internal_sym_id"],
+                "consolidated_tech_info": trigger["tech_info"],
+                "invalid": trigger["invalid"],
+                "trigger_alert_level": trigger["alert"]
             }
             trigger_list_arr.append(trig_dict)
 
         formatted_alerts_for_ewi["trigger_list_arr"] = trigger_list_arr
 
     # Routine
-    elif general_status == "routine":
-        print("do this")
-        entry_type = 1 # Routine entry type
+    elif general_status == "lowering":
+        print("do that")
+        entry_type = 2  # Routine entry type
 
         formatted_alerts_for_ewi = {
-            "site_id" : site_id,
-            "routine_sites_ids" : [],
-            "entry_type" : entry_type, # 1
-            "alert_level" : alert_level,
-            "release_details" : {
-                "data_ts" : data_ts
-            }
+            "general_status": general_status,
+            "site_id": site_id,
+            "site_code": site_code,
+            "routine_sites_ids": [],
+            "entry_type": entry_type,  # 1
+            "alert_level": alert_level,
+            "release_details": {
+                "data_ts": data_ts,
+                "trigger_list": "",
+                "release_time": ""
+            },
+            "publisher_details": {},
+            "trigger_list_arr": []
         }
     elif general_status == "extended":
         print("do that")
+        entry_type = 2  # Routine entry type
 
+        formatted_alerts_for_ewi = {
+            "general_status": general_status,
+            "site_id": site_id,
+            "site_code": site_code,
+            "routine_sites_ids": [],
+            "entry_type": entry_type,  # 1
+            "alert_level": alert_level,
+            "release_details": {
+                "data_ts": data_ts,
+                "trigger_list": "",
+                "release_time": ""
+            },
+            "publisher_details": {},
+            "trigger_list_arr": []
+        }
+    elif general_status == "routine":
+        entry_type = 1  # Routine entry type
 
-    var_checker("FOrmatted", formatted_alerts_for_ewi, True)
+        formatted_alerts_for_ewi = {
+            "general_status": general_status,
+            "site_id": site_id,
+            "site_code": site_code,
+            "routine_sites_ids": [],
+            "entry_type": entry_type,  # 1
+            "alert_level": alert_level,
+            "release_details": {
+                "data_ts": data_ts,
+                "trigger_list": "",
+                "release_time": ""
+            }
+        }
 
     return formatted_alerts_for_ewi
 
@@ -147,7 +208,7 @@ def fix_internal_alerts(alert_entry):
                 invalid_ias = IAS_X_OTS_MAP[alert_symbol]["internal_symbol"]
                 invalid_triggers.append(invalid_ias)
                 internal_alert = internal_alert.replace(invalid_ias, "")
-        except KeyError: # If valid, trigger should have no "invalid" key.
+        except KeyError:  # If valid, trigger should have no "invalid" key.
             valid_a_l = IAS_X_OTS_MAP[alert_symbol]["alert_level"]
             valid_alert_levels.append(valid_a_l)
 
@@ -162,7 +223,7 @@ def fix_internal_alerts(alert_entry):
         internal_alert = "".join(listed_ia)
 
         general_status = "valid"
-        if invalid_triggers: # If there are invalid triggers, yet there are valid triggers.
+        if invalid_triggers:  # If there are invalid triggers, yet there are valid triggers.
             general_status = "partially_invalid"
     else:
         general_status = "invalid"
@@ -170,33 +231,91 @@ def fix_internal_alerts(alert_entry):
     return internal_alert, general_status
 
 
-def process_generated_alerts(current_site_status, generated_alerts_list):
+def process_generated_alerts(current_site_status, generated_alerts_list, query_end_ts):
     """
     Segregate entries into Raising, Lowering, Routine, Extended.
     """
-    with_alerts_list = []
     no_alerts_list = []
+    candidate_alerts_list = []
+    routine_sites_list = get_routine_sites(query_end_ts)
 
     for alert_entry in generated_alerts_list:
+        # Get site_code to check current alert level of site
+        site_code = alert_entry["site_code"]
+        # Save the current alert level
+        current_alert_level = current_site_status[site_code]
+
+        # Get incoming alert level
         new_alert_level = int(alert_entry["public_alert"][1])
+        # Save the alert level to alert entry for use on other parts of code
+        alert_entry["alert_level"] = new_alert_level
+
+        data_ts = datetime.strptime(alert_entry["ts"], "%Y-%m-%d %H:%M:%S")
+        data_time = data_ts.time()  # For use in extended release validation
 
         if new_alert_level > 0:  # Process onset, raising, re-release with or without triggers
             # Step 1: Fix internal alert based on triggers
             fixed_list, general_status = fix_internal_alerts(alert_entry)
-            var_checker("fixed", fixed_list, True)
 
             # Step 2: Replace internal alert
             alert_entry["internal_alert"] = fixed_list
 
-            var_checker("ALERT ENTRY", alert_entry, True)
             # Format data needed by insert_ewi
-            formatted_alert_entry = format_alerts_for_ewi_insert(alert_entry, general_status)
+            formatted_alert_entry = format_alerts_for_ewi_insert(
+                alert_entry, general_status)
 
-            with_alerts_list.append(alert_entry)
+            candidate_alerts_list.append(formatted_alert_entry)
         else:  # Process lowering, routine, re-release (extended)
+            # Checking of what to do
+            is_lowering = new_alert_level < current_alert_level
+            is_extended_entry = bool(
+                alert_entry["validity"]) and new_alert_level == current_alert_level
+            is_routine = new_alert_level == current_alert_level
+
+            if is_lowering:
+                print("LOWERING!")
+                general_status = "lowering"
+                formatted_lowering_alerts = format_alerts_for_ewi_insert(
+                    alert_entry, general_status)
+                candidate_alerts_list.append(formatted_lowering_alerts)
+            elif is_extended_entry:
+                # If incoming alert is zero but it still has
+                # validity attribute, it is extended release
+                validity = datetime.strptime(
+                    alert_entry["validity"], "%Y-%m-%d %H:%M:%S")
+
+                is_extended_entry, is_extended_release = check_if_extended(
+                    validity, data_ts, data_time, is_extended_entry)
+
+                if is_extended_entry and is_extended_release:
+                    general_status = "extended"
+                    formatted_extended_alert = \
+                        format_alerts_for_ewi_insert(
+                            alert_entry, general_status)
+                    candidate_alerts_list.append(formatted_extended_alert)
+            elif is_routine and not alert_entry["validity"]:
+                general_status = "routine"
+
+                if site_code in routine_sites_list:
+                    formatted_routine_alerts = \
+                        format_alerts_for_ewi_insert(
+                            alert_entry, general_status)
+
+                    candidate_alerts_list.append(formatted_routine_alerts)
+
+            elif current_alert_level == -1:
+                error = f"{query_end_ts} | DISCREPANCY IN DATA! IN SITE: {site_code.upper()}\r\n" 
+                print(error)
+                directory = APP_CONFIG["generated_alerts_path"]
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
+
+                with open(directory + "alert_gen_logs.txt", "a") as file_path:
+                    file_path.write(error)
+
             no_alerts_list.append(alert_entry)
 
-    return with_alerts_list, no_alerts_list
+    return candidate_alerts_list, no_alerts_list
 
 
 def get_current_alert_statuses_dict(query_end_ts):
@@ -215,7 +334,6 @@ def get_current_alert_statuses_dict(query_end_ts):
         try:
             current_event = site.monitoring_events.order_by(DB.desc(me.event_start))\
                 .filter(me.event_start < query_end_ts).first()
-            var_checker("Monitoring event", current_event)
             current_event_alert = current_event.event_alerts.order_by(
                 DB.desc(mea.ts_start)).filter(mea.ts_start < query_end_ts).first()
             current_alert_level = \
@@ -245,6 +363,7 @@ def main(ts=None, is_test=None):
     """
     start_run_ts = datetime.now()
     query_end_ts = ts if ts else datetime.now()
+    query_end_ts = datetime.strptime(query_end_ts,  "%Y-%m-%d %H:%M:%S")
     is_test_string = "We are in a test run!" if is_test else "Running with DB!"
     print(
         f"Started at {start_run_ts}. {is_test_string}. QUERY END TS is {query_end_ts}.")
@@ -258,20 +377,24 @@ def main(ts=None, is_test=None):
         filepath, filename)
 
     current_site_status = get_current_alert_statuses_dict(query_end_ts)
-    #
-    var_checker("Current Alert Statuses", current_site_status, True)
-
-    with_alerts_list, no_alerts_list = \
-        process_generated_alerts(current_site_status, generated_alerts_list)
-
-    var_checker("With Data Alerts List", with_alerts_list, True)
-    var_checker("No Data Alerts List", no_alerts_list, True)
 
     # Check triggers if there are invalids and fix the internal alert string as needed
+    # Extended, Routine, Lowering
 
-    # Extended
+    candidate_alerts_list, no_alerts_list = \
+        process_generated_alerts(
+            current_site_status, generated_alerts_list, query_end_ts)
 
-    # Routine
+    # Convert data to JSON
+    json_data = json.dumps(candidate_alerts_list)
+
+    # Write to specified filepath and filename
+    directory = APP_CONFIG["generated_alerts_path"]
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    with open(directory + "candidate_alerts.json", "w") as file_path:
+        file_path.write(json_data)
 
     end_run_ts = datetime.now()
     run_time = end_run_ts - start_run_ts
