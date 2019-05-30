@@ -11,6 +11,7 @@ from src.models.analysis import (
     RainfallAlerts as ra, MarkerAlerts as ma, MarkerHistory as mh,
     NodeAlerts as na)
 from src.models.monitoring import (MonitoringMoms as mm)
+from src.utils.rainfall import (get_rainfall_gauge_name)
 
 
 def var_checker(var_name, var, have_spaces=False):
@@ -224,12 +225,7 @@ def get_rainfall_tech_info(rainfall_alert_details):
         cumulatives = []
         thresholds = []
 
-        rain_gauge_name = item.rainfall_gauge.gauge_name
-        data_source = item.rainfall_gauge.data_source
-
-        if data_source == "noah":
-            rain_gauge_name = "NOAH " + str(rain_gauge_name)
-        rain_gauge_name = rain_gauge_name.upper()
+        rain_gauge_name = get_rainfall_gauge_name(item)
 
         # Not totally sure if there is always only one entry of a and b per rainfall ts
         # if yes, this can be improved.
@@ -255,9 +251,9 @@ def get_rainfall_tech_info(rainfall_alert_details):
     threshold = " and ".join(thresholds)
 
     rain_tech_info = {}
-    rain_tech_info["rain_gauge"] = f"RAIN_{rain_gauge_name}"
+    rain_tech_info["rain_gauge"] = rain_gauge_name
     rain_tech_info[
-        "tech_info_string"] = f"RAIN {rain_gauge_name}: {day} cumulative rainfall ({cumulative} mm) exceeded threshold ({threshold} mm)"
+        "tech_info_string"] = f"{rain_gauge_name}: {day} cumulative rainfall ({cumulative} mm) exceeded threshold ({threshold} mm)"
 
     return rain_tech_info
 

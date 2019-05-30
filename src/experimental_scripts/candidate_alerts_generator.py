@@ -17,15 +17,14 @@ May 2019
 
 import json
 import os
-import requests
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 from run import APP
 from connection import DB
 from config import APP_CONFIG
 
 from src.models.monitoring import (
     MonitoringEvents as me, MonitoringEventAlerts as mea,
-    OperationalTriggerSymbols as ots, InternalAlertSymbols as ias)
+    OperationalTriggerSymbols as ots)
 from src.utils.sites import get_sites_data
 from src.utils.extra import var_checker, get_routine_sites
 
@@ -120,13 +119,32 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
 
         triggers = alert_entry["triggers"]
         trigger_list_arr = []
+
         for trigger in triggers:
+            var_checker("TRIGGER IN ALERTED SITES", trigger, True)
+
             trig_dict = {
                 "internal_sym_id": trigger["internal_sym_id"],
-                "consolidated_tech_info": trigger["tech_info"],
-                "invalid": trigger["invalid"],
                 "trigger_alert_level": trigger["alert"]
             }
+            try: 
+                # Check if invalids key exists in alert, if exists,
+                # include it to the dictionary
+                invalid_entry = trigger["invalid_details"]
+                trig_dict["invalid_details"] = invalid_entry
+            except:
+                # Else, move on.
+                pass
+            try:
+                # Check if tech_info key exists in alert (since
+                # on demand still has no tech_info), if exists,
+                # include it to the dictionary
+                tech_info = trigger["tech_info"]
+                trig_dict["consolidated_tech_info"] = tech_info
+            except:
+                # Else, move on.
+                pass
+            
             trigger_list_arr.append(trig_dict)
 
         formatted_alerts_for_ewi["trigger_list_arr"] = trigger_list_arr

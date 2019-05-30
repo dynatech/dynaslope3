@@ -327,7 +327,7 @@ class MomsInstances(UserMixin, DB.Model):
     feature_name = DB.Column(DB.String(45))
 
     site = DB.relationship("Sites", backref=DB.backref(
-        "moms_instance_site", lazy="dynamic"))
+        "moms_instance", lazy="dynamic"))
     feature = DB.relationship(
         "MomsFeatures", backref=DB.backref("moms_instance_feature", lazy="dynamic"))
 
