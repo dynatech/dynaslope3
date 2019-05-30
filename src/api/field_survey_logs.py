@@ -2,9 +2,11 @@
 Inbox Functions Controller File
 """
 import time
-from fpdf import FPDF
+import pdfkit
 import smtplib
-from flask import Blueprint, jsonify
+import os
+from flask import Blueprint, jsonify, request
+from werkzeug import secure_filename
 from connection import DB, SOCKETIO
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -24,16 +26,27 @@ def get_all_field_survey():
 
     result = FieldSurveyLogSchema(
         many=True).dump(query).data
+    data = []
+    for row in result:
+        data.append({
+            "field_survey_id": row["field_survey_id"],
+            "features": row["features"],
+            "mat_characterization": row["mat_characterization"],
+            "mechanism": row["mechanism"],
+            "exposure": row["exposure"],
+            "note": row["note"],
+            "date": row["date"]
+        })
 
-    return jsonify(result)
+    return jsonify(data)
 
 
 @FIELD_SURVEY_LOGS_BLUEPRINT.route("/field_survey/get_field_survey_data", methods=["GET"])
 def get_field_survey_data():
-    # data = request.get_json()
-    data = {
-        "field_survey_id": 1
-    }
+    data = request.get_json()
+    # data = {
+    #     "field_survey_id": 1
+    # }
 
     field_survey_id = data["field_survey_id"]
     query = FieldSurveyLog.query.filter(
@@ -55,20 +68,20 @@ def get_latest_field_survey_data():
     return jsonify(feedback)
 
 
-@FIELD_SURVEY_LOGS_BLUEPRINT.route("/field_survey/save_field_survey", methods=["GET"])
+@FIELD_SURVEY_LOGS_BLUEPRINT.route("/field_survey/save_field_survey", methods=["GET", "POST"])
 def save_field_survey():
-    # data = request.get_json()
+    data = request.get_json()
     current_date_time = time.strftime('%Y-%m-%d %H:%M:%S')
-    data = {
-        "field_survey_id": 0,
-        "features": "test",
-        "features_data": "test",
-        "mat_characterization": "Update",
-        "mechanism": "test",
-        "exposure": "test",
-        "note": "test",
-        "date": current_date_time
-    }
+    # data = {
+    #     "field_survey_id": 0,
+    #     "features": "test",
+    #     "features_data": "test",
+    #     "mat_characterization": "Update",
+    #     "mechanism": "test",
+    #     "exposure": "test",
+    #     "note": "test",
+    #     "date": current_date_time
+    # }
 
     status = None
     message = ""
@@ -76,30 +89,26 @@ def save_field_survey():
     try:
         field_survey_id = data["field_survey_id"]
         features = data["features"]
-        features_data = data["features_data"]
         mat_characterization = data["mat_characterization"]
         mechanism = data["mechanism"]
         exposure = data["exposure"]
         note = data["note"]
-        date = data["date"]
+        date = current_date_time
 
-        if field_survey_id == 0:  # add
+        if field_survey_id == 0:
             insert_data = FieldSurveyLog(
-                features=features, features_data=features_data, mat_characterization=mat_characterization, mechanism=mechanism, exposure=exposure, note=note, date=date)
+                features=features, mat_characterization=mat_characterization, mechanism=mechanism, exposure=exposure, note=note, date=date)
             DB.session.add(insert_data)
             message = "Successfully added new data!"
-        else:  # update
+        else:
             update_data = FieldSurveyLog.query.get(field_survey_id)
             update_data.features = features
             update_data.mat_characterization = mat_characterization
             update_data.mechanism = mechanism
             update_data.exposure = exposure
             update_data.mechanism = mechanism
-            update_data.date = date
 
-            print("update")
             message = "Successfully updated data!"
-        # sample = pdf_and_email(data)
         DB.session.commit()
         status = True
     except Exception as err:
@@ -117,10 +126,10 @@ def save_field_survey():
 
 @FIELD_SURVEY_LOGS_BLUEPRINT.route("/field_survey/delete_field_survey", methods=["GET"])
 def delete_field_survey():
-    # data = request.get_json()
-    data = {
-        "field_survey_id": 3
-    }
+    data = request.get_json()
+    # data = {
+    #     "field_survey_id": 3
+    # }
     status = None
     message = ""
 
@@ -145,61 +154,41 @@ def delete_field_survey():
     return jsonify(feedback)
 
 
-def pdf_and_email(data):
+def process_pdf_and_email(data):
+
+    field_survey_data_via_email(data)
+    return ""
+
+
+def field_survey_to_pdf():
+
+    return ""
+
+
+def field_survey_data_via_email(data):
+
     features = data["features"]
-    features_data = data["features_data"]
     mat_characterization = data["mat_characterization"]
     mechanism = data["mechanism"]
     exposure = data["exposure"]
     note = data["note"]
     date = data["date"]
 
-    date_of_survey = "Date of Survey : " + date
-    # pdf = FPDF()
-    # pdf.add_page()
-    # pdf.set_xy(0, 0)
-    # pdf.set_font('arial', 'B', 12)
-    # pdf.cell(60)
-    # pdf.cell(75, 10, date_of_survey, 0, 2, 'C')
-    # pdf.cell(90, 10, " ", 0, 2, 'C')
-    # pdf.set_font('arial', 12)
-    # pdf.cell(75, 10, 'Question', 0, 0, 'C')
-    # pdf.cell(75, 10, 'Charles', 0, 0, 'C')
-    # pdf.cell(75, 10, 'Mike', 0, 2, 'C')
-    # pdf.cell(-90)
-    # pdf.set_font('arial', '', 12)
-    # pdf.output('pdf/test.pdf', 'F')
-    # text = "A Tabular and Graphical Report of Professor\n\n Criss's Ratings by Users Charles and Mike"
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_xy(0, 0)
-    pdf.set_font('arial', 'B', 12)
-    pdf.cell(20)
-    pdf.cell(55, 10, date_of_survey, 0, 2, 'C')
-    # pdf.cell(90, 10, " ", 0, 2, 'C')
-    pdf.set_font('arial')
-    pdf.multi_cell(
-        150, 8, "Features: Qweqweqweqweqweqweqweqweqwesadaxcfsdfwerqweqweqwewqeqwewqeqweqweqwewqeqweqweqwedasdas", 0, 0, 'R')
-    pdf.multi_cell(
-        150, 8, "Materials characterization: Qweqweqweqweqweqweqweqweqwesadaxcfsdfwerqweqweqwewqeqwewqeqweqweqwewqeqweqweqwedasdas", 0, 0, 'R')
-    pdf.multi_cell(
-        150, 8, "Mechanism: Qweqweqweqweqweqweqweqweqwesadaxcfsdfwerqweqweqwewqeqwewqeqweqweqwewqeqweqweqwedasdas", 0, 0, 'R')
-    pdf.multi_cell(
-        150, 8, "Exposure: Qweqweqweqweqweqweqweqweqwesadaxcfsdfwerqweqweqwewqeqwewqeqweqweqwewqeqweqweqwedasdas", 0, 0, 'R')
-    pdf.output('pdf/test.pdf', 'F')
-
-    return ""
-
-
-def field_survey_data_via_email():
-
-    email = 'dynaslopeswat@gmail.com'
-    password = 'dynaslopeswat'
-    send_to_email = 'david063095@gmail.com'
-    subject = 'This is the subject SAMPLE'
+    email = "dynaslopeswat@gmail.com"
+    password = "dynaslopeswat"
+    send_to_email = "david063095@gmail.com"
+    subject = "Field Survey : " + str(date)
     message = """
-    Sample : 2312312312323
-    Sample : 213123213123123213213
+    Features :  Scrap A
+                    -6m high from the road
+                    -53 m long
+                Scrap B
+                    -6m high from the road
+                    -53 m long
+    Material characterization : highly weathered sandstone
+    Mechanism : deep-seated rotational or translational landslide
+    Exposure : at least 9 households are at risk in the event of slope failure
+    Note : Sensor needs maintenance
     """
     file_location = 'pdf/test.pdf'
 
@@ -230,3 +219,13 @@ def field_survey_data_via_email():
     server.quit()
 
     return ""
+
+
+# @FIELD_SURVEY_LOGS_BLUEPRINT.route("/field_survey/upload", methods=["GET", "POST"])
+def file_upload_sample():
+    if request.method == "POST":
+        file = request.files["file"]
+        file_name = secure_filename(file.filename)
+        file.save(os.path.join("pdf", file_name))
+    print("success upload")
+    return "file uploaded successfully"

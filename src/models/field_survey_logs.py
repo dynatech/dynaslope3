@@ -11,8 +11,7 @@ class FieldSurveyLog(DB.Model):
     __table_args__ = {"schema": "commons_db"}
 
     field_survey_id = DB.Column(DB.Integer, primary_key=True)
-    features = DB.Column(DB.String(255))
-    features_data = DB.Column(DB.String(255))
+    features = DB.Column(DB.String(1000))
     mat_characterization = DB.Column(DB.String(255))
     mechanism = DB.Column(DB.String(255))
     exposure = DB.Column(DB.String(255))

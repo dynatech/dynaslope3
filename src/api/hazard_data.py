@@ -2,7 +2,7 @@
 Inbox Functions Controller File
 """
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
 from src.models.hazard_data import (
     HazardData, HazardDataSchema)
@@ -17,8 +17,16 @@ def get_all_hazard_data():
 
     result = HazardDataSchema(
         many=True).dump(query).data
-
-    return jsonify(result)
+    data = []
+    for row in result:
+        data.append({
+            "hazard_data_id": row["hazard_data_id"],
+            "hazard": row["hazard"],
+            "speed_of_onset": row["speed_of_onset"],
+            "early_warning": row["early_warning"],
+            "impact": row["impact"]
+        })
+    return jsonify(data)
 
 
 @HAZARD_DATA_BLUEPRINT.route("/hazard_data/get_hazard_data", methods=["GET"])
@@ -36,16 +44,16 @@ def get_hazard_data():
     return jsonify(result)
 
 
-@HAZARD_DATA_BLUEPRINT.route("/hazard_data/save_hazard_data", methods=["GET"])
+@HAZARD_DATA_BLUEPRINT.route("/hazard_data/save_hazard_data", methods=["GET", "POST"])
 def save_hazard_data():
-    # data = request.get_json()
-    data = {
-        "hazard_data_id": 0,
-        "hazard": "UPDATED",
-        "speed_of_onset": "UPDATED",
-        "early_warning": "UPDATED",
-        "impact": "UPDATED"
-    }
+    data = request.get_json()
+    # data = {
+    #     "hazard_data_id": 0,
+    #     "hazard": "UPDATED",
+    #     "speed_of_onset": "UPDATED",
+    #     "early_warning": "UPDATED",
+    #     "impact": "UPDATED"
+    # }
 
     status = None
     message = ""
@@ -57,19 +65,18 @@ def save_hazard_data():
         early_warning = data["early_warning"]
         impact = data["impact"]
 
-        if hazard_data_id == 0:  # add
+        if hazard_data_id == 0:
             insert_data = HazardData(hazard=hazard,
                                      speed_of_onset=speed_of_onset, early_warning=early_warning, impact=impact)
             DB.session.add(insert_data)
             message = "Successfully added new data!"
-        else:  # update
+        else:
             update_data = HazardData.query.get(hazard_data_id)
             update_data.hazard = hazard
             update_data.speed_of_onset = speed_of_onset
             update_data.early_warning = early_warning
             update_data.impact = impact
 
-            print("update")
             message = "Successfully updated data!"
 
         DB.session.commit()
@@ -87,12 +94,12 @@ def save_hazard_data():
     return jsonify(feedback)
 
 
-@HAZARD_DATA_BLUEPRINT.route("/hazard_data/delete_hazard_data", methods=["GET"])
+@HAZARD_DATA_BLUEPRINT.route("/hazard_data/delete_hazard_data", methods=["GET", "POST"])
 def delete_hazard_data():
-    # data = request.get_json()
-    data = {
-        "hazard_data_id": 3
-    }
+    data = request.get_json()
+    # data = {
+    #     "hazard_data_id": 3
+    # }
     status = None
     message = ""
 

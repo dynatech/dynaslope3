@@ -2,7 +2,7 @@
 Inbox Functions Controller File
 """
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
 from src.models.family_profile import (
     FamilyProfile, FamilyProfileSchema)
@@ -16,8 +16,15 @@ def get_all_family_profile():
 
     result = FamilyProfileSchema(
         many=True).dump(query).data
-
-    return jsonify(result)
+    data = []
+    for row in result:
+        data.append({
+            "family_profile_id": row["family_profile_id"],
+            "members_count": row["members_count"],
+            "vulnerable_members_count": row["vulnerable_members_count"],
+            "vulnerability_nature": row["vulnerability_nature"]
+        })
+    return jsonify(data)
 
 
 @FAMILY_PROFILE_BLUEPRINT.route("/family_profile/get_family_profile_data", methods=["GET"])
@@ -36,15 +43,15 @@ def get_family_profile_data():
     return jsonify(result)
 
 
-@FAMILY_PROFILE_BLUEPRINT.route("/family_profile/save_family_profile", methods=["GET"])
+@FAMILY_PROFILE_BLUEPRINT.route("/family_profile/save_family_profile", methods=["GET", "POST"])
 def save_family_profile():
-    # data = request.get_json()
-    data = {
-        "family_profile_id": 0,
-        "members_count": 5,
-        "vulnerable_members_count": 2,
-        "vulnerability_nature": "testUpdate"
-    }
+    data = request.get_json()
+    # data = {
+    #     "family_profile_id": 0,
+    #     "members_count": 5,
+    #     "vulnerable_members_count": 2,
+    #     "vulnerability_nature": "testUpdate"
+    # }
 
     status = None
     message = ""
@@ -55,18 +62,17 @@ def save_family_profile():
         vulnerable_members_count = data["vulnerable_members_count"]
         vulnerability_nature = data["vulnerability_nature"]
 
-        if family_profile_id == 0:  # add
+        if family_profile_id == 0:
             insert_data = FamilyProfile(members_count=members_count,
                                         vulnerable_members_count=vulnerable_members_count, vulnerability_nature=vulnerability_nature)
             DB.session.add(insert_data)
             message = "Successfully added new data!"
-        else:  # update
+        else:
             update_data = FamilyProfile.query.get(family_profile_id)
             update_data.members_count = members_count
             update_data.vulnerable_members_count = vulnerable_members_count
             update_data.vulnerability_nature = vulnerability_nature
 
-            print("update")
             message = "Successfully updated data!"
 
         DB.session.commit()
@@ -84,12 +90,12 @@ def save_family_profile():
     return jsonify(feedback)
 
 
-@FAMILY_PROFILE_BLUEPRINT.route("/family_profile/delete_family_profile", methods=["GET"])
+@FAMILY_PROFILE_BLUEPRINT.route("/family_profile/delete_family_profile", methods=["GET", "POST"])
 def delete_family_profile():
-    # data = request.get_json()
-    data = {
-        "family_profile_id": 3
-    }
+    data = request.get_json()
+    # data = {
+    #     "family_profile_id": 3
+    # }
     status = None
     message = ""
 

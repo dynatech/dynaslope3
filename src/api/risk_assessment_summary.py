@@ -2,7 +2,7 @@
 Inbox Functions Controller File
 """
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
 from src.models.risk_assessment_summary import (
     RiskAssessmentSummary, RiskAssessmentSummarySchema)
@@ -13,17 +13,26 @@ RISK_ASSESSMENT_BLUEPRINT = Blueprint(
 
 @RISK_ASSESSMENT_BLUEPRINT.route("/risk_assesment_summary/get_all_risk_assessment_summary", methods=["GET"])
 def get_all_risk_assessment_summary():
-    query = RiskAssessmentSummary.query.all()
+    query = RiskAssessmentSummary.query.order_by(
+        RiskAssessmentSummary.summary_id).all()
 
     result = RiskAssessmentSummarySchema(
         many=True).dump(query).data
-
-    return jsonify(result)
+    data = []
+    for row in result:
+        data.append({
+            "summary_id": row["summary_id"],
+            "location": row["location"],
+            "impact": row["impact"],
+            "adaptive_capacity": row["adaptive_capacity"],
+            "vulnerability": row["vulnerability"]
+        })
+    return jsonify(data)
 
 
 @RISK_ASSESSMENT_BLUEPRINT.route("/risk_assesment_summary/get_risk_assessment_summary_data", methods=["GET"])
 def get_risk_assessment_summary_data():
-     # data = request.get_json()
+    # data = request.get_json()
     data = {
         "summary_id": 1
     }
@@ -36,20 +45,21 @@ def get_risk_assessment_summary_data():
     return jsonify(result)
 
 
-@RISK_ASSESSMENT_BLUEPRINT.route("/risk_assesment_summary/save_risk_assessment_summary", methods=["GET"])
+@RISK_ASSESSMENT_BLUEPRINT.route("/risk_assesment_summary/save_risk_assessment_summary", methods=["POST", "GET"])
 def save_risk_assessment_summary():
-    # data = request.get_json()
-    data = {
-        "summary_id": 0,
-        "location": "UPDATED",
-        "impact": "UPDATED",
-        "adaptive_capacity": "UPDATED",
-        "vulnerability": "UPDATED"
-    }
+    data = request.get_json()
+    # data = {
+    #     "summary_id": 0,
+    #     "location": "UPDATED",
+    #     "impact": "UPDATED",
+    #     "adaptive_capacity": "UPDATED",
+    #     "vulnerability": "UPDATED"
+    # }
 
     status = None
     message = ""
 
+    print(data)
     try:
         summary_id = data["summary_id"]
         location = data["location"]
@@ -57,19 +67,18 @@ def save_risk_assessment_summary():
         adaptive_capacity = data["adaptive_capacity"]
         vulnerability = data["vulnerability"]
 
-        if summary_id == 0:  # add
+        if summary_id == 0:
             insert_data = RiskAssessmentSummary(location=location,
                                                 impact=impact, adaptive_capacity=adaptive_capacity, vulnerability=vulnerability)
             DB.session.add(insert_data)
             message = "Successfully added new data!"
-        else:  # update
+        else:
             update_data = RiskAssessmentSummary.query.get(summary_id)
             update_data.location = location
             update_data.impact = impact
             update_data.adaptive_capacity = adaptive_capacity
             update_data.vulnerability = vulnerability
 
-            print("update")
             message = "Successfully updated data!"
 
         DB.session.commit()
@@ -87,12 +96,12 @@ def save_risk_assessment_summary():
     return jsonify(feedback)
 
 
-@RISK_ASSESSMENT_BLUEPRINT.route("/risk_assesment_summary/delete_risk_assessment_summary", methods=["GET"])
+@RISK_ASSESSMENT_BLUEPRINT.route("/risk_assesment_summary/delete_risk_assessment_summary", methods=["GET", "POST"])
 def delete_risk_assessment_summary():
-    # data = request.get_json()
-    data = {
-        "summary_id": 3
-    }
+    data = request.get_json()
+    # data = {
+    #     "summary_id": 3
+    # }
     status = None
     message = ""
 

@@ -17,7 +17,7 @@ INBOX_OUTBOX_BLUEPRINT = Blueprint("inbox_outbox_blueprint", __name__)
 @INBOX_OUTBOX_BLUEPRINT.route("/inbox_outbox/quick_inbox", methods=["GET"])
 @SOCKETIO.on('/socket/inbox_outbox/quick_inbox')
 def quick_inbox():
-    quick_inbox_query = text("SELECT * FROM"
+    quick_inbox_query = text("SELECT * FROM "
                              "(SELECT * FROM "
                              "(SELECT "
                              "MAX(inbox_id) AS inbox_id "

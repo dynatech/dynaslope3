@@ -2,7 +2,7 @@
 Inbox Functions Controller File
 """
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
 from src.models.resources_and_capacities import (
     ResourcesAndCapacities, ResourcesAndCapacitiesSchema)
@@ -17,8 +17,15 @@ def get_all_resources_and_capacities():
 
     result = ResourcesAndCapacitiesSchema(
         many=True).dump(query).data
-
-    return jsonify(result)
+    data = []
+    for row in result:
+        data.append({
+            "resources_and_capacities_id": row["resources_and_capacities_id"],
+            "resource_and_capacity": row["resource_and_capacity"],
+            "status": row["status"],
+            "owner": row["owner"]
+        })
+    return jsonify(data)
 
 
 @RESOURCES_AND_CAPACITIES_BLUEPRINT.route("/resources_and_capacities/get_resources_and_capacities_data", methods=["GET"])
@@ -36,15 +43,15 @@ def get_resources_and_capacities_data():
     return jsonify(result)
 
 
-@RESOURCES_AND_CAPACITIES_BLUEPRINT.route("/resources_and_capacities/save_resources_and_capacities", methods=["GET"])
+@RESOURCES_AND_CAPACITIES_BLUEPRINT.route("/resources_and_capacities/save_resources_and_capacities", methods=["GET", "POST"])
 def save_resources_and_capacities():
-    # data = request.get_json()
-    data = {
-        "resources_and_capacities_id": 2,
-        "resource_and_capacity": "updated",
-        "status": "updated",
-        "owner": "updated"
-    }
+    data = request.get_json()
+    # data = {
+    #     "resources_and_capacities_id": 2,
+    #     "resource_and_capacity": "updated",
+    #     "status": "updated",
+    #     "owner": "updated"
+    # }
 
     status = None
     message = ""
@@ -55,19 +62,18 @@ def save_resources_and_capacities():
         status = data["status"]
         owner = data["owner"]
 
-        if resources_and_capacities_id == 0:  # add
+        if resources_and_capacities_id == 0:
             insert_data = ResourcesAndCapacities(resource_and_capacity=resource_and_capacity,
                                                  status=status, owner=owner)
             DB.session.add(insert_data)
             message = "Successfully added new data!"
-        else:  # update
+        else:
             update_data = ResourcesAndCapacities.query.get(
                 resources_and_capacities_id)
             update_data.resource_and_capacity = resource_and_capacity
             update_data.status = status
             update_data.owner = owner
 
-            print("update")
             message = "Successfully updated data!"
 
         DB.session.commit()
@@ -85,12 +91,12 @@ def save_resources_and_capacities():
     return jsonify(feedback)
 
 
-@RESOURCES_AND_CAPACITIES_BLUEPRINT.route("/resources_and_capacities/delete_resources_and_capacities", methods=["GET"])
+@RESOURCES_AND_CAPACITIES_BLUEPRINT.route("/resources_and_capacities/delete_resources_and_capacities", methods=["GET", "POST"])
 def delete_resources_and_capacities():
-    # data = request.get_json()
-    data = {
-        "resources_and_capacities_id": 3
-    }
+    data = request.get_json()
+    # data = {
+    #     "resources_and_capacities_id": 3
+    # }
     status = None
     message = ""
 

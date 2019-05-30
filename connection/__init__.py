@@ -133,4 +133,17 @@ def create_app(config_name):
     app.register_blueprint(
         FIELD_SURVEY_LOGS_BLUEPRINT, url_prefix="/api")
 
+    from src.api.sensor_maintenance import SENSOR_MAINTENANCE_BLUEPRINT
+    app.register_blueprint(
+        SENSOR_MAINTENANCE_BLUEPRINT, url_prefix="/api")
+
+    from src.api.surficial_data import SURFICIAL_DATA_BLUEPRINT
+    app.register_blueprint(SURFICIAL_DATA_BLUEPRINT, url_prefix="/api")
+
+    from src.api.situation_report import SITUATION_REPORT_BLUEPRINT
+    app.register_blueprint(SITUATION_REPORT_BLUEPRINT, url_prefix="/api")
+
+    # from src.api.rainfall import RAINFALL_BLUEPRINT
+    # app.register_blueprint(RAINFALL_BLUEPRINT, url_prefix="/api")
+
     return app
