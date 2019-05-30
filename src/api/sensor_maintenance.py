@@ -8,5 +8,4 @@ from src.models.sensor_maintenance import (
     SensorMaintenance, SensorMaintenanceSchema)
 
 SENSOR_MAINTENANCE_BLUEPRINT = Blueprint(
-    "rainfall_blueprint", __name__)
-
+    "sensor_maintenance_blueprint", __name__)
