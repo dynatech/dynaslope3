@@ -376,8 +376,9 @@ class TSMSensors(UserMixin, DB.Model):
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> TSM ID: {self.tsm_id}"
-                f" TSM Name: {self.tsm_name} Number of Segments: {self.number_of_segments}"
-                f"Date Activated: {self.date_activated}")
+                f" Site ID: {self.site_id} Number of Segments: {self.number_of_segments}"
+                f" Logger ID: {self.site_id} Number of Segments: {self.number_of_segments}"
+                f"Date Activated: {self.date_activated} | LOGGER: {self.logger}")
 
 
 class NodeAlerts(UserMixin, DB.Model):

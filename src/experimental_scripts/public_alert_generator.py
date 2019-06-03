@@ -233,10 +233,7 @@ def get_prepared_recent_retriggers(not_empty=True, positive_triggers_list=None, 
             }
 
             # Prepare the tech_info of the trigger
-            var_checker("ITEM", item, True)
             trigger_tech_info = tech_info_maker.main(item)
-
-            var_checker(f"TRIGGER TECH INFO OF {item.site.site_code.upper()}", trigger_tech_info, True)
 
             if trigger_type == "rainfall":
                 rainfall = {
@@ -377,8 +374,6 @@ def get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, surficial
         if current_rainfall_alert["alert_level"] > -1 and current_surficial_alert["alert_level"] > -1 and \
             current_moms_alert["alert_level"] > -1:
             break
-
-        var_checker("HEYHEY", current_moms_alert, True)
 
     current_r_s_m_a = [current_rainfall_alert, current_surficial_alert, current_moms_alert]
 
@@ -755,8 +750,6 @@ def get_site_moms(site, query_ts_end):
             moms_list.append(latest_moms)
 
         sorted_moms = sorted(moms_list, key=lambda x: x.observance_ts, reverse=True)
-        var_checker("SORTED MOMS", sorted_moms, True)
-        var_checker("LATEST MOMS", sorted_moms[0], True)
 
     return sorted_moms[0]
 
@@ -777,7 +770,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         site_tsm_sensors = site.tsm_sensors
         latest_rainfall_alert = site.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
             ra.ts == query_ts_end).first()
-        var_checker("LATEST RAINFALL ALERT", latest_rainfall_alert, True)
         
         # var_checker("SITE MOMS", site_moms_alerts, True)
 
@@ -818,8 +810,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         unique_positive_triggers_list = extract_unique_positive_triggers(
             positive_triggers_list)
 
-        var_checker("UNIQUE POST", unique_positive_triggers_list, True)
-        var_checker("RELEASE TRIG", release_op_triggers_list, True)
         ######################
         # GET TRIGGER ALERTS #
         ######################
@@ -983,8 +973,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         timestamp = str(timestamp)
         validity = str(validity)
 
-        var_checker("SUBSURFACE ALERTS LIST", subsurface_alerts_list, True)
-
         for subsurface in subsurface_alerts_list:
             subsurface["alert_level"] = OTS_MAP[(
                 "alert_symbol", "subsurface", subsurface["alert_level"])]
@@ -992,7 +980,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         
         # Get alert symbols of triggers
         current_surficial_alert["alert_level"] = OTS_MAP[("alert_symbol", "surficial", current_surficial_alert["alert_level"])]
-        current_rainfall_alert["details"]["alert_level"] = OTS_MAP[("alert_symbol", "rainfall", current_rainfall_alert["details"]["alert_level"])]
+        current_rainfall_alert["alert_level"] = OTS_MAP[("alert_symbol", "rainfall", current_rainfall_alert["alert_level"])]
 
         formatted_release_trig = [
             {
@@ -1005,7 +993,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             },
             {
                 "type": "rainfall",
-                "details": current_rainfall_alert["details"]
+                "details": current_rainfall_alert
             }
         ]
 
@@ -1016,8 +1004,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                 "details": current_moms_alert["details"]
             }
             formatted_release_trig.append(formatted_moms_alert)
-
-        var_checker("VAR", formatted_release_trig, True)
 
 
         # FORM THE SITE PUBLIC ALERT FOR GENERATED ALERTS
@@ -1114,11 +1100,12 @@ def main(query_ts_end=None, is_test=False, site_code=None):
     print(f"Runtime: {script_end - query_ts_start}")
 
 if __name__ == "__main__":
+    # L2
     # main("2019-01-22 03:00:00", True, "ime")
     # # main("2018-12-26 11:00:00", True, "lpa")
-    # main("2018-11-30 15:51:00", True)
+    main("2018-11-30 15:51:00", True, "ime")
     # MOMS
-    main("2019-01-22 03:00:00", True, "dad")
+    # main("2019-01-22 03:00:00", True, "dad")
     # main("2018-08-20 06:00:00", True, "tue")
     # main("2018-11-15 7:51:00", True)
     # main("2018-08-14 11:46:00", True, "tue")

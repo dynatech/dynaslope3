@@ -26,11 +26,15 @@ def get_rainfall_gauge_name(rainfall_alert):
     """
     Just check rainfall
     """
-    rain_gauge_name = rainfall_alert.rainfall_gauge.gauge_name
-    data_source = rainfall_alert.rainfall_gauge.data_source
+    rain_gauge_name = ""
+    try:
+        rain_gauge_name = rainfall_alert.rainfall_gauge.gauge_name
+        data_source = rainfall_alert.rainfall_gauge.data_source
 
-    if data_source == "noah":
-        rain_gauge_name = "NOAH " + str(rain_gauge_name)
-    rain_gauge_name = f"RAIN {rain_gauge_name.upper()}"
+        if data_source == "noah":
+            rain_gauge_name = "NOAH " + str(rain_gauge_name)
+        rain_gauge_name = f"RAIN {rain_gauge_name.upper()}"
+    except:
+        pass
 
     return rain_gauge_name

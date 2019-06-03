@@ -1,78 +1,25 @@
-import sys
-sys.path.append(
-    r"D:\Users\swat-dynaslope\Documents\DYNASLOPE-3.0\dynaslope3-final")
-import pprint
-import itertools
+"""
+Tech Info Maker (Py3) version 0.1
+======
+For use of Dynaslope Early Warning System
+Receives a trigger class and uses its details to
+generate technical information for use in the
+alert release bulletins.
+
+May 2019
+"""
+
 from datetime import datetime, timedelta, time
 from connection import DB
 from run import APP
 from sqlalchemy import and_
 from src.models.analysis import (
     RainfallAlerts as ra, MarkerAlerts as ma, MarkerHistory as mh,
-    NodeAlerts as na)
+    NodeAlerts as na, TSMSensors as tsma)
 from src.models.monitoring import (MonitoringMoms as mm)
 from src.utils.rainfall import (get_rainfall_gauge_name)
-
-
-def var_checker(var_name, var, have_spaces=False):
-    """
-    Just a function to test variable value and view from terminal.
-    """
-    if have_spaces:
-        print()
-        print(f"===== {var_name} =====")
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(var)
-        print()
-    else:
-        print(f"{var_name} =====")
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(var)
-
-# NOTE: Delete if not needed
-
-
-def group_by(pos_trig_list):
-    """
-    TRY TO USE THIS ON EARLIER GROUPBY USES
-    Returns Tuples {Trig_sym_id, value}
-    """
-    sorted_list = sorted(pos_trig_list, key=lambda x: x.trigger_sym_id)
-    group_list = []
-    for key, group in itertools.groupby(sorted_list, key=lambda x: x.trigger_sym_id):
-        print()
-        item = (key, list(group))
-        group_list.append(item)
-
-    return group_list
-
-
-# NOTE: OPTIMIZE (IMPORT IF MUST)
-def round_of_to_release_time(date_time):
-    """
-    Rounds time to 4/8/12 AM/PM.
-
-    Args:
-        date_time (datetime): Timestamp to be rounded off. 04:00 to 07:30 is
-        rounded off to 8:00, 08:00 to 11:30 to 12:00, etc.
-
-    Returns:
-        datetime: Timestamp with time rounded off to 4/8/12 AM/PM.
-    """
-
-    time_hour = int(date_time.strftime('%H'))
-
-    quotient = int(time_hour / 4)
-
-    if quotient == 5:
-        date_time = datetime.combine(
-            date_time.date() + timedelta(1), time(0, 0))
-    else:
-        date_time = datetime.combine(
-            date_time.date(), time((quotient + 1) * 4, 0))
-
-    return date_time
-
+from src.utils.extra import var_checker
+from src.utils.monitoring import round_to_nearest_release_time
 
 #####################################
 # DATA PROCESSING CODES BEYOND HERE #
@@ -148,9 +95,9 @@ def formulate_surficial_tech_info(surficial_alert_detail):
         name = item.marker.marker_histories.order_by(
             DB.desc(mh.ts)).first().marker_names[0].marker_name
         disp = item.displacement
-        time = '{:.2f}'.format(item.time_delta)
+        timestamp = '{:.2f}'.format(item.time_delta)
         tech_info.append(
-            f"Marker {name}: {disp} cm difference in {time} hours")
+            f"Marker {name}: {disp} cm difference in {timestamp} hours")
 
         surficial_tech_info = '; '.join(tech_info)
 
@@ -174,25 +121,25 @@ def get_surficial_alerts(site_id, latest_trigger_ts):
 
 def get_surficial_tech_info(surficial_alert_details):
     """
-    Sample
+    g triggers or surficial triggers tech info
     """
-    l2_triggers = []
-    l3_triggers = []
+    g2_triggers = []
+    g3_triggers = []
     surficial_tech_info = {}
 
     for item in surficial_alert_details:
         if item.alert_level == 2:
-            l2_triggers.append(item)
+            g2_triggers.append(item)
 
         if item.alert_level == 3:
-            l3_triggers.append(item)
+            g3_triggers.append(item)
 
-        group_array = [l2_triggers, l3_triggers]
+        group_array = [g2_triggers, g3_triggers]
         for index, group in enumerate(group_array):
             if group:
                 tech_info = formulate_surficial_tech_info(group)
-                # NOTE: ano yung "l" dito? l2/l3? Updae code if kailangan for g2/3 (use maps)
-                surficial_tech_info["l" + str(index + 2)] = tech_info
+                # NOTE: code below can be improved using maps
+                surficial_tech_info["g" + str(index + 2)] = tech_info
 
     return surficial_tech_info
 
@@ -202,9 +149,8 @@ def get_rainfall_alerts(site_id, latest_trigger_ts):
     Query rainfall alerts
     Non-Testable
     """
-    # NOTE: lipat yung .all() here
     rain_alerts = ra.query.filter(
-        ra.site_id == site_id, ra.ts == latest_trigger_ts)
+        ra.site_id == site_id, ra.ts == latest_trigger_ts).all()
 
     return rain_alerts
 
@@ -216,11 +162,7 @@ def get_rainfall_tech_info(rainfall_alert_details):
     one_day_data = None
     three_day_data = None
 
-    # NOTE: The use of .all() does not affect the iterability of the SQLAlchemy row.
-    # for item in rainfall_alert_details:
-    # var_checker("RAINFALL DETAILS", rainfall_alert_details.all(), True)
-
-    for item in rainfall_alert_details.all():
+    for item in rainfall_alert_details:
         days = []
         cumulatives = []
         thresholds = []
@@ -229,7 +171,6 @@ def get_rainfall_tech_info(rainfall_alert_details):
 
         # Not totally sure if there is always only one entry of a and b per rainfall ts
         # if yes, this can be improved.
-        # TEST WITH BOTH 1- and 3-day
         if item.rain_alert == "a":
             one_day_data = item
 
@@ -258,24 +199,44 @@ def get_rainfall_tech_info(rainfall_alert_details):
     return rain_tech_info
 
 
-def get_subsurface_alerts(site_id, start_ts, latest_trigger_ts):
+def get_subsurface_node_alerts(site_id, start_ts, latest_trigger_ts):
     """
-    Sample
+    Update: Returns a list of node alerts
+    Returns list of sensors with its corresponding node alerts
     """
     # NOTE: OPTIMIZE: Use TSMSensor instead of NodeAlerts OR use join() query
-    row = na.query.filter(na.ts >= start_ts, na.ts
-                          <= latest_trigger_ts).order_by(DB.desc(na.na_id))
+    try:
+        tsm_sensors = tsma.query.filter(tsma.site_id == site_id).all()
 
-    subsurface_alerts = []
-    for item in row.all():
-        sensor = item.tsm_sensor
-        if sensor.site_id == site_id and sensor.site.site_code in sensor.logger.logger_name:
-            subsurface_alerts.append(item)
+        tsm_node_alerts = []
+        for sensor in tsm_sensors:
+            sensor_node_alerts = sensor.node_alerts.order_by(DB.desc(na.na_id)).filter(
+                start_ts <= na.ts, na.ts <= latest_trigger_ts).all()
+            if sensor_node_alerts: # If there are no node alerts on sensor, skip.
+                # If there is, remove duplicate node alerts. We only need the latest.
+                unique_list = []
+                comparator = []
+                for item in sensor_node_alerts:
+                    com = item.node_id
+                    comparator.append(com)
+                    if not (com in comparator and comparator.count(com) > 1):
+                        unique_list.append(item)
+                sensor_node_alerts = unique_list
 
-    return subsurface_alerts
+                tsm_node_alerts.extend(sensor_node_alerts)
+                # Save nodes to its own dictionary per sensor then put it in a list
+                # entry_dict = {
+                #     "logger_name": sensor.logger.logger_name,
+                #     "sensor_node_alerts": sensor_node_alerts
+                # }
+                # tsm_node_alerts.append(entry_dict)
+    except:
+        raise
+
+    return tsm_node_alerts
 
 
-def format_node_details(triggers):
+def format_node_details(node_alerts):
     """
     Sample
     """
@@ -283,14 +244,14 @@ def format_node_details(triggers):
     tsm_name_list = []
 
     # NOTE: OPTIMIZE
-    for item in triggers:
-        tsm_name_list.append(item.tsm_sensor.logger.logger_name)
+    for node_alert in node_alerts:
+        tsm_name_list.append(node_alert.tsm_sensor.logger.logger_name)
 
     for i in tsm_name_list:
         col_list = []
-        for trigger in triggers:
-            if trigger.tsm_sensor.logger.logger_name == i:
-                col_list.append(trigger)
+        for node_alert in node_alerts:
+            if node_alert.tsm_sensor.logger.logger_name == i:
+                col_list.append(node_alert)
 
     if len(col_list) == 1:
         node_details.append(f"{i.upper()} (node {col_list[0].node_id})")
@@ -300,9 +261,30 @@ def format_node_details(triggers):
             f"{i.upper()} (nodes {', '.join(str(v.node_id) for v in sorted_nodes)})")
 
     return ", ".join(node_details)
+    # node_details = []
+    # tsm_name_list = []
+    # col_list = []
+
+    # # NOTE: OPTIMIZE
+    # for node_alert in node_alerts:
+    #     tsm_name_list.append(node_alert.tsm_sensor.logger.logger_name)
+    #     col_list.append(node_alert)
+
+    # var_checker("NODE A", node_alerts, True)
+    # var_checker("TSM", tsm_name_list, True)
+    # var_checker("COL LIST", col_list, True)
+
+    # if len(col_list) == 1:
+    #     node_details.append(f"{i.upper()} (node {col_list[0].node_id})")
+    # else:
+    #     sorted_nodes = sorted(col_list, key=lambda x: x.node_id)
+    #     node_details.append(
+    #         f"{i.upper()} (nodes {', '.join(str(v.node_id) for v in sorted_nodes)})")
+
+    # return ", ".join(node_details)
 
 
-def formulate_subsurface_tech_info(subsurface_alerts):
+def formulate_subsurface_tech_info(node_alert_group):
     """
     Sample
     """
@@ -310,17 +292,17 @@ def formulate_subsurface_tech_info(subsurface_alerts):
     dis_trigger = []
     vel_trigger = []
 
-    for item in subsurface_alerts:
-        disp_alert = item.disp_alert
-        vel_alert = item.vel_alert
+    for node_alert in node_alert_group:
+        disp_alert = node_alert.disp_alert
+        vel_alert = node_alert.vel_alert
         if disp_alert > 0 and vel_alert > 0:
-            both_trigger.append(item)
+            both_trigger.append(node_alert)
 
         if disp_alert > 0 and vel_alert == 0:
-            dis_trigger.append(item)
+            dis_trigger.append(node_alert)
 
         if disp_alert == 0 and vel_alert > 0:
-            vel_trigger.append(item)
+            vel_trigger.append(node_alert)
 
     node_details = []
 
@@ -342,35 +324,26 @@ def formulate_subsurface_tech_info(subsurface_alerts):
     return node_details
 
 
-def get_subsurface_tech_info(subsurface_alerts):
+def get_subsurface_tech_info(subsurface_node_alerts):
     """
     Sample
     """
     ####
     # NEW VERSION OF COMPARATOR AS ALTERNATIVE TO PANDAS DROP DUPLICATES
-    unique_list = []
-    comparator = []
-    for item in subsurface_alerts:
-        com1 = item.tsm_sensor.logger.logger_name
-        com2 = item.node_id
-        comparator.append((com1, com2))
-        if not ((com1, com2) in comparator and comparator.count((com1, com2)) > 1):
-            unique_list.append(item)
-    subsurface_alerts = unique_list
 
-    l2_triggers = []
-    l3_triggers = []
-    for item in subsurface_alerts:
-        if item.disp_alert == 2 or item.vel_alert == 2:
-            l2_triggers.append(item)
-        if item.disp_alert == 3 or item.vel_alert == 3:
-            l3_triggers.append(item)
+    s2_triggers = []
+    s3_triggers = []
+    for node_alert in subsurface_node_alerts: # Most like two only
+        if node_alert.disp_alert == 2 or node_alert.vel_alert == 2:
+            s2_triggers.append(node_alert)
+        if node_alert.disp_alert == 3 or node_alert.vel_alert == 3:
+            s3_triggers.append(node_alert)
 
     subsurface_tech_info = {}
-    group_array = [l2_triggers, l3_triggers]
-    for index, group in enumerate(group_array):
-        if group:
-            tech_info = formulate_subsurface_tech_info(group)
+    node_alert_group_list = [s2_triggers, s3_triggers]
+    for index, node_alert_group in enumerate(node_alert_group_list):
+        if node_alert_group:
+            tech_info = formulate_subsurface_tech_info(node_alert_group)
             # Commented the following code because according to Senior SRS, only the string is needed.
             # subsurface_tech_info["L" + str(index+2)] = tech_info
             subsurface_tech_info = tech_info
@@ -385,14 +358,14 @@ def main(trigger):
     site_id = trigger.site_id
     latest_trigger_ts = trigger.ts_updated
     trigger_source = trigger.trigger_symbol.trigger_hierarchy.trigger_source
-    start_ts = round_of_to_release_time(
+    start_ts = round_to_nearest_release_time(
         latest_trigger_ts) - timedelta(hours=4)
 
     if trigger_source == 'subsurface':
-        subsurface_alerts = get_subsurface_alerts(
+        subsurface_node_alerts = get_subsurface_node_alerts(
             site_id, start_ts, latest_trigger_ts)
         technical_info = get_subsurface_tech_info(
-            subsurface_alerts)
+            subsurface_node_alerts)
     elif trigger_source == 'rainfall':
         rainfall_alerts = get_rainfall_alerts(site_id, latest_trigger_ts)
         # Something special with rainfall. Attaches data source with the tech_info
