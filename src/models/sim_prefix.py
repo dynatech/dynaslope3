@@ -6,7 +6,7 @@ class SimPrefix(DB.Model):
     """
     Class representation of sim_prefix table
     """
-    __tablename__ = "sim_prefix"
+    __tablename__ = "sim_prefixes"
     __bind_key__ = "comms_db"
     __table_args__ = {"schema": "comms_db"}
 

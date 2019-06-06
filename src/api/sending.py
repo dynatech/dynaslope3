@@ -1,5 +1,4 @@
 import time
-import sys
 from flask import Blueprint, jsonify
 from connection import DB, SOCKETIO
 from src.models.users import UserMobile, UserMobileSchema
