@@ -28,17 +28,23 @@ def get_surficial_data():
                  "ORDER BY senslopedb.marker_observations.ts, senslopedb.site_markers.marker_name")
     result = DB.engine.execute(query)
     data = {}
+    timestamps = {}
+    measurements = {}
     for row in result:
         crack_id = row["crack_id"]
         if crack_id not in data:
             data[crack_id] = []
-        data[crack_id].append({"x": str(row["ts"]), "y": row["measurement"]})
+            timestamps[crack_id] = []
+            measurements[crack_id] = []
+        timestamps[crack_id].append(str(row["ts"]))
+        measurements[crack_id].append(row["measurement"])
 
     surficial_data = []
     for row in data:
         surficial_data.append({
-            "series_name": row,
-            "data": data[row]
+            "crack_name": row,
+            "ts": timestamps[row],
+            "measurements": measurements[row]
         })
 
     return jsonify(surficial_data)
@@ -87,6 +93,25 @@ def get_current_measurement():
     }
 
     return jsonify(data)
+
+
+@SURFICIAL_DATA_BLUEPRINT.route("/surficial_data/save_monitoring_log", methods=["GET", "POST"])
+def save_monitoring_log():
+    data = request.get_json()
+
+    try:
+        site_id = 50
+        timestamp = date["datetime"]
+        measurement_type = date["measurement_type"]
+        weather = date["weather"]
+        data_source = 'CBEWSL_APP'
+        reliability = 1
+    except Exception as err:
+        print("")
+
+    status = None
+    message = ""
+    return ""
 
 
 @SURFICIAL_DATA_BLUEPRINT.route("/surficial_data/get_monitoring_logs", methods=["GET"])
