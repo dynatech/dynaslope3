@@ -16,6 +16,29 @@ from src.models.users import (Users, UsersSchema)
 # Start of Class Declarations #
 ###############################
 
+class SiteMarkers(UserMixin, DB.Model):
+    """
+    Class representation of earthquake_alerts table
+    """
+
+    __tablename__ = "site_markers"
+    __bind_key__ = "analysis_db"
+    __table_args__ = {"schema": "analysis_db"}
+
+    site_id = DB.Column(DB.Integer, DB.ForeignKey("commons_db.sites.site_id"))
+    site_code = DB.Column(DB.String(3))
+    marker_id = DB.Column(DB.Integer, DB.ForeignKey("analysis_db.markers.marker_id"), primary_key=True)
+    marker_name = DB.Column(DB.String(20))
+    in_use = DB.Column(DB.Integer)
+
+    marker = DB.relationship("Markers", backref=DB.backref("site_marker", lazy="subquery", uselist=False), lazy="select")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
+                f" Site Code: {self.site_code} MarkerID: {self.marker_id}"
+                f" Marker Name: {self.marker_name} InUse: {self.in_use}")
+
+
 
 class EarthquakeAlerts(UserMixin, DB.Model):
     """
@@ -79,7 +102,8 @@ class Markers(UserMixin, DB.Model):
     in_use = DB.Column(DB.Boolean)
 
     site = DB.relationship(
-        "Sites", backref=DB.backref("markers", lazy="dynamic"), lazy="subquery")
+        "Sites", backref=DB.backref("markers", lazy="dynamic"), lazy="select")
+
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Marker ID: {self.marker_id}"
@@ -153,13 +177,14 @@ class MarkerObservations(UserMixin, DB.Model):
     weather = DB.Column(DB.String(20))
 
     site = DB.relationship(
-        "Sites", backref="marker_observations", lazy="subquery")
+        "Sites", backref=DB.backref("marker_observations", lazy="dynamic"), lazy="select")
     # marker_data = DB.relationship(
     #     "MarkerData", backref="marker_observation_report", lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> MO ID: {self.mo_id}"
                 f" Site ID: {self.site_id} Meas Type: {self.meas_type}"
+                f" TS: {self.ts} Reliability: {self.reliability}"
                 f" Observer Name: {self.observer_name} Data Source: {self.data_source}")
 
 
@@ -180,9 +205,9 @@ class MarkerData(UserMixin, DB.Model):
     measurement = DB.Column(DB.Float)
 
     marker = DB.relationship("Markers", backref=DB.backref(
-        "marker_data", lazy="dynamic"), lazy="subquery")
+        "marker_data", lazy="dynamic"), lazy="select")
     marker_observation = DB.relationship(
-        "MarkerObservations", backref=DB.backref("marker_data", lazy="dynamic"), lazy="subquery")
+        "MarkerObservations", backref=DB.backref("marker_data", lazy="dynamic"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Data ID: {self.data_id}"
