@@ -8,7 +8,8 @@ from flask import jsonify
 from connection import DB
 from src.models.sites import Sites
 from src.models.users import (
-    Users, UsersRelationship, UserOrganization,
+    Users, UsersRelationship,
+    UserOrganization, UserMobile,
     UsersSchema, UsersRelationshipSchema
 )
 
@@ -22,6 +23,7 @@ PROP_DICT = {
 
 def get_users(
         include_relationships=False,
+        include_inactive=False,
         include_mobile_nums=False,
         include_orgs=False,
         include_hierarchy=False,
@@ -30,7 +32,8 @@ def get_users(
         return_jsonify_format=False,
         user_group="dynaslope",
         filter_by_site=None,
-        filter_by_org=None):
+        filter_by_org=None,
+        filter_by_mobile_id=None):
     """
     General function that gets all users and their related data
 
@@ -45,6 +48,7 @@ def get_users(
     """
     filter_by_site = filter_by_site or []
     filter_by_org = filter_by_org or []
+    filter_by_mobile_id = filter_by_mobile_id or []
 
     include_list = [
         ("mob", include_mobile_nums),
@@ -89,9 +93,18 @@ def get_users(
                     UserOrganization)
             filter_list.append(UserOrganization.org_name.in_(filter_by_org))
 
+        if filter_by_mobile_id:
+            if include_relationships or has_includes:
+                users_query = users_query.join(
+                    UserMobile)
+            filter_list.append(UserMobile.mobile_id.in_(filter_by_mobile_id))
+
         if filter_by_site:
             users_query = users_query.join(Sites)
             filter_list.append(Sites.site_code.in_(filter_by_site))
+
+    if not include_inactive:
+        filter_list.append(Users.status == 1)
 
     users = users_query.filter(
         *filter_list, users_model.first_name.notlike("%UNKNOWN%")).all()
@@ -117,6 +130,7 @@ def get_users(
 
 def get_dynaslope_users(
         include_relationships=False,
+        include_inactive=False,
         include_mobile_nums=False,
         include_orgs=False,
         include_hierarchy=False,
@@ -128,6 +142,7 @@ def get_dynaslope_users(
     """
     users = get_users(
         include_relationships=include_relationships,
+        include_inactive=include_inactive,
         include_mobile_nums=include_mobile_nums,
         include_orgs=include_orgs,
         include_hierarchy=include_hierarchy,
@@ -141,14 +156,15 @@ def get_dynaslope_users(
 
 
 def get_community_users(
-        include_relationships=False,
-        include_mobile_nums=False,
-        include_orgs=False,
-        include_hierarchy=False,
-        include_team=False,
-        return_schema_format=False,
-        filter_by_site=None,
-        filter_by_org=None):
+    include_relationships=False,
+    include_mobile_nums=False,
+    include_orgs=False,
+    include_hierarchy=False,
+    include_team=False,
+    return_schema_format=False,
+    filter_by_site=None,
+    filter_by_org=None,
+        filter_by_mobile_id=None):
     """
     Function that gets all commmunity users and related data
 
@@ -160,6 +176,7 @@ def get_community_users(
     """
     filter_by_site = filter_by_site or []
     filter_by_org = filter_by_org or []
+    filter_by_mobile_id = filter_by_mobile_id or []
 
     users = get_users(
         include_relationships=include_relationships,
@@ -170,7 +187,8 @@ def get_community_users(
         return_schema_format=return_schema_format,
         user_group="community",
         filter_by_site=filter_by_site,
-        filter_by_org=filter_by_org
+        filter_by_org=filter_by_org,
+        filter_by_mobile_id=filter_by_mobile_id
     )
 
     return users

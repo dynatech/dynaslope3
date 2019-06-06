@@ -19,7 +19,7 @@ class Narratives(DB.Model):
     narrative = DB.Column(DB.String(500), nullable=False)
 
     def __repr__(self):
-        return f"{self.narrative}\n"
+        return f"{self.timestamp, self.narrative}\n"
 
 
 class NarrativesSchema(MARSHMALLOW.ModelSchema):

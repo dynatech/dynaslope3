@@ -19,6 +19,7 @@ module.exports = {
     },
     rules: {
         "react/jsx-filename-extension": ["error", { extensions: [".js", ".jsx"] }],
+        "react/jsx-indent": [2, 4, {indentLogicalExpressions: true}],
         "jsx-a11y/label-has-associated-control": [ "error", {
             required: {
                 some: [ "nesting", "id" ]

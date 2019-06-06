@@ -26,9 +26,11 @@ class ProductionConfig(Config):
     """
 
     DEBUG = False
+    SQLALCHEMY_ECHO = False
 
 
 APP_CONFIG = {
     "development": DevelopmentConfig,
-    "production": ProductionConfig
+    "production": ProductionConfig,
+    "generated_alerts_path": "/var/www/dynaslope3/outputs/"
 }

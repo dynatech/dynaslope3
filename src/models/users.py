@@ -38,7 +38,7 @@ class UsersRelationship(Users):
     __table_args__ = {"schema": "commons_db"}
 
     mobile_numbers = DB.relationship(
-        "UserMobile", backref=DB.backref("user", lazy=True), lazy="subquery")
+        "UserMobile", backref=DB.backref("user", lazy=True), order_by="UserMobile.priority", lazy="subquery")
 
     organizations = DB.relationship(
         "UserOrganization", backref=DB.backref("user", lazy=True), lazy="subquery")
@@ -91,7 +91,7 @@ class UserOrganization(DB.Model):
     scope = DB.Column(DB.Integer, nullable=True)
 
     site = DB.relationship(
-        "Sites", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        "Sites", backref=DB.backref("user", lazy="select"),
         primaryjoin="UserOrganization.fk_site_id==Sites.site_id", lazy=True)
 
     def __repr__(self):
@@ -124,7 +124,7 @@ class UserHierarchy(DB.Model):
     __bind_key__ = "comms_db"
     __table_args__ = {"schema": "comms_db"}
 
-    user_hierarchy_id = DB.Column(DB.Integer, primary_key=True)
+    contact_hierarchy_id = DB.Column(DB.Integer, primary_key=True)
     fk_user_id = DB.Column(
         DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
     fk_user_organization_id = DB.Column(
