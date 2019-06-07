@@ -2,6 +2,8 @@ import time
 from flask import Blueprint, jsonify, request
 from sqlalchemy import text
 from connection import DB, SOCKETIO
+from src.models.manifestations_of_movements import (
+    ManifestationsOfMovements, ManifestationsOfMovementsSchema)
 
 
 SURFICIAL_DATA_BLUEPRINT = Blueprint(
@@ -98,27 +100,56 @@ def get_current_measurement():
 @SURFICIAL_DATA_BLUEPRINT.route("/surficial_data/save_monitoring_log", methods=["GET", "POST"])
 def save_monitoring_log():
     data = request.get_json()
-
-    try:
-        site_id = 50
-        timestamp = date["datetime"]
-        measurement_type = date["measurement_type"]
-        weather = date["weather"]
-        data_source = 'CBEWSL_APP'
-        reliability = 1
-    except Exception as err:
-        print("")
-
+    current_date_time = time.strftime('%Y-%m-%d %H:%M:%S')
+    print(data)
     status = None
     message = ""
-    return ""
+    try:
+        moms_id = data["moms_id"]
+        type_of_feature = data["type_of_feature"]
+        description = data["description"]
+        name_of_feature = data["name_of_feature"]
+        timestamp = current_date_time
+
+        if moms_id == 0:
+            insert_data = ManifestationsOfMovements(
+                type_of_feature=type_of_feature, description=description, name_of_feature=name_of_feature, date=timestamp)
+            DB.session.add(insert_data)
+            message = "Successfully added new data!"
+        else:
+            update_data = ManifestationsOfMovements.query.get(moms_id)
+            update_data.type_of_feature = type_of_feature
+            update_data.description = description
+            update_data.name_of_feature = name_of_feature
+            update_data.timestamp = timestamp
+
+            # site_id = 50
+            # timestamp = date["datetime"]
+            # measurement_type = date["measurement_type"]
+            # weather = date["weather"]
+            # data_source = 'CBEWSL_APP'
+            # reliability = 1
+
+        DB.session.commit()
+        status = True
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+        status = False
+        message = "Something went wrong, Please try again"
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+    return jsonify(feedback)
 
 
 @SURFICIAL_DATA_BLUEPRINT.route("/surficial_data/get_monitoring_logs", methods=["GET"])
 def get_monitoring_logs():
     current_date_time = time.strftime('%Y-%m-%d %H:%M:%S')
     timestamps = last_timestamps(
-        current_date_time=current_date_time, limit=999999)
+        current_date_time=current_date_time, limit=99999)
     query = text("SELECT senslopedb.marker_observations.mo_id AS mo_id,"
                  "senslopedb.marker_observations.ts AS ts,"
                  "UPPER(senslopedb.site_markers.marker_name) AS crack_id,"
