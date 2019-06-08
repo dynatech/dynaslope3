@@ -48,8 +48,49 @@ def get_surficial_data():
             "ts": timestamps[row],
             "measurements": measurements[row]
         })
+    final_data = []
+    final_data.append({
+        "surficial_data": surficial_data,
+        "moms_data": get_moms_data(is_api=False)
+    })
+    return jsonify(final_data)
 
-    return jsonify(surficial_data)
+
+@SURFICIAL_DATA_BLUEPRINT.route("/surficial_data/get_moms_data", methods=["GET"])
+def get_moms_data(is_api=True):
+
+    data = []
+
+    if is_api == True:
+        query = ManifestationsOfMovements.query.order_by(
+            ManifestationsOfMovements.moms_id.desc()).all()
+
+        result = ManifestationsOfMovementsSchema(many=True).dump(query).data
+
+        for row in result:
+            data.append({
+                "moms_id": row["moms_id"],
+                "type_of_feature": row["type_of_feature"],
+                "description": row["description"],
+                "name_of_feature": row["name_of_feature"],
+                "date": str(row["date"])
+            })
+        return jsonify(data)
+    else:
+        query = ManifestationsOfMovements.query.order_by(
+            ManifestationsOfMovements.moms_id.desc()).limit(1).all()
+
+        result = ManifestationsOfMovementsSchema(many=True).dump(query).data
+
+        for row in result:
+            data.append({
+                "moms_id": row["moms_id"],
+                "type_of_feature": row["type_of_feature"],
+                "description": row["description"],
+                "name_of_feature": row["name_of_feature"],
+                "date": str(row["date"])
+            })
+        return data
 
 
 @SURFICIAL_DATA_BLUEPRINT.route("/surficial_data/get_current_measurement", methods=["GET"])
@@ -123,6 +164,7 @@ def save_monitoring_log():
             update_data.name_of_feature = name_of_feature
             update_data.timestamp = timestamp
 
+            message = "Successfully updated data!"
             # site_id = 50
             # timestamp = date["datetime"]
             # measurement_type = date["measurement_type"]
@@ -222,3 +264,33 @@ def last_timestamps(current_date_time, limit=7):
 
     timestamps = str(data)
     return timestamps.replace("[", "(").replace("]", ")")
+
+
+@SURFICIAL_DATA_BLUEPRINT.route("/moms_data/delete_moms_data", methods=["GET", "POST"])
+def delete_moms_data():
+    data = request.get_json()
+    # data = {
+    #     "moms_id": 3
+    # }
+    status = None
+    message = ""
+
+    moms_id = data["moms_id"]
+
+    try:
+        ManifestationsOfMovements.query.filter_by(
+            moms_id=moms_id).delete()
+        DB.session.commit()
+        message = "Successfully deleted data!"
+        status = True
+    except Exception as err:
+        DB.session.rollback()
+        message = "Something went wrong, Please try again"
+        status = False
+        print(err)
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+    return jsonify(feedback)
