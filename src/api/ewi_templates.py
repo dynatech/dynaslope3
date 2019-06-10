@@ -1,20 +1,31 @@
 """
-Inbox Functions Controller File
+EWI Functions Controller File
 """
 
 from flask import Blueprint, jsonify
 from connection import DB, SOCKETIO
-from src.models.general_data_tag import (
-    GeneralDataTagManager, GeneralDataTagManagerSchema)
+from src.models.ewi_templates import (
+    EwiTemplates, EwiTemplatesSchema)
 
 EWI_TEMPLATE_BLUEPRINT = Blueprint("ewi_template_blueprint", __name__)
 
 
-@EWI_TEMPLATE_BLUEPRINT.route("/ewi_template/get_all_template", methods=["GET"])
-def get_general_data_tag():
-    gdt_query = GeneralDataTagManager.query.limit(500).all()
+@EWI_TEMPLATE_BLUEPRINT.route("/ewi_templates/get_all_template", methods=["GET"])
+def get_all_template():
+    query = EwiTemplates.query.limit(500).all()
 
-    gdt_query_result = GeneralDataTagManagerSchema(
-        many=True).dump(gdt_query).data
+    result = EwiTemplatesSchema(
+        many=True).dump(query).data
 
-    return jsonify(gdt_query_result)
+    return jsonify(result)
+
+
+@EWI_TEMPLATE_BLUEPRINT.route("/ewi_templates/get_template_data", methods=["GET"])
+def get_template_data():
+    template_id = 1
+    query = EwiTemplates.query.filter(
+        EwiTemplates.template_id == template_id).first()
+
+    result = EwiTemplatesSchema().dump(query).data
+
+    return jsonify(result)

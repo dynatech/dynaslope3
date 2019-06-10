@@ -2,28 +2,51 @@
     Utility file for Surficial tables.
     Contains functions essential in accessing and saving into surficial table.
 """
+import pprint
 from connection import DB
+from datetime import datetime
 from src.models.analysis import (
-    Markers, MarkersSchema, MarkerData, MarkerDataSchema, MarkerNames, MarkerAlertsSchema, MarkerObservations, MarkerObservationsSchema)
+    Markers, MarkersSchema, MarkerData as md,
+    MarkerObservations as mo)
 from src.models.sites import (
     Sites, SitesSchema)
 
+from src.utils.extra import var_checker
 
-def get_surficial_data_by_range(identifier=None, start_ts=None, end_ts=None):
+
+def get_surficial_data(filter_val="agb", ts_order="desc", end_ts=datetime.now(), start_ts=None, limit=None):
     """
-        Returns one or more row/s of subsurface_columns.
-        Edit: [190320] - no provisions for None site_code parameter.
-
-        Args:
-            site_id
+    Returns surficial data of a site or marker specified.
+    You can filter data more using start, end timestamps and a limit.
     """
-    md = MarkerData
-    filter_var = md.tsm_name.like("%" + str(identifier) + "%")
+    base_query = md.query.join(mo)
 
-    mdumn = md.query.order_by(
-        DB.asc(md.tsm_name), DB.desc(md.date_activated)).filter(filter_var).all()
+    if ts_order == "asc":
+        base_query = base_query.order_by(DB.asc(mo.ts))
+    elif ts_order == "desc":
+        base_query = base_query.order_by(DB.desc(mo.ts))
 
-    return mdumn
+    if isinstance(filter_val, int): # If digit, meaning, marker_id is what the user is looking for
+        filtered_query = base_query.filter(md.marker_id == filter_val)
+    else:
+        filtered_query = base_query.join(Sites).filter(Sites.site_code == filter_val)
+
+    if end_ts:
+        print("PASOK sa end")
+        end_ts = datetime.strptime(end_ts, "%Y-%m-%d %H:%M:%S")
+        filtered_query = filtered_query.filter(mo.ts <= end_ts)
+
+    if start_ts:
+        print("PASOK sa start")
+        start_ts = datetime.strptime(start_ts, "%Y-%m-%d %H:%M:%S")
+        filtered_query = filtered_query.filter(mo.ts >= start_ts)
+
+    if limit:
+        filtered_query = filtered_query.limit(limit)
+
+    filtered_marker_data = filtered_query.all()
+
+    return filtered_marker_data
 
 
 def get_surficial_data_last_ten_timestamps(site_code, end_date):
@@ -76,10 +99,10 @@ def insert_if_not_exists(table, data):
         Specify which table to use and provide an object/list/dict of data to be added.
     """
     if table == "marker_data":
-        existing_data = MarkerData.query.filter(
-            MarkerData.mo_id == data.mo_id, MarkerData.marker_id == data.marker_id).all()
+        existing_data = md.query.filter(
+            md.mo_id == data.mo_id, md.marker_id == data.marker_id).all()
         if existing_data is None:
-            new_data = MarkerData(
+            new_data = md(
                 mo_id=data.mo_id,
                 marker_id=data.marker_id,
                 measurement=data.measurement
@@ -92,10 +115,10 @@ def insert_if_not_exists(table, data):
         else:
             print("Data exists!")
     elif table == "marker_observations":
-        existing_obs = MarkerObservations.query.filter(
-            MarkerObservations.site_id == data.site_id, MarkerObservations.ts == data.ts)
+        existing_obs = mo.query.filter(
+            mo.site_id == data.site_id, mo.ts == data.ts)
         if existing_obs is None:
-            new_obs = MarkerObservations(
+            new_obs = mo(
                 site_id=data.site_id,
                 ts=data.ts,
                 meas_type=data.meas_type,
@@ -119,8 +142,8 @@ def update(column, key, table, data):
     """
     if table == "marker_data":
         try:
-            existing_data = MarkerData.query.filter(
-                MarkerData.column == key).all()
+            existing_data = md.query.filter(
+                md.column == key).all()
             existing_data.column = data
             DB.session.commit()
         except:

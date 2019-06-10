@@ -7,8 +7,8 @@ import datetime
 from flask_login import UserMixin
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
-from src.models.users import Users, UsersSchema
-from src.models.narratives import Narratives, NarrativesSchema
+from src.models.users import UsersSchema
+from src.models.narratives import Narratives
 
 
 class MonitoringEvents(UserMixin, DB.Model):
@@ -29,9 +29,9 @@ class MonitoringEvents(UserMixin, DB.Model):
     status = DB.Column(DB.String(20), nullable=False)
 
     event_alerts = DB.relationship(
-        "MonitoringEventAlerts", backref="event", lazy=True)
-    # site = DB.relationship(
-    # "Sites", backref="events", lazy=True)
+        "MonitoringEventAlerts", backref=DB.backref("event", lazy="select"), lazy="dynamic")
+    site = DB.relationship(
+        "Sites", backref=DB.backref("monitoring_events", lazy="dynamic"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
@@ -57,8 +57,8 @@ class MonitoringEventAlerts(UserMixin, DB.Model):
         DB.DateTime, default=datetime.datetime.utcnow, nullable=False)
     ts_end = DB.Column(DB.DateTime)
 
-    public_alert = DB.relationship(
-        "PublicAlertSymbols", backref="event_alerts", lazy="joined", innerjoin=True)
+    public_alert_symbol = DB.relationship(
+        "PublicAlertSymbols", backref=DB.backref("event_alerts", lazy="dynamic"), lazy="select")
     releases = DB.relationship(
         "MonitoringReleases", backref="event_alert", lazy="subquery")
 
@@ -327,7 +327,7 @@ class MomsInstances(UserMixin, DB.Model):
     feature_name = DB.Column(DB.String(45))
 
     site = DB.relationship("Sites", backref=DB.backref(
-        "moms_instance_site", lazy="dynamic"))
+        "moms_instance", lazy="dynamic"))
     feature = DB.relationship(
         "MomsFeatures", backref=DB.backref("moms_instance_feature", lazy="dynamic"))
 
@@ -644,7 +644,7 @@ class MonitoringEventAlertsSchema(MARSHMALLOW.ModelSchema):
     """
     event = fields.Nested(MonitoringEventsSchema,
                           exclude=("event_alerts", ))
-    public_alert = fields.Nested(
+    public_alert_symbol = fields.Nested(
         "PublicAlertSymbolsSchema", exclude=("event_alerts", ))
     releases = fields.Nested("MonitoringReleasesSchema",
                              many=True, exclude=("event_alert", ))

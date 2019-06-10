@@ -8,7 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_login import LoginManager
 from flask_cors import CORS
-from flask_bcrypt import Bcrypt
+# from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO
 from flask_jwt_extended import JWTManager, create_access_token
 
@@ -16,7 +16,7 @@ from config import APP_CONFIG
 
 DB = SQLAlchemy()
 MARSHMALLOW = Marshmallow()
-BCRYPT = Bcrypt()
+# # BCRYPT = Bcrypt()
 JWT = JWTManager()
 LOGIN_MANAGER = LoginManager()
 SOCKETIO = SocketIO()
@@ -44,7 +44,7 @@ def create_app(config_name):
     LOGIN_MANAGER.init_app(app)
     LOGIN_MANAGER.login_message = "You must be logged in to access this page."
 
-    BCRYPT.init_app(app)
+    # BCRYPT.init_app(app)
     JWT.init_app(app)
     CORS(app)
     SOCKETIO.init_app(app)
@@ -109,5 +109,44 @@ def create_app(config_name):
 
     from src.api.routine import ROUTINE_BLUEPRINT
     app.register_blueprint(ROUTINE_BLUEPRINT, url_prefix="/api")
+
+    from src.api.ewi_templates import EWI_TEMPLATE_BLUEPRINT
+    app.register_blueprint(EWI_TEMPLATE_BLUEPRINT, url_prefix="/api")
+
+    from src.api.login import LOGIN_BLUEPRINT
+    app.register_blueprint(LOGIN_BLUEPRINT, url_prefix="/api")
+
+    from src.api.register import REGISTER_BLUEPRINT
+    app.register_blueprint(REGISTER_BLUEPRINT, url_prefix="/api")
+
+    from src.api.family_profile import FAMILY_PROFILE_BLUEPRINT
+    app.register_blueprint(FAMILY_PROFILE_BLUEPRINT, url_prefix="/api")
+
+    from src.api.risk_assessment_summary import RISK_ASSESSMENT_BLUEPRINT
+    app.register_blueprint(RISK_ASSESSMENT_BLUEPRINT, url_prefix="/api")
+
+    from src.api.hazard_data import HAZARD_DATA_BLUEPRINT
+    app.register_blueprint(HAZARD_DATA_BLUEPRINT, url_prefix="/api")
+
+    from src.api.resources_and_capacities import RESOURCES_AND_CAPACITIES_BLUEPRINT
+    app.register_blueprint(
+        RESOURCES_AND_CAPACITIES_BLUEPRINT, url_prefix="/api")
+
+    from src.api.field_survey_logs import FIELD_SURVEY_LOGS_BLUEPRINT
+    app.register_blueprint(
+        FIELD_SURVEY_LOGS_BLUEPRINT, url_prefix="/api")
+
+    from src.api.sensor_maintenance import SENSOR_MAINTENANCE_BLUEPRINT
+    app.register_blueprint(
+        SENSOR_MAINTENANCE_BLUEPRINT, url_prefix="/api")
+
+    from src.api.surficial_data import SURFICIAL_DATA_BLUEPRINT
+    app.register_blueprint(SURFICIAL_DATA_BLUEPRINT, url_prefix="/api")
+
+    from src.api.situation_report import SITUATION_REPORT_BLUEPRINT
+    app.register_blueprint(SITUATION_REPORT_BLUEPRINT, url_prefix="/api")
+
+    from src.api.rainfall import RAINFALL_BLUEPRINT
+    app.register_blueprint(RAINFALL_BLUEPRINT, url_prefix="/api")
 
     return app
