@@ -2,7 +2,7 @@
 Inbox Functions Controller File
 """
 import time
-import pdfkit
+# import pdfkit
 import smtplib
 import os
 from flask import Blueprint, jsonify, request
