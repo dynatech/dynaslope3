@@ -22,6 +22,7 @@ from src.utils.monitoring import (
     compute_event_validity, round_to_nearest_release_time, get_pub_sym_id,
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
     write_monitoring_earthquake_to_db, get_internal_alert_symbol)
+from src.utils.extra import (var_checker, create_symbols_map)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -405,8 +406,13 @@ def insert_ewi_release(instance_details, release_details, publisher_details, tri
                         info = trigger["consolidated_tech_info"]
                         timestamp = release_details["data_ts"]
                         observance_ts = moms_details["observance_ts"]
-                        # op_trigger (alert level) of moms should come from triggers of generated alerts
-                        moms_details["op_trigger"] = instance_details["alert_level"]
+
+                        # Temporary Map for getting alert level per IAS entry via internal_sym_id
+                        moms_level_map = {14: -1, 13: 2, 7: 3}
+                        moms_details["op_trigger"] = moms_level_map[internal_sym_id]
+
+                        moms_details["site_id"] = instance_details["site_id"]
+
                         narrative = moms_details["report_narrative"]
                         moms_details["narrative_id"] = write_narratives_to_db(
                             instance_details["site_id"], observance_ts, narrative, instance_details["event_id"])
@@ -482,7 +488,7 @@ def update_event_validity(new_validity, event_id):
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/insert_ewi", methods=["POST"])
-def insert_ewi():
+def insert_ewi(internal_json=None):
     """
     Inserts an "event" with specified type to the DB.
     Entry type is either event or routine. If the existing type is the same with the new one,
@@ -493,10 +499,13 @@ def insert_ewi():
         ############################
         # Variable Initializations #
         ############################
-        json_data = request.get_json()
+        if internal_json:
+            json_data = internal_json
+        else:
+            json_data = request.get_json()
 
         # Entry-related variables from JSON
-        entry_type = json_data["entry_type"]  # equivalent of "status" in CI
+        entry_type = json_data["entry_type"] # equivalent of "status" in CI
         site_id = json_data["site_id"]
         site_id_list = json_data["routine_sites_ids"]
         alert_level = json_data["alert_level"]
@@ -504,7 +513,7 @@ def insert_ewi():
         # Release-related variables from JSON
         release_details = json_data["release_details"]
         publisher_details = json_data["publisher_details"]
-        trigger_list_arr = json_data["trigger_list_arr"]
+        trigger_list_arr = json_data["trigger_list_arr"]            
 
         datetime_data_ts = datetime.strptime(
             release_details["data_ts"], "%Y-%m-%d %H:%M:%S")
@@ -681,6 +690,78 @@ def insert_ewi():
     return "entry_type"
 
 
+
+###############
+# CBEWS-L API #
+###############
+@MONITORING_BLUEPRINT.route("/monitoring/insert_cbewsl_ewi", methods=["POST"])
+def insert_cbewsl_ewi():
+    """
+    Sample shit
+    """
+    json_data = request.get_json()
+    alert_level = json_data["alert_level"]
+    user_id = json_data["user_id"]
+    data_ts = str(json_data["data_ts"])
+    trigger_list_arr = []
+
+    for trigger in json_data["trig_list"]:
+        trigger_type = trigger["int_sym"]
+
+        if trigger_type == "R":
+            trigger_entry = {
+                "internal_sym_id": 8,
+                "ts": data_ts,
+                "info": trigger["info"]
+            }
+            trigger_list_arr.append(trigger_entry)
+        elif trigger_type in ["m", "M", "M0"]:
+            moms_level_dict = {2: 13, 3: 7} # Always trigger entry from app. Either m or M only.
+            remarks = trigger["remarks"]
+
+            trigger_entry = {
+                "internal_sym_id": moms_level_dict[alert_level],
+                "consolidated_tech_info": remarks,
+                "moms_details": {
+                    "instance_id": -2,
+                    "observance_ts": data_ts,
+                    "reporter_id": user_id,
+                    "remarks": remarks,
+                    "report_narrative": remarks,
+                    "validator_id": user_id,
+                    "feature_name": trigger["f_name"],
+                    "feature_type": trigger["f_type"]                    
+                }
+            }
+            trigger_list_arr.append(trigger_entry)
+
+    internal_json_data = {
+        "entry_type": 2,  # 1
+        "site_id": 50,
+        "site_code": "umi",
+        "alert_level": alert_level,
+        "routine_sites_ids": [],
+        "release_details": {
+            "data_ts": data_ts,
+            "trigger_list": "m",
+            "release_time": str(datetime.now())
+        },
+        "publisher_details": {
+            "publisher_mt_id": user_id,
+            "publisher_ct_id": user_id,
+        },
+        "trigger_list_arr": trigger_list_arr
+    }
+
+    var_checker("PRE INSERT EWI DATA", internal_json_data, True)
+    status = insert_ewi(internal_json_data)
+
+    return jsonify(internal_json_data)
+
+
+##########################
+# SOCKET IO SAMPLE BELOW #
+##########################
 count = 0
 
 

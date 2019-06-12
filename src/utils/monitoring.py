@@ -8,8 +8,8 @@ from connection import DB
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
-    MonitoringTriggersMisc, MomsInstances, PublicAlertSymbols,
-    InternalAlertSymbols)
+    MonitoringTriggersMisc, MomsInstances, MomsFeatures,
+    InternalAlertSymbols, PublicAlertSymbols)
 
 
 def process_trigger_list(trigger_list, include_ND=False):
@@ -217,6 +217,30 @@ def write_monitoring_on_demand_to_db(od_details):
     return return_data
 
 
+def write_moms_feature_type_to_db(feature_details):
+    """
+    Insertion of new manifestation instance observed in the field.
+    Independent of moms_features
+    """
+    try:
+        feature = MomsFeatures(
+            feature_type=feature_details["feature_type"],
+            description=feature_details["description"]
+        )
+        DB.session.add(feature)
+        DB.session.flush()
+
+        feature_id = feature.feature_id
+        return_data = feature_id
+
+    except Exception as err:
+        DB.session.rollback()
+        print(err)
+        raise
+
+    return return_data
+
+
 def write_moms_instances_to_db(instance_details):
     """
     Insertion of new manifestation instance observed in the field.
@@ -226,9 +250,7 @@ def write_moms_instances_to_db(instance_details):
         moms_instance = MomsInstances(
             site_id=instance_details["site_id"],
             feature_id=instance_details["feature_id"],
-            feature_name=instance_details["feature_name"],
-            site=instance_details["site"],
-            feature=instance_details["feature"]
+            feature_name=instance_details["feature_name"]
         )
         DB.session.add(moms_instance)
         DB.session.flush()
@@ -244,11 +266,57 @@ def write_moms_instances_to_db(instance_details):
     return return_data
 
 
+def search_if_feature_name_exists(feature_name):
+    """
+    Sample
+    """
+    mi = MomsInstances
+    instance = None
+    instance = mi.query.filter(mi.feature_name == feature_name).first()
+
+    return instance
+
+
+def search_if_feature_exists(feature_type):
+    """
+    Search features if feature type exists already
+    """
+    mf = MomsFeatures
+    moms_feat = None
+    moms_feat = mf.query.filter(mf.feature_type == feature_type).first()
+
+    return moms_feat.feature_id
+
+
 def write_monitoring_moms_to_db(moms_details):
     """
     Insert a moms report to db regardless of attached to release or prior to release.
     """
     try:
+        instance_id = moms_details["instance_id"]
+
+        if instance_id == -2:
+            # Create new instance of moms
+            feature_type = moms_details["feature_type"]
+            feature_name = moms_details["feature_name"]
+            feature_id = search_if_feature_exists(feature_type)
+            feature_name = search_if_feature_name_exists(feature_name)
+
+            if feature_id is None:
+                feature_details = {
+                    "feature_type": feature_type,
+                    "description": moms_details["description"]
+                }
+                feature_id = write_moms_feature_type_to_db(feature_details)
+
+            if feature_name is None:
+                instance_details = {
+                    "site_id": moms_details["site_id"],
+                    "feature_id": feature_id,
+                    "feature_name": moms_details["feature_name"]
+                }
+                instance_id = write_moms_instances_to_db(instance_details)
+
         moms = MonitoringMoms(
             instance_id=moms_details["instance_id"],
             observance_ts=moms_details["observance_ts"],
