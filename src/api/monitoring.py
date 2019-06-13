@@ -687,7 +687,7 @@ def insert_ewi(internal_json=None):
         print(err)
         raise
 
-    return "entry_type"
+    return "EWI Successfully inserted to DB"
 
 
 ###############
@@ -760,7 +760,8 @@ def insert_cbewsl_ewi():
     var_checker("PRE INSERT EWI DATA", internal_json_data, True)
     status = insert_ewi(internal_json_data)
 
-    return jsonify(internal_json_data)
+    # return jsonify(internal_json_data)
+    return status
 
 
 ##########################

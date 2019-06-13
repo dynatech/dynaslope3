@@ -10,6 +10,7 @@ from src.models.monitoring import (
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
     MonitoringTriggersMisc, MomsInstances, MomsFeatures,
     InternalAlertSymbols, PublicAlertSymbols)
+from src.utils.extra import (var_checker)
 
 
 def process_trigger_list(trigger_list, include_ND=False):
@@ -285,7 +286,7 @@ def search_if_feature_exists(feature_type):
     moms_feat = None
     moms_feat = mf.query.filter(mf.feature_type == feature_type).first()
 
-    return moms_feat.feature_id
+    return moms_feat
 
 
 def write_monitoring_moms_to_db(moms_details):
@@ -299,26 +300,37 @@ def write_monitoring_moms_to_db(moms_details):
             # Create new instance of moms
             feature_type = moms_details["feature_type"]
             feature_name = moms_details["feature_name"]
-            feature_id = search_if_feature_exists(feature_type)
-            feature_name = search_if_feature_name_exists(feature_name)
+            moms_feature = search_if_feature_exists(feature_type)
+            moms_instance = search_if_feature_name_exists(feature_name)
 
-            if feature_id is None:
+            var_checker("FEATURE ID", moms_feature, True)
+            var_checker("FEATURE NAME", moms_instance, True)
+
+            if moms_feature is None:
+                print("WALANG FEATURE NA GANON")
                 feature_details = {
                     "feature_type": feature_type,
                     "description": moms_details["description"]
                 }
                 feature_id = write_moms_feature_type_to_db(feature_details)
+            else:
+                feature_id = moms_feature.feature_id
 
-            if feature_name is None:
+            if moms_instance is None:
+                print("WALANG INSTANCE NA GANON")
                 instance_details = {
                     "site_id": moms_details["site_id"],
                     "feature_id": feature_id,
                     "feature_name": moms_details["feature_name"]
                 }
                 instance_id = write_moms_instances_to_db(instance_details)
+            else:
+                instance_id = moms_instance.instance_id
+
+        var_checker("INSTANCE ID", instance_id, True)
 
         moms = MonitoringMoms(
-            instance_id=moms_details["instance_id"],
+            instance_id=instance_id,
             observance_ts=moms_details["observance_ts"],
             reporter_id=moms_details["reporter_id"],
             remarks=moms_details["remarks"],
