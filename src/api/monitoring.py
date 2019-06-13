@@ -22,7 +22,7 @@ from src.utils.monitoring import (
     compute_event_validity, round_to_nearest_release_time, get_pub_sym_id,
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
     write_monitoring_earthquake_to_db, get_internal_alert_symbol)
-from src.utils.extra import (var_checker, create_symbols_map)
+from src.utils.extra import (create_symbols_map)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -757,7 +757,6 @@ def insert_cbewsl_ewi():
         "trigger_list_arr": trigger_list_arr
     }
 
-    var_checker("PRE INSERT EWI DATA", internal_json_data, True)
     status = insert_ewi(internal_json_data)
 
     # return jsonify(internal_json_data)
