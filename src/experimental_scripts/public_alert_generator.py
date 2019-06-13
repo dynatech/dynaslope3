@@ -289,7 +289,7 @@ def get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, surficial
                     current_surficial_alert["alert_level"] = op_t_alert_level
                 elif op_t_source_id == rainfall_source_id:
                     current_rainfall_alert["alert_level"] = op_t_alert_level
-                    if not op_t_alert_level != "nd":
+                    if op_t_alert_level != "nd":
                         current_rainfall_alert["details"] = {
                             "rain_gauge": get_rainfall_gauge_name(latest_rainfall_alert),
                             "alert_level": op_t_alert_level

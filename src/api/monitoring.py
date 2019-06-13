@@ -6,6 +6,7 @@ NAMING CONVENTION
 - Name routes as /<controller_name>/<function_name>
 """
 
+import json
 from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
@@ -761,6 +762,24 @@ def insert_cbewsl_ewi():
 
     # return jsonify(internal_json_data)
     return status
+
+
+@SOCKETIO.on("get_generated_alerts", namespace="/monitoring")
+def read_file(interval):
+    """
+    Sample
+    """
+    generated_alerts_list = []
+    print("===> One client connected by ", interval)    
+    full_filepath = "/var/www/dynaslope3/outputs/generated_alerts.json"
+    print(f"Getting data from {full_filepath}")
+    print()
+
+    with open(full_filepath) as json_file:
+        generated_alerts_list = json.load(json_file)
+
+    SOCKETIO.emit("receive_generated_alerts", generated_alerts_list,
+                  callback="successfully accessed", namespace="/monitoring")
 
 
 ##########################

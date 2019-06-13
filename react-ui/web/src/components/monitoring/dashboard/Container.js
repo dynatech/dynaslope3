@@ -6,6 +6,7 @@ import MonitoringTables from "./MonitoringTables";
 import GeneratedAlerts from "./GeneratedAlerts";
 import AlertReleaseFormModal from "../../widgets/alert_release_form/AlertReleaseFormModal";
 import GeneralStyles from "../../../GeneralStyles";
+import { subscribeToTimer, unsubscribeToTimer } from "../../../websocket/monitoring_ws";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
@@ -27,9 +28,19 @@ const tabs_array = [
     { label: "Generated Alerts", href: "generated-alerts" }
 ];
 
+
 class Container extends Component {
     state = {
-        chosen_tab: 0
+        chosen_tab: 0,
+        generated_alerts_data: []
+    }
+
+    componentDidMount () {
+        subscribeToTimer((err, generated_alerts_data) => this.setState({ generated_alerts_data }));      
+    }
+
+    componentWillUnmount () {
+        unsubscribeToTimer()
     }
 
     handleTabSelected = chosen_tab => {
@@ -58,7 +69,7 @@ class Container extends Component {
 
                 <div className={`${classes.pageContentMargin} ${classes.tabBarContent}`}>
                     {chosen_tab === 0 && <MonitoringTables />}
-                    {chosen_tab === 1 && <GeneratedAlerts />}
+                    {chosen_tab === 1 && <GeneratedAlerts generated_alerts_data={this.state.generated_alerts_data}/>}
                 </div>
 
                 <AlertReleaseFormModal />
