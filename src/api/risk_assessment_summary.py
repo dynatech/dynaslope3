@@ -14,7 +14,7 @@ RISK_ASSESSMENT_BLUEPRINT = Blueprint(
 @RISK_ASSESSMENT_BLUEPRINT.route("/risk_assesment_summary/get_all_risk_assessment_summary", methods=["GET"])
 def get_all_risk_assessment_summary():
     query = RiskAssessmentSummary.query.order_by(
-        RiskAssessmentSummary.summary_id).all()
+        RiskAssessmentSummary.summary_id.desc()).all()
 
     result = RiskAssessmentSummarySchema(
         many=True).dump(query).data

@@ -13,7 +13,8 @@ SENSOR_MAINTENANCE_BLUEPRINT = Blueprint(
 
 @SENSOR_MAINTENANCE_BLUEPRINT.route("/sensor_maintenance/get_all_sensor_maintenance", methods=["GET"])
 def get_all_sensor_maintenance():
-    query = SensorMaintenance.query.all()
+    query = SensorMaintenance.query.order_by(
+        SensorMaintenance.sensor_maintenance_id.desc()).all()
 
     result = SensorMaintenanceSchema(
         many=True).dump(query).data

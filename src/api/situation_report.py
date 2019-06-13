@@ -9,7 +9,8 @@ SITUATION_REPORT_BLUEPRINT = Blueprint("situation_report_blueprint", __name__)
 
 @SITUATION_REPORT_BLUEPRINT.route("/situation_report/get_all_situation_report", methods=["GET"])
 def get_all_situation_report():
-    query = SituationReport.query.all()
+    query = SituationReport.query.order_by(
+        SituationReport.situation_report_id.desc()).all()
 
     result = SituationReportSchema(
         many=True).dump(query).data

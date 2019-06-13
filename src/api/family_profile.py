@@ -12,7 +12,8 @@ FAMILY_PROFILE_BLUEPRINT = Blueprint("family_profile_blueprint", __name__)
 
 @FAMILY_PROFILE_BLUEPRINT.route("/family_profile/get_all_family_profile", methods=["GET"])
 def get_all_family_profile():
-    query = FamilyProfile.query.all()
+    query = FamilyProfile.query.order_by(
+        FamilyProfile.family_profile_id.desc()).all()
 
     result = FamilyProfileSchema(
         many=True).dump(query).data

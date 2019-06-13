@@ -13,7 +13,8 @@ RESOURCES_AND_CAPACITIES_BLUEPRINT = Blueprint(
 
 @RESOURCES_AND_CAPACITIES_BLUEPRINT.route("/resources_and_capacities/get_all_resources_and_capacities", methods=["GET"])
 def get_all_resources_and_capacities():
-    query = ResourcesAndCapacities.query.all()
+    query = ResourcesAndCapacities.query.order_by(
+        ResourcesAndCapacities.resources_and_capacities_id.desc()).all()
 
     result = ResourcesAndCapacitiesSchema(
         many=True).dump(query).data

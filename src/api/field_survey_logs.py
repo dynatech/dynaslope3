@@ -22,7 +22,8 @@ FIELD_SURVEY_LOGS_BLUEPRINT = Blueprint(
 
 @FIELD_SURVEY_LOGS_BLUEPRINT.route("/field_survey/get_all_field_survey", methods=["GET"])
 def get_all_field_survey():
-    query = FieldSurveyLog.query.all()
+    query = FieldSurveyLog.query.order_by(
+        FieldSurveyLog.field_survey_id.desc()).all()
 
     result = FieldSurveyLogSchema(
         many=True).dump(query).data

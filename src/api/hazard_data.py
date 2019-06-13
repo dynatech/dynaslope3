@@ -13,7 +13,8 @@ HAZARD_DATA_BLUEPRINT = Blueprint(
 
 @HAZARD_DATA_BLUEPRINT.route("/hazard_data/get_all_hazard_data", methods=["GET"])
 def get_all_hazard_data():
-    query = HazardData.query.all()
+    query = HazardData.query.order_by(
+        HazardData.hazard_data_id.desc()).all()
 
     result = HazardDataSchema(
         many=True).dump(query).data
