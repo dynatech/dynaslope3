@@ -303,11 +303,7 @@ def write_monitoring_moms_to_db(moms_details):
             moms_feature = search_if_feature_exists(feature_type)
             moms_instance = search_if_feature_name_exists(feature_name)
 
-            var_checker("FEATURE ID", moms_feature, True)
-            var_checker("FEATURE NAME", moms_instance, True)
-
             if moms_feature is None:
-                print("WALANG FEATURE NA GANON")
                 feature_details = {
                     "feature_type": feature_type,
                     "description": moms_details["description"]
@@ -317,7 +313,6 @@ def write_monitoring_moms_to_db(moms_details):
                 feature_id = moms_feature.feature_id
 
             if moms_instance is None:
-                print("WALANG INSTANCE NA GANON")
                 instance_details = {
                     "site_id": moms_details["site_id"],
                     "feature_id": feature_id,
@@ -326,8 +321,6 @@ def write_monitoring_moms_to_db(moms_details):
                 instance_id = write_moms_instances_to_db(instance_details)
             else:
                 instance_id = moms_instance.instance_id
-
-        var_checker("INSTANCE ID", instance_id, True)
 
         moms = MonitoringMoms(
             instance_id=instance_id,
