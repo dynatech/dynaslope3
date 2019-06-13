@@ -690,14 +690,18 @@ def insert_ewi(internal_json=None):
     return "entry_type"
 
 
-
 ###############
 # CBEWS-L API #
 ###############
 @MONITORING_BLUEPRINT.route("/monitoring/insert_cbewsl_ewi", methods=["POST"])
 def insert_cbewsl_ewi():
     """
-    Sample shit
+    This function formats the json data sent by CBEWS-L app and adds
+    the remaining needed data to fit with the requirements of 
+    the existing insert_ewi() api.
+
+    Note: This API is required since, currently, there is a data size limit
+    of which the CBEWS-L App can send via SMS.
     """
     json_data = request.get_json()
     alert_level = json_data["alert_level"]
