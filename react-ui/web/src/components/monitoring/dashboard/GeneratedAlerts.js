@@ -56,7 +56,7 @@ function getAlertDialog(chosen_site, open, handleClose) {
             const { alert_level } = details;
 
             rel_trigger_divs.push(
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={4} key={type}>
                     <Typography variant="body1" color="textSecondary">{type.charAt(0).toUpperCase() + type.slice(1)} Alert</Typography>
                     <Typography variant="body1" color="textPrimary">
                         {alert_level}
@@ -216,12 +216,6 @@ class GeneratedAlerts extends PureComponent {
         generated_alerts: []
     };
 
-    componentDidMount() {
-        // ajax call
-        // file read for now then save to state
-        this.setState({ generated_alerts: this.props.generated_alerts_data });
-    }
-
     handleClickOpen = i => event => {
         this.setState({ open: true, key: i });
     };
@@ -298,21 +292,23 @@ class GeneratedAlerts extends PureComponent {
         return return_data;
     }
 
-    createSubsurfaceTriggerEntry = (release_trigger) => {
-        const { type, details } = release_trigger;
-        const return_data = "";
-        const sensor = "";
-        console.log(details);
+    // createSubsurfaceTriggerEntry = (release_trigger) => {
+    //     const { type, details } = release_trigger;
+    //     const return_data = "";
+    //     const sensor = "";
+    //     console.log(details);
 
-        return return_data;
-    }
+    //     return return_data;
+    // }
 
     render() {
-        const { open, key, generated_alerts } = this.state;
+        const { open, key } = this.state;
         let dialog = "";
+        const { generated_alerts_data } = this.props;
 
-        if (generated_alerts.length > 0) {
-            const chosen_site = generated_alerts[key];
+
+        if (generated_alerts_data.length > 0) {
+            const chosen_site = generated_alerts_data[key];
             dialog = getAlertDialog(chosen_site, open, this.handleClose);
         }
 
@@ -320,7 +316,7 @@ class GeneratedAlerts extends PureComponent {
             <Fragment>
                 <Grid container spacing={16}>
                     {
-                        generated_alerts.map((alert_detail, index) => this.createCard(alert_detail, index))
+                        generated_alerts_data.map((alert_detail, index) => this.createCard(alert_detail, index))
                     }
                     {dialog}
                     {/* {cards} */}

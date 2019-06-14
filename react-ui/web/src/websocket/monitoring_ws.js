@@ -3,18 +3,19 @@ import io from "socket.io-client";
 let socket;
 let socket2;
 
-function subscribeToTimer (cb) {
+function subscribeToWebSocket(cb) {
     // socket = io("http://127.0.0.1:5000/monitoring");
     socket = io("http://192.168.150.173:5000/monitoring");
     socket.on("receive_generated_alerts", (data) => cb(null, data));
-    socket.emit("get_generated_alerts", 1000);
+    socket2 = io("http://192.168.150.173:5000");
 }
 
-function unsubscribeToTimer () {
+function unsubscribeToWebSocket() {
     socket.close();
+    socket2.close();
 }
 
-export { subscribeToTimer, unsubscribeToTimer };
+export { subscribeToWebSocket, unsubscribeToWebSocket };
 
 // // Note: Sample implem on "functional components" using Hooks
 // const [data, setData] = useState(null);
