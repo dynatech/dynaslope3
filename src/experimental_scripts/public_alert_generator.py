@@ -88,6 +88,16 @@ def get_source_max_alert_level(source_id):
     return alert_level
 
 
+def extract_alert_level(json):
+    """
+    Helps in getting the alert level from public alert, to sort
+    the generated alerts by alert level.
+    """
+    try:
+        return int(json['public_alert'][1])
+    except KeyError:
+        return 0
+
 ###############################
 # PROCESSING CODES with LOGIC #
 ###############################
@@ -1022,6 +1032,13 @@ def main(query_ts_end=None, is_test=False, site_code=None):
 
     generated_alerts = get_site_public_alerts(
         active_sites, query_ts_start, query_ts_end, do_not_write_to_db)
+
+    var_checker("UNSORTED", generated_alerts, True)
+
+    # Sort per alert level
+    generated_alerts.sort(key=extract_alert_level, reverse=True)
+
+    var_checker("SORTED", generated_alerts, True)
 
     # Convert data to JSON
     json_data = json.dumps(generated_alerts)

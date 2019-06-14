@@ -16,7 +16,7 @@ function unsubscribeToTimer () {
 
 export { subscribeToTimer, unsubscribeToTimer };
 
-
+// // Note: Sample implem on "functional components" using Hooks
 // const [data, setData] = useState(null);
 //     useEffect(() => {
 //         subscribeToTimer((err, d) => {
