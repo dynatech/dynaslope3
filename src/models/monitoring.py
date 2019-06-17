@@ -9,6 +9,7 @@ from marshmallow import fields
 from connection import DB, MARSHMALLOW
 from src.models.users import UsersSchema
 from src.models.narratives import Narratives
+from src.models.sites import Sites
 
 
 class MonitoringEvents(UserMixin, DB.Model):
