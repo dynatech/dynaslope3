@@ -6,6 +6,8 @@ NAMING CONVENTION
 - Name routes as /<controller_name>/<function_name>
 """
 
+import json
+import time
 from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
@@ -22,7 +24,7 @@ from src.utils.monitoring import (
     compute_event_validity, round_to_nearest_release_time, get_pub_sym_id,
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
     write_monitoring_earthquake_to_db, get_internal_alert_symbol)
-from src.utils.extra import (create_symbols_map)
+from src.utils.extra import (create_symbols_map, var_checker)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -373,13 +375,15 @@ def is_rain_surficial_subsurface_trigger(alert_symbol):
 
 # @MONITORING_BLUEPRINT.route("/monitoring/insert_ewi_release", methods=["POST"])
 # # def insert_ewi_release(release_details, publisher_details, trigger_details):
-def insert_ewi_release(instance_details, release_details, publisher_details, trigger_list_arr=None):
+def insert_ewi_release(monitoring_instance_details, release_details, publisher_details, trigger_list_arr=None, non_triggering_moms=None):
     """
     Initiates the monitoring_release write to db plus it's corresponding details.
     """
     try:
         new_release = write_monitoring_release_to_db(release_details)
         release_id = new_release
+        site_id = monitoring_instance_details["site_id"]
+        event_id = monitoring_instance_details["event_id"]
 
         write_monitoring_release_publishers_to_db(
             "mt", publisher_details["publisher_mt_id"], release_id)
@@ -402,22 +406,21 @@ def insert_ewi_release(instance_details, release_details, publisher_details, tri
                 else:
                     if alert_symbol in ["M", "m"]:
                         print("---MOMS---")
-                        moms_details = trigger["moms_details"]
-                        info = trigger["consolidated_tech_info"]
-                        timestamp = release_details["data_ts"]
-                        observance_ts = moms_details["observance_ts"]
+                        try:
+                            moms_id = trigger["moms_id"]
+                            info = trigger["consolidated_tech_info"]
+                            timestamp = release_details["data_ts"]
+                        except:
+                            moms_details = trigger["moms_details"]
+                            info = trigger["consolidated_tech_info"]
+                            timestamp = release_details["data_ts"]
 
-                        # Temporary Map for getting alert level per IAS entry via internal_sym_id
-                        moms_level_map = {14: -1, 13: 2, 7: 3}
-                        moms_details["op_trigger"] = moms_level_map[internal_sym_id]
+                            # Temporary Map for getting alert level per IAS entry via internal_sym_id
+                            moms_level_map = {14: -1, 13: 2, 7: 3}
+                            moms_details["op_trigger"] = moms_level_map[internal_sym_id]
 
-                        moms_details["site_id"] = instance_details["site_id"]
-
-                        narrative = moms_details["report_narrative"]
-                        moms_details["narrative_id"] = write_narratives_to_db(
-                            instance_details["site_id"], observance_ts, narrative, instance_details["event_id"])
-
-                        moms_id = write_monitoring_moms_to_db(moms_details)
+                            moms_id = write_monitoring_moms_to_db(
+                                moms_details, site_id, event_id)
 
                         od_id = None
                         eq_id = None
@@ -435,7 +438,7 @@ def insert_ewi_release(instance_details, release_details, publisher_details, tri
                         timestamp = request_ts
 
                         od_details["narrative_id"] = write_narratives_to_db(
-                            instance_details["site_id"], request_ts, narrative, instance_details["event_id"])
+                            site_id, request_ts, narrative, event_id)
 
                         od_id = write_monitoring_on_demand_to_db(od_details)
                         eq_id = None
@@ -465,6 +468,25 @@ def insert_ewi_release(instance_details, release_details, publisher_details, tri
                     if alert_symbol in ["m", "M"]:
                         write_monitoring_moms_releases_to_db(
                             trig_misc_id, moms_id)
+
+        var_checker("NON TRIGERING", non_triggering_moms, True)
+        if non_triggering_moms:
+            print("PASOK")
+            for non_trig_moms in non_triggering_moms:
+                try:
+                    moms_id = non_trig_moms["moms_id"]
+                    print(
+                        f"Existing non-triggering MOMS given. ID is: {moms_id}")
+                except:
+                    moms_details = non_trig_moms["moms_details"]
+
+                    # Temporary Map for getting alert level per IAS entry via internal_sym_id
+                    moms_level_map = {14: -1, 13: 2, 7: 3}
+                    moms_details["op_trigger"] = moms_level_map[internal_sym_id]
+
+                    moms_id = write_monitoring_moms_to_db(
+                        moms_details, site_id, event_id)
+                    print(f"New non-triggering MOMS written. ID is: {moms_id}")
 
         # WHEN NOTHING GOES WRONG, COMMIT!
         DB.session.commit()
@@ -505,15 +527,23 @@ def insert_ewi(internal_json=None):
             json_data = request.get_json()
 
         # Entry-related variables from JSON
-        entry_type = json_data["entry_type"] # equivalent of "status" in CI
         site_id = json_data["site_id"]
         site_id_list = json_data["routine_sites_ids"]
         alert_level = json_data["alert_level"]
 
+        entry_type = 1
+        site_monitoring_instance = get_current_monitoring_instance_per_site(
+            site_id)
+        site_status = site_monitoring_instance.status
+        if site_status == 1 and alert_level > 0:
+            entry_type = 2
+        elif site_status == 2:
+            entry_type = 2
+
         # Release-related variables from JSON
         release_details = json_data["release_details"]
         publisher_details = json_data["publisher_details"]
-        trigger_list_arr = json_data["trigger_list_arr"]            
+        trigger_list_arr = json_data["trigger_list_arr"]
 
         datetime_data_ts = datetime.strptime(
             release_details["data_ts"], "%Y-%m-%d %H:%M:%S")
@@ -530,9 +560,6 @@ def insert_ewi(internal_json=None):
             for site_id in site_id_list:
                 print("---site_id---")
                 print(site_id)
-                site_monitoring_instance = get_current_monitoring_instance_per_site(
-                    site_id)
-                current_site_status = site_monitoring_instance.status
                 release_details["event_alert_id"] = site_monitoring_instance.event_alerts[0].event_alert_id
                 release_details["bulletin_number"] = update_bulletin_number(
                     site_id, 1)
@@ -542,15 +569,12 @@ def insert_ewi(internal_json=None):
                     "event_id": site_monitoring_instance.event_id
                 }
 
-                if current_site_status == 1:
+                if site_status == 1:
                     insert_ewi_release(instance_details,
                                        release_details, publisher_details, None)
 
         elif entry_type == 2:  # stands for event
             print("--- It's an event ---")
-            site_monitoring_instance = get_current_monitoring_instance_per_site(
-                site_id)
-            site_status = site_monitoring_instance.status
 
             # If using MonitoringEventsSchema, it will return all.
             # Instead, this will return only the latest one
@@ -589,6 +613,8 @@ def insert_ewi(internal_json=None):
                     new_instance_details)
                 event_id = instance_ids["event_id"]
                 event_alert_id = instance_ids["event_alert_id"]
+                print("---event_alert_id---")
+                print(event_alert_id)
 
             else:
                 # If the values are same, re-release will happen.
@@ -603,6 +629,10 @@ def insert_ewi(internal_json=None):
                 }
                 current_event_alert_id = current_event_alert.event_alert_id
 
+                event_alert_id = current_event_alert_id
+                print("---event_alert_id---")
+                print(event_alert_id)
+
                 # Raising.
                 if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= 4:
                     # Now that you created a new event
@@ -613,6 +643,8 @@ def insert_ewi(internal_json=None):
                         current_event_alert_id, datetime_data_ts)
                     event_alert_id = write_monitoring_event_alert_to_db(
                         event_alert_details)
+                    print("---event_alert_id---")
+                    print(event_alert_id)
 
                 # Lowering.
                 elif pub_sym_id == 1:
@@ -656,6 +688,7 @@ def insert_ewi(internal_json=None):
                             new_instance_details)
                         event_alert_id = instance_details["event_alert_id"]
                         print("---event_alert_id---")
+                        print(event_alert_id)
 
             # Append the chosen event_alert_id
             release_details["event_alert_id"] = event_alert_id
@@ -697,47 +730,55 @@ def insert_ewi(internal_json=None):
 def insert_cbewsl_ewi():
     """
     This function formats the json data sent by CBEWS-L app and adds
-    the remaining needed data to fit with the requirements of 
+    the remaining needed data to fit with the requirements of
     the existing insert_ewi() api.
 
     Note: This API is required since, currently, there is a data size limit
     of which the CBEWS-L App can send via SMS.
     """
-    json_data = request.get_json()
-    alert_level = json_data["alert_level"]
-    user_id = json_data["user_id"]
-    data_ts = str(json_data["data_ts"])
-    trigger_list_arr = []
+    try:
+        json_data = request.get_json()
+        alert_level = json_data["alert_level"]
+        user_id = json_data["user_id"]
+        data_ts = str(json_data["data_ts"])
+        trigger_list_arr = []
 
-    for trigger in json_data["trig_list"]:
-        trigger_type = trigger["int_sym"]
+        for trigger in json_data["trig_list"]:
+            trigger_type = trigger["int_sym"]
 
-        if trigger_type == "R":
-            trigger_entry = {
-                "internal_sym_id": 8,
-                "ts": data_ts,
-                "info": trigger["info"]
-            }
-            trigger_list_arr.append(trigger_entry)
-        elif trigger_type in ["m", "M", "M0"]:
-            moms_level_dict = {2: 13, 3: 7} # Always trigger entry from app. Either m or M only.
-            remarks = trigger["remarks"]
-
-            trigger_entry = {
-                "internal_sym_id": moms_level_dict[alert_level],
-                "consolidated_tech_info": remarks,
-                "moms_details": {
-                    "instance_id": -2,
-                    "observance_ts": data_ts,
-                    "reporter_id": user_id,
-                    "remarks": remarks,
-                    "report_narrative": remarks,
-                    "validator_id": user_id,
-                    "feature_name": trigger["f_name"],
-                    "feature_type": trigger["f_type"]                    
+            if trigger_type == "R":
+                trigger_entry = {
+                    "internal_sym_id": 8,
+                    "ts": data_ts,
+                    "info": trigger["info"]
                 }
-            }
-            trigger_list_arr.append(trigger_entry)
+                trigger_list_arr.append(trigger_entry)
+            elif trigger_type in ["m", "M", "M0"]:
+                # Always trigger entry from app. Either m or M only.
+                moms_level_dict = {2: 13, 3: 7}
+                remarks = trigger["remarks"]
+
+                trigger_entry = {
+                    "internal_sym_id": moms_level_dict[alert_level],
+                    "consolidated_tech_info": remarks,
+                    "moms_details": {
+                        "instance_id": -2,
+                        "observance_ts": data_ts,
+                        "reporter_id": user_id,
+                        "remarks": remarks,
+                        "report_narrative": remarks,
+                        "validator_id": user_id,
+                        "feature_name": trigger["f_name"],
+                        "feature_type": trigger["f_type"]
+                    }
+                }
+                trigger_list_arr.append(trigger_entry)
+
+        release_time = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+
+    except:
+        DB.session.rollback()
+        raise
 
     internal_json_data = {
         "entry_type": 2,  # 1
@@ -748,7 +789,7 @@ def insert_cbewsl_ewi():
         "release_details": {
             "data_ts": data_ts,
             "trigger_list": "m",
-            "release_time": str(datetime.now())
+            "release_time": release_time
         },
         "publisher_details": {
             "publisher_mt_id": user_id,
@@ -761,34 +802,3 @@ def insert_cbewsl_ewi():
 
     # return jsonify(internal_json_data)
     return status
-
-
-##########################
-# SOCKET IO SAMPLE BELOW #
-##########################
-count = 0
-
-
-@SOCKETIO.on('connect', namespace="/test")
-def test_connect():
-    global count
-    count += 1
-    print("I am the connect function - user count: ", count)
-
-
-@SOCKETIO.on("get_generated_alerts", namespace="/test")
-def sample_websocket(interval):
-    print("===> One client connected by ", interval)
-
-    SOCKETIO.emit("receive_generated_alerts", "Connected",
-                  callback="successfully accessed", namespace="/test")
-
-    SOCKETIO.emit("sample_2", "Resent connected successful",
-                  callback="successfully accessed", broadcast=True)
-
-
-@SOCKETIO.on('disconnect')
-def test_disconnect():
-    global count
-    count -= 1
-    print('I am disconnect function - user count: ', count)
