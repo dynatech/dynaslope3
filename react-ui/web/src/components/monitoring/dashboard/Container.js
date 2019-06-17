@@ -53,8 +53,6 @@ class Container extends Component {
         const { chosen_tab, generated_alerts_data } = this.state;
         const { classes } = this.props;
 
-        console.log(generated_alerts_data);
-
         return (
             <Fragment>
                 <div className={classes.pageContentMargin}>
