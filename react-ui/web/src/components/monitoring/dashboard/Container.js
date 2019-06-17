@@ -6,10 +6,11 @@ import MonitoringTables from "./MonitoringTables";
 import GeneratedAlerts from "./GeneratedAlerts";
 import AlertReleaseFormModal from "../../widgets/alert_release_form/AlertReleaseFormModal";
 import GeneralStyles from "../../../GeneralStyles";
+import { subscribeToWebSocket, unsubscribeToWebSocket } from "../../../websocket/monitoring_ws";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
-    
+
     return {
         ...gen_style,
         tabBar: {
@@ -19,7 +20,7 @@ const styles = theme => {
         tabBarContent: {
             marginTop: 30
         }
-    }; 
+    };
 };
 
 const tabs_array = [
@@ -27,9 +28,19 @@ const tabs_array = [
     { label: "Generated Alerts", href: "generated-alerts" }
 ];
 
+
 class Container extends Component {
     state = {
-        chosen_tab: 0
+        chosen_tab: 0,
+        generated_alerts_data: []
+    }
+
+    componentDidMount() {
+        subscribeToWebSocket((err, generated_alerts_data) => this.setState({ generated_alerts_data }));
+    }
+
+    componentWillUnmount() {
+        unsubscribeToWebSocket()
     }
 
     handleTabSelected = chosen_tab => {
@@ -38,9 +49,11 @@ class Container extends Component {
         });
     }
 
-    render () {
-        const { chosen_tab } = this.state;
+    render() {
+        const { chosen_tab, generated_alerts_data } = this.state;
         const { classes } = this.props;
+
+        console.log(generated_alerts_data);
 
         return (
             <Fragment>
@@ -49,7 +62,7 @@ class Container extends Component {
                 </div>
 
                 <div className={classes.tabBar}>
-                    <TabBar 
+                    <TabBar
                         chosenTab={chosen_tab}
                         onSelect={this.handleTabSelected}
                         tabsArray={tabs_array}
@@ -58,7 +71,7 @@ class Container extends Component {
 
                 <div className={`${classes.pageContentMargin} ${classes.tabBarContent}`}>
                     {chosen_tab === 0 && <MonitoringTables />}
-                    {chosen_tab === 1 && <GeneratedAlerts />}
+                    {chosen_tab === 1 && <GeneratedAlerts generated_alerts_data={generated_alerts_data} />}
                 </div>
 
                 <AlertReleaseFormModal />

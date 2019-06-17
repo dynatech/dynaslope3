@@ -11,6 +11,7 @@ from src.models.monitoring import (
     MonitoringTriggersMisc, MomsInstances, MomsFeatures,
     InternalAlertSymbols, PublicAlertSymbols)
 from src.utils.extra import (var_checker)
+from src.utils.narratives import write_narratives_to_db
 
 
 def process_trigger_list(trigger_list, include_ND=False):
@@ -289,17 +290,23 @@ def search_if_feature_exists(feature_type):
     return moms_feat
 
 
-def write_monitoring_moms_to_db(moms_details):
+def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
     """
     Insert a moms report to db regardless of attached to release or prior to release.
     """
     try:
-        instance_id = moms_details["instance_id"]
+        moms_instance_id = moms_details["instance_id"]
+        observance_ts = moms_details["observance_ts"]
+        narrative = moms_details["report_narrative"]
 
-        if instance_id == -2:
+        moms_narrative_id = write_narratives_to_db(
+            site_id, observance_ts, narrative, event_id)
+
+        if moms_instance_id is None:
             # Create new instance of moms
             feature_type = moms_details["feature_type"]
             feature_name = moms_details["feature_name"]
+
             moms_feature = search_if_feature_exists(feature_type)
             moms_instance = search_if_feature_name_exists(feature_name)
 
@@ -314,20 +321,20 @@ def write_monitoring_moms_to_db(moms_details):
 
             if moms_instance is None:
                 instance_details = {
-                    "site_id": moms_details["site_id"],
+                    "site_id": site_id,
                     "feature_id": feature_id,
                     "feature_name": moms_details["feature_name"]
                 }
-                instance_id = write_moms_instances_to_db(instance_details)
+                moms_instance_id = write_moms_instances_to_db(instance_details)
             else:
-                instance_id = moms_instance.instance_id
+                moms_instance_id = moms_instance.instance_id
 
         moms = MonitoringMoms(
-            instance_id=instance_id,
-            observance_ts=moms_details["observance_ts"],
+            instance_id=moms_instance_id,
+            observance_ts=observance_ts,
             reporter_id=moms_details["reporter_id"],
             remarks=moms_details["remarks"],
-            narrative_id=moms_details["narrative_id"],
+            narrative_id=moms_narrative_id,
             validator_id=moms_details["validator_id"],
             op_trigger=moms_details["op_trigger"]
         )
