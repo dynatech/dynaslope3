@@ -12,6 +12,8 @@ from flask_cors import CORS
 from flask_socketio import SocketIO
 from flask_jwt_extended import JWTManager, create_access_token
 
+from threading import Thread, Lock
+
 from config import APP_CONFIG
 
 DB = SQLAlchemy()
@@ -20,6 +22,23 @@ MARSHMALLOW = Marshmallow()
 JWT = JWTManager()
 LOGIN_MANAGER = LoginManager()
 SOCKETIO = SocketIO()
+
+MONITORING_WS_THREAD = None
+THREAD_LOCK = Lock()
+
+
+def start_monitoring_ws_bg_task():
+    """
+    Start monitoring websocket background thread
+    """
+    from src.websocket.monitoring_ws import monitoring_background_task
+
+    global MONITORING_WS_THREAD
+    with THREAD_LOCK:
+        if MONITORING_WS_THREAD is None:
+            MONITORING_WS_THREAD = Thread(target=monitoring_background_task)
+            MONITORING_WS_THREAD.setDaemon(True)
+            MONITORING_WS_THREAD.start()
 
 
 def create_app(config_name):
@@ -48,6 +67,8 @@ def create_app(config_name):
     JWT.init_app(app)
     CORS(app)
     SOCKETIO.init_app(app)
+
+    start_monitoring_ws_bg_task()
 
     # @app.route("/hello")
     # def hello_world():
@@ -148,5 +169,8 @@ def create_app(config_name):
 
     from src.api.rainfall import RAINFALL_BLUEPRINT
     app.register_blueprint(RAINFALL_BLUEPRINT, url_prefix="/api")
+
+    from src.api.analysis import ANALYSIS_BLUEPRINT
+    app.register_blueprint(ANALYSIS_BLUEPRINT, url_prefix="/api")
 
     return app

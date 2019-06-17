@@ -1,4 +1,3 @@
-import time
 import json
 from connection import SOCKETIO
 from flask import request
@@ -8,13 +7,14 @@ CLIENTS = []
 GENERATED_ALERTS = []
 
 
-def main():
+def monitoring_background_task():
     global GENERATED_ALERTS
-    GENERATED_ALERTS = read_generated_alerts_json()
-    print("In if main")
-    # print(GENERATED_ALERTS)
-    # sleep_time = 10
-    # time.sleep(sleep_time)
+
+    while True:
+        SOCKETIO.emit("receive_generated_alerts",
+                      "Yahoo background task", namespace="/monitoring")
+        print("I am background", GENERATED_ALERTS)
+        SOCKETIO.sleep(10)
 
 
 @SOCKETIO.on('connect', namespace='/monitoring')
@@ -43,16 +43,13 @@ def read_generated_alerts_json():
     """
     Sample
     """
-    generated_alerts_list = []
-    print(CLIENTS)
-    full_filepath = "/var/www/dynaslope3/outputs/generated_alerts.json"
-    print(f"Getting data from {full_filepath}")
-    print()
+    generated_alerts_list = ["YEY"]
+    # print(CLIENTS)
+    # full_filepath = "/var/www/dynaslope3/outputs/generated_alerts.json"
+    # print(f"Getting data from {full_filepath}")
+    # print()
 
-    with open(full_filepath) as json_file:
-        generated_alerts_list = json.load(json_file)
+    # with open(full_filepath) as json_file:
+    #     generated_alerts_list = json.load(json_file)
 
     return generated_alerts_list
-
-    # sleep_time = 10
-    # time.sleep(sleep_time)

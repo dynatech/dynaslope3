@@ -11,4 +11,5 @@ APP = create_app(CONFIG_NAME)
 APP.config['JSON_SORT_KEYS'] = False
 
 if __name__ == "__main__":
-    SOCKETIO.run(APP, host="127.0.0.1", port=5000, debug=True)
+    SOCKETIO.run(APP, host="127.0.0.1", port=5000,
+                 debug=True, use_reloader=False)

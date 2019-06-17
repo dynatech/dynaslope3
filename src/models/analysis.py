@@ -27,17 +27,18 @@ class SiteMarkers(UserMixin, DB.Model):
 
     site_id = DB.Column(DB.Integer, DB.ForeignKey("commons_db.sites.site_id"))
     site_code = DB.Column(DB.String(3))
-    marker_id = DB.Column(DB.Integer, DB.ForeignKey("analysis_db.markers.marker_id"), primary_key=True)
+    marker_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "analysis_db.markers.marker_id"), primary_key=True)
     marker_name = DB.Column(DB.String(20))
     in_use = DB.Column(DB.Integer)
 
-    marker = DB.relationship("Markers", backref=DB.backref("site_marker", lazy="subquery", uselist=False), lazy="select")
+    marker = DB.relationship("Markers", backref=DB.backref(
+        "site_marker", lazy="subquery", uselist=False), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
                 f" Site Code: {self.site_code} MarkerID: {self.marker_id}"
                 f" Marker Name: {self.marker_name} InUse: {self.in_use}")
-
 
 
 class EarthquakeAlerts(UserMixin, DB.Model):
@@ -103,7 +104,6 @@ class Markers(UserMixin, DB.Model):
 
     site = DB.relationship(
         "Sites", backref=DB.backref("markers", lazy="dynamic"), lazy="select")
-
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Marker ID: {self.marker_id}"
@@ -527,6 +527,58 @@ class AlertStatus(UserMixin, DB.Model):
                 f" || TRIGGER: {self.trigger} || user: {self.user}")
 
 
+class DataPresenceRainGauges(DB.Model):
+    """
+    Class representation of data_presence_rain_gauges
+    """
+
+    __tablename__ = "data_presence_rain_gauges"
+    __bind_key__ = "analysis_db"
+    __table_args__ = {"schema": "analysis_db"}
+
+    rain_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "analysis_db.rainfall_gauges.rain_id"), primary_key=True)
+    presence = DB.Column(DB.Integer)
+    last_data = DB.Column(DB.DateTime)
+    ts_updated = DB.Column(DB.DateTime)
+    diff_days = DB.Column(DB.Integer)
+
+    rain_gauge = DB.relationship(
+        "RainfallGauges", backref="data_presence", lazy="joined", innerjoin=True,
+        primaryjoin="DataPresenceRainGauges.rain_id==RainfallGauges.rain_id")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> rain_id: {self.rain_id}"
+                f" presence: {self.presence} last_data: {self.last_data}"
+                f" ts_updated: {self.ts_updated} diff_days: {self.diff_days}")
+
+
+class DataPresenceTSM(DB.Model):
+    """
+    Class representation of data_presence_tsm
+    """
+
+    __tablename__ = "data_presence_tsm"
+    __bind_key__ = "analysis_db"
+    __table_args__ = {"schema": "analysis_db"}
+
+    tsm_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "analysis_db.tsm_sensors.tsm_id"), primary_key=True)
+    presence = DB.Column(DB.Integer)
+    last_data = DB.Column(DB.DateTime)
+    ts_updated = DB.Column(DB.DateTime)
+    diff_days = DB.Column(DB.Integer)
+
+    tsm_sensor = DB.relationship(
+        "TSMSensors", backref="data_presence", lazy="joined", innerjoin=True,
+        primaryjoin="DataPresenceTSM.tsm_id==TSMSensors.tsm_id")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> tsm_id: {self.tsm_id}"
+                f" presence: {self.presence} last_data: {self.last_data}"
+                f" ts_updated: {self.ts_updated} diff_days: {self.diff_days}")
+
+
 #############################
 # End of Class Declarations #
 #############################
@@ -654,6 +706,9 @@ class RainfallGaugesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of RainfallGauges class
     """
+    latitude = fields.Decimal(as_string=True)
+    longitude = fields.Decimal(as_string=True)
+
     class Meta:
         """Saves table class structure as schema model"""
         model = RainfallGauges
@@ -668,10 +723,21 @@ class RainfallPrioritiesSchema(MARSHMALLOW.ModelSchema):
         model = RainfallPriorities
 
 
+class LoggersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Loggers class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = Loggers
+
+
 class TSMSensorsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of TSMSensors class
     """
+    logger = fields.Nested(LoggersSchema, exclude=("site", "tsm_sensor"))
+
     class Meta:
         """Saves table class structure as schema model"""
         model = TSMSensors
@@ -699,3 +765,29 @@ class AlertStatusSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = AlertStatus
+
+
+class DataPresenceRainGaugesSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of DataPresenceRainGauges class
+    """
+
+    rain_gauge = fields.Nested(
+        RainfallGaugesSchema, exclude=("data_presence",))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = DataPresenceRainGauges
+
+
+class DataPresenceTSMSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of DataPresenceTSM class
+    """
+
+    tsm_sensor = fields.Nested(
+        TSMSensorsSchema, exclude=("data_presence", "tsm_alert", "site", "node_alerts"))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = DataPresenceTSM
