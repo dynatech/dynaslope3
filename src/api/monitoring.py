@@ -730,7 +730,7 @@ def insert_ewi(internal_json=None):
 def insert_cbewsl_ewi():
     """
     This function formats the json data sent by CBEWS-L app and adds
-    the remaining needed data to fit with the requirements of 
+    the remaining needed data to fit with the requirements of
     the existing insert_ewi() api.
 
     Note: This API is required since, currently, there is a data size limit
@@ -774,29 +774,31 @@ def insert_cbewsl_ewi():
                 }
                 trigger_list_arr.append(trigger_entry)
 
-        internal_json_data = {
-            "entry_type": 2,  # 1
-            "site_id": 50,
-            "site_code": "umi",
-            "alert_level": alert_level,
-            "routine_sites_ids": [],
-            "release_details": {
-                "data_ts": data_ts,
-                "trigger_list": "m",
-                "release_time": datetime.strftime(
-                                datetime.now(), "%Y-%m-%d %H:%M:%S")
-            },
-            "publisher_details": {
-                "publisher_mt_id": user_id,
-                "publisher_ct_id": user_id,
-            },
-            "trigger_list_arr": trigger_list_arr
-        }
+        release_time = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
 
-        status = insert_ewi(internal_json_data)
-    except Exception as err:
+    except:
         DB.session.rollback()
         raise
+
+    internal_json_data = {
+        "entry_type": 2,  # 1
+        "site_id": 50,
+        "site_code": "umi",
+        "alert_level": alert_level,
+        "routine_sites_ids": [],
+        "release_details": {
+            "data_ts": data_ts,
+            "trigger_list": "m",
+            "release_time": release_time
+        },
+        "publisher_details": {
+            "publisher_mt_id": user_id,
+            "publisher_ct_id": user_id,
+        },
+        "trigger_list_arr": trigger_list_arr
+    }
+
+    status = insert_ewi(internal_json_data)
 
     # return jsonify(internal_json_data)
     return status
