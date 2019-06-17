@@ -418,7 +418,8 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                             moms_level_map = {14: -1, 13: 2, 7: 3}
                             moms_details["op_trigger"] = moms_level_map[internal_sym_id]
 
-                            moms_id = write_monitoring_moms_to_db(moms_details, site_id, event_id)
+                            moms_id = write_monitoring_moms_to_db(
+                                moms_details, site_id, event_id)
 
                         od_id = None
                         eq_id = None
@@ -473,7 +474,8 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
             for non_trig_moms in non_triggering_moms:
                 try:
                     moms_id = non_trig_moms["moms_id"]
-                    print(f"Existing non-triggering MOMS given. ID is: {moms_id}")
+                    print(
+                        f"Existing non-triggering MOMS given. ID is: {moms_id}")
                 except:
                     moms_details = non_trig_moms["moms_details"]
 
@@ -481,7 +483,8 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     moms_level_map = {14: -1, 13: 2, 7: 3}
                     moms_details["op_trigger"] = moms_level_map[internal_sym_id]
 
-                    moms_id = write_monitoring_moms_to_db(moms_details, site_id, event_id)
+                    moms_id = write_monitoring_moms_to_db(
+                        moms_details, site_id, event_id)
                     print(f"New non-triggering MOMS written. ID is: {moms_id}")
 
         # WHEN NOTHING GOES WRONG, COMMIT!
@@ -609,6 +612,8 @@ def insert_ewi(internal_json=None):
                     new_instance_details)
                 event_id = instance_ids["event_id"]
                 event_alert_id = instance_ids["event_alert_id"]
+                print("---event_alert_id---")
+                print(event_alert_id)
 
             else:
                 # If the values are same, re-release will happen.
@@ -624,6 +629,8 @@ def insert_ewi(internal_json=None):
                 current_event_alert_id = current_event_alert.event_alert_id
 
                 event_alert_id = current_event_alert_id
+                print("---event_alert_id---")
+                print(event_alert_id)
 
                 # Raising.
                 if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= 4:
@@ -635,6 +642,8 @@ def insert_ewi(internal_json=None):
                         current_event_alert_id, datetime_data_ts)
                     event_alert_id = write_monitoring_event_alert_to_db(
                         event_alert_details)
+                    print("---event_alert_id---")
+                    print(event_alert_id)
 
                 # Lowering.
                 elif pub_sym_id == 1:
@@ -678,6 +687,7 @@ def insert_ewi(internal_json=None):
                             new_instance_details)
                         event_alert_id = instance_details["event_alert_id"]
                         print("---event_alert_id---")
+                        print(event_alert_id)
 
             # Append the chosen event_alert_id
             release_details["event_alert_id"] = event_alert_id
@@ -719,47 +729,55 @@ def insert_ewi(internal_json=None):
 def insert_cbewsl_ewi():
     """
     This function formats the json data sent by CBEWS-L app and adds
-    the remaining needed data to fit with the requirements of 
+    the remaining needed data to fit with the requirements of
     the existing insert_ewi() api.
 
     Note: This API is required since, currently, there is a data size limit
     of which the CBEWS-L App can send via SMS.
     """
-    json_data = request.get_json()
-    alert_level = json_data["alert_level"]
-    user_id = json_data["user_id"]
-    data_ts = str(json_data["data_ts"])
-    trigger_list_arr = []
+    try:
+        json_data = request.get_json()
+        alert_level = json_data["alert_level"]
+        user_id = json_data["user_id"]
+        data_ts = str(json_data["data_ts"])
+        trigger_list_arr = []
 
-    for trigger in json_data["trig_list"]:
-        trigger_type = trigger["int_sym"]
+        for trigger in json_data["trig_list"]:
+            trigger_type = trigger["int_sym"]
 
-        if trigger_type == "R":
-            trigger_entry = {
-                "internal_sym_id": 8,
-                "ts": data_ts,
-                "info": trigger["info"]
-            }
-            trigger_list_arr.append(trigger_entry)
-        elif trigger_type in ["m", "M", "M0"]:
-            moms_level_dict = {2: 13, 3: 7} # Always trigger entry from app. Either m or M only.
-            remarks = trigger["remarks"]
-
-            trigger_entry = {
-                "internal_sym_id": moms_level_dict[alert_level],
-                "consolidated_tech_info": remarks,
-                "moms_details": {
-                    "instance_id": -2,
-                    "observance_ts": data_ts,
-                    "reporter_id": user_id,
-                    "remarks": remarks,
-                    "report_narrative": remarks,
-                    "validator_id": user_id,
-                    "feature_name": trigger["f_name"],
-                    "feature_type": trigger["f_type"]                    
+            if trigger_type == "R":
+                trigger_entry = {
+                    "internal_sym_id": 8,
+                    "ts": data_ts,
+                    "info": trigger["info"]
                 }
-            }
-            trigger_list_arr.append(trigger_entry)
+                trigger_list_arr.append(trigger_entry)
+            elif trigger_type in ["m", "M", "M0"]:
+                # Always trigger entry from app. Either m or M only.
+                moms_level_dict = {2: 13, 3: 7}
+                remarks = trigger["remarks"]
+
+                trigger_entry = {
+                    "internal_sym_id": moms_level_dict[alert_level],
+                    "consolidated_tech_info": remarks,
+                    "moms_details": {
+                        "instance_id": -2,
+                        "observance_ts": data_ts,
+                        "reporter_id": user_id,
+                        "remarks": remarks,
+                        "report_narrative": remarks,
+                        "validator_id": user_id,
+                        "feature_name": trigger["f_name"],
+                        "feature_type": trigger["f_type"]
+                    }
+                }
+                trigger_list_arr.append(trigger_entry)
+
+        release_time = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+
+    except:
+        DB.session.rollback()
+        raise
 
     internal_json_data = {
         "entry_type": 2,  # 1
@@ -770,7 +788,7 @@ def insert_cbewsl_ewi():
         "release_details": {
             "data_ts": data_ts,
             "trigger_list": "m",
-            "release_time": str(datetime.now())
+            "release_time": release_time
         },
         "publisher_details": {
             "publisher_mt_id": user_id,
