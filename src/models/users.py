@@ -5,6 +5,7 @@ tables of users
 
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
+from src.models.sites import Sites
 
 
 class Users(DB.Model):

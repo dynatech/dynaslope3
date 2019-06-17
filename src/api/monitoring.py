@@ -6,8 +6,7 @@ NAMING CONVENTION
 - Name routes as /<controller_name>/<function_name>
 """
 
-import json
-import time
+import json, time
 from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO

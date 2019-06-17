@@ -88,6 +88,16 @@ def get_source_max_alert_level(source_id):
     return alert_level
 
 
+def extract_alert_level(json):
+    """
+    Helps in getting the alert level from public alert, to sort
+    the generated alerts by alert level.
+    """
+    try:
+        return int(json['public_alert'][1])
+    except KeyError:
+        return 0
+
 ###############################
 # PROCESSING CODES with LOGIC #
 ###############################
@@ -289,7 +299,7 @@ def get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, surficial
                     current_surficial_alert["alert_level"] = op_t_alert_level
                 elif op_t_source_id == rainfall_source_id:
                     current_rainfall_alert["alert_level"] = op_t_alert_level
-                    if not op_t_alert_level != "nd":
+                    if op_t_alert_level != "nd":
                         current_rainfall_alert["details"] = {
                             "rain_gauge": get_rainfall_gauge_name(latest_rainfall_alert),
                             "alert_level": op_t_alert_level
@@ -1023,6 +1033,13 @@ def main(query_ts_end=None, is_test=False, site_code=None):
     generated_alerts = get_site_public_alerts(
         active_sites, query_ts_start, query_ts_end, do_not_write_to_db)
 
+    var_checker("UNSORTED", generated_alerts, True)
+
+    # Sort per alert level
+    generated_alerts.sort(key=extract_alert_level, reverse=True)
+
+    var_checker("SORTED", generated_alerts, True)
+
     # Convert data to JSON
     json_data = json.dumps(generated_alerts)
 
@@ -1045,5 +1062,6 @@ if __name__ == "__main__":
     # MOMS
     # main("2019-01-22 03:00:00", True, "dad")
     # main("2018-08-20 06:00:00", True, "tue")
+    # main("2018-11-15 7:51:00", True)
     main("2018-11-15 7:51:00", True)
     # main("2018-08-14 11:46:00", True, "tue")
