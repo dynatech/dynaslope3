@@ -8,7 +8,6 @@ import {
 import { Link } from "react-router-dom";
 import moment from "moment";
 import GenericAvatar from "../../../images/generic-user-icon.jpg";
-import { sample_messages } from "../../../store";
 
 const styles = theme => ({
     inline: {
@@ -69,10 +68,12 @@ function returnTS (ts_received) {
 }
 
 function MessageList (props) {
+    const { messages } = props;
+
     return (
         <List dense>
             {
-                sample_messages.map(row => MessageListItem(row, props))
+                messages.map(row => MessageListItem(row, props))
             }
         </List>
     );

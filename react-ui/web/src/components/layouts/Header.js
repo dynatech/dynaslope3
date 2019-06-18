@@ -105,7 +105,7 @@ class HeaderBar extends Component {
 
         return (
             <div className={classes.root}>
-                <AppBar position="static" color="primary">
+                <AppBar position="fixed" color="primary">
                     <Toolbar>
                         <IconButton
                             onClick={drawerHandler(true)}

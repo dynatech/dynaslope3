@@ -1,7 +1,27 @@
 import React, { Component } from "react";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, Route, Switch } from "react-router-dom";
+import { withStyles } from "@material-ui/core";
 import { Header, Footer, Navigation } from "./components/layouts";
 import RoutesCollection from "./Routes";
+
+const styles = theme => ({
+    app: {
+        height: "100vh",
+        minHeight: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between"
+    },
+    body: { // Margin to accomodate sticky nature of header and navigation
+        marginTop: 60,
+        [theme.breakpoints.up("sm")]: {
+            marginTop: 70
+        },
+        [theme.breakpoints.up("md")]: {
+            marginTop: 124
+        }
+    }
+});
 
 class App extends Component {
     state = {
@@ -15,16 +35,24 @@ class App extends Component {
     };
   
     render () {
+        const { classes } = this.props;
         const { drawer } = this.state;
 
         return (
-            <BrowserRouter>
+            <BrowserRouter >
                 <Header drawerHandler={this.toggleDrawer}/>
-                <Navigation drawerHandler={this.toggleDrawer} drawer={drawer}/>
+                <Navigation
+                    drawerHandler={this.toggleDrawer}
+                    drawer={drawer}
+                />
+                <div className={classes.app}>
+                    <div className={classes.body}>
+                        <RoutesCollection />
+                        {/* <Route path="/" component={RoutesCollection} /> */}
+                    </div>
                 
-                <RoutesCollection />
-                
-                <Footer />
+                    <Footer />
+                </div>
             </BrowserRouter>
         );
     }
@@ -38,4 +66,4 @@ class App extends Component {
 //     </Fragment>
 // );
 
-export default App;
+export default withStyles(styles)(App);

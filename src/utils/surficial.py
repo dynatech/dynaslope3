@@ -6,7 +6,7 @@ import pprint
 from connection import DB
 from datetime import datetime
 from src.models.analysis import (
-    Markers, MarkersSchema, MarkerData as md,
+    SiteMarkers, MarkerData as md,
     MarkerObservations as mo)
 from src.models.sites import (
     Sites, SitesSchema)
@@ -14,7 +14,7 @@ from src.models.sites import (
 from src.utils.extra import var_checker
 
 
-def get_surficial_data(filter_val="agb", ts_order="desc", end_ts=datetime.now(), start_ts=None, limit=None):
+def get_surficial_data(filter_val="agb", ts_order="asc", end_ts=datetime.now(), start_ts=None, limit=None):
     """
     Returns surficial data of a site or marker specified.
     You can filter data more using start, end timestamps and a limit.
@@ -26,18 +26,17 @@ def get_surficial_data(filter_val="agb", ts_order="desc", end_ts=datetime.now(),
     elif ts_order == "desc":
         base_query = base_query.order_by(DB.desc(mo.ts))
 
-    if isinstance(filter_val, int): # If digit, meaning, marker_id is what the user is looking for
+    if isinstance(filter_val, int):  # If digit, meaning, marker_id is what the user is looking for
         filtered_query = base_query.filter(md.marker_id == filter_val)
     else:
-        filtered_query = base_query.join(Sites).filter(Sites.site_code == filter_val)
+        filtered_query = base_query.join(Sites).filter(
+            Sites.site_code == filter_val)
 
     if end_ts:
-        print("PASOK sa end")
         end_ts = datetime.strptime(end_ts, "%Y-%m-%d %H:%M:%S")
         filtered_query = filtered_query.filter(mo.ts <= end_ts)
 
     if start_ts:
-        print("PASOK sa start")
         start_ts = datetime.strptime(start_ts, "%Y-%m-%d %H:%M:%S")
         filtered_query = filtered_query.filter(mo.ts >= start_ts)
 
@@ -67,30 +66,11 @@ def get_surficial_markers(site_code=None, filter_in_use=None, get_complete_data=
     """
 
     """
-    markers_schema = MarkersSchema(
-        many=True)
-    filter_var = Sites.site_code == site_code
-    # filter_var = ""
+    filter_var = SiteMarkers.site_code == site_code
+    markers = SiteMarkers.query.filter(
+        filter_var).order_by(SiteMarkers.marker_name).all()
 
-    markers = Markers.query.filter(filter_var).all()[0:5]
-
-    for row in markers:
-        print()
-        print()
-        print(row.marker_data)
-        print()
-        print()
-
-    markers_data = markers_schema.dump(markers).data
-
-    return markers_data
-
-
-def get_surficial_marker_history(site_column):
-    """
-        Note: This should be solved by get_surficial_markers
-    """
-    return "column"
+    return markers
 
 
 def insert_if_not_exists(table, data):
@@ -149,17 +129,3 @@ def update(column, key, table, data):
         except:
             print("There is a problem on fnx update.")
     return "Process Done"
-
-
-def get_marker_ID(site_column):
-    """
-        Note: This should be solved by get_surficial_markers
-    """
-    return "column"
-
-
-def convert_site_codes_from_new_to_old(site_column):
-    """
-        Is this still needed?
-    """
-    return "column"

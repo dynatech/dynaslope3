@@ -16,7 +16,8 @@ const styles = theme => ({
         textAlign: "center",
         [theme.breakpoints.down("sm")]: {
             marginTop: 30
-        }
+        },
+        zIndex: 0
     },
     footerText: {
         fontSize: "0.5rem",
