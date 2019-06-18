@@ -19,6 +19,22 @@ class FamilyProfile(DB.Model):
         return f"Class Representation"
 
 
+class RiskProfile(DB.Model):
+    """
+    Class representation of ewi_templates table
+    """
+    __tablename__ = "risk_profile"
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
+
+    risk_profile_id = DB.Column(DB.Integer, primary_key=True)
+    entry = DB.Column(DB.String(1000))
+    timestamp = DB.Column(DB.String(45))
+
+    def __repr__(self):
+        return f"Class Representation"
+
+
 class FamilyProfileSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of FamilyProfile class
@@ -27,3 +43,13 @@ class FamilyProfileSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = FamilyProfile
+
+
+class RiskProfileSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of RiskProfile class
+    """
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = RiskProfile

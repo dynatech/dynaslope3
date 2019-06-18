@@ -48,6 +48,8 @@ def get_hazard_data():
 @HAZARD_DATA_BLUEPRINT.route("/hazard_data/save_hazard_data", methods=["GET", "POST"])
 def save_hazard_data():
     data = request.get_json()
+    if data is None:
+        data = request.form
     # data = {
     #     "hazard_data_id": 0,
     #     "hazard": "UPDATED",
@@ -58,13 +60,12 @@ def save_hazard_data():
 
     status = None
     message = ""
-
     try:
-        hazard_data_id = data["hazard_data_id"]
-        hazard = data["hazard"]
-        speed_of_onset = data["speed_of_onset"]
-        early_warning = data["early_warning"]
-        impact = data["impact"]
+        hazard_data_id = int(data["hazard_data_id"])
+        hazard = str(data["hazard"])
+        speed_of_onset = str(data["speed_of_onset"])
+        early_warning = str(data["early_warning"])
+        impact = str(data["impact"])
 
         if hazard_data_id == 0:
             insert_data = HazardData(hazard=hazard,
@@ -98,15 +99,16 @@ def save_hazard_data():
 @HAZARD_DATA_BLUEPRINT.route("/hazard_data/delete_hazard_data", methods=["GET", "POST"])
 def delete_hazard_data():
     data = request.get_json()
+    if data is None:
+        data = request.form
     # data = {
     #     "hazard_data_id": 3
     # }
     status = None
     message = ""
 
-    hazard_data_id = data["hazard_data_id"]
-
     try:
+        hazard_data_id = int(data["hazard_data_id"])
         HazardData.query.filter_by(
             hazard_data_id=hazard_data_id).delete()
         DB.session.commit()

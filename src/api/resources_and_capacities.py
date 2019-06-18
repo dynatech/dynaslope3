@@ -47,6 +47,8 @@ def get_resources_and_capacities_data():
 @RESOURCES_AND_CAPACITIES_BLUEPRINT.route("/resources_and_capacities/save_resources_and_capacities", methods=["GET", "POST"])
 def save_resources_and_capacities():
     data = request.get_json()
+    if data is None:
+        data = request.form
     # data = {
     #     "resources_and_capacities_id": 2,
     #     "resource_and_capacity": "updated",
@@ -58,10 +60,10 @@ def save_resources_and_capacities():
     message = ""
 
     try:
-        resources_and_capacities_id = data["resources_and_capacities_id"]
-        resource_and_capacity = data["resource_and_capacity"]
-        status = data["status"]
-        owner = data["owner"]
+        resources_and_capacities_id = int(data["resources_and_capacities_id"])
+        resource_and_capacity = str(data["resource_and_capacity"])
+        status = str(data["status"])
+        owner = str(data["owner"])
 
         if resources_and_capacities_id == 0:
             insert_data = ResourcesAndCapacities(resource_and_capacity=resource_and_capacity,
@@ -95,13 +97,15 @@ def save_resources_and_capacities():
 @RESOURCES_AND_CAPACITIES_BLUEPRINT.route("/resources_and_capacities/delete_resources_and_capacities", methods=["GET", "POST"])
 def delete_resources_and_capacities():
     data = request.get_json()
+    if data is None:
+        data = request.form
     # data = {
     #     "resources_and_capacities_id": 3
     # }
     status = None
     message = ""
 
-    resources_and_capacities_id = data["resources_and_capacities_id"]
+    resources_and_capacities_id = int(data["resources_and_capacities_id"])
 
     try:
         ResourcesAndCapacities.query.filter_by(
