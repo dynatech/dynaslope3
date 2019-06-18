@@ -18,7 +18,7 @@ from src.models.users import (Users, UsersSchema)
 
 class SiteMarkers(UserMixin, DB.Model):
     """
-    Class representation of earthquake_alerts table
+    Class representation of site_markers table
     """
 
     __tablename__ = "site_markers"
@@ -31,9 +31,6 @@ class SiteMarkers(UserMixin, DB.Model):
         "analysis_db.markers.marker_id"), primary_key=True)
     marker_name = DB.Column(DB.String(20))
     in_use = DB.Column(DB.Integer)
-
-    marker = DB.relationship("Markers", backref=DB.backref(
-        "site_marker", lazy="subquery", uselist=False), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
@@ -604,6 +601,18 @@ class EarthquakeEventsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = EarthquakeEvents
+
+
+class SiteMarkersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Site Markers class
+    """
+    site_id = fields.Integer()
+    marker_id = fields.Integer()
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = SiteMarkers
 
 
 class MarkersSchema(MARSHMALLOW.ModelSchema):

@@ -1,10 +1,10 @@
 """
 Surficial functions API File
 """
-import itertools, json
+import itertools
 from operator import itemgetter
-from flask import Blueprint, jsonify
-from src.models.analysis import (MarkersSchema, MarkerHistory as mh, Markers as m, MarkerNames as mn)
+from flask import Blueprint, jsonify, request
+from src.models.analysis import (SiteMarkersSchema)
 from src.utils.surficial import (get_surficial_markers, get_surficial_data)
 from src.utils.extra import (var_checker)
 
@@ -36,51 +36,59 @@ def wrap_get_surficial_markers(site_code=None, filter_in_use=None, get_complete_
 
 
 @SURFICIAL_BLUEPRINT.route(
-    "/surficial/get_surficial_data_string/<filter_val>/<ts_order>/<start_ts>/<end_ts>/<limit>",
+    "/surficial/get_surficial_plot_data/<filter_val>/<start_ts>/<end_ts>",
     methods=["GET"])
-@SURFICIAL_BLUEPRINT.route(
-    "/surficial/get_surficial_data_string/<filter_val>/<ts_order>/<start_ts>/<limit>",
-    methods=["GET"])
-@SURFICIAL_BLUEPRINT.route(
-    "/surficial/get_surficial_data_string/<filter_val>/<ts_order>/<limit>",
-    methods=["GET"])
-def extract_formatted_surficial_data_string(filter_val, ts_order, start_ts=None, end_ts=None, limit=None):
+def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=None):
     """
     This function prepares the surficial data for chart usage
+
+    filter_val (int or str): site_code or marker_id
     """
-    surficial_data = get_surficial_data(filter_val, ts_order, start_ts, end_ts, limit)
+    ts_order = request.args.get("order", default="asc", type=str)
+    limit = request.args.get("limit", default=None, type=int)
+
+    surficial_data = get_surficial_data(
+        filter_val=filter_val, ts_order=ts_order, start_ts=start_ts, end_ts=end_ts, limit=limit)
+
+    markers = get_surficial_markers(site_code=filter_val)
 
     formatted_list = []
-    sorted_data = sorted(surficial_data, key=lambda datum: datum.marker.site_marker.marker_name)
+    for marker_row in markers:
+        marker_id = marker_row.marker_id
+        marker_name = marker_row.marker_name
 
-    for key, group in itertools.groupby(sorted_data, key=lambda datum: datum.marker_id):
-        data_set = list(group)
+        data_set = list(filter(lambda x: x.marker_id
+                               == marker_id, surficial_data))
         marker_string_dict = {
-            "marker_id": key,
-            "marker_name": data_set[0].marker.site_marker.marker_name
+            "marker_id": marker_id,
+            "marker_name": marker_name,
+            "name": marker_name
         }
 
         new_list = []
         for item in data_set:
-            new_list.append([str(item.marker_observation.ts), item.measurement])
+            ts = item.marker_observation.ts
+            final_ts = int(ts.timestamp() * 1000)
 
-        marker_string_dict["data_set"] = new_list
+            new_list.append({
+                "x": final_ts, "y": item.measurement, "data_id": item.data_id})
+
+        marker_string_dict["data"] = new_list
         formatted_list.append(marker_string_dict)
 
-    var_checker("TEST", formatted_list, True)
-
-    return json.dumps(formatted_list)
-
+    return jsonify(formatted_list)
 
 
 def extract_formatted_surficial_data_obs(filter_val, ts_order, start_ts=None, end_ts=None, limit=None):
     """
     This function returns SQLAlchemy objects for back-end use.
     """
-    surficial_data = get_surficial_data(filter_val, ts_order, start_ts, end_ts, limit)
+    surficial_data = get_surficial_data(
+        filter_val, ts_order, start_ts, end_ts, limit)
 
     formatted_list = []
-    sorted_data = sorted(surficial_data, key=lambda datum: datum.marker_observation.ts)
+    sorted_data = sorted(
+        surficial_data, key=lambda datum: datum.marker_observation.ts)
 
     for key, group in itertools.groupby(sorted_data, key=lambda datum: datum.marker_observation.ts):
         marker_obs_data_dict = {
@@ -91,4 +99,4 @@ def extract_formatted_surficial_data_obs(filter_val, ts_order, start_ts=None, en
 
     var_checker("TEST", formatted_list, True)
 
-    return json.dumps(formatted_list)
+    return jsonify(formatted_list)
