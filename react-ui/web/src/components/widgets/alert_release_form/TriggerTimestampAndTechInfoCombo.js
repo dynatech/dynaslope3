@@ -1,5 +1,5 @@
 import React, { Fragment } from "react";
-import { DateTimePicker } from "material-ui-pickers";
+import { KeyboardDateTimePicker } from "@material-ui/pickers";
 import { Grid, withStyles, TextField } from "@material-ui/core";
 
 const styles = theme => ({
@@ -18,24 +18,17 @@ function TriggerTimestampAndTechInfoCombo (props) {
     return (
         <Fragment>
             <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                <DateTimePicker
+                <KeyboardDateTimePicker
                     required
                     autoOk
-                    keyboard
                     label={`Trigger Timestamp (${labelFor})`}
                     value={trigger_timestamp}
                     onChange={changeHandler("trigger_timestamp")}
                     ampm={false}
                     placeholder="2010/01/01 00:00"
                     format="YYYY/MM/DD HH:mm"
-                    mask={[
-                        /\d/, /\d/, /\d/, /\d/, "/",
-                        /\d/, /\d/, "/", /\d/, /\d/,
-                        " ", /\d/, /\d/, ":", /\d/, /\d/
-                    ]}
-                    keepCharPositions
+                    mask="__/__/__ __:__"
                     clearable
-                    disableOpenOnEnter
                     disableFuture
                     fullWidth
                 />

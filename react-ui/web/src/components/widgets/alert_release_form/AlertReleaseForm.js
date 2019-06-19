@@ -3,7 +3,7 @@ import {
     TextField, Grid, withStyles, Divider
 } from "@material-ui/core";
 import MomentUtils from "@date-io/moment";
-import { MuiPickersUtilsProvider, DateTimePicker, TimePicker } from "material-ui-pickers";
+import { MuiPickersUtilsProvider, KeyboardDateTimePicker, KeyboardTimePicker } from "@material-ui/pickers";
 import SelectInputForm from "../../reusables/SelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import SubsurfaceTriggerGroup from "./SubsurfaceTriggerGroup";
@@ -67,7 +67,7 @@ class AlertReleaseFormModal extends Component {
                     container
                     justify="space-evenly"
                     alignItems="center"
-                    spacing={8}
+                    spacing={1}
                 >
                     <Grid item xs={12} className={classes.inputGridContainer}>
                         <SelectInputForm
@@ -82,41 +82,31 @@ class AlertReleaseFormModal extends Component {
                     </Grid>
                        
                     <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                        <DateTimePicker
+                        <KeyboardDateTimePicker
                             required
                             autoOk
-                            keyboard
                             label="Data Timestamp"
                             value={data_timestamp}
                             onChange={this.handleDateTime("data_timestamp")}
                             ampm={false}
                             placeholder="2010/01/01 00:00"
                             format="YYYY/MM/DD HH:mm"
-                            mask={[
-                                /\d/, /\d/, /\d/, /\d/, "/",
-                                /\d/, /\d/, "/", /\d/, /\d/,
-                                " ", /\d/, /\d/, ":", /\d/, /\d/
-                            ]}
-                            keepCharPositions
+                            mask="__/__/____ __:__"
                             clearable
-                            disableOpenOnEnter
                             disableFuture
                         />
                     </Grid>
 
                     <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                        <TimePicker
+                        <KeyboardTimePicker
                             required
                             autoOk
-                            keyboard
                             ampm={false}
                             label="Time of Release"
-                            mask={[/\d/, /\d/, ":", /\d/, /\d/]}
-                            keepCharPositions
+                            mask="__:__"
                             placeholder="00:00"
                             value={release_time}
                             onChange={this.handleDateTime("release_time")}
-                            disableOpenOnEnter
                             clearable
                         /> 
                     </Grid>

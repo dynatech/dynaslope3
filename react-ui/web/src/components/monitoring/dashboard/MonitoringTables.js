@@ -32,7 +32,7 @@ function MonitoringTables (props) {
         <Fragment>
             <Grid container className={classes.sectionHeadContainer}>
                 <Grid item sm>
-                    <Typography className={classes.sectionHead} variant="headline">Candidate Alerts</Typography>
+                    <Typography className={classes.sectionHead} variant="h5">Candidate Alerts</Typography>
                 </Grid>
 
                 <Grid item sm>
@@ -70,7 +70,7 @@ function MonitoringTables (props) {
             </Paper>
             
             <div className={classes.sectionHeadContainer}>
-                <Typography className={classes.sectionHead} variant="headline">Latest Site Alerts</Typography>
+                <Typography className={classes.sectionHead} variant="h5">Latest Site Alerts</Typography>
             </div>
 
             <Paper className={classes.paperContainer}>
@@ -101,7 +101,7 @@ function MonitoringTables (props) {
             </Paper>
 
             <div className={classes.sectionHeadContainer}>
-                <Typography className={classes.sectionHead} variant="headline">Sites Under Extended Monitoring</Typography>
+                <Typography className={classes.sectionHead} variant="h5">Sites Under Extended Monitoring</Typography>
             </div>
 
             <Paper className={classes.paperContainer}>

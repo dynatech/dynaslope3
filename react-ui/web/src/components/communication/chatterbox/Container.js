@@ -172,7 +172,7 @@ class Container extends Component {
                         { !is_desktop && <CircularAddButton clickHandler={this.handleBoolean("is_open_send_modal", true)} />}
 
                         <SendMessageModal
-                            modalStateHandler={this.handleModalState("is_open_send_modal")} 
+                            modalStateHandler={this.handleModalState("is_open_send_modal", false)} 
                             modalState={is_open_send_modal}
                         />
 
