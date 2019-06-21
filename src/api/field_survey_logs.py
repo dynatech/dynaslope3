@@ -73,6 +73,8 @@ def get_latest_field_survey_data():
 def save_field_survey():
     data = request.get_json()
     current_date_time = time.strftime('%Y-%m-%d %H:%M:%S')
+    if data is None:
+        data = request.form
     # data = {
     #     "field_survey_id": 0,
     #     "features": "test",
@@ -86,15 +88,14 @@ def save_field_survey():
 
     status = None
     message = ""
-
     try:
-        field_survey_id = data["field_survey_id"]
-        features = data["features"]
-        mat_characterization = data["mat_characterization"]
-        mechanism = data["mechanism"]
-        exposure = data["exposure"]
-        note = data["note"]
-        date = current_date_time
+        field_survey_id = int(data["field_survey_id"])
+        features = str(data["features"])
+        mat_characterization = str(data["mat_characterization"])
+        mechanism = str(data["mechanism"])
+        exposure = str(data["exposure"])
+        note = str(data["note"])
+        date = str(current_date_time)
 
         if field_survey_id == 0:
             insert_data = FieldSurveyLog(
@@ -107,9 +108,10 @@ def save_field_survey():
             update_data.mat_characterization = mat_characterization
             update_data.mechanism = mechanism
             update_data.exposure = exposure
-            update_data.mechanism = mechanism
+            update_data.note = note
 
             message = "Successfully updated data!"
+
         DB.session.commit()
         status = True
     except Exception as err:
