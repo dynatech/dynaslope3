@@ -59,14 +59,17 @@ def get_report_by_date():
 @SITUATION_REPORT_BLUEPRINT.route("/situation_report/save_situation_report", methods=["GET", "POST"])
 def save_situation_report():
     data = request.get_json()
+    if data is None:
+        data = request.form
     status = None
     message = ""
+
     try:
-        situation_report_id = data["situation_report_id"]
-        timestamp = data["timestamp"]
-        summary = data["summary"]
-        pdf_path = data["pdf_path"]
-        image_path = data["image_path"]
+        situation_report_id = int(data["situation_report_id"])
+        timestamp = str(data["timestamp"])
+        summary = str(data["summary"])
+        pdf_path = str(data["pdf_path"])
+        image_path = str(data["image_path"])
 
         if situation_report_id == 0:
             insert_data = SituationReport(
@@ -103,8 +106,10 @@ def delete_situation_report():
     data = request.get_json()
     status = None
     message = ""
+    if data is None:
+        data = request.form
 
-    situation_report_id = data["situation_report_id"]
+    situation_report_id = int(data["situation_report_id"])
 
     try:
         SituationReport.query.filter_by(
