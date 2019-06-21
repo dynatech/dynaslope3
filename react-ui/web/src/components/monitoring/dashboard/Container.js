@@ -1,10 +1,15 @@
 import React, { Component, Fragment } from "react";
+import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { withStyles } from "@material-ui/core/styles";
+import { compose } from "recompose";
+import { Button } from "@material-ui/core";
+import { AddAlert } from "@material-ui/icons";
 import PageTitle from "../../reusables/PageTitle";
 import TabBar from "../../reusables/TabBar";
 import MonitoringTables from "./MonitoringTables";
 import GeneratedAlerts from "./GeneratedAlerts";
 import AlertReleaseFormModal from "../../widgets/alert_release_form/AlertReleaseFormModal";
+import CircularAddButton from "../../reusables/CircularAddButton";
 import GeneralStyles from "../../../GeneralStyles";
 import { subscribeToWebSocket, unsubscribeToWebSocket } from "../../../websocket/monitoring_ws";
 
@@ -32,15 +37,16 @@ const tabs_array = [
 class Container extends Component {
     state = {
         chosen_tab: 0,
-        generated_alerts_data: []
+        generated_alerts_data: [],
+        is_open_release_modal: false
     }
 
-    componentDidMount() {
+    componentDidMount () {
         subscribeToWebSocket((err, generated_alerts_data) => this.setState({ generated_alerts_data }));
     }
 
-    componentWillUnmount() {
-        unsubscribeToWebSocket()
+    componentWillUnmount () {
+        unsubscribeToWebSocket();
     }
 
     handleTabSelected = chosen_tab => {
@@ -49,16 +55,37 @@ class Container extends Component {
         });
     }
 
-    render() {
-        const { chosen_tab, generated_alerts_data } = this.state;
-        const { classes } = this.props;
+    handleBoolean = (data, bool) => () => {
+        this.setState({ [data]: bool });
+    }
 
-        console.log(generated_alerts_data);
+    render () {
+        const { chosen_tab, generated_alerts_data, is_open_release_modal } = this.state;
+        const { classes, width } = this.props;
+
+        const is_desktop = isWidthUp("md", width);
+
+        const custom_buttons = <span>
+            <Button
+                aria-label="Compose message"
+                variant="contained" 
+                color="primary"
+                size="small" 
+                style={{ marginRight: 8 }}
+                onClick={this.handleBoolean("is_open_release_modal", true)}
+            >
+                <AddAlert style={{ paddingRight: 4, fontSize: 20 }}/>
+                    Compose
+            </Button>
+        </span>;
 
         return (
             <Fragment>
                 <div className={classes.pageContentMargin}>
-                    <PageTitle title="Alert Monitoring | Dashboard" />
+                    <PageTitle
+                        title="Alert Monitoring | Dashboard"
+                        customButtons={is_desktop ? custom_buttons : false}
+                    />
                 </div>
 
                 <div className={classes.tabBar}>
@@ -74,10 +101,12 @@ class Container extends Component {
                     {chosen_tab === 1 && <GeneratedAlerts generated_alerts_data={generated_alerts_data} />}
                 </div>
 
-                <AlertReleaseFormModal />
+                { !is_desktop && <CircularAddButton clickHandler={this.handleBoolean("is_open_release_modal", true)} /> }
+                
+                <AlertReleaseFormModal isOpen={is_open_release_modal} closeHandler={this.handleBoolean("is_open_release_modal", false)} />
             </Fragment>
         );
     }
 }
 
-export default withStyles(styles)(Container);
+export default compose(withWidth(), withStyles(styles))(Container);

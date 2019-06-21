@@ -17,6 +17,10 @@ const styles = theme => ({
             display: "block",
         }
     },
+    popper: {
+        zIndex: 4,
+        marginTop: 2
+    },
     list: { width: 250 },
     link: { textDecoration: "none" }
 });
@@ -57,7 +61,7 @@ const navigation_labels = [
         main: "Analysis",
         sub: [
             {
-                label: "Integrated Site Analysis",
+                label: "Site Data Analytics",
                 link: "/analysis/sites"
             },
             {
@@ -65,7 +69,7 @@ const navigation_labels = [
                 link: "/analysis/communications"
             },
             {
-                label: "Monitoring Alert Analysis",
+                label: "Monitoring Alerts Analytics",
                 link: "/analysis/alerts"
             }
         ]
@@ -93,7 +97,7 @@ const navigation_labels = [
         main: "Community",
         sub: [
             {
-                label: "Sites Information",
+                label: "Site Information",
                 link: "/community/site_info"
             },
             {
@@ -176,7 +180,7 @@ class Navigation extends PureComponent {
         return (
             <Fragment>
                 <div className={classes.navBar}>
-                    <AppBar position="static" color="default">
+                    <AppBar position="fixed" color="default" style={{ top: 70 }}>
                         <Tabs
                             value={value}
                             onChange={this.handleTabChange}
@@ -200,7 +204,7 @@ class Navigation extends PureComponent {
                 </div>
 
                 <Popper
-                    style={{ zIndex: 2 }}
+                    className={classes.popper}
                     open={popper_open}
                     anchorEl={anchorEl}
                     transition

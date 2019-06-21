@@ -54,7 +54,13 @@ def wrap_get_community_users(
 
     output = get_community_users(
         return_schema_format=True,
-        filter_by_site=filter_by_site,
-        filter_by_org=filter_by_org)
+        # filter_by_site=filter_by_site,
+        # filter_by_org=filter_by_org,
+        # filter_by_site=["bar"],
+        # filter_by_org=["plgu"],
+        filter_by_mobile_id=[535],
+        include_relationships=True,
+        include_mobile_nums=True,
+        include_orgs=True)
 
     return output

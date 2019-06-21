@@ -1,7 +1,7 @@
 """
 """
 import hashlib
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, session
 from src.models.users import UserAccounts, UserAccountsSchema
 
 LOGIN_BLUEPRINT = Blueprint("login_blueprint", __name__)
@@ -11,9 +11,11 @@ LOGIN_BLUEPRINT = Blueprint("login_blueprint", __name__)
 def user_login():
 
     data = request.get_json()
-
-    username = data["username"]  # "jdguevarra"
-    password = data["password"]  # "jdguevarra101"
+    if data is None:
+        data = request.form
+    print(data)
+    username = str(data["username"])  # "jdguevarra"
+    password = str(data["password"])  # "jdguevarra101"
 
     status = False
     role = "admin"  # (admin, user, publ ic)
@@ -23,6 +25,7 @@ def user_login():
         status = True
         message = "Successfuly logged in!"
         user_data = result["user_data"]
+        session['user'] = user_data
     else:
         status = False
         message = "Invalid Account"
@@ -48,7 +51,7 @@ def get_account(username, password):
         UserAccounts.username == username).first()
 
     result = UserAccountsSchema().dump(query).data
-
+    print(result)
     if(password == result["password"]):
         data = {
             "status": True,

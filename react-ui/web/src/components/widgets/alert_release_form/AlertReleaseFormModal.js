@@ -5,7 +5,6 @@ import {
     Button, withStyles, withMobileDialog
 } from "@material-ui/core";
 import { compose } from "recompose";
-import CircularAddButton from "../../reusables/CircularAddButton";
 import AlertReleaseForm from "./AlertReleaseForm";
 
 const styles = theme => ({
@@ -21,56 +20,37 @@ const styles = theme => ({
     }
 });
 
-class AlertReleaseFormModal extends Component {
-    state = {
-        open: false,
-    };
+function AlertReleaseFormModal (props) {
+    const { classes, fullScreen, isOpen, closeHandler } = props;
 
-    handleClickOpen = () => {
-        this.setState({ open: true });
-    };
-
-    handleClose = () => {
-        this.setState({ open: false });
-    };
-   
-    render () {
-        const { classes, fullScreen } = this.props;
-        const { open } = this.state;
-
-        return (
-            <div>
-                <CircularAddButton
-                    clickHandler={this.handleClickOpen}
-                />
-
-                <Dialog
-                    fullWidth
-                    fullScreen={fullScreen}
-                    open={open}
-                    aria-labelledby="form-dialog-title"
+    return (
+        <div>
+            <Dialog
+                fullWidth
+                fullScreen={fullScreen}
+                open={isOpen}
+                aria-labelledby="form-dialog-title"
                     
-                >
-                    <DialogTitle id="form-dialog-title">Alert Release Form</DialogTitle>
-                    <DialogContent>
-                        <DialogContentText>
+            >
+                <DialogTitle id="form-dialog-title">Alert Release Form</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
                             Provide accurate details to manually release an alert.
-                        </DialogContentText>
+                    </DialogContentText>
                         
-                        <AlertReleaseForm />
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={this.handleClose} color="primary">
+                    <AlertReleaseForm />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={closeHandler} color="primary">
                             Cancel
-                        </Button>
-                        <Button onClick={this.handleClose} color="primary">
+                    </Button>
+                    <Button onClick={closeHandler} color="primary">
                             Submit
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-            </div>
-        );
-    }
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </div>
+    );
 }
 
 export default compose(withStyles(styles), withMobileDialog())(AlertReleaseFormModal);

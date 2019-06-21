@@ -1,6 +1,6 @@
 import React from "react";
 import {
-    Fab, withStyles
+    Fab, withStyles, Zoom
 } from "@material-ui/core";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import AddIcon from "@material-ui/icons/Add";
@@ -19,15 +19,19 @@ function CircularAddButton (props) {
     const { classes, clickHandler, width } = props;
 
     return (
-        <Fab 
-            color="secondary" 
-            aria-label="Add" 
-            className={classes.fab}
-            size={isWidthUp("md", width) ? "large" : "medium"}
-            onClick={clickHandler}
-        >
-            <AddIcon />
-        </Fab>
+        <Zoom in unmountOnExit style={{
+            transitionDelay: "100ms",
+        }}>
+            <Fab 
+                color="secondary" 
+                aria-label="Add" 
+                className={classes.fab}
+                size={isWidthUp("md", width) ? "large" : "medium"}
+                onClick={clickHandler}
+            >
+                <AddIcon />
+            </Fab>
+        </Zoom>
     );
 }
 

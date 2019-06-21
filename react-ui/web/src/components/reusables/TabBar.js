@@ -25,24 +25,22 @@ function TabBar (props) {
 
     return (
         <NoSsr>
-            <div>
-                <AppBar position="static" color="default" className={classes.root}>
-                    <Tabs 
-                        variant="fullWidth"
-                        value={chosenTab}
-                        onChange={onIndexSelect}
-                    >
-                        {
-                            tabsArray.map(tab => {
-                                const { label, href } = tab;
-                                return (
-                                    <LinkTab label={label} href={href} key={href} />
-                                );
-                            })
-                        }
-                    </Tabs>
-                </AppBar>
-            </div>
+            <AppBar position="static" color="default" className={classes.root}>
+                <Tabs 
+                    variant="fullWidth"
+                    value={chosenTab}
+                    onChange={onIndexSelect}
+                >
+                    {
+                        tabsArray.map(tab => {
+                            const { label, href } = tab;
+                            return (
+                                <LinkTab label={label} href={href} key={href} />
+                            );
+                        })
+                    }
+                </Tabs>
+            </AppBar>
         </NoSsr>
     );
 }
