@@ -328,6 +328,9 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
                 moms_instance_id = write_moms_instances_to_db(instance_details)
             else:
                 moms_instance_id = moms_instance.instance_id
+        elif moms_instance_id < 0:
+            print("INVALID MOMS INSTANCE ID")
+            raise
 
         moms = MonitoringMoms(
             instance_id=moms_instance_id,
