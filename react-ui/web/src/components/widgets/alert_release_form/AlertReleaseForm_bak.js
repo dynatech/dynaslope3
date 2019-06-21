@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from "react";
+import React, { Component, Fragment } from "react";
 import {
     TextField, Grid, withStyles, Divider
 } from "@material-ui/core";
@@ -51,14 +51,14 @@ const styles = theme => ({
 });
 
 
-function getSummaryForm() {
+function getSummaryForm () {
     return (
         <div>Summary</div>
     );
 }
 
 
-function getCommentsInputForm(classes, data, handleEventChange) {
+function getCommentsInputForm (classes, data, handleEventChange) {
     const { comments } = data;
     return (
         <Fragment>
@@ -78,7 +78,7 @@ function getCommentsInputForm(classes, data, handleEventChange) {
 }
 
 
-function getTriggersInputForm(data) {
+function getTriggersInputForm (data) {
     const { subsurface_switch_state } = data;
 
     return (
@@ -99,10 +99,10 @@ function getTriggersInputForm(data) {
 }
 
 
-function getGeneralInputForm(classes, data, handleEventChange, handleDateTime) {
-    const { siteId, dataTimestamp,
-        releaseTime, reporterIdMt,
-        reporterIdCt } = data;
+function getGeneralInputForm (classes, data, handleEventChange, handleDateTime) {
+    const { site_id, data_timestamp,
+        release_time, reporter_id_mt,
+        reporter_id_ct } = data;
 
     return (
         <Fragment>
@@ -110,8 +110,8 @@ function getGeneralInputForm(classes, data, handleEventChange, handleDateTime) {
                 <SelectInputForm
                     label="Site"
                     div_id="site_id"
-                    changeHandler={handleEventChange("siteId")}
-                    value={siteId}
+                    changeHandler={handleEventChange("site_id")}
+                    value={site_id}
                     list={sites}
                     mapping={{ id: "site_id", label: "site_name" }}
                     css={classes.selectInput}
@@ -123,8 +123,8 @@ function getGeneralInputForm(classes, data, handleEventChange, handleDateTime) {
                     required
                     autoOk
                     label="Data Timestamp"
-                    value={dataTimestamp}
-                    onChange={handleDateTime("dataTimestamp")}
+                    value={data_timestamp}
+                    onChange={handleDateTime("data_timestamp")}
                     ampm={false}
                     placeholder="2010/01/01 00:00"
                     format="YYYY/MM/DD HH:mm"
@@ -142,8 +142,8 @@ function getGeneralInputForm(classes, data, handleEventChange, handleDateTime) {
                     label="Time of Release"
                     mask="__:__"
                     placeholder="00:00"
-                    value={releaseTime}
-                    onChange={handleDateTime("releaseTime")}
+                    value={release_time}
+                    onChange={handleDateTime("release_time")}
                     clearable
                 />
             </Grid>
@@ -153,8 +153,8 @@ function getGeneralInputForm(classes, data, handleEventChange, handleDateTime) {
                     variant="standard"
                     label="IOMP-MT"
                     div_id="reporter_id_mt"
-                    changeHandler={handleEventChange("reporterIdMt")}
-                    value={reporterIdMt}
+                    changeHandler={handleEventChange("reporter_id_mt")}
+                    value={reporter_id_mt}
                 />
             </Grid>
 
@@ -162,7 +162,7 @@ function getGeneralInputForm(classes, data, handleEventChange, handleDateTime) {
                 {/* <SelectInputForm
                     label="IOMP-CT"
                     div_id="reporter_id_ct"
-                    changeHandler={handleEventChange("reporterIdCt")}
+                    changeHandler={handleEventChange("reporter_id_ct")}
                     value={reporter_id_ct}
                     list={users}
                     mapping={{ id: "user_id", label: "name" }}
@@ -172,8 +172,8 @@ function getGeneralInputForm(classes, data, handleEventChange, handleDateTime) {
                     variant="standard"
                     label="IOMP-CT"
                     div_id="reporter_id_ct"
-                    changeHandler={handleEventChange("reporterIdCt")}
-                    value={reporterIdCt}
+                    changeHandler={handleEventChange("reporter_id_ct")}
+                    value={reporter_id_ct}
                 />
             </Grid>
         </Fragment>
@@ -181,12 +181,12 @@ function getGeneralInputForm(classes, data, handleEventChange, handleDateTime) {
 }
 
 
-function getSteps() {
+function getSteps () {
     return ["What are the release details?", "List the triggers.", "Add Comments and Description", "Review Release Summary"];
 }
 
 
-function getStepContent(stepIndex, params, handleEventChange, handleDateTime) {
+function getStepContent (stepIndex, params, handleEventChange, handleDateTime) {
     const { classes, data } = params;
     switch (stepIndex) {
         case 0:
@@ -203,80 +203,83 @@ function getStepContent(stepIndex, params, handleEventChange, handleDateTime) {
 }
 
 
-function AlertReleaseFormModal(props) {
-    const { classes, activeStep } = props;
-    const [dataTimestamp, setDataTimestamp] = useState(null);
-    const [releaseTime, setReleaseTime] = useState(null);
-    const [siteId, setSiteID] = useState("");
-    const [reporterIdCt, setReporterIDCT] = useState("");
-    const [reporterIdMt, setReporterIDMT] = useState("");
-    const [comments, setComments] = useState("");
-    const [subsurfaceSwitchState, setSubsSwitchState] = useState(false);
-
-    const setters = {
-        setDataTimestamp, setReleaseTime, setSiteID,
-        setReporterIDCT, setReporterIDMT, setComments,
-        setSubsSwitchState
+class AlertReleaseFormModal extends Component {
+    state = {
+        data_timestamp: null,
+        release_time: null,
+        site_id: "",
+        reporter_id_ct: "",
+        reporter_id_mt: "",
+        comments: "",
+        subsurface_switch_state: false
     };
 
-    const changeState = (key, value) => {
-        console.log("Key", key);
-        console.log("Value", value);
-        const setter = setters[key];
-        console.log("Setter", setter);
-        setter(value);
-    };
 
-    const handleDateTime = key => value => {
-        changeState(key, value);
-    };
+    changeState = (key, value) => {
+        this.setState({ [key]: value });
+    }
 
-    const handleEventChange = key => event => {
+    handleDateTime = key => value => {
+        this.changeState(key, value);
+    }
+
+    handleEventChange = key => event => {
         const { value } = event.target;
-        changeState(key, value);
-    };
+        this.changeState(key, value);
+    }
 
-    const data = {
-        siteId, dataTimestamp,
-        releaseTime, reporterIdMt,
-        reporterIdCt, comments, subsurfaceSwitchState
-    };
+    setActiveStep = (key, value) => {
+        this.changeState(key, value);
+    }
 
-    const params = {
-        classes,
-        data
-    };
+    render () {
+        const { classes, activeStep } = this.props;
+        const {
+            site_id, data_timestamp, release_time,
+            reporter_id_mt, reporter_id_ct, comments, subsurface_switch_state
+        } = this.state;
 
-    const steps = getSteps();
+        const data = {
+            site_id, data_timestamp,
+            release_time, reporter_id_mt,
+            reporter_id_ct, comments, subsurface_switch_state
+        };
 
-    return (
-        <MuiPickersUtilsProvider utils={MomentUtils}>
-            <Grid
-                container
-                justify="space-evenly"
-                alignItems="center"
-                spacing={1}
-            >
-                {getStepContent(activeStep, params, handleEventChange, handleDateTime)}
-                <div className={classes.root}>
-                    <Typography className={classes.instructions} />
+        const params = {
+            classes,
+            data
+        };
 
-                    <Stepper activeStep={activeStep} alternativeLabel>
-                        {steps.map(label => (
-                            <Step key={label}>
-                                <StepLabel />
-                            </Step>
-                        ))}
-                    </Stepper>
-                </div>
+        const steps = getSteps();
 
-                {/* <Grid item xs={12} className={classes.inputGridContainer}>
-                    <Divider />
-                </Grid> */}
-            </Grid>
-        </MuiPickersUtilsProvider>
-    );
+        return (
+            <MuiPickersUtilsProvider utils={MomentUtils}>
+                <Grid
+                    container
+                    justify="space-evenly"
+                    alignItems="center"
+                    spacing={1}
+                >
+                    {getStepContent(activeStep, params, this.handleEventChange, this.handleDateTime)}
+                    <div className={classes.root}>
+                        <Typography className={classes.instructions} />
 
+                        <Stepper activeStep={activeStep} alternativeLabel>
+                            {steps.map(label => (
+                                <Step key={label}>
+                                    <StepLabel />
+                                </Step>
+                            ))}
+                        </Stepper>
+                    </div>
+
+                    {/* <Grid item xs={12} className={classes.inputGridContainer}>
+                        <Divider />
+                    </Grid> */}
+                </Grid>
+            </MuiPickersUtilsProvider>
+        );
+    }
 }
 
 export default withStyles(styles)(AlertReleaseFormModal);
