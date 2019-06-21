@@ -19,30 +19,19 @@ function SubsurfaceCheckboxGroup (props) {
     const [triggerS3, setTriggerS3] = useState({ triggerS3Status: false, triggerS3Disabled: false });
     const [triggerS0, setTriggerS0] = useState({ triggerS0Status: false, triggerS0Disabled: false });
 
-    const trigger_s = {
-        triggerS1Status, triggerS1Disabled
-    };
-    const trigger_S = {
-        triggerS2Status, triggerS2Disabled
-    };
-    const trigger_s0 = {
-        triggerS0Status, triggerS0Disabled
-    };
 
     function handleSwitchChange (event) {
         console.log("Subs-Switch flicked with target: ", event.target);
 
+
         const is_checked = event.target.checked;
         setSwitchSubsurface(is_checked);
 
-        // if (!is_checked) {
-        //     setTriggerS1Status(false);
-        //     setTriggerS1Disabled(false);
-        //     setTriggerS2Status(false);
-        //     setTriggerS2Disabled(false);
-        //     setTriggerS0Status(false);
-        //     setTriggerS0Disabled(false);
-        // }
+        if (!is_checked) {
+            setTriggerS2({ triggerS2Status: false, triggerS2Disabled: false });
+            setTriggerS3({ triggerS3Status: false, triggerS3Disabled: false });
+            setTriggerS0({ triggerS0Status: false, triggerS0Disabled: false });
+        }
 
         // #########################################
         // const temp = { ...this.state };
