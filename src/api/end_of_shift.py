@@ -46,7 +46,7 @@ def get_end_of_shift_data(shift_start, shift_end, event_id):
 
     for event_alert in event_alerts:
         event_alerts_list.append(event_alert)
-        releases = event_alert.releases
+        releases = event_alert.releases.all()
 
         for release in releases:
             releases_list.append(release)
