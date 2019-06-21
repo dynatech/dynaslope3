@@ -295,42 +295,45 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
     Insert a moms report to db regardless of attached to release or prior to release.
     """
     try:
-        moms_instance_id = moms_details["instance_id"]
         observance_ts = moms_details["observance_ts"]
         narrative = moms_details["report_narrative"]
+        moms_instances = moms_details["moms_instances"]
 
         moms_narrative_id = write_narratives_to_db(
             site_id, observance_ts, narrative, event_id)
 
-        if moms_instance_id is None:
-            # Create new instance of moms
-            feature_type = moms_details["feature_type"]
-            feature_name = moms_details["feature_name"]
+        for entry in moms_instances:
+            moms_instance_id = entry["instance_id"]
+            
+            if moms_instance_id is None:
+                # Create new instance of moms
+                feature_type = entry["feature_type"]
+                feature_name = entry["feature_name"]
 
-            moms_feature = search_if_feature_exists(feature_type)
-            moms_instance = search_if_feature_name_exists(feature_name)
+                moms_feature = search_if_feature_exists(feature_type)
+                moms_instance = search_if_feature_name_exists(feature_name)
 
-            if moms_feature is None:
-                feature_details = {
-                    "feature_type": feature_type,
-                    "description": moms_details["description"]
-                }
-                feature_id = write_moms_feature_type_to_db(feature_details)
-            else:
-                feature_id = moms_feature.feature_id
+                if moms_feature is None:
+                    feature_details = {
+                        "feature_type": feature_type,
+                        "description": None
+                    }
+                    feature_id = write_moms_feature_type_to_db(feature_details)
+                else:
+                    feature_id = moms_feature.feature_id
 
-            if moms_instance is None:
-                instance_details = {
-                    "site_id": site_id,
-                    "feature_id": feature_id,
-                    "feature_name": moms_details["feature_name"]
-                }
-                moms_instance_id = write_moms_instances_to_db(instance_details)
-            else:
-                moms_instance_id = moms_instance.instance_id
-        elif moms_instance_id < 0:
-            print("INVALID MOMS INSTANCE ID")
-            raise
+                if moms_instance is None:
+                    instance_details = {
+                        "site_id": site_id,
+                        "feature_id": feature_id,
+                        "feature_name": entry["feature_name"]
+                    }
+                    moms_instance_id = write_moms_instances_to_db(instance_details)
+                else:
+                    moms_instance_id = moms_instance.instance_id
+            elif moms_instance_id < 0:
+                print("INVALID MOMS INSTANCE ID")
+                raise
 
         moms = MonitoringMoms(
             instance_id=moms_instance_id,
