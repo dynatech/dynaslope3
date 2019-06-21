@@ -469,9 +469,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                         write_monitoring_moms_releases_to_db(
                             trig_misc_id, moms_id)
 
-        var_checker("NON TRIGERING", non_triggering_moms, True)
         if non_triggering_moms:
-            print("PASOK")
             for non_trig_moms in non_triggering_moms:
                 try:
                     moms_id = non_trig_moms["moms_id"]
@@ -726,6 +724,61 @@ def insert_ewi(internal_json=None):
 ###############
 # CBEWS-L API #
 ###############
+@MONITORING_BLUEPRINT.route("/monitoring/get_latest_cbewls_release/<site_id>", methods=["GET"])
+def get_latest_cbewsl_ewi(site_id):
+    """
+    This function returns minimal details of the
+    latest release for the application.
+
+    """
+    site_event = get_current_monitoring_instance_per_site(site_id)
+
+    latest_event_alert = site_event.event_alerts.order_by(DB.desc(MonitoringEventAlerts.ts_start)).first()
+    latest_release = latest_event_alert.releases.order_by(DB.desc(MonitoringReleases.data_ts)).first()
+    # Only one publisher needed for cbewsl
+    release_publishers = latest_release.release_publishers.first()
+    triggers = latest_release.triggers.all()
+
+    simple_triggers = []
+    try:
+        for trigger in triggers:
+            trigger_dict = {
+                "int_sym": trigger.internal_sym.alert_symbol,
+                "info": trigger.info,
+                "ts": str(datetime.strftime(trigger.ts, "%Y-%m-%d %H:%M:%S"))
+            }
+
+            if trigger.internal_sym.alert_symbol in ["m", "M", "M0"]:
+                moms_releases_list = trigger.trigger_misc.moms_releases
+
+                moms_releases_min_list = []
+                for release in moms_releases_list:
+                    instance = release.moms_details.moms_instance
+
+                    moms_releases_min_list.append({
+                        "moms_ts": str(datetime.strftime(release.moms_details.observance_ts, "%Y-%m-%d %H:%M:%S")),
+                        "feature_name": instance.feature_name,
+                        "feature_type": instance.feature.feature_type
+                    })
+
+                trigger_dict["moms_list"] = moms_releases_min_list
+
+            simple_triggers.append(trigger_dict)
+    except:
+        raise
+
+
+    minimal_data = {
+        "alert_level": latest_event_alert.public_alert_symbol.alert_level,
+        "alert_validity": str(datetime.strftime(site_event.validity, "%Y-%m-%d %H:%M:%S")),
+        "data_ts": str(datetime.strftime(latest_release.data_ts, "%Y-%m-%d %H:%M:%S")),
+        "user_id": release_publishers.user_id,
+        "trig_list": simple_triggers
+    }
+
+    return jsonify(minimal_data)
+
+
 @MONITORING_BLUEPRINT.route("/monitoring/insert_cbewsl_ewi", methods=["POST"])
 def insert_cbewsl_ewi():
     """
@@ -762,7 +815,7 @@ def insert_cbewsl_ewi():
                     "internal_sym_id": moms_level_dict[alert_level],
                     "consolidated_tech_info": remarks,
                     "moms_details": {
-                        "instance_id": -2,
+                        "instance_id": None,
                         "observance_ts": data_ts,
                         "reporter_id": user_id,
                         "remarks": remarks,
