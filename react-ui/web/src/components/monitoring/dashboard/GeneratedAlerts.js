@@ -11,12 +11,12 @@ import { elementType } from "prop-types";
 import { sites } from "../../../store";
 
 let id = 0;
-function createData(trigger_type, trigger_ts) {
+function createData (trigger_type, trigger_ts) {
     id += 1;
     return { id, trigger_type, trigger_ts };
 }
 
-function searchSites(site_code) {
+function searchSites (site_code) {
     let site_details = null;
     for (let index = 0; index < sites.length; index += 1) {
         if (sites[index].site_code === site_code) {
@@ -27,7 +27,7 @@ function searchSites(site_code) {
     return site_details;
 }
 
-function prepareSiteAddress(site_details) {
+function prepareSiteAddress (site_details) {
     const { purok, sitio, barangay, municipality, province, site_code } = site_details;
     let address = "";
 
@@ -39,7 +39,7 @@ function prepareSiteAddress(site_details) {
     return address;
 }
 
-function getAlertDialog(chosen_site, open, handleClose) {
+function getAlertDialog (chosen_site, open, handleClose) {
     const { site_code, ts, internal_alert, validity, release_triggers, event_triggers } = chosen_site;
     const site_details = searchSites(site_code);
     const timestamp = moment(ts).format("D MMMM YYYY, h:mm");
@@ -253,16 +253,8 @@ class GeneratedAlerts extends PureComponent {
     };
 
 
-    // createSubsurfaceTriggerEntry = (release_trigger) => {
-    //     const { type, details } = release_trigger;
-    //     const return_data = "";
-    //     const sensor = "";
-    //     console.log(details);
 
-    //     return return_data;
-    // }
-
-    render() {
+    render () {
         const { open, key } = this.state;
         let dialog = "";
         const { generated_alerts_data } = this.props;
@@ -275,7 +267,7 @@ class GeneratedAlerts extends PureComponent {
 
         return (
             <Fragment>
-                <Grid container spacing={16}>
+                <Grid container spacing={2}>
                     {
                         generated_alerts_data.map((alert_detail, index) => createCard(alert_detail, index, this.handleClickOpen, this.handleClickClose))
                     }

@@ -19,7 +19,7 @@ const styles = theme => ({
     },
     popper: {
         zIndex: 4,
-        marginTop: 46
+        marginTop: 2
     },
     list: { width: 250 },
     link: { textDecoration: "none" }
