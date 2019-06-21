@@ -50,6 +50,9 @@ class UsersRelationship(Users):
     team = DB.relationship(
         "UserTeamMembers", backref=DB.backref("user", lazy=True), lazy="subquery")
 
+    # user_accounts = DB.relationship(
+    #     "UserAccounts", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
+
     def __repr__(self):
         return f"Type relationship"
 
@@ -210,8 +213,8 @@ class UserAccounts(DB.Model):
     is_active = DB.Column(DB.Integer, nullable=True)
     salt = DB.Column(DB.String(200))
 
-    user = DB.relationship(
-        "Users", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
+    # user = DB.relationship(
+    #     "Users", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
 
     def __repr__(self):
         return f"{self.email}"
