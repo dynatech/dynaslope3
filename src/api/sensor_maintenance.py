@@ -62,7 +62,7 @@ def save_sensor_maintenance_logs():
         sensor_maintenance_id = data["sensor_maintenance_id"]
         # remarks = data["remarks"]
         working_nodes = data["working_nodes"]
-        anomalous_nodes = data["anamolous_nodes"]
+        anomalous_nodes = data["anomalous_nodes"]
         rain_gauge_status = data["rain_gauge_status"]
         timestamp = data["timestamp"]
         datetime = str(timestamp + " " + current_time)
