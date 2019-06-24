@@ -295,9 +295,18 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
     Insert a moms report to db regardless of attached to release or prior to release.
     """
     try:
-        moms_instance_id = moms_details["instance_id"]
+        # Temporary Map for getting alert level per IAS entry via internal_sym_id
+        moms_level_map = {14: -1, 13: 2, 7: 3}
+        internal_sym_id = moms_details["internal_sym_id"]
+
+        try:
+            op_trigger = moms_details["op_trigger"]
+        except:
+            op_trigger = moms_level_map[internal_sym_id]
+
         observance_ts = moms_details["observance_ts"]
         narrative = moms_details["report_narrative"]
+        moms_instance_id = moms_details["instance_id"]
 
         moms_narrative_id = write_narratives_to_db(
             site_id, observance_ts, narrative, event_id)
@@ -313,7 +322,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             if moms_feature is None:
                 feature_details = {
                     "feature_type": feature_type,
-                    "description": moms_details["description"]
+                    "description": None
                 }
                 feature_id = write_moms_feature_type_to_db(feature_details)
             else:
@@ -339,7 +348,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             remarks=moms_details["remarks"],
             narrative_id=moms_narrative_id,
             validator_id=moms_details["validator_id"],
-            op_trigger=moms_details["op_trigger"]
+            op_trigger=op_trigger
         )
 
         DB.session.add(moms)
