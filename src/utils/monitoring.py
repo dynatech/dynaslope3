@@ -298,10 +298,10 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         # Temporary Map for getting alert level per IAS entry via internal_sym_id
         moms_level_map = {14: -1, 13: 2, 7: 3}
         internal_sym_id = moms_details["internal_sym_id"]
-        
-        if moms_details["op_trigger"]:
+
+        try:
             op_trigger = moms_details["op_trigger"]
-        else:
+        except:
             op_trigger = moms_level_map[internal_sym_id]
 
         observance_ts = moms_details["observance_ts"]
@@ -310,7 +310,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
 
         moms_narrative_id = write_narratives_to_db(
             site_id, observance_ts, narrative, event_id)
-        
+
         if moms_instance_id is None:
             # Create new instance of moms
             feature_type = moms_details["feature_type"]

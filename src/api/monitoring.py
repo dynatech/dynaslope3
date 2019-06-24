@@ -418,10 +418,9 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                             timestamp = release_details["data_ts"]
 
                             for moms in moms_list:
-                                moms_details = moms["moms_details"]
-                                moms_details["internal_sym_id"] = internal_sym_id
+                                moms["internal_sym_id"] = internal_sym_id
                                 moms_id = write_monitoring_moms_to_db(
-                                    moms_details, site_id, event_id)
+                                    moms, site_id, event_id)
                                 moms_id_list.append(moms_id)
 
                         od_id = None
@@ -823,18 +822,14 @@ def insert_cbewsl_ewi():
                 remarks = trigger["remarks"]
                 moms_trigger["consolidated_tech_info"] = f"[{feature_type}] {feature_name} - {remarks} {c_t_info}"
                 moms_obs = {
-                    "moms_details": {
-                        "observance_ts": data_ts,
-                        "reporter_id": user_id,
-                        "remarks": remarks,
-                        "report_narrative": f"[{feature_type}] {feature_name} - {remarks}",
-                        "validator_id": user_id,
-                        "moms_instances": [],
-                        "instance_id": None,
-                        "feature_name": trigger["f_name"],
-                        "feature_type": trigger["f_type"],
-                        "op_trigger": None
-                    }
+                    "observance_ts": data_ts,
+                    "reporter_id": user_id,
+                    "remarks": remarks,
+                    "report_narrative": f"[{feature_type}] {feature_name} - {remarks}",
+                    "validator_id": user_id,
+                    "instance_id": None,
+                    "feature_name": trigger["f_name"],
+                    "feature_type": trigger["f_type"]
                 }
                 moms_trigger["moms_list"].append(moms_obs)
 
@@ -867,5 +862,5 @@ def insert_cbewsl_ewi():
 
     status = insert_ewi(internal_json_data)
 
-    # return jsonify(internal_json_data)
-    return status
+    return jsonify(internal_json_data)
+    # return status
