@@ -735,8 +735,10 @@ def get_latest_cbewsl_ewi(site_id):
     """
     site_event = get_current_monitoring_instance_per_site(site_id)
 
-    latest_event_alert = site_event.event_alerts.order_by(DB.desc(MonitoringEventAlerts.ts_start)).first()
-    latest_release = latest_event_alert.releases.order_by(DB.desc(MonitoringReleases.data_ts)).first()
+    latest_event_alert = site_event.event_alerts.order_by(
+        DB.desc(MonitoringEventAlerts.ts_start)).first()
+    latest_release = latest_event_alert.releases.order_by(
+        DB.desc(MonitoringReleases.data_ts)).first()
     # Only one publisher needed for cbewsl
     release_publishers = latest_release.release_publishers.first()
     triggers = latest_release.triggers.all()
@@ -751,7 +753,7 @@ def get_latest_cbewsl_ewi(site_id):
             }
 
             if trigger.internal_sym.alert_symbol in ["m", "M", "M0"]:
-                moms_releases_list = trigger.trigger_misc.moms_releases
+                moms_releases_list = trigger.trigger_misc.moms_releases.all()
 
                 moms_releases_min_list = []
                 for release in moms_releases_list:
@@ -767,7 +769,6 @@ def get_latest_cbewsl_ewi(site_id):
             simple_triggers.append(trigger_dict)
     except:
         raise
-
 
     minimal_data = {
         "alert_level": latest_event_alert.public_alert_symbol.alert_level,
@@ -803,7 +804,6 @@ def insert_cbewsl_ewi():
             "consolidated_tech_info": "",
             "moms_list": []
         }
-        
 
         for trigger in json_data["trig_list"]:
             trigger_type = trigger["int_sym"]

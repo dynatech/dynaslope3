@@ -256,7 +256,7 @@ class MonitoringMomsReleases(UserMixin, DB.Model):
         "ewi_db.monitoring_moms.moms_id"), nullable=False)
 
     trigger_misc = DB.relationship(
-        "MonitoringTriggersMisc", backref=DB.backref("moms_releases", lazy="select"), lazy="select")
+        "MonitoringTriggersMisc", backref=DB.backref("moms_releases", lazy="dynamic"), lazy="select")
 
     moms_details = DB.relationship(
         "MonitoringMoms", backref=DB.backref("moms_releases", lazy="select"), lazy="select")
