@@ -587,6 +587,11 @@ def insert_ewi(internal_json=None):
             else:
                 validity = site_monitoring_instance.validity
 
+            try:
+                validity = json_data["cbewsl_validity"]
+            except:
+                pass
+
             # New status is based on entry_type, event, which is 2.
             if is_new_monitoring_instance(2, site_status):
                 # If the values are different, means new monitoring instance will be created
@@ -794,7 +799,8 @@ def insert_cbewsl_ewi():
         json_data = request.get_json()
         alert_level = json_data["alert_level"]
         user_id = json_data["user_id"]
-        data_ts = str(json_data["data_ts"])
+        data_ts = str(datetime.strptime(
+            json_data["data_ts"], "%Y-%m-%d %H:%M:%S"))
         trigger_list_arr = []
 
         moms_level_dict = {2: 13, 3: 7}
@@ -847,6 +853,7 @@ def insert_cbewsl_ewi():
         "site_id": 50,
         "site_code": "umi",
         "alert_level": alert_level,
+        "cbewsl_validity": json_data["alert_validity"],
         "routine_sites_ids": [],
         "release_details": {
             "data_ts": data_ts,
