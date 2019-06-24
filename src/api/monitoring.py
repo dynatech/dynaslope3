@@ -862,5 +862,5 @@ def insert_cbewsl_ewi():
 
     status = insert_ewi(internal_json_data)
 
-    return jsonify(internal_json_data)
-    # return status
+    # return jsonify(internal_json_data)
+    return status
