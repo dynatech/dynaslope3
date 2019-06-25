@@ -27,6 +27,15 @@ function AlertReleaseFormModal (props) {
     const [activeStep, setActiveStep] = useState(0);
     const steps = [1, 2, 3, 4];
 
+    // General Data States
+    const [generalData, setGeneralData] = useState({
+        dataTimestamp: null,
+        releaseTime: null,
+        siteId: "",
+        reporterIdCt: "",
+        reporterIdMt: ""
+    });
+
     function handleNext () {
         setActiveStep(prevActiveStep => prevActiveStep + 1);
     }
@@ -54,7 +63,7 @@ function AlertReleaseFormModal (props) {
                         Provide accurate details to manually release an alert.
                     </DialogContentText>
 
-                    <AlertReleaseForm activeStep={activeStep} />
+                    <AlertReleaseForm activeStep={activeStep} generalData={generalData} setGeneralData={setGeneralData} />
                 </DialogContent>
                 <DialogActions>
                     {/* <Button onClick={closeHandler} color="primary">
@@ -73,15 +82,15 @@ function AlertReleaseFormModal (props) {
                             <div>
                                 <div>
                                     <Button onClick={closeHandler} color="primary">
-                                        Cancel
-                                    </Button>
+                                            Cancel
+                                        </Button>
                                     <Button
                                         disabled={activeStep === 0}
                                         onClick={handleBack}
                                         className={classes.backButton}
                                     >
-                                        Back
-                                    </Button>
+                                            Back
+                                        </Button>
                                     <Button variant="contained" color="primary" onClick={handleNext}>
                                         {activeStep === steps.length - 1 ? "Finish" : "Next"}
                                     </Button>

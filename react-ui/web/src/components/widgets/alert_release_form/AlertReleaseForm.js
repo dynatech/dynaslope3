@@ -51,180 +51,215 @@ const styles = theme => ({
 });
 
 
-function getSummaryForm() {
-    return (
-        <div>Summary</div>
-    );
-}
+function AlertReleaseForm (props) {
+    const { classes, activeStep, generalData, setGeneralData } = props;
 
+    // // General Data States
+    // const [generalData, setGeneralData] = useState({
+    //     dataTimestamp: null,
+    //     releaseTime: null,
+    //     siteId: "",
+    //     reporterIdCt: "",
+    //     reporterIdMt: ""
+    // });
 
-function getCommentsInputForm(classes, data, handleEventChange) {
-    const { comments } = data;
-    return (
-        <Fragment>
-            <Grid item xs={12} className={classes.inputGridContainer}>
-                <TextField
-                    label="Comments"
-                    multiline
-                    rowsMax="2"
-                    placeholder="Enter additional comments necessary"
-                    value={comments}
-                    onChange={handleEventChange("comments")}
-                    fullWidth
-                />
-            </Grid>
-        </Fragment>
-    );
-}
+    // Trigger Switch Status
+    const [trigSwitchStatus, setTrigSwitchStatus] = useState({
+        subsurfaceSwitchStatus: false,
+        surficialSwitchStatus: false,
+        rainfallSwitchStatus: false,
+        momsSwitchStatus: false,
+        earthquakeSwitchStatus: false
+    });
 
+    const [subsurfaceTriggerData, setSubsurfaceTriggerData] = useState({
+        switchSubsurface: false,
+        triggerS2: {
+            status: false,
+            disabled: false,
+            triggerTimestamp: null,
+            techInfo: "",
+        },
+        triggerS3: {
+            status: false,
+            disabled: false,
+            triggerTimestamp: null,
+            techInfo: "",
+        },
+        triggerS0: {
+            status: false,
+            disabled: false
+        }
+    });
 
-function getTriggersInputForm(data) {
-    const { subsurface_switch_state } = data;
-
-    return (
-        <Fragment>
-            <SubsurfaceTriggerGroup
-                currentSwitchState={subsurface_switch_state}
-            />
-
-            <SurficialTriggerGroup />
-
-            <RainfallTriggerGroup />
-
-            <EarthquakeTriggerGroup />
-
-            <OnDemandTriggerGroup />
-        </Fragment>
-    );
-}
-
-
-function getGeneralInputForm(classes, data, handleEventChange, handleDateTime) {
-    const { siteId, dataTimestamp,
-        releaseTime, reporterIdMt,
-        reporterIdCt } = data;
-
-    return (
-        <Fragment>
-            <Grid item xs={12} className={classes.inputGridContainer}>
-                <SelectInputForm
-                    label="Site"
-                    div_id="site_id"
-                    changeHandler={handleEventChange("siteId")}
-                    value={siteId}
-                    list={sites}
-                    mapping={{ id: "site_id", label: "site_name" }}
-                    css={classes.selectInput}
-                />
-            </Grid>
-
-            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                <KeyboardDateTimePicker
-                    required
-                    autoOk
-                    label="Data Timestamp"
-                    value={dataTimestamp}
-                    onChange={handleDateTime("dataTimestamp")}
-                    ampm={false}
-                    placeholder="2010/01/01 00:00"
-                    format="YYYY/MM/DD HH:mm"
-                    mask="__/__/____ __:__"
-                    clearable
-                    disableFuture
-                />
-            </Grid>
-
-            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                <KeyboardTimePicker
-                    required
-                    autoOk
-                    ampm={false}
-                    label="Time of Release"
-                    mask="__:__"
-                    placeholder="00:00"
-                    value={releaseTime}
-                    onChange={handleDateTime("releaseTime")}
-                    clearable
-                />
-            </Grid>
-
-            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                <DynaslopeUserSelectInputForm
-                    variant="standard"
-                    label="IOMP-MT"
-                    div_id="reporter_id_mt"
-                    changeHandler={handleEventChange("reporterIdMt")}
-                    value={reporterIdMt}
-                />
-            </Grid>
-
-            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                {/* <SelectInputForm
-                    label="IOMP-CT"
-                    div_id="reporter_id_ct"
-                    changeHandler={handleEventChange("reporterIdCt")}
-                    value={reporter_id_ct}
-                    list={users}
-                    mapping={{ id: "user_id", label: "name" }}
-                    // css={classes.selectInput}
-                /> */}
-                <DynaslopeUserSelectInputForm
-                    variant="standard"
-                    label="IOMP-CT"
-                    div_id="reporter_id_ct"
-                    changeHandler={handleEventChange("reporterIdCt")}
-                    value={reporterIdCt}
-                />
-            </Grid>
-        </Fragment>
-    );
-}
-
-
-function getSteps() {
-    return ["What are the release details?", "List the triggers.", "Add Comments and Description", "Review Release Summary"];
-}
-
-
-function getStepContent(stepIndex, params, handleEventChange, handleDateTime) {
-    const { classes, data } = params;
-    switch (stepIndex) {
-        case 0:
-            return getGeneralInputForm(classes, data, handleEventChange, handleDateTime);
-        case 1:
-            return getTriggersInputForm(data);
-        case 2:
-            return getCommentsInputForm(classes, data, handleEventChange);
-        case 3:
-            return getSummaryForm(classes, data);
-        default:
-            return "Uknown stepIndex";
-    }
-}
-
-
-function AlertReleaseFormModal(props) {
-    const { classes, activeStep } = props;
-    const [dataTimestamp, setDataTimestamp] = useState(null);
-    const [releaseTime, setReleaseTime] = useState(null);
-    const [siteId, setSiteID] = useState("");
-    const [reporterIdCt, setReporterIDCT] = useState("");
-    const [reporterIdMt, setReporterIDMT] = useState("");
     const [comments, setComments] = useState("");
-    const [subsurfaceSwitchState, setSubsSwitchState] = useState(false);
 
-    const setters = {
-        setDataTimestamp, setReleaseTime, setSiteID,
-        setReporterIDCT, setReporterIDMT, setComments,
-        setSubsSwitchState
+    /* RELEASE FORM TAB CONTENTS EVENT HANDLER */
+    const getSummaryForm = () => {
+        return (
+            <div>Summary</div>
+        );
     };
 
+    const getCommentsInputForm = () => {
+        return (
+            <Fragment>
+                <Grid item xs={12} className={classes.inputGridContainer}>
+                    <TextField
+                        label="Comments"
+                        multiline
+                        rowsMax="2"
+                        placeholder="Enter additional comments necessary"
+                        value={comments}
+                        onChange={handleEventChange("comments")}
+                        fullWidth
+                    />
+                </Grid>
+            </Fragment>
+        );
+    };
+
+    const getTriggersInputForm = () => {
+
+        return (
+            <Fragment>
+                <SubsurfaceTriggerGroup subsurfaceTriggerData={subsurfaceTriggerData} setSubsurfaceTriggerData={setSubsurfaceTriggerData} />
+
+                <SurficialTriggerGroup />
+
+                <RainfallTriggerGroup />
+
+                <EarthquakeTriggerGroup />
+
+                <OnDemandTriggerGroup />
+            </Fragment>
+        );
+    };
+
+    const getGeneralInputForm = () => {
+        const { siteId, dataTimestamp,
+            releaseTime, reporterIdMt,
+            reporterIdCt } = generalData;
+
+        return (
+            <Fragment>
+                <Grid item xs={12} className={classes.inputGridContainer}>
+                    <SelectInputForm
+                        label="Site"
+                        div_id="site_id"
+                        changeHandler={handleEventChange("siteId")}
+                        value={siteId}
+                        list={sites}
+                        mapping={{ id: "site_id", label: "site_name" }}
+                        css={classes.selectInput}
+                    />
+                </Grid>
+
+                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                    <KeyboardDateTimePicker
+                        required
+                        autoOk
+                        label="Data Timestamp"
+                        value={dataTimestamp}
+                        onChange={handleDateTime("dataTimestamp")}
+                        ampm={false}
+                        placeholder="2010/01/01 00:00"
+                        format="YYYY/MM/DD HH:mm"
+                        mask="__/__/____ __:__"
+                        clearable
+                        disableFuture
+                    />
+                </Grid>
+
+                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                    <KeyboardTimePicker
+                        required
+                        autoOk
+                        ampm={false}
+                        label="Time of Release"
+                        mask="__:__"
+                        placeholder="00:00"
+                        value={releaseTime}
+                        onChange={handleDateTime("releaseTime")}
+                        clearable
+                    />
+                </Grid>
+
+                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                    <DynaslopeUserSelectInputForm
+                        variant="standard"
+                        label="IOMP-MT"
+                        div_id="reporter_id_mt"
+                        changeHandler={handleEventChange("reporterIdMt")}
+                        value={reporterIdMt}
+                    />
+                </Grid>
+
+                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                    {/* <SelectInputForm
+                        label="IOMP-CT"
+                        div_id="reporter_id_ct"
+                        changeHandler={handleEventChange("reporterIdCt")}
+                        value={reporter_id_ct}
+                        list={users}
+                        mapping={{ id: "user_id", label: "name" }}
+                        // css={classes.selectInput}
+                    /> */}
+                    <DynaslopeUserSelectInputForm
+                        variant="standard"
+                        label="IOMP-CT"
+                        div_id="reporter_id_ct"
+                        changeHandler={handleEventChange("reporterIdCt")}
+                        value={reporterIdCt}
+                    />
+                </Grid>
+            </Fragment>
+        );
+    };
+    /* END OF RELEASE FORM TAB CONTENTS EVENT HANDLER */
+
+
+    /* STEPPER EVENT HANDLER */
+    const getSteps = () => {
+        return ["What are the release details?", "List the triggers.", "Add Comments and Description", "Review Release Summary"];
+    };
+
+    const getStepContent = (stepIndex) => {
+        switch (stepIndex) {
+            case 0:
+                return getGeneralInputForm();
+            case 1:
+                return getTriggersInputForm();
+            case 2:
+                return getCommentsInputForm();
+            case 3:
+                return getSummaryForm();
+            default:
+                return "Uknown stepIndex";
+        }
+    };
+    /* END OF STEPPER EVENT HANDLER */
+
     const changeState = (key, value) => {
-        console.log("Key", key);
-        console.log("Value", value);
-        const setter = setters[key];
-        console.log("Setter", setter);
-        setter(value);
+        switch (key) {
+            case "siteId":
+                setGeneralData({ ...generalData, siteId: value });
+                break;
+            case "dataTimestamp":
+                setGeneralData({ ...generalData, dataTimestamp: value });
+                break;
+            case "releaseTime":
+                setGeneralData({ ...generalData, releaseTime: value });
+                break;
+            case "reporterIdMt":
+                setGeneralData({ ...generalData, reporterIdMt: value });
+                break;
+            case "reporterIdCt":
+                setGeneralData({ ...generalData, reporterIdCt: value });
+                break;
+            default:
+                break;
+        }
     };
 
     const handleDateTime = key => value => {
@@ -234,17 +269,6 @@ function AlertReleaseFormModal(props) {
     const handleEventChange = key => event => {
         const { value } = event.target;
         changeState(key, value);
-    };
-
-    const data = {
-        siteId, dataTimestamp,
-        releaseTime, reporterIdMt,
-        reporterIdCt, comments, subsurfaceSwitchState
-    };
-
-    const params = {
-        classes,
-        data
     };
 
     const steps = getSteps();
@@ -257,7 +281,7 @@ function AlertReleaseFormModal(props) {
                 alignItems="center"
                 spacing={1}
             >
-                {getStepContent(activeStep, params, handleEventChange, handleDateTime)}
+                {getStepContent(activeStep)}
                 <div className={classes.root}>
                     <Typography className={classes.instructions} />
 
@@ -279,4 +303,4 @@ function AlertReleaseFormModal(props) {
 
 }
 
-export default withStyles(styles)(AlertReleaseFormModal);
+export default withStyles(styles)(AlertReleaseForm);
