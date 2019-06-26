@@ -31,8 +31,8 @@ MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events", methods=["GET"])
-@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events/<event_id>", methods=["GET"])
-def wrap_get_monitoring_events(event_id=None):
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events/<value>", methods=["GET"])
+def wrap_get_monitoring_events(value=None):
     """
     NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
     """

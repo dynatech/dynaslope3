@@ -36,9 +36,13 @@ function AlertReleaseFormModal (props) {
         reporterIdMt: ""
     });
 
-    function handleNext () {
+    const handleNext = () => {
+        // const { dataTimestamp, releaseTime, siteId, reporterIdCt, reporterIdMt } = generalData;
+        // if (dataTimestamp == null || releaseTime == null || siteId === "" || reporterIdCt === "" || reporterIdMt === "") {
+        //     alert("Incomplete info!");
+        // } else setActiveStep(prevActiveStep => prevActiveStep + 1);
         setActiveStep(prevActiveStep => prevActiveStep + 1);
-    }
+    };
 
     function handleBack () {
         setActiveStep(prevActiveStep => prevActiveStep - 1);

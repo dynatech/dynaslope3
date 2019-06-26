@@ -54,24 +54,6 @@ const styles = theme => ({
 function AlertReleaseForm (props) {
     const { classes, activeStep, generalData, setGeneralData } = props;
 
-    // // General Data States
-    // const [generalData, setGeneralData] = useState({
-    //     dataTimestamp: null,
-    //     releaseTime: null,
-    //     siteId: "",
-    //     reporterIdCt: "",
-    //     reporterIdMt: ""
-    // });
-
-    // Trigger Switch Status
-    const [trigSwitchStatus, setTrigSwitchStatus] = useState({
-        subsurfaceSwitchStatus: false,
-        surficialSwitchStatus: false,
-        rainfallSwitchStatus: false,
-        momsSwitchStatus: false,
-        earthquakeSwitchStatus: false
-    });
-
     const [subsurfaceTriggerData, setSubsurfaceTriggerData] = useState({
         switchSubsurface: false,
         triggerS2: {
@@ -87,6 +69,26 @@ function AlertReleaseForm (props) {
             techInfo: "",
         },
         triggerS0: {
+            status: false,
+            disabled: false
+        }
+    });
+
+    const [surficialTriggerData, setSurficialTriggerData] = useState({
+        switchSurficial: false,
+        triggerG2: {
+            status: false,
+            disabled: false,
+            triggerTimestamp: null,
+            techInfo: "",
+        },
+        triggerG3: {
+            status: false,
+            disabled: false,
+            triggerTimestamp: null,
+            techInfo: "",
+        },
+        triggerG0: {
             status: false,
             disabled: false
         }
@@ -125,7 +127,7 @@ function AlertReleaseForm (props) {
             <Fragment>
                 <SubsurfaceTriggerGroup subsurfaceTriggerData={subsurfaceTriggerData} setSubsurfaceTriggerData={setSubsurfaceTriggerData} />
 
-                <SurficialTriggerGroup />
+                <SurficialTriggerGroup surficialTriggerData={surficialTriggerData} setSurficialTriggerData={setSurficialTriggerData} />
 
                 <RainfallTriggerGroup />
 

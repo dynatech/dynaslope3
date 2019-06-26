@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Component, Fragment } from "react";
 import { Grid, withStyles } from "@material-ui/core";
+import { element } from "prop-types";
 import CheckboxGroupWithSwitch from "../../reusables/CheckboxGroupWithSwitch";
 import TriggerTimestampAndTechInfoCombo from "./TriggerTimestampAndTechInfoCombo";
 
@@ -20,60 +21,60 @@ function SubsurfaceCheckboxGroup (props) {
     } = subsurfaceTriggerData;
 
 
-    const handleChange = key => x => {
-        console.log("key", key);
-        console.log(x);
+    const handleChange = (key, element_id) => x => {
         const value = key === "trigger_timestamp" ? x : x.target.value;
 
         if (key === "trigger_timestamp") {
-            setSubsurfaceTriggerData({ ...subsurfaceTriggerData, triggerTimestamp: value });
+            if (element_id === "ts_s2") setSubsurfaceTriggerData({
+                ...subsurfaceTriggerData,
+                triggerS2: { ...triggerS2, triggerTimestamp: value }
+            });
+            else setSubsurfaceTriggerData({
+                ...subsurfaceTriggerData,
+                triggerS3: { ...triggerS3, triggerTimestamp: value }
+            });
         } else {
-            setSubsurfaceTriggerData({ ...subsurfaceTriggerData, techInfo: value });
+            console.log("");
+            if (element_id === "tech_info_s2") setSubsurfaceTriggerData({
+                ...subsurfaceTriggerData,
+                triggerS2: { ...triggerS2, techInfo: value }
+            });
+            else setSubsurfaceTriggerData({
+                ...subsurfaceTriggerData,
+                triggerS3: { ...triggerS3, techInfo: value }
+            });
         }
     };
 
-    const handleSwitchChange = (event) => {
-        console.log("Subs-Switch flicked with target: ", event.target);
-
+    const handleSwitchChange = event => {
         const is_checked = event.target.checked;
         setSubsurfaceTriggerData({ ...subsurfaceTriggerData, switchSubsurface: is_checked });
 
         if (!is_checked) {
             setSubsurfaceTriggerData({
                 ...subsurfaceTriggerData,
-                triggerS2: { status: false, disabled: false },
-                triggerS3: { status: false, disabled: false },
+                triggerS2: { ...triggerS2, status: false, disabled: false },
+                triggerS3: { ...triggerS3, status: false, disabled: false },
                 triggerS0: { status: false, disabled: false }
             });
         }
     };
 
     const handleCheckboxChange = name => event => {
-        console.log("Subs-checkbox checked with target: ", event.target);
-
         const is_checked = event.target.checked;
-        console.log(name);
-
 
         setSubsurfaceTriggerData(previous => {
             const temp = previous[name];
             const temp2 = {
-                triggerS2: { status: false, disabled: is_checked },
-                triggerS3: { status: false, disabled: is_checked }
+                triggerS2: { ...triggerS2, status: false, disabled: is_checked },
+                triggerS3: { ...triggerS3, status: false, disabled: is_checked }
             };
-
-            console.log(is_checked, previous.triggerS2.status, previous.triggerS3.status);
-            console.log(subsurfaceTriggerData);
             const is_s0_disabled = !is_checked ? previous.triggerS2.status && previous.triggerS3.status : is_checked;
-            // const is_s0_disabled = is_checked;
-            console.log(is_s0_disabled);
 
             const final = name === "triggerS0" ? { ...temp2 } : { triggerS0: { status: false, disabled: is_s0_disabled } };
 
             return ({ ...previous, [name]: { ...temp, status: is_checked }, ...final });
         });
-
-
     };
 
     return (
