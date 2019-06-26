@@ -11,85 +11,80 @@ const styles = theme => ({
 });
 
 
-class RainfallRadioGroup extends Component {
-    state = {
-        switch_rainfall: false,
-        rainfall: "",
-        trigger_timestamp: null,
-        tech_info: "",
-        trigger_r: {
-            disabled: false
-        },
-        trigger_r0: {
-            disabled: false
-        },
-        trigger_rx: {
-            disabled: false
-        }
-    }
+function RainfallRadioGroup (props) {
+    const { classes, rainfallTriggerData, setRainfallTriggerData } = props;
 
-    changeState = (key, value) => {
-        this.setState({ [key]: value });
+    const {
+        switchRainfall, rainfall, triggerTimestamp,
+        techInfo, triggerR1, triggerR0,
+        triggerRx
+    } = rainfallTriggerData;
+
+
+    const handleChange = (key, element_id) => x => {
+        const value = key === "trigger_timestamp" ? x : x.target.value;
+
+        if (key === "trigger_timestamp") {
+            if (element_id === "ts_R") setRainfallTriggerData({
+                ...rainfallTriggerData,
+                triggerTimestamp: value
+            });
+        } else {
+            console.log("");
+            if (element_id === "tech_info_R") setRainfallTriggerData({
+                ...rainfallTriggerData,
+                techInfo: value
+            });
+        }
     };
 
-    handleChange = key => x => {
-        const value = key === "trigger_timestamp" ? x : x.target.value;
-        this.changeState(key, value);
-    }
-
-    handleSwitchChange = () => event => {
+    const handleSwitchChange = event => {
         const is_checked = event.target.checked;
-        this.setState({ switch_rainfall: is_checked });
 
-        if (!is_checked) this.setState({ rainfall: "" });
-    }
+        setRainfallTriggerData(previous => ({ ...previous, switchRainfall: is_checked }));
 
-    handleRadioChange = event => {
-        this.setState({ rainfall: event.target.value });
-    }
+        if (!is_checked) {
+            setRainfallTriggerData(previous => ({ ...previous, rainfall: "" }));
+        }
+    };
 
-    render () {
-        const { classes } = this.props;
-        const {
-            switch_rainfall, rainfall, 
-            trigger_r, trigger_r0, trigger_rx,
-            trigger_timestamp, tech_info 
-        } = this.state;
+    const handleRadioChange = event => {
+        setRainfallTriggerData({ ...rainfallTriggerData, rainfall: event.target.value });
+    };
 
-        return (
-            <Fragment>
-                <Grid item xs={12} className={switch_rainfall ? classes.groupGridContainer : ""}>
-                    <RadioGroup 
-                        label="Rainfall"
-                        id="rainfall"
-                        switchState={switch_rainfall}
-                        switchHandler= {this.handleSwitchChange()}
-                        switchValue="switch_rainfall"
-                        radioValue={rainfall}
-                        choices={[
-                            { state: trigger_r, value: "trigger_r", label: "Release new trigger" },
-                            { state: trigger_r0, value: "trigger_r0", label: "No data (R0)" },
-                            { state: trigger_rx, value: "trigger_rx", label: "Intermediate threshold (rx)" }
-                        ]}
-                        changeHandler={this.handleRadioChange}
+    return (
+        <Fragment>
+            <Grid item xs={12} className={switchRainfall ? classes.groupGridContainer : ""}>
+                <RadioGroup
+                    label="Rainfall"
+                    id="rainfall"
+                    switchState={switchRainfall}
+                    switchHandler={handleSwitchChange}
+                    switchValue="switchRainfall"
+                    radioValue={rainfall}
+                    choices={[
+                        { state: triggerR1, value: "triggerR1", label: "Release new trigger" },
+                        { state: triggerR0, value: "triggerR0", label: "No data (R0)" },
+                        { state: triggerRx, value: "triggerRx", label: "Intermediate threshold (rx)" }
+                    ]}
+                    changeHandler={handleRadioChange}
+                />
+            </Grid>
+
+            {
+                rainfall === "triggerR1" ? (
+                    <TriggerTimestampAndTechInfoCombo
+                        labelFor="R"
+                        trigger_timestamp={triggerTimestamp}
+                        tech_info={techInfo}
+                        changeHandler={handleChange}
                     />
-                </Grid>
-
-                {
-                    rainfall === "trigger_r" ? (
-                        <TriggerTimestampAndTechInfoCombo
-                            labelFor="R"
-                            trigger_timestamp={trigger_timestamp}
-                            tech_info={tech_info}
-                            changeHandler={this.handleChange}
-                        />
-                    ) : (
-                        <div />
-                    )
-                }
-            </Fragment>
-        );
-    }
+                ) : (
+                    <div />
+                )
+            }
+        </Fragment>
+    );
 }
 
 export default withStyles(styles)(RainfallRadioGroup);

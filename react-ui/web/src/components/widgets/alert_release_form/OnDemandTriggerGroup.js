@@ -28,104 +28,103 @@ const styles = theme => ({
     }
 });
 
-class OnDemandTriggerGroup extends Component {
-    state = {
-        switch_on_demand: false,
-        trigger_timestamp: null,
-        tech_info: "",
-        reason: "",
-        reporter_id: ""
 
-    }
+function OnDemandTriggerGroup (props) {
+    const { classes, onDemandTriggerData, setOnDemandTriggerData } = props;
 
-    changeState = (key, value) => {
-        this.setState({ [key]: value });
+    const {
+        switchOnDemand, triggerTimestamp,
+        techInfo, reason, reporterId
+    } = onDemandTriggerData;
+
+    const handleChange = (key, element_id) => x => {
+        const value = key === "trigger_timestamp" ? x : x.target.value;
+
+        if (key === "trigger_timestamp") {
+            if (element_id === "ts_d1") setOnDemandTriggerData({
+                ...onDemandTriggerData,
+                triggerTimestamp: value
+            });
+        } else {
+            console.log("");
+            if (element_id === "tech_info_d1") setOnDemandTriggerData({
+                ...onDemandTriggerData,
+                techInfo: value
+            });
+        }
     };
 
-    handleChange = key => x => {
-        const value = key === "trigger_timestamp" ? x : x.target.value;
-        this.changeState(key, value);
-    }
-
-    handleEventChange = key => event => {
+    const handleEventChange = key => event => {
         const { value } = event.target;
-        this.changeState(key, value);
-    }
+        setOnDemandTriggerData({
+            ...onDemandTriggerData, [key]: value
+        });
+    };
 
-    handleValueChange = key => value => {
-        this.changeState(key, value);
-    }
+    const handleSwitchChange = event => {
+        const is_checked = event.target.checked;
 
-    handleSwitchChange = event => {
-        this.changeState("switch_on_demand", event.target.checked);
-    }
+        setOnDemandTriggerData(previous => ({ ...previous, switchOnDemand: is_checked }));
+    };
 
-    render () {
-        const { classes } = this.props;
-        const {
-            switch_on_demand, trigger_timestamp, tech_info,
-            magnitude, reason, longitude, reporter_id
-        } = this.state;
+    return (
+        <Fragment>
+            <Grid item xs={12} className={switchOnDemand ? classes.groupGridContainer : ""}>
+                <FormControl component="fieldset" className={classes.formControl}>
+                    <FormLabel component="legend" className={classes.formLabel}>
+                        <span>On Demand</span>
 
-        return (
-            <Fragment>
-                <Grid item xs={12} className={switch_on_demand ? classes.groupGridContainer : ""}>
-                    <FormControl component="fieldset" className={classes.formControl}>
-                        <FormLabel component="legend" className={classes.formLabel}>
-                            <span>On Demand</span>
+                        <Switch
+                            checked={switchOnDemand}
+                            onChange={handleSwitchChange}
+                            value="switch_on_demand"
+                        />
+                    </FormLabel>
+                </FormControl>
+            </Grid>
 
-                            <Switch
-                                checked={switch_on_demand}
-                                onChange={this.handleSwitchChange}
-                                value="switch_on_demand"
+            {
+                switchOnDemand ? (
+                    <Fragment>
+                        <TriggerTimestampAndTechInfoCombo
+                            labelFor="d1"
+                            trigger_timestamp={triggerTimestamp}
+                            tech_info={techInfo}
+                            changeHandler={handleChange}
+                        />
+
+                        <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                            <TextField
+                                required
+                                id="reason"
+                                label="Reason"
+                                value={reason}
+                                onChange={handleEventChange("reason")}
+                                placeholder="Enter reason of on-demand request"
+                                multiline
+                                rowsMax={2}
+                                fullWidth
                             />
-                        </FormLabel>
-                    </FormControl>
-                </Grid>
+                        </Grid>
 
-                {
-                    switch_on_demand ? (
-                        <Fragment>
-                            <TriggerTimestampAndTechInfoCombo
-                                labelFor="d1"
-                                trigger_timestamp={trigger_timestamp}
-                                tech_info={tech_info}
-                                changeHandler={this.handleChange}
+                        <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                            <SelectInputForm
+                                label="Reporter"
+                                div_id="reporter_id"
+                                changeHandler={handleEventChange("reporterId")}
+                                value={reporterId}
+                                list={community_contacts}
+                                mapping={{ id: "user_id", label: "name" }}
                             />
+                        </Grid>
 
-                            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                                <TextField
-                                    required
-                                    id="reason"
-                                    label="Reason"
-                                    value={reason}
-                                    onChange={this.handleEventChange("reason")}
-                                    placeholder="Enter reason of on-demand request"
-                                    multiline
-                                    rowsMax={2}
-                                    fullWidth
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                                <SelectInputForm
-                                    label="Reporter"
-                                    div_id="reporter_id"
-                                    changeHandler={this.handleEventChange("reporter_id")}
-                                    value={reporter_id}
-                                    list={community_contacts}
-                                    mapping={{ id: "user_id", label: "name" }}
-                                />
-                            </Grid>
-
-                        </Fragment>
-                    ) : (
-                        <div />
-                    )
-                }
-            </Fragment>
-        );
-    }
+                    </Fragment>
+                ) : (
+                    <div />
+                )
+            }
+        </Fragment>
+    );
 }
 
 export default withStyles(styles)(OnDemandTriggerGroup);

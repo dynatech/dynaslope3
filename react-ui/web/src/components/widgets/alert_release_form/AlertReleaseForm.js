@@ -1,4 +1,6 @@
-import React, { useState, Fragment } from "react";
+import React, { useEffect, Fragment } from "react";
+import axios from "axios";
+import moment from "moment";
 import {
     TextField, Grid, withStyles, Divider
 } from "@material-ui/core";
@@ -22,6 +24,7 @@ import EarthquakeTriggerGroup from "./EarthquakeTriggerGroup";
 import OnDemandTriggerGroup from "./OnDemandTriggerGroup";
 
 const sites = [{ site_id: "1", site_name: "AGB (Agbatuan, Dumarao, Capiz)" }, { site_id: "2", site_name: "BAK (Poblacion, Bakun, Benguet)" }, { site_id: "3", site_name: "BAN (Banlasan, Calape, Bohol)" }, { site_id: "4", site_name: "BAR (Baras, Tarangnan, Samar)" }, { site_id: "5", site_name: "BAY (Bayabas, Labo, Camarines Norte)" }, { site_id: "6", site_name: "BLC (Boloc, Tubungan, Iloilo)" }, { site_id: "7", site_name: "BOL (Bolodbolod, St. Bernard, Southern Leyte)" }, { site_id: "8", site_name: "BTO (Bato, Sibonga, Cebu)" }, { site_id: "9", site_name: "CAR (San Carlos, Dapa, Surigao del Norte)" }, { site_id: "10", site_name: "CUD (Natuwolan at Wadwad, Cudog, Lagawe, Ifugao)" }, { site_id: "11", site_name: "DAD (Sagasa, Dadong, Tarragona, Davao Oriental)" }, { site_id: "12", site_name: "GAA (Gaas, Balamban, Cebu)" }, { site_id: "13", site_name: "GAM (Gamut, Tago, Surigao del Sur)" }, { site_id: "14", site_name: "HIN (1 & 2, Hinabangan, Samar)" }, { site_id: "15", site_name: "HUM (Humayhumay, Guihulngan City, Negros Oriental)" }, { site_id: "16", site_name: "IME (Imelda, Tarangnan, Samar)" }, { site_id: "17", site_name: "IMU (Immuli, Pidigan, Abra)" }, { site_id: "18", site_name: "INA (Sambag, Inabasan, Maasin, Iloilo)" }, { site_id: "19", site_name: "JOR (Poblacion 1, San Jorge, Samar)" }, { site_id: "20", site_name: "LAB (Labey, Ambuklao, Bokod, Benguet)" }, { site_id: "21", site_name: "LAY (Laygayon, Pinabacdao, Samar)" }, { site_id: "22", site_name: "LIP (Lipanto, St. Bernard, Southern Leyte)" }, { site_id: "23", site_name: "LOO (Looc, Villanueva, Misamis Oriental)" }, { site_id: "24", site_name: "LPA (Lipata, Paranas, Samar)" }, { site_id: "25", site_name: "LTE (Literon, Calbiga, Samar)" }, { site_id: "26", site_name: "LUN (Caianuhan, Lunas, Maasin City, Southern Leyte)" }, { site_id: "27", site_name: "MAG (Magsaysay, Kibawe, Bukidnon)" }, { site_id: "28", site_name: "MAM (Mamuyod, Ambassador, Tublay, Benguet)" }, { site_id: "29", site_name: "MAR (Marirong, Leon, Iloilo)" }, { site_id: "30", site_name: "MCA (Mac-Arthur, Esperanza, Agusan del Sur)" }, { site_id: "31", site_name: "MNG (Dao, Manghulyawon, La Libertad, Negros Oriental)" }, { site_id: "32", site_name: "MSL (Lower Mesolong, Sto. Nino, Talaingod, Davao del Norte)" }, { site_id: "33", site_name: "MSU (Upper Mesolong, Sto. Nino, Talaingod, Davao del Norte)" }, { site_id: "34", site_name: "NAG (Nagyubuyuban, San Fernando City, La Union)" }, { site_id: "35", site_name: "NUR (Nurcia, Lanuza, Surigao del Sur)" }, { site_id: "36", site_name: "OSL (Oslao, San Francisco, Surigao del Norte)" }, { site_id: "37", site_name: "PAR (Parasanon, Pinabacdao, Samar)" }, { site_id: "38", site_name: "PEP (Bangi, Pepe, Leon, Iloilo)" }, { site_id: "39", site_name: "PIN (Pinagkamaligan, Calauag, Quezon)" }, { site_id: "40", site_name: "PLA (Mambog, Planas, Guihulngan City, Negros Oriental)" }, { site_id: "41", site_name: "PNG (Pange, Matnog, Sorsogon)" }, { site_id: "42", site_name: "PUG (Longlong, Puguis, La Trinidad, Benguet)" }, { site_id: "43", site_name: "SAG (Antadao, Sagada, Mt. Province)" }, { site_id: "44", site_name: "SIB (Sibajay, Boston, Davao Oriental)" }, { site_id: "45", site_name: "SIN (Sinipsip, Amgaleyguey, Buguias, Benguet)" }, { site_id: "46", site_name: "SUM (Sumalsag, Malitbog, Bukidnon)" }, { site_id: "47", site_name: "TAL (Talahid, Almeria, Biliran)" }, { site_id: "48", site_name: "TGA (Taga, Pinukpuk, Kalinga)" }, { site_id: "49", site_name: "TUE (Tue, Tadian, Mt. Province)" }, { site_id: "50", site_name: "UMI (Umingan, Alimodian, Iloilo)" }];
+let users = [];
 
 const styles = theme => ({
     inputGridContainer: {
@@ -50,60 +53,87 @@ const styles = theme => ({
     }
 });
 
+function prepareUsersArray (arr) {
+    return arr.map(({ user_id, first_name, last_name }) => ({ user_id, name: `${last_name}, ${first_name}` }));
+}
 
 function AlertReleaseForm (props) {
-    const { classes, activeStep, generalData, setGeneralData } = props;
+    const { classes, activeStep, generalData, setGeneralData,
+        subsurfaceTriggerData, setSubsurfaceTriggerData,
+        surficialTriggerData, setSurficialTriggerData,
+        rainfallTriggerData, setRainfallTriggerData,
+        earthquakeTriggerData, setEarthquakeTriggerData,
+        onDemandTriggerData, setOnDemandTriggerData
+    } = props;
 
-    const [subsurfaceTriggerData, setSubsurfaceTriggerData] = useState({
-        switchSubsurface: false,
-        triggerS2: {
-            status: false,
-            disabled: false,
-            triggerTimestamp: null,
-            techInfo: "",
-        },
-        triggerS3: {
-            status: false,
-            disabled: false,
-            triggerTimestamp: null,
-            techInfo: "",
-        },
-        triggerS0: {
-            status: false,
-            disabled: false
-        }
+    useEffect(() => {
+        return () => {
+            axios.get("http://127.0.0.1:5000/api/users/get_dynaslope_users")
+            .then(response => {
+                const arr = prepareUsersArray(response.data);
+                users = arr;
+            })
+            .catch(error => {
+                console.log(error);
+            });
+        };
     });
-
-    const [surficialTriggerData, setSurficialTriggerData] = useState({
-        switchSurficial: false,
-        triggerG2: {
-            status: false,
-            disabled: false,
-            triggerTimestamp: null,
-            techInfo: "",
-        },
-        triggerG3: {
-            status: false,
-            disabled: false,
-            triggerTimestamp: null,
-            techInfo: "",
-        },
-        triggerG0: {
-            status: false,
-            disabled: false
-        }
-    });
-
-    const [comments, setComments] = useState("");
 
     /* RELEASE FORM TAB CONTENTS EVENT HANDLER */
     const getSummaryForm = () => {
+        const {
+            siteId, dataTimestamp,
+            releaseTime, reporterIdMt,
+            reporterIdCt
+        } = generalData;
+        console.log(sites);
+        const site = sites.find(obj => obj.site_id == siteId);
+        const mt = users.find(obj => obj.user_id == reporterIdMt);
+        const ct = users.find(obj => obj.user_id == reporterIdCt);
+        const data_ts = moment(dataTimestamp).format("YYYY-MM-DD HH:mm:ss");
+        const release_time = moment(releaseTime).format("HH:mm");
+
         return (
-            <div>Summary</div>
+            <Fragment>
+                <Grid item xs={12} >
+                    <Typography variant="body1" color="textSecondary">Site ID</Typography>
+                    <Typography variant="body1" color="textPrimary">
+                        {site.site_name.toUpperCase()}
+                    </Typography>
+                </Grid>
+
+                <Grid item xs={6} >
+                    <Typography variant="body1" color="textSecondary">Data Timestamp</Typography>
+                    <Typography variant="body1" color="textPrimary">
+                        {data_ts}
+                    </Typography>
+                </Grid>
+                <Grid item xs={6} >
+                    <Typography variant="body1" color="textSecondary">Release Time</Typography>
+                    <Typography variant="body1" color="textPrimary">
+                        {release_time}
+                    </Typography>
+                </Grid>
+
+                <Grid item xs={6} >
+                    <Typography variant="body1" color="textSecondary">MT</Typography>
+                    <Typography variant="body1" color="textPrimary">
+                        {mt.name}
+                    </Typography>
+                </Grid>
+                <Grid item xs={6} >
+                    <Typography variant="body1" color="textSecondary">CT</Typography>
+                    <Typography variant="body1" color="textPrimary">
+                        {ct.name}
+                    </Typography>
+                </Grid>
+
+            </Fragment>
         );
     };
 
     const getCommentsInputForm = () => {
+        const { comments } = generalData;
         return (
             <Fragment>
                 <Grid item xs={12} className={classes.inputGridContainer}>
@@ -129,11 +159,11 @@ function AlertReleaseForm (props) {
 
                 <SurficialTriggerGroup surficialTriggerData={surficialTriggerData} setSurficialTriggerData={setSurficialTriggerData} />
 
-                <RainfallTriggerGroup />
+                <RainfallTriggerGroup rainfallTriggerData={rainfallTriggerData} setRainfallTriggerData={setRainfallTriggerData} />
 
-                <EarthquakeTriggerGroup />
+                <EarthquakeTriggerGroup earthquakeTriggerData={earthquakeTriggerData} setEarthquakeTriggerData={setEarthquakeTriggerData} />
 
-                <OnDemandTriggerGroup />
+                <OnDemandTriggerGroup onDemandTriggerData={onDemandTriggerData} setOnDemandTriggerData={setOnDemandTriggerData} />
             </Fragment>
         );
     };
@@ -243,25 +273,7 @@ function AlertReleaseForm (props) {
     /* END OF STEPPER EVENT HANDLER */
 
     const changeState = (key, value) => {
-        switch (key) {
-            case "siteId":
-                setGeneralData({ ...generalData, siteId: value });
-                break;
-            case "dataTimestamp":
-                setGeneralData({ ...generalData, dataTimestamp: value });
-                break;
-            case "releaseTime":
-                setGeneralData({ ...generalData, releaseTime: value });
-                break;
-            case "reporterIdMt":
-                setGeneralData({ ...generalData, reporterIdMt: value });
-                break;
-            case "reporterIdCt":
-                setGeneralData({ ...generalData, reporterIdCt: value });
-                break;
-            default:
-                break;
-        }
+        setGeneralData({ ...generalData, [key]: value });
     };
 
     const handleDateTime = key => value => {

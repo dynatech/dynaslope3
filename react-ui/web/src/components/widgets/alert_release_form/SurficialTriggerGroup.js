@@ -47,15 +47,16 @@ function SurficialCheckboxGroup (props) {
 
     const handleSwitchChange = event => {
         const is_checked = event.target.checked;
-        setSurficialTriggerData({ ...surficialTriggerData, switchSurficial: is_checked });
+
+        setSurficialTriggerData(previous => ({ ...previous, switchSurficial: is_checked }));
 
         if (!is_checked) {
-            setSurficialTriggerData({
-                ...surficialTriggerData,
+            setSurficialTriggerData(previous => ({
+                ...previous,
                 triggerG2: { ...triggerG2, status: false, disabled: false },
                 triggerG3: { ...triggerG3, status: false, disabled: false },
                 triggerG0: { status: false, disabled: false }
-            });
+            }));
         }
     };
 
@@ -83,7 +84,7 @@ function SurficialCheckboxGroup (props) {
                     label="Surficial"
                     switchState={switchSurficial}
                     switchHandler={handleSwitchChange}
-                    switchValue="switch_surficial"
+                    switchValue="switchSurficial"
                     choices={[
                         { state: triggerG2, value: "triggerG2", label: "Release trigger (g2)" },
                         { state: triggerG3, value: "triggerG3", label: "Release trigger (G3)" },

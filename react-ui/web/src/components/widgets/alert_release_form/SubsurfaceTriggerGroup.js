@@ -48,15 +48,16 @@ function SubsurfaceCheckboxGroup (props) {
 
     const handleSwitchChange = event => {
         const is_checked = event.target.checked;
-        setSubsurfaceTriggerData({ ...subsurfaceTriggerData, switchSubsurface: is_checked });
+
+        setSubsurfaceTriggerData(previous => ({ ...previous, switchSubsurface: is_checked }));
 
         if (!is_checked) {
-            setSubsurfaceTriggerData({
-                ...subsurfaceTriggerData,
+            setSubsurfaceTriggerData(previous => ({
+                ...previous,
                 triggerS2: { ...triggerS2, status: false, disabled: false },
                 triggerS3: { ...triggerS3, status: false, disabled: false },
                 triggerS0: { status: false, disabled: false }
-            });
+            }));
         }
     };
 
@@ -84,7 +85,7 @@ function SubsurfaceCheckboxGroup (props) {
                     label="Subsurface"
                     switchState={switchSubsurface}
                     switchHandler={handleSwitchChange}
-                    switchValue="switch_subsurface"
+                    switchValue="switchSubsurface"
                     choices={[
                         { state: triggerS2, value: "triggerS2", label: "Release trigger (s2)" },
                         { state: triggerS3, value: "triggerS3", label: "Release trigger (S3)" },
