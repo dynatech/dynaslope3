@@ -3998,3 +3998,1587 @@ export const data_presence_tsm = [
         }
     }
 ];
+
+export const data_presence_loggers = [
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:35:15+00:00", 
+        logger_id: 1, 
+        diff_days: 142, 
+        logger: {
+            longitude: 122.8313, 
+            date_activated: "2015-08-31", 
+            logger_name: "agbsb", 
+            latitude: 11.28082, 
+            site: 1, 
+            model_id: 3, 
+            logger_id: 1, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:32:22+00:00", 
+        logger_id: 2, 
+        diff_days: 142, 
+        logger: {
+            longitude: 122.8311, 
+            date_activated: "2015-08-31", 
+            logger_name: "agbta", 
+            latitude: 11.28137, 
+            site: 1, 
+            model_id: 6, 
+            logger_id: 2, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-08-13T12:30:04+00:00", 
+        logger_id: 3, 
+        diff_days: 297, 
+        logger: {
+            longitude: 120.660903, 
+            date_activated: "2016-08-09", 
+            logger_name: "bakg", 
+            latitude: 16.789631, 
+            site: 2, 
+            model_id: 31, 
+            logger_id: 3, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 1, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: null, 
+        logger_id: 4, 
+        diff_days: 0, 
+        logger: {
+            longitude: 120.6616, 
+            date_activated: "2016-05-13", 
+            logger_name: "bakta", 
+            latitude: 16.7907, 
+            site: 2, 
+            model_id: 10, 
+            logger_id: 4, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:41+00:00", 
+        logger_id: 7, 
+        diff_days: 142, 
+        logger: {
+            longitude: 123.9488, 
+            date_activated: "2016-02-03", 
+            logger_name: "banta", 
+            latitude: 9.888559, 
+            site: 3, 
+            model_id: 2, 
+            logger_id: 7, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:54+00:00", 
+        logger_id: 8, 
+        diff_days: 142, 
+        logger: {
+            longitude: 123.9488, 
+            date_activated: "2016-02-03", 
+            logger_name: "bantb", 
+            latitude: 9.888583, 
+            site: 3, 
+            model_id: 6, 
+            logger_id: 8, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:32:16+00:00", 
+        logger_id: 9, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.6547, 
+            date_activated: "2016-01-23", 
+            logger_name: "barsc", 
+            latitude: 11.90206, 
+            site: 4, 
+            model_id: 3, 
+            logger_id: 9, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:55+00:00", 
+        logger_id: 10, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.6566, 
+            date_activated: "2016-02-03", 
+            logger_name: "barta", 
+            latitude: 11.90278, 
+            site: 4, 
+            model_id: 2, 
+            logger_id: 10, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:55+00:00", 
+        logger_id: 11, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.6566, 
+            date_activated: "2016-01-23", 
+            logger_name: "bartb", 
+            latitude: 11.90278, 
+            site: 4, 
+            model_id: 6, 
+            logger_id: 11, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-01-23T20:01:00+00:00", 
+        logger_id: 12, 
+        diff_days: 499, 
+        logger: {
+            longitude: 122.4679, 
+            date_activated: "2015-01-27", 
+            logger_name: "baysb", 
+            latitude: 14.18756, 
+            site: 5, 
+            model_id: 3, 
+            logger_id: 12, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2017-04-23T23:01:00+00:00", 
+        logger_id: 13, 
+        diff_days: 774, 
+        logger: {
+            longitude: 122.4675, 
+            date_activated: "2015-01-23", 
+            logger_name: "bayta", 
+            latitude: 14.18797, 
+            site: 5, 
+            model_id: 2, 
+            logger_id: 13, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:34+00:00", 
+        logger_id: 17, 
+        diff_days: 142, 
+        logger: {
+            longitude: 122.3108, 
+            date_activated: null, 
+            logger_name: "blcsb", 
+            latitude: 10.82662, 
+            site: 6, 
+            model_id: 3, 
+            logger_id: 17, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-12-10T21:45:04+00:00", 
+        logger_id: 20, 
+        diff_days: 178, 
+        logger: {
+            longitude: 123.578371, 
+            date_activated: "2014-04-27", 
+            logger_name: "btog", 
+            latitude: 10.01394, 
+            site: 8, 
+            model_id: 31, 
+            logger_id: 20, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:06+00:00", 
+        logger_id: 25, 
+        diff_days: 142, 
+        logger: {
+            longitude: 121.1047, 
+            date_activated: "2014-12-15", 
+            logger_name: "cudta", 
+            latitude: 16.80931, 
+            site: 10, 
+            model_id: 6, 
+            logger_id: 25, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:29+00:00", 
+        logger_id: 26, 
+        diff_days: 142, 
+        logger: {
+            longitude: 121.1047, 
+            date_activated: "2015-03-29", 
+            logger_name: "cudtb", 
+            latitude: 16.80884, 
+            site: 10, 
+            model_id: 2, 
+            logger_id: 26, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-07-03T02:30:59+00:00", 
+        logger_id: 27, 
+        diff_days: 339, 
+        logger: {
+            longitude: 126.4509, 
+            date_activated: "2015-10-13", 
+            logger_name: "dadta", 
+            latitude: 7.13731, 
+            site: 11, 
+            model_id: 2, 
+            logger_id: 27, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-09-29T04:30:59+00:00", 
+        logger_id: 28, 
+        diff_days: 251, 
+        logger: {
+            longitude: 126.4514, 
+            date_activated: "2015-10-13", 
+            logger_name: "dadtb", 
+            latitude: 7.137353, 
+            site: 11, 
+            model_id: 6, 
+            logger_id: 28, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:58+00:00", 
+        logger_id: 29, 
+        diff_days: 142, 
+        logger: {
+            longitude: 123.7851, 
+            date_activated: "2016-02-03", 
+            logger_name: "gaasa", 
+            latitude: 10.42352, 
+            site: 12, 
+            model_id: 3, 
+            logger_id: 29, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-11-23T00:01:00+00:00", 
+        logger_id: 30, 
+        diff_days: 196, 
+        logger: {
+            longitude: 123.7854, 
+            date_activated: "2018-02-22", 
+            logger_name: "gaatc", 
+            latitude: 10.42323, 
+            site: 12, 
+            model_id: 7, 
+            logger_id: 30, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2017-08-01T17:00:00+00:00", 
+        logger_id: 31, 
+        diff_days: 674, 
+        logger: {
+            longitude: 126.1676, 
+            date_activated: "2013-05-04", 
+            logger_name: "gamb", 
+            latitude: 9.0101, 
+            site: 13, 
+            model_id: 3, 
+            logger_id: 31, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:32:41+00:00", 
+        logger_id: 33, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.0691, 
+            date_activated: "2016-03-04", 
+            logger_name: "hinsa", 
+            latitude: 11.70064, 
+            site: 14, 
+            model_id: 3, 
+            logger_id: 33, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:08+00:00", 
+        logger_id: 34, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.0691, 
+            date_activated: "2016-03-04", 
+            logger_name: "hinsb", 
+            latitude: 11.70064, 
+            site: 14, 
+            model_id: 7, 
+            logger_id: 34, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2017-07-01T20:00:00+00:00", 
+        logger_id: 35, 
+        diff_days: 705, 
+        logger: {
+            longitude: 123.2503, 
+            date_activated: "2013-04-11", 
+            logger_name: "humb", 
+            latitude: 10.18392, 
+            site: 15, 
+            model_id: 5, 
+            logger_id: 35, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-12-13T07:04:46+00:00", 
+        logger_id: 36, 
+        diff_days: 176, 
+        logger: {
+            longitude: 123.2514, 
+            date_activated: "2013-04-09", 
+            logger_name: "humt", 
+            latitude: 10.18102, 
+            site: 15, 
+            model_id: 9, 
+            logger_id: 36, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-12-18T22:30:59+00:00", 
+        logger_id: 37, 
+        diff_days: 170, 
+        logger: {
+            longitude: 124.7525, 
+            date_activated: "2015-11-10", 
+            logger_name: "imesb", 
+            latitude: 11.90462, 
+            site: 16, 
+            model_id: 3, 
+            logger_id: 37, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-12-23T17:30:59+00:00", 
+        logger_id: 38, 
+        diff_days: 165, 
+        logger: {
+            longitude: 124.7526, 
+            date_activated: "2015-11-13", 
+            logger_name: "imeta", 
+            latitude: 11.90383, 
+            site: 16, 
+            model_id: 2, 
+            logger_id: 38, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:04+00:00", 
+        logger_id: 39, 
+        diff_days: 142, 
+        logger: {
+            longitude: 120.60461, 
+            date_activated: "2016-07-19", 
+            logger_name: "imug", 
+            latitude: 17.52347, 
+            site: 17, 
+            model_id: 31, 
+            logger_id: 39, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:55+00:00", 
+        logger_id: 43, 
+        diff_days: 142, 
+        logger: {
+            longitude: 122.4362, 
+            date_activated: "2015-10-29", 
+            logger_name: "inata", 
+            latitude: 10.86991, 
+            site: 18, 
+            model_id: 2, 
+            logger_id: 43, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:59+00:00", 
+        logger_id: 46, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.8249, 
+            date_activated: "2016-03-18", 
+            logger_name: "jorta", 
+            latitude: 11.97779, 
+            site: 19, 
+            model_id: 6, 
+            logger_id: 46, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-11-30T15:03:08+00:00", 
+        logger_id: 47, 
+        diff_days: 188, 
+        logger: {
+            longitude: 120.7054, 
+            date_activated: "2013-03-06", 
+            logger_name: "labb", 
+            latitude: 16.47032, 
+            site: 20, 
+            model_id: 3, 
+            logger_id: 47, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:16+00:00", 
+        logger_id: 48, 
+        diff_days: 142, 
+        logger: {
+            longitude: 120.7055, 
+            date_activated: "2013-03-06", 
+            logger_name: "labt", 
+            latitude: 16.47041, 
+            site: 20, 
+            model_id: 7, 
+            logger_id: 48, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:29+00:00", 
+        logger_id: 49, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.0257, 
+            date_activated: "2015-11-26", 
+            logger_name: "laysa", 
+            latitude: 11.5127, 
+            site: 21, 
+            model_id: 7, 
+            logger_id: 49, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:11+00:00", 
+        logger_id: 50, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.0269, 
+            date_activated: "2015-11-26", 
+            logger_name: "laysb", 
+            latitude: 11.5304, 
+            site: 21, 
+            model_id: 3, 
+            logger_id: 50, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-06-18T11:30:58+00:00", 
+        logger_id: 51, 
+        diff_days: 353, 
+        logger: {
+            longitude: 125.1266, 
+            date_activated: "2012-05-29", 
+            logger_name: "lipb", 
+            latitude: 10.22767, 
+            site: 22, 
+            model_id: 3, 
+            logger_id: 51, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:33:02+00:00", 
+        logger_id: 52, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.1269, 
+            date_activated: "2012-05-29", 
+            logger_name: "lipt", 
+            latitude: 10.22764, 
+            site: 22, 
+            model_id: 7, 
+            logger_id: 52, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:42+00:00", 
+        logger_id: 53, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.7775, 
+            date_activated: "2016-10-17", 
+            logger_name: "loota", 
+            latitude: 8.597964, 
+            site: 23, 
+            model_id: 23, 
+            logger_id: 53, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:32:55+00:00", 
+        logger_id: 55, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.0196, 
+            date_activated: "2015-11-09", 
+            logger_name: "lpasa", 
+            latitude: 11.78625, 
+            site: 24, 
+            model_id: 3, 
+            logger_id: 55, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:29+00:00", 
+        logger_id: 56, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.0193, 
+            date_activated: "2015-11-14", 
+            logger_name: "lpasb", 
+            latitude: 11.78607, 
+            site: 24, 
+            model_id: 7, 
+            logger_id: 56, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-09-10T01:15:04+00:00", 
+        logger_id: 57, 
+        diff_days: 270, 
+        logger: {
+            longitude: 125.09145, 
+            date_activated: "2016-08-23", 
+            logger_name: "lteg", 
+            latitude: 11.59024, 
+            site: 25, 
+            model_id: 31, 
+            logger_id: 57, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:05+00:00", 
+        logger_id: 60, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.87943, 
+            date_activated: "2016-03-17", 
+            logger_name: "lung", 
+            latitude: 10.25799, 
+            site: 26, 
+            model_id: 31, 
+            logger_id: 60, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2017-09-23T09:45:00+00:00", 
+        logger_id: 65, 
+        diff_days: 621, 
+        logger: {
+            longitude: 125.058376, 
+            date_activated: "2016-02-23", 
+            logger_name: "magg", 
+            latitude: 7.517548, 
+            site: 27, 
+            model_id: 31, 
+            logger_id: 65, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2017-07-31T23:01:00+00:00", 
+        logger_id: 72, 
+        diff_days: 675, 
+        logger: {
+            longitude: 120.689, 
+            date_activated: "2016-12-03", 
+            logger_name: "mamta", 
+            latitude: 16.4883, 
+            site: 28, 
+            model_id: 6, 
+            logger_id: 72, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:45+00:00", 
+        logger_id: 73, 
+        diff_days: 142, 
+        logger: {
+            longitude: 120.6916, 
+            date_activated: "2016-11-07", 
+            logger_name: "mamtb", 
+            latitude: 16.48857, 
+            site: 28, 
+            model_id: 4, 
+            logger_id: 73, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:05+00:00", 
+        logger_id: 76, 
+        diff_days: 142, 
+        logger: {
+            longitude: 122.323586, 
+            date_activated: "2016-01-30", 
+            logger_name: "marg", 
+            latitude: 10.821843, 
+            site: 29, 
+            model_id: 31, 
+            logger_id: 76, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:34+00:00", 
+        logger_id: 77, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.7409, 
+            date_activated: "2016-02-26", 
+            logger_name: "mcasb", 
+            latitude: 8.585882, 
+            site: 30, 
+            model_id: 3, 
+            logger_id: 77, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:15+00:00", 
+        logger_id: 78, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.741, 
+            date_activated: "2016-02-24", 
+            logger_name: "mcata", 
+            latitude: 8.58543, 
+            site: 30, 
+            model_id: 6, 
+            logger_id: 78, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-08-14T16:33:13+00:00", 
+        logger_id: 80, 
+        diff_days: 296, 
+        logger: {
+            longitude: 125.5403, 
+            date_activated: "2015-09-21", 
+            logger_name: "mesta", 
+            latitude: 7.628743, 
+            site: 51, 
+            model_id: 6, 
+            logger_id: 80, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:34:01+00:00", 
+        logger_id: 81, 
+        diff_days: 142, 
+        logger: {
+            longitude: 123.2062, 
+            date_activated: "2016-01-21", 
+            logger_name: "mngsa", 
+            latitude: 10.04793, 
+            site: 31, 
+            model_id: 7, 
+            logger_id: 81, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:54+00:00", 
+        logger_id: 82, 
+        diff_days: 142, 
+        logger: {
+            longitude: 123.2062, 
+            date_activated: "2016-01-30", 
+            logger_name: "mngtb", 
+            latitude: 10.04781, 
+            site: 31, 
+            model_id: 2, 
+            logger_id: 82, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-04-15T22:32:00+00:00", 
+        logger_id: 84, 
+        diff_days: 417, 
+        logger: {
+            longitude: 125.5403, 
+            date_activated: "2015-09-21", 
+            logger_name: "msuta", 
+            latitude: 7.628743, 
+            site: 33, 
+            model_id: 6, 
+            logger_id: 84, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:55+00:00", 
+        logger_id: 85, 
+        diff_days: 142, 
+        logger: {
+            longitude: 120.4176, 
+            date_activated: "2015-07-14", 
+            logger_name: "nagsa", 
+            latitude: 16.62678, 
+            site: 34, 
+            model_id: 3, 
+            logger_id: 85, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:42+00:00", 
+        logger_id: 86, 
+        diff_days: 142, 
+        logger: {
+            longitude: 120.4172, 
+            date_activated: "2015-01-09", 
+            logger_name: "nagtb", 
+            latitude: 16.62676, 
+            site: 34, 
+            model_id: 6, 
+            logger_id: 86, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:17+00:00", 
+        logger_id: 87, 
+        diff_days: 142, 
+        logger: {
+            longitude: 126.1384, 
+            date_activated: "2015-09-25", 
+            logger_name: "nurta", 
+            latitude: 9.269702, 
+            site: 35, 
+            model_id: 2, 
+            logger_id: 87, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:56+00:00", 
+        logger_id: 88, 
+        diff_days: 142, 
+        logger: {
+            longitude: 126.1384, 
+            date_activated: "2015-09-25", 
+            logger_name: "nurtb", 
+            latitude: 9.269758, 
+            site: 35, 
+            model_id: 6, 
+            logger_id: 88, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2017-05-07T18:01:00+00:00", 
+        logger_id: 89, 
+        diff_days: 760, 
+        logger: {
+            longitude: 125.4014, 
+            date_activated: "2013-05-23", 
+            logger_name: "oslb", 
+            latitude: 9.75719, 
+            site: 36, 
+            model_id: 3, 
+            logger_id: 89, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:59+00:00", 
+        logger_id: 92, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.0255, 
+            date_activated: "2015-12-12", 
+            logger_name: "parta", 
+            latitude: 11.51487, 
+            site: 37, 
+            model_id: 6, 
+            logger_id: 92, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:59+00:00", 
+        logger_id: 93, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.0256, 
+            date_activated: "2015-12-10", 
+            logger_name: "partb", 
+            latitude: 11.51502, 
+            site: 37, 
+            model_id: 2, 
+            logger_id: 93, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-10-31T17:30:06+00:00", 
+        logger_id: 94, 
+        diff_days: 218, 
+        logger: {
+            longitude: 122.33414, 
+            date_activated: "2016-03-09", 
+            logger_name: "pepg", 
+            latitude: 10.787351, 
+            site: 38, 
+            model_id: 31, 
+            logger_id: 94, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 1, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: null, 
+        logger_id: 95, 
+        diff_days: 0, 
+        logger: {
+            longitude: 122.3336, 
+            date_activated: "2015-08-27", 
+            logger_name: "pepsb", 
+            latitude: 10.78788, 
+            site: 38, 
+            model_id: 13, 
+            logger_id: 95, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 1, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: null, 
+        logger_id: 97, 
+        diff_days: 0, 
+        logger: {
+            longitude: 122.3333, 
+            date_activated: "2015-08-28", 
+            logger_name: "peptc", 
+            latitude: 10.78865, 
+            site: 38, 
+            model_id: 10, 
+            logger_id: 97, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-10-01T01:36:52+00:00", 
+        logger_id: 99, 
+        diff_days: 249, 
+        logger: {
+            longitude: 123.2459, 
+            date_activated: "2013-03-23", 
+            logger_name: "plab", 
+            latitude: 10.15984, 
+            site: 40, 
+            model_id: 3, 
+            logger_id: 99, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:50+00:00", 
+        logger_id: 101, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.0183, 
+            date_activated: "2016-03-30", 
+            logger_name: "pngta", 
+            latitude: 12.63063, 
+            site: 41, 
+            model_id: 6, 
+            logger_id: 101, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:36+00:00", 
+        logger_id: 102, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.0183, 
+            date_activated: "2016-04-06", 
+            logger_name: "pngtb", 
+            latitude: 12.63063, 
+            site: 41, 
+            model_id: 2, 
+            logger_id: 102, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-02T18:30:58+00:00", 
+        logger_id: 103, 
+        diff_days: 155, 
+        logger: {
+            longitude: 124.0194, 
+            date_activated: "2016-04-06", 
+            logger_name: "pngtc", 
+            latitude: 12.62992, 
+            site: 41, 
+            model_id: 2, 
+            logger_id: 103, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-11-22T08:31:28+00:00", 
+        logger_id: 106, 
+        diff_days: 196, 
+        logger: {
+            longitude: 120.9248, 
+            date_activated: "2015-06-28", 
+            logger_name: "sagta", 
+            latitude: 17.08263, 
+            site: 43, 
+            model_id: 6, 
+            logger_id: 106, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:29+00:00", 
+        logger_id: 107, 
+        diff_days: 142, 
+        logger: {
+            longitude: 120.9249, 
+            date_activated: "2015-06-28", 
+            logger_name: "sagtb", 
+            latitude: 17.08339, 
+            site: 43, 
+            model_id: 2, 
+            logger_id: 107, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-02-25T19:00:00+00:00", 
+        logger_id: 108, 
+        diff_days: 466, 
+        logger: {
+            longitude: 126.3834, 
+            date_activated: "2015-10-15", 
+            logger_name: "sibta", 
+            latitude: 7.82567, 
+            site: 44, 
+            model_id: 6, 
+            logger_id: 108, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 1, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: null, 
+        logger_id: 111, 
+        diff_days: 0, 
+        logger: {
+            longitude: 120.7815, 
+            date_activated: "2016-09-26", 
+            logger_name: "sinsa", 
+            latitude: 16.7234, 
+            site: 45, 
+            model_id: 22, 
+            logger_id: 111, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:32:04+00:00", 
+        logger_id: 113, 
+        diff_days: 142, 
+        logger: {
+            longitude: 120.7813, 
+            date_activated: "2016-09-01", 
+            logger_name: "sintb", 
+            latitude: 16.7234, 
+            site: 45, 
+            model_id: 23, 
+            logger_id: 113, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-11-03T00:00:59+00:00", 
+        logger_id: 115, 
+        diff_days: 216, 
+        logger: {
+            longitude: 124.8597, 
+            date_activated: "2015-10-17", 
+            logger_name: "sumta", 
+            latitude: 8.54511, 
+            site: 46, 
+            model_id: 6, 
+            logger_id: 115, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:32:59+00:00", 
+        logger_id: 117, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.8591, 
+            date_activated: "2016-10-23", 
+            logger_name: "sumtc", 
+            latitude: 8.54565, 
+            site: 46, 
+            model_id: 2, 
+            logger_id: 117, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:42+00:00", 
+        logger_id: 118, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.3665, 
+            date_activated: "2016-03-03", 
+            logger_name: "talsa", 
+            latitude: 11.63742, 
+            site: 47, 
+            model_id: 7, 
+            logger_id: 118, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:59+00:00", 
+        logger_id: 119, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.3665, 
+            date_activated: "2016-03-07", 
+            logger_name: "taltb", 
+            latitude: 11.63742, 
+            site: 47, 
+            model_id: 2, 
+            logger_id: 119, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:59+00:00", 
+        logger_id: 120, 
+        diff_days: 142, 
+        logger: {
+            longitude: 121.3834, 
+            date_activated: "2016-06-11", 
+            logger_name: "tgata", 
+            latitude: 17.57347, 
+            site: 48, 
+            model_id: 2, 
+            logger_id: 120, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:23+00:00", 
+        logger_id: 121, 
+        diff_days: 142, 
+        logger: {
+            longitude: 121.3834, 
+            date_activated: "2016-06-01", 
+            logger_name: "tgatb", 
+            latitude: 17.57347, 
+            site: 48, 
+            model_id: 6, 
+            logger_id: 121, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:22+00:00", 
+        logger_id: 123, 
+        diff_days: 142, 
+        logger: {
+            longitude: 120.8286, 
+            date_activated: "2016-02-26", 
+            logger_name: "tueta", 
+            latitude: 16.97229, 
+            site: 49, 
+            model_id: 2, 
+            logger_id: 123, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:59+00:00", 
+        logger_id: 124, 
+        diff_days: 142, 
+        logger: {
+            longitude: 120.8287, 
+            date_activated: "2015-02-18", 
+            logger_name: "tuetb", 
+            latitude: 16.97015, 
+            site: 49, 
+            model_id: 6, 
+            logger_id: 124, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2017-12-15T01:30:00+00:00", 
+        logger_id: 125, 
+        diff_days: 539, 
+        logger: {
+            longitude: 122.32834, 
+            date_activated: "2016-05-11", 
+            logger_name: "umig", 
+            latitude: 10.908361, 
+            site: 50, 
+            model_id: 31, 
+            logger_id: 125, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 1, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: null, 
+        logger_id: 126, 
+        diff_days: 0, 
+        logger: {
+            longitude: 122.3278, 
+            date_activated: "2016-05-12", 
+            logger_name: "umita", 
+            latitude: 10.90807, 
+            site: 50, 
+            model_id: 10, 
+            logger_id: 126, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-05T15:00:59+00:00", 
+        logger_id: 128, 
+        diff_days: 152, 
+        logger: {
+            longitude: 125.127559, 
+            date_activated: "2017-04-26", 
+            logger_name: "lipra", 
+            latitude: 10.226318, 
+            site: 22, 
+            model_id: 35, 
+            logger_id: 128, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-12-13T11:30:58+00:00", 
+        logger_id: 129, 
+        diff_days: 175, 
+        logger: {
+            longitude: 125.126619, 
+            date_activated: "2017-04-26", 
+            logger_name: "bolra", 
+            latitude: 10.298826, 
+            site: 7, 
+            model_id: 35, 
+            logger_id: 129, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2017-09-21T21:15:00+00:00", 
+        logger_id: 130, 
+        diff_days: 623, 
+        logger: {
+            longitude: 122.467468, 
+            date_activated: "2017-04-26", 
+            logger_name: "bayg", 
+            latitude: 14.18792, 
+            site: 5, 
+            model_id: 31, 
+            logger_id: 130, 
+            date_deactivated: null
+        }
+    },
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-09-26T21:33:02+00:00", 
+        logger_id: 133, 
+        diff_days: 253, 
+        logger: {
+            longitude: 122.4676, 
+            date_activated: "2017-04-26", 
+            logger_name: "baytc", 
+            latitude: 14.18832, 
+            site: 5, 
+            model_id: 10, 
+            logger_id: 133, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:32:07+00:00", 
+        logger_id: 134, 
+        diff_days: 142, 
+        logger: {
+            longitude: 122.3115, 
+            date_activated: "2017-02-08", 
+            logger_name: "blcta", 
+            latitude: 10.82815, 
+            site: 6, 
+            model_id: 2, 
+            logger_id: 134, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:19+00:00", 
+        logger_id: 135, 
+        diff_days: 142, 
+        logger: {
+            longitude: 122.31132, 
+            date_activated: "2017-09-12", 
+            logger_name: "blcpz", 
+            latitude: 10.82662, 
+            site: 6, 
+            model_id: 36, 
+            logger_id: 135, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:04+00:00", 
+        logger_id: 138, 
+        diff_days: 142, 
+        logger: {
+            longitude: 122.4371, 
+            date_activated: "2017-11-15", 
+            logger_name: "inag", 
+            latitude: 10.86882, 
+            site: 18, 
+            model_id: 31, 
+            logger_id: 138, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-09-25T22:33:58+00:00", 
+        logger_id: 139, 
+        diff_days: 254, 
+        logger: {
+            longitude: 122.4362, 
+            date_activated: "2017-11-15", 
+            logger_name: "inatb", 
+            latitude: 10.86991, 
+            site: 18, 
+            model_id: 10, 
+            logger_id: 139, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-09-26T00:33:49+00:00", 
+        logger_id: 140, 
+        diff_days: 254, 
+        logger: {
+            longitude: 122.4371, 
+            date_activated: "2017-11-15", 
+            logger_name: "inatc", 
+            latitude: 10.86882, 
+            site: 18, 
+            model_id: 10, 
+            logger_id: 140, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:32:12+00:00", 
+        logger_id: 142, 
+        diff_days: 142, 
+        logger: {
+            longitude: 125.1279, 
+            date_activated: "2017-02-21", 
+            logger_name: "bolta", 
+            latitude: 10.30199, 
+            site: 7, 
+            model_id: 2, 
+            logger_id: 142, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:04+00:00", 
+        logger_id: 146, 
+        diff_days: 142, 
+        logger: {
+            longitude: 121.061436, 
+            date_activated: "2017-04-26", 
+            logger_name: "phig", 
+            latitude: 14.650118, 
+            site: 52, 
+            model_id: 31, 
+            logger_id: 146, 
+            date_deactivated: null
+        }
+    },
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:31:25+00:00", 
+        logger_id: 151, 
+        diff_days: 142, 
+        logger: {
+            longitude: 120.5706, 
+            date_activated: "2018-11-16", 
+            logger_name: "pugra", 
+            latitude: 16.44655, 
+            site: 42, 
+            model_id: 35, 
+            logger_id: 151, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2018-12-22T01:45:59+00:00", 
+        logger_id: 152, 
+        diff_days: 167, 
+        logger: {
+            longitude: 126.1676, 
+            date_activated: "2017-05-16", 
+            logger_name: "gamra", 
+            latitude: 9.0101, 
+            site: 13, 
+            model_id: 35, 
+            logger_id: 152, 
+            date_deactivated: null
+        }
+    }, 
+    {
+        presence: 0, 
+        ts_updated: "2019-06-07T07:55:35+00:00", 
+        last_data: "2019-01-15T23:30:59+00:00", 
+        logger_id: 154, 
+        diff_days: 142, 
+        logger: {
+            longitude: 124.7526, 
+            date_activated: "2017-08-09", 
+            logger_name: "imera", 
+            latitude: 11.90383, 
+            site: 16, 
+            model_id: 35, 
+            logger_id: 154, 
+            date_deactivated: null
+        }
+    }
+];

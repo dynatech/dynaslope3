@@ -7,14 +7,7 @@ import {
 } from "@material-ui/core";
 import { Close } from "@material-ui/icons";
 import SendMessageForm from "./SendMessageForm";
-
-function SlideTransition (props) {
-    return <Slide direction="up" {...props} />;
-}
-
-function FadeTransition (props) {
-    return <Fade {...props} />;
-}
+import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 
 function SendMessageModal (props) {
     const { classes, fullScreen, modalStateHandler, modalState } = props;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, forwardRef } from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
@@ -7,18 +7,11 @@ import {
 } from "@material-ui/core";
 import { compose } from "recompose";
 import { axios } from "axios";
+import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 
 const styles = theme => ({
     link: { textDecoration: "none" }
 });
-
-function SlideTransition (props) {
-    return <Slide direction="up" {...props} />;
-}
-
-function FadeTransition (props) {
-    return <Fade {...props} />;
-}
 
 function useFetchTagOptions (tag_selection) {
     const [tags, update_tags] = useState([]);

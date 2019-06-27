@@ -3,7 +3,7 @@ import { Grid, withStyles, Button, withWidth, Paper } from "@material-ui/core";
 import { isWidthDown } from "@material-ui/core/withWidth";
 import { ArrowForwardIos } from "@material-ui/icons";
 import MomentUtils from "@date-io/moment";
-import { MuiPickersUtilsProvider, DateTimePicker } from "material-ui-pickers";
+import { MuiPickersUtilsProvider, DateTimePicker } from "@material-ui/pickers";
 import { compose } from "recompose";
 import DetailedExpansionPanels from "./DetailedExpansionPanels";
 
