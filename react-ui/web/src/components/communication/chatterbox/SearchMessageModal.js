@@ -13,18 +13,11 @@ import {
     sites as Sites,
     organizations as Organizations
 } from "../../../store";
+import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 
 const styles = theme => ({
     link: { textDecoration: "none" }
 });
-
-function SlideTransition (props) {
-    return <Slide direction="up" {...props} />;
-}
-
-function FadeTransition (props) {
-    return <Fade {...props} />;
-}
 
 const sites_option = Sites.map(site => ({
     value: site.site_id,
@@ -97,6 +90,7 @@ class SearchMessageModal extends Component {
                             placeholder="Select organizations"
                             renderDropdownIndicator={false}
                             openMenuOnClick
+                            isMulti
                         />
                     </div>
                     
@@ -109,6 +103,7 @@ class SearchMessageModal extends Component {
                             placeholder="Select sites"
                             renderDropdownIndicator={false}
                             openMenuOnClick
+                            isMulti
                         />
                     </div>
 

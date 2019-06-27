@@ -38,25 +38,6 @@ class SiteMarkers(UserMixin, DB.Model):
                 f" Marker Name: {self.marker_name} InUse: {self.in_use}")
 
 
-class EarthquakeAlerts(UserMixin, DB.Model):
-    """
-    Class representation of earthquake_alerts table
-    """
-
-    __tablename__ = "earthquake_alerts"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
-
-    ea_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    eq_id = DB.Column(DB.Integer, nullable=False)
-    site_id = DB.Column(DB.Integer, nullable=False)
-    distance = DB.Column(DB.Float(5, 3), nullable=False)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> EQ Alert ID: {self.ea_id}"
-                f" Site ID: {self.site_id} Distance: {self.distance}")
-
-
 class EarthquakeEvents(UserMixin, DB.Model):
     """
     Class representation of earthquake_events table
@@ -80,6 +61,32 @@ class EarthquakeEvents(UserMixin, DB.Model):
         return (f"Type <{self.__class__.__name__}> EQ_ID: {self.eq_id}"
                 f" Magnitude: {self.magnitude} Depth: {self.depth}"
                 f" Critical Distance: {self.critical_distance} issuer: {self.issuer}")
+
+
+class EarthquakeAlerts(UserMixin, DB.Model):
+    """
+    Class representation of earthquake_alerts table
+    """
+
+    __tablename__ = "earthquake_alerts"
+    __bind_key__ = "analysis_db"
+    __table_args__ = {"schema": "analysis_db"}
+
+    ea_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    eq_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "analysis_db.earthquake_events.eq_id"), nullable=False)
+    site_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.sites.site_id"), nullable=False)
+    distance = DB.Column(DB.Float(5, 3), nullable=False)
+
+    eq_event = DB.relationship(
+        "EarthquakeEvents", backref=DB.backref("eq_alerts", lazy="subquery"), lazy="select")
+    site = DB.relationship(
+        "Sites", backref=DB.backref("eq_alerts", lazy="dynamic"), lazy="select")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> EQ Alert ID: {self.ea_id}"
+                f" Site ID: {self.site_id} Distance: {self.distance}")
 
 
 class Markers(UserMixin, DB.Model):
@@ -478,7 +485,7 @@ class LoggerModels(UserMixin, DB.Model):
     has_soms = DB.Column(DB.Integer)
     logger_type = DB.Column(DB.String(10))
 
-    logger = DB.relationship(
+    loggers = DB.relationship(
         "Loggers", backref="logger_model", lazy="subquery")
 
     def __repr__(self):
@@ -576,6 +583,32 @@ class DataPresenceTSM(DB.Model):
                 f" ts_updated: {self.ts_updated} diff_days: {self.diff_days}")
 
 
+class DataPresenceLoggers(DB.Model):
+    """
+    Class representation of data_presence_loggers
+    """
+
+    __tablename__ = "data_presence_loggers"
+    __bind_key__ = "analysis_db"
+    __table_args__ = {"schema": "analysis_db"}
+
+    logger_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "analysis_db.loggers.logger_id"), primary_key=True)
+    presence = DB.Column(DB.Integer)
+    last_data = DB.Column(DB.DateTime)
+    ts_updated = DB.Column(DB.DateTime)
+    diff_days = DB.Column(DB.Integer)
+
+    logger = DB.relationship(
+        "Loggers", backref="data_presence", lazy="joined", innerjoin=True,
+        primaryjoin="DataPresenceLoggers.logger_id==Loggers.logger_id")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> logger_id: {self.logger_id}"
+                f" presence: {self.presence} last_data: {self.last_data}"
+                f" ts_updated: {self.ts_updated} diff_days: {self.diff_days}")
+
+
 #############################
 # End of Class Declarations #
 #############################
@@ -589,6 +622,12 @@ class EarthquakeAlertsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Analysis Earthquake Alerts class
     """
+    distance = fields.Decimal(as_string=True)
+    eq_event = fields.Nested("EarthquakeEventsSchema", exclude=("eq_alerts", ))
+    site_id = fields.Integer()
+    site = fields.Nested("SitesSchema", only=(
+        "site_code", "purok", "sitio", "barangay", "municipality", "province"))
+
     class Meta:
         """Saves table class structure as schema model"""
         model = EarthquakeAlerts
@@ -598,6 +637,14 @@ class EarthquakeEventsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Analysis Earthquake Events class
     """
+    magnitude = fields.Decimal(as_string=True)
+    depth = fields.Decimal(as_string=True)
+    latitude = fields.Decimal(as_string=True)
+    longitude = fields.Decimal(as_string=True)
+    critical_distance = fields.Decimal(as_string=True)
+    eq_alerts = fields.Nested(EarthquakeAlertsSchema,
+                              many=True, exclude=("eq_event", ))
+
     class Meta:
         """Saves table class structure as schema model"""
         model = EarthquakeEvents
@@ -736,9 +783,24 @@ class LoggersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Loggers class
     """
+
+    model_id = fields.Integer()
+    logger_model = fields.Nested("LoggerModelsSchema", exclude=("loggers", ))
+
     class Meta:
         """Saves table class structure as schema model"""
         model = Loggers
+
+
+class LoggerModelsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of LoggerModels class
+    """
+    loggers = fields.Nested(LoggersSchema, exclude=("logger_model", ))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = LoggerModels
 
 
 class TSMSensorsSchema(MARSHMALLOW.ModelSchema):
@@ -795,8 +857,23 @@ class DataPresenceTSMSchema(MARSHMALLOW.ModelSchema):
     """
 
     tsm_sensor = fields.Nested(
-        TSMSensorsSchema, exclude=("data_presence", "tsm_alert", "site", "node_alerts"))
+        TSMSensorsSchema, exclude=("data_presence", "tsm_alert", "site",
+                                   "node_alerts", "logger.data_presence"))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = DataPresenceTSM
+
+
+class DataPresenceLoggersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of DataPresenceLoggers class
+    """
+
+    logger_id = fields.Integer()
+    logger = fields.Nested(
+        LoggersSchema, exclude=("data_presence", "tsm_sensor", "logger_model"))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = DataPresenceLoggers

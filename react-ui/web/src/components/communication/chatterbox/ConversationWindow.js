@@ -67,7 +67,9 @@ function recipientsFormatter (recipients) {
         const [mobile] = mobile_numbers;
 
         line = <Fragment>
-            { `${organizationExtractor(organizations)} ${first_name} ${last_name}` }
+            <div>
+                { `${organizationExtractor(organizations)} ${first_name} ${last_name}` }
+            </div>
             <Typography variant="caption" color="textSecondary">
                 { `+${mobile.sim_num}` }
             </Typography>

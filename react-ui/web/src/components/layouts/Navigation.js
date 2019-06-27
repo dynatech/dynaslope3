@@ -75,7 +75,7 @@ const navigation_labels = [
         ]
     },
     {
-        key: "comms",
+        key: "communication",
         main: "Communication",
         sub: [
             {
@@ -127,13 +127,22 @@ const navigation_labels = [
 ];
 
 class Navigation extends PureComponent {
-    state = {
-        value: 0,
-        from_tab: null,
-        last_clicked_tab: null,
-        popper_open: false,
-        anchorEl: null
-    };
+    constructor (props) {
+        super(props);
+
+        const { pathname } = window.location;
+        const path = pathname.split("/")[1];
+        const index = navigation_labels.findIndex(obj => obj.key === path);
+
+        this.state = {
+            value: index === -1 ? 0 : index,
+            from_tab: null,
+            last_clicked_tab: null,
+            popper_open: false,
+            anchorEl: null
+        };
+    }
+   
 
     handleTabChange = (event, value) => {
         this.setState({ value });
@@ -172,7 +181,6 @@ class Navigation extends PureComponent {
             value, popper_open, anchorEl,
             from_tab, last_clicked_tab
         } = this.state;
-
 
         const index = value === from_tab && last_clicked_tab !== null ? last_clicked_tab : value;
         const { sub } = navigation_labels[index];
