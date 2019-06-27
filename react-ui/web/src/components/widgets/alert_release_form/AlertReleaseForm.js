@@ -24,7 +24,7 @@ import EarthquakeTriggerGroup from "./EarthquakeTriggerGroup";
 import OnDemandTriggerGroup from "./OnDemandTriggerGroup";
 
 const sites = [{ site_id: "1", site_name: "AGB (Agbatuan, Dumarao, Capiz)" }, { site_id: "2", site_name: "BAK (Poblacion, Bakun, Benguet)" }, { site_id: "3", site_name: "BAN (Banlasan, Calape, Bohol)" }, { site_id: "4", site_name: "BAR (Baras, Tarangnan, Samar)" }, { site_id: "5", site_name: "BAY (Bayabas, Labo, Camarines Norte)" }, { site_id: "6", site_name: "BLC (Boloc, Tubungan, Iloilo)" }, { site_id: "7", site_name: "BOL (Bolodbolod, St. Bernard, Southern Leyte)" }, { site_id: "8", site_name: "BTO (Bato, Sibonga, Cebu)" }, { site_id: "9", site_name: "CAR (San Carlos, Dapa, Surigao del Norte)" }, { site_id: "10", site_name: "CUD (Natuwolan at Wadwad, Cudog, Lagawe, Ifugao)" }, { site_id: "11", site_name: "DAD (Sagasa, Dadong, Tarragona, Davao Oriental)" }, { site_id: "12", site_name: "GAA (Gaas, Balamban, Cebu)" }, { site_id: "13", site_name: "GAM (Gamut, Tago, Surigao del Sur)" }, { site_id: "14", site_name: "HIN (1 & 2, Hinabangan, Samar)" }, { site_id: "15", site_name: "HUM (Humayhumay, Guihulngan City, Negros Oriental)" }, { site_id: "16", site_name: "IME (Imelda, Tarangnan, Samar)" }, { site_id: "17", site_name: "IMU (Immuli, Pidigan, Abra)" }, { site_id: "18", site_name: "INA (Sambag, Inabasan, Maasin, Iloilo)" }, { site_id: "19", site_name: "JOR (Poblacion 1, San Jorge, Samar)" }, { site_id: "20", site_name: "LAB (Labey, Ambuklao, Bokod, Benguet)" }, { site_id: "21", site_name: "LAY (Laygayon, Pinabacdao, Samar)" }, { site_id: "22", site_name: "LIP (Lipanto, St. Bernard, Southern Leyte)" }, { site_id: "23", site_name: "LOO (Looc, Villanueva, Misamis Oriental)" }, { site_id: "24", site_name: "LPA (Lipata, Paranas, Samar)" }, { site_id: "25", site_name: "LTE (Literon, Calbiga, Samar)" }, { site_id: "26", site_name: "LUN (Caianuhan, Lunas, Maasin City, Southern Leyte)" }, { site_id: "27", site_name: "MAG (Magsaysay, Kibawe, Bukidnon)" }, { site_id: "28", site_name: "MAM (Mamuyod, Ambassador, Tublay, Benguet)" }, { site_id: "29", site_name: "MAR (Marirong, Leon, Iloilo)" }, { site_id: "30", site_name: "MCA (Mac-Arthur, Esperanza, Agusan del Sur)" }, { site_id: "31", site_name: "MNG (Dao, Manghulyawon, La Libertad, Negros Oriental)" }, { site_id: "32", site_name: "MSL (Lower Mesolong, Sto. Nino, Talaingod, Davao del Norte)" }, { site_id: "33", site_name: "MSU (Upper Mesolong, Sto. Nino, Talaingod, Davao del Norte)" }, { site_id: "34", site_name: "NAG (Nagyubuyuban, San Fernando City, La Union)" }, { site_id: "35", site_name: "NUR (Nurcia, Lanuza, Surigao del Sur)" }, { site_id: "36", site_name: "OSL (Oslao, San Francisco, Surigao del Norte)" }, { site_id: "37", site_name: "PAR (Parasanon, Pinabacdao, Samar)" }, { site_id: "38", site_name: "PEP (Bangi, Pepe, Leon, Iloilo)" }, { site_id: "39", site_name: "PIN (Pinagkamaligan, Calauag, Quezon)" }, { site_id: "40", site_name: "PLA (Mambog, Planas, Guihulngan City, Negros Oriental)" }, { site_id: "41", site_name: "PNG (Pange, Matnog, Sorsogon)" }, { site_id: "42", site_name: "PUG (Longlong, Puguis, La Trinidad, Benguet)" }, { site_id: "43", site_name: "SAG (Antadao, Sagada, Mt. Province)" }, { site_id: "44", site_name: "SIB (Sibajay, Boston, Davao Oriental)" }, { site_id: "45", site_name: "SIN (Sinipsip, Amgaleyguey, Buguias, Benguet)" }, { site_id: "46", site_name: "SUM (Sumalsag, Malitbog, Bukidnon)" }, { site_id: "47", site_name: "TAL (Talahid, Almeria, Biliran)" }, { site_id: "48", site_name: "TGA (Taga, Pinukpuk, Kalinga)" }, { site_id: "49", site_name: "TUE (Tue, Tadian, Mt. Province)" }, { site_id: "50", site_name: "UMI (Umingan, Alimodian, Iloilo)" }];
-let users = [];
+const users = [];
 
 const styles = theme => ({
     inputGridContainer: {
@@ -53,31 +53,11 @@ const styles = theme => ({
     }
 });
 
-function prepareUsersArray (arr) {
-    return arr.map(({ user_id, first_name, last_name }) => ({ user_id, name: `${last_name}, ${first_name}` }));
-}
-
 function AlertReleaseForm (props) {
-    const { classes, activeStep, generalData, setGeneralData,
-        subsurfaceTriggerData, setSubsurfaceTriggerData,
-        surficialTriggerData, setSurficialTriggerData,
-        rainfallTriggerData, setRainfallTriggerData,
-        earthquakeTriggerData, setEarthquakeTriggerData,
-        onDemandTriggerData, setOnDemandTriggerData
+    const {
+        classes, activeStep, generalData, setGeneralData,
+        triggersState, setTriggersState
     } = props;
-
-    useEffect(() => {
-        return () => {
-            axios.get("http://127.0.0.1:5000/api/users/get_dynaslope_users")
-            .then(response => {
-                const arr = prepareUsersArray(response.data);
-                users = arr;
-            })
-            .catch(error => {
-                console.log(error);
-            });
-        };
-    });
 
     /* RELEASE FORM TAB CONTENTS EVENT HANDLER */
     const getSummaryForm = () => {
@@ -115,7 +95,7 @@ function AlertReleaseForm (props) {
                     </Typography>
                 </Grid>
 
-                <Grid item xs={6} >
+                {/* <Grid item xs={6} >
                     <Typography variant="body1" color="textSecondary">MT</Typography>
                     <Typography variant="body1" color="textPrimary">
                         {mt.name}
@@ -126,7 +106,7 @@ function AlertReleaseForm (props) {
                     <Typography variant="body1" color="textPrimary">
                         {ct.name}
                     </Typography>
-                </Grid>
+                </Grid> */}
 
             </Fragment>
         );
@@ -155,15 +135,30 @@ function AlertReleaseForm (props) {
 
         return (
             <Fragment>
-                <SubsurfaceTriggerGroup subsurfaceTriggerData={subsurfaceTriggerData} setSubsurfaceTriggerData={setSubsurfaceTriggerData} />
+                <SubsurfaceTriggerGroup
+                    triggersState={triggersState}
+                    setTriggersState={setTriggersState}
+                />
 
-                <SurficialTriggerGroup surficialTriggerData={surficialTriggerData} setSurficialTriggerData={setSurficialTriggerData} />
+                <SurficialTriggerGroup
+                    triggersState={triggersState}
+                    setTriggersState={setTriggersState}
+                />
 
-                <RainfallTriggerGroup rainfallTriggerData={rainfallTriggerData} setRainfallTriggerData={setRainfallTriggerData} />
+                <RainfallTriggerGroup
+                    triggersState={triggersState}
+                    setTriggersState={setTriggersState}
+                />
 
-                <EarthquakeTriggerGroup earthquakeTriggerData={earthquakeTriggerData} setEarthquakeTriggerData={setEarthquakeTriggerData} />
+                <EarthquakeTriggerGroup
+                    triggersState={triggersState}
+                    setTriggersState={setTriggersState}
+                />
 
-                <OnDemandTriggerGroup onDemandTriggerData={onDemandTriggerData} setOnDemandTriggerData={setOnDemandTriggerData} />
+                <OnDemandTriggerGroup
+                    triggersState={triggersState}
+                    setTriggersState={setTriggersState}
+                />
             </Fragment>
         );
     };

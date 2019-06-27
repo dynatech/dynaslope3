@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, jsonify
 from src.models.monitoring import (MonitoringEventsSchema, EndOfShiftAnalysis)
 from src.utils.monitoring import (
-    get_monitoring_events, get_internal_alert_symbol, build_internal_alert_level)
+    get_monitoring_events, get_internal_alert_symbols, build_internal_alert_level)
 from src.utils.narratives import (get_narratives)
 
 
@@ -68,7 +68,7 @@ def get_end_of_shift_data(shift_start, shift_end, event_id):
         "most_recent": most_recent,
         "first_trigger": triggers_list[0],
         "first_trigger_info": triggers_list[0].info,
-        "first_trigger_type": get_internal_alert_symbol(triggers_list[0].internal_sym_id),
+        "first_trigger_type": get_internal_alert_symbols(triggers_list[0].internal_sym_id),
         "shift_triggers": shift_triggers_list,
         "internal_alert_level": build_internal_alert_level(
             event_alerts_list[-1].pub_sym_id, releases_list[-1].trigger_list)
@@ -113,7 +113,7 @@ def get_shift_start_info(shift_start_ts, shift_end_ts, eos_data):
             part_b += "<ul>"
 
             recent = eos_data["most_recent"][-1]
-            trigger_type = get_internal_alert_symbol(
+            trigger_type = get_internal_alert_symbols(
                 recent.internal_sym_id)
             timestamp = recent.ts
             formatted_timestamp = datetime.strftime(

@@ -838,6 +838,7 @@ class InternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Internal Alert Symbols class
     """
+    
     class Meta:
         """Saves table class structure as schema model"""
         model = InternalAlertSymbols

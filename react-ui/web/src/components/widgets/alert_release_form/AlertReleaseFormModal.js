@@ -1,4 +1,4 @@
-import React, { Component, useState } from "react";
+import React, { Component, useState, useEffect, useReducer } from "react";
 import axios from "axios";
 import moment from "moment";
 import {
@@ -24,95 +24,20 @@ const styles = theme => ({
     }
 });
 
-function prepareTriggers (subs, surf, rain, on_demand, earthquake) {
-    const trigger_list_arr = [];
-    const { switchSubsurface, triggerS2, triggerS3, triggerS0 } = subs;
-    if (switchSubsurface) {
-        if (triggerS2.status) {
-            trigger_list_arr.append({
-                internal_sym_id: 3,
-                info: triggerS2.techInfo,
-                ts: triggerS2.dataTimestamp
-            });
-        }
-        if (triggerS3.status) {
-            trigger_list_arr.append({
-                internal_sym_id: 1,
-                info: triggerS3.techInfo,
-                ts: triggerS3.dataTimestamp
-            });
-        }
-        if (triggerS0.status) {
-            trigger_list_arr.append({
-                internal_sym_id: 2,
-                info: triggerS0.techInfo,
-                ts: triggerS0.dataTimestamp
-            });
-        }
-    }
 
-    const { switchSurficial, triggerG2, triggerG3, triggerG0 } = surf;
-    if (switchSurficial) {
-        if (triggerG2.status) {
-            trigger_list_arr.append({
-                internal_sym_id: 6,
-                info: triggerG2.techInfo,
-                ts: triggerG2.dataTimestamp
-            });
-        }
-        if (triggerG3.status) {
-            trigger_list_arr.append({
-                internal_sym_id: 4,
-                info: triggerG3.techInfo,
-                ts: triggerG3.dataTimestamp
-            });
-        }
-        if (triggerG0.status) {
-            trigger_list_arr.append({
-                internal_sym_id: 5,
-                info: triggerS0.techInfo,
-                ts: triggerS0.dataTimestamp
-            });
-        }
-    }
-
-    const { switchRainfall, triggerR1, triggerR0, triggerRx } = rain;
-    if (switchRainfall) {
-        if (triggerR1.status) {
-            trigger_list_arr.append({
-                internal_sym_id: 6,
-                info: triggerR1.techInfo,
-                ts: triggerR1.dataTimestamp
-            });
-        }
-        if (triggerG3.status) {
-            trigger_list_arr.append({
-                internal_sym_id: 4,
-                info: triggerG3.techInfo,
-                ts: triggerG3.dataTimestamp
-            });
-        }
-        if (triggerG0.status) {
-            trigger_list_arr.append({
-                internal_sym_id: 5,
-                info: triggerS0.techInfo,
-                ts: triggerS0.dataTimestamp
-            });
-        }
-    }
-    const { switchOnDemand, reason, reporterId } = on_demand;
-    const od_trigger_ts = on_demand.triggerTimestamp;
-    const od_trigger_tech_info = on_demand.techInfo;
-    const { switchEarthquake, magnitude, latitude, longitude } = earthquake;
-    const eq_trigger_ts = earthquake.triggerTimestamp;
-    const eq_trigger_tech_info = earthquake.techInfo;
-
-
+function prepareTriggers(triggers) {
+    const trigger_list = [];
+    Object.keys(triggers).forEach((key) => {
+        console.log(key, triggers[key]);
+        if (triggers[key].switchState) trigger_list.push(...triggers[key].triggers);
+    });
+    return trigger_list;
 }
 
-function AlertReleaseFormModal (props) {
+function AlertReleaseFormModal(props) {
     const { classes, fullScreen, isOpen, closeHandler } = props;
     const [activeStep, setActiveStep] = useState(0);
+    const [isNextBtnDisabled, setIsNextBtnDisabled] = useState(true);
     const steps = [1, 2, 3, 4];
 
     // General Data States
@@ -120,83 +45,108 @@ function AlertReleaseFormModal (props) {
         dataTimestamp: null,
         releaseTime: null,
         siteId: "",
-        reporterIdCt: "",
-        reporterIdMt: "",
+        reporterIdCt: 1,
+        reporterIdMt: 2,
         comments: ""
     });
 
-    const [subsurfaceTriggerData, setSubsurfaceTriggerData] = useState({
-        switchSubsurface: false,
-        triggerS2: {
-            status: false,
-            disabled: false,
-            triggerTimestamp: null,
-            techInfo: "",
-        },
-        triggerS3: {
-            status: false,
-            disabled: false,
-            triggerTimestamp: null,
-            techInfo: "",
-        },
-        triggerS0: {
-            status: false,
-            disabled: false
+    const [triggers, setTriggers] = useReducer((triggs, { action, trigger_type, value }) => {
+        const trigger = triggs[trigger_type];
+        const { triggers: triggers_array } = trigger;
+
+        switch (action) {
+            case "TOGGLE_SWITCH":
+                return {
+                    ...triggs,
+                    [trigger_type]: {
+                        ...trigger,
+                        switchState: value
+                    }
+                };
+            case "ADD_TRIGGER":
+                return {
+                    ...triggs,
+                    [trigger_type]: {
+                        ...trigger,
+                        triggers: [...triggers_array, value]
+                    }
+                };
+            case "REMOVE_TRIGGER":
+                let temp;
+                if (value === "clear_all") {
+                    temp = [];
+                } else {
+                    temp = triggers_array.filter(trig => trig.alert_level !== value.alert_level);
+                }
+
+                return {
+                    ...triggs,
+                    [trigger_type]: {
+                        ...trigger,
+                        triggers: temp
+                    }
+                };
+            case "UPDATE_DETAILS":
+                const temp2 = triggers_array.map(trig => {
+                    if (trig.alert_level === value.alert_level) return { ...trig, ...value };
+                    return trig;
+                });
+                console.log("TEMP2", temp2, value);
+                return {
+                    ...triggs,
+                    [trigger_type]: {
+                        ...trigger,
+                        triggers: temp2
+                    }
+                };
+            default: return triggs;
         }
-    });
+    }, {
+            subsurface: { switchState: false, triggers: [] },
+            surficial: { switchState: false, triggers: [] },
+            rainfall: { switchState: false, triggers: [] },
+            earthquake: { switchState: false, triggers: [] },
+            on_demand: { switchState: false, triggers: [] }
+        });
 
-    const [surficialTriggerData, setSurficialTriggerData] = useState({
-        switchSurficial: false,
-        triggerG2: {
-            status: false,
-            disabled: false,
-            triggerTimestamp: null,
-            techInfo: "",
-        },
-        triggerG3: {
-            status: false,
-            disabled: false,
-            triggerTimestamp: null,
-            techInfo: "",
-        },
-        triggerG0: {
-            status: false,
-            disabled: false
+    useEffect(() => {
+        console.log("Use Effect");
+        if (activeStep === 0) {
+            const {
+                siteId, dataTimestamp, releaseTime,
+                reporterIdCt, reporterIdMt
+            } = generalData;
+
+            if (siteId !== "" && dataTimestamp !== null && releaseTime !== null && reporterIdCt !== "" && reporterIdMt !== "") {
+                setIsNextBtnDisabled(false);
+            } else {
+                setIsNextBtnDisabled(true);
+            }
+        } else if (activeStep === 1) {
+            const trigger_keys_array = Object.keys(triggers);
+            console.log("Step 1");
+            console.log(trigger_keys_array);
+            let is_disabled = false;
+            for (let i = 0; i < trigger_keys_array.length; i += 1) {
+                const { switchState, triggers: trigger_list } = triggers[trigger_keys_array[i]];
+                if (switchState) {
+                    console.log("switched on");
+                    const { length } = trigger_list;
+
+                    if (length === 0) is_disabled = true;
+                    else {
+                        for (let j = 0; j < length; j += 1) {
+                            if ([1, 2, 3].includes(trigger_list[j].alert_level)) {
+                                is_disabled = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            setIsNextBtnDisabled(is_disabled);
         }
-    });
-
-    const [rainfallTriggerData, setRainfallTriggerData] = useState({
-        switchRainfall: false,
-        rainfall: "",
-        triggerTimestamp: null,
-        techInfo: "",
-        triggerR1: {
-            disabled: false
-        },
-        triggerR0: {
-            disabled: false
-        },
-        triggerRx: {
-            disabled: false
-        }
-    });
-
-    const [earthquakeTriggerData, setEarthquakeTriggerData] = useState({
-        switchEarthquake: false,
-        triggerTimestamp: null,
-        techInfo: "",
-        magnitude: "",
-        latitude: "",
-        longitude: ""
-    });
-
-    const [onDemandTriggerData, setOnDemandTriggerData] = useState({
-        switchOnDemand: false,
-        triggerTimestamp: null,
-        techInfo: "",
-        reason: "",
-        reporterId: ""
-    });
+    }, [generalData, triggers]);
 
     const handleSubmit = () => {
         const {
@@ -204,6 +154,9 @@ function AlertReleaseFormModal (props) {
             releaseTime, reporterIdMt,
             reporterIdCt
         } = generalData;
+
+        const trigger_list = prepareTriggers(triggers);
+        console.log("trigger_list", trigger_list);
 
         const payload = {
             site_id: siteId,
@@ -218,38 +171,36 @@ function AlertReleaseFormModal (props) {
                 publisher_mt_id: reporterIdMt,
                 publisher_ct_id: reporterIdCt
             },
-            trigger_list_arr: [],
+            trigger_list_arr: "triggers_list",
             non_triggering_moms: []
         };
 
-        axios.post("http://192.168.150.173:5000/api/monitoring/insert_ewi", payload)
-        .then((response) => {
-            console.log(response);
-        })
-        .catch((error) => {
-            console.log(error);
-        });
+        console.log("PAYLOAD", payload);
+
+        // axios.post("http://127.0.0.1:5000/api/monitoring/insert_ewi", payload)
+        // .then((response) => {
+        //     console.log(response);
+        // })
+        // .catch((error) => {
+        //     console.log(error);
+        // });
     };
 
     const handleNext = () => {
-        // const { dataTimestamp, releaseTime, siteId, reporterIdCt, reporterIdMt } = generalData;
-        // if (dataTimestamp == null || releaseTime == null || siteId === "" || reporterIdCt === "" || reporterIdMt === "") {
-        //     alert("Incomplete info!");
-        // } else setActiveStep(prevActiveStep => prevActiveStep + 1);
         setActiveStep(prevActiveStep => prevActiveStep + 1);
-        if (activeStep === steps.length) {
+        if (activeStep === steps.length - 1) {
             console.log("Submitting data...");
             handleSubmit();
         }
     };
 
-    function handleBack () {
+    const handleBack = () => {
         setActiveStep(prevActiveStep => prevActiveStep - 1);
-    }
+    };
 
-    function handleReset () {
+    const handleReset = () => {
         setActiveStep(0);
-    }
+    };
 
     return (
         <div>
@@ -268,12 +219,8 @@ function AlertReleaseFormModal (props) {
 
                     <AlertReleaseForm
                         activeStep={activeStep}
+                        triggersState={triggers} setTriggersState={setTriggers}
                         generalData={generalData} setGeneralData={setGeneralData}
-                        subsurfaceTriggerData={subsurfaceTriggerData} setSubsurfaceTriggerData={setSubsurfaceTriggerData}
-                        surficialTriggerData={surficialTriggerData} setSurficialTriggerData={setSurficialTriggerData}
-                        rainfallTriggerData={rainfallTriggerData} setRainfallTriggerData={setRainfallTriggerData}
-                        earthquakeTriggerData={earthquakeTriggerData} setEarthquakeTriggerData={setEarthquakeTriggerData}
-                        onDemandTriggerData={onDemandTriggerData} setOnDemandTriggerData={setOnDemandTriggerData}
                     />
                 </DialogContent>
                 <DialogActions>
@@ -284,30 +231,28 @@ function AlertReleaseFormModal (props) {
                             Submit
                     </Button> */}
                     <div>
-                        {activeStep === steps.length ? (
-                            <div>
-                                <Typography className={classes.instructions}>All steps completed</Typography>
-                                <Button onClick={handleReset}>Reset</Button>
-                            </div>
-                        ) : (
-                            <div>
+                        {
+                            activeStep === steps.length ? (
                                 <div>
-                                    <Button onClick={closeHandler} color="primary">
-                                            Cancel
-                                        </Button>
-                                    <Button
-                                        disabled={activeStep === 0}
-                                        onClick={handleBack}
-                                        className={classes.backButton}
-                                    >
-                                            Back
-                                        </Button>
-                                    <Button variant="contained" color="primary" onClick={handleNext}>
-                                        {activeStep === steps.length - 1 ? "Submit" : "Next"}
-                                    </Button>
+                                    <Typography className={classes.instructions}>All steps completed</Typography>
+                                    <Button onClick={handleReset}>Reset</Button>
                                 </div>
-                            </div>
-                        )}
+                            ) : (
+                                    <div>
+                                        <div>
+                                            <Button onClick={closeHandler} color="primary">
+                                                Cancel
+                                        </Button>
+                                            <Button disabled={activeStep === 0} onClick={handleBack} className={classes.backButton}>
+                                                Back
+                                        </Button>
+                                            <Button variant="contained" color="primary" onClick={handleNext} disabled={isNextBtnDisabled}>
+                                                {activeStep === steps.length - 1 ? "Submit" : "Next"}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )
+                        }
                     </div>
                 </DialogActions>
             </Dialog>

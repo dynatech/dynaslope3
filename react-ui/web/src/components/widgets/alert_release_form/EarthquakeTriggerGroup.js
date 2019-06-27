@@ -3,6 +3,8 @@ import {
     Grid, withStyles, FormControl,
     FormLabel, Switch, TextField, Hidden
 } from "@material-ui/core";
+
+import { handleChange, handleEventChange, handleSwitchChange } from "./state_handlers";
 import TriggerTimestampAndTechInfoCombo from "./TriggerTimestampAndTechInfoCombo";
 
 const styles = theme => ({
@@ -26,68 +28,48 @@ const styles = theme => ({
 });
 
 function EarthquakeTriggerGroup (props) {
-    const { classes, earthquakeTriggerData, setEarthquakeTriggerData } = props;
-
     const {
-        switchEarthquake, triggerTimestamp,
-        techInfo, magnitude,
-        latitude, longitude
-    } = earthquakeTriggerData;
+        classes, triggersState, setTriggersState
+    } = props;
 
-    const handleChange = (key, element_id) => x => {
-        const value = key === "trigger_timestamp" ? x : x.target.value;
+    const { earthquake } = triggersState;
+    const { switchState, triggers } = earthquake;
 
-        if (key === "trigger_timestamp") {
-            if (element_id === "ts_e1") setEarthquakeTriggerData({
-                ...earthquakeTriggerData,
-                triggerTimestamp: value
-            });
-        } else {
-            console.log("");
-            if (element_id === "tech_info_e1") setEarthquakeTriggerData({
-                ...earthquakeTriggerData,
-                techInfo: value
-            });
-        }
-    };
-
-    const handleEventChange = key => event => {
-        const { value } = event.target;
-        setEarthquakeTriggerData({
-            ...earthquakeTriggerData, [key]: value
+    let triggers_value = { magnitude: "", longitude: "", latitude: "" };
+    if (triggers.length !== 0) {
+        triggers.forEach(trigger => {
+            triggers_value = { ...triggers_value, ...trigger };
         });
-    };
+    }
 
-    const handleSwitchChange = event => {
-        const is_checked = event.target.checked;
+    console.log("<triggersState>", triggersState);
 
-        setEarthquakeTriggerData(previous => ({ ...previous, switchEarthquake: is_checked }));
-    };
+    const { timestamp, tech_info, magnitude, latitude, longitude } = triggers_value;
 
     return (
         <Fragment>
-            <Grid item xs={12} className={switchEarthquake ? classes.groupGridContainer : ""}>
+            <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
                 <FormControl component="fieldset" className={classes.formControl}>
                     <FormLabel component="legend" className={classes.formLabel}>
                         <span>Earthquake</span>
 
                         <Switch
-                            checked={switchEarthquake}
-                            onChange={handleSwitchChange}
-                            value="switchEarthquake"
+                            checked={switchState}
+                            onChange={handleSwitchChange(setTriggersState, "earthquake")}
+                            value="switch_earthquake"
                         />
                     </FormLabel>
                 </FormControl>
             </Grid>
 
             {
-                switchEarthquake ? (
+                switchState ? (
                     <Fragment>
                         <TriggerTimestampAndTechInfoCombo
                             labelFor="e1"
-                            trigger_timestamp={triggerTimestamp}
-                            tech_info={techInfo}
-                            changeHandler={handleChange}
+                            trigger_timestamp={timestamp}
+                            tech_info={tech_info}
+                            changeHandler={handleChange(setTriggersState, "earthquake")}
                         />
 
                         <Grid item xs={12} sm={4} className={classes.inputGridContainer}>
@@ -96,7 +78,7 @@ function EarthquakeTriggerGroup (props) {
                                 id="magnitude"
                                 label="Magnitude"
                                 value={magnitude}
-                                onChange={handleEventChange("magnitude")}
+                                onChange={handleEventChange("magnitude", setTriggersState, "earthquake")}
                                 type="number"
                             />
                         </Grid>
@@ -107,7 +89,7 @@ function EarthquakeTriggerGroup (props) {
                                 id="latitude"
                                 label="Latitude"
                                 value={latitude}
-                                onChange={handleEventChange("latitude")}
+                                onChange={handleEventChange("latitude", setTriggersState, "earthquake")}
                                 type="number"
                             />
                         </Grid>
@@ -118,7 +100,7 @@ function EarthquakeTriggerGroup (props) {
                                 id="longitude"
                                 label="Longitude"
                                 value={longitude}
-                                onChange={handleEventChange("longitude")}
+                                onChange={handleEventChange("longitude", setTriggersState, "earthquake")}
                                 type="number"
                             />
                         </Grid>

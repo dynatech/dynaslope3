@@ -16,23 +16,41 @@ from src.models.monitoring import (
     MonitoringReleasePublishers, MonitoringTriggers, MonitoringTriggersMisc,
     InternalAlertSymbols, MonitoringMomsReleases, BulletinTracker)
 from src.models.monitoring import (
-    MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema)
+    MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
+    InternalAlertSymbolsSchema)
 from src.utils.narratives import (write_narratives_to_db)
 from src.utils.monitoring import (
     get_monitoring_events, get_monitoring_releases,
     get_active_monitoring_events, get_current_monitoring_instance_per_site,
     compute_event_validity, round_to_nearest_release_time, get_pub_sym_id,
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
-    write_monitoring_earthquake_to_db, get_internal_alert_symbol)
+    write_monitoring_earthquake_to_db, get_internal_alert_symbols)
 from src.utils.extra import (create_symbols_map, var_checker)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
 
+@MONITORING_BLUEPRINT.route("/monitoring/get_internal_alert_symbols", methods=["GET"])
+def wrap_get_internal_alert_symbols():
+    """
+    Returns  all alert symbols rows.
+    """
+    ias = get_internal_alert_symbols()
+
+    return_data = []
+    for alert_symbol, trigger_source in ias:
+        ias_data = InternalAlertSymbolsSchema(
+            exclude=("trigger",)).dump(alert_symbol).data
+        ias_data["trigger_type"] = trigger_source
+        return_data.append(ias_data)
+
+    return jsonify(return_data)
+
+
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events", methods=["GET"])
-@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events/<value>", methods=["GET"])
-def wrap_get_monitoring_events(value=None):
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events/<event_id>", methods=["GET"])
+def wrap_get_monitoring_events(event_id=None):
     """
     NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
     """
@@ -395,7 +413,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
             # The following could should be in a foreach so we can handle list of triggers
             for index, trigger in enumerate(trigger_list_arr):
                 internal_sym_id = trigger["internal_sym_id"]
-                alert_symbol = get_internal_alert_symbol(internal_sym_id)
+                alert_symbol = get_internal_alert_symbols(internal_sym_id)
                 is_rain_surficial_sub_trigger = is_rain_surficial_subsurface_trigger(
                     alert_symbol)
                 moms_id_list = []

@@ -1,7 +1,8 @@
-import React, { useState, useEffect, Component, Fragment } from "react";
+import React, { Fragment } from "react";
 import { Grid, withStyles } from "@material-ui/core";
-import { element } from "prop-types";
+
 import CheckboxGroupWithSwitch from "../../reusables/CheckboxGroupWithSwitch";
+import { handleChange, handleCheckboxChange, handleSwitchChange } from "./state_handlers";
 import TriggerTimestampAndTechInfoCombo from "./TriggerTimestampAndTechInfoCombo";
 
 const styles = theme => ({
@@ -12,95 +13,62 @@ const styles = theme => ({
 });
 
 function SubsurfaceCheckboxGroup (props) {
-    const { classes, subsurfaceTriggerData, setSubsurfaceTriggerData } = props;
-    // console.log(subsurfaceTriggerData);
-
     const {
-        switchSubsurface,
-        triggerS2, triggerS3, triggerS0,
-    } = subsurfaceTriggerData;
+        classes, triggersState, setTriggersState
+    } = props;
 
+    const { subsurface } = triggersState;
+    const { switchState, triggers } = subsurface;
 
-    const handleChange = (key, element_id) => x => {
-        const value = key === "trigger_timestamp" ? x : x.target.value;
-
-        if (key === "trigger_timestamp") {
-            if (element_id === "ts_s2") setSubsurfaceTriggerData({
-                ...subsurfaceTriggerData,
-                triggerS2: { ...triggerS2, triggerTimestamp: value }
-            });
-            else setSubsurfaceTriggerData({
-                ...subsurfaceTriggerData,
-                triggerS3: { ...triggerS3, triggerTimestamp: value }
-            });
-        } else {
-            console.log("");
-            if (element_id === "tech_info_s2") setSubsurfaceTriggerData({
-                ...subsurfaceTriggerData,
-                triggerS2: { ...triggerS2, techInfo: value }
-            });
-            else setSubsurfaceTriggerData({
-                ...subsurfaceTriggerData,
-                triggerS3: { ...triggerS3, techInfo: value }
-            });
-        }
+    const triggers_value = {
+        trigger_2: { status: false, disabled: false },
+        trigger_3: { status: false, disabled: false },
+        trigger_0: { status: false, disabled: false },
     };
 
-    const handleSwitchChange = event => {
-        const is_checked = event.target.checked;
-
-        setSubsurfaceTriggerData(previous => ({ ...previous, switchSubsurface: is_checked }));
-
-        if (!is_checked) {
-            setSubsurfaceTriggerData(previous => ({
-                ...previous,
-                triggerS2: { ...triggerS2, status: false, disabled: false },
-                triggerS3: { ...triggerS3, status: false, disabled: false },
-                triggerS0: { status: false, disabled: false }
-            }));
-        }
-    };
-
-    const handleCheckboxChange = name => event => {
-        const is_checked = event.target.checked;
-
-        setSubsurfaceTriggerData(previous => {
-            const temp = previous[name];
-            const temp2 = {
-                triggerS2: { ...triggerS2, status: false, disabled: is_checked },
-                triggerS3: { ...triggerS3, status: false, disabled: is_checked }
+    if (triggers.length !== 0) {
+        triggers.forEach(trigger => {
+            const { alert_level, status, disabled } = trigger;
+            triggers_value[`trigger_${alert_level}`] = {
+                ...trigger,
+                status,
+                disabled
             };
-            const is_s0_disabled = !is_checked ? previous.triggerS2.status && previous.triggerS3.status : is_checked;
 
-            const final = name === "triggerS0" ? { ...temp2 } : { triggerS0: { status: false, disabled: is_s0_disabled } };
-
-            return ({ ...previous, [name]: { ...temp, status: is_checked }, ...final });
+            if (alert_level === 0) {
+                triggers_value.trigger_2.disabled = true;
+                triggers_value.trigger_3.disabled = true;
+            } else {
+                triggers_value.trigger_0.disabled = true;
+            }
         });
-    };
+    }
+
+    const { trigger_2, trigger_3, trigger_0 } = triggers_value;
 
     return (
         <Fragment>
-            <Grid item xs={12} className={switchSubsurface ? classes.groupGridContainer : ""}>
+            <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
                 <CheckboxGroupWithSwitch
                     label="Subsurface"
-                    switchState={switchSubsurface}
-                    switchHandler={handleSwitchChange}
-                    switchValue="switchSubsurface"
+                    switchState={switchState}
+                    switchHandler={handleSwitchChange(setTriggersState, "subsurface")}
+                    switchValue="subsurface_switch"
                     choices={[
-                        { state: triggerS2, value: "triggerS2", label: "Release trigger (s2)" },
-                        { state: triggerS3, value: "triggerS3", label: "Release trigger (S3)" },
-                        { state: triggerS0, value: "triggerS0", label: "No data ([s/S]0)" }
+                        { state: trigger_2, value: 2, label: "Release trigger (s2)" },
+                        { state: trigger_3, value: 3, label: "Release trigger (S3)" },
+                        { state: trigger_0, value: 0, label: "No data ([s/S]0)" }
                     ]}
-                    changeHandler={handleCheckboxChange}
+                    changeHandler={handleCheckboxChange(setTriggersState, "subsurface")}
                 />
             </Grid>
             {
-                triggerS2.status ? (
+                trigger_2.status && switchState ? (
                     <TriggerTimestampAndTechInfoCombo
                         labelFor="s2"
-                        trigger_timestamp={triggerS2.triggerTimestamp}
-                        tech_info={triggerS2.techInfo}
-                        changeHandler={handleChange}
+                        trigger_timestamp={trigger_2.timestamp}
+                        tech_info={trigger_2.tech_info}
+                        changeHandler={handleChange(setTriggersState, "subsurface")}
                     />
                 ) : (
                     <div />
@@ -108,12 +76,12 @@ function SubsurfaceCheckboxGroup (props) {
             }
 
             {
-                triggerS3.status ? (
+                trigger_3.status && switchState ? (
                     <TriggerTimestampAndTechInfoCombo
                         labelFor="S3"
-                        trigger_timestamp={triggerS3.triggerTimestamp}
-                        tech_info={triggerS3.techInfo}
-                        changeHandler={handleChange}
+                        trigger_timestamp={trigger_3.timestamp}
+                        tech_info={trigger_3.tech_info}
+                        changeHandler={handleChange(setTriggersState, "subsurface")}
                     />
                 ) : (
                     <div />

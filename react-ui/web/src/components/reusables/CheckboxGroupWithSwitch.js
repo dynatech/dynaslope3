@@ -34,10 +34,11 @@ const styles = theme => ({
 });
 
 function CheckboxesGroup (props) {
-    const { 
-        classes, switchState, switchHandler, 
-        switchValue, label, changeHandler, 
-        choices 
+    const {
+        classes, switchState, switchHandler,
+        switchValue, label, changeHandler,
+        setTriggersState,
+        choices
     } = props;
 
     return (
@@ -59,15 +60,15 @@ function CheckboxesGroup (props) {
                             {
                                 choices.map(({ state, value, label: clabel }, i) => {
                                     const { status, disabled } = state;
-                                    
+
                                     return (
                                         <FormControlLabel
                                             key={i}
                                             control={
                                                 <Checkbox
                                                     checked={status}
-                                                    onChange={changeHandler(value)}
-                                                    value={value} 
+                                                    onChange={changeHandler(value, setTriggersState)}
+                                                    value={value}
                                                     className={classes.checkboxes}
                                                     disabled={disabled}
                                                 />

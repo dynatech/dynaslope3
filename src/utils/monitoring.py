@@ -9,7 +9,8 @@ from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
     MonitoringTriggersMisc, MomsInstances, MomsFeatures,
-    InternalAlertSymbols, PublicAlertSymbols)
+    InternalAlertSymbols, PublicAlertSymbols,
+    TriggerHierarchies, OperationalTriggerSymbols)
 from src.utils.extra import (var_checker)
 from src.utils.narratives import write_narratives_to_db
 
@@ -105,18 +106,23 @@ def get_public_alert_level(pub_sym_id):
     return public_alert_symbol.alert_level
 
 
-def get_internal_alert_symbol(internal_sym_id):
+def get_internal_alert_symbols(internal_sym_id=None):
     """
     """
     try:
-        internal_symbol = InternalAlertSymbols.query.filter(
-            InternalAlertSymbols.internal_sym_id == internal_sym_id).first()
-        alert_symbol = internal_symbol.alert_symbol
+        base_query = InternalAlertSymbols
+        if internal_sym_id:
+            internal_symbol = base_query.query.filter(
+                InternalAlertSymbols.internal_sym_id == internal_sym_id).first()
+            return_data = internal_symbol.alert_symbol
+        else:
+            return_data = DB.session.query(InternalAlertSymbols, TriggerHierarchies.trigger_source).join(
+                OperationalTriggerSymbols).join(TriggerHierarchies).all()
     except Exception as err:
         print(err)
         raise
 
-    return alert_symbol
+    return return_data
 #############################################
 #   MONITORING_RELEASES RELATED FUNCTIONS   #
 #############################################

@@ -1,5 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Grid, withStyles } from "@material-ui/core";
+
+import { handleChange, handleRadioChange, handleSwitchChange } from "./state_handlers";
 import RadioGroup from "../../reusables/RadioGroupWithSwitch";
 import TriggerTimestampAndTechInfoCombo from "./TriggerTimestampAndTechInfoCombo";
 
@@ -12,72 +14,46 @@ const styles = theme => ({
 
 
 function RainfallRadioGroup (props) {
-    const { classes, rainfallTriggerData, setRainfallTriggerData } = props;
-
     const {
-        switchRainfall, rainfall, triggerTimestamp,
-        techInfo, triggerR1, triggerR0,
-        triggerRx
-    } = rainfallTriggerData;
+        classes, triggersState, setTriggersState
+    } = props;
 
+    const { rainfall } = triggersState;
+    const { switchState, triggers } = rainfall;
 
-    const handleChange = (key, element_id) => x => {
-        const value = key === "trigger_timestamp" ? x : x.target.value;
-
-        if (key === "trigger_timestamp") {
-            if (element_id === "ts_R") setRainfallTriggerData({
-                ...rainfallTriggerData,
-                triggerTimestamp: value
-            });
-        } else {
-            console.log("");
-            if (element_id === "tech_info_R") setRainfallTriggerData({
-                ...rainfallTriggerData,
-                techInfo: value
-            });
-        }
-    };
-
-    const handleSwitchChange = event => {
-        const is_checked = event.target.checked;
-
-        setRainfallTriggerData(previous => ({ ...previous, switchRainfall: is_checked }));
-
-        if (!is_checked) {
-            setRainfallTriggerData(previous => ({ ...previous, rainfall: "" }));
-        }
-    };
-
-    const handleRadioChange = event => {
-        setRainfallTriggerData({ ...rainfallTriggerData, rainfall: event.target.value });
-    };
+    let triggers_value = { alert_level: "" };
+    if (triggers.length !== 0) {
+        triggers.forEach(trigger => {
+            triggers_value = { ...trigger, alert_level: `${trigger.alert_level}` };
+        });
+    }
 
     return (
         <Fragment>
-            <Grid item xs={12} className={switchRainfall ? classes.groupGridContainer : ""}>
+            <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
                 <RadioGroup
                     label="Rainfall"
                     id="rainfall"
-                    switchState={switchRainfall}
-                    switchHandler={handleSwitchChange}
-                    switchValue="switchRainfall"
-                    radioValue={rainfall}
+                    switchState={switchState}
+                    switchHandler={handleSwitchChange(setTriggersState, "rainfall")}
+                    switchValue="rainfall_switch"
+                    radioValue={triggers_value.alert_level}
                     choices={[
-                        { state: triggerR1, value: "triggerR1", label: "Release new trigger" },
-                        { state: triggerR0, value: "triggerR0", label: "No data (R0)" },
-                        { state: triggerRx, value: "triggerRx", label: "Intermediate threshold (rx)" }
+                        { value: "1", label: "Release new trigger" },
+                        { value: "0", label: "No data (R0)" },
+                        { value: "-2", label: "Intermediate threshold (rx)" }
                     ]}
-                    changeHandler={handleRadioChange}
+                    changeHandler={handleRadioChange(setTriggersState, "rainfall")}
                 />
             </Grid>
 
             {
-                rainfall === "triggerR1" ? (
+                triggers_value.alert_level === "1" ? (
                     <TriggerTimestampAndTechInfoCombo
-                        labelFor="R"
-                        trigger_timestamp={triggerTimestamp}
-                        tech_info={techInfo}
-                        changeHandler={handleChange}
+                        labelFor="R1"
+                        trigger_timestamp={triggers_value.timestamp}
+                        tech_info={triggers_value.tech_info}
+                        changeHandler={handleChange(setTriggersState, "rainfall")}
                     />
                 ) : (
                     <div />
