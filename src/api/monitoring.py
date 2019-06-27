@@ -6,7 +6,8 @@ NAMING CONVENTION
 - Name routes as /<controller_name>/<function_name>
 """
 
-import json, time
+import json
+import time
 from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
@@ -397,6 +398,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                 alert_symbol = get_internal_alert_symbol(internal_sym_id)
                 is_rain_surficial_sub_trigger = is_rain_surficial_subsurface_trigger(
                     alert_symbol)
+                moms_id_list = []
 
                 if is_rain_surficial_sub_trigger is True:
                     internal_sym_id = trigger["internal_sym_id"]
@@ -406,20 +408,20 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     if alert_symbol in ["M", "m"]:
                         print("---MOMS---")
                         try:
+                            # NOTE: If there are pre-inserted moms, get the id and use it here.
                             moms_id = trigger["moms_id"]
                             info = trigger["consolidated_tech_info"]
                             timestamp = release_details["data_ts"]
                         except:
-                            moms_details = trigger["moms_details"]
+                            moms_list = trigger["moms_list"]
                             info = trigger["consolidated_tech_info"]
                             timestamp = release_details["data_ts"]
 
-                            # Temporary Map for getting alert level per IAS entry via internal_sym_id
-                            moms_level_map = {14: -1, 13: 2, 7: 3}
-                            moms_details["op_trigger"] = moms_level_map[internal_sym_id]
-
-                            moms_id = write_monitoring_moms_to_db(
-                                moms_details, site_id, event_id)
+                            for moms in moms_list:
+                                moms["internal_sym_id"] = internal_sym_id
+                                moms_id = write_monitoring_moms_to_db(
+                                    moms, site_id, event_id)
+                                moms_id_list.append(moms_id)
 
                         od_id = None
                         eq_id = None
@@ -465,26 +467,24 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     trig_misc_id = write_monitoring_triggers_misc_to_db(
                         new_trigger_id, has_moms, od_id, eq_id)
                     if alert_symbol in ["m", "M"]:
-                        write_monitoring_moms_releases_to_db(
-                            trig_misc_id, moms_id)
+                        for moms_id in moms_id_list:
+                            write_monitoring_moms_releases_to_db(
+                                trig_misc_id, moms_id)
 
-        var_checker("NON TRIGERING", non_triggering_moms, True)
         if non_triggering_moms:
-            print("PASOK")
             for non_trig_moms in non_triggering_moms:
                 try:
                     moms_id = non_trig_moms["moms_id"]
                     print(
                         f"Existing non-triggering MOMS given. ID is: {moms_id}")
                 except:
-                    moms_details = non_trig_moms["moms_details"]
+                    moms_list = non_trig_moms["moms_list"]
 
-                    # Temporary Map for getting alert level per IAS entry via internal_sym_id
-                    moms_level_map = {14: -1, 13: 2, 7: 3}
-                    moms_details["op_trigger"] = moms_level_map[internal_sym_id]
-
-                    moms_id = write_monitoring_moms_to_db(
-                        moms_details, site_id, event_id)
+                    for moms in moms_list:
+                        moms_details = moms["moms_details"]
+                        moms_details["internal_sym_id"] = internal_sym_id
+                        write_monitoring_moms_to_db(
+                            moms_details, site_id, event_id)
                     print(f"New non-triggering MOMS written. ID is: {moms_id}")
 
         # WHEN NOTHING GOES WRONG, COMMIT!
@@ -586,6 +586,11 @@ def insert_ewi(internal_json=None):
                     datetime_data_ts, alert_level)
             else:
                 validity = site_monitoring_instance.validity
+
+            try:
+                validity = json_data["cbewsl_validity"]
+            except:
+                pass
 
             # New status is based on entry_type, event, which is 2.
             if is_new_monitoring_instance(2, site_status):
@@ -725,6 +730,61 @@ def insert_ewi(internal_json=None):
 ###############
 # CBEWS-L API #
 ###############
+@MONITORING_BLUEPRINT.route("/monitoring/get_latest_cbewls_release/<site_id>", methods=["GET"])
+def get_latest_cbewsl_ewi(site_id):
+    """
+    This function returns minimal details of the
+    latest release for the application.
+
+    """
+    site_event = get_current_monitoring_instance_per_site(site_id)
+
+    latest_event_alert = site_event.event_alerts.order_by(
+        DB.desc(MonitoringEventAlerts.ts_start)).first()
+    latest_release = latest_event_alert.releases.order_by(
+        DB.desc(MonitoringReleases.data_ts)).first()
+    # Only one publisher needed for cbewsl
+    release_publishers = latest_release.release_publishers.first()
+    triggers = latest_release.triggers.all()
+
+    simple_triggers = []
+    try:
+        for trigger in triggers:
+            trigger_dict = {
+                "int_sym": trigger.internal_sym.alert_symbol,
+                "info": trigger.info,
+                "ts": str(datetime.strftime(trigger.ts, "%Y-%m-%d %H:%M:%S"))
+            }
+
+            if trigger.internal_sym.alert_symbol in ["m", "M", "M0"]:
+                moms_releases_list = trigger.trigger_misc.moms_releases.all()
+
+                moms_releases_min_list = []
+                for release in moms_releases_list:
+                    instance = release.moms_details.moms_instance
+
+                    moms_releases_min_list.append({
+                        "f_name": instance.feature_name,
+                        "f_type": instance.feature.feature_type
+                    })
+
+                trigger_dict["moms_list"] = moms_releases_min_list
+
+            simple_triggers.append(trigger_dict)
+    except:
+        raise
+
+    minimal_data = {
+        "alert_level": latest_event_alert.public_alert_symbol.alert_level,
+        "alert_validity": str(datetime.strftime(site_event.validity, "%Y-%m-%d %H:%M:%S")),
+        "data_ts": str(datetime.strftime(latest_release.data_ts, "%Y-%m-%d %H:%M:%S")),
+        "user_id": release_publishers.user_id,
+        "trig_list": simple_triggers
+    }
+
+    return jsonify(minimal_data)
+
+
 @MONITORING_BLUEPRINT.route("/monitoring/insert_cbewsl_ewi", methods=["POST"])
 def insert_cbewsl_ewi():
     """
@@ -739,8 +799,16 @@ def insert_cbewsl_ewi():
         json_data = request.get_json()
         alert_level = json_data["alert_level"]
         user_id = json_data["user_id"]
-        data_ts = str(json_data["data_ts"])
+        data_ts = str(datetime.strptime(
+            json_data["data_ts"], "%Y-%m-%d %H:%M:%S"))
         trigger_list_arr = []
+
+        moms_level_dict = {2: 13, 3: 7}
+        moms_trigger = {
+            "internal_sym_id": moms_level_dict[alert_level],
+            "consolidated_tech_info": "",
+            "moms_list": []
+        }
 
         for trigger in json_data["trig_list"]:
             trigger_type = trigger["int_sym"]
@@ -754,24 +822,25 @@ def insert_cbewsl_ewi():
                 trigger_list_arr.append(trigger_entry)
             elif trigger_type in ["m", "M", "M0"]:
                 # Always trigger entry from app. Either m or M only.
-                moms_level_dict = {2: 13, 3: 7}
+                c_t_info = moms_trigger["consolidated_tech_info"]
+                feature_name = trigger["f_name"]
+                feature_type = trigger["f_type"]
                 remarks = trigger["remarks"]
-
-                trigger_entry = {
-                    "internal_sym_id": moms_level_dict[alert_level],
-                    "consolidated_tech_info": remarks,
-                    "moms_details": {
-                        "instance_id": -2,
-                        "observance_ts": data_ts,
-                        "reporter_id": user_id,
-                        "remarks": remarks,
-                        "report_narrative": remarks,
-                        "validator_id": user_id,
-                        "feature_name": trigger["f_name"],
-                        "feature_type": trigger["f_type"]
-                    }
+                moms_trigger["consolidated_tech_info"] = f"[{feature_type}] {feature_name} - {remarks} {c_t_info}"
+                moms_obs = {
+                    "observance_ts": data_ts,
+                    "reporter_id": user_id,
+                    "remarks": remarks,
+                    "report_narrative": f"[{feature_type}] {feature_name} - {remarks}",
+                    "validator_id": user_id,
+                    "instance_id": None,
+                    "feature_name": trigger["f_name"],
+                    "feature_type": trigger["f_type"]
                 }
-                trigger_list_arr.append(trigger_entry)
+                moms_trigger["moms_list"].append(moms_obs)
+
+        if moms_trigger["moms_list"]:
+            trigger_list_arr.append(moms_trigger)
 
         release_time = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
 
@@ -784,6 +853,7 @@ def insert_cbewsl_ewi():
         "site_id": 50,
         "site_code": "umi",
         "alert_level": alert_level,
+        "cbewsl_validity": json_data["alert_validity"],
         "routine_sites_ids": [],
         "release_details": {
             "data_ts": data_ts,

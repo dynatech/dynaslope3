@@ -61,7 +61,7 @@ class MonitoringEventAlerts(UserMixin, DB.Model):
     public_alert_symbol = DB.relationship(
         "PublicAlertSymbols", backref=DB.backref("event_alerts", lazy="dynamic"), lazy="select")
     releases = DB.relationship(
-        "MonitoringReleases", backref="event_alert", lazy="subquery")
+        "MonitoringReleases", backref=DB.backref("event_alert", lazy="select"), lazy="dynamic")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event Alert ID: {self.event_alert_id}"
@@ -90,9 +90,12 @@ class MonitoringReleases(UserMixin, DB.Model):
     triggers = DB.relationship(
         "MonitoringTriggers", backref="release", lazy="dynamic")
 
+    # release_publishers = DB.relationship(
+    #     "MonitoringReleasePublishers", backref=DB.backref("releases",
+    #                                                       lazy="joined", innerjoin=True))
     release_publishers = DB.relationship(
-        "MonitoringReleasePublishers", backref=DB.backref("releases",
-                                                          lazy="joined", innerjoin=True))
+        "MonitoringReleasePublishers", backref=DB.backref("release",
+                                                          lazy="select"), lazy="dynamic")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Release ID: {self.release_id}"
@@ -117,9 +120,7 @@ class MonitoringReleasePublishers(UserMixin, DB.Model):
     role = DB.Column(DB.String(45))
 
     user_details = DB.relationship(
-        "Users", backref="publisher",
-        primaryjoin="MonitoringReleasePublishers.user_id==Users.user_id",
-        lazy="joined", innerjoin=True)
+        "Users", backref=DB.backref("publisher", lazy="select"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Publisher ID: {self.publisher_id}"
@@ -144,9 +145,8 @@ class MonitoringTriggers(UserMixin, DB.Model):
     ts = DB.Column(DB.DateTime, nullable=False)
     info = DB.Column(DB.String(360))
 
-    # Louie - Unsure with relationship
     internal_sym = DB.relationship(
-        "InternalAlertSymbols", backref="trigger", lazy=True)
+        "InternalAlertSymbols", backref="trigger", lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger ID: {self.trigger_id}"
@@ -173,8 +173,6 @@ class MonitoringTriggersMisc(UserMixin, DB.Model):
     # Changed to has_moms to accommodate multiple moms
     has_moms = DB.Column(DB.Boolean)
 
-    moms_releases = DB.relationship(
-        "MonitoringMomsReleases", backref="trigger_misc", lazy="subquery")
     trigger_parent = DB.relationship(
         "MonitoringTriggers",
         backref=DB.backref(
@@ -257,8 +255,11 @@ class MonitoringMomsReleases(UserMixin, DB.Model):
     moms_id = DB.Column(DB.Integer, DB.ForeignKey(
         "ewi_db.monitoring_moms.moms_id"), nullable=False)
 
+    trigger_misc = DB.relationship(
+        "MonitoringTriggersMisc", backref=DB.backref("moms_releases", lazy="dynamic"), lazy="select")
+
     moms_details = DB.relationship(
-        "MonitoringMoms", backref="moms_release", lazy=True)
+        "MonitoringMoms", backref=DB.backref("moms_releases", lazy="select"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Moms Release ID: {self.moms_rel_id}"
@@ -330,7 +331,7 @@ class MomsInstances(UserMixin, DB.Model):
     site = DB.relationship("Sites", backref=DB.backref(
         "moms_instance", lazy="dynamic"))
     feature = DB.relationship(
-        "MomsFeatures", backref=DB.backref("moms_instance_feature", lazy="dynamic"))
+        "MomsFeatures", backref=DB.backref("moms_instance_feature", lazy="dynamic"), lazy="select")
 
     # site = DB.relationship("Sites", backref="moms_instance", lazy=True)
 
