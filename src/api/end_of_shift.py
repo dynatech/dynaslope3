@@ -35,7 +35,7 @@ def get_end_of_shift_data(shift_start, shift_end, event_id):
     NOTE: This is still a work-to-do.
     """
 
-    event = get_monitoring_events(event_id)
+    event = get_monitoring_events(event_id=event_id)
     event_alerts = event.event_alerts
 
     event_alerts_list = []
@@ -81,7 +81,7 @@ def wrap_get_monitoring_events(event_id):
     """
     Sample
     """
-    event = get_monitoring_events(event_id)
+    event = get_monitoring_events(event_id=event_id)
     ev_data = MonitoringEventsSchema().dump(event).data
     return jsonify(ev_data)
 

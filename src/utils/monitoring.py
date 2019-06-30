@@ -148,6 +148,52 @@ def get_monitoring_releases(release_id=None):
 #   MONITORING_EVENT RELATED FUNCTIONS   #
 ##########################################
 
+
+def get_monitoring_events_table(offset, limit):
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
+    # DB.session.query(
+    #     me, mea.pub_sym_id,
+    #     mea.ts_start, mea.ts_end).join(mea).order_by(
+    #         DB.desc(me.event_id),
+    #         DB.desc(mea.event_alert_id)
+    #         ).all()[offset:limit]
+
+    #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
+    temp = me.query.order_by(DB.desc(me.event_id)).all()[offset:limit]
+
+    event_data = []
+    for event in temp:
+        if event.status == 2:
+            entry_type = "EVENT"
+        else:
+            entry_type = "ROUTINE"
+
+        latest_event_alert = event.event_alerts.order_by(
+            DB.desc(mea.event_alert_id)).first()
+
+        event_dict = {
+            "event_id": event.event_id,
+            "site_id": event.site.site_id,
+            "site_code": event.site.site_code,
+            "purok": event.site.purok,
+            "sitio": event.site.sitio,
+            "barangay": event.site.barangay,
+            "municipality": event.site.municipality,
+            "province": event.site.province,
+            "event_start": event.event_start,
+            "validity": event.validity,
+            "entry_type": entry_type,
+            "public_alert": latest_event_alert.public_alert_symbol.alert_symbol,
+            "ts_start": latest_event_alert.ts_start,
+            "ts_end": latest_event_alert.ts_end
+        }
+        event_data.append(event_dict)
+
+    return event_data
+
+
 def get_monitoring_events(event_id=None):
     """
     Returns event details with corresponding site details. Receives an event_id from flask request.
