@@ -54,17 +54,19 @@ def get_report_by_date():
 @SENSOR_MAINTENANCE_BLUEPRINT.route("/sensor_maintenance/save_sensor_maintenance_logs", methods=["GET", "POST"])
 def save_sensor_maintenance_logs():
     data = request.get_json()
+    if data is None:
+        data = request.form
     print(data)
     status = None
     message = ""
     try:
         current_time = time.strftime('%H:%M:%S')
-        sensor_maintenance_id = data["sensor_maintenance_id"]
+        sensor_maintenance_id = int(data["sensor_maintenance_id"])
         # remarks = data["remarks"]
-        working_nodes = data["working_nodes"]
-        anomalous_nodes = data["anomalous_nodes"]
-        rain_gauge_status = data["rain_gauge_status"]
-        timestamp = data["timestamp"]
+        working_nodes = str(data["working_nodes"])
+        anomalous_nodes = str(data["anomalous_nodes"])
+        rain_gauge_status = str(data["rain_gauge_status"])
+        timestamp = str(data["timestamp"])
         datetime = str(timestamp + " " + current_time)
         print(datetime)
         if sensor_maintenance_id == 0:
@@ -73,6 +75,10 @@ def save_sensor_maintenance_logs():
             DB.session.add(insert_data)
             message = "Successfully added new data!"
         else:
+            update_data = SensorMaintenance.query.get(sensor_maintenance_id)
+            update_data.working_nodes = working_nodes
+            update_data.anomalous_nodes = anomalous_nodes
+            update_data.rain_gauge_status = rain_gauge_status
             message = "Successfully updated data!"
 
         DB.session.commit()
@@ -82,6 +88,35 @@ def save_sensor_maintenance_logs():
         DB.session.rollback()
         status = False
         message = "Something went wrong, Please try again"
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+    return jsonify(feedback)
+
+
+@SENSOR_MAINTENANCE_BLUEPRINT.route("/sensor_maintenance/delete_sensor_maintenance", methods=["GET", "POST"])
+def delete_sensor_maintenance():
+    data = request.get_json()
+    status = None
+    message = ""
+    if data is None:
+        data = request.form
+
+    sensor_maintenance_id = int(data["sensor_maintenance_id"])
+
+    try:
+        SensorMaintenance.query.filter_by(
+            sensor_maintenance_id=sensor_maintenance_id).delete()
+        DB.session.commit()
+        message = "Successfully deleted data!"
+        status = True
+    except Exception as err:
+        DB.session.rollback()
+        message = "Something went wrong, Please try again"
+        status = False
+        print(err)
 
     feedback = {
         "status": status,
