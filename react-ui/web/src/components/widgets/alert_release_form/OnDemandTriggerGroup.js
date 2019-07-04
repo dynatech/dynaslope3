@@ -39,12 +39,17 @@ function OnDemandTriggerGroup (props) {
     const { on_demand } = triggersState;
     const { switchState, triggers } = on_demand;
 
-    let triggers_value = { reason: "", reporterId: "" };
+    let timestamp, tech_info, reason, reporterId;
     if (triggers.length !== 0) {
-        triggers.forEach(trigger => {
-            triggers_value = { ...triggers_value, ...trigger };
-        });
+        const { timestamp, tech_info, reason, reporterId } = triggers[0]; // There is always only ONE on demand trigger
     }
+
+    // let triggers_value = { reason: "", reporterId: "" };
+    // if (triggers.length !== 0) {
+    //     triggers.forEach(trigger => {
+    //         triggers_value = { ...triggers_value, ...trigger };
+    //     });
+    // }
 
     console.log("<triggersState>", triggersState);
 
@@ -69,8 +74,8 @@ function OnDemandTriggerGroup (props) {
                     <Fragment>
                         <TriggerTimestampAndTechInfoCombo
                             labelFor="d1"
-                            trigger_timestamp={triggers_value.timestamp}
-                            tech_info={triggers_value.tech_info}
+                            trigger_timestamp={timestamp}
+                            tech_info={tech_info}
                             changeHandler={handleChange(setTriggersState, "on_demand")}
                         />
 
@@ -79,7 +84,7 @@ function OnDemandTriggerGroup (props) {
                                 required
                                 id="reason"
                                 label="Reason"
-                                value={triggers_value.reason}
+                                value={reason}
                                 onChange={handleEventChange("reason", setTriggersState, "on_demand")}
                                 placeholder="Enter reason of on-demand request"
                                 multiline
@@ -93,7 +98,7 @@ function OnDemandTriggerGroup (props) {
                                 label="Reporter"
                                 div_id="reporter_id"
                                 changeHandler={handleEventChange("reporterId", setTriggersState, "on_demand")}
-                                value={triggers_value.reporterId}
+                                value={reporterId}
                                 list={community_contacts}
                                 mapping={{ id: "user_id", label: "name" }}
                             />

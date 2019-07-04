@@ -19,8 +19,12 @@ const handleSwitchChange = (setTriggersState, trigger_type) => event => {
     setTriggersState({ action: "TOGGLE_SWITCH", trigger_type, value: is_checked });
 
     if (["on_demand", "earthquake"].includes(trigger_type)) {
-
+        console.log("Trigger Type", trigger_type);
         const action = is_checked ? "ADD_TRIGGER" : "REMOVE_TRIGGER";
+
+        let special_case_states;
+        if (trigger_type === "on_demand") special_case_states = { reason: "", reporterId: "" };
+        else if (trigger_type === "earthquake") special_case_states = { magnitude: "", longitude: "", latitude: "" };
 
         setTriggersState({
             action,
@@ -28,7 +32,8 @@ const handleSwitchChange = (setTriggersState, trigger_type) => event => {
             value: {
                 alert_level: 1, // Uses alert_level 1 since all earthquake and ondemand alerts are Alert 1 only
                 timestamp: null,
-                tech_info: ""
+                tech_info: "",
+                ...special_case_states
             }
         });
     }

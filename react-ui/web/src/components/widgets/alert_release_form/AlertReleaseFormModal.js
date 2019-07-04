@@ -137,7 +137,28 @@ function AlertReleaseFormModal(props) {
                     else {
                         for (let j = 0; j < length; j += 1) {
                             if ([1, 2, 3].includes(trigger_list[j].alert_level)) {
-                                is_disabled = true;
+                                // is_disabled = true;
+                                if (trigger_keys_array[i] === "on demand") {
+                                    const { reason, reporterId, tech_info, timestamp } = trigger_list[j];
+                                    if (
+                                        tech_info === "" || timestamp === "" ||
+                                        reason === "" || reporterId === ""
+                                    ) is_disabled = true;
+                                } else if (trigger_keys_array[i] === "earthquake") {
+                                    const {
+                                        tech_info, timestamp, magnitude,
+                                        longitude, latitude
+                                    } = trigger_list[j];
+                                    if (
+                                        tech_info === "" || timestamp === "" ||
+                                        magnitude === "" || longitude === "" ||
+                                        latitude === ""
+                                    ) is_disabled = true;
+
+                                } else {
+                                    const { tech_info, timestamp } = trigger_list[j];
+                                    if (tech_info === "" || timestamp === null) is_disabled = true;
+                                }
                                 break;
                             }
                         }
