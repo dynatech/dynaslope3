@@ -148,6 +148,17 @@ def get_monitoring_releases(release_id=None):
 #   MONITORING_EVENT RELATED FUNCTIONS   #
 ##########################################
 
+def get_public_alert(site_id):
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(
+        me).filter(me.site_id == site_id).first()
+    if result:
+        result = result.public_alert_symbol.alert_symbol
+
+    return result
+
+
 def get_event_count(filters=None):
     if filters:
         print("Filters!")

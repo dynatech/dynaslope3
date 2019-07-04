@@ -23,7 +23,7 @@ const handleSwitchChange = (setTriggersState, trigger_type) => event => {
         const action = is_checked ? "ADD_TRIGGER" : "REMOVE_TRIGGER";
 
         let special_case_states;
-        if (trigger_type === "on_demand") special_case_states = { reason: "", reporterId: "" };
+        if (trigger_type === "on_demand") special_case_states = { reason: "", reporterId: null };
         else if (trigger_type === "earthquake") special_case_states = { magnitude: "", longitude: "", latitude: "" };
 
         setTriggersState({

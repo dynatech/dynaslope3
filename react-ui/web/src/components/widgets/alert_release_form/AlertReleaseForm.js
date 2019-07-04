@@ -53,7 +53,18 @@ const styles = theme => ({
     }
 });
 
-function AlertReleaseForm (props) {
+function getSitePublicAlert(site_id, generalData, setGeneralData) {
+    axios.get(`http://127.0.0.1:5000/api/monitoring/get_site_public_alert?site_id=${site_id}`)
+        .then(response => {
+            const public_alert = response.data;
+            setGeneralData({ ...generalData, siteId: site_id, publicAlert: public_alert });
+        })
+        .catch(error => {
+            console.log(error);
+        });
+}
+
+function AlertReleaseForm(props) {
     const {
         classes, activeStep, generalData, setGeneralData,
         triggersState, setTriggersState
@@ -223,15 +234,6 @@ function AlertReleaseForm (props) {
                 </Grid>
 
                 <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                    {/* <SelectInputForm
-                        label="IOMP-CT"
-                        div_id="reporter_id_ct"
-                        changeHandler={handleEventChange("reporterIdCt")}
-                        value={reporter_id_ct}
-                        list={users}
-                        mapping={{ id: "user_id", label: "name" }}
-                        // css={classes.selectInput}
-                    /> */}
                     <DynaslopeUserSelectInputForm
                         variant="standard"
                         label="IOMP-CT"
@@ -277,10 +279,15 @@ function AlertReleaseForm (props) {
 
     const handleEventChange = key => event => {
         const { value } = event.target;
-        changeState(key, value);
+        if (key === "siteId") {
+            console.log("site id", value);
+            getSitePublicAlert(value, generalData, setGeneralData);
+        } else changeState(key, value);
     };
 
     const steps = getSteps();
+
+    console.log(generalData);
 
     return (
         <MuiPickersUtilsProvider utils={MomentUtils}>

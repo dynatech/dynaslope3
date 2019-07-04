@@ -25,7 +25,7 @@ from src.utils.monitoring import (
     compute_event_validity, round_to_nearest_release_time, get_pub_sym_id,
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
     write_monitoring_earthquake_to_db, get_internal_alert_symbols,
-    get_monitoring_events_table, get_event_count)
+    get_monitoring_events_table, get_event_count, get_public_alert)
 from src.utils.extra import (create_symbols_map, var_checker)
 
 
@@ -65,6 +65,12 @@ def wrap_get_internal_alert_symbols():
 
 #     return jsonify(event_data)
 
+@MONITORING_BLUEPRINT.route("/monitoring/get_site_public_alert", methods=["GET"])
+def wrap_get_site_public_alert():
+    site_id = request.args.get('site_id', default=1, type=int)
+    return_data = get_public_alert(site_id)
+    return return_data
+
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events", methods=["GET"])
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events/<value>", methods=["GET"])
@@ -74,7 +80,7 @@ def wrap_get_monitoring_events(value=None):
     """
     filter_type = request.args.get('filter_type', default="event_id", type=str)
 
-    event_data = []
+    return_data = []
     if filter_type == "event_id":
         event = get_monitoring_events(event_id=value)
         event_schema = MonitoringEventsSchema()
@@ -82,18 +88,18 @@ def wrap_get_monitoring_events(value=None):
         if value is None:
             event_schema = MonitoringEventsSchema(many=True)
 
-        event_data = event_schema.dump(event).data
+        return_data = event_schema.dump(event).data
     elif filter_type == "complete":
         offset = request.args.get('offset', default=0, type=int)
         limit = request.args.get('limit', default=5, type=int)
 
-        event_data = get_monitoring_events_table(offset=offset, limit=limit)
+        return_data = get_monitoring_events_table(offset=offset, limit=limit)
     elif filter_type == "count":
-        event_data = get_event_count()
+        return_data = get_event_count()
     else:
         raise Exception(KeyError)
 
-    return jsonify(event_data)
+    return jsonify(return_data)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases", methods=["GET"])

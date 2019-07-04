@@ -47,7 +47,8 @@ function AlertReleaseFormModal(props) {
         siteId: "",
         reporterIdCt: 1,
         reporterIdMt: 2,
-        comments: ""
+        comments: "",
+        publicAlert: ""
     });
 
     const [triggers, setTriggers] = useReducer((triggs, { action, trigger_type, value }) => {
@@ -91,7 +92,6 @@ function AlertReleaseFormModal(props) {
                     if (trig.alert_level === value.alert_level) return { ...trig, ...value };
                     return trig;
                 });
-                console.log("TEMP2", temp2, value);
                 return {
                     ...triggs,
                     [trigger_type]: {
@@ -110,7 +110,6 @@ function AlertReleaseFormModal(props) {
         });
 
     useEffect(() => {
-        console.log("Use Effect");
         if (activeStep === 0) {
             const {
                 siteId, dataTimestamp, releaseTime,
@@ -124,13 +123,10 @@ function AlertReleaseFormModal(props) {
             }
         } else if (activeStep === 1) {
             const trigger_keys_array = Object.keys(triggers);
-            console.log("Step 1");
-            console.log(trigger_keys_array);
             let is_disabled = false;
             for (let i = 0; i < trigger_keys_array.length; i += 1) {
                 const { switchState, triggers: trigger_list } = triggers[trigger_keys_array[i]];
                 if (switchState) {
-                    console.log("switched on");
                     const { length } = trigger_list;
 
                     if (length === 0) is_disabled = true;
@@ -138,7 +134,7 @@ function AlertReleaseFormModal(props) {
                         for (let j = 0; j < length; j += 1) {
                             if ([1, 2, 3].includes(trigger_list[j].alert_level)) {
                                 // is_disabled = true;
-                                if (trigger_keys_array[i] === "on demand") {
+                                if (trigger_keys_array[i] === "on_demand") {
                                     const { reason, reporterId, tech_info, timestamp } = trigger_list[j];
                                     if (
                                         tech_info === "" || timestamp === "" ||

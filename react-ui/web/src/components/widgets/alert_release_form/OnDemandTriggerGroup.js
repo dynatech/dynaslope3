@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from "react";
+import React, { Component, useState, Fragment } from "react";
 import {
     Grid, withStyles, FormControl,
     FormLabel, Switch, TextField
@@ -31,7 +31,7 @@ const styles = theme => ({
 });
 
 
-function OnDemandTriggerGroup (props) {
+function OnDemandTriggerGroup(props) {
     const {
         classes, triggersState, setTriggersState
     } = props;
@@ -39,17 +39,13 @@ function OnDemandTriggerGroup (props) {
     const { on_demand } = triggersState;
     const { switchState, triggers } = on_demand;
 
-    let timestamp, tech_info, reason, reporterId;
+    let timestamp, tech_info, reason, reporterId, contact_person;
     if (triggers.length !== 0) {
+        console.log("PASOK SA LENGTHY");
         const { timestamp, tech_info, reason, reporterId } = triggers[0]; // There is always only ONE on demand trigger
+        if (reporterId !== null) contact_person = community_contacts.find(x => x.user_id === reporterId).name;
+        console.log(contact_person);
     }
-
-    // let triggers_value = { reason: "", reporterId: "" };
-    // if (triggers.length !== 0) {
-    //     triggers.forEach(trigger => {
-    //         triggers_value = { ...triggers_value, ...trigger };
-    //     });
-    // }
 
     console.log("<triggersState>", triggersState);
 
@@ -92,7 +88,6 @@ function OnDemandTriggerGroup (props) {
                                 fullWidth
                             />
                         </Grid>
-
                         <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
                             <SelectInputForm
                                 label="Reporter"
@@ -106,8 +101,8 @@ function OnDemandTriggerGroup (props) {
 
                     </Fragment>
                 ) : (
-                    <div />
-                )
+                        <div />
+                    )
             }
         </Fragment>
     );
