@@ -25,7 +25,7 @@ from src.utils.monitoring import (
     compute_event_validity, round_to_nearest_release_time, get_pub_sym_id,
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
     write_monitoring_earthquake_to_db, get_internal_alert_symbols,
-    get_monitoring_events_table)
+    get_monitoring_events_table, get_event_count)
 from src.utils.extra import (create_symbols_map, var_checker)
 
 
@@ -88,6 +88,8 @@ def wrap_get_monitoring_events(value=None):
         limit = request.args.get('limit', default=5, type=int)
 
         event_data = get_monitoring_events_table(offset=offset, limit=limit)
+    elif filter_type == "count":
+        event_data = get_event_count()
     else:
         raise Exception(KeyError)
 

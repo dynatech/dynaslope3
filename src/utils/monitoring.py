@@ -148,6 +148,15 @@ def get_monitoring_releases(release_id=None):
 #   MONITORING_EVENT RELATED FUNCTIONS   #
 ##########################################
 
+def get_event_count(filters=None):
+    if filters:
+        print("Filters!")
+        return_data = 10000
+    else:
+        return_data = MonitoringEvents.query.count()
+
+    return return_data
+
 
 def get_monitoring_events_table(offset, limit):
     me = MonitoringEvents
