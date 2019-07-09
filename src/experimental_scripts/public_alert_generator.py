@@ -959,6 +959,9 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             "ts": timestamp,
             "site_id": site_id,
             "site_code": site_code,
+            "purok": site.purok,
+            "sitio": site.sitio,
+            "barangay": site.barangay,
             "public_alert": PAS_MAP[("alert_symbol", highest_public_alert)],
             "internal_alert": internal_alert,
             "validity": validity,
@@ -1033,12 +1036,12 @@ def main(query_ts_end=None, is_test=False, site_code=None):
     generated_alerts = get_site_public_alerts(
         active_sites, query_ts_start, query_ts_end, do_not_write_to_db)
 
-    var_checker("UNSORTED", generated_alerts, True)
+    # var_checker("UNSORTED", generated_alerts, True)
 
     # Sort per alert level
     generated_alerts.sort(key=extract_alert_level, reverse=True)
 
-    var_checker("SORTED", generated_alerts, True)
+    # var_checker("SORTED", generated_alerts, True)
 
     # Convert data to JSON
     json_data = json.dumps(generated_alerts)

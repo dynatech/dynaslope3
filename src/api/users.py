@@ -2,7 +2,7 @@
 Users Functions Controller File
 """
 
-from flask import Blueprint
+from flask import Blueprint, jsonify
 from src.utils.users import get_dynaslope_users, get_community_users
 
 USERS_BLUEPRINT = Blueprint("users_blueprint", __name__)
@@ -13,7 +13,9 @@ def wrap_get_dynaslope_users():
     """
     Route function that get all Dynaslope users
     """
-    output = get_dynaslope_users(return_schema_format=True)
+    output = get_dynaslope_users(
+        return_schema_format=True, return_jsonify_format=True)
+
     return output
 
 

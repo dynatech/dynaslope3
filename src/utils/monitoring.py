@@ -5,12 +5,15 @@ Contains functions for getting and accesing monitoring-related tables only
 from flask import request
 from datetime import datetime, timedelta, time
 from connection import DB
+from sqlalchemy import and_
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
     MonitoringTriggersMisc, MomsInstances, MomsFeatures,
-    InternalAlertSymbols, PublicAlertSymbols)
-from src.utils.extra import (var_checker)
+    InternalAlertSymbols, PublicAlertSymbols,
+    TriggerHierarchies, OperationalTriggerSymbols)
+from src.utils.extra import (
+    var_checker, round_to_nearest_release_time, compute_event_validity)
 from src.utils.narratives import write_narratives_to_db
 
 
@@ -27,52 +30,6 @@ def process_trigger_list(trigger_list, include_ND=False):
         return nd_alert, trigger_str
 
     return trigger_str
-
-
-def round_to_nearest_release_time(data_ts):
-    """
-    Round time to nearest 4/8/12 AM/PM
-
-    Args:
-        data_ts (datetime)
-
-    Returns datetime
-    """
-    hour = data_ts.hour
-
-    quotient = int(hour / 4)
-
-    if quotient == 5:
-        date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
-    else:
-        date_time = datetime.combine(
-            data_ts.date(), time((quotient + 1) * 4, 0))
-
-    return date_time
-
-
-def compute_event_validity(data_ts, alert_level):
-    """
-    Computes for event validity given set of trigger timestamps
-
-    Args:
-        data_ts (datetime)
-        alert_level (int)
-
-    Returns datetime
-    """
-
-    rounded_data_ts = round_to_nearest_release_time(data_ts)
-    if alert_level in [1, 2]:
-        add_day = 1
-    elif alert_level == 3:
-        add_day = 2
-    else:
-        raise ValueError("Alert level accepted is 1/2/3 only")
-
-    validity = rounded_data_ts + timedelta(add_day)
-
-    return validity
 
 
 def get_pub_sym_id(alert_level):
@@ -105,18 +62,23 @@ def get_public_alert_level(pub_sym_id):
     return public_alert_symbol.alert_level
 
 
-def get_internal_alert_symbol(internal_sym_id):
+def get_internal_alert_symbols(internal_sym_id=None):
     """
     """
     try:
-        internal_symbol = InternalAlertSymbols.query.filter(
-            InternalAlertSymbols.internal_sym_id == internal_sym_id).first()
-        alert_symbol = internal_symbol.alert_symbol
+        base_query = InternalAlertSymbols
+        if internal_sym_id:
+            internal_symbol = base_query.query.filter(
+                InternalAlertSymbols.internal_sym_id == internal_sym_id).first()
+            return_data = internal_symbol.alert_symbol
+        else:
+            return_data = DB.session.query(InternalAlertSymbols, TriggerHierarchies.trigger_source).join(
+                OperationalTriggerSymbols).join(TriggerHierarchies).all()
     except Exception as err:
         print(err)
         raise
 
-    return alert_symbol
+    return return_data
 #############################################
 #   MONITORING_RELEASES RELATED FUNCTIONS   #
 #############################################
@@ -141,6 +103,72 @@ def get_monitoring_releases(release_id=None):
 ##########################################
 #   MONITORING_EVENT RELATED FUNCTIONS   #
 ##########################################
+
+def get_public_alert(site_id):
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(
+        me).filter(me.site_id == site_id).first()
+    if result:
+        result = result.public_alert_symbol.alert_symbol
+
+    return result
+
+
+def get_event_count(filters=None):
+    if filters:
+        print("Filters!")
+        return_data = 10000
+    else:
+        return_data = MonitoringEvents.query.count()
+
+    return return_data
+
+
+def get_monitoring_events_table(offset, limit):
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
+    # DB.session.query(
+    #     me, mea.pub_sym_id,
+    #     mea.ts_start, mea.ts_end).join(mea).order_by(
+    #         DB.desc(me.event_id),
+    #         DB.desc(mea.event_alert_id)
+    #         ).all()[offset:limit]
+
+    #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
+    temp = me.query.order_by(DB.desc(me.event_id)).all()[offset:limit]
+
+    event_data = []
+    for event in temp:
+        if event.status == 2:
+            entry_type = "EVENT"
+        else:
+            entry_type = "ROUTINE"
+
+        latest_event_alert = event.event_alerts.order_by(
+            DB.desc(mea.event_alert_id)).first()
+
+        event_dict = {
+            "event_id": event.event_id,
+            "site_id": event.site.site_id,
+            "site_code": event.site.site_code,
+            "purok": event.site.purok,
+            "sitio": event.site.sitio,
+            "barangay": event.site.barangay,
+            "municipality": event.site.municipality,
+            "province": event.site.province,
+            "event_start": event.event_start,
+            "validity": event.validity,
+            "entry_type": entry_type,
+            "public_alert": latest_event_alert.public_alert_symbol.alert_symbol,
+            "ts_start": latest_event_alert.ts_start,
+            "ts_end": latest_event_alert.ts_end
+        }
+        event_data.append(event_dict)
+
+    return event_data
+
 
 def get_monitoring_events(event_id=None):
     """
@@ -167,11 +195,13 @@ def get_active_monitoring_events():
     """
     Gets Active Events based on MonitoringEventAlerts data.
     """
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
 
-    active_events = MonitoringEventAlerts.query.order_by(DB.desc(
-        MonitoringEventAlerts.ts_start)).filter(
-            MonitoringEventAlerts.ts_end is not None,
-            MonitoringEventAlerts.pub_sym_id == 4).all()
+    # Ignore the pylinter error on using "== None" vs "is None",
+    # since SQLAlchemy interprets "is None" differently.
+    active_events = mea.query.order_by(
+        DB.desc(mea.ts_start)).filter(mea.ts_end == None, mea.pub_sym_id != 1).all()
 
     return active_events
 

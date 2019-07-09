@@ -14,7 +14,7 @@ function TriggerTimestampAndTechInfoCombo (props) {
         classes, changeHandler, labelFor,
         trigger_timestamp, tech_info
     } = props;
-    
+
     return (
         <Fragment>
             <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
@@ -23,7 +23,7 @@ function TriggerTimestampAndTechInfoCombo (props) {
                     autoOk
                     label={`Trigger Timestamp (${labelFor})`}
                     value={trigger_timestamp}
-                    onChange={changeHandler("trigger_timestamp")}
+                    onChange={changeHandler("timestamp", labelFor)}
                     ampm={false}
                     placeholder="2010/01/01 00:00"
                     format="YYYY/MM/DD HH:mm"
@@ -42,7 +42,7 @@ function TriggerTimestampAndTechInfoCombo (props) {
                     rowsMax="2"
                     placeholder={`Enter technical info for "${labelFor}" trigger`}
                     value={tech_info}
-                    onChange={changeHandler("tech_info")}
+                    onChange={changeHandler("tech_info", labelFor)}
                     fullWidth
                 />
             </Grid>
