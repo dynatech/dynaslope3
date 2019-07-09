@@ -5,13 +5,15 @@ Contains functions for getting and accesing monitoring-related tables only
 from flask import request
 from datetime import datetime, timedelta, time
 from connection import DB
+from sqlalchemy import and_
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
     MonitoringTriggersMisc, MomsInstances, MomsFeatures,
     InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols)
-from src.utils.extra import (var_checker)
+from src.utils.extra import (
+    var_checker, round_to_nearest_release_time, compute_event_validity)
 from src.utils.narratives import write_narratives_to_db
 
 
@@ -28,52 +30,6 @@ def process_trigger_list(trigger_list, include_ND=False):
         return nd_alert, trigger_str
 
     return trigger_str
-
-
-def round_to_nearest_release_time(data_ts):
-    """
-    Round time to nearest 4/8/12 AM/PM
-
-    Args:
-        data_ts (datetime)
-
-    Returns datetime
-    """
-    hour = data_ts.hour
-
-    quotient = int(hour / 4)
-
-    if quotient == 5:
-        date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
-    else:
-        date_time = datetime.combine(
-            data_ts.date(), time((quotient + 1) * 4, 0))
-
-    return date_time
-
-
-def compute_event_validity(data_ts, alert_level):
-    """
-    Computes for event validity given set of trigger timestamps
-
-    Args:
-        data_ts (datetime)
-        alert_level (int)
-
-    Returns datetime
-    """
-
-    rounded_data_ts = round_to_nearest_release_time(data_ts)
-    if alert_level in [1, 2]:
-        add_day = 1
-    elif alert_level == 3:
-        add_day = 2
-    else:
-        raise ValueError("Alert level accepted is 1/2/3 only")
-
-    validity = rounded_data_ts + timedelta(add_day)
-
-    return validity
 
 
 def get_pub_sym_id(alert_level):
@@ -239,11 +195,13 @@ def get_active_monitoring_events():
     """
     Gets Active Events based on MonitoringEventAlerts data.
     """
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
 
-    active_events = MonitoringEventAlerts.query.order_by(DB.desc(
-        MonitoringEventAlerts.ts_start)).filter(
-            MonitoringEventAlerts.ts_end is not None,
-            MonitoringEventAlerts.pub_sym_id == 4).all()
+    # Ignore the pylinter error on using "== None" vs "is None",
+    # since SQLAlchemy interprets "is None" differently.
+    active_events = mea.query.order_by(
+        DB.desc(mea.ts_start)).filter(mea.ts_end == None, mea.pub_sym_id != 1).all()
 
     return active_events
 

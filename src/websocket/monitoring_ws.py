@@ -11,7 +11,6 @@ GENERATED_ALERTS = []
 
 def monitoring_background_task():
     global GENERATED_ALERTS
-    print("ehe")
     while True:
         print()
         system_time = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
@@ -57,8 +56,8 @@ def read_generated_alerts_json():
     """
     generated_alerts_list = []
     # generated_alerts_list = ["YEY"]
-    full_filepath = APP_CONFIG["generated_alerts_path"]
-    # full_filepath = "/var/www/dynaslope3/outputs/generated_alerts.json"
+    # full_filepath = APP_CONFIG["generated_alerts_path"]
+    full_filepath = "/var/www/dynaslope3/outputs/"
     print(f"Getting data from {full_filepath}")
 
     with open(f"{full_filepath}generated_alerts.json") as json_file:
