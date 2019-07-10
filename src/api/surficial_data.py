@@ -142,14 +142,15 @@ def get_current_measurement():
 def save_monitoring_log():
     data = request.get_json()
     current_date_time = time.strftime('%Y-%m-%d %H:%M:%S')
-    print(data)
+    if data is None:
+        data = request.form
     status = None
     message = ""
     try:
-        moms_id = data["moms_id"]
-        type_of_feature = data["type_of_feature"]
-        description = data["description"]
-        name_of_feature = data["name_of_feature"]
+        moms_id = int(data["moms_id"])
+        type_of_feature = str(data["type_of_feature"])
+        description = str(data["description"])
+        name_of_feature = str(data["name_of_feature"])
         timestamp = current_date_time
 
         if moms_id == 0:
@@ -269,13 +270,12 @@ def last_timestamps(current_date_time, limit=7):
 @SURFICIAL_DATA_BLUEPRINT.route("/moms_data/delete_moms_data", methods=["GET", "POST"])
 def delete_moms_data():
     data = request.get_json()
-    # data = {
-    #     "moms_id": 3
-    # }
+    if data is None:
+        data = request.form
     status = None
     message = ""
 
-    moms_id = data["moms_id"]
+    moms_id = int(data["moms_id"])
 
     try:
         ManifestationsOfMovements.query.filter_by(
