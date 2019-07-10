@@ -3,7 +3,7 @@
 
 from flask import Blueprint, jsonify, request
 import os
-# import analysis.rainfall.rainfall as rain
+import analysis.rainfall.rainfall as rain
 from connection import DB, SOCKETIO
 from src.models.sensor_maintenance import (
     SensorMaintenance, SensorMaintenanceSchema)

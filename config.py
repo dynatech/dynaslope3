@@ -1,3 +1,4 @@
+
 """
 Contains server run configurations
 """
@@ -32,5 +33,6 @@ class ProductionConfig(Config):
 APP_CONFIG = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
-    "generated_alerts_path": "D:/Users/swat-dynaslope/Documents/DYNASLOPE-3.0/"
+    "generated_alerts_path": "~/Documents/monitoringoutput/"
 }
+
