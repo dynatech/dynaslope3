@@ -75,7 +75,7 @@ class Container extends Component {
                 onClick={this.handleBoolean("is_open_release_modal", true)}
             >
                 <AddAlert style={{ paddingRight: 4, fontSize: 20 }}/>
-                    Compose
+                    Release Alert
             </Button>
         </span>;
 

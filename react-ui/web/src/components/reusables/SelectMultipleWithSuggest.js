@@ -20,6 +20,7 @@ const styles = theme => ({
     input: {
         display: "flex",
         padding: 0,
+        height: "auto"
     },
     valueContainer: {
         display: "flex",
@@ -175,18 +176,17 @@ function SelectMultipleWithSuggest (props) {
     const {
         classes, theme, changeHandler,
         options, value, label, placeholder,
-        renderDropdownIndicator, openMenuOnClick
+        renderDropdownIndicator, openMenuOnClick, isMulti
     } = props;
 
     const selectStyles = {
         input: base => ({
             ...base,
-            color: theme.palette.text.primary,
+            color: "blue",
             "& input": {
-                font: "inherit",
-                height: 36
-            },
-        }),
+                font: "inherit"
+            }
+        })
     };
 
     const components = {
@@ -200,7 +200,8 @@ function SelectMultipleWithSuggest (props) {
     };
 
     const open_menu_on_click = openMenuOnClick === undefined ? true : openMenuOnClick;
-    
+    const is_multi = isMulti === undefined ? false : isMulti;
+
     const rdd = renderDropdownIndicator === undefined ? true : renderDropdownIndicator;
     if (rdd === false) {
         components.DropdownIndicator = () => null;
@@ -224,7 +225,7 @@ function SelectMultipleWithSuggest (props) {
                     value={value}
                     onChange={changeHandler}
                     placeholder={placeholder}
-                    isMulti
+                    isMulti={is_multi}
                     openMenuOnFocus={false}
                     openMenuOnClick={open_menu_on_click}
                 />

@@ -647,7 +647,7 @@ class MonitoringEventAlertsSchema(MARSHMALLOW.ModelSchema):
     event = fields.Nested(MonitoringEventsSchema,
                           exclude=("event_alerts", ))
     public_alert_symbol = fields.Nested(
-        "PublicAlertSymbolsSchema", exclude=("event_alerts", ))
+        "PublicAlertSymbolsSchema", exclude=("event_alerts", "public_alerts"))
     releases = fields.Nested("MonitoringReleasesSchema",
                              many=True, exclude=("event_alert", ))
 
@@ -838,6 +838,7 @@ class InternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Internal Alert Symbols class
     """
+    
     class Meta:
         """Saves table class structure as schema model"""
         model = InternalAlertSymbols

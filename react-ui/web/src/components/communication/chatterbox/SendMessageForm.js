@@ -79,6 +79,7 @@ class SendMessageForm extends Component {
                             placeholder="Select recipients"
                             renderDropdownIndicator={false}
                             openMenuOnClick={false}
+                            isMulti
                         />
                     </Grid>
 

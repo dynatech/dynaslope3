@@ -13,14 +13,7 @@ import {
     sites as Sites,
     organizations as Organizations
 } from "../../../store";
-
-function SlideTransition (props) {
-    return <Slide direction="left" {...props} />;
-}
-
-function FadeTransition (props) {
-    return <Fade {...props} />;
-}
+import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 
 const styles = theme => ({
     formControl: {
