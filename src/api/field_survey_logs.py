@@ -138,7 +138,7 @@ def delete_field_survey():
     status = None
     message = ""
 
-    field_survey_id = data["field_survey_id"]
+    field_survey_id = int(data["field_survey_id"])
 
     try:
         FieldSurveyLog.query.filter_by(

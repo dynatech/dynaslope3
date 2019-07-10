@@ -40,7 +40,9 @@ def get_latest_situation_report_data():
 @SITUATION_REPORT_BLUEPRINT.route("/situation_report/get_report_by_date", methods=["GET", "POST"])
 def get_report_by_date():
     data = request.get_json()
-    date_selected = data["date_selected"]
+    if data is None:
+        data = request.form
+    date_selected = str(data["date_selected"])
     query = text("SELECT * FROM commons_db.situation_report "
                  "WHERE timestamp BETWEEN '"+date_selected+" 00:00:00' AND '"+date_selected+" 23:59:59'")
     result = DB.engine.execute(query)
