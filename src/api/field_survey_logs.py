@@ -133,6 +133,8 @@ def delete_field_survey():
     # data = {
     #     "field_survey_id": 3
     # }
+    if data is None:
+        data = request.form
     status = None
     message = ""
 
