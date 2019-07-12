@@ -11,12 +11,12 @@ import { elementType } from "prop-types";
 import { sites } from "../../../store";
 
 let id = 0;
-function createData (trigger_type, trigger_ts) {
+function createData(trigger_type, trigger_ts) {
     id += 1;
     return { id, trigger_type, trigger_ts };
 }
 
-function searchSites (site_code) {
+function searchSites(site_code) {
     let site_details = null;
     for (let index = 0; index < sites.length; index += 1) {
         if (sites[index].site_code === site_code) {
@@ -27,7 +27,7 @@ function searchSites (site_code) {
     return site_details;
 }
 
-function prepareSiteAddress (site_details) {
+function prepareSiteAddress(site_details) {
     const { purok, sitio, barangay, municipality, province, site_code } = site_details;
     let address = "";
 
@@ -39,7 +39,7 @@ function prepareSiteAddress (site_details) {
     return address;
 }
 
-function getAlertDialog (chosen_site, open, handleClose) {
+function getAlertDialog(chosen_site, open, handleClose) {
     const { site_code, ts, internal_alert, validity, release_triggers, event_triggers } = chosen_site;
     const site_details = searchSites(site_code);
     const timestamp = moment(ts).format("D MMMM YYYY, h:mm");
@@ -53,19 +53,20 @@ function getAlertDialog (chosen_site, open, handleClose) {
         if (type === "subsurface") {
             rel_subsurface = details;
         } else {
-            const { alert_level } = details;
+            const { alert_level, alert_symbol } = details;
 
             rel_trigger_divs.push(
                 <Grid item xs={12} sm={4} key={type}>
                     <Typography variant="body1" color="textSecondary">{type.charAt(0).toUpperCase() + type.slice(1)} Alert</Typography>
                     <Typography variant="body1" color="textPrimary">
-                        {alert_level}
+                        {/* {alert_level} */}
+                        {alert_symbol}
                     </Typography>
                     {
-                        type === "rainfall" && alert_level !== "nd"
+                        type === "rainfall" && alert_level != -1
                             ? (
                                 <Typography variant="caption" color="textPrimary">
-                                    {details.details.rain_gauge}
+                                    {details.rain_gauge}
                                 </Typography>
                             )
                             : (
@@ -88,14 +89,14 @@ function getAlertDialog (chosen_site, open, handleClose) {
             >
                 <DialogTitle id="alert-dialog-title">
                     {/* Brgy. Gamut, Tago, Surigao Del Sur (GAM) */}
-                    {address}
+                    <div>{address}</div>
                     <Typography variant="overline">
                         {/* 10 April 2019, 16:30 */}
                         {timestamp}
                     </Typography>
                 </DialogTitle>
                 <DialogContent>
-                    <Grid container spacing={8}>
+                    <Grid container spacing={1}>
                         <Grid item sm={6}>
                             <Typography variant="body1" color="textSecondary">Internal Alert Level</Typography>
                             <Typography variant="body1" color="textPrimary">
@@ -131,11 +132,11 @@ function getAlertDialog (chosen_site, open, handleClose) {
                         {
                             rel_subsurface.length > 0
                                 ? rel_subsurface.map((trigger) => {
-                                    const { alert_level, tsm_name } = trigger;
+                                    const { alert_level, alert_symbol, tsm_name } = trigger;
                                     return (
                                         <Grid item xs={12} sm={4} key={tsm_name}>
                                             <Typography variant="body1" color="textSecondary">{tsm_name.toUpperCase()}</Typography>
-                                            <Typography variant="body1" color="textPrimary">{alert_level}</Typography>
+                                            <Typography variant="body1" color="textPrimary">{alert_symbol}</Typography>
                                         </Grid>
                                     );
                                 })
@@ -254,7 +255,7 @@ class GeneratedAlerts extends PureComponent {
 
 
 
-    render () {
+    render() {
         const { open, key } = this.state;
         let dialog = "";
         const { generated_alerts_data } = this.props;

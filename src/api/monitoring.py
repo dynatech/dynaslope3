@@ -26,7 +26,8 @@ from src.utils.monitoring import (
     compute_event_validity, round_to_nearest_release_time, get_pub_sym_id,
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
     write_monitoring_earthquake_to_db, get_internal_alert_symbols,
-    get_monitoring_events_table, get_event_count, get_public_alert)
+    get_monitoring_events_table, get_event_count, get_public_alert,
+    build_internal_alert_level)
 from src.utils.extra import (create_symbols_map, var_checker,
                              round_to_nearest_release_time, compute_event_validity)
 
@@ -160,7 +161,6 @@ def wrap_get_ongoing_extended_overdue_events():
         (c) Overdue
     For use in alerts_from_db in Candidate Alerts Generator
     """
-    var_checker("Starting New API...", "", True)
     active_event_alerts = get_active_monitoring_events()
 
     latest = []
@@ -168,12 +168,12 @@ def wrap_get_ongoing_extended_overdue_events():
     overdue = []
     for event_alert in active_event_alerts:
         validity = event_alert.event.validity
+        var_checker("Validity", validity, True)
         latest_release = event_alert.releases.order_by(
             DB.desc(MonitoringReleases.data_ts)).first()
         data_ts = latest_release.data_ts
         rounded_data_ts = round_to_nearest_release_time(data_ts)
         release_time = latest_release.release_time
-        var_checker("Validity", validity, True)
 
         if data_ts.hour == 23 and release_time.hour < 4:
             # rounded_data_ts = round_to_nearest_release_time(data_ts)
@@ -182,13 +182,18 @@ def wrap_get_ongoing_extended_overdue_events():
 
             release_time = f"{str_data_ts_ymd} {str_release_time}"
 
-        var_checker("Rounded", rounded_data_ts, True)
+        event_alert_data = MonitoringEventAlertsSchema(many=False).dump(event_alert).data
+        public_alert_level = event_alert.public_alert_symbol.alert_level
+        trigger_list = latest_release.trigger_list
+        event_alert_data["internal_alert_level"] = build_internal_alert_level(None, trigger_list, public_alert_level)
+        event_alert_data["event"]["validity"] = str(datetime.strptime(event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
+
         if datetime.now() < validity:
             # On time release
-            latest.append(event_alert)
+            latest.append(event_alert_data)
         elif validity < datetime.now():
             # Late release
-            overdue.append(event_alert)
+            overdue.append(event_alert_data)
         else:
             # elif validity < rounded_data_ts and rounded_data_ts < (validity + timedelta(days=3)):
             # Extended
@@ -201,9 +206,10 @@ def wrap_get_ongoing_extended_overdue_events():
             day = 3 - (end - current).days
 
             if day <= 0:
-                latest.append(event_alert)
+                latest.append(event_alert_data)
             elif day > 0 and day < end:
-                extended.append(event_alert)
+                event_alert_data["day"] = day
+                extended.append(event_alert_data)
             else:
                 # NOTE: Make an API call to end an event when extended is finished? based on old code
                 print("FINISH EVENT")
@@ -214,11 +220,11 @@ def wrap_get_ongoing_extended_overdue_events():
         "overdue": overdue
     }
 
-    for key, value in db_alerts.items():
-        db_alerts[key] = MonitoringEventAlertsSchema(
-            many=True).dump(value).data
+    # for key, value in db_alerts.items():
+    #     db_alerts[key] = MonitoringEventAlertsSchema(
+    #         many=True).dump(value).data
 
-    return jsonify(db_alerts)
+    return json.dumps(db_alerts)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_pub_sym_id/<alert_level>", methods=["GET"])
