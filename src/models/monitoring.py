@@ -61,7 +61,7 @@ class MonitoringEventAlerts(UserMixin, DB.Model):
     public_alert_symbol = DB.relationship(
         "PublicAlertSymbols", backref=DB.backref("event_alerts", lazy="dynamic"), lazy="select")
     releases = DB.relationship(
-        "MonitoringReleases", backref=DB.backref("event_alert", lazy="select"), lazy="dynamic")
+        "MonitoringReleases", order_by="desc(MonitoringReleases.data_ts)", backref=DB.backref("event_alert", lazy="select"), lazy="dynamic")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event Alert ID: {self.event_alert_id}"
@@ -631,8 +631,8 @@ class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
     """
     event_alerts = fields.Nested("MonitoringEventAlertsSchema",
                                  many=True, exclude=("event", ))
-    # site = fields.Nested("SitesSchema", exclude=(
-    #     "events", "active", "psgc"))
+    site = fields.Nested("SitesSchema", exclude=(
+        "events", "active", "psgc"))
     site_id = fields.Integer()
 
     class Meta:
