@@ -2,8 +2,9 @@
 Utility file for Monitoring Tables
 Contains functions for getting and accesing monitoring-related tables only
 """
+import calendar
 from flask import request
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 from connection import DB
 from sqlalchemy import and_
 from src.models.monitoring import (
@@ -12,9 +13,50 @@ from src.models.monitoring import (
     MonitoringTriggersMisc, MomsInstances, MomsFeatures,
     InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols)
+from src.utils.sites import get_sites_data
 from src.utils.extra import (
     var_checker, round_to_nearest_release_time, compute_event_validity)
 from src.utils.narratives import write_narratives_to_db
+
+
+def get_routine_sites(timestamp=None):
+    """
+    Utils counterpart of identifing the routine site per day.
+    Returns "routine_sites" in a list as value.
+
+    E.g.:
+    {
+        "routine_sites": [
+            'bak', 'blc', 'cud', 'imu', 'ina'
+        ]
+    }
+    """
+    current_data = date.today()
+    if timestamp:
+        current_data = timestamp.date()
+    get_sites = get_sites_data()
+    day = calendar.day_name[current_data.weekday()]
+    wet_season = [[1, 2, 6, 7, 8, 9, 10, 11, 12], [5, 6, 7, 8, 9, 10]]
+    dry_season = [[3, 4, 5], [1, 2, 3, 4, 11, 12]]
+    routine_sites = []
+
+    if (day == "Friday" or day == "Tuesday"):
+        # print(day)
+        for sites in get_sites:
+            season = int(sites.season) - 1
+            if sites.season in wet_season[season]:
+                routine_sites.append(sites.site_code)
+    elif day == "Wednesday":
+        # print(day)
+        for sites in get_sites:
+            season = int(sites.season) - 1
+            if sites.season in dry_season[season]:
+                routine_sites.append(sites.site_code)
+    else:
+        routine_sites = []
+
+    # print(routine_sites)
+    return routine_sites
 
 
 def process_trigger_list(trigger_list, include_ND=False):
