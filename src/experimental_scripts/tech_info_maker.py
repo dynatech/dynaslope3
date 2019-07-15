@@ -161,11 +161,15 @@ def get_rainfall_tech_info(rainfall_alert_details):
     """
     one_day_data = None
     three_day_data = None
-
+    days = []
+    cumulatives = []
+    thresholds = []
+    rain_gauge_name = ""
+    
     for item in rainfall_alert_details:
-        days = []
-        cumulatives = []
-        thresholds = []
+        # days = []
+        # cumulatives = []
+        # thresholds = []
 
         rain_gauge_name = get_rainfall_gauge_name(item)
 
