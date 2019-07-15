@@ -99,8 +99,8 @@ def generate_alerts():
     """
     Sample
     """
-    generated_alerts_json = public_alert_generator.main(
-        # "2018-11-14 07:51:00", True, "nur")
-        "2018-11-14 07:51:00", True)
+    generated_alerts_json = public_alert_generator.main()
+    # generated_alerts_json = public_alert_generator.main("2018-11-14 07:51:00", True, "nur")
+    # generated_alerts_json = public_alert_generator.main("2018-11-14 07:51:00", True)
 
     return generated_alerts_json

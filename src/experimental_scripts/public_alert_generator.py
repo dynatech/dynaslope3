@@ -1063,6 +1063,7 @@ def main(query_ts_end=None, is_test=False, site_code=None):
 
 
 if __name__ == "__main__":
+    main()
     # L2
     # main("2019-01-22 03:00:00", True, "ime")
     # # main("2018-12-26 11:00:00", True, "lpa")
@@ -1072,5 +1073,5 @@ if __name__ == "__main__":
     # main("2018-08-20 06:00:00", True, "tue")
     # main("2018-11-15 7:51:00", True)
     # main("2018-11-15 7:51:00", True)
-    main("2018-11-14 7:51:00", True)
+    # main("2018-11-14 7:51:00", True)
     # main("2018-08-14 11:46:00", True, "tue")
