@@ -168,7 +168,6 @@ def wrap_get_ongoing_extended_overdue_events():
     overdue = []
     for event_alert in active_event_alerts:
         validity = event_alert.event.validity
-        var_checker("Validity", validity, True)
         latest_release = event_alert.releases.order_by(
             DB.desc(MonitoringReleases.data_ts)).first()
         data_ts = latest_release.data_ts
