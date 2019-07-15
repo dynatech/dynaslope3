@@ -465,9 +465,44 @@ def write_monitoring_earthquake_to_db(eq_details):
     return return_data
 
 
-def build_internal_alert_level(pub_sym_id, trigger_list):
-    alert_level = get_public_alert_level(pub_sym_id)
+def build_internal_alert_level(pub_sym_id, trigger_list=None, public_alert_level=None):
+    """
+    This function builds the internal alert string using a public alert level
+    and the provided trigger_list_str. 
 
-    internal_alert_level = f"{alert_level}-{trigger_list}"
+    Args:
+        pub_sym_id (ID integer) - Used to check the alert level to be used
+                    Can be set as "None" if you will use public_alert_level
+                    instead
+        trigger_list (String) - Used as the historical log of valid triggers
+                    Can be set as "None" for A0
+        public_alert_level (Integer) - This will be used instead of 
+                    pub_sym_id for building the Internal alert string
+                    Can be set as none since this is optional
+    """
+
+    if pub_sym_id:
+        public_alert_level = get_public_alert_level(pub_sym_id)
+
+    if public_alert_level > 0:
+        internal_alert_level = f"A{public_alert_level}-{trigger_list}"
+        if public_alert_level == 1 and trigger_list:
+            if "-" in trigger_list:
+                internal_alert_level = trigger_list
+    else:
+        internal_alert_level = f"A{public_alert_level}"
+        if trigger_list:
+            internal_alert_level = trigger_list
 
     return internal_alert_level
+
+
+# def build_internal_alert_level(pub_sym_id, trigger_list):
+    # """
+    # This form of the fuction was used for eos api
+    # """
+#     alert_level = get_public_alert_level(pub_sym_id)
+
+#     internal_alert_level = f"A{alert_level}-{trigger_list}"
+
+#     return internal_alert_level

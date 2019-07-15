@@ -4,31 +4,60 @@ from datetime import datetime
 from flask import request
 from src.utils.extra import var_checker
 from config import APP_CONFIG
+from src.experimental_scripts import public_alert_generator, candidate_alerts_generator
+from src.api.monitoring import wrap_get_ongoing_extended_overdue_events
 
 CLIENTS = []
 GENERATED_ALERTS = []
+CANDIDATE_ALERTS = []
+ALERTS_FROM_DB = []
+
+
+def emit_data(keyword):
+    global GENERATED_ALERTS
+    global CANDIDATE_ALERTS
+    global ALERTS_FROM_DB
+
+    data_list = {
+        "receive_generated_alerts": GENERATED_ALERTS,
+        "receive_candidate_alerts": CANDIDATE_ALERTS,
+        "receive_alerts_from_db": ALERTS_FROM_DB
+    }
+
+    SOCKETIO.emit(keyword, data_list[keyword], namespace="/monitoring")
 
 
 def monitoring_background_task():
     global GENERATED_ALERTS
+    global CANDIDATE_ALERTS
+    global ALERTS_FROM_DB
     while True:
-        print()
-        system_time = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
-        print(f"{system_time} | Websocket running...")
         if not GENERATED_ALERTS:
-            GENERATED_ALERTS = read_generated_alerts_json()
-        else:
-            new_generated_alerts = read_generated_alerts_json()
+            GENERATED_ALERTS = generate_alerts()
+            ALERTS_FROM_DB = wrap_get_ongoing_extended_overdue_events()
+            CANDIDATE_ALERTS = candidate_alerts_generator.main()
 
-            if GENERATED_ALERTS != new_generated_alerts:
-                GENERATED_ALERTS = new_generated_alerts
-                print(f"{system_time} | NEW JSON data found.")
-                SOCKETIO.emit("receive_generated_alerts",
-                              new_generated_alerts, namespace="/monitoring")
-            else:
-                print(f"{system_time} | No changes in JSON data.")
+            emit_data("receive_generated_alerts")
+            emit_data("receive_alerts_from_db")
+            emit_data("receive_candidate_alerts")
 
-        SOCKETIO.sleep(5)
+        elif datetime.now().minute % 5 == 1:
+            print()
+            system_time = datetime.strftime(
+                datetime.now(), "%Y-%m-%d %H:%M:%S")
+            print(f"{system_time} | Websocket running...")
+
+            GENERATED_ALERTS = generate_alerts()
+            ALERTS_FROM_DB = wrap_get_ongoing_extended_overdue_events()
+            CANDIDATE_ALERTS = candidate_alerts_generator.main()
+
+            print(f"{system_time} | NEW JSON data found.")
+
+            emit_data("receive_generated_alerts")
+            emit_data("receive_alerts_from_db")
+            emit_data("receive_candidate_alerts")
+
+        SOCKETIO.sleep(60)  # Every 60 seconds in production stage
 
 
 @SOCKETIO.on('connect', namespace='/monitoring')
@@ -38,9 +67,9 @@ def connect():
     print("Connected user: " + sid)
     print(f"Current connected clients: {CLIENTS}")
 
-    global GENERATED_ALERTS
-    SOCKETIO.emit("receive_generated_alerts",
-                  GENERATED_ALERTS, namespace="/monitoring")
+    emit_data("receive_generated_alerts")
+    emit_data("receive_alerts_from_db")
+    emit_data("receive_candidate_alerts")
 
 
 @SOCKETIO.on('disconnect', namespace='/monitoring')
@@ -49,18 +78,29 @@ def disconnect():
     CLIENTS.remove(request.sid)
 
 
+# @SOCKETIO.on("get_generated_alerts", namespace="/monitoring")
+# def read_generated_alerts_json():
+#     """
+#     Sample
+#     """
+#     generated_alerts_list = []
+#     # generated_alerts_list = ["YEY"]
+#     # full_filepath = APP_CONFIG["generated_alerts_path"]
+#     full_filepath = "/var/www/dynaslope3/outputs/"
+#     print(f"Getting data from {full_filepath}")
+
+#     with open(f"{full_filepath}generated_alerts.json") as json_file:
+#         generated_alerts_list = json.load(json_file)
+
+#     return generated_alerts_list
+
 @SOCKETIO.on("get_generated_alerts", namespace="/monitoring")
-def read_generated_alerts_json():
+def generate_alerts():
     """
     Sample
     """
-    generated_alerts_list = []
-    # generated_alerts_list = ["YEY"]
-    # full_filepath = APP_CONFIG["generated_alerts_path"]
-    full_filepath = "/var/www/dynaslope3/outputs/"
-    print(f"Getting data from {full_filepath}")
+    generated_alerts_json = public_alert_generator.main()
+    # generated_alerts_json = public_alert_generator.main("2018-11-14 07:51:00", True, "nur")
+    # generated_alerts_json = public_alert_generator.main("2018-11-14 07:51:00", True)
 
-    with open(f"{full_filepath}generated_alerts.json") as json_file:
-        generated_alerts_list = json.load(json_file)
-
-    return generated_alerts_list
+    return generated_alerts_json

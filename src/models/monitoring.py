@@ -26,7 +26,7 @@ class MonitoringEvents(UserMixin, DB.Model):
         "commons_db.sites.site_id"), nullable=False)
     event_start = DB.Column(DB.DateTime, nullable=False,
                             default="0000-00-00 00:00:00")
-    validity = DB.Column(DB.DateTime)
+    validity = DB.Column(DB.DateTime, default="0000-00-00 00:00:00")
     status = DB.Column(DB.String(20), nullable=False)
 
     event_alerts = DB.relationship(
@@ -631,6 +631,8 @@ class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
     """
     event_alerts = fields.Nested("MonitoringEventAlertsSchema",
                                  many=True, exclude=("event", ))
+    validity = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    event_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
     site = fields.Nested("SitesSchema", exclude=(
         "events", "active", "psgc"))
     site_id = fields.Integer()
@@ -646,6 +648,8 @@ class MonitoringEventAlertsSchema(MARSHMALLOW.ModelSchema):
     """
     event = fields.Nested(MonitoringEventsSchema,
                           exclude=("event_alerts", ))
+    ts_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_end = fields.DateTime("%Y-%m-%d %H:%M:%S")
     public_alert_symbol = fields.Nested(
         "PublicAlertSymbolsSchema", exclude=("event_alerts", "public_alerts"))
     releases = fields.Nested("MonitoringReleasesSchema",
@@ -662,10 +666,9 @@ class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
     """
     event = fields.Nested(MonitoringEventsSchema,
                           exclude=("releases", "triggers"))
-
+    data_ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     triggers = fields.Nested("MonitoringTriggersSchema",
                              many=True, exclude=("release", "event"))
-
     release_publishers = fields.Nested(
         "MonitoringReleasePublishersSchema", many=True, exclude=("releases",))
 
@@ -681,6 +684,7 @@ class MonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
     release_id = fields.Integer()
     release = fields.Nested(MonitoringReleasesSchema,
                             exclude=("triggers", ))
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     internal_sym = fields.Nested(
         "InternalAlertSymbolsSchema", only=("alert_symbol",))
     trigger_misc = fields.Nested(

@@ -939,31 +939,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
         formatted_release_trig = current_data_list
 
-        # for subsurface in subsurface_alerts_list:
-        #     subsurface["alert_symbol"] = OTS_MAP[(
-        #         "alert_symbol", "subsurface", subsurface["alert_level"])]
-
-        
-        # # Get alert symbols of triggers
-        # current_surficial_alert["alert_symbol"] = OTS_MAP[("alert_symbol", "surficial", current_surficial_alert["alert_level"])]
-        # current_rainfall_alert["alert_symbol"] = OTS_MAP[("alert_symbol", "rainfall", current_rainfall_alert["alert_level"])]
-
-        # formatted_release_trig = [
-        #     {
-        #         "type": "subsurface",
-        #         "details": subsurface_alerts_list
-        #     },
-        #     {
-        #         "type": "surficial",
-        #         "details": current_surficial_alert
-        #     },
-        #     {
-        #         "type": "rainfall",
-        #         "details": current_rainfall_alert
-        #     }
-        # ]
-
-        var_checker("FORMATTED RELEASE", formatted_release_trig, True)
 
         if current_moms_alert["alert_level"] > -1:
             alert_symbol = OTS_MAP[("alert_symbol", "moms", current_moms_alert["details"]["op_trigger"])]
@@ -1022,15 +997,15 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                 print(err)
                 DB.session.rollback()
                 raise
-            var_checker(" NEW PUBLIC ALERT HAS BEEN WRITTEN", new_public_alert_id, True)
-        else:
-            print(" NOTHING HAS BEEN WRITTEN")
+            # var_checker(" NEW PUBLIC ALERT HAS BEEN WRITTEN", new_public_alert_id, True)
+        # else:
+        #     print(" NOTHING HAS BEEN WRITTEN")
 
         ######################
         # !!!! PRINTERS !!!! #
         ######################
         site_public_alert = PAS_MAP[("alert_symbol", highest_public_alert)]
-        var_checker(f"{site_code.upper()}", f"Public Alert: {site_public_alert}", True)
+        # var_checker(f"{site_code.upper()}", f"Public Alert: {site_public_alert}", True)
 
         site_public_alerts_list.append(public_dict)
 
@@ -1046,7 +1021,7 @@ def main(query_ts_end=None, is_test=False, site_code=None):
     """
     """
     query_ts_start = datetime.now()
-    print(query_ts_start)
+    print(f"{query_ts_start} | Generating Alerts...")
     do_not_write_to_db = is_test
 
 
@@ -1077,15 +1052,18 @@ def main(query_ts_end=None, is_test=False, site_code=None):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    var_checker("PATH", directory, True)
+    # var_checker("PATH", directory, True)
 
     with open(directory + "generated_alerts.json", "w") as file_path:
         file_path.write(json_data)
 
     script_end = datetime.now()
-    print(f"Runtime: {script_end - query_ts_start}")
+    print(f"Runtime: {script_end - query_ts_start} | Done generating alerts!")
+    return json_data
+
 
 if __name__ == "__main__":
+    main()
     # L2
     # main("2019-01-22 03:00:00", True, "ime")
     # # main("2018-12-26 11:00:00", True, "lpa")
@@ -1095,5 +1073,5 @@ if __name__ == "__main__":
     # main("2018-08-20 06:00:00", True, "tue")
     # main("2018-11-15 7:51:00", True)
     # main("2018-11-15 7:51:00", True)
-    main("2018-11-14 7:51:00", True)
+    # main("2018-11-14 7:51:00", True)
     # main("2018-08-14 11:46:00", True, "tue")
