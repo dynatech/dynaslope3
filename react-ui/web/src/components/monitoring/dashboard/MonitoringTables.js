@@ -169,7 +169,6 @@ function MonitoringTables (props) {
                                                                                 <ButtonGroup variant="contained" color="primary" size="small" aria-label="Alert Actions">
                                                                                     <Button>Invalidate</Button>
                                                                                     <Button>Validate</Button>
-                                                                                    <Button>Release</Button>
                                                                                 </ButtonGroup>
                                                                             </Grid>
                                                                         </Fragment>

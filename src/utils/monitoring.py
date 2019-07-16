@@ -12,7 +12,8 @@ from src.models.monitoring import (
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
     MonitoringTriggersMisc, MomsInstances, MomsFeatures,
     InternalAlertSymbols, PublicAlertSymbols,
-    TriggerHierarchies, OperationalTriggerSymbols)
+    TriggerHierarchies, OperationalTriggerSymbols,
+    MonitoringEventAlertsSchema)
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
     var_checker, round_to_nearest_release_time, compute_event_validity)

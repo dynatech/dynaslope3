@@ -236,33 +236,47 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
     a0_routine_list = []
     nd_routine_list = []
     nd_internal_alert_sym = IAS_MAP[(-1, internal_source_id)]
-    for site_wo_alert in without_alerts:
-        general_status = "routine"
-        site_id = site_wo_alert["site_id"]
-        site_code = site_wo_alert["site_code"]
-        internal_alert = site_wo_alert["internal_alert"]
 
-        is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
-                                          == site_code, merged_db_alerts_list))
-        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
-                                            == site_code, extended))
+    if without_alerts:
+        for site_wo_alert in without_alerts:
+            general_status = "routine"
+            site_id = site_wo_alert["site_id"]
+            site_code = site_wo_alert["site_code"]
+            internal_alert = site_wo_alert["internal_alert"]
 
-        site_wo_alert["alert_level"] = 0
-        if is_in_raised_alerts:
-            general_status = "lowering"
-        elif is_in_extended_alerts:
-            general_status = "extended"
+            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                              == site_code, merged_db_alerts_list))
+            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                                == site_code, extended))
 
-        if is_in_raised_alerts or is_in_extended_alerts:
-            if internal_alert == nd_internal_alert_sym:
-                trigger_list_str = nd_internal_alert_sym
+            site_wo_alert["alert_level"] = 0
+            if is_in_raised_alerts:
+                general_status = "lowering"
+            elif is_in_extended_alerts:
+                general_status = "extended"
 
-            site_wo_alert["trigger_list_str"] = trigger_list_str
-            formatted_alert_entry = format_alerts_for_ewi_insert(
-                site_wo_alert, general_status)
+            if is_in_raised_alerts or is_in_extended_alerts:
+                if internal_alert == nd_internal_alert_sym:
+                    trigger_list_str = nd_internal_alert_sym
 
-            candidate_alerts_list.append(formatted_alert_entry)
-        else:
+                site_wo_alert["trigger_list_str"] = trigger_list_str
+                formatted_alert_entry = format_alerts_for_ewi_insert(
+                    site_wo_alert, general_status)
+
+                candidate_alerts_list.append(formatted_alert_entry)
+            else:
+                if site_code in routine_sites_list:
+                    if internal_alert == nd_internal_alert_sym:
+                        nd_routine_list.append(site_id)
+                    else:
+                        a0_routine_list.append(site_id)
+
+    if totally_invalid_sites_list:
+        # Process all totally invalid sites for routine
+        # Put this in a function
+        for t_i_site in totally_invalid_sites_list:
+            site_code = t_i_site["site_code"]
+
             if site_code in routine_sites_list:
                 if internal_alert == nd_internal_alert_sym:
                     nd_routine_list.append(site_id)
@@ -353,8 +367,7 @@ def main(ts=None, is_test=None):
     # query_end_ts = ts if ts else datetime.now()
     # query_end_ts = datetime.strptime(query_end_ts, "%Y-%m-%d %H:%M:%S")
     query_end_ts = datetime.now()
-    # is_test_string = "We are in a test run!" if is_test else "Running with DB!"
-    is_test_string = "Running with DB!"
+    is_test_string = "We are in a test run!" if is_test else "Running with DB!"
     print()
     print(
         f"Started at {start_run_ts}. {is_test_string}. QUERY END TS is {query_end_ts} | Generating Candidate Alerts for Release")
@@ -368,8 +381,7 @@ def main(ts=None, is_test=None):
         filepath, filename)
 
     # Get Active DB Alerts
-    db_alerts_dict = requests.get(
-        "http://localhost:5000/api/monitoring/get_ongoing_extended_overdue_events").json()
+    db_alerts_dict = get_ongoing_extended_overdue_events()
 
     # Split site with alerts and site with no alerts
     with_alerts, without_alerts = separate_with_alerts_wo_alerts(
@@ -377,14 +389,6 @@ def main(ts=None, is_test=None):
 
     candidate_alerts_list = process_candidate_alerts(
         with_alerts, without_alerts, db_alerts_dict, query_end_ts)
-
-    # current_site_status = get_current_alert_statuses_dict(query_end_ts)
-
-    # # Check triggers if there are invalids and fix the internal alert string as needed
-    # # Extended, Routine, Lowering
-    # candidate_alerts_list, no_alerts_list = \
-    #     process_generated_alerts(
-    #         current_site_status, generated_alerts_list, query_end_ts)
 
     # Convert data to JSON
     json_data = json.dumps(candidate_alerts_list)

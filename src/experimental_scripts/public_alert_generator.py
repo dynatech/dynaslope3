@@ -100,7 +100,9 @@ def write_to_db_public_alerts(output_dict, latest_site_pa):
         output_dict (dictionary) - the generated public_alert for each site
         latest_site_pa (PublicAlert class) - the previous public_alert before the script run
     """
+    return_data = None
     try:
+        latest_site_pa_id = latest_site_pa.public_id
         prev_alert_symbol = latest_site_pa.alert_symbol.alert_symbol
         is_new_public_alert = prev_alert_symbol != output_dict["pub_alert_symbol"]
 
@@ -118,16 +120,19 @@ def write_to_db_public_alerts(output_dict, latest_site_pa):
             DB.session.add(new_pub_alert)
             DB.session.flush()
             new_public_id = new_pub_alert.public_id
+            return_data = new_public_id
 
-        # If no problems, commit
-        DB.session.commit()
+            # If no problems, commit
+            DB.session.commit()
+        else:
+            return_data = "exists"
 
     except Exception as err:
         print(err)
         DB.session.rollback()
         raise
 
-    return new_public_id
+    return return_data
 
 
 def get_prepared_recent_retriggers(not_empty=True, positive_triggers_list=None, invalid_dict=None):
@@ -991,8 +996,15 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         if not do_not_write_to_db:
             print(" WRITING TO DB!")
             try:
-                new_public_alert_id = write_to_db_public_alerts(
+                current_pa_id = latest_site_pa.public_id
+                public_alert_result = write_to_db_public_alerts(
                     site_public_dict, latest_site_pa)
+                if public_alert_result == "exists":
+                    print()
+                    print(f"Active Public alert with ID: {current_pa_id} on Database.")
+                else:
+                    print()
+                    print(f"New public alert with ID: {public_alert_result} has been added to database.")
             except Exception as err:
                 print(err)
                 DB.session.rollback()
@@ -1049,12 +1061,14 @@ def main(query_ts_end=None, is_test=False, site_code=None):
 
     # Write to specified filepath and filename
     directory = APP_CONFIG["generated_alerts_path"]
+    directory = os.path.abspath(directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    # var_checker("PATH", directory, True)
+    var_checker("PATH", directory, True)
 
-    with open(directory + "generated_alerts.json", "w") as file_path:
+    with open(directory + "/generated_alerts.json", "w") as file_path:
+        var_checker("file_path", file_path, True)
         file_path.write(json_data)
 
     script_end = datetime.now()
