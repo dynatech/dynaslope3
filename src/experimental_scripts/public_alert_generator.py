@@ -1069,7 +1069,6 @@ def main(query_ts_end=None, is_test=False, site_code=None):
     var_checker("PATH", directory, True)
 
     with open(directory + "/generated_alerts.json", "w") as file_path:
-        var_checker("file_path", file_path, True)
         file_path.write(json_data)
 
     script_end = datetime.now()
