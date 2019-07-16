@@ -994,7 +994,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         # TRY TO WRITE TO DB PUBLIC_ALERTS #
         ####################################
         if not do_not_write_to_db:
-            print(" WRITING TO DB!")
+            print("Checking if new public alert.")
             try:
                 current_pa_id = latest_site_pa.public_id
                 public_alert_result = write_to_db_public_alerts(
@@ -1003,6 +1003,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                     print()
                     print(f"Active Public alert with ID: {current_pa_id} on Database.")
                 else:
+                    print(" WRITING TO DB!")
                     print()
                     print(f"New public alert with ID: {public_alert_result} has been added to database.")
             except Exception as err:
