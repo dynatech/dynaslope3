@@ -13,7 +13,7 @@ May 2019
 import pprint
 import os
 import json
-from connection import DB
+from connection import DB, MEMORY_CLIENT
 from config import APP_CONFIG
 from sqlalchemy import and_, or_
 from datetime import datetime, timedelta, time
@@ -29,7 +29,13 @@ from src.models.analysis import (
 from src.utils.sites import get_sites_data
 from src.utils.monitoring import round_to_nearest_release_time
 from src.utils.rainfall import get_rainfall_gauge_name
-from src.utils.extra import var_checker, create_symbols_map, get_trigger_hierarchy
+from src.utils.extra import var_checker
+
+
+IAS_MAP = MEMORY_CLIENT.get("internal_alert_symbols".upper())
+OTS_MAP = MEMORY_CLIENT.get("operational_trigger_symbols".upper())
+PAS_MAP = MEMORY_CLIENT.get("public_alert_symbols".upper())
+TH_MAP = MEMORY_CLIENT.get("trigger_hierarchies".upper())
 
 
 def round_down_data_ts(date_time):
@@ -92,40 +98,51 @@ def extract_alert_level(json):
 ###############################
 
 
-def write_to_db_public_alerts(output_dict, latest_site_pa):
+def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
     """
     SQLAlchemy DB writer function.
 
     Args:
         output_dict (dictionary) - the generated public_alert for each site
-        latest_site_pa (PublicAlert class) - the previous public_alert before the script run
+        previous_latest_site_pa (PublicAlert class) - the previous public_alert before the script run
     """
     return_data = None
     try:
-        latest_site_pa_id = latest_site_pa.public_id
-        prev_alert_symbol = latest_site_pa.alert_symbol.alert_symbol
-        is_new_public_alert = prev_alert_symbol != output_dict["pub_alert_symbol"]
+        # latest_site_pa_id = previous_latest_site_pa.public_id
 
-        # Update the previous public alert first
-        latest_site_pa.ts_updated = output_dict["ts"]
+        prev_pub_sym_id = previous_latest_site_pa.pub_sym_id
+        is_new_public_alert = prev_pub_sym_id != output_dict["pub_sym_id"]
+        prev_l_s_pa_ts_updated = previous_latest_site_pa.ts_updated
+        new_l_s_pa_ts_updated = output_dict["ts_updated"]
+        is_retroactive_run = prev_l_s_pa_ts_updated >= new_l_s_pa_ts_updated
+        no_alerts_wtn_30_mins = new_l_s_pa_ts_updated - timedelta(minutes=30) > prev_l_s_pa_ts_updated
 
         # If the alert symbol is different, create a new entry
-        if is_new_public_alert:
-            new_pub_alert = pa(
-                ts=output_dict["ts"],
-                site_id=output_dict["site_id"],
-                pub_sym_id=output_dict["pub_sym_id"],
-                ts_updated=output_dict["ts_updated"]
-            )
-            DB.session.add(new_pub_alert)
-            DB.session.flush()
-            new_public_id = new_pub_alert.public_id
-            return_data = new_public_id
+        if not is_retroactive_run:
+            if no_alerts_wtn_30_mins:
+                is_new_public_alert = True
+            else:
+                if not is_new_public_alert:
+                    # Update the previous public alert first
+                    previous_latest_site_pa.ts_updated = output_dict["ts"]
 
-            # If no problems, commit
+            if is_new_public_alert:
+                new_pub_alert = pa(
+                    ts=output_dict["ts"],
+                    site_id=output_dict["site_id"],
+                    pub_sym_id=output_dict["pub_sym_id"],
+                    ts_updated=output_dict["ts_updated"]
+                )
+                DB.session.add(new_pub_alert)
+                DB.session.flush()
+                new_public_id = new_pub_alert.public_id
+                return_data = new_public_id
+
+                # If no problems, commit
+            else:
+                return_data = "exists"
+        
             DB.session.commit()
-        else:
-            return_data = "exists"
 
     except Exception as err:
         print(err)
@@ -174,8 +191,9 @@ def get_prepared_recent_retriggers(not_empty=True, positive_triggers_list=None, 
                 "source_id": source_id,
                 "alert_level": alert_level,
                 "trigger_id": item.trigger_id,
-                "alert": trig_sym.alert_symbol,
-                "ts_updated": str(item.ts_updated)
+                "alert": OTS_MAP["alert_symbol", trigger_type, alert_level],
+                "ts_updated": str(item.ts_updated),
+                "internal_sym_id": IAS_MAP["internal_sym_id", alert_level, source_id]
             }
 
             # Prepare the tech_info of the trigger
@@ -202,15 +220,15 @@ def get_prepared_recent_retriggers(not_empty=True, positive_triggers_list=None, 
 
 
 def create_internal_alert(
-        highest_public_alert, ground_alert, 
-        internal_source_id, processed_triggers_list, has_rx_symbol=None):
+        highest_public_alert, ground_alert, processed_triggers_list, has_rx_symbol=None):
     """
     """
     internal_alert = ""
     public_alert_symbol = PAS_MAP[("alert_symbol"), highest_public_alert]
+    internal_source_id = TH_MAP["internal"]
 
     if ground_alert == -1 and highest_public_alert <= 1:
-        public_alert_symbol = IAS_MAP[ground_alert, internal_source_id]
+        public_alert_symbol = IAS_MAP["alert_symbol", ground_alert, internal_source_id]
 
     internal_alert = public_alert_symbol
     
@@ -223,7 +241,6 @@ def create_internal_alert(
         internal_alert_symbols = []
         for item in sorted_processed_triggers_list:
             internal_alert_symbols.append(item.trigger_symbol.internal_alert_symbol.alert_symbol)
-        
         internal_alert_triggers = "".join(internal_alert_symbols)
         internal_alert += internal_alert_triggers
 
@@ -246,49 +263,54 @@ def replace_rainfall_alert_if_rx(latest_rainfall_alert, processed_triggers_list,
                                                 rainfall alert
     """
     has_rx_symbol = None
-
-    # rain_75_id = ots.query.filter(
-    #     ots.alert_level == -2).first().trigger_sym_id
-    # query_result = ias.query.filter(ias.trigger_sym_id == rain_75_id)
     rain_75_id = OTS_MAP[("trigger_sym_id", "rainfall", -2)]
-    query_result = ias.query.filter(ias.trigger_sym_id == rain_75_id)
+    source_id = TH_MAP["rainfall"]
+    rx_symbol = IAS_MAP["alert_symbol", -2, source_id]
 
     if latest_rainfall_alert:
         has_rx_symbol = True
+        rain_trigger_entry = processed_triggers_list[rain_trigger_index]
 
         if rain_trigger_index:
-            rain_alert = query_result.alert_symbol
-            trigger_sym_id = query_result.trigger_sym_id
-
-            rain_trigger_entry = processed_triggers_list[rain_trigger_index]
-            rain_trigger_entry.alert_symbol = rain_alert
+            trigger_sym_id = rain_75_id
+            
+            rain_trigger_entry.alert_symbol = rx_symbol
             rain_trigger_entry.trigger_sym_id = trigger_sym_id
         else:
-            has_rx_symbol = query_result.first().alert_symbol.lower()
+            has_rx_symbol = rx_symbol.lower()
 
     return processed_triggers_list, has_rx_symbol
 
 
-def get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, surficial_source_id,
-                                              rainfall_source_id, moms_source_id,
+def get_current_rain_surficial_and_moms_alerts(site, op_triggers_list,
                                               surficial_moms_window_ts, query_ts_end,
                                               latest_rainfall_alert):
 
-    current_surficial_alert = {
-        "alert_level": -1,
-        "alert_symbol": OTS_MAP[("alert_symbol", "surficial", -1)]
+    current_trigger_alerts = {
+        "rainfall": {
+            "alert_level": -1,
+            "alert_symbol": OTS_MAP[("alert_symbol", "rainfall", -1)]
+        }, 
+        "surficial": {
+            "alert_level": -1,
+            "alert_symbol": OTS_MAP[("alert_symbol", "surficial", -1)]
+        }, 
+        "moms": {
+            "alert_level": -1,
+            "alert_symbol": OTS_MAP[("alert_symbol", "moms", -1)],
+            "details": {
+                "op_trigger": None
+                }
+        }
     }
-    current_rainfall_alert = {
-        "alert_level": -1,
-        "alert_symbol": OTS_MAP[("alert_symbol", "rainfall", -1)]
-    }
-    current_moms_alert = {
-        "alert_level": -1,
-        "alert_symbol": OTS_MAP[("alert_symbol", "moms", -1)]
-    }
+
+    rainfall_source_id = TH_MAP["rainfall"]
+    surficial_source_id = TH_MAP["surficial"]
+    moms_source_id = TH_MAP["moms"]
 
     for op_trigger in op_triggers_list:
         op_t_source_id = op_trigger.trigger_symbol.source_id
+        op_t_trigger_source = TH_MAP[op_t_source_id]
         op_t_alert_level = op_trigger.trigger_symbol.alert_level
 
         if op_t_source_id in [rainfall_source_id, surficial_source_id, moms_source_id]:
@@ -299,22 +321,17 @@ def get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, surficial
 
             ts_updated = op_trigger.ts_updated
             if ts_updated >= ts_comparator:
-                if op_t_source_id == surficial_source_id:
-                    current_surficial_alert["alert_level"] = op_t_alert_level
-                    current_surficial_alert["alert_symbol"] = OTS_MAP[("alert_symbol", "surficial", op_t_alert_level)]
-                elif op_t_source_id == rainfall_source_id:
-                    current_rainfall_alert["alert_level"] = op_t_alert_level
-                    if op_t_alert_level != -1:
-                        current_rainfall_alert["details"] = {
-                            "rain_gauge": get_rainfall_gauge_name(latest_rainfall_alert),
-                            "alert_level": op_t_alert_level,
-                            "alert_symbol": OTS_MAP[("alert_symbol", "rainfall", op_t_alert_level)]
-                        }
+                alert_symbol = OTS_MAP[("alert_symbol", op_t_trigger_source, op_t_alert_level)]
+                current_trigger_alerts[op_t_trigger_source]["alert_symbol"] = alert_symbol
+                current_trigger_alerts[op_t_trigger_source]["alert_level"] = op_t_alert_level
+
+                if op_t_source_id == rainfall_source_id:
+                    if op_t_alert_level > -1:
+                        current_trigger_alerts["rainfall"]["rain_gauge"] = get_rainfall_gauge_name(latest_rainfall_alert)
                 else:
                     latest_moms = get_site_moms(site, ts_updated)
-                    current_moms_alert["alert_level"] = op_t_alert_level
                     if not op_t_alert_level != -1:
-                        current_moms_alert["details"] = {
+                        current_trigger_alerts["moms"]["details"] = {
                             "moms_id": latest_moms.moms_id,
                             "instance_id": latest_moms.instance_id,
                             "observance_ts": str(latest_moms.observance_ts),
@@ -325,13 +342,12 @@ def get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, surficial
                             "op_trigger": op_t_alert_level
                         }
 
-        if current_rainfall_alert["alert_level"] > -1 and current_surficial_alert["alert_level"] > -1 and \
-            current_moms_alert["alert_level"] > -1:
+        if current_trigger_alerts["rainfall"]["alert_level"] > -1 and current_trigger_alerts["surficial"]["alert_level"] > -1 and \
+            current_trigger_alerts["moms"]["alert_level"] > -1:
             break
 
-    current_r_s_m_a = [current_rainfall_alert, current_surficial_alert, current_moms_alert]
 
-    return current_r_s_m_a
+    return current_trigger_alerts
 
 def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
                                           no_surficial_data_presence, no_moms_data_presence, no_data_list):
@@ -349,17 +365,11 @@ def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
 
         if pos_trig_symbol.trigger_hierarchy.trigger_source == "surficial" \
                 and no_surficial_data_presence:
-            # surficial_nd_symbol = ots.query.filter(
-            #     ots.alert_level == -1, ots.source_id == pos_trig_symbol.source_id).first()
-            # nd_internal_symbol = surficial_nd_symbol.internal_alert_symbol.alert_symbol
-            nd_internal_symbol = IAS[(-1, pos_trig_symbol.source_id)]
+            nd_internal_symbol = IAS_MAP["alert_symbol", -1, pos_trig_symbol.source_id]
             has_no_data = True
         elif pos_trig_symbol.trigger_hierarchy.trigger_source == "moms" \
                 and no_moms_data_presence:
-            # moms_nd_symbol = ots.query.filter(
-            #     ots.alert_level == -1, ots.source_id == pos_trig_symbol.source_id).first()
-            # nd_internal_symbol = moms_nd_symbol.internal_alert_symbol.alert_symbol
-            nd_internal_symbol = IAS[(-1, pos_trig_symbol.source_id)]
+            nd_internal_symbol = IAS_MAP["alert_symbol", -1, pos_trig_symbol.source_id]
             has_no_data = True
         else:
             for no_data in no_data_list:
@@ -398,12 +408,15 @@ def extract_no_data_triggers(release_op_trigger_list):
     unique_list = []
     no_surficial_data_presence = True
     no_moms_data_presence = True
+
     for release_op_trig in sorted_release_triggers_list:
         com = release_op_trig.trigger_symbol.source_id
+        # NOTE: For MAP refactoring
+        rel_trigger_source = release_op_trig.trigger_symbol.trigger_hierarchy.trigger_source
 
-        if release_op_trig.trigger_symbol.trigger_hierarchy.trigger_source == "surficial":
+        if rel_trigger_source == "surficial":
             no_surficial_data_presence = False
-        if release_op_trig.trigger_symbol.trigger_hierarchy.trigger_source == "moms":
+        if rel_trigger_source == "moms":
             no_moms_data_presence = False
         else:
             to_append = False
@@ -516,7 +529,7 @@ def get_moms_and_surficial_window_ts(highest_public_alert, query_ts_end):
         window_ts = round_to_nearest_release_time(
             query_ts_end) - timedelta(hours=4)
     else:
-        window_ts = query_ts_end
+        window_ts = query_ts_end - timedelta(days=2)
     return window_ts
 
 
@@ -582,7 +595,7 @@ def get_invalids(positive_triggers_list):
     return invalids_dict
 
 
-def extract_positive_triggers_list(op_triggers_list, surficial_source_id):
+def extract_positive_triggers_list(op_triggers_list):
     """
     Get all positive triggers from historical op_triggers_list
     """
@@ -593,14 +606,14 @@ def extract_positive_triggers_list(op_triggers_list, surficial_source_id):
 
         # Filter for g0t alerts (surficial trending alerts for validation)
         g0t_filter = not (op_trig.alert_level ==
-                          1 and op_trig.source_id == surficial_source_id)
+                          1 and op_trig.source_id == TH_MAP["surficial"])
         if op_trig.alert_level > 0 and g0t_filter:
             positive_triggers_list.append(op_trigger)
 
     return positive_triggers_list
 
 
-def extract_release_op_triggers(op_triggers_query, query_ts_end, subsurface_source_id):
+def extract_release_op_triggers(op_triggers_query, query_ts_end):
     """
     Get all operational triggers released within the four-hour window before release
     with exception for subsurface triggers
@@ -613,7 +626,7 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, subsurface_sour
     # Data presence for subsurface is limited to the current runtime only (not within 4 hours)
     release_op_triggers_list = []
     for release_op_trig in release_op_triggers:
-        if not (release_op_trig.trigger_symbol.source_id == subsurface_source_id and release_op_trig.ts_updated < query_ts_end):
+        if not (release_op_trig.trigger_symbol.source_id == TH_MAP["subsurface"] and release_op_trig.ts_updated < query_ts_end):
             release_op_triggers_list.append(release_op_trig)
 
     return release_op_triggers_list
@@ -696,20 +709,55 @@ def get_latest_public_alerts_per_site(s_pub_alerts_query, query_ts_end):
 
 def get_site_moms(site, query_ts_end):
     """
+    NOTE LOUIE: Find an efficient way to process ONLY the recent moms instead of checking everything
     """
     site_moms_instances = site.moms_instance.all()
-    sorted_moms = []
+    sorted_moms = [""]
     if site_moms_instances:
         moms_list = []
         for instance in site_moms_instances:
-            latest_moms = instance.moms.order_by(\
-                DB.desc(moms.observance_ts)).filter(\
-                    moms.observance_ts == query_ts_end).first()
-            moms_list.append(latest_moms)
+            latest_moms = instance.moms.order_by(DB.desc(moms.observance_ts)).filter(moms.observance_ts >= round_to_nearest_release_time(query_ts_end) - timedelta(hours=4)).first()
+            if latest_moms:
+                moms_list.append(latest_moms)
 
-        sorted_moms = sorted(moms_list, key=lambda x: x.observance_ts, reverse=True)
+        if moms_list:
+            sorted_moms = sorted(moms_list, key=lambda x: x.observance_ts, reverse=True)
 
     return sorted_moms[0]
+
+
+def format_release_trig(current_trigger_alerts):
+    formatted_release_trig = []
+    for key in current_trigger_alerts:
+        if key == "moms":
+            formatted_alert = {
+                "type": key,
+                "source_id": TH_MAP[key],
+                "details": current_trigger_alerts[key]
+            }            
+            # if current_moms_alert["alert_level"] not in [-1, 1]:
+            #     alert_symbol = OTS_MAP[("alert_symbol", "moms", current_moms_alert["alert_level"])]
+            #     alert_level = current_moms_alert["alert_level"]
+                
+            #     formatted_alert = {
+            #         "type": "moms",
+            #         "source_id": TH_MAP["moms"],
+            #         "details": {
+            #             **current_moms_alert["details"],
+            #             "alert_level": alert_level,
+            #             "alert_symbol": alert_symbol
+            #         }
+            #     }        
+        else:
+            formatted_alert = {
+                "type": key,
+                "source_id": TH_MAP[key],
+                "details": current_trigger_alerts[key]
+            }
+
+        formatted_release_trig.append(formatted_alert)
+
+    return formatted_release_trig
 
 
 def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_write_to_db):
@@ -752,15 +800,11 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             s_op_triggers_query, monitoring_start_ts, query_ts_end)
         op_triggers_list = op_triggers_query.all()
 
-
-        subsurface_source_id = get_trigger_hierarchy("subsurface")
-
         release_op_triggers_list = extract_release_op_triggers(
-            op_triggers_query, query_ts_end, subsurface_source_id)
+            op_triggers_query, query_ts_end)
 
-        surficial_source_id = get_trigger_hierarchy("surficial")
         positive_triggers_list = extract_positive_triggers_list(
-            op_triggers_list, surficial_source_id)
+            op_triggers_list)
 
         ###############################
         # INVALID TRIGGERS PROCESSING #
@@ -787,20 +831,13 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             highest_public_alert, query_ts_end)
 
         # Get current surficial and rainfall alert levels
-        rainfall_source_id = get_trigger_hierarchy("rainfall")
-        moms_source_id = get_trigger_hierarchy("moms")
-        current_r_s_m_a = get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, \
-                surficial_source_id, rainfall_source_id, moms_source_id, \
+        current_trigger_alerts = get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, \
                     surficial_moms_window_ts, query_ts_end, latest_rainfall_alert)
 
-        current_rainfall_alert = current_r_s_m_a[0]
-        current_surficial_alert = current_r_s_m_a[1]
-        current_moms_alert = current_r_s_m_a[2]
-
+        current_trigger_alerts["subsurface"] = subsurface_alerts_list
         ###################
         # INTERNAL ALERTS #
         ###################
-        internal_source_id = get_trigger_hierarchy("internal")
 
         # List of alert trigger levels of ground-related triggers
         ground_related_triggers_alert_list = []
@@ -823,19 +860,19 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                 processed_trig_symbol = proc_trig.trigger_symbol
 
                 # Get index of rainfall trigger if exists
-                if processed_trig_symbol.source_id == rainfall_source_id:
+                if processed_trig_symbol.source_id == TH_MAP["rainfall"]:
                     rain_trigger_index = index
 
                 if processed_trig_symbol.trigger_hierarchy.trigger_source in ["subsurface", "surficial", "moms"]:
                     ground_related_triggers_alert_list.append(processed_trig_symbol.alert_level)
 
             # Process rainfall trigger if above 75% threshold
-            if current_rainfall_alert["alert_level"] == 0 and query_ts_end >= (validity - timedelta(minutes=30)):
+            if current_trigger_alerts["rainfall"]["alert_level"] == 0 and query_ts_end >= (validity - timedelta(minutes=30)):
                 processed_triggers_list, has_rx_symbol = replace_rainfall_alert_if_rx(latest_rainfall_alert,
                                     processed_triggers_list, rain_trigger_index)
 
                 if has_rx_symbol:
-                    current_rainfall_alert["alert_level"] = -2
+                    current_trigger_alerts["rainfall"]["alert_level"] = -2
 
         #####################################################
         # ground data presence: subsurface, surficial, moms #
@@ -848,7 +885,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
             # Check if ground (surficial and sub) has data
             # NOTE: To add special handling on sites without alerts and also no sensors and markers
-            if current_surficial_alert["alert_level"] == -1 and not tsm_with_data:
+            if current_trigger_alerts["surficial"]["alert_level"] == -1 and not tsm_with_data:
                 ground_alert = -1
             else:
                 ground_alert = 0
@@ -858,7 +895,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             ground_alert = 0
 
         internal_alert = create_internal_alert(highest_public_alert, ground_alert,
-                                    internal_source_id, processed_triggers_list, has_rx_symbol)
+                                    processed_triggers_list, has_rx_symbol)
 
         ################
         # PUBLIC ALERT #
@@ -896,7 +933,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         if for_lowering:
             validity = ""
             highest_public_alert = 0
-            internal_alert = IAS_MAP[ground_alert, internal_source_id]
+            internal_alert = IAS_MAP["alert_symbol", ground_alert, TH_MAP["internal"]]
 
         ######################
         # START OF AN EVENT! #
@@ -904,7 +941,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         if monitoring_type != "event" and positive_triggers_list:
             ts_onset = min(positive_triggers_list,
                            key=lambda x: x.ts).ts
-            ts_onset = datetime.strptime(ts_onset, "%Y-%m-%d %H:%M:%S")
+            # ts_onset = datetime.strptime(ts_onset, "%Y-%m-%d %H:%M:%S")
 
         # most recent retrigger of positive operational triggers
         try:
@@ -934,31 +971,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         timestamp = str(timestamp)
         validity = str(validity)
 
-
-        current_data_list = [
-            { "type": "surficial", "source_id": surficial_source_id, "details": current_surficial_alert },
-            { "type": "rainfall", "source_id": rainfall_source_id, "details": current_rainfall_alert },
-            { "type": "subsurface", "source_id": subsurface_source_id, "details": subsurface_alerts_list },
-        ]
-
-
-        formatted_release_trig = current_data_list
-
-
-        if current_moms_alert["alert_level"] > -1:
-            alert_symbol = OTS_MAP[("alert_symbol", "moms", current_moms_alert["details"]["op_trigger"])]
-            alert_level = current_moms_alert["alert_level"]
-            formatted_moms_alert = {
-                "type": "moms",
-                "source_id": moms_source_id,
-                "details": {
-                    **current_moms_alert["details"],
-                    "alert_level": alert_level,
-                    "alert_symbol": alert_symbol
-                }
-            }
-            formatted_release_trig.append(formatted_moms_alert)
-
+        formatted_release_trig = format_release_trig(current_trigger_alerts)
 
         # FORM THE SITE PUBLIC ALERT FOR GENERATED ALERTS
         public_dict = {
@@ -975,17 +988,17 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             "release_triggers": formatted_release_trig
         }
 
-        # USE TS_ONSET
         try:
-            ts = round_down_data_ts(ts_onset)
+            public_alert_ts = round_down_data_ts(ts_onset)
         except:
-            ts = query_ts_end
+            public_alert_ts = query_ts_end
 
         # writes public alert to database
         pub_sym_id = PAS_MAP[("pub_sym_id", highest_public_alert)]
 
-        site_public_dict = {
-            "ts": ts, "site_id": site_id,
+        for_db_public_dict = {
+            "ts": public_alert_ts,
+            "site_id": site_id,
             "pub_sym_id": pub_sym_id, "ts_updated": query_ts_end,
             "pub_alert_symbol": PAS_MAP[("alert_symbol", highest_public_alert)]
         }
@@ -997,8 +1010,13 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             print("Checking if new public alert.")
             try:
                 current_pa_id = latest_site_pa.public_id
+
+                # Revert any changes made in SQLAlchemy objects. No DB updates necessary 
+                # up to this point.
+                DB.session.rollback()
+
                 public_alert_result = write_to_db_public_alerts(
-                    site_public_dict, latest_site_pa)
+                    for_db_public_dict, latest_site_pa)
                 if public_alert_result == "exists":
                     print()
                     print(f"Active Public alert with ID: {current_pa_id} on Database.")
@@ -1025,18 +1043,17 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
     return site_public_alerts_list
 
 
-IAS_MAP = create_symbols_map("internal_alert_symbols")
-OTS_MAP = create_symbols_map("operational_trigger_symbols")
-PAS_MAP = create_symbols_map("public_alert_symbols")
-
-
-def main(query_ts_end=None, is_test=False, site_code=None):
+def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
     """
     """
-    query_ts_start = datetime.now()
+    
+    try:
+        query_ts_start = datetime.strptime(query_ts_start, "%Y-%m-%d %H:%M:%S")
+    except:
+        query_ts_start = datetime.now()
+        
     print(f"{query_ts_start} | Generating Alerts...")
     do_not_write_to_db = is_test
-
 
     if query_ts_end is None:
         query_ts_end = datetime.now()
@@ -1065,8 +1082,6 @@ def main(query_ts_end=None, is_test=False, site_code=None):
     directory = os.path.abspath(directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
-
-    var_checker("PATH", directory, True)
 
     with open(directory + "/generated_alerts.json", "w") as file_path:
         file_path.write(json_data)

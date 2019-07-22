@@ -5,19 +5,71 @@ Contains functions for getting and accesing monitoring-related tables only
 import calendar
 from flask import request
 from datetime import datetime, timedelta, time, date
-from connection import DB
+from connection import DB, MEMORY_CLIENT
 from sqlalchemy import and_
+from src.models.analysis import (AlertStatus, AlertStatusSchema)
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
+    MonitoringTriggers,
     MonitoringTriggersMisc, MomsInstances, MomsFeatures,
     InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols,
-    MonitoringEventAlertsSchema)
+    MonitoringEventAlertsSchema, OperationalTriggers)
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
-    var_checker, round_to_nearest_release_time, compute_event_validity)
+    var_checker, round_to_nearest_release_time, compute_event_validity, create_symbols_map)
 from src.utils.narratives import write_narratives_to_db
+
+
+def get_saved_event_triggers(event_id):
+    """
+    """
+    mt = MonitoringTriggers
+    mr = MonitoringReleases
+    mea = MonitoringEventAlerts
+    me = MonitoringEvents
+    event_triggers = DB.session.query(
+        mt.internal_sym_id, DB.func.max(mt.ts)).join(mr).join(mea).join(me).filter(me.event_id == event_id).group_by(mt.internal_sym_id).all()
+
+    return event_triggers
+
+
+def write_alert_status_to_db(as_details, validity):
+    """
+    Inserts AlertStatus entry to database.
+    """
+    return_data = None
+
+
+    new_alert_status = AlertStatus(
+        ts_last_retrigger="",
+        trigger_id=1,
+        ts_set="",
+        ts_ack="",
+        alert_status=1,
+        remarks="",
+        user_id=1
+    )
+
+    return return_data
+
+
+def get_tomorrow_noon(ts):
+    """
+    Used for identifying extended monitoring start ts
+    Returns the next 12 noon TS for start of extended monitoring
+
+    Args:
+        ts - datetime object
+    """
+    if ts.hour < 12:
+        tom_noon_ts = datetime(ts.year, ts.month, ts.day, 12, 0, 0)
+    else:
+        tom = ts + timedelta(days=1)
+        tom_noon_ts = datetime(tom.year, tom.month, tom.day, 12, 0, 0)
+
+    return tom_noon_ts
 
 
 def get_ongoing_extended_overdue_events():
@@ -53,7 +105,7 @@ def get_ongoing_extended_overdue_events():
         public_alert_level = event_alert.public_alert_symbol.alert_level
         trigger_list = latest_release.trigger_list
         event_alert_data["internal_alert_level"] = build_internal_alert_level(
-            None, trigger_list, public_alert_level)
+            public_alert_level, trigger_list)
         event_alert_data["event"]["validity"] = str(datetime.strptime(
             event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
 
@@ -444,14 +496,14 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
     Insert a moms report to db regardless of attached to release or prior to release.
     """
     try:
-        # Temporary Map for getting alert level per IAS entry via internal_sym_id
-        moms_level_map = {14: -1, 13: 2, 7: 3}
         internal_sym_id = moms_details["internal_sym_id"]
 
         try:
             op_trigger = moms_details["op_trigger"]
         except:
-            op_trigger = moms_level_map[internal_sym_id]
+            # Note: Make sure you always include op_trigger via front end
+            print("No op_trigger given.")
+            raise
 
         observance_ts = moms_details["observance_ts"]
         narrative = moms_details["report_narrative"]
@@ -503,6 +555,18 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         DB.session.add(moms)
         DB.session.flush()
 
+        OTS_MAP = MEMORY_CLIENT.get("OPERATIONAL_TRIGGER_SYMBOLS")
+
+        new_op_trigger = OperationalTriggers(
+            ts=observance_ts,
+            site_id=site_id,
+            trigger_sym_id=OTS_MAP["trigger_sym_id", "moms", op_trigger],
+            ts_updated=observance_ts,
+        )
+
+        DB.session.add(new_op_trigger)
+        DB.session.flush()
+
         new_moms_id = moms.moms_id
         return_data = new_moms_id
 
@@ -542,44 +606,33 @@ def write_monitoring_earthquake_to_db(eq_details):
     return return_data
 
 
-def build_internal_alert_level(pub_sym_id, trigger_list=None, public_alert_level=None):
+def build_internal_alert_level(public_alert_level, trigger_list=None):
     """
     This function builds the internal alert string using a public alert level
     and the provided trigger_list_str. 
 
     Args:
-        pub_sym_id (ID integer) - Used to check the alert level to be used
-                    Can be set as "None" if you will use public_alert_level
-                    instead
         trigger_list (String) - Used as the historical log of valid triggers
                     Can be set as "None" for A0
         public_alert_level (Integer) - This will be used instead of 
                     pub_sym_id for building the Internal alert string
                     Can be set as none since this is optional
     """
+    PAS_MAP = MEMORY_CLIENT.get("PUBLIC_ALERT_SYMBOLS")
 
-    if pub_sym_id:
-        public_alert_level = get_public_alert_level(pub_sym_id)
-
+    # if pub_sym_id:
+    #     public_alert_level = get_public_alert_level(pub_sym_id)
+    #     public_alert_level = PAS_MAP[pub_sym_id]
+    p_a_symbol = PAS_MAP["alert_symbol", public_alert_level]
     if public_alert_level > 0:
-        internal_alert_level = f"A{public_alert_level}-{trigger_list}"
+        internal_alert_level = f"{p_a_symbol}-{trigger_list}"
+        
         if public_alert_level == 1 and trigger_list:
             if "-" in trigger_list:
                 internal_alert_level = trigger_list
     else:
-        internal_alert_level = f"A{public_alert_level}"
+        internal_alert_level = f"{p_a_symbol}"
         if trigger_list:
             internal_alert_level = trigger_list
 
     return internal_alert_level
-
-
-# def build_internal_alert_level(pub_sym_id, trigger_list):
-    # """
-    # This form of the fuction was used for eos api
-    # """
-#     alert_level = get_public_alert_level(pub_sym_id)
-
-#     internal_alert_level = f"A{alert_level}-{trigger_list}"
-
-#     return internal_alert_level

@@ -43,7 +43,7 @@ class Container extends Component {
         is_open_release_modal: false
     }
 
-    componentDidMount() {
+    componentDidMount () {
         const socket_fns = {
             receive_generated_alerts: (err, data) => {
                 const generated_alerts_data = JSON.parse(data);
@@ -66,7 +66,7 @@ class Container extends Component {
         // subscribeToWebSocket("alerts_from_db", (err, candidate_alerts_data) => this.setState({ candidate_alerts_data }));
     }
 
-    componentWillUnmount() {
+    componentWillUnmount () {
         unsubscribeToWebSocket();
     }
 
@@ -80,7 +80,7 @@ class Container extends Component {
         this.setState({ [data]: bool });
     }
 
-    render() {
+    render () {
         const {
             chosen_tab, generated_alerts_data, candidate_alerts_data,
             alerts_from_db_data, is_open_release_modal } = this.state;
@@ -120,7 +120,7 @@ class Container extends Component {
                 </div>
 
                 <div className={`${classes.pageContentMargin} ${classes.tabBarContent}`}>
-                    {chosen_tab === 0 && <MonitoringTables candidateAlertsData={candidate_alerts_data} alertsFromDbData={alerts_from_db_data} />}
+                    {chosen_tab === 0 && <MonitoringTables width={width} candidateAlertsData={candidate_alerts_data} alertsFromDbData={alerts_from_db_data} />}
                     {chosen_tab === 1 && <GeneratedAlerts generated_alerts_data={generated_alerts_data} />}
                 </div>
 

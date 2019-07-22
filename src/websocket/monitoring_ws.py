@@ -51,7 +51,7 @@ def monitoring_background_task():
             ALERTS_FROM_DB = wrap_get_ongoing_extended_overdue_events()
             CANDIDATE_ALERTS = candidate_alerts_generator.main()
 
-            print(f"{system_time} | NEW JSON data found.")
+            print(f"{system_time} | Done processing Candidate Alerts.")
 
             emit_data("receive_generated_alerts")
             emit_data("receive_alerts_from_db")
@@ -100,8 +100,12 @@ def generate_alerts():
     Sample
     """
     # generated_alerts_json = public_alert_generator.main()
+    generated_alerts_json = public_alert_generator.main(site_code="umi")
+        # query_ts_end="2019-07-22 15:56:00", query_ts_start="2019-07-22 15:56:00", site_code="umi")
     # generated_alerts_json = public_alert_generator.main("2018-11-14 07:51:00", True, "nur")
-    generated_alerts_json = public_alert_generator.main(
-        "2018-11-14 07:51:00", True)
+    # generated_alerts_json = public_alert_generator.main(
+    #     "2019-01-22 03:00:00", True)
+    # generated_alerts_json = public_alert_generator.main(
+    #     "2018-11-14 07:51:00", True)
 
     return generated_alerts_json
