@@ -58,6 +58,8 @@ def create_symbols_map(qualifier):
                             item.alert_symbol])
             kv_pair.append(
                 [("pub_sym_id", (item.alert_level)), item.pub_sym_id])
+            kv_pair.append(
+                [("alert_level", (item.pub_sym_id)), item.alert_level])
         elif qualifier == "internal_alert_symbols":
             kv_pair.append([("alert_symbol", item.trigger_symbol.alert_level,
                              item.trigger_symbol.source_id), item.alert_symbol])

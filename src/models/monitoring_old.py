@@ -7,8 +7,30 @@ import datetime
 from flask_login import UserMixin
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
-from src.models.users import UsersSchema
+# from src.models.users import OldUsersSchema
 from src.models.sites import Sites  # Loader lang
+
+
+class OldUsers(DB.Model):
+    """
+    Class representation of users table
+    """
+    __tablename__ = "users"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db"}
+
+    user_id = DB.Column(DB.Integer, primary_key=True)
+    salutation = DB.Column(DB.String(15))
+    firstname = DB.Column(DB.String(45))
+    middlename = DB.Column(DB.String(45))
+    lastname = DB.Column(DB.String(45))
+    nickname = DB.Column(DB.String(45))
+    sex = DB.Column(DB.String(1))
+    status = DB.Column(DB.Integer, nullable=True)
+    birthday = DB.Column(DB.Integer, nullable=True)
+
+    def __repr__(self):
+        return f"Type <{self.first_name}>"
 
 
 class OldMonitoringEvents(UserMixin, DB.Model):
@@ -20,7 +42,7 @@ class OldMonitoringEvents(UserMixin, DB.Model):
 
     event_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "sites.site_id"), nullable=False)
+        "commons_db.sites.site_id"), nullable=False)
     event_start = DB.Column(DB.DateTime, nullable=False,
                             default="0000-00-00 00:00:00")
     validity = DB.Column(DB.DateTime)
@@ -61,9 +83,9 @@ class OldMonitoringReleases(UserMixin, DB.Model):
         "OldMonitoringTriggers", backref="release", lazy="subquery")
 
     reporter_mt = DB.relationship(
-        "Users", backref="reporter_mts", primaryjoin="OldMonitoringReleases.reporter_id_mt==Users.user_id", lazy="joined")
+        "OldUsers", backref="reporter_mts", primaryjoin="OldMonitoringReleases.reporter_id_mt==OldUsers.user_id", lazy="joined")
     reporter_ct = DB.relationship(
-        "Users", backref="reporter_cts", primaryjoin="OldMonitoringReleases.reporter_id_ct==Users.user_id", lazy="joined")
+        "OldUsers", backref="reporter_cts", primaryjoin="OldMonitoringReleases.reporter_id_ct==OldUsers.user_id", lazy="joined")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Release ID: {self.release_id}"
@@ -114,7 +136,8 @@ class OldMonitoringManifestation(UserMixin, DB.Model):
     reporter = DB.Column(DB.String(50), nullable=False)
     remarks = DB.Column(DB.String(500))
     narrative = DB.Column(DB.String(500))
-    validator = DB.Column(DB.Integer, DB.ForeignKey("comms_db.users.user_id"))
+    validator = DB.Column(
+        DB.Integer, DB.ForeignKey("comms_db.users.user_id"))
     op_trigger = DB.Column(DB.Integer, nullable=False)
 
     release = DB.relationship(
@@ -137,7 +160,7 @@ class OldMonitoringManifestationFeatures(UserMixin, DB.Model):
 
     feature_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "sites.site_id"), nullable=False)
+        "comms_db.sites.site_id"), nullable=False)
     feature_type = DB.Column(DB.String(20), nullable=False)
     feature_name = DB.Column(DB.String(20))
 
@@ -158,7 +181,6 @@ class OldMonitoringOnDemand(UserMixin, DB.Model):
     id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trigger_id = DB.Column(DB.Integer, DB.ForeignKey(
         "public_alert_trigger.trigger_id"), nullable=False)
-    ts = DB.Column(DB.DateTime)
     is_lgu = DB.Column(DB.Boolean)
     is_llmc = DB.Column(DB.Boolean)
     reason = DB.Column(DB.String(200), nullable=False)
@@ -367,57 +389,57 @@ class MonitoringEndOfShiftAnalysis(UserMixin, DB.Model):
 
 # START OF SCHEMAS DECLARATIONS
 
-class OldMonitoringEventsSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Events class
-    """
-    releases = fields.Nested("OldMonitoringReleasesSchema",
-                             many=True, exclude=("event", ))
-    site = fields.Nested("SitesSchema", exclude=[
-        "events", "active", "psgc"])
-    site_id = fields.Integer()
+# class OldMonitoringEventsSchema(MARSHMALLOW.ModelSchema):
+#     """
+#     Schema representation of Monitoring Events class
+#     """
+#     releases = fields.Nested("OldMonitoringReleasesSchema",
+#                              many=True, exclude=("event", ))
+#     site = fields.Nested("SitesSchema", exclude=[
+#         "events", "active", "psgc"])
+#     site_id = fields.Integer()
 
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = OldMonitoringEvents
-
-
-class OldMonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Releases class
-    """
-    event = fields.Nested(OldMonitoringEventsSchema,
-                          exclude=("releases", "triggers"))
-
-    manifestation_details = fields.Nested(
-        "OldMonitoringManifestationSchema", many=True)
-
-    triggers = fields.Nested("OldMonitoringTriggersSchema",
-                             many=True, exclude=("release", "event"))
-
-    reporter_mt = fields.Nested(
-        UsersSchema, only=["user_id", "first_name", "last_name"])
-    reporter_ct = fields.Nested(
-        UsersSchema, only=["user_id", "first_name", "last_name"])
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = OldMonitoringReleases
+#     class Meta:
+#         """Saves table class structure as schema model"""
+#         model = OldMonitoringEvents
 
 
-class OldMonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Trigger class
-    """
-    release_id = fields.Integer()
-    release = fields.Nested(OldMonitoringReleasesSchema,
-                            exclude=("triggers", ))
-    on_demand_details = fields.Nested("OldMonitoringOnDemandSchema")
-    eq_details = fields.Nested("OldMonitoringEQSchema")
+# class OldMonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
+#     """
+#     Schema representation of Monitoring Releases class
+#     """
+#     event = fields.Nested(OldMonitoringEventsSchema,
+#                           exclude=("releases", "triggers"))
 
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = OldMonitoringTriggers
+#     manifestation_details = fields.Nested(
+#         "OldMonitoringManifestationSchema", many=True)
+
+#     triggers = fields.Nested("OldMonitoringTriggersSchema",
+#                              many=True, exclude=("release", "event"))
+
+#     reporter_mt = fields.Nested(
+#         OldUsersSchema, only=["user_id", "first_name", "last_name"])
+#     reporter_ct = fields.Nested(
+#         OldUsersSchema, only=["user_id", "first_name", "last_name"])
+
+#     class Meta:
+#         """Saves table class structure as schema model"""
+#         model = OldMonitoringReleases
+
+
+# class OldMonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
+#     """
+#     Schema representation of Monitoring Trigger class
+#     """
+#     release_id = fields.Integer()
+#     release = fields.Nested(OldMonitoringReleasesSchema,
+#                             exclude=("triggers", ))
+#     on_demand_details = fields.Nested("OldMonitoringOnDemandSchema")
+#     eq_details = fields.Nested("OldMonitoringEQSchema")
+
+#     class Meta:
+#         """Saves table class structure as schema model"""
+#         model = OldMonitoringTriggers
 
 
 # Moved

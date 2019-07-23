@@ -5,10 +5,9 @@ from run import APP
 from pprint import pprint
 from connection import DB
 from src.models.sites import Sites
-from src.models.users import Users
 from src.models.monitoring_old import (
     OldMonitoringEvents, OldMonitoringManifestation,
-    OldMonitoringManifestationFeatures
+    OldMonitoringManifestationFeatures, OldUsers
 )
 from src.models.monitoring import *
 from src.models.narratives import Narratives
@@ -183,9 +182,9 @@ def insert_to_moms_instances_table(feature):
     feature_id = get_feature_id(feature.feature_type)
 
     result = MomsInstances.query.filter(
-        MomsInstances.site_id == feature.site_id and
-        MomsInstances.feature_id == feature_id and
-        MomsInstances.feature_name == feature.feature_name).first()
+        DB.and_(MomsInstances.site_id == feature.site_id,
+        MomsInstances.feature_id == feature_id,
+        MomsInstances.feature_name == feature.feature_name)).first()
 
     if result is None:
         # If not exists, insert new instance
@@ -241,8 +240,12 @@ def insert_to_moms_table(release):
     return id_list
 
 def insert_non_triggering_to_moms_table():
+    """
+    Included na dito yung mga nilower to A0 kasi wala silang alert trigger (m/M)
+    SUGGESTION add release_id column sa monitoring_moms_releases
+    """
     non_trig_moms = OldMonitoringManifestation.query.filter(
-        OldMonitoringManifestation.op_trigger == 0, OldMonitoringManifestation.release_id==None).all()
+        OldMonitoringManifestation.op_trigger == 0).all()
 
     for mom in non_trig_moms:
         feature = get_moms_feature_details(mom.feature_id)

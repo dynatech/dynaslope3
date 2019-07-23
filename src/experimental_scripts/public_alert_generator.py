@@ -22,7 +22,8 @@ from src.models.monitoring import (
     PublicAlerts as pa, PublicAlertSymbols as pas,
     OperationalTriggers as ot, OperationalTriggerSymbols as ots,
     InternalAlertSymbols as ias, TriggerHierarchies,
-    MonitoringMoms as moms, MomsInstances as mi)
+    MonitoringMoms as moms, MomsInstances as mi,
+    MonitoringMomsSchema)
 from src.models.analysis import (
     TSMAlerts, TSMSensors, RainfallAlerts as ra,
     AlertStatusSchema)
@@ -111,7 +112,10 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
         # latest_site_pa_id = previous_latest_site_pa.public_id
 
         prev_pub_sym_id = previous_latest_site_pa.pub_sym_id
-        is_new_public_alert = prev_pub_sym_id != output_dict["pub_sym_id"]
+        new_pub_sym_id = output_dict["pub_sym_id"]
+
+        new_alert_level = PAS_MAP["alert_level", new_pub_sym_id]
+        is_new_public_alert = prev_pub_sym_id != new_pub_sym_id
         prev_l_s_pa_ts_updated = previous_latest_site_pa.ts_updated
         new_l_s_pa_ts_updated = output_dict["ts_updated"]
         is_retroactive_run = prev_l_s_pa_ts_updated >= new_l_s_pa_ts_updated
@@ -119,7 +123,7 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
 
         # If the alert symbol is different, create a new entry
         if not is_retroactive_run:
-            if no_alerts_wtn_30_mins:
+            if no_alerts_wtn_30_mins and new_alert_level == 0:
                 is_new_public_alert = True
             else:
                 if not is_new_public_alert:
@@ -139,7 +143,7 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
                 return_data = new_public_id
 
                 # If no problems, commit
-            else:
+            elif not is_new_public_alert:
                 return_data = "exists"
         
             DB.session.commit()
@@ -152,7 +156,7 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
     return return_data
 
 
-def get_prepared_recent_retriggers(not_empty=True, positive_triggers_list=None, invalid_dict=None):
+def get_prepared_recent_retriggers(positive_triggers_list=None, invalid_dict=None, site_moms_alerts_list=None):
     """
     Prepare the most recent trigger
     Remove unnecessary attributes and convert SQLAlchemy row into a dict.
@@ -163,7 +167,7 @@ def get_prepared_recent_retriggers(not_empty=True, positive_triggers_list=None, 
     """
     recent_triggers_list = []
 
-    if not_empty:
+    if positive_triggers_list:
         for item in positive_triggers_list:
             # Include invalids as a dictionary
             final_invalid_dict = {}
@@ -207,6 +211,17 @@ def get_prepared_recent_retriggers(not_empty=True, positive_triggers_list=None, 
                 trigger_dict.update(rainfall)
             elif trigger_type == "subsurface":
                 trigger_dict["tech_info"] = trigger_tech_info
+            elif trigger_type == "moms":
+                if site_moms_alerts_list:
+                    recent_moms_details = filter(lambda x: x.observance_ts >= item.ts_updated, site_moms_alerts_list)
+                    # Get the highest triggering moms
+                    sorted_moms_details = sorted(recent_moms_details, key=lambda x: x.op_trigger, reverse=True)
+                    var_checker("sorted moms", sorted_moms_details, True)
+                    # Moms Data
+                    moms_data = MonitoringMomsSchema(many=True, exclude=("moms_releases", "validator", "reporter", "narrative")).dump(sorted_moms_details).data
+                    var_checker("moms data", moms_data, True)
+                    # Get the only triggering moms
+                    trigger_dict["moms_list"] = moms_data
 
             # Add the invalid details same level to the dictionary attributes
             trigger_dict.update(final_invalid_dict)
@@ -710,6 +725,7 @@ def get_latest_public_alerts_per_site(s_pub_alerts_query, query_ts_end):
 def get_site_moms(site, query_ts_end):
     """
     NOTE LOUIE: Find an efficient way to process ONLY the recent moms instead of checking everything
+    NOTE: Will be transferred to monitoring utils
     """
     site_moms_instances = site.moms_instance.all()
     sorted_moms = [""]
@@ -724,6 +740,19 @@ def get_site_moms(site, query_ts_end):
             sorted_moms = sorted(moms_list, key=lambda x: x.observance_ts, reverse=True)
 
     return sorted_moms[0]
+
+
+def get_site_moms_alerts(site_id, ts_start, ts_end):
+    """
+    NOTE LOUIE: Find an efficient way to process ONLY the recent moms instead of checking everything
+    NOTE: Will be transferred to monitoring utils
+    """
+    var_checker("ts_start", ts_start, True)
+    var_checker("ts_end", ts_end, True)
+    latest_moms = moms.query.order_by(DB.desc(moms.observance_ts)).filter(
+        DB.and_(ts_start <= moms.observance_ts, moms.observance_ts <= ts_end)).join(mi).filter(mi.site_id == site_id).all()
+
+    return latest_moms
 
 
 def format_release_trig(current_trigger_alerts):
@@ -773,7 +802,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         site_code = site.site_code
         s_pub_alerts_query = site.public_alerts
         s_op_triggers_query = site.operational_triggers
-        site_tsm_sensors = site.tsm_sensors
+        site_tsm_sensors = site.tsm_sensors.all()
         latest_rainfall_alert = site.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
             ra.ts == query_ts_end).first()
         
@@ -818,9 +847,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ######################
         # GET TRIGGER ALERTS #
         ######################
-        # Get current subsurface alert level
-        subsurface_alerts_list = get_tsm_alerts(
-            site_tsm_sensors, query_ts_end)
 
         # Get highest public alert level
         highest_public_alert = get_highest_public_alert(
@@ -829,6 +855,13 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         # Get surficial and moms data presence window timestamp query
         surficial_moms_window_ts = get_moms_and_surficial_window_ts(
             highest_public_alert, query_ts_end)
+
+        # Get current subsurface alert
+        subsurface_alerts_list = get_tsm_alerts(
+            site_tsm_sensors, query_ts_end)
+
+        # Get current moms alerts within ts_onset and query_ts_end
+        site_moms_alerts_list = get_site_moms_alerts(site_id, monitoring_start_ts, query_ts_end)
 
         # Get current surficial and rainfall alert levels
         current_trigger_alerts = get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, \
@@ -941,12 +974,10 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         if monitoring_type != "event" and positive_triggers_list:
             ts_onset = min(positive_triggers_list,
                            key=lambda x: x.ts).ts
-            # ts_onset = datetime.strptime(ts_onset, "%Y-%m-%d %H:%M:%S")
 
         # most recent retrigger of positive operational triggers
         try:
-            triggers = get_prepared_recent_retriggers(
-                True, unique_positive_triggers_list, invalids_dict)
+            event_triggers = get_prepared_recent_retriggers(unique_positive_triggers_list, invalids_dict, site_moms_alerts_list)
         except:
             raise
 
@@ -984,10 +1015,11 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             "public_alert": PAS_MAP[("alert_symbol", highest_public_alert)],
             "internal_alert": internal_alert,
             "validity": validity,
-            "event_triggers": triggers,
+            "event_triggers": event_triggers,
             "release_triggers": formatted_release_trig
         }
 
+        # NOTE: Commented to try merging this with the code related to this
         try:
             public_alert_ts = round_down_data_ts(ts_onset)
         except:
@@ -1017,13 +1049,12 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
                 public_alert_result = write_to_db_public_alerts(
                     for_db_public_dict, latest_site_pa)
-                if public_alert_result == "exists":
+                if not public_alert_result:
                     print()
                     print(f"Active Public alert with ID: {current_pa_id} on Database.")
                 else:
-                    print(" WRITING TO DB!")
-                    print()
-                    print(f"New public alert with ID: {public_alert_result} has been added to database.")
+                    print(f"Writing to DB with ID: {public_alert_result}")
+
             except Exception as err:
                 print(err)
                 DB.session.rollback()
@@ -1088,6 +1119,7 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
     script_end = datetime.now()
     print(f"Runtime: {script_end - query_ts_start} | Done generating alerts!")
+    print()
     return json_data
 
 

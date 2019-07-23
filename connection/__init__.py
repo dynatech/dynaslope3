@@ -11,6 +11,7 @@ from flask_cors import CORS
 # from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO
 from flask_jwt_extended import JWTManager, create_access_token
+from connection import memory
 
 from threading import Thread, Lock
 
@@ -25,6 +26,8 @@ SOCKETIO = SocketIO()
 
 MONITORING_WS_THREAD = None
 THREAD_LOCK = Lock()
+
+MEMORY_CLIENT = memory
 
 
 def start_monitoring_ws_bg_task():
@@ -68,7 +71,10 @@ def create_app(config_name):
     CORS(app)
     SOCKETIO.init_app(app)
 
-    # start_monitoring_ws_bg_task()
+    from connection import set_memcache
+    set_memcache.main(MEMORY_CLIENT)
+
+    start_monitoring_ws_bg_task()
 
     # @app.route("/hello")
     # def hello_world():
@@ -172,5 +178,8 @@ def create_app(config_name):
 
     from src.api.analysis import ANALYSIS_BLUEPRINT
     app.register_blueprint(ANALYSIS_BLUEPRINT, url_prefix="/api")
+
+    from src.api.manifestations_of_movement import MOMS_BLUEPRINT
+    app.register_blueprint(MOMS_BLUEPRINT, url_prefix="/api")
 
     return app

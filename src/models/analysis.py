@@ -395,7 +395,7 @@ class TSMSensors(UserMixin, DB.Model):
     version = DB.Column(DB.Integer)
 
     site = DB.relationship("Sites", backref=DB.backref(
-        "tsm_sensors", lazy="subquery"))
+        "tsm_sensors", lazy="dynamic"))
 
     tsm_alert = DB.relationship(
         "TSMAlerts", backref=DB.backref("tsm_sensor", lazy="joined", innerjoin=True), lazy="dynamic")

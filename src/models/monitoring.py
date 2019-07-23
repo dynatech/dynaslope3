@@ -303,11 +303,12 @@ class MonitoringMoms(UserMixin, DB.Model):
 
     # Louie - New Relationship
     moms_instance = DB.relationship(
-        "MomsInstances", backref=DB.backref("moms", lazy="dynamic"), lazy="subquery")
+        "MomsInstances", backref=DB.backref("moms", lazy="dynamic", order_by="desc(MonitoringMoms.observance_ts)"), lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> MOMS ID: {self.moms_id}"
-                f" observance ts: {self.observance_ts} Remarks: {self.remarks}")
+                f" observance ts: {self.observance_ts} Remarks: {self.remarks}"
+                f" op_trigger: {self.op_trigger}")
 
 
 class MomsInstances(UserMixin, DB.Model):
@@ -327,9 +328,9 @@ class MomsInstances(UserMixin, DB.Model):
     feature_name = DB.Column(DB.String(45))
 
     site = DB.relationship("Sites", backref=DB.backref(
-        "moms_instance", lazy="dynamic"))
+        "moms_instance", lazy="subquery"))
     feature = DB.relationship(
-        "MomsFeatures", backref=DB.backref("moms_instance_feature", lazy="dynamic"), lazy="select")
+        "MomsFeatures", backref=DB.backref("instances", lazy="dynamic"), lazy="select")
 
     # site = DB.relationship("Sites", backref="moms_instance", lazy=True)
 
@@ -755,6 +756,7 @@ class MonitoringMomsReleasesSchema(MARSHMALLOW.ModelSchema):
     moms_id = fields.Integer()
     moms_details = fields.Nested(
         "MonitoringMomsSchema", exclude=("moms_release", ))
+    
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -765,12 +767,13 @@ class MonitoringMomsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Moms class
     """
+    observance_ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     narrative = fields.Nested(
         "NarrativesSchema", exclude=("site_id", "event_id"))
     reporter = fields.Nested("UsersSchema", only=(
         "salutation", "first_name", "last_name"))
     validator = fields.Nested("UsersSchema", only=("first_name", "last_name"))
-    instance_details = fields.Nested("MomsInstancesSchema", exclude=("moms", ))
+    moms_instance = fields.Nested("MomsInstancesSchema", exclude=("moms", ))
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -781,7 +784,8 @@ class MomsInstancesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Moms Instance class
     """
-    moms = fields.Nested("MonitoringMoms")
+    moms = fields.Nested("MonitoringMomsSchema", many=True, exclude=("moms_instance", ))
+    feature = fields.Nested("MomsFeaturesSchema", exclude=("instances", ))
 
     class Meta:
         """Saves table class structure as schema model"""
