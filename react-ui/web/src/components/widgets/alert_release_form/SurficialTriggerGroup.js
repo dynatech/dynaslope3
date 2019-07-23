@@ -1,5 +1,7 @@
 import React, { Component, Fragment } from "react";
 import { Grid, withStyles } from "@material-ui/core";
+
+import { handleChange, handleCheckboxChange, handleSwitchChange } from "./state_handlers";
 import CheckboxGroupWithSwitch from "../../reusables/CheckboxGroupWithSwitch";
 import TriggerTimestampAndTechInfoCombo from "./TriggerTimestampAndTechInfoCombo";
 
@@ -10,121 +12,83 @@ const styles = theme => ({
     }
 });
 
-class SubsurfaceCheckboxGroup extends Component {
-    state = {
-        switch_surficial: false,
-        trigger_timestamp: null,
-        tech_info: "",
-        trigger_g: {
-            status: false,
-            disabled: false
-        },
-        trigger_G: {
-            status: false,
-            disabled: false
-        },
-        trigger_g0: {
-            status: false,
-            disabled: false
-        }
-    }
+function SurficialCheckboxGroup (props) {
+    const {
+        classes, triggersState, setTriggersState
+    } = props;
 
-    changeState = (key, value) => {
-        this.setState({ [key]: value });
+    const { surficial } = triggersState;
+    const { switchState, triggers } = surficial;
+
+    const triggers_value = {
+        trigger_2: { status: false, disabled: false },
+        trigger_3: { status: false, disabled: false },
+        trigger_0: { status: false, disabled: false },
     };
 
-    handleChange = key => x => {
-        const value = key === "trigger_timestamp" ? x : x.target.value;
-        this.changeState(key, value);
-    }
+    if (triggers.length !== 0) {
+        triggers.forEach(trigger => {
+            const { alert_level, status, disabled } = trigger;
+            triggers_value[`trigger_${alert_level}`] = {
+                ...trigger,
+                status,
+                disabled
+            };
 
-    handleSwitchChange = event => {
-        const temp = { ...this.state };
-        const is_checked = event.target.checked;
-        temp.switch_surficial = is_checked;
-
-        if (!is_checked) {
-            ["trigger_g", "trigger_G", "trigger_g0"].forEach(e => {
-                temp[e].status = false;
-                temp[e].disabled = false;
-            });
-        }
-
-        this.setState(temp);
-    }
-
-    handleCheckboxChange = name => event => {
-        const final_state = { ...this.state };
-        const is_checked = event.target.checked;
-
-        if (name === "trigger_g0") {
-            final_state.trigger_g.disabled = is_checked;
-            final_state.trigger_G.disabled = is_checked;
-        }
-
-        final_state[name].status = is_checked;
-
-        this.setState(final_state, prevState => {
-            if (name !== "trigger_g0") {
-                const x = (final_state.trigger_g.status || final_state.trigger_G.status);
-                this.setState({ trigger_g0: { status: false, disabled: x } });
+            if (alert_level === 0) {
+                triggers_value.trigger_2.disabled = true;
+                triggers_value.trigger_3.disabled = true;
+            } else {
+                triggers_value.trigger_0.disabled = true;
             }
         });
     }
 
-    render () {
-        const { classes } = this.props;
-        const {
-            switch_surficial,
-            trigger_g, trigger_G, trigger_g0,
-            trigger_timestamp, tech_info
-        } = this.state;
+    const { trigger_2, trigger_3, trigger_0 } = triggers_value;
 
-        return (
-            <Fragment>
-                <Grid item xs={12} className={switch_surficial ? classes.groupGridContainer : ""}>
-                    <CheckboxGroupWithSwitch 
-                        label="Surficial"
-                        switchState={switch_surficial}
-                        switchHandler= {this.handleSwitchChange}
-                        switchValue="switch_surficial"
-                        choices={[
-                            { state: trigger_g, value: "trigger_g", label: "Release trigger (g2)" },
-                            { state: trigger_G, value: "trigger_G", label: "Release trigger (G3)" },
-                            { state: trigger_g0, value: "trigger_g0", label: "No data ([g/G]0)" }
-                        ]}
-                        changeHandler={this.handleCheckboxChange}
+    return (
+        <Fragment>
+            <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
+                <CheckboxGroupWithSwitch
+                    label="Surficial"
+                    switchState={switchState}
+                    switchHandler={handleSwitchChange(setTriggersState, "surficial")}
+                    switchValue="surficial_switch"
+                    choices={[
+                        { state: trigger_2, value: 2, label: "Release trigger (g2)" },
+                        { state: trigger_3, value: 3, label: "Release trigger (G3)" },
+                        { state: trigger_0, value: 0, label: "No data ([g/G]0)" }
+                    ]}
+                    changeHandler={handleCheckboxChange(setTriggersState, "surficial")}
+                />
+            </Grid>
+            {
+                trigger_2.status ? (
+                    <TriggerTimestampAndTechInfoCombo
+                        labelFor="g2"
+                        trigger_timestamp={trigger_2.timestamp}
+                        tech_info={trigger_2.tech_info}
+                        changeHandler={handleChange(setTriggersState, "surficial")}
                     />
-                </Grid>
+                ) : (
+                    <div />
+                )
+            }
 
-                {
-                    trigger_g.status ? (
-                        <TriggerTimestampAndTechInfoCombo
-                            labelFor="g2"
-                            trigger_timestamp={trigger_timestamp}
-                            tech_info={tech_info}
-                            changeHandler={this.handleChange}
-                        />
-                    ) : (
-                        <div />
-                    )
-                }
-
-                {
-                    trigger_G.status ? (
-                        <TriggerTimestampAndTechInfoCombo
-                            labelFor="G3"
-                            trigger_timestamp={trigger_timestamp}
-                            tech_info={tech_info}
-                            changeHandler={this.handleChange}
-                        />
-                    ) : (
-                        <div />
-                    )
-                }
-            </Fragment>
-        );
-    }
+            {
+                trigger_3.status ? (
+                    <TriggerTimestampAndTechInfoCombo
+                        labelFor="G3"
+                        trigger_timestamp={trigger_3.timestamp}
+                        tech_info={trigger_3.tech_info}
+                        changeHandler={handleChange(setTriggersState, "surficial")}
+                    />
+                ) : (
+                    <div />
+                )
+            }
+        </Fragment>
+    );
 }
 
-export default withStyles(styles)(SubsurfaceCheckboxGroup);
+export default withStyles(styles)(SurficialCheckboxGroup);

@@ -8,43 +8,101 @@ NAMING CONVENTION
 
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
+from sqlalchemy import and_
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringReleasePublishers, MonitoringTriggers, MonitoringTriggersMisc,
     InternalAlertSymbols, MonitoringMomsReleases, BulletinTracker)
 from src.models.monitoring import (
-    MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema)
+    MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
+    InternalAlertSymbolsSchema)
 from src.utils.narratives import (write_narratives_to_db)
 from src.utils.monitoring import (
     get_monitoring_events, get_monitoring_releases,
     get_active_monitoring_events, get_current_monitoring_instance_per_site,
     compute_event_validity, round_to_nearest_release_time, get_pub_sym_id,
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
-    write_monitoring_earthquake_to_db, get_internal_alert_symbol)
-from src.utils.extra import (create_symbols_map, var_checker)
+    write_monitoring_earthquake_to_db, get_internal_alert_symbols,
+    get_monitoring_events_table, get_event_count, get_public_alert,
+    build_internal_alert_level)
+from src.utils.extra import (create_symbols_map, var_checker,
+                             round_to_nearest_release_time, compute_event_validity)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
 
+@MONITORING_BLUEPRINT.route("/monitoring/get_internal_alert_symbols", methods=["GET"])
+def wrap_get_internal_alert_symbols():
+    """
+    Returns  all alert symbols rows.
+    """
+    ias = get_internal_alert_symbols()
+
+    return_data = []
+    for alert_symbol, trigger_source in ias:
+        ias_data = InternalAlertSymbolsSchema(
+            exclude=("trigger",)).dump(alert_symbol).data
+        ias_data["trigger_type"] = trigger_source
+        return_data.append(ias_data)
+
+    return jsonify(return_data)
+
+
+# @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events", methods=["GET"])
+# @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events/<event_id>", methods=["GET"])
+# def wrap_get_monitoring_events(event_id=None):
+#     """
+#     NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
+#     """
+#     event = get_monitoring_events(event_id)
+#     event_schema = MonitoringEventsSchema()
+
+#     if event_id is None:
+#         event_schema = MonitoringEventsSchema(many=True)
+
+#     event_data = event_schema.dump(event).data
+
+#     return jsonify(event_data)
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_site_public_alert", methods=["GET"])
+def wrap_get_site_public_alert():
+    site_id = request.args.get('site_id', default=1, type=int)
+    return_data = get_public_alert(site_id)
+    return return_data
+
+
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events", methods=["GET"])
-@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events/<event_id>", methods=["GET"])
-def wrap_get_monitoring_events(event_id=None):
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events/<value>", methods=["GET"])
+def wrap_get_monitoring_events(value=None):
     """
     NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
     """
-    event = get_monitoring_events(event_id)
-    event_schema = MonitoringEventsSchema()
+    filter_type = request.args.get('filter_type', default="event_id", type=str)
 
-    if event_id is None:
-        event_schema = MonitoringEventsSchema(many=True)
+    return_data = []
+    if filter_type == "event_id":
+        event = get_monitoring_events(event_id=value)
+        event_schema = MonitoringEventsSchema()
 
-    event_data = event_schema.dump(event).data
+        if value is None:
+            event_schema = MonitoringEventsSchema(many=True)
 
-    return jsonify(event_data)
+        return_data = event_schema.dump(event).data
+    elif filter_type == "complete":
+        offset = request.args.get('offset', default=0, type=int)
+        limit = request.args.get('limit', default=5, type=int)
+
+        return_data = get_monitoring_events_table(offset=offset, limit=limit)
+    elif filter_type == "count":
+        return_data = get_event_count()
+    else:
+        raise Exception(KeyError)
+
+    return jsonify(return_data)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases", methods=["GET"])
@@ -75,6 +133,97 @@ def wrap_get_active_monitoring_events():
         many=True).dump(active_events).data
 
     return jsonify(active_events_data)
+
+
+def get_tomorrow_noon(ts):
+    """
+    Used for identifying extended monitoring start ts
+    Returns the next 12 noon TS for start of extended monitoring
+
+    Args:
+        ts - datetime object
+    """
+    if ts.hour < 12:
+        tom_noon_ts = datetime(ts.year, ts.month, ts.day, 12, 0, 0)
+    else:
+        tom = ts + timedelta(days=1)
+        tom_noon_ts = datetime(tom.year, tom.month, tom.day, 12, 0, 0)
+
+    return tom_noon_ts
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_ongoing_extended_overdue_events", methods=["GET"])
+def wrap_get_ongoing_extended_overdue_events():
+    """
+    Gets active events and organizes them into the following categories:
+        (a) Ongoing
+        (b) Extended
+        (c) Overdue
+    For use in alerts_from_db in Candidate Alerts Generator
+    """
+    active_event_alerts = get_active_monitoring_events()
+
+    latest = []
+    extended = []
+    overdue = []
+    for event_alert in active_event_alerts:
+        validity = event_alert.event.validity
+        latest_release = event_alert.releases.order_by(
+            DB.desc(MonitoringReleases.data_ts)).first()
+        data_ts = latest_release.data_ts
+        rounded_data_ts = round_to_nearest_release_time(data_ts)
+        release_time = latest_release.release_time
+
+        if data_ts.hour == 23 and release_time.hour < 4:
+            # rounded_data_ts = round_to_nearest_release_time(data_ts)
+            str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
+            str_release_time = str(release_time)
+
+            release_time = f"{str_data_ts_ymd} {str_release_time}"
+
+        event_alert_data = MonitoringEventAlertsSchema(many=False).dump(event_alert).data
+        public_alert_level = event_alert.public_alert_symbol.alert_level
+        trigger_list = latest_release.trigger_list
+        event_alert_data["internal_alert_level"] = build_internal_alert_level(None, trigger_list, public_alert_level)
+        event_alert_data["event"]["validity"] = str(datetime.strptime(event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
+
+        if datetime.now() < validity:
+            # On time release
+            latest.append(event_alert_data)
+        elif validity < datetime.now():
+            # Late release
+            overdue.append(event_alert_data)
+        else:
+            # elif validity < rounded_data_ts and rounded_data_ts < (validity + timedelta(days=3)):
+            # Extended
+            start = get_tomorrow_noon(validity)
+            # Day 3 is the 3rd 12-noon from validity
+            end = start + timedelta(days=2)
+            # current = datetime.now() # Production code is current time
+            current = datetime(2020, 1, 3, 8, 0, 0)
+            # Count the days distance between current date and day 3 to know which extended day it is
+            day = 3 - (end - current).days
+
+            if day <= 0:
+                latest.append(event_alert_data)
+            elif day > 0 and day < end:
+                event_alert_data["day"] = day
+                extended.append(event_alert_data)
+            else:
+                # NOTE: Make an API call to end an event when extended is finished? based on old code
+                print("FINISH EVENT")
+
+    db_alerts = {
+        "latest": latest,
+        "extended": extended,
+        "overdue": overdue
+    }
+
+    # for key, value in db_alerts.items():
+    #     db_alerts[key] = MonitoringEventAlertsSchema(
+    #         many=True).dump(value).data
+
+    return json.dumps(db_alerts)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_pub_sym_id/<alert_level>", methods=["GET"])
@@ -395,64 +544,59 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
             # The following could should be in a foreach so we can handle list of triggers
             for index, trigger in enumerate(trigger_list_arr):
                 internal_sym_id = trigger["internal_sym_id"]
-                alert_symbol = get_internal_alert_symbol(internal_sym_id)
+                alert_symbol = get_internal_alert_symbols(internal_sym_id)
                 is_rain_surficial_sub_trigger = is_rain_surficial_subsurface_trigger(
                     alert_symbol)
                 moms_id_list = []
 
-                if is_rain_surficial_sub_trigger is True:
-                    internal_sym_id = trigger["internal_sym_id"]
-                    info = trigger["info"]
-                    timestamp = trigger["ts"]
-                else:
-                    if alert_symbol in ["M", "m"]:
-                        print("---MOMS---")
-                        try:
-                            # NOTE: If there are pre-inserted moms, get the id and use it here.
-                            moms_id = trigger["moms_id"]
-                            info = trigger["consolidated_tech_info"]
-                            timestamp = release_details["data_ts"]
-                        except:
-                            moms_list = trigger["moms_list"]
-                            info = trigger["consolidated_tech_info"]
-                            timestamp = release_details["data_ts"]
+                internal_sym_id = trigger["internal_sym_id"]
+                info = trigger["info"]
+                timestamp = trigger["ts"]
 
-                            for moms in moms_list:
-                                moms["internal_sym_id"] = internal_sym_id
-                                moms_id = write_monitoring_moms_to_db(
-                                    moms, site_id, event_id)
-                                moms_id_list.append(moms_id)
+                if alert_symbol in ["M", "m"]:
+                    print("---MOMS---")
+                    try:
+                        # NOTE: If there are pre-inserted moms, get the id and use it here.
+                        moms_id_list = trigger["moms_id_list"]
+                    except:
+                        moms_list = trigger["moms_list"]
 
-                        od_id = None
-                        eq_id = None
-                        has_moms = True
+                        for moms in moms_list:
+                            moms["internal_sym_id"] = internal_sym_id # Will be used for op_trigger of moms
+                            moms_id = write_monitoring_moms_to_db(
+                                moms, site_id, event_id)
+                            moms_id_list.append(moms_id)
 
-                        print("MOMS-Success")
+                    od_id = None
+                    eq_id = None
+                    has_moms = True
 
-                    elif alert_symbol == "D":
-                        print("---ON_DEMAND---")
-                        od_details = trigger["od_details"]
-                        request_ts = datetime.strptime(
-                            od_details["request_ts"], "%Y-%m-%d %H:%M:%S")
-                        narrative = od_details["reason"]
-                        info = narrative
-                        timestamp = request_ts
+                    print("MOMS-Success")
 
-                        od_details["narrative_id"] = write_narratives_to_db(
-                            site_id, request_ts, narrative, event_id)
+                elif alert_symbol == "D":
+                    print("---ON_DEMAND---")
+                    od_details = trigger["od_details"]
+                    request_ts = datetime.strptime(
+                        od_details["request_ts"], "%Y-%m-%d %H:%M:%S")
+                    narrative = od_details["reason"]
+                    info = narrative
+                    timestamp = request_ts
 
-                        od_id = write_monitoring_on_demand_to_db(od_details)
-                        eq_id = None
-                        has_moms = False
+                    od_details["narrative_id"] = write_narratives_to_db(
+                        site_id, request_ts, narrative, event_id)
 
-                    elif alert_symbol == "E":
-                        print("---EARTHQUAKE---")
-                        info = ""
-                        timestamp = release_details["data_ts"]
-                        od_id = None
-                        eq_id = write_monitoring_earthquake_to_db(
-                            trigger["eq_details"])
-                        has_moms = False
+                    od_id = write_monitoring_on_demand_to_db(od_details)
+                    eq_id = None
+                    has_moms = False
+
+                elif alert_symbol == "E":
+                    print("---EARTHQUAKE---")
+                    info = ""
+                    timestamp = release_details["data_ts"]
+                    od_id = None
+                    eq_id = write_monitoring_earthquake_to_db(
+                        trigger["eq_details"])
+                    has_moms = False
 
                 trigger_details = {
                     "release_id": release_id,
@@ -526,18 +670,31 @@ def insert_ewi(internal_json=None):
             json_data = request.get_json()
 
         # Entry-related variables from JSON
-        site_id = json_data["site_id"]
-        site_id_list = json_data["routine_sites_ids"]
-        alert_level = json_data["alert_level"]
+        try:
+            site_id = json_data["site_id"]
+            alert_level = json_data["alert_level"]
 
-        entry_type = 1
-        site_monitoring_instance = get_current_monitoring_instance_per_site(
-            site_id)
-        site_status = site_monitoring_instance.status
-        if site_status == 1 and alert_level > 0:
-            entry_type = 2
-        elif site_status == 2:
-            entry_type = 2
+            entry_type = 1  # Automatic, if entry_type 1, Mass ROUTINE Release
+            site_monitoring_instance = get_current_monitoring_instance_per_site(
+                site_id)
+            site_status = site_monitoring_instance.status
+
+            is_site_under_extended = site_status == 2 and site_monitoring_instance.validity < json_data["release_details"]["data_ts"]
+
+            if site_status == 1 and alert_level > 0:
+                # ONSET: Current status is routine and inserting an A1+ alert.
+                print("ONSET")
+                entry_type = 2
+            # if current site is under extended and a new higher alert is released (hence new monitoring event)
+            elif is_site_under_extended and alert_level > 0:
+                entry_type = 2
+                site_status = 1 # this is necessary to make new monitoring event
+            else:    
+                # A1+ active on site
+                entry_type = 2
+        except:
+            site_id_list = json_data["routine_sites_ids"]
+            entry_type = 1
 
         # Release-related variables from JSON
         release_details = json_data["release_details"]
@@ -556,29 +713,32 @@ def insert_ewi(internal_json=None):
             # Mass release for routine sites.
             print("--- It's a routine ---")
 
-            for site_id in site_id_list:
-                print("---site_id---")
-                print(site_id)
-                release_details["event_alert_id"] = site_monitoring_instance.event_alerts[0].event_alert_id
-                release_details["bulletin_number"] = update_bulletin_number(
-                    site_id, 1)
-
-                instance_details = {
-                    "site_id": site_id,
-                    "event_id": site_monitoring_instance.event_id
-                }
+            for routine_site_id in site_id_list:
+                site_monitoring_instance = get_current_monitoring_instance_per_site(
+                    routine_site_id)
+                site_status = site_monitoring_instance.status
 
                 if site_status == 1:
+                    release_details["event_alert_id"] = site_monitoring_instance.event_alerts.order_by(
+                        DB.desc(MonitoringEventAlerts.event_alert_id)).first().event_alert_id
+                    release_details["bulletin_number"] = update_bulletin_number(
+                        routine_site_id, 1)
+
+                    instance_details = {
+                        "site_id": routine_site_id,
+                        "event_id": site_monitoring_instance.event_id
+                    }
+
                     insert_ewi_release(instance_details,
                                        release_details, publisher_details, None)
+                else:
+                    print("Not a routine site")
 
         elif entry_type == 2:  # stands for event
             print("--- It's an event ---")
 
-            # If using MonitoringEventsSchema, it will return all.
-            # Instead, this will return only the latest one
-            # event_alerts is an instrumented list. Adding index [0] gets the actual record.
-            current_event_alert = site_monitoring_instance.event_alerts[0]
+            current_event_alert = site_monitoring_instance.event_alerts.order_by(
+                DB.desc(MonitoringEventAlerts.event_alert_id)).first()
             pub_sym_id = get_pub_sym_id(alert_level)
 
             if alert_level in [1, 2, 3]:
@@ -806,7 +966,7 @@ def insert_cbewsl_ewi():
         moms_level_dict = {2: 13, 3: 7}
         moms_trigger = {
             "internal_sym_id": moms_level_dict[alert_level],
-            "consolidated_tech_info": "",
+            "info": "",
             "moms_list": []
         }
 
@@ -822,11 +982,11 @@ def insert_cbewsl_ewi():
                 trigger_list_arr.append(trigger_entry)
             elif trigger_type in ["m", "M", "M0"]:
                 # Always trigger entry from app. Either m or M only.
-                c_t_info = moms_trigger["consolidated_tech_info"]
+                c_t_info = moms_trigger["info"]
                 feature_name = trigger["f_name"]
                 feature_type = trigger["f_type"]
                 remarks = trigger["remarks"]
-                moms_trigger["consolidated_tech_info"] = f"[{feature_type}] {feature_name} - {remarks} {c_t_info}"
+                moms_trigger["info"] = f"[{feature_type}] {feature_name} - {remarks} {c_t_info}"
                 moms_obs = {
                     "observance_ts": data_ts,
                     "reporter_id": user_id,
@@ -854,7 +1014,6 @@ def insert_cbewsl_ewi():
         "site_code": "umi",
         "alert_level": alert_level,
         "cbewsl_validity": json_data["alert_validity"],
-        "routine_sites_ids": [],
         "release_details": {
             "data_ts": data_ts,
             "trigger_list": "m",

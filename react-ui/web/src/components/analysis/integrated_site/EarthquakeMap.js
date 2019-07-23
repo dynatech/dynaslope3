@@ -1,73 +1,104 @@
-import React, { Component } from "react";
+import React, { Fragment } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Map as LeafletMap, TileLayer, Marker, Popup } from "react-leaflet";
+import { Map as LeafletMap, TileLayer, Marker, Popup, Circle, CircleMarker } from "react-leaflet";
 import MarkerIcon from "leaflet/dist/images/marker-icon.png";
 import ShadowIcon from "leaflet/dist/images/marker-shadow.png";
 import RetinaIcon from "leaflet/dist/images/marker-icon-2x.png";
+import { sites } from "../../../store";
 
 const marker = L.icon({
     iconUrl: MarkerIcon,
     shadowUrl: ShadowIcon,
     iconRetinaUrl: RetinaIcon,
-    iconSize: [25, 41], // size of the icon
-    shadowSize: [41, 41], // size of the shadow
-    iconAnchor: [12, 41], // point of the icon which will correspond to marker's location
-    shadowAnchor: [12, 41], // the same for the shadow
+    iconSize: [25, 41],
+    // [18, 31], // [25, 41], // size of the icon
+    shadowSize: [41, 41],
+    // [31, 31], // [41, 41], // size of the shadow
+    iconAnchor: [12, 41],
+    // [12, 31], // [12, 41], // point of the icon which will correspond to marker's location
+    shadowAnchor: [12, 41],
+    // [12, 31], // [12, 41], // the same for the shadow
     popupAnchor: [1, -34], // point from which the popup should open relative to the iconAnchor
     tooltipAnchor: [16, -28]
 });
 
-class EarthquakeMap extends Component {
-    // componentDidMount () {
-    //     this.map = L.map("map", {
-    //         center: [58, 16],
-    //         zoom: 6,
-    //         zoomControl: false
-    //     });
+function EarthquakeMap (props) {
+    const { eqEvents, zoomIn } = props;
 
-    //     L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
-    //         attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
-    //         maxZoom: 18,
-    //         maxNativeZoom: 17,
-    //         detectRetina: true,
-    //         id: "mapbox.streets",
-    //         accessToken: "pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw"
-    //     }).addTo(this.map);
+    const state = {
+        lat: 12.8797,
+        lng: 121.7740,
+        zoom: 5
+    };
 
-    //     L.marker([51.5, -0.09], { icon: marker }).addTo(this.map);
-    // }
-
-    // render () {
-    //     return <div id="map" style={{ width: 600, height: 800 }} />;
-    // }
-
-    constructor () {
-        super();
-        this.state = {
-            lat: 12.8797,
-            lng: 121.7740,
-            zoom: 5
-        };
+    let position = [state.lat, state.lng];
+    let { zoom } = state;
+    if (zoomIn) {
+        const { latitude, longitude } = eqEvents[0];
+        position = [latitude, longitude];
+        zoom = 7;
     }
-    
-    render () {
-        const position = [this.state.lat, this.state.lng];
 
-        return (
-            <LeafletMap style={{ height: 500 }} center={position} zoom={this.state.zoom}>
-                <TileLayer
-                    attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.osm.org/{z}/{x}/{y}.png"
-                />
-                <Marker icon={marker} position={position}>
-                    <Popup>
-                        A pretty CSS3 popup. <br/> Easily customizable.
-                    </Popup>
-                </Marker>
-            </LeafletMap>
-        );
-    }
+    const rule = /\.0*$|(?<=\.[0-9]{0,2147483646})0*$/;
+
+    return (
+        <LeafletMap style={{ height: 465 }} center={position} zoom={zoom}>
+            <TileLayer
+                attribution='&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <strong><a href="https://www.mapbox.com/map-feedback/" target="_blank">Improve this map</a></strong>'
+                id="mapbox.streets"
+                url="https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw"
+            />
+
+            {
+                sites.map(site => (
+                    <CircleMarker
+                        key={site.site_id}
+                        center={[site.latitude, site.longitude]}
+                        fillColor="green"
+                        fillOpacity={1}
+                        color="black"
+                        weight={1}
+                        radius={4}
+                        bringToFront
+                    >
+                        <Popup>{site.site_code.toUpperCase()}</Popup>
+                    </CircleMarker>
+                ))
+            }
+
+            {
+                eqEvents.map(event => {
+                    const {
+                        latitude, longitude, magnitude,
+                        depth, critical_distance, eq_id
+                    } = event;
+                    const center = [latitude, longitude];
+                    const distance = critical_distance === null ? 0 : parseFloat(critical_distance);
+                    // distance = distance > 100 ? 100 : distance;
+
+                    return (
+                        <Fragment key={eq_id}>
+                            <Circle center={center} fillColor="blue" radius={distance * 1000} />
+                            <Marker icon={marker} position={center}>
+                                <Popup>
+                                    Magnitude: <strong>{magnitude.replace(rule, "")}</strong> <br/>
+                                    Depth: <strong>{depth.replace(rule, "")}</strong> <br/>
+                                    Critical Distance: <strong>{distance} km</strong>
+                                </Popup>
+                            </Marker>
+                        </Fragment>
+                    );
+                })
+            }
+            
+            {/* <Marker icon={marker} position={position}>
+                <Popup>
+                    A pretty CSS3 popup. <br/> Easily customizable.
+                </Popup>
+            </Marker> */}
+        </LeafletMap>
+    );
 }
 
 export default EarthquakeMap;

@@ -11,7 +11,7 @@ May 2019
 
 from datetime import datetime, timedelta, time
 from connection import DB
-from run import APP
+# from run import APP
 from sqlalchemy import and_
 from src.models.analysis import (
     RainfallAlerts as ra, MarkerAlerts as ma, MarkerHistory as mh,
@@ -212,7 +212,7 @@ def get_subsurface_node_alerts(site_id, start_ts, latest_trigger_ts):
         for sensor in tsm_sensors:
             sensor_node_alerts = sensor.node_alerts.order_by(DB.desc(na.na_id)).filter(
                 start_ts <= na.ts, na.ts <= latest_trigger_ts).all()
-            if sensor_node_alerts: # If there are no node alerts on sensor, skip.
+            if sensor_node_alerts:  # If there are no node alerts on sensor, skip.
                 # If there is, remove duplicate node alerts. We only need the latest.
                 unique_list = []
                 comparator = []
@@ -333,7 +333,7 @@ def get_subsurface_tech_info(subsurface_node_alerts):
 
     s2_triggers = []
     s3_triggers = []
-    for node_alert in subsurface_node_alerts: # Most like two only
+    for node_alert in subsurface_node_alerts:  # Most like two only
         if node_alert.disp_alert == 2 or node_alert.vel_alert == 2:
             s2_triggers.append(node_alert)
         if node_alert.disp_alert == 3 or node_alert.vel_alert == 3:

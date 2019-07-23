@@ -1,18 +1,25 @@
 import io from "socket.io-client";
 
 let socket;
-let socket2;
 
-function subscribeToWebSocket(cb) {
-    // socket = io("http://127.0.0.1:5000/monitoring");
-    socket = io("http://192.168.150.173:5000/monitoring");
-    socket.on("receive_generated_alerts", (data) => cb(null, data));
-    socket2 = io("http://192.168.150.173:5000");
+// function subscribeToWebSocket(keyword, callback) {
+//     socket = io("http://127.0.0.1:5000/monitoring");
+//     if (keyword === "generated_alerts") {
+//         socket.on("receive_generated_alerts", data => callback(null, data));
+//     } else if (keyword === "candidate_alerts") {
+//         socket.on("receive_candidate_alerts", data => callback(null, data));
+//     }
+// }
+
+function subscribeToWebSocket(socket_fns) {
+    socket = io("http://127.0.0.1:5000/monitoring");
+    socket.on("receive_generated_alerts", data => socket_fns.receive_generated_alerts(null, data));
+    socket.on("receive_candidate_alerts", data => socket_fns.receive_candidate_alerts(null, data));
+    socket.on("receive_alerts_from_db", data => socket_fns.receive_alerts_from_db(null, data));
 }
 
 function unsubscribeToWebSocket() {
     socket.close();
-    socket2.close();
 }
 
 export { subscribeToWebSocket, unsubscribeToWebSocket };

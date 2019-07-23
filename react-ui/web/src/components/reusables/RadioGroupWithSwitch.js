@@ -64,7 +64,7 @@ function CheckboxesGroup (props) {
                             onChange={changeHandler}
                         >
                             {
-                                choices.map(({ state, value, label: clabel }, i) => (
+                                choices.map(({ value, label: clabel }, i) => (
                                     <FormControlLabel
                                         key={i}
                                         value={value}

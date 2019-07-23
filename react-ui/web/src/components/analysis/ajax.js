@@ -12,7 +12,7 @@ export default function getSurficialPlotData (site_code, timestamps, callback) {
         callback(data);
     })
     .catch(error => {
-        console.log(error);
+        console.error(error);
     });
 }
 
@@ -23,4 +23,62 @@ export function getRainfallPlotData (filter, timestamps, callback) {
 export function getSubsurfacePlotData (input, callback) {
     const subsurface_data = [...sample_subsurface_data];
     callback(subsurface_data);
+}
+
+export function getEarthquakeEvents (callback) {
+    const api_link = "http://127.0.0.1:5000/api/analysis/get_earthquake_events";
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("Earthquake Events", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function getEarthquakeAlerts (request, callback) {
+    const { limit, offset } = request;
+    const api_link = "http://127.0.0.1:5000/api/analysis/get_earthquake_alerts"
+    + `?limit=${limit}&offset=${offset}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("Earthquake Alerts", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function getMOMsAlertSummary (callback) {
+    const api_link = "http://127.0.0.1:5000/api/manifestations_of_movement/get_latest_alerts";
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("MOMs Alerts", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function getMOMsInstances (site_code, callback) {
+    const api_link = `http://127.0.0.1:5000/api/manifestations_of_movement/get_moms_instances/${site_code}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log(`MOMs Instances of ${site_code.toUpperCase()}`, data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
 }

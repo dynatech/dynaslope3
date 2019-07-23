@@ -51,12 +51,17 @@ def get_account(username, password):
         UserAccounts.username == username).first()
 
     result = UserAccountsSchema().dump(query).data
-    print(result)
-    if(password == result["password"]):
-        data = {
-            "status": True,
-            "user_data": result
-        }
+
+    if(len(result) != 0):
+        if(password == result["password"]):
+            data = {
+                "status": True,
+                "user_data": result
+            }
+        else:
+            data = {
+                "status": False
+            }
     else:
         data = {
             "status": False

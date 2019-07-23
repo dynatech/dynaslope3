@@ -26,7 +26,7 @@ class MonitoringEvents(UserMixin, DB.Model):
         "commons_db.sites.site_id"), nullable=False)
     event_start = DB.Column(DB.DateTime, nullable=False,
                             default="0000-00-00 00:00:00")
-    validity = DB.Column(DB.DateTime)
+    validity = DB.Column(DB.DateTime, default="0000-00-00 00:00:00")
     status = DB.Column(DB.String(20), nullable=False)
 
     event_alerts = DB.relationship(
@@ -61,7 +61,7 @@ class MonitoringEventAlerts(UserMixin, DB.Model):
     public_alert_symbol = DB.relationship(
         "PublicAlertSymbols", backref=DB.backref("event_alerts", lazy="dynamic"), lazy="select")
     releases = DB.relationship(
-        "MonitoringReleases", backref=DB.backref("event_alert", lazy="select"), lazy="dynamic")
+        "MonitoringReleases", order_by="desc(MonitoringReleases.data_ts)", backref=DB.backref("event_alert", lazy="select"), lazy="dynamic")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event Alert ID: {self.event_alert_id}"
@@ -629,8 +629,10 @@ class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
     """
     event_alerts = fields.Nested("MonitoringEventAlertsSchema",
                                  many=True, exclude=("event", ))
-    # site = fields.Nested("SitesSchema", exclude=(
-    #     "events", "active", "psgc"))
+    validity = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    event_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    site = fields.Nested("SitesSchema", exclude=(
+        "events", "active", "psgc"))
     site_id = fields.Integer()
 
     class Meta:
@@ -644,8 +646,10 @@ class MonitoringEventAlertsSchema(MARSHMALLOW.ModelSchema):
     """
     event = fields.Nested(MonitoringEventsSchema,
                           exclude=("event_alerts", ))
+    ts_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_end = fields.DateTime("%Y-%m-%d %H:%M:%S")
     public_alert_symbol = fields.Nested(
-        "PublicAlertSymbolsSchema", exclude=("event_alerts", ))
+        "PublicAlertSymbolsSchema", exclude=("event_alerts", "public_alerts"))
     releases = fields.Nested("MonitoringReleasesSchema",
                              many=True, exclude=("event_alert", ))
 
@@ -660,10 +664,9 @@ class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
     """
     event = fields.Nested(MonitoringEventsSchema,
                           exclude=("releases", "triggers"))
-
+    data_ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     triggers = fields.Nested("MonitoringTriggersSchema",
                              many=True, exclude=("release", "event"))
-
     release_publishers = fields.Nested(
         "MonitoringReleasePublishersSchema", many=True, exclude=("releases",))
 
@@ -679,6 +682,7 @@ class MonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
     release_id = fields.Integer()
     release = fields.Nested(MonitoringReleasesSchema,
                             exclude=("triggers", ))
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     internal_sym = fields.Nested(
         "InternalAlertSymbolsSchema", only=("alert_symbol",))
     trigger_misc = fields.Nested(
@@ -838,6 +842,7 @@ class InternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Internal Alert Symbols class
     """
+    
     class Meta:
         """Saves table class structure as schema model"""
         model = InternalAlertSymbols

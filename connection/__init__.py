@@ -68,7 +68,7 @@ def create_app(config_name):
     CORS(app)
     SOCKETIO.init_app(app)
 
-    start_monitoring_ws_bg_task()
+    # start_monitoring_ws_bg_task()
 
     # @app.route("/hello")
     # def hello_world():

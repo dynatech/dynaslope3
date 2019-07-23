@@ -2,16 +2,61 @@
 Utility file for Monitoring Tables
 Contains functions for getting and accesing monitoring-related tables only
 """
+import calendar
 from flask import request
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 from connection import DB
+from sqlalchemy import and_
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
     MonitoringTriggersMisc, MomsInstances, MomsFeatures,
-    InternalAlertSymbols, PublicAlertSymbols)
-from src.utils.extra import (var_checker)
+    InternalAlertSymbols, PublicAlertSymbols,
+    TriggerHierarchies, OperationalTriggerSymbols)
+from src.utils.sites import get_sites_data
+from src.utils.extra import (
+    var_checker, round_to_nearest_release_time, compute_event_validity)
 from src.utils.narratives import write_narratives_to_db
+
+
+def get_routine_sites(timestamp=None):
+    """
+    Utils counterpart of identifing the routine site per day.
+    Returns "routine_sites" in a list as value.
+
+    E.g.:
+    {
+        "routine_sites": [
+            'bak', 'blc', 'cud', 'imu', 'ina'
+        ]
+    }
+    """
+    current_data = date.today()
+    if timestamp:
+        current_data = timestamp.date()
+    get_sites = get_sites_data()
+    day = calendar.day_name[current_data.weekday()]
+    wet_season = [[1, 2, 6, 7, 8, 9, 10, 11, 12], [5, 6, 7, 8, 9, 10]]
+    dry_season = [[3, 4, 5], [1, 2, 3, 4, 11, 12]]
+    routine_sites = []
+
+    if (day == "Friday" or day == "Tuesday"):
+        # print(day)
+        for sites in get_sites:
+            season = int(sites.season) - 1
+            if sites.season in wet_season[season]:
+                routine_sites.append(sites.site_code)
+    elif day == "Wednesday":
+        # print(day)
+        for sites in get_sites:
+            season = int(sites.season) - 1
+            if sites.season in dry_season[season]:
+                routine_sites.append(sites.site_code)
+    else:
+        routine_sites = []
+
+    # print(routine_sites)
+    return routine_sites
 
 
 def process_trigger_list(trigger_list, include_ND=False):
@@ -27,52 +72,6 @@ def process_trigger_list(trigger_list, include_ND=False):
         return nd_alert, trigger_str
 
     return trigger_str
-
-
-def round_to_nearest_release_time(data_ts):
-    """
-    Round time to nearest 4/8/12 AM/PM
-
-    Args:
-        data_ts (datetime)
-
-    Returns datetime
-    """
-    hour = data_ts.hour
-
-    quotient = int(hour / 4)
-
-    if quotient == 5:
-        date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
-    else:
-        date_time = datetime.combine(
-            data_ts.date(), time((quotient + 1) * 4, 0))
-
-    return date_time
-
-
-def compute_event_validity(data_ts, alert_level):
-    """
-    Computes for event validity given set of trigger timestamps
-
-    Args:
-        data_ts (datetime)
-        alert_level (int)
-
-    Returns datetime
-    """
-
-    rounded_data_ts = round_to_nearest_release_time(data_ts)
-    if alert_level in [1, 2]:
-        add_day = 1
-    elif alert_level == 3:
-        add_day = 2
-    else:
-        raise ValueError("Alert level accepted is 1/2/3 only")
-
-    validity = rounded_data_ts + timedelta(add_day)
-
-    return validity
 
 
 def get_pub_sym_id(alert_level):
@@ -105,18 +104,23 @@ def get_public_alert_level(pub_sym_id):
     return public_alert_symbol.alert_level
 
 
-def get_internal_alert_symbol(internal_sym_id):
+def get_internal_alert_symbols(internal_sym_id=None):
     """
     """
     try:
-        internal_symbol = InternalAlertSymbols.query.filter(
-            InternalAlertSymbols.internal_sym_id == internal_sym_id).first()
-        alert_symbol = internal_symbol.alert_symbol
+        base_query = InternalAlertSymbols
+        if internal_sym_id:
+            internal_symbol = base_query.query.filter(
+                InternalAlertSymbols.internal_sym_id == internal_sym_id).first()
+            return_data = internal_symbol.alert_symbol
+        else:
+            return_data = DB.session.query(InternalAlertSymbols, TriggerHierarchies.trigger_source).join(
+                OperationalTriggerSymbols).join(TriggerHierarchies).all()
     except Exception as err:
         print(err)
         raise
 
-    return alert_symbol
+    return return_data
 #############################################
 #   MONITORING_RELEASES RELATED FUNCTIONS   #
 #############################################
@@ -141,6 +145,72 @@ def get_monitoring_releases(release_id=None):
 ##########################################
 #   MONITORING_EVENT RELATED FUNCTIONS   #
 ##########################################
+
+def get_public_alert(site_id):
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(
+        me).filter(me.site_id == site_id).first()
+    if result:
+        result = result.public_alert_symbol.alert_symbol
+
+    return result
+
+
+def get_event_count(filters=None):
+    if filters:
+        print("Filters!")
+        return_data = 10000
+    else:
+        return_data = MonitoringEvents.query.count()
+
+    return return_data
+
+
+def get_monitoring_events_table(offset, limit):
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
+    # DB.session.query(
+    #     me, mea.pub_sym_id,
+    #     mea.ts_start, mea.ts_end).join(mea).order_by(
+    #         DB.desc(me.event_id),
+    #         DB.desc(mea.event_alert_id)
+    #         ).all()[offset:limit]
+
+    #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
+    temp = me.query.order_by(DB.desc(me.event_id)).all()[offset:limit]
+
+    event_data = []
+    for event in temp:
+        if event.status == 2:
+            entry_type = "EVENT"
+        else:
+            entry_type = "ROUTINE"
+
+        latest_event_alert = event.event_alerts.order_by(
+            DB.desc(mea.event_alert_id)).first()
+
+        event_dict = {
+            "event_id": event.event_id,
+            "site_id": event.site.site_id,
+            "site_code": event.site.site_code,
+            "purok": event.site.purok,
+            "sitio": event.site.sitio,
+            "barangay": event.site.barangay,
+            "municipality": event.site.municipality,
+            "province": event.site.province,
+            "event_start": event.event_start,
+            "validity": event.validity,
+            "entry_type": entry_type,
+            "public_alert": latest_event_alert.public_alert_symbol.alert_symbol,
+            "ts_start": latest_event_alert.ts_start,
+            "ts_end": latest_event_alert.ts_end
+        }
+        event_data.append(event_dict)
+
+    return event_data
+
 
 def get_monitoring_events(event_id=None):
     """
@@ -167,11 +237,13 @@ def get_active_monitoring_events():
     """
     Gets Active Events based on MonitoringEventAlerts data.
     """
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
 
-    active_events = MonitoringEventAlerts.query.order_by(DB.desc(
-        MonitoringEventAlerts.ts_start)).filter(
-            MonitoringEventAlerts.ts_end is not None,
-            MonitoringEventAlerts.pub_sym_id == 4).all()
+    # Ignore the pylinter error on using "== None" vs "is None",
+    # since SQLAlchemy interprets "is None" differently.
+    active_events = mea.query.order_by(
+        DB.desc(mea.ts_start)).filter(mea.ts_end == None, mea.pub_sym_id != 1).all()
 
     return active_events
 
@@ -393,9 +465,44 @@ def write_monitoring_earthquake_to_db(eq_details):
     return return_data
 
 
-def build_internal_alert_level(pub_sym_id, trigger_list):
-    alert_level = get_public_alert_level(pub_sym_id)
+def build_internal_alert_level(pub_sym_id, trigger_list=None, public_alert_level=None):
+    """
+    This function builds the internal alert string using a public alert level
+    and the provided trigger_list_str. 
 
-    internal_alert_level = f"{alert_level}-{trigger_list}"
+    Args:
+        pub_sym_id (ID integer) - Used to check the alert level to be used
+                    Can be set as "None" if you will use public_alert_level
+                    instead
+        trigger_list (String) - Used as the historical log of valid triggers
+                    Can be set as "None" for A0
+        public_alert_level (Integer) - This will be used instead of 
+                    pub_sym_id for building the Internal alert string
+                    Can be set as none since this is optional
+    """
+
+    if pub_sym_id:
+        public_alert_level = get_public_alert_level(pub_sym_id)
+
+    if public_alert_level > 0:
+        internal_alert_level = f"A{public_alert_level}-{trigger_list}"
+        if public_alert_level == 1 and trigger_list:
+            if "-" in trigger_list:
+                internal_alert_level = trigger_list
+    else:
+        internal_alert_level = f"A{public_alert_level}"
+        if trigger_list:
+            internal_alert_level = trigger_list
 
     return internal_alert_level
+
+
+# def build_internal_alert_level(pub_sym_id, trigger_list):
+    # """
+    # This form of the fuction was used for eos api
+    # """
+#     alert_level = get_public_alert_level(pub_sym_id)
+
+#     internal_alert_level = f"A{alert_level}-{trigger_list}"
+
+#     return internal_alert_level

@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 
 import {
     withStyles, Button, Grid,
-    Paper
+    Paper, Typography
 } from "@material-ui/core";
 import { InsertChart } from "@material-ui/icons";
 import withWidth, { isWidthDown } from "@material-ui/core/withWidth";
@@ -16,14 +16,17 @@ import Highcharts from "highcharts/highmaps";
 import HighchartsReact from "highcharts-react-official";
 import { compose } from "recompose";
 import moment from "moment";
+import MUIDataTable from "mui-datatables";
 
 import SurficialGraph from "./SurficialGraph";
 import RainfallGraph from "./RainfallGraph";
 import SubsurfaceGraph from "./SubsurfaceGraph";
 import ConsolidatedSiteCharts from "./ConsolidatedSiteCharts";
 import ConsolidateSiteChartsModal from "./ConsolidateSiteChartsModal";
-import EarthquakeMap from "./EarthquakeMap";
+import EarthquakeContainer from "./EarthquakeContainer";
+import MomsInstancesPage from "./MomsInstancesPage";
 
+import { getMOMsAlertSummary } from "../ajax";
 // sample data
 import { 
     sites, data_presence_rain_gauges, 
@@ -32,6 +35,7 @@ import {
 
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
+import { prepareSiteAddress } from "../../../UtilityFunctions";
 
 
 const styles = theme => {
@@ -307,13 +311,28 @@ function Container (props) {
     //     });
     // });
 
+    const [moms_alerts, setMOMsAlerts] = useState([]);
+    useEffect(() => {
+        const table_data = [];
+        getMOMsAlertSummary((data) => {
+            data.forEach(site => {
+                const { site_code, moms_alert } = site;
+                const address = prepareSiteAddress(site, true, "start");
+                const site_entry = <Link to={`${url}/moms/${site_code}`} style={{ color: "black" }}>{address}</Link>;
+                const arr = [site_entry, moms_alert];
+                table_data.push(arr);
+            });
+
+            setMOMsAlerts(table_data);
+        });  
+    }, []);
+
     const temp = {};
     Object.keys(chart_instances).forEach(key => {
         temp[key] = createCustomLabels(chart_instances[key], url);
     });
 
     const is_main_page = location.pathname === path;
-
 
     return (
         <Fragment>
@@ -376,8 +395,35 @@ function Container (props) {
                                     </Paper>
                                 </Grid>
 
-                                <Grid item xs={12} md={6} lg={3}>
-                                    <EarthquakeMap />
+                                <Grid item xs={12} md={12} lg={6}>
+                                    <Paper elevation={2}>
+                                        {/* <EarthquakeMap /> */}
+                                        <EarthquakeContainer />
+                                    </Paper>
+                                </Grid>
+
+                                <Grid item xs={12} md={12} lg={6}>
+                                    <Paper elevation={2}>
+                                        <MUIDataTable
+                                            title="Latest MOMs Alert"
+                                            columns={["Site", "Alert"]}
+                                            options={{
+                                                textLabels: {
+                                                    body: {
+                                                        noMatch: "No data"
+                                                    }
+                                                },
+                                                selectableRows: "none",
+                                                rowsPerPage: 6,
+                                                rowsPerPageOptions: [],
+                                                print: false,
+                                                download: false,
+                                                viewColumns: false,
+                                                responsive: "scroll"
+                                            }}
+                                            data={moms_alerts}
+                                        />
+                                    </Paper>
                                 </Grid>
                             </Grid>
                         )
@@ -401,6 +447,13 @@ function Container (props) {
 
                     <Route path={`${url}/subsurface/:tsm_sensor`} render={
                         props => <SubsurfaceGraph 
+                            {...props}
+                            width={width}
+                        />} 
+                    />
+
+                    <Route path={`${url}/moms/:site_code`} render={
+                        props => <MomsInstancesPage
                             {...props}
                             width={width}
                         />} 

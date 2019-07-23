@@ -1,20 +1,63 @@
 import json
 from connection import SOCKETIO
+from datetime import datetime
 from flask import request
 from src.utils.extra import var_checker
+from config import APP_CONFIG
+from src.experimental_scripts import public_alert_generator, candidate_alerts_generator
+from src.api.monitoring import wrap_get_ongoing_extended_overdue_events
 
 CLIENTS = []
 GENERATED_ALERTS = []
+CANDIDATE_ALERTS = []
+ALERTS_FROM_DB = []
+
+
+def emit_data(keyword):
+    global GENERATED_ALERTS
+    global CANDIDATE_ALERTS
+    global ALERTS_FROM_DB
+
+    data_list = {
+        "receive_generated_alerts": GENERATED_ALERTS,
+        "receive_candidate_alerts": CANDIDATE_ALERTS,
+        "receive_alerts_from_db": ALERTS_FROM_DB
+    }
+
+    SOCKETIO.emit(keyword, data_list[keyword], namespace="/monitoring")
 
 
 def monitoring_background_task():
     global GENERATED_ALERTS
-
+    global CANDIDATE_ALERTS
+    global ALERTS_FROM_DB
     while True:
-        SOCKETIO.emit("receive_generated_alerts",
-                      "Yahoo background task", namespace="/monitoring")
-        print("I am background", GENERATED_ALERTS)
-        SOCKETIO.sleep(10)
+        if not GENERATED_ALERTS:
+            GENERATED_ALERTS = generate_alerts()
+            ALERTS_FROM_DB = wrap_get_ongoing_extended_overdue_events()
+            CANDIDATE_ALERTS = candidate_alerts_generator.main()
+
+            emit_data("receive_generated_alerts")
+            emit_data("receive_alerts_from_db")
+            emit_data("receive_candidate_alerts")
+
+        elif datetime.now().minute % 5 == 1:
+            print()
+            system_time = datetime.strftime(
+                datetime.now(), "%Y-%m-%d %H:%M:%S")
+            print(f"{system_time} | Websocket running...")
+
+            GENERATED_ALERTS = generate_alerts()
+            ALERTS_FROM_DB = wrap_get_ongoing_extended_overdue_events()
+            CANDIDATE_ALERTS = candidate_alerts_generator.main()
+
+            print(f"{system_time} | NEW JSON data found.")
+
+            emit_data("receive_generated_alerts")
+            emit_data("receive_alerts_from_db")
+            emit_data("receive_candidate_alerts")
+
+        SOCKETIO.sleep(60)  # Every 60 seconds in production stage
 
 
 @SOCKETIO.on('connect', namespace='/monitoring')
@@ -22,14 +65,11 @@ def connect():
     sid = request.sid
     CLIENTS.append(sid)
     print("Connected user: " + sid)
-    global GENERATED_ALERTS
+    print(f"Current connected clients: {CLIENTS}")
 
-    if CLIENTS:
-        if not GENERATED_ALERTS:
-            GENERATED_ALERTS = read_generated_alerts_json()
-
-        SOCKETIO.emit("receive_generated_alerts", GENERATED_ALERTS,
-                      callback="successfully accessed", namespace="/monitoring")
+    emit_data("receive_generated_alerts")
+    emit_data("receive_alerts_from_db")
+    emit_data("receive_candidate_alerts")
 
 
 @SOCKETIO.on('disconnect', namespace='/monitoring')
@@ -38,18 +78,29 @@ def disconnect():
     CLIENTS.remove(request.sid)
 
 
+# @SOCKETIO.on("get_generated_alerts", namespace="/monitoring")
+# def read_generated_alerts_json():
+#     """
+#     Sample
+#     """
+#     generated_alerts_list = []
+#     # generated_alerts_list = ["YEY"]
+#     # full_filepath = APP_CONFIG["generated_alerts_path"]
+#     full_filepath = "/var/www/dynaslope3/outputs/"
+#     print(f"Getting data from {full_filepath}")
+
+#     with open(f"{full_filepath}generated_alerts.json") as json_file:
+#         generated_alerts_list = json.load(json_file)
+
+#     return generated_alerts_list
+
 @SOCKETIO.on("get_generated_alerts", namespace="/monitoring")
-def read_generated_alerts_json():
+def generate_alerts():
     """
     Sample
     """
-    generated_alerts_list = ["YEY"]
-    # print(CLIENTS)
-    # full_filepath = "/var/www/dynaslope3/outputs/generated_alerts.json"
-    # print(f"Getting data from {full_filepath}")
-    # print()
+    generated_alerts_json = public_alert_generator.main()
+    # generated_alerts_json = public_alert_generator.main("2018-11-14 07:51:00", True, "nur")
+    # generated_alerts_json = public_alert_generator.main("2018-11-14 07:51:00", True)
 
-    # with open(full_filepath) as json_file:
-    #     generated_alerts_list = json.load(json_file)
-
-    return generated_alerts_list
+    return generated_alerts_json
