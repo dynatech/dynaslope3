@@ -9,6 +9,7 @@ import {
 import { elementType } from "prop-types";
 // import GenAlertsData from "../../../temp/generated_alerts.json";
 import { sites } from "../../../store";
+import { prepareSiteAddress } from "../../../UtilityFunctions";
 
 let id = 0;
 function createData (trigger_type, trigger_ts) {
@@ -25,18 +26,6 @@ function searchSites (site_code) {
         }
     }
     return site_details;
-}
-
-function prepareSiteAddress (site_details) {
-    const { purok, sitio, barangay, municipality, province, site_code } = site_details;
-    let address = "";
-
-    if (sitio !== null) address = `Sitio ${sitio}, `;
-    if (purok !== null) address += `Purok ${purok}, `;
-
-    address += `Brgy. ${barangay}, ${municipality}, ${province} (${site_code.toUpperCase()})`;
-
-    return address;
 }
 
 function getAlertDialog (chosen_site, open, handleClose) {

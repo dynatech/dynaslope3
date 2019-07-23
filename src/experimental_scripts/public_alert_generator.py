@@ -715,7 +715,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         site_code = site.site_code
         s_pub_alerts_query = site.public_alerts
         s_op_triggers_query = site.operational_triggers
-        site_tsm_sensors = site.tsm_sensors
+        site_tsm_sensors = site.tsm_sensors.all()
         latest_rainfall_alert = site.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
             ra.ts == query_ts_end).first()
         

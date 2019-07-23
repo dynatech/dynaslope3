@@ -12,6 +12,7 @@
     "highcharts-react-official": "^2.2.2",
     "leaflet": "^1.5.1",
     "moment": "^2.24.0",
+    "mui-datatables": "^2.6.2",
     "prop-types": "^15.7.2",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",

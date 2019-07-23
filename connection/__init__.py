@@ -173,4 +173,7 @@ def create_app(config_name):
     from src.api.analysis import ANALYSIS_BLUEPRINT
     app.register_blueprint(ANALYSIS_BLUEPRINT, url_prefix="/api")
 
+    from src.api.manifestations_of_movement import MOMS_BLUEPRINT
+    app.register_blueprint(MOMS_BLUEPRINT, url_prefix="/api")
+
     return app

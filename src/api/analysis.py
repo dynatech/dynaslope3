@@ -1,5 +1,5 @@
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
 from src.models.analysis import (
     DataPresenceRainGauges, DataPresenceRainGaugesSchema,
@@ -68,8 +68,10 @@ def get_latest_data_presence(group, item_name="all"):
 
 @ANALYSIS_BLUEPRINT.route("/analysis/get_earthquake_events", methods=["GET"])
 def get_earthquake_events():
+    filter = request.args.get("filter", default=10, type=int)
+    # .filter(EarthquakeEvents.eq_id == 13385)
     query = EarthquakeEvents.query.order_by(
-        EarthquakeEvents.eq_id.desc()).filter(EarthquakeEvents.eq_id == 12935).limit(20).all()
+        EarthquakeEvents.eq_id.desc()).limit(filter).all()
     result = EarthquakeEventsSchema(many=True).dump(query).data
 
     return jsonify(result)
@@ -77,8 +79,25 @@ def get_earthquake_events():
 
 @ANALYSIS_BLUEPRINT.route("/analysis/get_earthquake_alerts", methods=["GET"])
 def get_earthquake_alerts():
-    query = EarthquakeAlerts.query.order_by(
-        EarthquakeAlerts.ea_id.desc()).all()
-    result = EarthquakeAlertsSchema(many=True).dump(query).data
+    limit = request.args.get("limit", default=10, type=int)
+    offset = request.args.get("offset", default=0, type=int)
+
+    query = EarthquakeEvents.query.order_by(
+        EarthquakeEvents.eq_id.desc()
+    ).filter(EarthquakeEvents.eq_alerts.any()
+             ).limit(limit).offset(offset).all()
+    data = EarthquakeEventsSchema(many=True).dump(query).data
+
+    count = EarthquakeEvents.query.filter(EarthquakeEvents.eq_alerts.any()
+                                          ).count()
+
+    result = {
+        "count": count,
+        "data": data
+    }
+
+    # query = EarthquakeAlerts.query.order_by(
+    #     EarthquakeAlerts.ea_id.desc()).all()
+    # result = EarthquakeAlertsSchema(many=True).dump(query).data
 
     return jsonify(result)

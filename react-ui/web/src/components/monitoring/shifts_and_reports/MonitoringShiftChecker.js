@@ -35,21 +35,14 @@ function createDateTime ({ label, value, id }, handleDateTime) {
         <DateTimePicker
             required
             autoOk
-            keyboard
             label={label}
             value={value}
             onChange={handleDateTime(id)}
             ampm={false}
             placeholder="2010/01/01 00:00"
             format="YYYY/MM/DD HH:mm"
-            mask={[
-                /\d/, /\d/, /\d/, /\d/, "/",
-                /\d/, /\d/, "/", /\d/, /\d/,
-                " ", /\d/, /\d/, ":", /\d/, /\d/
-            ]}
-            keepCharPositions
+            mask="__/__/____ __:__"
             clearable
-            disableOpenOnEnter
             disableFuture
             variant="outlined"
             fullWidth
@@ -96,7 +89,7 @@ class MonitoringShiftChecker extends Component {
                         justify="space-between"
                         alignContent="center"
                         alignItems="center"
-                        spacing={16}
+                        spacing={2}
                     >
                         <Grid
                             item

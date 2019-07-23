@@ -3,7 +3,7 @@ import { Grid, withStyles, Button, withWidth, Paper } from "@material-ui/core";
 import { isWidthDown } from "@material-ui/core/withWidth";
 import { ArrowForwardIos } from "@material-ui/icons";
 import MomentUtils from "@date-io/moment";
-import { MuiPickersUtilsProvider, DateTimePicker } from "@material-ui/pickers";
+import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 import { compose } from "recompose";
 import DetailedExpansionPanels from "./DetailedExpansionPanels";
 
@@ -34,24 +34,17 @@ const styles = theme => ({
 
 function createDateTime ({ label, value, id }, handleDateTime) {
     return (
-        <DateTimePicker
+        <KeyboardDateTimePicker
             required
             autoOk
-            keyboard
             label={label}
             value={value}
             onChange={handleDateTime(id)}
             ampm={false}
             placeholder="2010/01/01 00:00"
             format="YYYY/MM/DD HH:mm"
-            mask={[
-                /\d/, /\d/, /\d/, /\d/, "/",
-                /\d/, /\d/, "/", /\d/, /\d/,
-                " ", /\d/, /\d/, ":", /\d/, /\d/
-            ]}
-            keepCharPositions
+            mask="__/__/____ __:__"
             clearable
-            disableOpenOnEnter
             disableFuture
             variant="outlined"
             fullWidth
@@ -88,7 +81,7 @@ class MonitoringShiftChe extends Component {
                         justify="space-between"
                         alignContent="center"
                         alignItems="center"
-                        spacing={16}
+                        spacing={4}
                     >
                         {
                             [

@@ -10,7 +10,9 @@ export const sites = [
         season: 1, 
         site_code: "agb", 
         site_id: 1, 
-        sitio: null
+        sitio: null,
+        latitude: 11.281370,
+        longitude: 122.831100
     }, 
     {
         active: true, 
@@ -23,7 +25,9 @@ export const sites = [
         season: 2, 
         site_code: "bak", 
         site_id: 2, 
-        sitio: null
+        sitio: null,
+        latitude: 16.790700,
+        longitude: 120.661600
     }, 
     {
         active: true, 
@@ -36,7 +40,9 @@ export const sites = [
         season: 1, 
         site_code: "ban", 
         site_id: 3, 
-        sitio: null
+        sitio: null,
+        latitude: 9.888559,
+        longitude: 123.948800
     }, 
     {
         active: true, 
@@ -49,7 +55,9 @@ export const sites = [
         season: 1, 
         site_code: "bar", 
         site_id: 4, 
-        sitio: null
+        sitio: null,
+        latitude: 11.902080,
+        longitude: 124.656600
     }, 
     {
         active: true, 
@@ -62,7 +70,9 @@ export const sites = [
         season: 1, 
         site_code: "bay", 
         site_id: 5, 
-        sitio: null
+        sitio: null,
+        latitude: 14.187970,
+        longitude: 122.467500
     }, 
     {
         active: true, 
@@ -75,7 +85,9 @@ export const sites = [
         season: 2, 
         site_code: "blc", 
         site_id: 6, 
-        sitio: null
+        sitio: null,
+        latitude: 10.826650,
+        longitude: 122.310800
     }, 
     {
         active: true, 
@@ -88,7 +100,9 @@ export const sites = [
         season: 1, 
         site_code: "bol", 
         site_id: 7, 
-        sitio: null
+        sitio: null,
+        latitude: 10.301990,
+        longitude: 125.127900
     }, 
     {
         active: true, 
@@ -101,7 +115,9 @@ export const sites = [
         season: 1, 
         site_code: "bto", 
         site_id: 8, 
-        sitio: null
+        sitio: null,
+        latitude: 10.013790,
+        longitude: 123.577600
     }, 
     {
         active: true, 
@@ -114,7 +130,9 @@ export const sites = [
         season: 1, 
         site_code: "car", 
         site_id: 9, 
-        sitio: null
+        sitio: null,
+        latitude: 9.719629,
+        longitude: 125.973700
     }, 
     {
         active: true, 
@@ -127,7 +145,9 @@ export const sites = [
         season: 2, 
         site_code: "cud", 
         site_id: 10, 
-        sitio: "Natuwolan at Wadwad"
+        sitio: "Natuwolan at Wadwad",
+        latitude: 16.809310,
+        longitude: 121.104700
     }, 
     {
         active: true, 
@@ -140,7 +160,9 @@ export const sites = [
         season: 1, 
         site_code: "dad", 
         site_id: 11, 
-        sitio: "Sagasa"
+        sitio: "Sagasa",
+        latitude: 7.137310,
+        longitude: 126.450900
     }, 
     {
         active: true, 
@@ -153,7 +175,9 @@ export const sites = [
         season: 1, 
         site_code: "gaa", 
         site_id: 12, 
-        sitio: null
+        sitio: null,
+        latitude: 10.423520,
+        longitude: 123.785100
     }, 
     {
         active: true, 
@@ -166,7 +190,9 @@ export const sites = [
         season: 1, 
         site_code: "gam", 
         site_id: 13, 
-        sitio: null
+        sitio: null,
+        latitude: 9.010100,
+        longitude: 126.167600
     }, 
     {
         active: true, 
@@ -179,7 +205,9 @@ export const sites = [
         season: 1, 
         site_code: "hin", 
         site_id: 14, 
-        sitio: null
+        sitio: null,
+        latitude: 11.700640,
+        longitude: 125.069100
     }, 
     {
         active: true, 
@@ -192,7 +220,9 @@ export const sites = [
         season: 1, 
         site_code: "hum", 
         site_id: 15, 
-        sitio: null
+        sitio: null,
+        latitude: 10.183920,
+        longitude: 123.250300
     }, 
     {
         active: true, 
@@ -205,7 +235,9 @@ export const sites = [
         season: 1, 
         site_code: "ime", 
         site_id: 16, 
-        sitio: null
+        sitio: null,
+        latitude: 11.903830,
+        longitude: 124.752600
     }, 
     {
         active: true, 
@@ -218,7 +250,9 @@ export const sites = [
         season: 2, 
         site_code: "imu", 
         site_id: 17, 
-        sitio: null
+        sitio: null,
+        latitude: 17.523080,
+        longitude: 120.604600
     }, 
     {
         active: true, 
@@ -231,7 +265,9 @@ export const sites = [
         season: 2, 
         site_code: "ina", 
         site_id: 18, 
-        sitio: "Sambag"
+        sitio: "Sambag",
+        latitude: 10.869910,
+        longitude: 122.436200
     }, 
     {
         active: true, 
@@ -244,7 +280,9 @@ export const sites = [
         season: 1, 
         site_code: "jor", 
         site_id: 19, 
-        sitio: null
+        sitio: null,
+        latitude: 11.977790,
+        longitude: 124.824900
     }, 
     {
         active: true, 
@@ -257,7 +295,9 @@ export const sites = [
         season: 2, 
         site_code: "lab", 
         site_id: 20, 
-        sitio: "Labey"
+        sitio: "Labey",
+        latitude: 16.470320,
+        longitude: 120.705400
     }, 
     {
         active: true, 
@@ -270,7 +310,9 @@ export const sites = [
         season: 1, 
         site_code: "lay", 
         site_id: 21, 
-        sitio: null
+        sitio: null,
+        latitude: 11.512700,
+        longitude: 125.025700
     }, 
     {
         active: true, 
@@ -283,7 +325,9 @@ export const sites = [
         season: 1, 
         site_code: "lip", 
         site_id: 22, 
-        sitio: null
+        sitio: null,
+        latitude: 10.227670,
+        longitude: 125.126600
     }, 
     {
         active: true, 
@@ -296,7 +340,9 @@ export const sites = [
         season: 1, 
         site_code: "loo", 
         site_id: 23, 
-        sitio: null
+        sitio: null,
+        latitude: 8.597964,
+        longitude: 124.777500
     }, 
     {
         active: true, 
@@ -309,7 +355,9 @@ export const sites = [
         season: 1, 
         site_code: "lpa", 
         site_id: 24, 
-        sitio: null
+        sitio: null,
+        latitude: 11.786250,
+        longitude: 125.019600
     }, 
     {
         active: true, 
@@ -322,7 +370,9 @@ export const sites = [
         season: 1, 
         site_code: "lte", 
         site_id: 25, 
-        sitio: null
+        sitio: null,
+        latitude: 11.590370,
+        longitude: 125.090300
     }, 
     {
         active: true, 
@@ -335,7 +385,9 @@ export const sites = [
         season: 1, 
         site_code: "lun", 
         site_id: 26, 
-        sitio: "Caianuhan"
+        sitio: "Caianuhan",
+        latitude: 10.258190,
+        longitude: 124.877000
     }, 
     {
         active: true, 
@@ -348,7 +400,9 @@ export const sites = [
         season: 1, 
         site_code: "mag", 
         site_id: 27, 
-        sitio: null
+        sitio: null,
+        latitude: 7.519230,
+        longitude: 125.059800
     }, 
     {
         active: true, 
@@ -361,7 +415,9 @@ export const sites = [
         season: 2, 
         site_code: "mam", 
         site_id: 28, 
-        sitio: "Mamuyod"
+        sitio: "Mamuyod",
+        latitude: 16.488300,
+        longitude: 120.689000
     }, 
     {
         active: true, 
@@ -374,7 +430,9 @@ export const sites = [
         season: 2, 
         site_code: "mar", 
         site_id: 29, 
-        sitio: null
+        sitio: null,
+        latitude: 10.827459,
+        longitude: 122.321555
     }, 
     {
         active: true, 
@@ -387,7 +445,9 @@ export const sites = [
         season: 1, 
         site_code: "mca", 
         site_id: 30, 
-        sitio: null
+        sitio: null,
+        latitude: 8.585430,
+        longitude: 125.741000
     }, 
     {
         active: true, 
@@ -400,7 +460,9 @@ export const sites = [
         season: 1, 
         site_code: "mng", 
         site_id: 31, 
-        sitio: "Dao"
+        sitio: "Dao",
+        latitude: 10.047930,
+        longitude: 123.206200
     }, 
     {
         active: true, 
@@ -413,7 +475,9 @@ export const sites = [
         season: 1, 
         site_code: "msl", 
         site_id: 32, 
-        sitio: "Lower Mesolong"
+        sitio: "Lower Mesolong",
+        latitude: 7.629616,
+        longitude: 125.544500
     }, 
     {
         active: true, 
@@ -426,7 +490,9 @@ export const sites = [
         season: 1, 
         site_code: "msu", 
         site_id: 33, 
-        sitio: "Upper Mesolong"
+        sitio: "Upper Mesolong",
+        latitude: 7.628743,
+        longitude: 125.540300
     }, 
     {
         active: true, 
@@ -439,7 +505,9 @@ export const sites = [
         season: 2, 
         site_code: "nag", 
         site_id: 34, 
-        sitio: null
+        sitio: null,
+        latitude: 16.626780,
+        longitude: 120.417600
     }, 
     {
         active: true, 
@@ -452,7 +520,9 @@ export const sites = [
         season: 1, 
         site_code: "nur", 
         site_id: 35, 
-        sitio: null
+        sitio: null,
+        latitude: 9.269702,
+        longitude: 126.138400
     }, 
     {
         active: true, 
@@ -465,7 +535,9 @@ export const sites = [
         season: 1, 
         site_code: "osl", 
         site_id: 36, 
-        sitio: null
+        sitio: null,
+        latitude: 9.757190,
+        longitude: 9.757190
     }, 
     {
         active: true, 
@@ -478,7 +550,9 @@ export const sites = [
         season: 1, 
         site_code: "par", 
         site_id: 37, 
-        sitio: null
+        sitio: null,
+        latitude: 11.514870,
+        longitude: 125.025500
     }, 
     {
         active: true, 
@@ -491,7 +565,9 @@ export const sites = [
         season: 2, 
         site_code: "pep", 
         site_id: 38, 
-        sitio: "Bangi"
+        sitio: "Bangi",
+        latitude: 10.787880,
+        longitude: 122.333600
     }, 
     {
         active: true, 
@@ -504,7 +580,9 @@ export const sites = [
         season: 1, 
         site_code: "pin", 
         site_id: 39, 
-        sitio: null
+        sitio: null,
+        latitude: 13.953600,
+        longitude: 122.285500
     }, 
     {
         active: true, 
@@ -517,7 +595,9 @@ export const sites = [
         season: 1, 
         site_code: "pla", 
         site_id: 40, 
-        sitio: "Mambog"
+        sitio: "Mambog",
+        latitude: 10.159840,
+        longitude: 123.245900
     }, 
     {
         active: true, 
@@ -530,7 +610,9 @@ export const sites = [
         season: 1, 
         site_code: "png", 
         site_id: 41, 
-        sitio: null
+        sitio: null,
+        latitude: 12.630630,
+        longitude: 124.018300
     }, 
     {
         active: true, 
@@ -543,7 +625,9 @@ export const sites = [
         season: 2, 
         site_code: "pug", 
         site_id: 42, 
-        sitio: "Longlong"
+        sitio: "Longlong",
+        latitude: 16.446550,
+        longitude: 120.570600
     }, 
     {
         active: true, 
@@ -556,7 +640,9 @@ export const sites = [
         season: 2, 
         site_code: "sag", 
         site_id: 43, 
-        sitio: null
+        sitio: null,
+        latitude: 17.082630,
+        longitude: 120.924800
     }, 
     {
         active: true, 
@@ -569,7 +655,9 @@ export const sites = [
         season: 1, 
         site_code: "sib", 
         site_id: 44, 
-        sitio: null
+        sitio: null,
+        latitude: 7.825670,
+        longitude: 126.383400
     }, 
     {
         active: true, 
@@ -582,7 +670,9 @@ export const sites = [
         season: 2, 
         site_code: "sin", 
         site_id: 45, 
-        sitio: "Sinipsip"
+        sitio: "Sinipsip",
+        latitude: 16.723400,
+        longitude: 120.781500
     }, 
     {
         active: true, 
@@ -595,7 +685,9 @@ export const sites = [
         season: 1, 
         site_code: "sum", 
         site_id: 46, 
-        sitio: null
+        sitio: null,
+        latitude: 8.545110,
+        longitude: 124.859700
     }, 
     {
         active: true, 
@@ -608,7 +700,9 @@ export const sites = [
         season: 1, 
         site_code: "tal", 
         site_id: 47, 
-        sitio: null
+        sitio: null,
+        latitude: 11.637420,
+        longitude: 124.366500
     }, 
     {
         active: true, 
@@ -621,7 +715,9 @@ export const sites = [
         season: 2, 
         site_code: "tga", 
         site_id: 48, 
-        sitio: null
+        sitio: null,
+        latitude: 17.573470,
+        longitude: 121.383400
     }, 
     {
         active: true, 
@@ -634,7 +730,9 @@ export const sites = [
         season: 2, 
         site_code: "tue", 
         site_id: 49, 
-        sitio: null
+        sitio: null,
+        latitude: 16.972290,
+        longitude: 120.828600
     }, 
     {
         active: true, 
@@ -647,7 +745,9 @@ export const sites = [
         season: 2, 
         site_code: "umi", 
         site_id: 50, 
-        sitio: null
+        sitio: null,
+        latitude: 10.908070,
+        longitude: 122.327800
     }
 ];
 

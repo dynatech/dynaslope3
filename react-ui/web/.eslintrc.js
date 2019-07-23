@@ -18,6 +18,7 @@ module.exports = {
         jquery: true
     },
     rules: {
+        "react/prop-types": 0,
         "react/jsx-filename-extension": ["error", { extensions: [".js", ".jsx"] }],
         "react/jsx-indent": [2, 4, {indentLogicalExpressions: true}],
         "react/no-multi-comp": 0,
