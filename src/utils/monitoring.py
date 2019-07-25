@@ -22,6 +22,9 @@ from src.utils.extra import (
 from src.utils.narratives import write_narratives_to_db
 
 
+PAS_MAP = MEMORY_CLIENT.get("PUBLIC_ALERT_SYMBOLS")
+
+
 def round_down_data_ts(date_time):
     """
     Rounds time to HH:00 or HH:30.
@@ -78,6 +81,7 @@ def update_alert_status(as_details):
         as_details (Dictionary): Updates current entry of alert_status
             e.g.
                 {
+                    "trigger_id": 10,
                     "alert_status": 1, # -1 -> invalid, 0 -> validating, 1 - valid
                     "remarks": "Malakas ang ulan",
                     "user_id", 1
@@ -86,7 +90,7 @@ def update_alert_status(as_details):
 
     return_data = None
     try:
-        trigger_id = as_details.trigger_id
+        trigger_id = as_details["trigger_id"]
 
         alert_status_result = check_if_alert_status_entry_in_db(
             trigger_id)
@@ -102,7 +106,8 @@ def update_alert_status(as_details):
             alert_status_result.user_id = user_id
 
             DB.session.commit()
-            return_data = f"Alert ID [{trigger_id}] is tagged as {alert_status}. Remarks: \"{remarks}\""
+            val_map = {1: "valid", -1: "invalid", 0: "validating"}
+            return_data = f"Alert ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
         else:
             return_data = f"Trigger ID [{trigger_id}] provided DOES NOT EXIST!"
     except Exception as err:
@@ -676,7 +681,6 @@ def build_internal_alert_level(public_alert_level, trigger_list=None):
                     pub_sym_id for building the Internal alert string
                     Can be set as none since this is optional
     """
-    PAS_MAP = MEMORY_CLIENT.get("PUBLIC_ALERT_SYMBOLS")
 
     # if pub_sym_id:
     #     public_alert_level = get_public_alert_level(pub_sym_id)
