@@ -28,35 +28,17 @@ from src.models.analysis import (
     TSMAlerts, TSMSensors, RainfallAlerts as ra,
     AlertStatusSchema)
 from src.utils.sites import get_sites_data
-from src.utils.monitoring import round_to_nearest_release_time
 from src.utils.rainfall import get_rainfall_gauge_name
-from src.utils.extra import var_checker
+from src.utils.monitoring import round_down_data_ts
+from src.utils.extra import var_checker, round_to_nearest_release_time
 
 
 IAS_MAP = MEMORY_CLIENT.get("internal_alert_symbols".upper())
 OTS_MAP = MEMORY_CLIENT.get("operational_trigger_symbols".upper())
 PAS_MAP = MEMORY_CLIENT.get("public_alert_symbols".upper())
 TH_MAP = MEMORY_CLIENT.get("trigger_hierarchies".upper())
-MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=("moms_releases", "validator", "reporter", "narrative"))
-
-def round_down_data_ts(date_time):
-    """
-    Rounds time to HH:00 or HH:30.
-
-    Args:
-        date_time (datetime): Timestamp to be rounded off. Rounds to HH:00
-        if before HH:30, else rounds to HH:30.
-
-    Returns:
-        datetime: Timestamp with time rounded off to HH:00 or HH:30.
-
-    """
-
-    hour = date_time.hour
-    minute = date_time.minute
-    minute = 0 if minute < 30 else 30
-    date_time = datetime.combine(date_time.date(), time(hour, minute))
-    return date_time
+MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=(
+    "moms_releases", "validator", "reporter", "narrative"))
 
 
 def check_if_routine_or_event(pub_sym_id):
@@ -94,213 +76,15 @@ def extract_alert_level(json):
     except KeyError:
         return 0
 
-###############################
-# PROCESSING CODES with LOGIC #
-###############################
 
-
-def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
-    """
-    SQLAlchemy DB writer function.
-
-    Args:
-        output_dict (dictionary) - the generated public_alert for each site
-        previous_latest_site_pa (PublicAlert class) - the previous public_alert before the script run
-    """
-    return_data = None
-    try:
-        # latest_site_pa_id = previous_latest_site_pa.public_id
-
-        prev_pub_sym_id = previous_latest_site_pa.pub_sym_id
-        new_pub_sym_id = output_dict["pub_sym_id"]
-
-        new_alert_level = PAS_MAP["alert_level", new_pub_sym_id]
-        is_new_public_alert = prev_pub_sym_id != new_pub_sym_id
-        prev_l_s_pa_ts_updated = previous_latest_site_pa.ts_updated
-        new_l_s_pa_ts_updated = output_dict["ts_updated"]
-        is_retroactive_run = prev_l_s_pa_ts_updated >= new_l_s_pa_ts_updated
-        no_alerts_wtn_30_mins = new_l_s_pa_ts_updated - timedelta(minutes=30) > prev_l_s_pa_ts_updated
-
-        # If the alert symbol is different, create a new entry
-        if not is_retroactive_run:
-            if no_alerts_wtn_30_mins and new_alert_level == 0:
-                is_new_public_alert = True
-            else:
-                if not is_new_public_alert:
-                    # Update the previous public alert first
-                    previous_latest_site_pa.ts_updated = output_dict["ts"]
-
-            if is_new_public_alert:
-                new_pub_alert = pa(
-                    ts=output_dict["ts"],
-                    site_id=output_dict["site_id"],
-                    pub_sym_id=output_dict["pub_sym_id"],
-                    ts_updated=output_dict["ts_updated"]
-                )
-                DB.session.add(new_pub_alert)
-                DB.session.flush()
-                new_public_id = new_pub_alert.public_id
-                return_data = new_public_id
-
-                # If no problems, commit
-            elif not is_new_public_alert:
-                return_data = "exists"
-        
-            DB.session.commit()
-
-    except Exception as err:
-        print(err)
-        DB.session.rollback()
-        raise
-
-    return return_data
-
-
-def get_prepared_recent_retriggers(positive_triggers_list=None, invalid_dict=None, site_moms_alerts_list=None):
-    """
-    Prepare the most recent trigger
-    Remove unnecessary attributes and convert SQLAlchemy row into a dict.
-    Convert ts_updated to str
-
-    Args:
-        positive_triggers_list - list containing the most recent positive trigger (SQLAlchemy row)
-    """
-    recent_triggers_list = []
-
-    if positive_triggers_list:
-        for item in positive_triggers_list:
-            # Include invalids as a dictionary
-            final_invalid_dict = {}
-            try:
-                invalid_entry = invalid_dict[item.trigger_sym_id]
-                invalid_details_dict = AlertStatusSchema().dump(invalid_entry).data
- 
-                final_invalid_dict = {
-                    "invalid": True,
-                    "invalid_details": invalid_details_dict
-                }
-            except:
-                # If a unique trigger_symbol/alert_level doesnt have invalid
-                # entry, it will go here.
-                pass
-
-            trig_sym = item.trigger_symbol
-
-            trigger_type = trig_sym.trigger_hierarchy.trigger_source
-            source_id = trig_sym.source_id
-            alert_level = trig_sym.alert_level
-            # Form a dictionary that will hold all trigger details
-            trigger_dict = {
-                "trigger_type": trigger_type,
-                "source_id": source_id,
-                "alert_level": alert_level,
-                "trigger_id": item.trigger_id,
-                "alert": OTS_MAP["alert_symbol", trigger_type, alert_level],
-                "ts_updated": str(item.ts_updated),
-                "internal_sym_id": IAS_MAP["internal_sym_id", alert_level, source_id]
-            }
-
-            # Prepare the tech_info of the trigger
-            trigger_tech_info = tech_info_maker.main(item)
-
-            if trigger_type == "rainfall":
-                rainfall = {
-                    "rain_gauge": trigger_tech_info["rain_gauge"],
-                    "tech_info": trigger_tech_info["tech_info_string"]
-                }
-                trigger_dict.update(rainfall)
-            elif trigger_type == "subsurface":
-                trigger_dict["tech_info"] = trigger_tech_info
-            elif trigger_type == "moms":
-                if site_moms_alerts_list:
-                    recent_moms_details = list(filter(lambda x: x.observance_ts == item.ts_updated, site_moms_alerts_list))
-                    # Get the highest triggering moms
-                    sorted_moms_details = sorted(recent_moms_details, key=lambda x: x.op_trigger, reverse=True)
-
-                    moms_list = []
-                    if sorted_moms_details:
-                        sorted_moms_details_data = MONITORING_MOMS_SCHEMA.dump(sorted_moms_details).data
-                        moms_list = sorted_moms_details_data[0]
-                    trigger_dict["moms_list"] = moms_list
-
-            # Add the invalid details same level to the dictionary attributes
-            trigger_dict.update(final_invalid_dict)
-
-            recent_triggers_list.append(trigger_dict)
-    else:
-        trigger_dict = {}
-        recent_triggers_list.append(trigger_dict)
-
-    return recent_triggers_list
-
-
-def create_internal_alert(
-        highest_public_alert, ground_alert, processed_triggers_list, has_rx_symbol=None):
-    """
-    Internal Alert Schema
-    """
-    internal_alert = ""
-    public_alert_symbol = PAS_MAP[("alert_symbol"), highest_public_alert]
-    internal_source_id = TH_MAP["internal"]
-
-    if ground_alert == -1 and highest_public_alert <= 1:
-        public_alert_symbol = IAS_MAP["alert_symbol", ground_alert, internal_source_id]
-
-    internal_alert = public_alert_symbol
-    
-    if highest_public_alert > 0:
-        internal_alert += "-"
-
-        sorted_processed_triggers_list = sorted(processed_triggers_list,
-                                key=lambda x: x.trigger_symbol.trigger_hierarchy.hierarchy_id)
-        
-        internal_alert_symbols = []
-        for item in sorted_processed_triggers_list:
-            internal_alert_symbols.append(item.trigger_symbol.internal_alert_symbol.alert_symbol)
-        internal_alert_triggers = "".join(internal_alert_symbols)
-        internal_alert += internal_alert_triggers
-
-    if has_rx_symbol:
-        internal_alert += has_rx_symbol
-
-    return internal_alert
-
-
-def replace_rainfall_alert_if_rx(latest_rainfall_alert, processed_triggers_list, rain_trigger_index):
-    """
-    Replace rainfall trigger in processed_triggers_list with symbol
-    for "above 75% of rainfall data threshold"
-
-
-
-    returns processed_triggers_list (list): updated processed_triggers_list (rainfall entry)
-            has_rx_symbol (None or True/String): returns None if no data above 75% or
-                                                it's lowercased symbol for alerts with no
-                                                rainfall alert
-    """
-    has_rx_symbol = None
-    rain_75_id = OTS_MAP[("trigger_sym_id", "rainfall", -2)]
-    source_id = TH_MAP["rainfall"]
-    rx_symbol = IAS_MAP["alert_symbol", -2, source_id]
-
-    if latest_rainfall_alert:
-        has_rx_symbol = True
-        rain_trigger_entry = processed_triggers_list[rain_trigger_index]
-
-        if rain_trigger_index:
-            trigger_sym_id = rain_75_id
-            
-            rain_trigger_entry.alert_symbol = rx_symbol
-            rain_trigger_entry.trigger_sym_id = trigger_sym_id
-        else:
-            has_rx_symbol = rx_symbol.lower()
-
-    return processed_triggers_list, has_rx_symbol
+###################
+# LOGIC FUNCTIONS #
+###################
 
 
 def get_current_rain_surficial_and_moms_alerts(op_triggers_list,
-                                              surficial_moms_window_ts, query_ts_end,
-                                              latest_rainfall_alert, site_moms_alerts, has_positive_moms_trigger):
+                                               surficial_moms_window_ts, query_ts_end,
+                                               latest_rainfall_alert, site_moms_alerts, has_positive_moms_trigger):
     """
     Sample
     """
@@ -331,7 +115,7 @@ def get_current_rain_surficial_and_moms_alerts(op_triggers_list,
         current_trigger_alerts["moms"] = {
             "alert_level": -1,
             "alert_symbol": OTS_MAP[("alert_symbol", "moms", -1)]
-        } 
+        }
 
     for op_trigger in op_triggers_list:
         op_t_source_id = op_trigger.trigger_symbol.source_id
@@ -346,25 +130,29 @@ def get_current_rain_surficial_and_moms_alerts(op_triggers_list,
 
             ts_updated = op_trigger.ts_updated
             if ts_updated >= ts_comparator:
-                alert_symbol = OTS_MAP[("alert_symbol", op_t_trigger_source, op_t_alert_level)]
+                alert_symbol = OTS_MAP[(
+                    "alert_symbol", op_t_trigger_source, op_t_alert_level)]
                 current_trigger_alerts[op_t_trigger_source]["alert_symbol"] = alert_symbol
                 current_trigger_alerts[op_t_trigger_source]["alert_level"] = op_t_alert_level
 
                 if op_t_source_id == rainfall_source_id:
                     if op_t_alert_level > -1:
-                        current_trigger_alerts["rainfall"]["rain_gauge"] = get_rainfall_gauge_name(latest_rainfall_alert)
+                        current_trigger_alerts["rainfall"]["rain_gauge"] = get_rainfall_gauge_name(
+                            latest_rainfall_alert)
                 else:
                     # latest_moms = get_site_moms(site, ts_updated)
                     if site_moms_alerts[0]:
                         site_moms_alerts_list = site_moms_alerts[0]
                         highest_moms_alert = site_moms_alerts[1]
-                        
-                    current_moms_list = list(filter(lambda x: x.observance_ts >= surficial_moms_window_ts, site_moms_alerts_list))
+
+                    current_moms_list = list(filter(
+                        lambda x: x.observance_ts >= surficial_moms_window_ts, site_moms_alerts_list))
                     if current_moms_list:
-                        current_moms_list_data = MONITORING_MOMS_SCHEMA.dump(current_moms_list).data
-                        # NOTE: The ff code catches non-triggering moms even if there is 
+                        current_moms_list_data = MONITORING_MOMS_SCHEMA.dump(
+                            current_moms_list).data
+                        # NOTE: The ff code catches non-triggering moms even if there is
                         # no positive moms alert. Good thing na hindi naaattach moms sa release triggers kung
-                        # walang positive moms alert dahil yung "taas" (default version) ang 
+                        # walang positive moms alert dahil yung "taas" (default version) ang
                         # maghahandle noon RE: showing moms data presence every 4 hours.
                         current_trigger_alerts["moms"] = {
                             "alert_level": highest_moms_alert,
@@ -378,150 +166,29 @@ def get_current_rain_surficial_and_moms_alerts(op_triggers_list,
             if current_trigger_alerts[key]["alert_level"] == -1:
                 all_trigger_has_data = False
                 break
-        
+
         if all_trigger_has_data:
             break
 
     return current_trigger_alerts
 
 
-def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
-                                          no_surficial_data_presence, no_moms_data_presence, no_data_list):
+def get_site_moms_alerts(site_id, ts_start, ts_end):
     """
-    Replace alert symbol of entries on positive triggers list
-    based on the current no data presence (no_data_list)
-    (e.g Entry on positive_triggers_list alert symbol => G will be replaced by G0)
-
-    returns updated highest_unique_positive_triggers_list
+    NOTE: Will be transferred to monitoring utils
     """
-    for pos_trig in highest_unique_positive_triggers_list:
-        pos_trig_symbol = pos_trig.trigger_symbol
-        source_id = pos_trig_symbol.source_id
-        has_no_data = False
+    var_checker("ts_start", ts_start, True)
+    var_checker("ts_end", ts_end, True)
+    latest_moms = moms.query.order_by(DB.desc(moms.observance_ts)).filter(
+        DB.and_(ts_start <= moms.observance_ts, moms.observance_ts <= ts_end)).join(mi).filter(mi.site_id == site_id).all()
 
-        if pos_trig_symbol.trigger_hierarchy.trigger_source == "surficial" \
-                and no_surficial_data_presence:
-            nd_internal_symbol = IAS_MAP["alert_symbol", -1, pos_trig_symbol.source_id]
-            has_no_data = True
-        elif pos_trig_symbol.trigger_hierarchy.trigger_source == "moms" \
-                and no_moms_data_presence:
-            nd_internal_symbol = IAS_MAP["alert_symbol", -1, pos_trig_symbol.source_id]
-            has_no_data = True
-        else:
-            for no_data in no_data_list:
-                if no_data.trigger_symbol.source_id == source_id:
-                    nd_internal_symbol = no_data.trigger_symbol.internal_alert_symbol.alert_symbol
-                    has_no_data = True
+    sorted_list = sorted(latest_moms,
+                         key=lambda x: x.op_trigger, reverse=True)
+    highest_moms_alert = 0
+    if sorted_list:
+        highest_moms_alert = sorted_list[0].op_trigger
 
-        # Replace alert_symbol of positive_trigger entry if no data
-        if has_no_data:
-            # Get the lowercased version of [x]2 triggers (g2, s2)
-            # Rationale: ND-symbols on internal alert are in UPPERCASE
-            if pos_trig_symbol.alert_level < get_source_max_alert_level(source_id):
-                nd_internal_symbol = nd_internal_symbol.lower()
-
-            pos_trig_symbol.internal_alert_symbol.alert_symbol = nd_internal_symbol
-
-    return highest_unique_positive_triggers_list
-
-
-def extract_no_data_triggers(release_op_trigger_list):
-    """
-    Check for no data presence for all release triggers
-
-    Note: Surficial and moms triggers do not produce alert 
-          level -1 entry on operational_triggers table
-          Only rainfall and subsurface triggers are producing 
-          -1 (no_data) entry on operational_triggers table
-
-    returns list of op_trigger entries with no data (alert level -1)
-    """
-    # Get a sorted list of release triggers
-    sorted_release_triggers_list = sorted(
-        release_op_trigger_list, key=lambda x: x.ts_updated, reverse=True)
-
-    comparator = []
-    unique_list = []
-    no_surficial_data_presence = True
-    no_moms_data_presence = True
-
-    for release_op_trig in sorted_release_triggers_list:
-        com = release_op_trig.trigger_symbol.source_id
-        # NOTE: For MAP refactoring
-        rel_trigger_source = release_op_trig.trigger_symbol.trigger_hierarchy.trigger_source
-
-        if rel_trigger_source == "surficial":
-            no_surficial_data_presence = False
-        if rel_trigger_source == "moms":
-            no_moms_data_presence = False
-        else:
-            to_append = False
-            if release_op_trig.trigger_symbol.alert_level == -1:
-                if not comparator:
-                    to_append = True
-                elif not com in comparator:
-                    to_append = True
-
-            if to_append:
-                comparator.append(com)
-                unique_list.append(release_op_trig)
-
-    no_data_list = unique_list
-    return no_surficial_data_presence, no_moms_data_presence, no_data_list
-
-
-def extract_highest_unique_triggers_per_type(unique_positive_triggers_list):
-    """
-    Get the highest trigger level per trigger type/source
-    (i.e. "surficial", "rainfall")
-
-    Example: ["surficial", "l2"] and ["surficial", "l3"] 
-    are not unique and the second instance will be returned
-    """
-    # Get a sorted list of historical triggers
-    sorted_positive_triggers_list = sorted(
-        unique_positive_triggers_list, key=lambda x: x.trigger_symbol.alert_level, reverse=True)
-
-    comparator = []
-    unique_list = []
-    for item in sorted_positive_triggers_list:
-        com = item.trigger_symbol.source_id
-
-        to_append = False
-        if not comparator:
-            to_append = True
-        elif not com in comparator:
-            to_append = True
-
-        if to_append:
-            comparator.append(com)
-            unique_list.append(item)
-
-    sorted_positive_triggers_list = unique_list
-    return sorted_positive_triggers_list
-
-
-def get_processed_internal_alert_symbols(unique_positive_triggers_list, release_op_trigger_list):
-    """
-    Returns an updated unique_positive_triggers_list
-    (i.e. alert_symbols appropriated to no data)
-
-    List returned will be used mainly in internal alert level generation
-    """
-    # Declare the essential lists
-    no_data_list = []
-
-    # Get a sorted list of historical triggers
-    highest_unique_positive_triggers_list = extract_highest_unique_triggers_per_type(
-        unique_positive_triggers_list)
-    # Get a sorted list of release triggers
-    no_surficial_data_presence, no_moms_data_presence, no_data_list = extract_no_data_triggers(
-        release_op_trigger_list)
-
-    updated_h_u_p_t_list = update_positive_triggers_with_no_data(
-        highest_unique_positive_triggers_list, no_surficial_data_presence, no_moms_data_presence, no_data_list)
-
-    return updated_h_u_p_t_list
+    return latest_moms, highest_moms_alert
 
 
 def get_tsm_alerts(site_tsm_sensors, query_ts_end):
@@ -533,13 +200,13 @@ def get_tsm_alerts(site_tsm_sensors, query_ts_end):
     ta = TSMAlerts
     tsm_alerts_list = []
     for sensor in site_tsm_sensors:
-        tsm_alert_entries = sensor.tsm_alert.filter(
-            ta.ts <= query_ts_end, ta.ts_updated >= query_ts_end - timedelta(minutes=30)).all()
+        tsm_alert_entries = sensor.tsm_alert.filter(DB.and_(
+            ta.ts <= query_ts_end, ta.ts_updated >= query_ts_end - timedelta(minutes=30))).all()
 
         # Note: tsm_alert_entries is expected to
         # return ONLY ONE row (if has data)
         # because of the nature of the query (check filter)
-      
+
         if tsm_alert_entries:
             entry = tsm_alert_entries[0]
             alert_symbol = OTS_MAP[(
@@ -561,6 +228,7 @@ def get_moms_and_surficial_window_ts(highest_public_alert, query_ts_end):
     that will be used in checking surficial and moms alerts
     AND surficial and moms data presence
     """
+
     if highest_public_alert > 0:
         window_ts = round_to_nearest_release_time(
             # query_ts_end) - timedelta(hours=4)
@@ -572,11 +240,12 @@ def get_moms_and_surficial_window_ts(highest_public_alert, query_ts_end):
 
 def get_highest_public_alert(positive_triggers_list):
     """
-    Returns the maximum public alert. Only returns the compared alert levels stored in a list.
+    Returns the maximum public alert.
 
     Args:
         positive_triggers_list: List of OperationalTriggers class.
     """
+
     sorted_list = sorted(positive_triggers_list,
                          key=lambda x: x.trigger_symbol.alert_level, reverse=True)
 
@@ -593,25 +262,25 @@ def extract_unique_positive_triggers(positive_triggers_list):
     and operational trigger alert level combination
 
     (e.g Entries for ("surficial", g2) & ("surficial", g3) are unique)
-    NOTE: Refactor for readability
     """
 
-    comparator_1 = []
-    comparator_2 = []
-    unique_list = []
+    unique_positive_triggers_list = []
+    unique_pos_trig_set = set({})
     for item in positive_triggers_list:
-        com_1 = item.trigger_symbol.source_id
-        comparator_1.append(com_1)
-        com_2 = item.trigger_symbol.alert_level
-        comparator_2.append(com_2)
-        if not ((com_1 in comparator_1 and com_2 in comparator_2) and (comparator_1.count(com_1) > 1 and comparator_2.count(com_2) > 1)):
-            unique_list.append(item)
+        trig_symbol = item.trigger_symbol
+        tuple_entry = (
+            trig_symbol.source_id,
+            trig_symbol.alert_level
+        )
 
-    unique_positive_triggers_list = unique_list
+        if not (tuple_entry in unique_pos_trig_set):
+            unique_pos_trig_set.add(tuple_entry)
+            unique_positive_triggers_list.append(item)
+
     return unique_positive_triggers_list
 
 
-def get_invalids(positive_triggers_list):
+def get_invalid_triggers(positive_triggers_list):
     """
     Get invalid alerts by using the created relationship
         'operational_triggers_table.alert_status'
@@ -619,12 +288,15 @@ def get_invalids(positive_triggers_list):
     returns invalid_dict (dictionary): dictionary of key::value pair \
                                         (trigger_sym_id::invalid_alert_status_details)
     """
+
     invalids_dict = {}
     for item in positive_triggers_list:
         alert_status_entry = item.alert_status
+
         if alert_status_entry and alert_status_entry.alert_status == -1:
             trigger_sym_id = item.trigger_sym_id
             if trigger_sym_id in invalids_dict:
+                # Check for latest invalidation entries
                 if invalids_dict[trigger_sym_id].ts_ack < alert_status_entry.ts_ack:
                     invalids_dict[trigger_sym_id] = alert_status_entry
             else:
@@ -637,12 +309,14 @@ def extract_positive_triggers_list(op_triggers_list):
     """
     Get all positive triggers from historical op_triggers_list
     """
+
     positive_triggers_list = []
 
     for op_trigger in op_triggers_list:
         op_trig = op_trigger.trigger_symbol
 
         # Filter for g0t alerts (surficial trending alerts for validation)
+        # DYNAMIC: TH_MAP
         g0t_filter = not (op_trig.alert_level ==
                           1 and op_trig.source_id == TH_MAP["surficial"])
         if op_trig.alert_level > 0 and g0t_filter:
@@ -651,19 +325,23 @@ def extract_positive_triggers_list(op_triggers_list):
     return positive_triggers_list
 
 
-def extract_release_op_triggers(op_triggers_query, query_ts_end):
+def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interval_hours):
     """
     Get all operational triggers released within the four-hour window before release
     with exception for subsurface triggers
     """
+
     # Get the triggers within 4 hours before the release AND use "distinct" to remove duplicates
+    interval = release_interval_hours
+
     release_op_triggers = op_triggers_query.filter(
-        ot.ts_updated >= round_to_nearest_release_time(query_ts_end) - timedelta(hours=4)).distinct().all()
+        ot.ts_updated >= round_to_nearest_release_time(query_ts_end, interval) - timedelta(hours=interval)).distinct().all()
 
     # Remove subsurface triggers less than the actual query_ts_end
     # Data presence for subsurface is limited to the current runtime only (not within 4 hours)
     release_op_triggers_list = []
     for release_op_trig in release_op_triggers:
+        # DYNAMIC: TH_MAP
         if not (release_op_trig.trigger_symbol.source_id == TH_MAP["subsurface"] and release_op_trig.ts_updated < query_ts_end):
             release_op_triggers_list.append(release_op_trig)
 
@@ -671,8 +349,14 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end):
 
 
 def get_operational_triggers_within_monitoring_period(s_op_triggers_query, monitoring_start_ts, query_ts_end):
-    """Returns an appender base query containing alert level on each operational trigger
-    from start of monitoring to end.
+    """
+    Returns an appender base query containing alert level on each operational
+    trigger from start of monitoring to end
+
+    IMPORTANT: operational_triggers that has no data (alert_level = -1) is
+    not returned to standardize data presence identification (i.e. If no 
+    table entry for a specific time interval, trigger is considered as
+    no data.)
 
     Args:
         monitoring_start_ts (datetime): Timestamp of start of monitoring.
@@ -685,30 +369,32 @@ def get_operational_triggers_within_monitoring_period(s_op_triggers_query, monit
     """
 
     op_trigger_of_site = s_op_triggers_query.order_by(DB.desc(ot.ts)).filter(
-        and_(ot.ts_updated >= monitoring_start_ts, ot.ts <= query_ts_end))
+        and_(ot.ts_updated >= monitoring_start_ts, ot.ts <= query_ts_end)).join(ots).filter(ots.alert_level != -1)
 
     return op_trigger_of_site
 
 
-def get_event_start_timestamp(latest_site_public_alerts):
+def get_event_start_timestamp(latest_site_public_alerts, max_possible_alert_level):
     """
-    Timestamp of start of event monitoring. Start of event is computed
-    by checking if event progresses from non A0 to higher alert.
+    Timestamp of start of event monitoring. Start of event is identified
+    by checking series of events until it reaches the entry prior an
+    Alert 0 entry (i.e. onset of event)
 
     Args:
-        site_id (int): ID of each site.
-        end (datetime): Current public alert timestamp.
+        latest_site_public_alerts (SQLAlchemy Class): all PublicAlert 
+                                entries of an event sorted by TS desc
+        max_possible_alert_level (Int): Number of alert levels excluding zero
 
     Returns:
         datetime: Timestamp of start of monitoring.
     """
 
-    highest_alert_level = 5  # highest pub_sym_id is 4 which is A3
+    highest_alert_level = max_possible_alert_level + 1
     ts_start = None
     for latest_pa in latest_site_public_alerts:
-        current_alert_level = latest_pa.pub_sym_id
+        current_alert_level = latest_pa.alert_symbol.alert_level
 
-        if current_alert_level == 1:
+        if current_alert_level == 0:
             break
         elif highest_alert_level > current_alert_level:
             highest_alert_level = current_alert_level
@@ -717,15 +403,16 @@ def get_event_start_timestamp(latest_site_public_alerts):
     return ts_start
 
 
-def get_monitoring_start_ts(monitoring_type, latest_site_public_alerts, query_ts_end):
+def get_monitoring_start_ts(monitoring_type, latest_site_public_alerts, query_ts_end, max_possible_alert_level):
     """
     Return monitoring start.
     """
+
     # Check if the monitoring type is event, otherwise, it is a routine.
     if monitoring_type == "event":
         # Event. Get most recent alert event
         monitoring_start_ts = get_event_start_timestamp(
-            latest_site_public_alerts)
+            latest_site_public_alerts, max_possible_alert_level)
     else:
         # Routine. Get the time of the previous day.
         monitoring_start_ts = query_ts_end - timedelta(days=1)
@@ -733,125 +420,19 @@ def get_monitoring_start_ts(monitoring_type, latest_site_public_alerts, query_ts
     return monitoring_start_ts
 
 
-def get_latest_public_alerts_per_site(s_pub_alerts_query, query_ts_end):
+def get_latest_public_alerts_per_site(s_pub_alerts_query, query_ts_end, max_possible_alert_level):
     """
-    Get the most recent public alert type (limit to 3)
+    Get the most recent public alert type. 
+    Limit based on the number of alert levels
+    excluding alert zero.
     """
 
+    limit = max_possible_alert_level
     most_recent = s_pub_alerts_query.order_by(DB.desc(pa.ts)).filter(
-        or_(pa.ts_updated <= query_ts_end, and_(pa.ts <= query_ts_end, query_ts_end <= pa.ts_updated))).limit(3).all()
+        or_(pa.ts_updated <= query_ts_end, and_(pa.ts <= query_ts_end, query_ts_end <= pa.ts_updated))).limit(limit).all()
 
     # If return_one is False, return the AppenderBaseQuery to be filtered.
     return most_recent
-
-
-def get_site_moms(site, query_ts_end):
-    """
-    NOTE LOUIE: Find an efficient way to process ONLY the recent moms instead of checking everything
-    NOTE: Will be transferred to monitoring utils
-    """
-    site_moms_instances = site.moms_instance.all()
-    sorted_moms = [""]
-    if site_moms_instances:
-        moms_list = []
-        for instance in site_moms_instances:
-            latest_moms = instance.moms.order_by(DB.desc(moms.observance_ts)).filter(moms.observance_ts >= round_to_nearest_release_time(query_ts_end) - timedelta(hours=4)).first()
-            if latest_moms:
-                moms_list.append(latest_moms)
-
-        if moms_list:
-            sorted_moms = sorted(moms_list, key=lambda x: x.observance_ts, reverse=True)
-
-    return sorted_moms[0]
-
-
-def get_site_moms_alerts(site_id, ts_start, ts_end):
-    """
-    NOTE: Will be transferred to monitoring utils
-    """
-    var_checker("ts_start", ts_start, True)
-    var_checker("ts_end", ts_end, True)
-    latest_moms = moms.query.order_by(DB.desc(moms.observance_ts)).filter(
-        DB.and_(ts_start <= moms.observance_ts, moms.observance_ts <= ts_end)).join(mi).filter(mi.site_id == site_id).all()        
-
-    sorted_list = sorted(latest_moms,
-                         key=lambda x: x.op_trigger, reverse=True)
-    highest_moms_alert = 0
-    if sorted_list:
-        highest_moms_alert = sorted_list[0].op_trigger
-
-    return latest_moms, highest_moms_alert
-
-
-def format_release_trig(current_trigger_alerts):
-    formatted_release_trig = []
-    for key in current_trigger_alerts:
-        if key == "moms":
-            formatted_alert = {
-                "type": key,
-                "source_id": TH_MAP[key],
-                "details": current_trigger_alerts[key]
-            }            
-            # if current_moms_alert["alert_level"] not in [-1, 1]:
-            #     alert_symbol = OTS_MAP[("alert_symbol", "moms", current_moms_alert["alert_level"])]
-            #     alert_level = current_moms_alert["alert_level"]
-                
-            #     formatted_alert = {
-            #         "type": "moms",
-            #         "source_id": TH_MAP["moms"],
-            #         "details": {
-            #             **current_moms_alert["details"],
-            #             "alert_level": alert_level,
-            #             "alert_symbol": alert_symbol
-            #         }
-            #     }        
-        else:
-            formatted_alert = {
-                "type": key,
-                "source_id": TH_MAP[key],
-                "details": current_trigger_alerts[key]
-            }
-
-        formatted_release_trig.append(formatted_alert)
-
-    return formatted_release_trig
-
-
-def check_if_has_unresolved_moms_instance(site_moms_alerts_list):
-    """
-    This function returns latest moms per instance and if there are any 
-    unresolved moms per instance.
-
-    Args:
-        site_moms_alerts_list (List)
-    """    
-    var_checker("site_moms_alerts_list", site_moms_alerts_list, True)
-
-    has_unresolved_moms = False
-    comparator = []
-    latest_moms_per_instance = []
-    for site_moms in site_moms_alerts_list:
-        com = site_moms.instance_id
-
-        to_append = False
-        if not comparator:
-            to_append = True
-        elif not com in comparator:
-            if site_moms.op_trigger > 0:
-                has_unresolved_moms = True
-                # break
-            to_append = True
-
-        if to_append:
-            comparator.append(com)
-        
-        if has_unresolved_moms:
-            latest_moms_per_instance.append(site_moms)
-
-    var_checker("has_complete_data_presence", has_unresolved_moms, True)
-    var_checker("unique_list", latest_moms_per_instance, True)
-
-    return latest_moms_per_instance, has_unresolved_moms
 
 
 def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_write_to_db):
@@ -859,7 +440,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
     # LOOP THROUGH ACTIVE SITES PROVIDED #
     ######################################
     site_public_alerts_list = []
-    if not isinstance(active_sites, (list,)): # Check if not a list, which means run one site only.
+    # Check if not a list, which means run one site only.
+    if not isinstance(active_sites, (list,)):
         active_sites = [active_sites]
 
     for site in active_sites:
@@ -870,13 +452,17 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         site_tsm_sensors = site.tsm_sensors.all()
         latest_rainfall_alert = site.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
             ra.ts == query_ts_end).first()
-        
-        # var_checker("SITE MOMS", site_moms_alerts, True)
+
+        #####################################################
+        # DYNAMIC Protocol Values starts here. For querying #
+        #####################################################
+        max_possible_alert_level = 3  # Number of alert levels excluding zero
+        release_interval_hours = 4  # Every how many hours per release
 
         # Get the single latest recent public_alerts.pub_sym_id for
         # current site then get it's alert type.
         latest_site_public_alerts = get_latest_public_alerts_per_site(
-            s_pub_alerts_query, query_ts_end)
+            s_pub_alerts_query, query_ts_end, max_possible_alert_level)
 
         # Check if event or routine
         latest_site_pa = latest_site_public_alerts[0]
@@ -884,7 +470,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
         # Get the event start
         monitoring_start_ts = get_monitoring_start_ts(
-            monitoring_type, latest_site_public_alerts, query_ts_end)
+            monitoring_type, latest_site_public_alerts, query_ts_end, max_possible_alert_level)
 
         ###################################
         # OPERATIONAL TRIGGERS MANIPULATION
@@ -895,7 +481,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         op_triggers_list = op_triggers_query.all()
 
         release_op_triggers_list = extract_release_op_triggers(
-            op_triggers_query, query_ts_end)
+            op_triggers_query, query_ts_end, release_interval_hours)
 
         positive_triggers_list = extract_positive_triggers_list(
             op_triggers_list)
@@ -903,7 +489,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ###############################
         # INVALID TRIGGERS PROCESSING #
         ###############################
-        invalids_dict = get_invalids(positive_triggers_list)
+        invalids_dict = get_invalid_triggers(positive_triggers_list)
 
         # Get unique positive triggers
         unique_positive_triggers_list = extract_unique_positive_triggers(
@@ -918,21 +504,24 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             positive_triggers_list)
 
         # Get surficial and moms data presence window timestamp query
+        # DYNAMIC: Adapt window_ts values based on DB
         surficial_moms_window_ts = get_moms_and_surficial_window_ts(
             highest_public_alert, query_ts_end)
 
         # Get current subsurface alert
+        # Special function to Dyna3, no need to modularize
         subsurface_alerts_list = get_tsm_alerts(
             site_tsm_sensors, query_ts_end)
 
         # Get current moms alerts within ts_onset and query_ts_end
-        site_moms_alerts = get_site_moms_alerts(site_id, monitoring_start_ts, query_ts_end)
+        site_moms_alerts = get_site_moms_alerts(
+            site_id, monitoring_start_ts, query_ts_end)
         site_moms_alerts_list = site_moms_alerts[0]
         has_positive_moms_trigger = False
 
         # Get current surficial and rainfall alert levels
-        current_trigger_alerts = get_current_rain_surficial_and_moms_alerts(op_triggers_list, \
-                    surficial_moms_window_ts, query_ts_end, latest_rainfall_alert, site_moms_alerts, has_positive_moms_trigger)
+        current_trigger_alerts = get_current_rain_surficial_and_moms_alerts(op_triggers_list,
+                                                                            surficial_moms_window_ts, query_ts_end, latest_rainfall_alert, site_moms_alerts, has_positive_moms_trigger)
         current_trigger_alerts["subsurface"] = subsurface_alerts_list
 
         ###################
@@ -942,7 +531,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         # List of alert trigger levels of ground-related triggers
         ground_related_triggers_alert_list = []
         has_rx_symbol = None
-        processed_triggers_list = [] # will contain updated triggers later (if alert > 0)
+        # will contain updated triggers later (if alert > 0)
+        processed_triggers_list = []
 
         if highest_public_alert > 0:
             validity = max(positive_triggers_list,
@@ -964,12 +554,13 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                     rain_trigger_index = index
 
                 if processed_trig_symbol.trigger_hierarchy.trigger_source in ["subsurface", "surficial", "moms"]:
-                    ground_related_triggers_alert_list.append(processed_trig_symbol.alert_level)
+                    ground_related_triggers_alert_list.append(
+                        processed_trig_symbol.alert_level)
 
             # Process rainfall trigger if above 75% threshold
             if current_trigger_alerts["rainfall"]["alert_level"] == 0 and query_ts_end >= (validity - timedelta(minutes=30)):
                 processed_triggers_list, has_rx_symbol = replace_rainfall_alert_if_rx(latest_rainfall_alert,
-                                    processed_triggers_list, rain_trigger_index)
+                                                                                      processed_triggers_list, rain_trigger_index)
 
                 if has_rx_symbol:
                     current_trigger_alerts["rainfall"]["alert_level"] = -2
@@ -995,14 +586,15 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             ground_alert = 0
 
         internal_alert = create_internal_alert(highest_public_alert, ground_alert,
-                                    processed_triggers_list, has_rx_symbol)
+                                               processed_triggers_list, has_rx_symbol)
 
         ############################
         # moms data presence: moms #
         ############################
         has_unresolved_moms = True
         if site_moms_alerts_list:
-            has_unresolved_moms = check_if_has_unresolved_moms_instance(site_moms_alerts_list)
+            has_unresolved_moms = check_if_has_unresolved_moms_instance(
+                site_moms_alerts_list)
 
         ################
         # PUBLIC ALERT #
@@ -1040,7 +632,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         if for_lowering:
             validity = ""
             highest_public_alert = 0
-            internal_alert = IAS_MAP["alert_symbol", ground_alert, TH_MAP["internal"]]
+            internal_alert = IAS_MAP["alert_symbol",
+                                     ground_alert, TH_MAP["internal"]]
 
         ######################
         # START OF AN EVENT! #
@@ -1051,7 +644,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
         # most recent retrigger of positive operational triggers
         try:
-            event_triggers = get_prepared_recent_retriggers(unique_positive_triggers_list, invalids_dict, site_moms_alerts_list)
+            event_triggers = get_prepared_recent_retriggers(
+                unique_positive_triggers_list, invalids_dict, site_moms_alerts_list)
         except:
             raise
 
@@ -1117,7 +711,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             try:
                 current_pa_id = latest_site_pa.public_id
 
-                # Revert any changes made in SQLAlchemy objects. No DB updates necessary 
+                # Revert any changes made in SQLAlchemy objects. No DB updates necessary
                 # up to this point.
                 DB.session.rollback()
 
@@ -1125,7 +719,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                     for_db_public_dict, latest_site_pa)
                 if not public_alert_result:
                     print()
-                    print(f"Active Public alert with ID: {current_pa_id} on Database.")
+                    print(
+                        f"Active Public alert with ID: {current_pa_id} on Database.")
                 else:
                     print(f"Writing to DB with ID: {public_alert_result}")
 
@@ -1151,12 +746,12 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
     """
     """
-    
+
     try:
         query_ts_start = datetime.strptime(query_ts_start, "%Y-%m-%d %H:%M:%S")
     except:
         query_ts_start = datetime.now()
-        
+
     print(f"{query_ts_start} | Generating Alerts...")
     do_not_write_to_db = is_test
 

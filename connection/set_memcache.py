@@ -1,17 +1,19 @@
 """
 Sets memcache for Dynaslope 3. Mainly symbol maps.
 """
-from src.utils.extra import create_symbols_map
+from src.models.monitoring import (
+    PublicAlertSymbols as pas, OperationalTriggerSymbols as ots,
+    InternalAlertSymbols as ias, TriggerHierarchies as th)
 
 
 def main(memory_client):
-    table_list = [
-        "operational_trigger_symbols",
-        "internal_alert_symbols",
-        "public_alert_symbols",
-        "trigger_hierarchies"
-    ]
+    table_list = {
+        "public_alert_symbols": pas,
+        "operational_trigger_symbols": ots,
+        "internal_alert_symbols": ias,
+        "trigger_hierarchies": th
+    }
 
     for key in table_list:
-        custom_map = create_symbols_map(key)
-        memory_client.set(key.upper(), custom_map)
+        table_data = table_list[key].query.all()
+        memory_client.set(f"D3_{key.upper()}", table_data)

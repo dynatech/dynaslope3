@@ -12,13 +12,46 @@ Dynaslope Project 2019
 """
 import pprint
 import calendar
+from connection import MEMORY_CLIENT
 from flask import jsonify
-from datetime import date, time, datetime
+from datetime import date, time, datetime, timedelta
 from src.utils.sites import get_sites_data
 from src.models.sites import (Sites, SitesSchema)
 from src.models.monitoring import (
     PublicAlertSymbols as pas, OperationalTriggerSymbols as ots,
     InternalAlertSymbols as ias, TriggerHierarchies as th)
+
+
+# def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True):
+#     """
+
+#     """
+
+#     #
+#     #   filters_dict = {
+#     #       "alert_level": 1,
+#     #       "source_id": 2
+#     #   }
+#     #
+
+#     if filters_dict is None:
+#         filters_dict = []
+
+#     data = MEMORY_CLIENT.get(f"D3_{table_name.upper()}")
+#     if data:
+#         conditions =
+
+#         for key in filters_dict:
+#             key
+
+#         for row in data:
+
+#             all(filters_dict[key] == row[key] for key in filters_dict):
+
+#     else:
+#         raise Exception("Table name provided is not found in memcached")
+
+#     return None
 
 
 def create_symbols_map(qualifier):
@@ -77,8 +110,8 @@ def create_symbols_map(qualifier):
 
 def var_checker(var_name, var, have_spaces=False):
     """
-    A function used to check variable value including 
-    title and indentation and spacing for faster checking 
+    A function used to check variable value including
+    title and indentation and spacing for faster checking
     and debugging.
 
     Args:
@@ -98,24 +131,27 @@ def var_checker(var_name, var, have_spaces=False):
         printer.pprint(var)
 
 
-def round_to_nearest_release_time(data_ts):
+def round_to_nearest_release_time(data_ts, interval=4):
     """
-    Round time to nearest 4/8/12 AM/PM
+    Round time to nearest 4/8/12 AM/PM (default)
+    Or any other interval
 
     Args:
         data_ts (datetime)
+        interval (Integer)
 
     Returns datetime
     """
     hour = data_ts.hour
 
-    quotient = int(hour / 4)
+    quotient = int(hour / interval)
+    hour_of_release = (quotient + 1) * interval
 
-    if quotient == 5:
-        date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
-    else:
+    if hour_of_release < 24:
         date_time = datetime.combine(
-            data_ts.date(), time((quotient + 1) * 4, 0))
+            data_ts.date(), time((quotient + 1) * interval, 0))
+    else:
+        date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
 
     return date_time
 

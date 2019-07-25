@@ -22,6 +22,26 @@ from src.utils.extra import (
 from src.utils.narratives import write_narratives_to_db
 
 
+def round_down_data_ts(date_time):
+    """
+    Rounds time to HH:00 or HH:30.
+
+    Args:
+        date_time (datetime): Timestamp to be rounded off. Rounds to HH:00
+        if before HH:30, else rounds to HH:30.
+
+    Returns:
+        datetime: Timestamp with time rounded off to HH:00 or HH:30.
+
+    """
+
+    hour = date_time.hour
+    minute = date_time.minute
+    minute = 0 if minute < 30 else 30
+    date_time = datetime.combine(date_time.date(), time(hour, minute))
+    return date_time
+
+
 def get_saved_event_triggers(event_id):
     """
     """
@@ -35,22 +55,60 @@ def get_saved_event_triggers(event_id):
     return event_triggers
 
 
-def write_alert_status_to_db(as_details, validity):
+def check_if_alert_status_entry_in_db(trigger_id):
     """
-    Inserts AlertStatus entry to database.
+    Sample
     """
+    alert_status_result = None
+    try:
+        alert_status_result = AlertStatus.query.filter(
+            AlertStatus.trigger_id == trigger_id).first()
+    except Exception as err:
+        print(err)
+        raise
+
+    return alert_status_result
+
+
+def update_alert_status(as_details):
+    """
+    Updates alert status entry in DB
+
+    Args:
+        as_details (Dictionary): Updates current entry of alert_status
+            e.g.
+                {
+                    "alert_status": 1, # -1 -> invalid, 0 -> validating, 1 - valid
+                    "remarks": "Malakas ang ulan",
+                    "user_id", 1
+                }
+    """
+
     return_data = None
+    try:
+        trigger_id = as_details.trigger_id
 
+        alert_status_result = check_if_alert_status_entry_in_db(
+            trigger_id)
 
-    new_alert_status = AlertStatus(
-        ts_last_retrigger="",
-        trigger_id=1,
-        ts_set="",
-        ts_ack="",
-        alert_status=1,
-        remarks="",
-        user_id=1
-    )
+        if alert_status_result:
+            alert_status = as_details["alert_status"]
+            remarks = as_details["remarks"]
+            user_id = as_details["user_id"]
+
+            alert_status_result.ts_ack = datetime.now()
+            alert_status_result.alert_status = alert_status
+            alert_status_result.remarks = remarks
+            alert_status_result.user_id = user_id
+
+            DB.session.commit()
+            return_data = f"Alert ID [{trigger_id}] is tagged as {alert_status}. Remarks: \"{remarks}\""
+        else:
+            return_data = f"Trigger ID [{trigger_id}] provided DOES NOT EXIST!"
+    except Exception as err:
+        DB.session.rollback()
+        print(err)
+        raise
 
     return return_data
 
@@ -626,7 +684,7 @@ def build_internal_alert_level(public_alert_level, trigger_list=None):
     p_a_symbol = PAS_MAP["alert_symbol", public_alert_level]
     if public_alert_level > 0:
         internal_alert_level = f"{p_a_symbol}-{trigger_list}"
-        
+
         if public_alert_level == 1 and trigger_list:
             if "-" in trigger_list:
                 internal_alert_level = trigger_list
