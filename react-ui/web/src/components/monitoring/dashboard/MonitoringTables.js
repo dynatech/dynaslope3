@@ -5,6 +5,7 @@ import {
     Divider, Button, ButtonGroup
 } from "@material-ui/core";
 import { withStyles } from "@material-ui/core/styles";
+import { isWidthUp } from "@material-ui/core/withWidth";
 
 import { makeStyles } from "@material-ui/core/styles";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
@@ -67,13 +68,15 @@ const useStyles = makeStyles(theme => ({
 }));
 
 function MonitoringTables (props) {
-    const { candidateAlertsData, alertsFromDbData } = props;
+    const { candidateAlertsData, alertsFromDbData, width } = props;
     const classes = useStyles();
     const [expanded, setExpanded] = React.useState(false);
 
     const handleChange = panel => (event, isExpanded) => {
         setExpanded(isExpanded ? panel : false);
     };
+
+    const is_desktop = isWidthUp("md", width);
 
     const latest_db_alerts = [];
     const { latest, extended, overdue } = alertsFromDbData;
@@ -93,6 +96,7 @@ function MonitoringTables (props) {
                                 let ts = "";
                                 let ia_level = "";
                                 let trigger_arr = [];
+                                let has_new_triggers = false;
                                 const { general_status } = row;
                                 if (general_status === "routine") {
                                     const { data_ts, public_alert_symbol } = row;
@@ -106,9 +110,11 @@ function MonitoringTables (props) {
                                     ts = data_ts;
                                     ia_level = internal_alert_level;
                                     trigger_arr = trigger_list_arr;
+                                    has_new_triggers = trigger_arr !== "No new triggers" && trigger_arr.length > 0;
                                 }
                                 site = site.toUpperCase();
                                 const gen_status = general_status.toUpperCase();
+
 
                                 return (
                                     <ExpansionPanel expanded={expanded === `panel${index}`} onChange={handleChange(`panel${index}`)}>
@@ -125,29 +131,30 @@ function MonitoringTables (props) {
                                         <ExpansionPanelDetails>
                                             <Grid container spacing={4}>
                                                 <Grid item xs={12}>
-                                                    <Typography variant="subtitle1" color="textSecondary">CANDIDATE RELEASE DETAILS</Typography>
+                                                    <Typography variant="subtitle1" color="textSecondary">{gen_status} CANDIDATE RELEASE DETAILS</Typography>
                                                     <Grid container spacing={4}>
-                                                        <Grid item xs={4}>
+                                                        <Grid item xs={12} sm={4}>
                                                             <Typography variant="subtitle2" color="textPrimary">Internal Alert</Typography>
                                                             <Typography variant="bod1" color="textPrimary">{ia_level}</Typography>
                                                         </Grid>
-                                                        <Grid item xs={4}>
+                                                        <Grid item xs={12} sm={4}>
                                                             <Typography variant="subtitle2" color="textPrimary">Data Timestamp</Typography>
                                                             <Typography variant="bod1" color="textPrimary">{ts}</Typography>
                                                         </Grid>
-                                                        <Grid item xs={4} />
                                                     </Grid>
                                                 </Grid>
 
-                                                <Grid item xs={12}><Divider /></Grid>
+                                                <Grid item xs={12} sm={12}><Divider /></Grid>
 
-                                                <Grid item xs={12}>
+                                                <Grid item xs={12} sm={12}>
                                                     <Typography variant="body1" color="textSecondary">Triggers</Typography>
-                                                    <Grid container>
+                                                    <Grid container spacing={2}>
                                                         {
-                                                            trigger_arr !== [] ?
+                                                            has_new_triggers
+                                                                ?
                                                                 trigger_arr.map((trigger, key) => {
                                                                     const { ts_updated, alert, tech_info } = trigger;
+                                                                    console.log(trigger);
                                                                     let trigger_validity = "VALID";
                                                                     try {
                                                                         const { invalid } = trigger;
@@ -161,32 +168,29 @@ function MonitoringTables (props) {
                                                                     // const formatted_ts = moment(ts_updated).format("D MMMM YYYY, h:mm");
                                                                     return (
                                                                         <Fragment>
-                                                                            <Grid item xs={8}>
+                                                                            <Grid item xs={12} sm={3}>
                                                                                 <Typography variant="body1" color="textPrimary">{trigger_validity} | {alert} | {ts_updated}</Typography>
                                                                                 <Typography variant="caption" color="textSecondary">{tech_info}</Typography>
                                                                             </Grid>
-                                                                            <Grid item xs={4} align="right">
-                                                                                <ButtonGroup variant="contained" color="primary" size="small" aria-label="Alert Actions">
-                                                                                    <Button>Invalidate</Button>
+                                                                            <Grid item xs={12} sm={3} style={{ textAlign: is_desktop ? "center" : "right" }}>
+                                                                                <ButtonGroup variant="contained" color="secondary" size="small" aria-label="Alert Actions">
+                                                                                    <Button disabled>Invalidate</Button>
                                                                                     <Button>Validate</Button>
-                                                                                    <Button>Release</Button>
                                                                                 </ButtonGroup>
                                                                             </Grid>
                                                                         </Fragment>
                                                                     );
                                                                 })
-                                                                : (
-                                                                    <Grid item xs={12}>
-                                                                        <Typography variant="body1" color="textSecondary">No re/triggers</Typography>
-                                                                    </Grid>
-                                                                )
+                                                                : <Grid item xs={12}>
+                                                                    <Typography variant="body1" color="textSecondary">No re/triggers</Typography>
+                                                                </Grid>
                                                         }
 
                                                     </Grid>
                                                 </Grid>
                                                 <Grid item xs={12} align="right">
                                                     <ButtonGroup variant="contained" color="primary" size="small" aria-label="Alert Actions">
-                                                        <Button>Release</Button>
+                                                        <Button>Release Candidate Alert</Button>
                                                     </ButtonGroup>
                                                 </Grid>
                                             </Grid>
@@ -220,7 +224,6 @@ function MonitoringTables (props) {
                                 const { validity, site, event_start } = event;
                                 const site_name = site.site_code.toUpperCase();
                                 const validity_ts = validity;
-                                const event_start_ts = event_start;
 
                                 const { data_ts, release_publishers, triggers } = releases[0];
                                 const mt_personnel = `${release_publishers[0].user_details.first_name} ${release_publishers[0].user_details.last_name}`;

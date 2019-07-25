@@ -12,22 +12,46 @@ Dynaslope Project 2019
 """
 import pprint
 import calendar
+from connection import MEMORY_CLIENT
 from flask import jsonify
-from datetime import date, time, datetime
+from datetime import date, time, datetime, timedelta
 from src.utils.sites import get_sites_data
 from src.models.sites import (Sites, SitesSchema)
+from src.models.monitoring import (
+    PublicAlertSymbols as pas, OperationalTriggerSymbols as ots,
+    InternalAlertSymbols as ias, TriggerHierarchies as th)
 
 
-def get_trigger_hierarchy(trigger_source=None):
-    """
-    Returns an appender base query containing all internal alert symbols.
-    """
-    # th = TriggerHierarchies
-    # symbol = th.query.filter(th.trigger_source == trigger_source).first()
-    mapping = {'subsurface': 1, 'surficial': 2, 'rainfall': 3,
-               'earthquake': 4, 'on demand': 5, 'moms': 6, 'internal': 7}
-    symbol = mapping[trigger_source]
-    return symbol
+# def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True):
+#     """
+
+#     """
+
+#     #
+#     #   filters_dict = {
+#     #       "alert_level": 1,
+#     #       "source_id": 2
+#     #   }
+#     #
+
+#     if filters_dict is None:
+#         filters_dict = []
+
+#     data = MEMORY_CLIENT.get(f"D3_{table_name.upper()}")
+#     if data:
+#         conditions =
+
+#         for key in filters_dict:
+#             key
+
+#         for row in data:
+
+#             all(filters_dict[key] == row[key] for key in filters_dict):
+
+#     else:
+#         raise Exception("Table name provided is not found in memcached")
+
+#     return None
 
 
 def create_symbols_map(qualifier):
@@ -35,57 +59,59 @@ def create_symbols_map(qualifier):
     qualifier (str): can be 'public_alert_symbols' or
                         'operational_trigger_symbols'
     """
-    # query_table = None
-    # query_tables_list = {
-    #     "public_alert_symbols": pas,
-    #     "operational_trigger_symbols": ots,
-    #     "internal_alert_symbols": ias,
-    # }
+    query_table = None
+    query_tables_list = {
+        "public_alert_symbols": pas,
+        "operational_trigger_symbols": ots,
+        "internal_alert_symbols": ias,
+        "trigger_hierarchies": th
+    }
 
-    # try:
-    #     query_table = query_tables_list[qualifier]
-    # except Exception as err:
-    #     print("=== Error in getting symbols table")
-    #     raise(err)
+    try:
+        query_table = query_tables_list[qualifier]
+    except Exception as err:
+        print("=== Error in getting symbols table")
+        raise(err)
 
-    # custom_map = {}
-    # symbols_list = query_table.query.all()
-    # for item in symbols_list:
-    #     kv_pair = []
+    custom_map = {}
+    symbols_list = query_table.query.all()
+    for item in symbols_list:
+        kv_pair = []
 
-    #     if qualifier == "operational_trigger_symbols":
-    #         kv_pair.append([("alert_symbol", item.trigger_hierarchy.trigger_source,
-    #                          item.alert_level), item.alert_symbol])
-    #         kv_pair.append([("trigger_sym_id", item.trigger_hierarchy.trigger_source,
-    #                          item.alert_level), item.trigger_sym_id])
-    #     elif qualifier == "public_alert_symbols":
-    #         kv_pair.append([("alert_symbol", (item.alert_level)),
-    #                         item.alert_symbol])
-    #         kv_pair.append(
-    #             [("pub_sym_id", (item.alert_level)), item.pub_sym_id])
-    #     elif qualifier == "internal_alert_symbols":
-    #         kv_pair.append([(item.trigger_symbol.alert_level, item.trigger_symbol.source_id), item.alert_symbol])
+        if qualifier == "operational_trigger_symbols":
+            trigger_source = item.trigger_hierarchy.trigger_source
+            kv_pair.append([("alert_symbol", trigger_source,
+                             item.alert_level), item.alert_symbol])
+            kv_pair.append([("trigger_sym_id", trigger_source,
+                             item.alert_level), item.trigger_sym_id])
+            kv_pair.append(
+                [("alert_level", trigger_source, item.trigger_sym_id), item.alert_level])
+        elif qualifier == "public_alert_symbols":
+            kv_pair.append([("alert_symbol", (item.alert_level)),
+                            item.alert_symbol])
+            kv_pair.append(
+                [("pub_sym_id", (item.alert_level)), item.pub_sym_id])
+            kv_pair.append(
+                [("alert_level", (item.pub_sym_id)), item.alert_level])
+        elif qualifier == "internal_alert_symbols":
+            kv_pair.append([("alert_symbol", item.trigger_symbol.alert_level,
+                             item.trigger_symbol.source_id), item.alert_symbol])
+            kv_pair.append([("internal_sym_id", item.trigger_symbol.alert_level,
+                             item.trigger_symbol.source_id), item.internal_sym_id])
+        elif qualifier == "trigger_hierarchies":
+            kv_pair.append([item.trigger_source, item.source_id])
+            kv_pair.append([item.source_id, item.trigger_source])
 
-    #     for pair in kv_pair:
-    #         custom_map[pair[0]] = pair[1]
-
-    if qualifier == "operational_trigger_symbols":
-        custom_map = {('alert_symbol', 'subsurface', -1): 'nd', ('trigger_sym_id', 'subsurface', -1): 1, ('alert_symbol', 'subsurface', 0): 's0', ('trigger_sym_id', 'subsurface', 0): 2, ('alert_symbol', 'subsurface', 2): 's2', ('trigger_sym_id', 'subsurface', 2): 3, ('alert_symbol', 'subsurface', 3): 's3', ('trigger_sym_id', 'subsurface', 3): 4, ('alert_symbol', 'surficial', -1): 'nd', ('trigger_sym_id', 'surficial', -1): 5, ('alert_symbol', 'surficial', 0): 'g0', ('trigger_sym_id', 'surficial', 0): 6, ('alert_symbol', 'surficial', 1): 'gt', ('trigger_sym_id', 'surficial', 1): 7, ('alert_symbol', 'surficial', 2): 'g2', ('trigger_sym_id', 'surficial', 2): 8, ('alert_symbol', 'surficial', 3): 'g3', ('trigger_sym_id', 'surficial', 3): 9, ('alert_symbol', 'moms', 2): 'm2', ('trigger_sym_id', 'moms', 2): 10, ('alert_symbol',
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                'rainfall', -2): 'rx', ('trigger_sym_id', 'rainfall', -2): 11, ('alert_symbol', 'rainfall', -1): 'nd', ('trigger_sym_id', 'rainfall', -1): 12, ('alert_symbol', 'rainfall', 0): 'r0', ('trigger_sym_id', 'rainfall', 0): 13, ('alert_symbol', 'rainfall', 1): 'r1', ('trigger_sym_id', 'rainfall', 1): 14, ('alert_symbol', 'earthquake', 1): 'e1', ('trigger_sym_id', 'earthquake', 1): 15, ('alert_symbol', 'on demand', 1): 'd1', ('trigger_sym_id', 'on demand', 1): 16, ('alert_symbol', 'moms', 3): 'm3', ('trigger_sym_id', 'moms', 3): 17, ('alert_symbol', 'moms', 0): 'm0', ('trigger_sym_id', 'moms', 0): 18, ('alert_symbol', 'moms', -1): 'nd', ('trigger_sym_id', 'moms', -1): 19, ('alert_symbol', 'internal', -1): 'nd', ('trigger_sym_id', 'internal', -1): 20, ('alert_symbol', 'internal', 0): 'A0', ('trigger_sym_id', 'internal', 0): 21}
-    elif qualifier == "public_alert_symbols":
-        custom_map = {('alert_symbol', 0): 'A0', ('pub_sym_id', 0): 1, ('alert_symbol', 1): 'A1', ('pub_sym_id', 1)
-                       : 2, ('alert_symbol', 2): 'A2', ('pub_sym_id', 2): 3, ('alert_symbol', 3): 'A3', ('pub_sym_id', 3): 4}
-    elif qualifier == "internal_alert_symbols":
-        custom_map = {(3, 1): 'S', (-1, 1): 'S0', (2, 1): 's', (3, 2): 'G', (-1, 2): 'G0', (2, 2): 'g', (3, 6): 'M', (1, 3): 'R',
-                      (-1, 3): 'R0', (-2, 3): 'Rx', (1, 4): 'E', (1, 5): 'D', (2, 6): 'm', (-1, 6): 'M0', (-1, 7): 'ND', (0, 7): 'A0'}
+        for pair in kv_pair:
+            custom_map[pair[0]] = pair[1]
 
     return custom_map
 
 
 def var_checker(var_name, var, have_spaces=False):
     """
-    A function used to check variable value including 
-    title and indentation and spacing for faster checking 
+    A function used to check variable value including
+    title and indentation and spacing for faster checking
     and debugging.
 
     Args:
@@ -105,24 +131,27 @@ def var_checker(var_name, var, have_spaces=False):
         printer.pprint(var)
 
 
-def round_to_nearest_release_time(data_ts):
+def round_to_nearest_release_time(data_ts, interval=4):
     """
-    Round time to nearest 4/8/12 AM/PM
+    Round time to nearest 4/8/12 AM/PM (default)
+    Or any other interval
 
     Args:
         data_ts (datetime)
+        interval (Integer)
 
     Returns datetime
     """
     hour = data_ts.hour
 
-    quotient = int(hour / 4)
+    quotient = int(hour / interval)
+    hour_of_release = (quotient + 1) * interval
 
-    if quotient == 5:
-        date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
-    else:
+    if hour_of_release < 24:
         date_time = datetime.combine(
-            data_ts.date(), time((quotient + 1) * 4, 0))
+            data_ts.date(), time((quotient + 1) * interval, 0))
+    else:
+        date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
 
     return date_time
 

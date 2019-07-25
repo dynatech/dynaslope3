@@ -71,7 +71,7 @@ def get_end_of_shift_data(shift_start, shift_end, event_id):
         "first_trigger_type": get_internal_alert_symbols(triggers_list[0].internal_sym_id),
         "shift_triggers": shift_triggers_list,
         "internal_alert_level": build_internal_alert_level(
-            event_alerts_list[-1].pub_sym_id, releases_list[-1].trigger_list)
+            event_alerts_list[-1].public_alert_symbol.alert_level, releases_list[-1].trigger_list)
     }
 
     return eos_data

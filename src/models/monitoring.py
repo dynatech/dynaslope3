@@ -307,7 +307,8 @@ class MonitoringMoms(UserMixin, DB.Model):
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> MOMS ID: {self.moms_id}"
-                f" observance ts: {self.observance_ts} Remarks: {self.remarks}")
+                f" observance ts: {self.observance_ts} Remarks: {self.remarks}"
+                f" op_trigger: {self.op_trigger}")
 
 
 class MomsInstances(UserMixin, DB.Model):
@@ -415,7 +416,7 @@ class OperationalTriggers(UserMixin, DB.Model):
         "Sites", backref=DB.backref("operational_triggers", lazy="dynamic"), lazy="select")
 
     trigger_symbol = DB.relationship(
-        "OperationalTriggerSymbols", backref="operational_trigger", lazy="joined", innerjoin=True)#lazy="select")
+        "OperationalTriggerSymbols", backref="operational_triggers", lazy="joined", innerjoin=True)#lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger_ID: {self.trigger_id}"
@@ -441,7 +442,7 @@ class OperationalTriggerSymbols(UserMixin, DB.Model):
         "ewi_db.trigger_hierarchies.source_id"), nullable=False)
 
     trigger_hierarchy = DB.relationship(
-        "TriggerHierarchies", backref="trigger_symbol", lazy="joined", innerjoin=True) # lazy="select")
+        "TriggerHierarchies", backref="trigger_symbols", lazy="joined", innerjoin=True) # lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger Symbol ID: {self.trigger_sym_id}"
@@ -485,7 +486,7 @@ class InternalAlertSymbols(UserMixin, DB.Model):
 
     trigger_symbol = DB.relationship(
         "OperationalTriggerSymbols", lazy="select", uselist=False,
-        backref=DB.backref("internal_alert_symbol", lazy="joined", innerjoin=True, uselist=False))
+        backref=DB.backref("internal_alert_symbol", lazy="select", uselist=False))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Internal Sym ID: {self.internal_sym_id}"
@@ -766,6 +767,7 @@ class MonitoringMomsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Moms class
     """
+    observance_ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     narrative = fields.Nested(
         "NarrativesSchema", exclude=("site_id", "event_id"))
     reporter = fields.Nested("UsersSchema", only=(
@@ -823,6 +825,9 @@ class OperationalTriggerSymbolsSchema(MARSHMALLOW.ModelSchema):
     Schema representation of OperationalTriggerSymbols class
     """
 
+    source_id = fields.Integer()
+    trigger_hierarchy = fields.Nested("TriggerHierarchiesSchema", exclude=("trigger_symbols",))
+
     class Meta:
         """Saves table class structure as schema model"""
         model = OperationalTriggerSymbols
@@ -833,16 +838,22 @@ class TriggerHierarchiesSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Trigger Hierarchies class
     """
 
+    trigger_sym_id = fields.Integer()
+    trigger_symbols = fields.Nested("OperationalTriggerSymbolsSchema", exclude=("trigger_hierarchy",))
+
     class Meta:
         """Saves table class structure as schema model"""
         model = TriggerHierarchies
+        # exclude = ["operational_triggers"]
 
 
 class InternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Internal Alert Symbols class
     """
-    
+    trigger_sym_id = fields.Integer()
+    trigger_symbol = fields.Nested("OperationalTriggerSymbolsSchema", exclude=("internal_alert_symbol",))
+
     class Meta:
         """Saves table class structure as schema model"""
         model = InternalAlertSymbols
