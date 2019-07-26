@@ -22,36 +22,32 @@ from src.models.monitoring import (
     InternalAlertSymbols as ias, TriggerHierarchies as th)
 
 
-# def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True):
-#     """
+def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True):
+    """
 
-#     """
+    """
 
-#     #
-#     #   filters_dict = {
-#     #       "alert_level": 1,
-#     #       "source_id": 2
-#     #   }
-#     #
+    return_data = None
 
-#     if filters_dict is None:
-#         filters_dict = []
+    if filters_dict is None:
+        filters_dict = []
 
-#     data = MEMORY_CLIENT.get(f"D3_{table_name.upper()}")
-#     if data:
-#         conditions =
+    data = MEMORY_CLIENT.get(f"D3_{table_name.upper()}")
 
-#         for key in filters_dict:
-#             key
+    if data:
+        if retrieve_one:
+            for row in data:
+                if all(filters_dict[key] == row[key] for key in filters_dict):
+                    # if all(filters_dict[key] == getattr(row, key) for key in filters_dict):
+                    return_data = row
+                    break
+        else:
+            return_data = data
 
-#         for row in data:
+    else:
+        raise Exception("Table name provided is not found in memcached")
 
-#             all(filters_dict[key] == row[key] for key in filters_dict):
-
-#     else:
-#         raise Exception("Table name provided is not found in memcached")
-
-#     return None
+    return return_data
 
 
 def create_symbols_map(qualifier):

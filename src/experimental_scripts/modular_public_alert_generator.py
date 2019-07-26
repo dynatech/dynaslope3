@@ -30,13 +30,16 @@ from src.models.analysis import (
 from src.utils.sites import get_sites_data
 from src.utils.rainfall import get_rainfall_gauge_name
 from src.utils.monitoring import round_down_data_ts
-from src.utils.extra import var_checker, round_to_nearest_release_time
+from src.utils.extra import var_checker, round_to_nearest_release_time, retrieve_data_from_memcache
 
 
 IAS_MAP = MEMORY_CLIENT.get("internal_alert_symbols".upper())
 OTS_MAP = MEMORY_CLIENT.get("operational_trigger_symbols".upper())
 PAS_MAP = MEMORY_CLIENT.get("public_alert_symbols".upper())
 TH_MAP = MEMORY_CLIENT.get("trigger_hierarchies".upper())
+# MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=(
+#     "moms_releases", "validator", "reporter", "narrative"))
+
 MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=(
     "moms_releases", "validator", "reporter", "narrative"))
 
@@ -87,15 +90,26 @@ def get_current_rain_surficial_and_moms_alerts(op_triggers_list,
                                                latest_rainfall_alert, site_moms_alerts, has_positive_moms_trigger):
     """
     Sample
-    """
+    """""
+    rain_th_row = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "rainfall"})
+    rainfall_source_id = rain_th_row["source_id"]
+    rain_nd_alert_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                                    "alert_level": -1, "source_id": rainfall_source_id})
+    surficial_th_row = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "surficial"})
+    surficial_source_id = surficial_th_row["source_id"]
+    surficial_nd_alert_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                                         "alert_level": -1, "source_id": surficial_source_id})
+
     current_trigger_alerts = {
         "rainfall": {
             "alert_level": -1,
-            "alert_symbol": OTS_MAP[("alert_symbol", "rainfall", -1)]
+            "alert_symbol": rain_nd_alert_row["alert_symbol"]
         },
         "surficial": {
             "alert_level": -1,
-            "alert_symbol": OTS_MAP[("alert_symbol", "surficial", -1)]
+            "alert_symbol": surficial_nd_alert_row["alert_symbol"]
         },
         # "moms": {
         #     "alert_level": -1,
@@ -107,19 +121,24 @@ def get_current_rain_surficial_and_moms_alerts(op_triggers_list,
     #     # If no moms trigger, remove moms from release_triggers dictionary
     #     current_trigger_alerts.pop("moms", None)
 
-    rainfall_source_id = TH_MAP["rainfall"]
-    surficial_source_id = TH_MAP["surficial"]
-    moms_source_id = TH_MAP["moms"]
+    moms_th_row = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "moms"})
+    moms_source_id = moms_th_row["source_id"]
+    moms_nd_alert_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+        "alert_level": -1, "source_id": moms_source_id})
+    moms_nd_alert_symbol = moms_nd_alert_row["alert_symbol"]
 
     if has_positive_moms_trigger:
         current_trigger_alerts["moms"] = {
             "alert_level": -1,
-            "alert_symbol": OTS_MAP[("alert_symbol", "moms", -1)]
+            "alert_symbol": moms_nd_alert_symbol
         }
 
     for op_trigger in op_triggers_list:
         op_t_source_id = op_trigger.trigger_symbol.source_id
-        op_t_trigger_source = TH_MAP[op_t_source_id]
+        th_row = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"source_id": op_t_source_id})
+        op_t_trigger_source = th_row["trigger_source"]
         op_t_alert_level = op_trigger.trigger_symbol.alert_level
 
         if op_t_source_id in [rainfall_source_id, surficial_source_id, moms_source_id]:
@@ -130,8 +149,9 @@ def get_current_rain_surficial_and_moms_alerts(op_triggers_list,
 
             ts_updated = op_trigger.ts_updated
             if ts_updated >= ts_comparator:
-                alert_symbol = OTS_MAP[(
-                    "alert_symbol", op_t_trigger_source, op_t_alert_level)]
+                ot_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                                     "trigger_source": op_t_trigger_source, "alert_level": op_t_alert_level})
+                alert_symbol = ot_row["alert_symbol"]
                 current_trigger_alerts[op_t_trigger_source]["alert_symbol"] = alert_symbol
                 current_trigger_alerts[op_t_trigger_source]["alert_level"] = op_t_alert_level
 
@@ -156,7 +176,7 @@ def get_current_rain_surficial_and_moms_alerts(op_triggers_list,
                         # maghahandle noon RE: showing moms data presence every 4 hours.
                         current_trigger_alerts["moms"] = {
                             "alert_level": highest_moms_alert,
-                            "alert_symbol": OTS_MAP[("alert_symbol", "moms", -1)]
+                            "alert_symbol": moms_nd_alert_symbol
                         }
                         current_trigger_alerts["moms"]["moms_list"] = current_moms_list_data
 
@@ -198,6 +218,11 @@ def get_tsm_alerts(site_tsm_sensors, query_ts_end):
     returns tsm_alerts_list (list)
     """
     ta = TSMAlerts
+
+    subsurface_th_row = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "subsurface"})
+    subsurface_source_id = subsurface_th_row["source_id"]
+
     tsm_alerts_list = []
     for sensor in site_tsm_sensors:
         tsm_alert_entries = sensor.tsm_alert.filter(DB.and_(
@@ -209,8 +234,9 @@ def get_tsm_alerts(site_tsm_sensors, query_ts_end):
 
         if tsm_alert_entries:
             entry = tsm_alert_entries[0]
-            alert_symbol = OTS_MAP[(
-                "alert_symbol", "subsurface", entry.alert_level)]
+            subsurface_ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                                             "alert_level": entry.alert_level, "source_id": subsurface_source_id})
+            alert_symbol = subsurface_ots_row["alert_symbol"]
 
             formatted = {
                 "tsm_name": entry.tsm_sensor.logger.logger_name,
@@ -312,13 +338,17 @@ def extract_positive_triggers_list(op_triggers_list):
 
     positive_triggers_list = []
 
+    surficial_th_row = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "surficial"})
+    surficial_source_id = surficial_th_row["source_id"]
+
     for op_trigger in op_triggers_list:
         op_trig = op_trigger.trigger_symbol
 
         # Filter for g0t alerts (surficial trending alerts for validation)
         # DYNAMIC: TH_MAP
         g0t_filter = not (op_trig.alert_level ==
-                          1 and op_trig.source_id == TH_MAP["surficial"])
+                          1 and op_trig.source_id == surficial_source_id)
         if op_trig.alert_level > 0 and g0t_filter:
             positive_triggers_list.append(op_trigger)
 
@@ -549,8 +579,11 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             for index, proc_trig in enumerate(processed_triggers_list):
                 processed_trig_symbol = proc_trig.trigger_symbol
 
+                rain_th_row = retrieve_data_from_memcache(
+                    "trigger_hierarchies", {"trigger_source": "rainfall"})
+                rainfall_source_id = rain_th_row["source_id"]
                 # Get index of rainfall trigger if exists
-                if processed_trig_symbol.source_id == TH_MAP["rainfall"]:
+                if processed_trig_symbol.source_id == rainfall_source_id:
                     rain_trigger_index = index
 
                 if processed_trig_symbol.trigger_hierarchy.trigger_source in ["subsurface", "surficial", "moms"]:
@@ -632,8 +665,15 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         if for_lowering:
             validity = ""
             highest_public_alert = 0
-            internal_alert = IAS_MAP["alert_symbol",
-                                     ground_alert, TH_MAP["internal"]]
+            source_id = retrieve_data_from_memcache(
+                "trigger_hierarchies", {"trigger_source": "internal"})
+            ots_row = retrieve_data_from_memcache(
+                "operational_trigger_symbols", {
+                    "alert_level": ground_alert,
+                    "source_id": source_id
+                })
+
+            internal_alert = ots_row["internal_alert_symbol"]["alert_symbol"]
 
         ######################
         # START OF AN EVENT! #
@@ -672,6 +712,10 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
         formatted_release_trig = format_release_trig(current_trigger_alerts)
 
+        public_alert_th_row = retrieve_data_from_memcache(
+            "public_alert_symbols", {"alert_level": highest_public_alert})
+        public_alert_symbol = public_alert_th_row["alert_symbol"]
+
         # FORM THE SITE PUBLIC ALERT FOR GENERATED ALERTS
         public_dict = {
             "ts": timestamp,
@@ -680,7 +724,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             "purok": site.purok,
             "sitio": site.sitio,
             "barangay": site.barangay,
-            "public_alert": PAS_MAP[("alert_symbol", highest_public_alert)],
+            "public_alert": public_alert_symbol,
             "internal_alert": internal_alert,
             "validity": validity,
             "event_triggers": event_triggers,
@@ -694,13 +738,13 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             public_alert_ts = query_ts_end
 
         # writes public alert to database
-        pub_sym_id = PAS_MAP[("pub_sym_id", highest_public_alert)]
+        pub_sym_id = public_alert_th_row["pub_sym_id"]
 
         for_db_public_dict = {
             "ts": public_alert_ts,
             "site_id": site_id,
             "pub_sym_id": pub_sym_id, "ts_updated": query_ts_end,
-            "pub_alert_symbol": PAS_MAP[("alert_symbol", highest_public_alert)]
+            "pub_alert_symbol": public_alert_symbol
         }
 
         ####################################
@@ -735,7 +779,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ######################
         # !!!! PRINTERS !!!! #
         ######################
-        site_public_alert = PAS_MAP[("alert_symbol", highest_public_alert)]
+        site_public_alert = public_alert_symbol
         # var_checker(f"{site_code.upper()}", f"Public Alert: {site_public_alert}", True)
 
         site_public_alerts_list.append(public_dict)

@@ -29,17 +29,34 @@ from src.utils.monitoring import (
     get_monitoring_events_table, get_event_count, get_public_alert,
     get_ongoing_extended_overdue_events, update_alert_status)
 from src.utils.extra import (create_symbols_map, var_checker,
-                             round_to_nearest_release_time, compute_event_validity)
+                             round_to_nearest_release_time, compute_event_validity,
+                             retrieve_data_from_memcache)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
 
+@MONITORING_BLUEPRINT.route("/monitoring/retrieve_data_from_memcache", methods=["POST"])
+def wrap_retrieve_data_from_memcache():
+    json_data = request.get_json()
+
+    table_name = json_data["table_name"]
+    filters_dict = json_data["filters_dict"]
+    retrieve_one = json_data["retrieve_one"]
+
+    result = retrieve_data_from_memcache(table_name, filters_dict, retrieve_one)
+
+    var_checker("RESULT", result, True)
+    return_data = None
+    if result:
+        return_data = jsonify(result)
+        # return_data = "SUCCESS"
+    return return_data
+
 
 @MONITORING_BLUEPRINT.route("/monitoring/update_alert_status", methods=["POST"])
 def wrap_update_alert_status():
     json_data = request.get_json()
-    var_checker("json_data", json_data, True)
     
     status = update_alert_status(json_data)
 
