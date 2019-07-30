@@ -2,8 +2,9 @@
 Utility file for Monitoring Tables
 Contains functions for getting and accesing monitoring-related tables only
 """
+import calendar
 from flask import request
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 from connection import DB
 from sqlalchemy import and_
 from src.models.monitoring import (
@@ -11,10 +12,141 @@ from src.models.monitoring import (
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
     MonitoringTriggersMisc, MomsInstances, MomsFeatures,
     InternalAlertSymbols, PublicAlertSymbols,
-    TriggerHierarchies, OperationalTriggerSymbols)
+    TriggerHierarchies, OperationalTriggerSymbols, MonitoringEventAlertsSchema)
+from src.utils.sites import get_sites_data
 from src.utils.extra import (
     var_checker, round_to_nearest_release_time, compute_event_validity)
 from src.utils.narratives import write_narratives_to_db
+
+
+def get_tomorrow_noon(ts):
+    """
+    Used for identifying extended monitoring start ts
+    Returns the next 12 noon TS for start of extended monitoring
+
+    Args:
+        ts - datetime object
+    """
+    if ts.hour < 12:
+        tom_noon_ts = datetime(ts.year, ts.month, ts.day, 12, 0, 0)
+    else:
+        tom = ts + timedelta(days=1)
+        tom_noon_ts = datetime(tom.year, tom.month, tom.day, 12, 0, 0)
+
+    return tom_noon_ts
+
+
+def get_ongoing_extended_overdue_events():
+    """
+    Gets active events and organizes them into the following categories:
+        (a) Ongoing
+        (b) Extended
+        (c) Overdue
+    For use in alerts_from_db in Candidate Alerts Generator
+    """
+    active_event_alerts = get_active_monitoring_events()
+
+    latest = []
+    extended = []
+    overdue = []
+    for event_alert in active_event_alerts:
+        validity = event_alert.event.validity
+        latest_release = event_alert.releases.order_by(
+            DB.desc(MonitoringReleases.data_ts)).first()
+        data_ts = latest_release.data_ts
+        rounded_data_ts = round_to_nearest_release_time(data_ts)
+        release_time = latest_release.release_time
+
+        if data_ts.hour == 23 and release_time.hour < 4:
+            # rounded_data_ts = round_to_nearest_release_time(data_ts)
+            str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
+            str_release_time = str(release_time)
+
+            release_time = f"{str_data_ts_ymd} {str_release_time}"
+
+        event_alert_data = MonitoringEventAlertsSchema(many=False).dump(event_alert).data
+        public_alert_level = event_alert.public_alert_symbol.alert_level
+        trigger_list = latest_release.trigger_list
+        event_alert_data["internal_alert_level"] = build_internal_alert_level(None, trigger_list, public_alert_level)
+        event_alert_data["event"]["validity"] = str(datetime.strptime(event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
+
+        if datetime.now() < validity:
+            # On time release
+            latest.append(event_alert_data)
+        elif validity < datetime.now():
+            # Late release
+            overdue.append(event_alert_data)
+        else:
+            # elif validity < rounded_data_ts and rounded_data_ts < (validity + timedelta(days=3)):
+            # Extended
+            start = get_tomorrow_noon(validity)
+            # Day 3 is the 3rd 12-noon from validity
+            end = start + timedelta(days=2)
+            # current = datetime.now() # Production code is current time
+            current = datetime(2020, 1, 3, 8, 0, 0)
+            # Count the days distance between current date and day 3 to know which extended day it is
+            day = 3 - (end - current).days
+
+            if day <= 0:
+                latest.append(event_alert_data)
+            elif day > 0 and day < end:
+                event_alert_data["day"] = day
+                extended.append(event_alert_data)
+            else:
+                # NOTE: Make an API call to end an event when extended is finished? based on old code
+                print("FINISH EVENT")
+
+    db_alerts = {
+        "latest": latest,
+        "extended": extended,
+        "overdue": overdue
+    }
+
+    # for key, value in db_alerts.items():
+    #     db_alerts[key] = MonitoringEventAlertsSchema(
+    #         many=True).dump(value).data
+
+    return db_alerts
+
+
+def get_routine_sites(timestamp=None):
+    """
+    Utils counterpart of identifing the routine site per day.
+    Returns "routine_sites" in a list as value.
+
+    E.g.:
+    {
+        "routine_sites": [
+            'bak', 'blc', 'cud', 'imu', 'ina'
+        ]
+    }
+    """
+    current_data = date.today()
+    if timestamp:
+        current_data = timestamp.date()
+    get_sites = get_sites_data()
+    day = calendar.day_name[current_data.weekday()]
+    wet_season = [[1, 2, 6, 7, 8, 9, 10, 11, 12], [5, 6, 7, 8, 9, 10]]
+    dry_season = [[3, 4, 5], [1, 2, 3, 4, 11, 12]]
+    routine_sites = []
+
+    if (day == "Friday" or day == "Tuesday"):
+        # print(day)
+        for sites in get_sites:
+            season = int(sites.season) - 1
+            if sites.season in wet_season[season]:
+                routine_sites.append(sites.site_code)
+    elif day == "Wednesday":
+        # print(day)
+        for sites in get_sites:
+            season = int(sites.season) - 1
+            if sites.season in dry_season[season]:
+                routine_sites.append(sites.site_code)
+    else:
+        routine_sites = []
+
+    # print(routine_sites)
+    return routine_sites
 
 
 def process_trigger_list(trigger_list, include_ND=False):
@@ -423,9 +555,44 @@ def write_monitoring_earthquake_to_db(eq_details):
     return return_data
 
 
-def build_internal_alert_level(pub_sym_id, trigger_list):
-    alert_level = get_public_alert_level(pub_sym_id)
+def build_internal_alert_level(pub_sym_id, trigger_list=None, public_alert_level=None):
+    """
+    This function builds the internal alert string using a public alert level
+    and the provided trigger_list_str. 
 
-    internal_alert_level = f"{alert_level}-{trigger_list}"
+    Args:
+        pub_sym_id (ID integer) - Used to check the alert level to be used
+                    Can be set as "None" if you will use public_alert_level
+                    instead
+        trigger_list (String) - Used as the historical log of valid triggers
+                    Can be set as "None" for A0
+        public_alert_level (Integer) - This will be used instead of 
+                    pub_sym_id for building the Internal alert string
+                    Can be set as none since this is optional
+    """
+
+    if pub_sym_id:
+        public_alert_level = get_public_alert_level(pub_sym_id)
+
+    if public_alert_level > 0:
+        internal_alert_level = f"A{public_alert_level}-{trigger_list}"
+        if public_alert_level == 1 and trigger_list:
+            if "-" in trigger_list:
+                internal_alert_level = trigger_list
+    else:
+        internal_alert_level = f"A{public_alert_level}"
+        if trigger_list:
+            internal_alert_level = trigger_list
 
     return internal_alert_level
+
+
+# def build_internal_alert_level(pub_sym_id, trigger_list):
+    # """
+    # This form of the fuction was used for eos api
+    # """
+#     alert_level = get_public_alert_level(pub_sym_id)
+
+#     internal_alert_level = f"A{alert_level}-{trigger_list}"
+
+#     return internal_alert_level

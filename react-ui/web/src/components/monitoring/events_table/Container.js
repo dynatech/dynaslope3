@@ -2,7 +2,7 @@ import React, { useState, useEffect, Fragment } from "react";
 import moment from "moment";
 import axios from "axios";
 import MUIDataTable from "mui-datatables";
-import { CircularProgress, Typography, Paper } from '@material-ui/core';
+import { CircularProgress, Typography, Paper } from "@material-ui/core";
 import { withStyles } from "@material-ui/core/styles";
 
 import PageTitle from "../../reusables/PageTitle";
@@ -14,19 +14,19 @@ const styles = theme => ({
     }
 });
 
-function setTotalEventCount(setCount) {
+function setTotalEventCount (setCount) {
     let data_length;
     axios.get("http://127.0.0.1:5000/api/monitoring/get_monitoring_events?filter_type=count")
-        .then(response => {
-            setCount(response.data);
-        })
-        .catch(error => {
-            console.log(error);
-        });
+    .then(response => {
+        setCount(response.data);
+    })
+    .catch(error => {
+        console.log(error);
+    });
 }
 
 
-function prepareEventsArray(arr) {
+function prepareEventsArray (arr) {
     return arr.map(
         ({
             event_id, site_code, purok,
@@ -47,7 +47,7 @@ function prepareEventsArray(arr) {
         });
 }
 
-function prepareSiteAddress(site_code, purok, sitio, barangay, municipality, province) {
+function prepareSiteAddress (site_code, purok, sitio, barangay, municipality, province) {
     try {
         let temp = `${site_code.toUpperCase()} (`;
         if (purok !== null) temp += `${sitio}, `;
@@ -61,7 +61,7 @@ function prepareSiteAddress(site_code, purok, sitio, barangay, municipality, pro
     }
 }
 
-function MonitoringEventsTable(props) {
+function MonitoringEventsTable (props) {
     const { classes } = props;
     const columns = ["Event ID", "Site", "Entry Type", "TS Start", "TS End"];
     const [data, setData] = useState([["Loading Data..."]]);
@@ -79,14 +79,14 @@ function MonitoringEventsTable(props) {
 
         let final_data;
         axios.get(`http://127.0.0.1:5000/api/monitoring/get_monitoring_events?filter_type=complete&offset=${offset}&limit=${limit}`)
-            .then(response => {
-                setIsLoading(false);
-                final_data = prepareEventsArray(response.data);
-                setData(final_data);
-            })
-            .catch(error => {
-                console.log(error);
-            });
+        .then(response => {
+            setIsLoading(false);
+            final_data = prepareEventsArray(response.data);
+            setData(final_data);
+        })
+        .catch(error => {
+            console.log(error);
+        });
 
     }, [page, rowsPerPage]);
 
@@ -96,15 +96,18 @@ function MonitoringEventsTable(props) {
 
     const changeRowsPerPage = (rows) => {
         setRowsPerPage(rows);
-    }
+    };
 
     const options = {
         filter: true,
-        filterType: 'dropdown',
-        responsive: 'scroll',
+        selectableRows: "none",
+        print: false,
+        download: false,
+        filterType: "dropdown",
+        responsive: "scroll",
         serverSide: true,
-        count: count,
-        page: page,
+        count,
+        page,
         rowsPerPageOptions: [5, 10, 15, 25, 50],
         rowsPerPage,
         onTableChange: (action, tableState) => {
@@ -113,11 +116,13 @@ function MonitoringEventsTable(props) {
             // examine the state as a whole and do whatever they want
 
             switch (action) {
-                case 'changePage':
+                case "changePage":
                     changePage(tableState.page);
                     break;
-                case 'changeRowsPerPage':
+                case "changeRowsPerPage":
                     changeRowsPerPage(tableState.rowsPerPage);
+                    break;
+                default:
                     break;
             }
         },
@@ -146,14 +151,15 @@ function MonitoringEventsTable(props) {
                                 Monitoring Events Table
                                 {
                                     isLoading &&
-                                    <CircularProgress
-                                        size={24}
-                                        style={{
-                                            marginLeft: 15,
-                                            position: 'relative',
-                                            top: 4
-                                        }}
-                                    />}
+                                        <CircularProgress
+                                            size={24}
+                                            style={{
+                                                marginLeft: 15,
+                                                position: "relative",
+                                                top: 4
+                                            }}
+                                        />
+                                }
                             </Typography>
                         }
                         data={data}

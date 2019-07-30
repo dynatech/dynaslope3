@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from sqlalchemy import text
 from connection import DB, SOCKETIO
 from src.models.sensor_maintenance import (
-    SensorMaintenance, SensorMaintenanceSchema)
+    SensorMaintenance, SensorMaintenanceSchema, HardwareMaintenance, HardwareMaintenanceSchema)
 
 SENSOR_MAINTENANCE_BLUEPRINT = Blueprint(
     "sensor_maintenance_blueprint", __name__)
@@ -26,7 +26,27 @@ def get_all_sensor_maintenance():
             "working_nodes": row["working_nodes"],
             "anomalous_nodes": row["anomalous_nodes"],
             "rain_gauge_status": row["rain_gauge_status"],
-            "timestamp": str(row["timestamp"]),
+            "timestamp": str(row["timestamp"])
+        })
+    return jsonify(data)
+
+
+@SENSOR_MAINTENANCE_BLUEPRINT.route("/sensor_maintenance/get_last_sensor_maintenance", methods=["GET"])
+def get_last_sensor_maintenance():
+    query = HardwareMaintenance.query.order_by(
+        HardwareMaintenance.hardware_maintenance_id.desc()).all()
+
+    result = HardwareMaintenanceSchema(
+        many=True).dump(query).data
+    data = []
+    for row in result:
+        data.append({
+            "hardware_maintenance_id": row["hardware_maintenance_id"],
+            "site_id": row["site_id"],
+            "hardware_maintained": row["hardware_maintained"],
+            "hardware_id": row["hardware_id"],
+            "status": row["status"],
+            "desc_summary": str(row["desc_summary"])
         })
     return jsonify(data)
 
