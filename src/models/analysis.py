@@ -22,13 +22,13 @@ class SiteMarkers(UserMixin, DB.Model):
     """
 
     __tablename__ = "site_markers"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     site_id = DB.Column(DB.Integer, DB.ForeignKey("commons_db.sites.site_id"))
     site_code = DB.Column(DB.String(3))
     marker_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.markers.marker_id"), primary_key=True)
+        "senslopedb.markers.marker_id"), primary_key=True)
     marker_name = DB.Column(DB.String(20))
     in_use = DB.Column(DB.Integer)
 
@@ -44,8 +44,8 @@ class EarthquakeEvents(UserMixin, DB.Model):
     """
 
     __tablename__ = "earthquake_events"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     eq_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime)
@@ -69,12 +69,12 @@ class EarthquakeAlerts(UserMixin, DB.Model):
     """
 
     __tablename__ = "earthquake_alerts"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     ea_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     eq_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.earthquake_events.eq_id"), nullable=False)
+        "senslopedb.earthquake_events.eq_id"), nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.sites.site_id"), nullable=False)
     distance = DB.Column(DB.Float(5, 3), nullable=False)
@@ -95,8 +95,8 @@ class Markers(UserMixin, DB.Model):
     """
 
     __tablename__ = "markers"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     marker_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
@@ -121,12 +121,12 @@ class MarkerHistory(UserMixin, DB.Model):
     """
 
     __tablename__ = "marker_history"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     history_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     marker_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.markers.marker_id"), nullable=False)
+        "senslopedb.markers.marker_id"), nullable=False)
     ts = DB.Column(DB.DateTime)
     event = DB.Column(DB.String(20))
 
@@ -145,12 +145,12 @@ class MarkerNames(UserMixin, DB.Model):
     """
 
     __tablename__ = "marker_names"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     name_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     history_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.marker_history.history_id"), nullable=False)
+        "senslopedb.marker_history.history_id"), nullable=False)
     marker_name = DB.Column(DB.String(20))
 
     history = DB.relationship(
@@ -167,8 +167,8 @@ class MarkerObservations(UserMixin, DB.Model):
     """
 
     __tablename__ = "marker_observations"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     mo_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
@@ -198,14 +198,14 @@ class MarkerData(UserMixin, DB.Model):
     """
 
     __tablename__ = "marker_data"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     data_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     mo_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.marker_observations.mo_id"), nullable=False)
+        "senslopedb.marker_observations.mo_id"), nullable=False)
     marker_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.markers.marker_id"), nullable=False)
+        "senslopedb.markers.marker_id"), nullable=False)
     measurement = DB.Column(DB.Float)
 
     marker = DB.relationship("Markers", backref=DB.backref(
@@ -226,14 +226,14 @@ class MarkerAlerts(UserMixin, DB.Model):
     """
 
     __tablename__ = "marker_alerts"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     ma_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False,
                    default=datetime.datetime.utcnow)
     marker_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.markers.marker_id"), nullable=False)
+        "senslopedb.markers.marker_id"), nullable=False)
     displacement = DB.Column(DB.Float)
     time_delta = DB.Column(DB.Float)
     alert_level = DB.Column(DB.Integer)
@@ -253,15 +253,15 @@ class RainfallAlerts(UserMixin, DB.Model):
     """
 
     __tablename__ = "rainfall_alerts"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     ra_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.sites.site_id"), nullable=False)
     rain_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.rainfall_gauges.rain_id"), nullable=False)
+        "senslopedb.rainfall_gauges.rain_id"), nullable=False)
     rain_alert = DB.Column(DB.String(2))
     cumulative = DB.Column(DB.Float(5, 2))
     threshold = DB.Column(DB.Float(5, 2))
@@ -284,8 +284,8 @@ class RainfallThresholds(UserMixin, DB.Model):
     """
 
     __tablename__ = "rainfall_thresholds"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     rt_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
@@ -308,8 +308,8 @@ class RainfallGauges(UserMixin, DB.Model):
     """
 
     __tablename__ = "rainfall_gauges"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     rain_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     gauge_name = DB.Column(DB.String(5), nullable=False)
@@ -330,12 +330,12 @@ class RainfallPriorities(UserMixin, DB.Model):
     """
 
     __tablename__ = "rainfall_priorities"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     priority_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     rain_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.rainfall_gauges.rain_id"), nullable=False)
+        "senslopedb.rainfall_gauges.rain_id"), nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.sites.site_id"), nullable=False)
     distance = DB.Column(DB.Float(5, 2), nullable=False)
@@ -357,13 +357,13 @@ class TSMAlerts(UserMixin, DB.Model):
     """
 
     __tablename__ = "tsm_alerts"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     ta_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime)
     tsm_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.tsm_sensors.tsm_id"), nullable=False)
+        "senslopedb.tsm_sensors.tsm_id"), nullable=False)
     alert_level = DB.Column(DB.Integer)
     ts_updated = DB.Column(DB.DateTime)
 
@@ -380,14 +380,14 @@ class TSMSensors(UserMixin, DB.Model):
     """
 
     __tablename__ = "tsm_sensors"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     tsm_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.sites.site_id"), nullable=False)
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.loggers.logger_id"), nullable=False)
+        "senslopedb.loggers.logger_id"), nullable=False)
     date_activated = DB.Column(DB.Date)
     date_deactivated = DB.Column(DB.Date)
     segment_length = DB.Column(DB.Float)
@@ -416,13 +416,13 @@ class NodeAlerts(UserMixin, DB.Model):
     """
 
     __tablename__ = "node_alerts"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     na_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
     tsm_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.tsm_sensors.tsm_id"), nullable=False)
+        "senslopedb.tsm_sensors.tsm_id"), nullable=False)
     # Node ID, no need  for relationships for the moment
     node_id = DB.Column(DB.Integer, nullable=False)
     disp_alert = DB.Column(DB.Integer, nullable=False)
@@ -446,8 +446,8 @@ class Loggers(UserMixin, DB.Model):
     """
 
     __tablename__ = "loggers"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     logger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
@@ -458,7 +458,7 @@ class Loggers(UserMixin, DB.Model):
     latitude = DB.Column(DB.Float)
     longitude = DB.Column(DB.Float)
     model_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.logger_models.model_id"), nullable=False)
+        "senslopedb.logger_models.model_id"), nullable=False)
 
     site = DB.relationship("Sites", backref=DB.backref(
         "loggers", lazy="dynamic"))
@@ -475,8 +475,8 @@ class LoggerModels(UserMixin, DB.Model):
     """
 
     __tablename__ = "logger_models"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     model_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     has_tilt = DB.Column(DB.Integer)
@@ -500,8 +500,8 @@ class AlertStatus(UserMixin, DB.Model):
     """
 
     __tablename__ = "alert_status"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     stat_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts_last_retrigger = DB.Column(DB.DateTime)
@@ -537,11 +537,11 @@ class DataPresenceRainGauges(DB.Model):
     """
 
     __tablename__ = "data_presence_rain_gauges"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     rain_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.rainfall_gauges.rain_id"), primary_key=True)
+        "senslopedb.rainfall_gauges.rain_id"), primary_key=True)
     presence = DB.Column(DB.Integer)
     last_data = DB.Column(DB.DateTime)
     ts_updated = DB.Column(DB.DateTime)
@@ -563,11 +563,11 @@ class DataPresenceTSM(DB.Model):
     """
 
     __tablename__ = "data_presence_tsm"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     tsm_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.tsm_sensors.tsm_id"), primary_key=True)
+        "senslopedb.tsm_sensors.tsm_id"), primary_key=True)
     presence = DB.Column(DB.Integer)
     last_data = DB.Column(DB.DateTime)
     ts_updated = DB.Column(DB.DateTime)
@@ -589,11 +589,11 @@ class DataPresenceLoggers(DB.Model):
     """
 
     __tablename__ = "data_presence_loggers"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "analysis_db.loggers.logger_id"), primary_key=True)
+        "senslopedb.loggers.logger_id"), primary_key=True)
     presence = DB.Column(DB.Integer)
     last_data = DB.Column(DB.DateTime)
     ts_updated = DB.Column(DB.DateTime)

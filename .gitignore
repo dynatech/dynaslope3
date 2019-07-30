@@ -64,3 +64,8 @@ instance/
 .env
 .pytest_cache
 .vscode
+
+
+
+#Run.py
+run.py

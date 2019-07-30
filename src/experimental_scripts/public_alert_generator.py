@@ -29,7 +29,7 @@ from src.models.analysis import (
 from src.utils.sites import get_sites_data
 from src.utils.monitoring import round_to_nearest_release_time
 from src.utils.rainfall import get_rainfall_gauge_name
-from src.utils.extra import var_checker, create_symbols_map
+from src.utils.extra import var_checker, create_symbols_map, get_trigger_hierarchy
 
 
 def round_down_data_ts(date_time):
@@ -62,17 +62,6 @@ def check_if_routine_or_event(pub_sym_id):
         return "routine"
 
     return "event"
-
-
-def get_trigger_hierarchy(trigger_source=None):
-    """
-    Returns an appender base query containing all internal alert symbols.
-    """
-    # th = TriggerHierarchies
-    # symbol = th.query.filter(th.trigger_source == trigger_source).first()
-    mapping = {'subsurface': 1, 'surficial': 2, 'rainfall': 3, 'earthquake': 4, 'on demand': 5, 'moms': 6, 'internal': 7}
-    symbol = mapping[trigger_source]
-    return symbol
 
 
 def get_source_max_alert_level(source_id):
@@ -111,7 +100,9 @@ def write_to_db_public_alerts(output_dict, latest_site_pa):
         output_dict (dictionary) - the generated public_alert for each site
         latest_site_pa (PublicAlert class) - the previous public_alert before the script run
     """
+    return_data = None
     try:
+        latest_site_pa_id = latest_site_pa.public_id
         prev_alert_symbol = latest_site_pa.alert_symbol.alert_symbol
         is_new_public_alert = prev_alert_symbol != output_dict["pub_alert_symbol"]
 
@@ -129,16 +120,19 @@ def write_to_db_public_alerts(output_dict, latest_site_pa):
             DB.session.add(new_pub_alert)
             DB.session.flush()
             new_public_id = new_pub_alert.public_id
+            return_data = new_public_id
 
-        # If no problems, commit
-        DB.session.commit()
+            # If no problems, commit
+            DB.session.commit()
+        else:
+            return_data = "exists"
 
     except Exception as err:
         print(err)
         DB.session.rollback()
         raise
 
-    return new_public_id
+    return return_data
 
 
 def get_prepared_recent_retriggers(not_empty=True, positive_triggers_list=None, invalid_dict=None):
@@ -169,12 +163,18 @@ def get_prepared_recent_retriggers(not_empty=True, positive_triggers_list=None, 
                 # entry, it will go here.
                 pass
 
-            trigger_type = item.trigger_symbol.trigger_hierarchy.trigger_source
+            trig_sym = item.trigger_symbol
+
+            trigger_type = trig_sym.trigger_hierarchy.trigger_source
+            source_id = trig_sym.source_id
+            alert_level = trig_sym.alert_level
             # Form a dictionary that will hold all trigger details
             trigger_dict = {
                 "trigger_type": trigger_type,
+                "source_id": source_id,
+                "alert_level": alert_level,
                 "trigger_id": item.trigger_id,
-                "alert": item.trigger_symbol.alert_symbol,
+                "alert": trig_sym.alert_symbol,
                 "ts_updated": str(item.ts_updated)
             }
 
@@ -273,14 +273,18 @@ def get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, surficial
                                               rainfall_source_id, moms_source_id,
                                               surficial_moms_window_ts, query_ts_end,
                                               latest_rainfall_alert):
+
     current_surficial_alert = {
-        "alert_level": -1
+        "alert_level": -1,
+        "alert_symbol": OTS_MAP[("alert_symbol", "surficial", -1)]
     }
     current_rainfall_alert = {
-        "alert_level": -1
+        "alert_level": -1,
+        "alert_symbol": OTS_MAP[("alert_symbol", "rainfall", -1)]
     }
     current_moms_alert = {
-        "alert_level": -1
+        "alert_level": -1,
+        "alert_symbol": OTS_MAP[("alert_symbol", "moms", -1)]
     }
 
     for op_trigger in op_triggers_list:
@@ -297,17 +301,19 @@ def get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, surficial
             if ts_updated >= ts_comparator:
                 if op_t_source_id == surficial_source_id:
                     current_surficial_alert["alert_level"] = op_t_alert_level
+                    current_surficial_alert["alert_symbol"] = OTS_MAP[("alert_symbol", "surficial", op_t_alert_level)]
                 elif op_t_source_id == rainfall_source_id:
                     current_rainfall_alert["alert_level"] = op_t_alert_level
-                    if op_t_alert_level != "nd":
+                    if op_t_alert_level != -1:
                         current_rainfall_alert["details"] = {
                             "rain_gauge": get_rainfall_gauge_name(latest_rainfall_alert),
-                            "alert_level": op_t_alert_level
+                            "alert_level": op_t_alert_level,
+                            "alert_symbol": OTS_MAP[("alert_symbol", "rainfall", op_t_alert_level)]
                         }
                 else:
                     latest_moms = get_site_moms(site, ts_updated)
                     current_moms_alert["alert_level"] = op_t_alert_level
-                    if not op_t_alert_level != "nd":
+                    if not op_t_alert_level != -1:
                         current_moms_alert["details"] = {
                             "moms_id": latest_moms.moms_id,
                             "instance_id": latest_moms.instance_id,
@@ -484,11 +490,16 @@ def get_tsm_alerts(site_tsm_sensors, query_ts_end):
         # Note: tsm_alert_entries is expected to
         # return ONLY ONE row (if has data)
         # because of the nature of the query (check filter)
+      
         if tsm_alert_entries:
             entry = tsm_alert_entries[0]
+            alert_symbol = OTS_MAP[(
+                "alert_symbol", "subsurface", entry.alert_level)]
+
             formatted = {
                 "tsm_name": entry.tsm_sensor.logger.logger_name,
-                "alert_level": entry.alert_level
+                "alert_level": entry.alert_level,
+                "alert_symbol": alert_symbol
             }
             tsm_alerts_list.append(formatted)
 
@@ -589,7 +600,7 @@ def extract_positive_triggers_list(op_triggers_list, surficial_source_id):
     return positive_triggers_list
 
 
-def extract_release_op_triggers(op_triggers_query, query_ts_end):
+def extract_release_op_triggers(op_triggers_query, query_ts_end, subsurface_source_id):
     """
     Get all operational triggers released within the four-hour window before release
     with exception for subsurface triggers
@@ -600,7 +611,6 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end):
 
     # Remove subsurface triggers less than the actual query_ts_end
     # Data presence for subsurface is limited to the current runtime only (not within 4 hours)
-    subsurface_source_id = get_trigger_hierarchy("subsurface")
     release_op_triggers_list = []
     for release_op_trig in release_op_triggers:
         if not (release_op_trig.trigger_symbol.source_id == subsurface_source_id and release_op_trig.ts_updated < query_ts_end):
@@ -742,8 +752,11 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             s_op_triggers_query, monitoring_start_ts, query_ts_end)
         op_triggers_list = op_triggers_query.all()
 
+
+        subsurface_source_id = get_trigger_hierarchy("subsurface")
+
         release_op_triggers_list = extract_release_op_triggers(
-            op_triggers_query, query_ts_end)
+            op_triggers_query, query_ts_end, subsurface_source_id)
 
         surficial_source_id = get_trigger_hierarchy("surficial")
         positive_triggers_list = extract_positive_triggers_list(
@@ -921,35 +934,28 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         timestamp = str(timestamp)
         validity = str(validity)
 
-        for subsurface in subsurface_alerts_list:
-            subsurface["alert_level"] = OTS_MAP[(
-                "alert_symbol", "subsurface", subsurface["alert_level"])]
 
-        
-        # Get alert symbols of triggers
-        current_surficial_alert["alert_level"] = OTS_MAP[("alert_symbol", "surficial", current_surficial_alert["alert_level"])]
-        current_rainfall_alert["alert_level"] = OTS_MAP[("alert_symbol", "rainfall", current_rainfall_alert["alert_level"])]
-
-        formatted_release_trig = [
-            {
-                "type": "subsurface",
-                "details": subsurface_alerts_list
-            },
-            {
-                "type": "surficial",
-                "details": current_surficial_alert
-            },
-            {
-                "type": "rainfall",
-                "details": current_rainfall_alert
-            }
+        current_data_list = [
+            { "type": "surficial", "source_id": surficial_source_id, "details": current_surficial_alert },
+            { "type": "rainfall", "source_id": rainfall_source_id, "details": current_rainfall_alert },
+            { "type": "subsurface", "source_id": subsurface_source_id, "details": subsurface_alerts_list },
         ]
 
+
+        formatted_release_trig = current_data_list
+
+
         if current_moms_alert["alert_level"] > -1:
-            current_moms_alert["details"]["op_trigger"] = OTS_MAP[("alert_symbol", "moms", current_moms_alert["details"]["op_trigger"])]            
+            alert_symbol = OTS_MAP[("alert_symbol", "moms", current_moms_alert["details"]["op_trigger"])]
+            alert_level = current_moms_alert["alert_level"]
             formatted_moms_alert = {
                 "type": "moms",
-                "details": current_moms_alert["details"]
+                "source_id": moms_source_id,
+                "details": {
+                    **current_moms_alert["details"],
+                    "alert_level": alert_level,
+                    "alert_symbol": alert_symbol
+                }
             }
             formatted_release_trig.append(formatted_moms_alert)
 
@@ -990,21 +996,28 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         if not do_not_write_to_db:
             print(" WRITING TO DB!")
             try:
-                new_public_alert_id = write_to_db_public_alerts(
+                current_pa_id = latest_site_pa.public_id
+                public_alert_result = write_to_db_public_alerts(
                     site_public_dict, latest_site_pa)
+                if public_alert_result == "exists":
+                    print()
+                    print(f"Active Public alert with ID: {current_pa_id} on Database.")
+                else:
+                    print()
+                    print(f"New public alert with ID: {public_alert_result} has been added to database.")
             except Exception as err:
                 print(err)
                 DB.session.rollback()
                 raise
-            var_checker(" NEW PUBLIC ALERT HAS BEEN WRITTEN", new_public_alert_id, True)
-        else:
-            print(" NOTHING HAS BEEN WRITTEN")
+            # var_checker(" NEW PUBLIC ALERT HAS BEEN WRITTEN", new_public_alert_id, True)
+        # else:
+        #     print(" NOTHING HAS BEEN WRITTEN")
 
         ######################
         # !!!! PRINTERS !!!! #
         ######################
         site_public_alert = PAS_MAP[("alert_symbol", highest_public_alert)]
-        var_checker(f"{site_code.upper()}", f"Public Alert: {site_public_alert}", True)
+        # var_checker(f"{site_code.upper()}", f"Public Alert: {site_public_alert}", True)
 
         site_public_alerts_list.append(public_dict)
 
@@ -1020,7 +1033,7 @@ def main(query_ts_end=None, is_test=False, site_code=None):
     """
     """
     query_ts_start = datetime.now()
-    print(query_ts_start)
+    print(f"{query_ts_start} | Generating Alerts...")
     do_not_write_to_db = is_test
 
 
@@ -1048,16 +1061,23 @@ def main(query_ts_end=None, is_test=False, site_code=None):
 
     # Write to specified filepath and filename
     directory = APP_CONFIG["generated_alerts_path"]
+    directory = os.path.abspath(directory)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    with open(directory + "generated_alerts.json", "w") as file_path:
+    var_checker("PATH", directory, True)
+
+    with open(directory + "/generated_alerts.json", "w") as file_path:
+        var_checker("file_path", file_path, True)
         file_path.write(json_data)
 
     script_end = datetime.now()
-    print(f"Runtime: {script_end - query_ts_start}")
+    print(f"Runtime: {script_end - query_ts_start} | Done generating alerts!")
+    return json_data
+
 
 if __name__ == "__main__":
+    main()
     # L2
     # main("2019-01-22 03:00:00", True, "ime")
     # # main("2018-12-26 11:00:00", True, "lpa")
@@ -1066,5 +1086,6 @@ if __name__ == "__main__":
     # main("2019-01-22 03:00:00", True, "dad")
     # main("2018-08-20 06:00:00", True, "tue")
     # main("2018-11-15 7:51:00", True)
-    main("2018-11-15 7:51:00", True)
+    # main("2018-11-15 7:51:00", True)
+    # main("2018-11-14 7:51:00", True)
     # main("2018-08-14 11:46:00", True, "tue")

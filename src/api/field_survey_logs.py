@@ -127,7 +127,7 @@ def save_field_survey():
     return jsonify(feedback)
 
 
-@FIELD_SURVEY_LOGS_BLUEPRINT.route("/field_survey/delete_field_survey", methods=["GET"])
+@FIELD_SURVEY_LOGS_BLUEPRINT.route("/field_survey/delete_field_survey", methods=["GET", "POST"])
 def delete_field_survey():
     data = request.get_json()
     # data = {
@@ -135,10 +135,12 @@ def delete_field_survey():
     # }
     if data is None:
         data = request.form
+
+
     status = None
     message = ""
 
-    field_survey_id = data["field_survey_id"]
+    field_survey_id = int(data["field_survey_id"])
 
     try:
         FieldSurveyLog.query.filter_by(
