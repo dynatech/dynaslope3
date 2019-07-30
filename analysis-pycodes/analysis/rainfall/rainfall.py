@@ -142,7 +142,8 @@ def main(site_code='', end='', Print=True, write_to_db=True,
     trigger_symbol = mem.get('df_trigger_symbols')
     trigger_symbol = trigger_symbol[trigger_symbol.trigger_source == 'rainfall']
     trigger_symbol['trigger_sym_id'] = trigger_symbol['trigger_sym_id'].apply(lambda x: float(x))
-    site_props = gauges.groupby('site_id')
+
+    site_props = gauges.groupby('site_id', as_index=False)
     
     summary = site_props.apply(ra.main, end=end, sc=sc,
                                 trigger_symbol=trigger_symbol, write_to_db=write_to_db)

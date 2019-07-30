@@ -284,7 +284,10 @@ def get_current_rain_surficial_and_moms_alerts(site, op_triggers_list, surficial
     }
     current_moms_alert = {
         "alert_level": -1,
-        "alert_symbol": OTS_MAP[("alert_symbol", "moms", -1)]
+        "alert_symbol": OTS_MAP[("alert_symbol", "moms", -1)],
+        "details": {
+            "op_trigger": None
+        }
     }
 
     for op_trigger in op_triggers_list:
@@ -904,7 +907,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         if monitoring_type != "event" and positive_triggers_list:
             ts_onset = min(positive_triggers_list,
                            key=lambda x: x.ts).ts
-            ts_onset = datetime.strptime(ts_onset, "%Y-%m-%d %H:%M:%S")
+            ts_onset = datetime.strptime(str(ts_onset), "%Y-%m-%d %H:%M:%S")
 
         # most recent retrigger of positive operational triggers
         try:
@@ -945,8 +948,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         formatted_release_trig = current_data_list
 
 
-        if current_moms_alert["alert_level"] > -1:
-            alert_symbol = OTS_MAP[("alert_symbol", "moms", current_moms_alert["details"]["op_trigger"])]
+        if current_moms_alert["alert_level"] not in [-1, 1]:
+            alert_symbol = OTS_MAP[("alert_symbol", "moms", current_moms_alert["alert_level"])]
             alert_level = current_moms_alert["alert_level"]
             formatted_moms_alert = {
                 "type": "moms",

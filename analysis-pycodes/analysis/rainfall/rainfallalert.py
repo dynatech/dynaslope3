@@ -216,6 +216,7 @@ def main(rain_props, end, sc, trigger_symbol, write_to_db=True):
     """
     
     #rainfall properties
+    print(rain_props)
     site_id = rain_props['site_id'].values[0]
     site_code = rain_props['site_code'].values[0]
     twoyrmax = rain_props['threshold_value'].values[0]
@@ -258,6 +259,7 @@ def main(rain_props, end, sc, trigger_symbol, write_to_db=True):
     operational_trigger['alert'] = operational_trigger['alert'].map({-1:trigger_symbol[trigger_symbol.alert_level == -1]['trigger_sym_id'].values[0], 0:trigger_symbol[trigger_symbol.alert_level == 0]['trigger_sym_id'].values[0], 1:trigger_symbol[trigger_symbol.alert_level == 1]['trigger_sym_id'].values[0]})
     operational_trigger['ts'] = str(end)
     operational_trigger['ts_updated'] = str(end)
+    print(operational_trigger)
     operational_trigger = operational_trigger.rename(columns = {'alert': 'trigger_sym_id'})
     
     if write_to_db == True:

@@ -357,10 +357,11 @@ def main(ts=None, is_test=None):
     start_run_ts = datetime.now()
     # query_end_ts = ts if ts else datetime.now()
     # query_end_ts = datetime.strptime(query_end_ts, "%Y-%m-%d %H:%M:%S")
-    query_end_ts = datetime.now()
+    # query_end_ts = datetime.now()
     # is_test_string = "We are in a test run!" if is_test else "Running with DB!"
     is_test_string = "Running with DB!"
     print()
+    query_end_ts = datetime.now()
     print(
         f"Started at {start_run_ts}. {is_test_string}. QUERY END TS is {query_end_ts} | Generating Candidate Alerts for Release")
 

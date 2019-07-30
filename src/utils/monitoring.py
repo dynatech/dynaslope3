@@ -12,11 +12,28 @@ from src.models.monitoring import (
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
     MonitoringTriggersMisc, MomsInstances, MomsFeatures,
     InternalAlertSymbols, PublicAlertSymbols,
-    TriggerHierarchies, OperationalTriggerSymbols)
+    TriggerHierarchies, OperationalTriggerSymbols, MonitoringEventAlertsSchema)
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
     var_checker, round_to_nearest_release_time, compute_event_validity)
 from src.utils.narratives import write_narratives_to_db
+
+
+def get_tomorrow_noon(ts):
+    """
+    Used for identifying extended monitoring start ts
+    Returns the next 12 noon TS for start of extended monitoring
+
+    Args:
+        ts - datetime object
+    """
+    if ts.hour < 12:
+        tom_noon_ts = datetime(ts.year, ts.month, ts.day, 12, 0, 0)
+    else:
+        tom = ts + timedelta(days=1)
+        tom_noon_ts = datetime(tom.year, tom.month, tom.day, 12, 0, 0)
+
+    return tom_noon_ts
 
 
 def get_ongoing_extended_overdue_events():
