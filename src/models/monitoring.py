@@ -388,6 +388,7 @@ class PublicAlertSymbols(UserMixin, DB.Model):
     alert_level = DB.Column(DB.Integer, nullable=False)
     alert_type = DB.Column(DB.String(7))
     recommended_response = DB.Column(DB.String(200))
+    duration = DB.Column(DB.Integer, nullable=False)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Public Symbol ID: {self.pub_sym_id}"
@@ -463,8 +464,11 @@ class TriggerHierarchies(UserMixin, DB.Model):
     source_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trigger_source = DB.Column(DB.String(20))
     hierarchy_id = DB.Column(DB.Integer)
-    is_default = DB.Integer()
-    is_active = DB.Integer()
+    is_default = DB.Column(DB.Integer())
+    is_active = DB.Column(DB.Integer())
+    data_interval = DB.Column(DB.String(20))
+    data_presence = DB.Column(DB.Integer())
+    is_ground = DB.Column(DB.Integer())
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Source ID: {self.source_id}"

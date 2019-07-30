@@ -28,12 +28,22 @@ from src.models.monitoring import (
     OperationalTriggerSymbols as ots)
 from src.utils.monitoring import (get_routine_sites, build_internal_alert_level,
                                   get_ongoing_extended_overdue_events, get_saved_event_triggers)
-from src.utils.extra import var_checker
+from src.utils.extra import var_checker, create_symbols_map, retrieve_data_from_memcache
 
+
+IAS_MAP = MEMORY_CLIENT.get("internal_alert_symbols".upper())
+OTS_MAP = MEMORY_CLIENT.get("operational_trigger_symbols".upper())
+PAS_MAP = MEMORY_CLIENT.get("public_alert_symbols".upper())
+TH_MAP = MEMORY_CLIENT.get("trigger_hierarchies".upper())
+
+IAS_MAP = create_symbols_map("internal_alert_symbols")
+PAS_MAP = create_symbols_map("public_alert_symbols")
+TH_MAP = create_symbols_map("trigger_hierarchies")
 
 ##########################
 # Utility functions here #
 ##########################
+
 
 def generate_ias_x_ots_map():
     """
@@ -54,7 +64,7 @@ def generate_ias_x_ots_map():
                 "alert_level": item.alert_level,
                 "internal_symbol": ias.alert_symbol,
                 "internal_alert_id": ias.internal_sym_id
-            }            
+            }
 
     return cross_map
 
@@ -110,11 +120,15 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
     if general_status == "routine":
         site_details = {"routine_sites_ids": []}
 
+    pas_row = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": alert_level})
+    public_alert_symbol = pas_row["alert_symbol"]
+
     formatted_alerts_for_ewi = {
         **site_details,
         "internal_alert_level": build_internal_alert_level(alert_level, trigger_list_str),
         "public_alert_level": alert_level,
-        "public_alert_symbol": PAS_MAP[("alert_symbol", alert_level)],
+        "public_alert_symbol": public_alert_symbol,
         "release_details": {
             "data_ts": data_ts,
             "trigger_list_str": trigger_list_str
@@ -122,24 +136,28 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         "general_status": general_status
     }
 
-
     if general_status not in ["routine"]:
         triggers = alert_entry["event_triggers"]
         trigger_list_arr = []
 
-        for trigger in triggers:
-            # if trigger["is_trigger_new"]:
-            if True:                
-                trig_dict = {
-                    **trigger,
-                    "trigger_alert_level": trigger["alert"]  # For UI purposes
-                }
+        if triggers:
+            for trigger in triggers:
+                if trigger["is_trigger_new"]:
+                    # if True:
+                    trig_dict = {
+                        **trigger,
+                        # For UI purposes
+                        "trigger_alert_level": trigger["alert"]
+                    }
 
-                trigger_list_arr.append(trig_dict)
+                    trigger_list_arr.append(trig_dict)
 
         formatted_alerts_for_ewi["trigger_list_arr"] = trigger_list_arr
 
     return formatted_alerts_for_ewi
+
+
+IAS_X_OTS_MAP = generate_ias_x_ots_map()
 
 
 def fix_internal_alert(alert_entry, internal_source_id):
@@ -154,20 +172,26 @@ def fix_internal_alert(alert_entry, internal_source_id):
 
     for trigger in event_triggers:
         alert_symbol = trigger["alert"]
-        trigger["internal_sym_id"] = IAS_X_OTS_MAP["alert_symbol", alert_symbol]["internal_alert_id"]
+        trigger["internal_sym_id"] = IAS_X_OTS_MAP["alert_symbol",
+                                                   alert_symbol]["internal_alert_id"]
         source_id = trigger["source_id"]
         alert_level = trigger["alert_level"]
-        internal_alert_symbol = IAS_MAP["alert_symbol", alert_level, source_id]
+        op_trig_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+            "alert_level": alert_level, "source_id": source_id})
+        internal_alert_symbol = op_trig_row["internal_alert_symbols"]["alert_symbol"]
 
         try:
             if trigger["invalid"]:
                 invalid_triggers.append(trigger)
-                internal_alert_symbol = IAS_MAP["alert_symbol", alert_level, source_id]
+                # NOTE: For clarification. Redundant code?
+                # internal_alert_symbol = IAS_MAP["alert_symbol",
+                #                                 alert_level, source_id]
                 internal_alert = re.sub(
                     "%s(0/x)?" % internal_alert_symbol, "", internal_alert)
 
         except KeyError:  # If valid, trigger should have no "invalid" key
-            valid_a_l = IAS_X_OTS_MAP["alert_symbol", alert_symbol]["alert_level"]
+            valid_a_l = IAS_X_OTS_MAP["alert_symbol",
+                                      alert_symbol]["alert_level"]
             valid_alert_levels.append(valid_a_l)
 
     highest_valid_public_alert = 0
@@ -182,7 +206,10 @@ def fix_internal_alert(alert_entry, internal_source_id):
         validity_status = "invalid"
 
     public_alert_sym = internal_alert.split("-")[0]
-    nd_internal_alert_sym = IAS_MAP["alert_symbol", -1, internal_source_id]
+    op_trig_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+        "alert_level": -1, "source_id": internal_source_id})
+    nd_internal_alert_sym = op_trig_row["internal_alert_symbols"]["alert_symbol"]
+
     is_nd = public_alert_sym == nd_internal_alert_sym
     if is_nd:
         trigger_list_str = nd_internal_alert_sym
@@ -192,7 +219,7 @@ def fix_internal_alert(alert_entry, internal_source_id):
     try:
         if is_nd:
             trigger_list_str += "-"
-        
+
         trigger_list_str += internal_alert.split("-")[1]
     except:
         pass
@@ -208,13 +235,15 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
     latest = db_alerts_dict["latest"]
     extended = db_alerts_dict["extended"]
     overdue = db_alerts_dict["overdue"]
-    
+
     totally_invalid_sites_list = []
     routine_sites_list = get_routine_sites(query_end_ts)
 
     # Get all latest and overdue from db alerts
     merged_db_alerts_list = latest + overdue
-    internal_source_id = TH_MAP["internal"]
+    internal_as_row = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "internal"})
+    internal_source_id = internal_as_row["source_id"]
 
     if with_alerts:
         for site_w_alert in with_alerts:
@@ -232,7 +261,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     site_db_alert["event"]["event_id"])
 
                 for event_trigger in site_w_alert["event_triggers"]:
-                    saved_trigger = next(filter(lambda x: x[0] == event_trigger["internal_sym_id"], saved_event_triggers), None)
+                    saved_trigger = next(filter(
+                        lambda x: x[0] == event_trigger["internal_sym_id"], saved_event_triggers), None)
 
                     is_trigger_new = False
                     if saved_trigger:
@@ -240,7 +270,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                             is_trigger_new = True
                     else:
                         is_trigger_new = True
-                    
+
                     event_trigger["is_trigger_new"] = is_trigger_new
 
                 db_latest_release_ts = site_db_alert["releases"][0]["data_ts"]
@@ -272,7 +302,6 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             site_id = site_wo_alert["site_id"]
             site_code = site_wo_alert["site_code"]
             internal_alert = site_wo_alert["internal_alert"]
-
 
             is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
                                               == site_code, merged_db_alerts_list))
@@ -337,9 +366,14 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
         if has_routine_data and is_routine_release_time:
             routine_data_ts = without_alerts[0]["ts"]
+
+            pas_row = retrieve_data_from_memcache(
+                "public_alert_symbols", {"alert_level": 0})
+            public_alert_symbol = pas_row["alert_symbol"]
+
             routine_candidates = {
                 "public_alert_level": 0,
-                "public_alert_symbol": PAS_MAP[("alert_symbol", 0)],
+                "public_alert_symbol": public_alert_symbol,
                 "data_ts": str(routine_data_ts),
                 "general_status": "routine",
                 "routine_details": [
@@ -371,12 +405,6 @@ def separate_with_alerts_wo_alerts(generated_alerts_list):
             with_alerts.append(gen_alert)
 
     return with_alerts, without_alerts
-
-
-IAS_X_OTS_MAP = generate_ias_x_ots_map()
-IAS_MAP = MEMORY_CLIENT.get("internal_alert_symbols".upper())
-PAS_MAP = MEMORY_CLIENT.get("public_alert_symbols".upper())
-TH_MAP = MEMORY_CLIENT.get("trigger_hierarchies".upper())
 
 
 def main(ts=None, is_test=None):

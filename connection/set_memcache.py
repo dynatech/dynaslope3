@@ -27,5 +27,4 @@ def main(memory_client):
         # memory_client.set(f"D3_{key.upper()}", table)
         table = table_list[key][0].query.all()
         table_data = table_list[key][1].dump(table).data
-        print(table)
         memory_client.set(f"D3_{key.upper()}", table_data)

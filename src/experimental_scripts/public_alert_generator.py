@@ -10,6 +10,7 @@ Implemented in Python 3 and SQLAlchemy by:
 May 2019
 """
 
+from run import APP
 import pprint
 import os
 import json
@@ -30,13 +31,13 @@ from src.models.analysis import (
 from src.utils.sites import get_sites_data
 from src.utils.monitoring import round_to_nearest_release_time
 from src.utils.rainfall import get_rainfall_gauge_name
-from src.utils.extra import var_checker
+from src.utils.extra import var_checker, create_symbols_map
 
 
-IAS_MAP = MEMORY_CLIENT.get("internal_alert_symbols".upper())
-OTS_MAP = MEMORY_CLIENT.get("operational_trigger_symbols".upper())
-PAS_MAP = MEMORY_CLIENT.get("public_alert_symbols".upper())
-TH_MAP = MEMORY_CLIENT.get("trigger_hierarchies".upper())
+IAS_MAP = create_symbols_map("internal_alert_symbols")
+OTS_MAP = create_symbols_map("operational_trigger_symbols")
+PAS_MAP = create_symbols_map("public_alert_symbols")
+TH_MAP = create_symbols_map("trigger_hierarchies")
 MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=("moms_releases", "validator", "reporter", "narrative"))
 
 def round_down_data_ts(date_time):
@@ -338,6 +339,8 @@ def get_current_rain_surficial_and_moms_alerts(op_triggers_list,
         op_t_trigger_source = TH_MAP[op_t_source_id]
         op_t_alert_level = op_trigger.trigger_symbol.alert_level
 
+        var_checker("op_trigger", op_trigger, True)
+
         if op_t_source_id in [rainfall_source_id, surficial_source_id, moms_source_id]:
             if op_t_source_id in [surficial_source_id, moms_source_id]:
                 ts_comparator = surficial_moms_window_ts
@@ -355,6 +358,7 @@ def get_current_rain_surficial_and_moms_alerts(op_triggers_list,
                         current_trigger_alerts["rainfall"]["rain_gauge"] = get_rainfall_gauge_name(latest_rainfall_alert)
                 else:
                     # latest_moms = get_site_moms(site, ts_updated)
+                    site_moms_alerts_list = []
                     if site_moms_alerts[0]:
                         site_moms_alerts_list = site_moms_alerts[0]
                         highest_moms_alert = site_moms_alerts[1]
@@ -362,9 +366,9 @@ def get_current_rain_surficial_and_moms_alerts(op_triggers_list,
                     current_moms_list = list(filter(lambda x: x.observance_ts >= surficial_moms_window_ts, site_moms_alerts_list))
                     if current_moms_list:
                         current_moms_list_data = MONITORING_MOMS_SCHEMA.dump(current_moms_list).data
-                        # NOTE: The ff code catches non-triggering moms even if there is 
+                        # NOTE: The ff code catches non-triggering moms even if there is
                         # no positive moms alert. Good thing na hindi naaattach moms sa release triggers kung
-                        # walang positive moms alert dahil yung "taas" (default version) ang 
+                        # walang positive moms alert dahil yung "taas" (default version) ang
                         # maghahandle noon RE: showing moms data presence every 4 hours.
                         current_trigger_alerts["moms"] = {
                             "alert_level": highest_moms_alert,
@@ -663,9 +667,10 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end):
     # Remove subsurface triggers less than the actual query_ts_end
     # Data presence for subsurface is limited to the current runtime only (not within 4 hours)
     release_op_triggers_list = []
-    for release_op_trig in release_op_triggers:
-        if not (release_op_trig.trigger_symbol.source_id == TH_MAP["subsurface"] and release_op_trig.ts_updated < query_ts_end):
-            release_op_triggers_list.append(release_op_trig)
+    if release_op_triggers_list:
+        for release_op_trig in release_op_triggers:
+            if  not (release_op_trig.trigger_symbol.source_id == TH_MAP["subsurface"] and release_op_trig.ts_updated < query_ts_end):
+                release_op_triggers_list.append(release_op_trig)
 
     return release_op_triggers_list
 
@@ -1014,7 +1019,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             hours = query_time.hour
             minutes = query_time.minute
 
-            is_release_time_run = hours % 3 and minutes == 30
+            is_release_time_run = hours % 3 == 0 and minutes == 30
             is_45_minute_beyond = int(query_ts_start.strftime("%M")) > 45
             is_not_yet_write_time = not (
                 is_release_time_run and is_45_minute_beyond)
@@ -1023,10 +1028,14 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                 timedelta(days=3) > query_ts_end + timedelta(minutes=30)
             has_no_ground_alert = ground_alert == -1
 
+            var_checker("has_rx_in_triggers", has_rx_in_triggers, True)
+            var_checker("is_not_yet_write_time", is_not_yet_write_time, True)
+
             # check if query_ts_end of validity: lower alert if with data and not rain75
             if validity > (query_ts_end + timedelta(minutes=30)):
+                print("PASOK")
                 pass
-            elif has_rx_in_triggers or (is_below_3_day_rule and has_no_ground_alert) or is_not_yet_write_time or (site_moms_alerts and has_unresolved_moms):
+            elif has_rx_in_triggers or (is_below_3_day_rule and has_no_ground_alert) or is_not_yet_write_time or (site_moms_alerts and has_unresolved_moms[1]):
                 validity = round_to_nearest_release_time(query_ts_end)
 
                 if is_release_time_run:
@@ -1112,6 +1121,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ####################################
         # TRY TO WRITE TO DB PUBLIC_ALERTS #
         ####################################
+        do_not_write_to_db = True
         if not do_not_write_to_db:
             print("Checking if new public alert.")
             try:
@@ -1198,7 +1208,8 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    main(query_ts_end="2019-07-23 15:56:00", query_ts_start="2019-07-23 15:56:00", is_test=True, site_code="umi")
     # L2
     # main("2019-01-22 03:00:00", True, "ime")
     # # main("2018-12-26 11:00:00", True, "lpa")

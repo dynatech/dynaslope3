@@ -22,7 +22,8 @@ from src.utils.extra import (
 from src.utils.narratives import write_narratives_to_db
 
 
-PAS_MAP = MEMORY_CLIENT.get("PUBLIC_ALERT_SYMBOLS")
+# PAS_MAP = MEMORY_CLIENT.get("PUBLIC_ALERT_SYMBOLS")
+PAS_MAP = create_symbols_map("public_alert_symbols")
 
 
 def round_down_data_ts(date_time):
