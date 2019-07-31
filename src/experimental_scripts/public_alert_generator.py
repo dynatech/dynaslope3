@@ -1019,7 +1019,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             hours = query_time.hour
             minutes = query_time.minute
 
-            is_release_time_run = hours % 3 == 0 and minutes == 30
+            is_release_time_run = hours % 3 and minutes == 30
             is_45_minute_beyond = int(query_ts_start.strftime("%M")) > 45
             is_not_yet_write_time = not (
                 is_release_time_run and is_45_minute_beyond)
@@ -1036,7 +1036,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                 print("PASOK")
                 pass
             elif has_rx_in_triggers or (is_below_3_day_rule and has_no_ground_alert) or is_not_yet_write_time or (site_moms_alerts and has_unresolved_moms[1]):
-                validity = round_to_nearest_release_time(query_ts_end)
+                validity = round_to_nearest_release_time(query_ts_end + timedelta(minutes=30))
 
                 if is_release_time_run:
                     if not(is_45_minute_beyond):
