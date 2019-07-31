@@ -27,13 +27,23 @@ from src.utils.monitoring import (
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
     write_monitoring_earthquake_to_db, get_internal_alert_symbols,
     get_monitoring_events_table, get_event_count, get_public_alert,
-    build_internal_alert_level)
+    build_internal_alert_level, update_alert_status)
 from src.utils.extra import (create_symbols_map, var_checker,
                              round_to_nearest_release_time, compute_event_validity)
 from src.experimental_scripts import candidate_alerts_generator
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/update_alert_status", methods=["POST"])
+def wrap_update_alert_status():
+    json_data = request.get_json()
+    var_checker("json_data", json_data, True)
+    
+    status = update_alert_status(json_data)
+
+    return status
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_internal_alert_symbols", methods=["GET"])

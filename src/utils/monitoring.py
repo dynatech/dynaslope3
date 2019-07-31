@@ -7,6 +7,7 @@ from flask import request
 from datetime import datetime, timedelta, time, date
 from connection import DB
 from sqlalchemy import and_
+from src.models.analysis import (AlertStatus, AlertStatusSchema)
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
@@ -17,6 +18,65 @@ from src.utils.sites import get_sites_data
 from src.utils.extra import (
     var_checker, round_to_nearest_release_time, compute_event_validity)
 from src.utils.narratives import write_narratives_to_db
+
+
+def check_if_alert_status_entry_in_db(trigger_id):
+    """
+    Sample
+    """
+    alert_status_result = None
+    try:
+        alert_status_result = AlertStatus.query.filter(
+            AlertStatus.trigger_id == trigger_id).first()
+    except Exception as err:
+        print(err)
+        raise
+
+    return alert_status_result
+
+
+def update_alert_status(as_details):
+    """
+    Updates alert status entry in DB
+    Args:
+        as_details (Dictionary): Updates current entry of alert_status
+            e.g.
+                {
+                    "trigger_id": 10,
+                    "alert_status": 1, # -1 -> invalid, 0 -> validating, 1 - valid
+                    "remarks": "Malakas ang ulan",
+                    "user_id", 1
+                }
+    """
+
+    return_data = None
+    try:
+        trigger_id = as_details["trigger_id"]
+
+        alert_status_result = check_if_alert_status_entry_in_db(
+            trigger_id)
+
+        if alert_status_result:
+            alert_status = as_details["alert_status"]
+            remarks = as_details["remarks"]
+            user_id = as_details["user_id"]
+
+            alert_status_result.ts_ack = datetime.now()
+            alert_status_result.alert_status = alert_status
+            alert_status_result.remarks = remarks
+            alert_status_result.user_id = user_id
+
+            DB.session.commit()
+            val_map = {1: "valid", -1: "invalid", 0: "validating"}
+            return_data = f"Alert ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
+        else:
+            return_data = f"Trigger ID [{trigger_id}] provided DOES NOT EXIST!"
+    except Exception as err:
+        DB.session.rollback()
+        print(err)
+        raise
+
+    return return_data
 
 
 def get_tomorrow_noon(ts):
