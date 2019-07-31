@@ -30,6 +30,7 @@ from src.utils.monitoring import (
     build_internal_alert_level)
 from src.utils.extra import (create_symbols_map, var_checker,
                              round_to_nearest_release_time, compute_event_validity)
+from src.experimental_scripts import candidate_alerts_generator
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -1039,3 +1040,12 @@ def insert_cbewsl_ewi():
 
     # return jsonify(internal_json_data)
     return status
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_candidate_and_current_alerts", methods=["GET"])
+def get_candidate_and_current_alerts():
+    print(get_active_monitoring_events())
+    ret_val = {
+        "leo": wrap_get_ongoing_extended_overdue_events(),
+        "candidate_alert": candidate_alerts_generator.main()
+    }
+    return jsonify(ret_val)
