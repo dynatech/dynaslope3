@@ -27,7 +27,7 @@ def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True
 
     """
 
-    return_data = None
+    return_data = []
 
     if filters_dict is None:
         filters_dict = []
@@ -35,15 +35,20 @@ def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True
     data = MEMORY_CLIENT.get(f"D3_{table_name.upper()}")
 
     if data:
-        if retrieve_one:
+        if filters_dict:
             for row in data:
-                if all(filters_dict[key] == row[key] for key in filters_dict):
-                    # if all(filters_dict[key] == getattr(row, key) for key in filters_dict):
-                    return_data = row
-                    break
+                try:
+                    if all(filters_dict[key] == row[key] for key in filters_dict):
+                        if retrieve_one:
+                            return_data = row
+                            break
+                        else:
+                            return_data.append(row)
+                except KeyError as err:
+                    print(err)
+                    raise
         else:
             return_data = data
-
     else:
         raise Exception("Table name provided is not found in memcached")
 

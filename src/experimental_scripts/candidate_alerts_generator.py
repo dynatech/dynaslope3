@@ -15,7 +15,7 @@ and comparing is to generated_alerts.json
 May 2019
 """
 
-# from run import APP
+from run import APP
 import os
 import json
 from datetime import datetime, timedelta, time
@@ -27,23 +27,14 @@ from connection import MEMORY_CLIENT
 from src.models.monitoring import (
     OperationalTriggerSymbols as ots)
 from src.utils.monitoring import (get_routine_sites, build_internal_alert_level,
-                                  get_ongoing_extended_overdue_events, get_saved_event_triggers)
+                                  get_ongoing_extended_overdue_events, get_saved_event_triggers,
+                                  round_down_data_ts)
 from src.utils.extra import var_checker, create_symbols_map, retrieve_data_from_memcache
 
-
-IAS_MAP = MEMORY_CLIENT.get("internal_alert_symbols".upper())
-OTS_MAP = MEMORY_CLIENT.get("operational_trigger_symbols".upper())
-PAS_MAP = MEMORY_CLIENT.get("public_alert_symbols".upper())
-TH_MAP = MEMORY_CLIENT.get("trigger_hierarchies".upper())
-
-IAS_MAP = create_symbols_map("internal_alert_symbols")
-PAS_MAP = create_symbols_map("public_alert_symbols")
-TH_MAP = create_symbols_map("trigger_hierarchies")
 
 ##########################
 # Utility functions here #
 ##########################
-
 
 def generate_ias_x_ots_map():
     """
@@ -88,6 +79,16 @@ def get_generated_alerts_list_from_file(filepath, filename):
 ###################
 # Data processors #
 ###################
+
+def extract_non_triggering_moms(cta_moms):
+    """
+    NOTE: Add desc
+    """
+    moms_list = cta_moms["moms_list"]
+    non_triggering_moms = list(
+        filter(lambda x: x["op_trigger"] == 0, moms_list))
+
+    return non_triggering_moms
 
 
 def check_if_extended(validity, data_ts, data_time, is_extended_entry):
@@ -143,16 +144,33 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         if triggers:
             for trigger in triggers:
                 if trigger["is_trigger_new"]:
-                    # if True:
                     trig_dict = {
                         **trigger,
                         # For UI purposes
                         "trigger_alert_level": trigger["alert"]
                     }
 
+                    if trigger["trigger_type"] == "moms":
+                        moms_list = alert_entry["current_trigger_alerts"]["moms"]["moms_list"]
+                        moms_trig_alert_level = trigger["alert_level"]
+                        moms_list = list(
+                            filter(lambda x: x["op_trigger"] == moms_trig_alert_level, moms_list))
+                        trig_dict["moms_list"] = moms_list
+                        del trig_dict["moms_list_notice"]
+
                     trigger_list_arr.append(trig_dict)
 
         formatted_alerts_for_ewi["trigger_list_arr"] = trigger_list_arr
+
+        try:
+            cta_moms = alert_entry["current_trigger_alerts"]["moms"]
+            non_triggering_moms = extract_non_triggering_moms(cta_moms)
+            formatted_alerts_for_ewi["non_triggering_moms"] = non_triggering_moms
+        except KeyError:
+            pass
+        except Exception as err:
+            print(err)
+            raise
 
     return formatted_alerts_for_ewi
 
@@ -172,13 +190,17 @@ def fix_internal_alert(alert_entry, internal_source_id):
 
     for trigger in event_triggers:
         alert_symbol = trigger["alert"]
-        trigger["internal_sym_id"] = IAS_X_OTS_MAP["alert_symbol",
-                                                   alert_symbol]["internal_alert_id"]
+        ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                              "alert_symbol": alert_symbol})
+        trigger["internal_sym_id"] = ots_row["internal_alert_symbol"]["internal_sym_id"]
+
+        # trigger["internal_sym_id"] = IAS_X_OTS_MAP["alert_symbol",
+        #                                            alert_symbol]["internal_alert_id"]
         source_id = trigger["source_id"]
         alert_level = trigger["alert_level"]
         op_trig_row = retrieve_data_from_memcache("operational_trigger_symbols", {
             "alert_level": alert_level, "source_id": source_id})
-        internal_alert_symbol = op_trig_row["internal_alert_symbols"]["alert_symbol"]
+        internal_alert_symbol = op_trig_row["internal_alert_symbol"]["alert_symbol"]
 
         try:
             if trigger["invalid"]:
@@ -190,8 +212,11 @@ def fix_internal_alert(alert_entry, internal_source_id):
                     "%s(0/x)?" % internal_alert_symbol, "", internal_alert)
 
         except KeyError:  # If valid, trigger should have no "invalid" key
-            valid_a_l = IAS_X_OTS_MAP["alert_symbol",
-                                      alert_symbol]["alert_level"]
+            ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                "alert_symbol": alert_symbol})
+            valid_a_l = ots_row["alert_level"]
+            # valid_a_l = IAS_X_OTS_MAP["alert_symbol",
+            #                           alert_symbol]["alert_level"]
             valid_alert_levels.append(valid_a_l)
 
     highest_valid_public_alert = 0
@@ -208,7 +233,7 @@ def fix_internal_alert(alert_entry, internal_source_id):
     public_alert_sym = internal_alert.split("-")[0]
     op_trig_row = retrieve_data_from_memcache("operational_trigger_symbols", {
         "alert_level": -1, "source_id": internal_source_id})
-    nd_internal_alert_sym = op_trig_row["internal_alert_symbols"]["alert_symbol"]
+    nd_internal_alert_sym = op_trig_row["internal_alert_symbol"]["alert_symbol"]
 
     is_nd = public_alert_sym == nd_internal_alert_sym
     if is_nd:
@@ -274,6 +299,9 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     event_trigger["is_trigger_new"] = is_trigger_new
 
                 db_latest_release_ts = site_db_alert["releases"][0]["data_ts"]
+                var_checker("site_db_alert releases",
+                            site_db_alert["releases"], True)
+
                 # if release is already released
                 if db_latest_release_ts == site_w_alert["ts"]:
                     is_for_release = False
@@ -294,7 +322,10 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
     a0_routine_list = []
     nd_routine_list = []
-    nd_internal_alert_sym = IAS_MAP["alert_symbol", -1, internal_source_id]
+
+    ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                          "alert_level": -1, "source_id": internal_source_id})
+    nd_internal_alert_sym = ots_row["internal_alert_symbol"]["alert_symbol"]
 
     if without_alerts:
         for site_wo_alert in without_alerts:
@@ -337,15 +368,16 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             site_code = t_i_site["site_code"]
 
             if site_code in routine_sites_list:
-                rel_triggers = t_i_site["release_triggers"]
+                current_trigger_alerts = t_i_site["current_trigger_alerts"]
 
                 has_ground_data = False
-                for rel_trigger in rel_triggers:
-                    if rel_trigger["type"] == "surficial" and rel_trigger["details"]["alert_level"] > -1:
+                for current_trigger_alert in current_trigger_alerts:
+                    # NOTE: For updating DYNAMIC
+                    if current_trigger_alert["type"] == "surficial" and current_trigger_alert["details"]["alert_level"] > -1:
                         has_ground_data = True
                         break
-                    elif rel_trigger["type"] == "subsurface":
-                        sub_details = rel_trigger["details"]
+                    elif current_trigger_alert["type"] == "subsurface":
+                        sub_details = current_trigger_alert["details"]
                         if sub_details:
                             for tsm in sub_details:
                                 if tsm["alert_level"] > -1:
@@ -358,6 +390,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     nd_routine_list.append(site_id)
 
     if without_alerts:
+        # NOTE: LOUIE VARIABLES Routine Release Time
         temp = datetime.strptime(without_alerts[0]["ts"], "%Y-%m-%d %H:%M:%S")
         time_ts = time(temp.hour, temp.minute, temp.second)
         to_compare = time(11, 30, 00)
@@ -391,6 +424,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             }
             candidate_alerts_list.append(routine_candidates)
 
+    var_checker("can", candidate_alerts_list, True)
+
     return candidate_alerts_list
 
 
@@ -407,14 +442,22 @@ def separate_with_alerts_wo_alerts(generated_alerts_list):
     return with_alerts, without_alerts
 
 
-def main(ts=None, is_test=None):
+def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
     """
-    Just a comment
+
+    Args:
+        ts (Str Datetime)
+        generated_alerts_list (List) - provided thru websocket if not reading from
+            file
+        check_legacy_candidate (Bool) - show generated candidate alert entry for
+            released MonitoringReleases entries; Rationale: If data_ts
+            already exists in MonitoringReleases, release will not 
+            be included in Candidates Alert Generation
     """
     start_run_ts = datetime.now()
-    # query_end_ts = ts if ts else datetime.now()
-    # query_end_ts = datetime.strptime(query_end_ts, "%Y-%m-%d %H:%M:%S")
     query_end_ts = datetime.now()
+    if ts:
+        query_end_ts = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
     # is_test_string = "We are in a test run!" if is_test else "Running with DB!"
     is_test_string = "Running with DB!"
     print()
@@ -424,14 +467,19 @@ def main(ts=None, is_test=None):
     ####################
     # START OF PROCESS #
     ####################
-    filepath = APP_CONFIG["generated_alerts_path"]
-    # filepath = "/var/www/dynaslope3/outputs/"
-    filename = "generated_alerts.json"
-    generated_alerts_list = get_generated_alerts_list_from_file(
-        filepath, filename)
+    # If no generated alerts sent thru argument, read from
+    # file.
+    if not generated_alerts_list:
+        filepath = APP_CONFIG["generated_alerts_path"]
+        # filepath = "/var/www/dynaslope3/outputs/"
+        filename = "generated_alerts.json"
+        generated_alerts_list = get_generated_alerts_list_from_file(
+            filepath, filename)
 
     # Get Active DB Alerts
-    db_alerts_dict = get_ongoing_extended_overdue_events()
+    if check_legacy_candidate:
+        query_end_ts = round_down_data_ts(query_end_ts)
+    db_alerts_dict = get_ongoing_extended_overdue_events(query_end_ts)
 
     # Split site with alerts and site with no alerts
     with_alerts, without_alerts = separate_with_alerts_wo_alerts(
@@ -459,4 +507,4 @@ def main(ts=None, is_test=None):
 
 
 if __name__ == "__main__":
-    main()
+    main(ts="2019-07-22 15:56:00", check_legacy_candidate=True)

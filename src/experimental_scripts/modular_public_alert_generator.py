@@ -30,8 +30,8 @@ from src.models.analysis import (
     AlertStatusSchema)
 from src.utils.sites import get_sites_data
 from src.utils.rainfall import get_rainfall_gauge_name
-from src.utils.monitoring import round_down_data_ts
-from src.utils.extra import var_checker, round_to_nearest_release_time, retrieve_data_from_memcache
+from src.utils.monitoring import round_down_data_ts, get_site_moms_alerts, round_to_nearest_release_time
+from src.utils.extra import var_checker, retrieve_data_from_memcache
 
 
 MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=(
@@ -42,7 +42,7 @@ MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=(
 #####################################################
 MAX_POSSIBLE_ALERT_LEVEL = 3  # Number of alert levels excluding zero
 RELEASE_INTERVAL_HOURS = 4  # Every how many hours per release
-ALERT_EXTENSION_LIMIT = 72 # Max hours total of 3 days 
+ALERT_EXTENSION_LIMIT = 72 # Max hours total of 3 days
 NO_DATA_HOURS_EXTENSION = 4 # Number of hours extended if no_data upon validity
 
 
@@ -144,7 +144,7 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
     return return_data
 
 
-def format_release_trig(current_trigger_alerts):
+def format_current_trigger_alerts(current_trigger_alerts):
     """
     """
 
@@ -219,7 +219,6 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
             # NOTE: MOMS list to be used should be moms_special_details (all moms within interval hours)
             # REFACTOR tech_info_maker processes if possible.
             trigger_tech_info = tech_info_maker.main(item)
-            var_checker("trigger_tech_info", trigger_tech_info, True)
 
             if trigger_source == "rainfall":
                 rainfall = {
@@ -582,8 +581,10 @@ def add_special_case_details(trigger_source, accessory_detail):
                 current_moms_list).data
             highest_row = next(iter(sorted(current_moms_list, key=lambda x: x.op_trigger, reverse=True)))
             highest_moms_alert_for_release_period = highest_row.op_trigger
-            ot_row = retrieve_data_from_memcache("operational_trigger_symbols", {
-                                                 "trigger_sym_id": highest_row.trigger_sym_id})
+            moms_th_row = retrieve_data_from_memcache("trigger_hierarchies", {"trigger_source": "moms"})
+            ot_row = retrieve_data_from_memcache("operational_trigger_symbols", { \
+                "alert_level": highest_moms_alert_for_release_period,
+                "source_id": moms_th_row["source_id"]})
 
             ###
             # Overwrite initial alert level and alert symbol set on parent function
@@ -700,29 +701,6 @@ def get_current_trigger_alert_conditions(release_op_triggers_list, surficial_mom
         current_trigger_alerts["subsurface"]["trigger_details"] = subsurface_alerts_list
 
     return current_trigger_alerts
-
-
-def get_site_moms_alerts(site_id, ts_start, ts_end):
-    """
-    MonitoringMoms found between provided ts_start and ts_end
-    Sorted by observance ts
-
-    Returns the ff:
-        latest_moms (List of SQLAlchemy classes) - list of moms found
-        highest_moms_alert (Int) - highest alert level among moms found
-
-    NOTE: LOUIE transfer to monitoring utils
-    """
-    site_moms_alerts_list = moms.query.order_by(DB.desc(moms.observance_ts)).filter(
-        DB.and_(ts_start <= moms.observance_ts, moms.observance_ts <= ts_end)).join(mi).filter(mi.site_id == site_id).all()
-
-    sorted_list = sorted(site_moms_alerts_list,
-                         key=lambda x: x.op_trigger, reverse=True)
-    highest_moms_alert = 0
-    if sorted_list:
-        highest_moms_alert = sorted_list[0].op_trigger
-
-    return site_moms_alerts_list, highest_moms_alert
 
 
 def get_tsm_alerts(site_tsm_sensors, query_ts_end):
@@ -881,18 +859,18 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interva
     release_op_triggers = op_triggers_query.filter(
         ot.ts_updated >= round_to_nearest_release_time(query_ts_end, interval) - timedelta(hours=interval)).distinct().all()
 
+
+    # DYNAMIC: TH_MAP
+    on_run_triggers_list = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"data_presence": 1}, retrieve_one=False)
+    on_run_triggers_s_id_list = []
+    for item in on_run_triggers_list:
+        on_run_triggers_s_id_list.append(item["source_id"])
+
     # Remove subsurface triggers less than the actual query_ts_end
     # Data presence for subsurface is limited to the current runtime only (not within 4 hours)
     release_op_triggers_list = []
     for release_op_trig in release_op_triggers:
-        # DYNAMIC: TH_MAP
-        on_run_triggers_list = retrieve_data_from_memcache(
-            "trigger_hierarchies", {"data_presence": 1}, retrieve_one=False)
-
-        on_run_triggers_s_id_list = []
-        for item in on_run_triggers_list:
-            on_run_triggers_s_id_list.append(item["source_id"])
-
         if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_s_id_list and release_op_trig.ts_updated < query_ts_end):
             release_op_triggers_list.append(release_op_trig)
 
@@ -1197,7 +1175,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             unique_positive_triggers_list, invalids_dict, site_moms_alerts_list)
         
         # RELEASE TRIGGERS: current status prior to release time
-        formatted_release_trig = format_release_trig(current_trigger_alerts)
+        formatted_current_trigger_alerts = format_current_trigger_alerts(current_trigger_alerts)
 
         # Identify last data_ts on operational_triggers, else use query_ts_end
         try:
@@ -1238,7 +1216,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             "internal_alert": internal_alert,
             "validity": validity,
             "event_triggers": event_triggers,
-            "release_triggers": formatted_release_trig
+            "current_trigger_alerts": formatted_current_trigger_alerts
         }
 
         try:
@@ -1323,8 +1301,6 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
     # Sort per alert level
     generated_alerts.sort(key=extract_alert_level, reverse=True)
 
-    # var_checker("SORTED", generated_alerts, True)
-
     # Convert data to JSON
     json_data = json.dumps(generated_alerts)
 
@@ -1346,7 +1322,7 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 if __name__ == "__main__":
     # main()
     # main(is_test=True, site_code="umi")
-    main(query_ts_end="2019-07-23 15:56:00", query_ts_start="2019-07-23 15:56:00", is_test=True, site_code="umi")
+    main(query_ts_end="2019-07-22 15:56:00", query_ts_start="2019-07-22 15:56:00", is_test=True, site_code="umi")
     # L2
     # main("2019-01-22 03:00:00", True, "ime")
     # # main("2018-12-26 11:00:00", True, "lpa")

@@ -11,19 +11,73 @@ from src.models.analysis import (AlertStatus, AlertStatusSchema)
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
-    MonitoringTriggers,
-    MonitoringTriggersMisc, MomsInstances, MomsFeatures,
+    MonitoringTriggers, MonitoringTriggersMisc,
+    MomsInstances, MomsFeatures,
     InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols,
-    MonitoringEventAlertsSchema, OperationalTriggers)
+    MonitoringEventAlertsSchema, OperationalTriggers,
+    MonitoringMoms as moms, MomsInstances as mi)
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
-    var_checker, round_to_nearest_release_time, compute_event_validity, create_symbols_map)
+    var_checker, compute_event_validity, create_symbols_map)
 from src.utils.narratives import write_narratives_to_db
 
 
 # PAS_MAP = MEMORY_CLIENT.get("PUBLIC_ALERT_SYMBOLS")
 PAS_MAP = create_symbols_map("public_alert_symbols")
+
+#####################################################
+# DYNAMIC Protocol Values starts here. For querying #
+#####################################################
+MAX_POSSIBLE_ALERT_LEVEL = 3  # Number of alert levels excluding zero
+RELEASE_INTERVAL_HOURS = 4  # Every how many hours per release
+ALERT_EXTENSION_LIMIT = 72  # Max hours total of 3 days
+
+
+def get_site_moms_alerts(site_id, ts_start, ts_end):
+    """
+    MonitoringMoms found between provided ts_start and ts_end
+    Sorted by observance ts
+
+    Returns the ff:
+        latest_moms (List of SQLAlchemy classes) - list of moms found
+        highest_moms_alert (Int) - highest alert level among moms found
+    """
+    site_moms_alerts_list = moms.query.order_by(DB.desc(moms.observance_ts)).filter(
+        DB.and_(ts_start <= moms.observance_ts, moms.observance_ts <= ts_end)).join(mi).filter(mi.site_id == site_id).all()
+
+    sorted_list = sorted(site_moms_alerts_list,
+                         key=lambda x: x.op_trigger, reverse=True)
+    highest_moms_alert = 0
+    if sorted_list:
+        highest_moms_alert = sorted_list[0].op_trigger
+
+    return site_moms_alerts_list, highest_moms_alert
+
+
+def round_to_nearest_release_time(data_ts, interval=4):
+    """
+    Round time to nearest 4/8/12 AM/PM (default)
+    Or any other interval
+
+    Args:
+        data_ts (datetime)
+        interval (Integer)
+
+    Returns datetime
+    """
+    hour = data_ts.hour
+
+    quotient = int(hour / interval)
+    hour_of_release = (quotient + 1) * interval
+
+    if hour_of_release < 24:
+        date_time = datetime.combine(
+            data_ts.date(), time((quotient + 1) * interval, 0))
+    else:
+        date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
+
+    return date_time
 
 
 def round_down_data_ts(date_time):
@@ -136,14 +190,23 @@ def get_tomorrow_noon(ts):
     return tom_noon_ts
 
 
-def get_ongoing_extended_overdue_events():
+def get_ongoing_extended_overdue_events(run_ts=None):
     """
     Gets active events and organizes them into the following categories:
         (a) Ongoing
         (b) Extended
         (c) Overdue
     For use in alerts_from_db in Candidate Alerts Generator
+
+    Args:
+        run_ts (Datetime) - used for testing retroactive generated alerts
     """
+    global RELEASE_INTERVAL_HOURS
+    release_interval_hours = RELEASE_INTERVAL_HOURS
+
+    if not run_ts:
+        run_ts = datetime.now()
+
     active_event_alerts = get_active_monitoring_events()
 
     latest = []
@@ -153,10 +216,14 @@ def get_ongoing_extended_overdue_events():
         validity = event_alert.event.validity
         latest_release = event_alert.releases.order_by(
             DB.desc(MonitoringReleases.data_ts)).first()
+
+        # NOTE: LOUIE This formats release time to have date instead of time only
         data_ts = latest_release.data_ts
-        rounded_data_ts = round_to_nearest_release_time(data_ts)
+        rounded_data_ts = round_to_nearest_release_time(
+            data_ts, release_interval_hours)
         release_time = latest_release.release_time
 
+        # if data_ts.hour == 23 and release_time.hour < release_interval_hours:
         if data_ts.hour == 23 and release_time.hour < 4:
             # rounded_data_ts = round_to_nearest_release_time(data_ts)
             str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
@@ -173,10 +240,10 @@ def get_ongoing_extended_overdue_events():
         event_alert_data["event"]["validity"] = str(datetime.strptime(
             event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
 
-        if datetime.now() < validity:
+        if run_ts < validity:
             # On time release
             latest.append(event_alert_data)
-        elif validity < datetime.now():
+        elif validity < run_ts:
             # Late release
             overdue.append(event_alert_data)
         else:
@@ -185,8 +252,7 @@ def get_ongoing_extended_overdue_events():
             start = get_tomorrow_noon(validity)
             # Day 3 is the 3rd 12-noon from validity
             end = start + timedelta(days=2)
-            # current = datetime.now() # Production code is current time
-            current = datetime(2020, 1, 3, 8, 0, 0)
+            current = run_ts  # Production code is current time
             # Count the days distance between current date and day 3 to know which extended day it is
             day = 3 - (end - current).days
 
@@ -424,8 +490,10 @@ def get_monitoring_events(event_id=None):
     return event
 
 
-# LOUIE - changed the filter to "not" None and "== 4" instead of is None and != 1
-# for testing purposes only
+# NOTE: LOUIE Make this restroactive testing friendly
+# TWO Cases to Consider:
+# 1. Return empty list if testing onset on retroactive event
+# 2. Return row for finished events
 def get_active_monitoring_events():
     """
     Gets Active Events based on MonitoringEventAlerts data.
@@ -436,7 +504,7 @@ def get_active_monitoring_events():
     # Ignore the pylinter error on using "== None" vs "is None",
     # since SQLAlchemy interprets "is None" differently.
     active_events = mea.query.order_by(
-        DB.desc(mea.ts_start)).filter(mea.ts_end == None, mea.pub_sym_id != 1).all()
+        DB.desc(mea.ts_start)).filter(and_(mea.ts_end == None, mea.pub_sym_id != 1)).all()
 
     return active_events
 

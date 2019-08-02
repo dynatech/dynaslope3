@@ -251,7 +251,9 @@ class MonitoringMomsReleases(UserMixin, DB.Model):
 
     moms_rel_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trig_misc_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_triggers_misc.trig_misc_id"), nullable=False)
+        "ewi_db.monitoring_triggers_misc.trig_misc_id"))
+    release_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "ewi_db.monitoring_releases.release_id"))
     moms_id = DB.Column(DB.Integer, DB.ForeignKey(
         "ewi_db.monitoring_moms.moms_id"), nullable=False)
 
