@@ -1055,7 +1055,7 @@ def insert_cbewsl_ewi():
 def get_candidate_and_current_alerts():
     print(get_active_monitoring_events())
     ret_val = {
-        "leo": wrap_get_ongoing_extended_overdue_events(),
+        "leo": json.loads(wrap_get_ongoing_extended_overdue_events()),
         "candidate_alert": candidate_alerts_generator.main()
     }
     return jsonify(ret_val)
