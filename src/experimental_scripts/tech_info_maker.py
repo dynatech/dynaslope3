@@ -45,17 +45,17 @@ def get_moms_tech_info(moms_alert_details):
     significant = ", ".join(m2_triggers_features)
     critical = ", ".join(m3_triggers_features)
 
-    if m2_triggers_features:
-        significant_word = "significant"
-        if len(m2_triggers_features) == 1:
-            significant_word = significant_word.capitalize()
-        moms_parts.append(f"{significant_word} ({significant})")
-
     if m3_triggers_features:
         critical_word = "critical"
         if len(m3_triggers_features) == 1:
             critical_word = critical_word.capitalize()
         moms_parts.append(f"{critical_word} ({critical})")
+
+    if m2_triggers_features:
+        significant_word = "significant"
+        if len(m2_triggers_features) == 1:
+            significant_word = significant_word.capitalize()
+        moms_parts.append(f"{significant_word} ({significant})")
 
     multiple = ""
     feature = "feature"

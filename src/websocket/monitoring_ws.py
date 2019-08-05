@@ -102,11 +102,11 @@ def generate_alerts():
     # generated_alerts_json = public_alert_generator.main()
     # generated_alerts_json = public_alert_generator.main(site_code="umi")
     generated_alerts_json = public_alert_generator.main(
-        query_ts_end="2019-07-22 19:56:00", query_ts_start="2019-07-22 19:56:00", site_code="umi")
-    # generated_alerts_json = public_alert_generator.main("2018-11-14 07:51:00", True, "nur")
-    # generated_alerts_json = public_alert_generator.main(
-    #     "2019-01-22 03:00:00", True)
-    # generated_alerts_json = public_alert_generator.main(
-    #     "2018-11-14 07:51:00", True)
+        # query_ts_end="2019-07-22 19:56:00", query_ts_start="2019-07-22 19:56:00", site_code="umi")
+        # generated_alerts_json = public_alert_generator.main("2018-11-14 07:51:00", True, "nur")
+        # generated_alerts_json = public_alert_generator.main(
+        #     "2019-01-22 03:00:00", True)
+        # generated_alerts_json = public_alert_generator.main(
+        "2018-11-14 07:51:00", True)
 
     return generated_alerts_json

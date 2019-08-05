@@ -251,7 +251,9 @@ class MonitoringMomsReleases(UserMixin, DB.Model):
 
     moms_rel_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trig_misc_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_triggers_misc.trig_misc_id"), nullable=False)
+        "ewi_db.monitoring_triggers_misc.trig_misc_id"))
+    release_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "ewi_db.monitoring_releases.release_id"))
     moms_id = DB.Column(DB.Integer, DB.ForeignKey(
         "ewi_db.monitoring_moms.moms_id"), nullable=False)
 
@@ -388,6 +390,7 @@ class PublicAlertSymbols(UserMixin, DB.Model):
     alert_level = DB.Column(DB.Integer, nullable=False)
     alert_type = DB.Column(DB.String(7))
     recommended_response = DB.Column(DB.String(200))
+    duration = DB.Column(DB.Integer, nullable=False)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Public Symbol ID: {self.pub_sym_id}"
@@ -416,7 +419,7 @@ class OperationalTriggers(UserMixin, DB.Model):
         "Sites", backref=DB.backref("operational_triggers", lazy="dynamic"), lazy="select")
 
     trigger_symbol = DB.relationship(
-        "OperationalTriggerSymbols", backref="operational_triggers", lazy="joined", innerjoin=True)#lazy="select")
+        "OperationalTriggerSymbols", backref="operational_triggers", lazy="joined", innerjoin=True) #lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger_ID: {self.trigger_id}"
@@ -463,6 +466,11 @@ class TriggerHierarchies(UserMixin, DB.Model):
     source_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trigger_source = DB.Column(DB.String(20))
     hierarchy_id = DB.Column(DB.Integer)
+    is_default = DB.Column(DB.Integer())
+    is_active = DB.Column(DB.Integer())
+    data_interval = DB.Column(DB.String(20))
+    data_presence = DB.Column(DB.Integer())
+    is_ground = DB.Column(DB.Integer())
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Source ID: {self.source_id}"
@@ -815,9 +823,11 @@ class PublicAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Monitoring Alert Symbols class
     """
+
     class Meta:
         """Saves table class structure as schema model"""
         model = PublicAlertSymbols
+        exclude = ["public_alerts", "event_alerts"]
 
 
 class OperationalTriggerSymbolsSchema(MARSHMALLOW.ModelSchema):
@@ -827,10 +837,12 @@ class OperationalTriggerSymbolsSchema(MARSHMALLOW.ModelSchema):
 
     source_id = fields.Integer()
     trigger_hierarchy = fields.Nested("TriggerHierarchiesSchema", exclude=("trigger_symbols",))
+    internal_alert_symbol = fields.Nested("InternalAlertSymbolsSchema", exclude=("trigger_symbol",))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = OperationalTriggerSymbols
+        exclude = ["operational_triggers"]
 
 
 class TriggerHierarchiesSchema(MARSHMALLOW.ModelSchema):
@@ -838,13 +850,12 @@ class TriggerHierarchiesSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Trigger Hierarchies class
     """
 
-    trigger_sym_id = fields.Integer()
-    trigger_symbols = fields.Nested("OperationalTriggerSymbolsSchema", exclude=("trigger_hierarchy",))
+    source_id = fields.Integer()
+    trigger_symbols = fields.Nested("OperationalTriggerSymbolsSchema", many=True, exclude=("trigger_symbols",))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = TriggerHierarchies
-        # exclude = ["operational_triggers"]
 
 
 class InternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
@@ -857,6 +868,7 @@ class InternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = InternalAlertSymbols
+        exclude = ["trigger"]
 
 
 class IssuesAndRemindersSchema(MARSHMALLOW.ModelSchema):

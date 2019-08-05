@@ -15,7 +15,7 @@ and comparing is to generated_alerts.json
 May 2019
 """
 
-# from run import APP
+from run import APP
 import os
 import json
 from datetime import datetime, timedelta, time
@@ -27,13 +27,17 @@ from connection import MEMORY_CLIENT
 from src.models.monitoring import (
     OperationalTriggerSymbols as ots)
 from src.utils.monitoring import (get_routine_sites, build_internal_alert_level,
-                                  get_ongoing_extended_overdue_events, get_saved_event_triggers)
-from src.utils.extra import var_checker
+                                  get_ongoing_extended_overdue_events, get_saved_event_triggers,
+                                  round_down_data_ts, create_symbols_map, compute_event_validity)
+from src.utils.extra import var_checker, retrieve_data_from_memcache
 
+
+ROUTINE_EXTENDED_RELEASE_TIME = time(11, 30, 00)
 
 ##########################
 # Utility functions here #
 ##########################
+
 
 def generate_ias_x_ots_map():
     """
@@ -54,7 +58,7 @@ def generate_ias_x_ots_map():
                 "alert_level": item.alert_level,
                 "internal_symbol": ias.alert_symbol,
                 "internal_alert_id": ias.internal_sym_id
-            }            
+            }
 
     return cross_map
 
@@ -78,6 +82,29 @@ def get_generated_alerts_list_from_file(filepath, filename):
 ###################
 # Data processors #
 ###################
+
+def extract_non_triggering_moms(current_trigger_alerts):
+    """
+    Given the list of moms, look for m0 or op_trigger=0
+    """
+    non_triggering_moms = []
+    try:
+        cta_moms = next(iter(
+            filter(lambda x: x["type"] == "moms", current_trigger_alerts)), None)
+        moms_list = cta_moms["moms_list"]
+        non_triggering_moms = list(
+            filter(lambda x: x["op_trigger"] == 0, moms_list))
+    except KeyError:
+        pass
+    except TypeError:
+        # No moms in this site
+        # print("No moms in this site")
+        pass
+    except Exception as err:
+        print(err)
+        raise
+
+    return non_triggering_moms
 
 
 def check_if_extended(validity, data_ts, data_time, is_extended_entry):
@@ -107,39 +134,65 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         "site_code": site_code
     }
 
-    if general_status == "routine":
-        site_details = {"routine_sites_ids": []}
+    pas_row = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": alert_level})
+    public_alert_symbol = pas_row["alert_symbol"]
+
+    non_triggering_moms = extract_non_triggering_moms(
+        alert_entry["current_trigger_alerts"])
 
     formatted_alerts_for_ewi = {
         **site_details,
         "internal_alert_level": build_internal_alert_level(alert_level, trigger_list_str),
         "public_alert_level": alert_level,
-        "public_alert_symbol": PAS_MAP[("alert_symbol", alert_level)],
+        "public_alert_symbol": public_alert_symbol,
         "release_details": {
             "data_ts": data_ts,
             "trigger_list_str": trigger_list_str
         },
-        "general_status": general_status
+        "general_status": general_status,
+        "non_triggering_moms": non_triggering_moms
     }
-
 
     if general_status not in ["routine"]:
         triggers = alert_entry["event_triggers"]
         trigger_list_arr = []
 
-        for trigger in triggers:
-            # if trigger["is_trigger_new"]:
-            if True:                
-                trig_dict = {
-                    **trigger,
-                    "trigger_alert_level": trigger["alert"]  # For UI purposes
-                }
+        if triggers:
+            for trigger in triggers:
+                if trigger != {}:
+                    try:
+                        is_trigger_new = trigger["is_trigger_new"]
+                    except KeyError:
+                        is_trigger_new = True
+                        pass
 
-                trigger_list_arr.append(trig_dict)
+                    if is_trigger_new:
+                        # if trigger["is_trigger_new"]:
+                        trig_dict = {
+                            **trigger,
+                            # For UI purposes
+                            "trigger_alert_level": trigger["alert"]
+                        }
+
+                        if trigger["trigger_type"] == "moms":
+                            moms_cta = next(iter(
+                                filter(lambda x: x["type"] == "moms", alert_entry["current_trigger_alerts"])))
+                            moms_list = moms_cta["details"]["moms_list"]
+                            moms_trig_alert_level = trigger["alert_level"]
+                            moms_list = list(
+                                filter(lambda x: x["op_trigger"] == moms_trig_alert_level, moms_list))
+                            trig_dict["moms_list"] = moms_list
+                            del trig_dict["moms_list_notice"]
+
+                        trigger_list_arr.append(trig_dict)
 
         formatted_alerts_for_ewi["trigger_list_arr"] = trigger_list_arr
 
     return formatted_alerts_for_ewi
+
+
+IAS_X_OTS_MAP = generate_ias_x_ots_map()
 
 
 def fix_internal_alert(alert_entry, internal_source_id):
@@ -154,20 +207,28 @@ def fix_internal_alert(alert_entry, internal_source_id):
 
     for trigger in event_triggers:
         alert_symbol = trigger["alert"]
-        trigger["internal_sym_id"] = IAS_X_OTS_MAP["alert_symbol", alert_symbol]["internal_alert_id"]
+        ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                              "alert_symbol": alert_symbol})
+        trigger["internal_sym_id"] = ots_row["internal_alert_symbol"]["internal_sym_id"]
+
+        # trigger["internal_sym_id"] = IAS_X_OTS_MAP["alert_symbol",
+        #                                            alert_symbol]["internal_alert_id"]
         source_id = trigger["source_id"]
         alert_level = trigger["alert_level"]
-        internal_alert_symbol = IAS_MAP["alert_symbol", alert_level, source_id]
+        op_trig_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+            "alert_level": alert_level, "source_id": source_id})
+        internal_alert_symbol = op_trig_row["internal_alert_symbol"]["alert_symbol"]
 
         try:
             if trigger["invalid"]:
                 invalid_triggers.append(trigger)
-                internal_alert_symbol = IAS_MAP["alert_symbol", alert_level, source_id]
                 internal_alert = re.sub(
-                    "%s(0/x)?" % internal_alert_symbol, "", internal_alert)
+                    "%s(0|x)?" % internal_alert_symbol, internal_alert_symbol, internal_alert)
 
         except KeyError:  # If valid, trigger should have no "invalid" key
-            valid_a_l = IAS_X_OTS_MAP["alert_symbol", alert_symbol]["alert_level"]
+            ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                "alert_symbol": alert_symbol})
+            valid_a_l = ots_row["alert_level"]
             valid_alert_levels.append(valid_a_l)
 
     highest_valid_public_alert = 0
@@ -182,7 +243,10 @@ def fix_internal_alert(alert_entry, internal_source_id):
         validity_status = "invalid"
 
     public_alert_sym = internal_alert.split("-")[0]
-    nd_internal_alert_sym = IAS_MAP["alert_symbol", -1, internal_source_id]
+    op_trig_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+        "alert_level": -1, "source_id": internal_source_id})
+    nd_internal_alert_sym = op_trig_row["internal_alert_symbol"]["alert_symbol"]
+
     is_nd = public_alert_sym == nd_internal_alert_sym
     if is_nd:
         trigger_list_str = nd_internal_alert_sym
@@ -192,7 +256,7 @@ def fix_internal_alert(alert_entry, internal_source_id):
     try:
         if is_nd:
             trigger_list_str += "-"
-        
+
         trigger_list_str += internal_alert.split("-")[1]
     except:
         pass
@@ -208,13 +272,16 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
     latest = db_alerts_dict["latest"]
     extended = db_alerts_dict["extended"]
     overdue = db_alerts_dict["overdue"]
-    
+
     totally_invalid_sites_list = []
     routine_sites_list = get_routine_sites(query_end_ts)
+    var_checker("routine_sites_list", routine_sites_list, True)
 
     # Get all latest and overdue from db alerts
     merged_db_alerts_list = latest + overdue
-    internal_source_id = TH_MAP["internal"]
+    internal_as_row = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "internal"})
+    internal_source_id = internal_as_row["source_id"]
 
     if with_alerts:
         for site_w_alert in with_alerts:
@@ -232,7 +299,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     site_db_alert["event"]["event_id"])
 
                 for event_trigger in site_w_alert["event_triggers"]:
-                    saved_trigger = next(filter(lambda x: x[0] == event_trigger["internal_sym_id"], saved_event_triggers), None)
+                    saved_trigger = next(filter(
+                        lambda x: x[0] == event_trigger["internal_sym_id"], saved_event_triggers), None)
 
                     is_trigger_new = False
                     if saved_trigger:
@@ -240,10 +308,11 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                             is_trigger_new = True
                     else:
                         is_trigger_new = True
-                    
+
                     event_trigger["is_trigger_new"] = is_trigger_new
 
                 db_latest_release_ts = site_db_alert["releases"][0]["data_ts"]
+
                 # if release is already released
                 if db_latest_release_ts == site_w_alert["ts"]:
                     is_for_release = False
@@ -264,7 +333,11 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
     a0_routine_list = []
     nd_routine_list = []
-    nd_internal_alert_sym = IAS_MAP["alert_symbol", -1, internal_source_id]
+    routine_non_triggering_moms = {}
+
+    ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                          "alert_level": -1, "source_id": internal_source_id})
+    nd_internal_alert_sym = ots_row["internal_alert_symbol"]["alert_symbol"]
 
     if without_alerts:
         for site_wo_alert in without_alerts:
@@ -272,7 +345,6 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             site_id = site_wo_alert["site_id"]
             site_code = site_wo_alert["site_code"]
             internal_alert = site_wo_alert["internal_alert"]
-
 
             is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
                                               == site_code, merged_db_alerts_list))
@@ -295,11 +367,16 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 candidate_alerts_list.append(formatted_alert_entry)
             else:
+                non_triggering_moms = extract_non_triggering_moms(
+                    site_wo_alert["current_trigger_alerts"])
                 if site_code in routine_sites_list:
                     if internal_alert == nd_internal_alert_sym:
                         nd_routine_list.append(site_id)
                     else:
                         a0_routine_list.append(site_id)
+
+                    if non_triggering_moms:
+                        routine_non_triggering_moms[site_id] = non_triggering_moms
 
     if totally_invalid_sites_list:
         # Process all totally invalid sites for routine
@@ -308,15 +385,16 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             site_code = t_i_site["site_code"]
 
             if site_code in routine_sites_list:
-                rel_triggers = t_i_site["release_triggers"]
+                current_trigger_alerts = t_i_site["current_trigger_alerts"]
 
                 has_ground_data = False
-                for rel_trigger in rel_triggers:
-                    if rel_trigger["type"] == "surficial" and rel_trigger["details"]["alert_level"] > -1:
+                for current_trigger_alert in current_trigger_alerts:
+                    # NOTE: For updating DYNAMIC
+                    if current_trigger_alert["type"] == "surficial" and current_trigger_alert["details"]["alert_level"] > -1:
                         has_ground_data = True
                         break
-                    elif rel_trigger["type"] == "subsurface":
-                        sub_details = rel_trigger["details"]
+                    elif current_trigger_alert["type"] == "subsurface":
+                        sub_details = current_trigger_alert["details"]
                         if sub_details:
                             for tsm in sub_details:
                                 if tsm["alert_level"] > -1:
@@ -329,17 +407,26 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     nd_routine_list.append(site_id)
 
     if without_alerts:
+        # NOTE: LOUIE VARIABLES Routine Release Time
+        global ROUTINE_EXTENDED_RELEASE_TIME
+        routine_extended_release_time = ROUTINE_EXTENDED_RELEASE_TIME
         temp = datetime.strptime(without_alerts[0]["ts"], "%Y-%m-%d %H:%M:%S")
         time_ts = time(temp.hour, temp.minute, temp.second)
-        to_compare = time(11, 30, 00)
+        # to_compare = time(11, 30, 00)
+        to_compare = routine_extended_release_time
         is_routine_release_time = time_ts >= to_compare
         has_routine_data = a0_routine_list != [] and nd_routine_list != []
 
         if has_routine_data and is_routine_release_time:
             routine_data_ts = without_alerts[0]["ts"]
+
+            pas_row = retrieve_data_from_memcache(
+                "public_alert_symbols", {"alert_level": 0})
+            public_alert_symbol = pas_row["alert_symbol"]
+
             routine_candidates = {
                 "public_alert_level": 0,
-                "public_alert_symbol": PAS_MAP[("alert_symbol", 0)],
+                "public_alert_symbol": public_alert_symbol,
                 "data_ts": str(routine_data_ts),
                 "general_status": "routine",
                 "routine_details": [
@@ -353,7 +440,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                         "internal_alert_level": build_internal_alert_level(0, nd_internal_alert_sym),
                         "trigger_list_str": nd_internal_alert_sym
                     }
-                ]
+                ],
+                "non_triggering_moms": routine_non_triggering_moms
             }
             candidate_alerts_list.append(routine_candidates)
 
@@ -373,20 +461,22 @@ def separate_with_alerts_wo_alerts(generated_alerts_list):
     return with_alerts, without_alerts
 
 
-IAS_X_OTS_MAP = generate_ias_x_ots_map()
-IAS_MAP = MEMORY_CLIENT.get("internal_alert_symbols".upper())
-PAS_MAP = MEMORY_CLIENT.get("public_alert_symbols".upper())
-TH_MAP = MEMORY_CLIENT.get("trigger_hierarchies".upper())
-
-
-def main(ts=None, is_test=None):
+def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
     """
-    Just a comment
+
+    Args:
+        ts (Str Datetime)
+        generated_alerts_list (List) - provided thru websocket if not reading from
+            file
+        check_legacy_candidate (Bool) - show generated candidate alert entry for
+            released MonitoringReleases entries; Rationale: If data_ts
+            already exists in MonitoringReleases, release will not 
+            be included in Candidates Alert Generation
     """
     start_run_ts = datetime.now()
-    # query_end_ts = ts if ts else datetime.now()
-    # query_end_ts = datetime.strptime(query_end_ts, "%Y-%m-%d %H:%M:%S")
     query_end_ts = datetime.now()
+    if ts:
+        query_end_ts = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
     # is_test_string = "We are in a test run!" if is_test else "Running with DB!"
     is_test_string = "Running with DB!"
     print()
@@ -396,14 +486,19 @@ def main(ts=None, is_test=None):
     ####################
     # START OF PROCESS #
     ####################
-    filepath = APP_CONFIG["generated_alerts_path"]
-    # filepath = "/var/www/dynaslope3/outputs/"
-    filename = "generated_alerts.json"
-    generated_alerts_list = get_generated_alerts_list_from_file(
-        filepath, filename)
+    # If no generated alerts sent thru argument, read from
+    # file.
+    if not generated_alerts_list:
+        filepath = APP_CONFIG["generated_alerts_path"]
+        # filepath = "/var/www/dynaslope3/outputs/"
+        filename = "generated_alerts.json"
+        generated_alerts_list = get_generated_alerts_list_from_file(
+            filepath, filename)
 
     # Get Active DB Alerts
-    db_alerts_dict = get_ongoing_extended_overdue_events()
+    if check_legacy_candidate:
+        query_end_ts = round_down_data_ts(query_end_ts)
+    db_alerts_dict = get_ongoing_extended_overdue_events(query_end_ts)
 
     # Split site with alerts and site with no alerts
     with_alerts, without_alerts = separate_with_alerts_wo_alerts(
@@ -431,4 +526,4 @@ def main(ts=None, is_test=None):
 
 
 if __name__ == "__main__":
-    main()
+    main(ts="2018-11-27 11:56:00", check_legacy_candidate=True)

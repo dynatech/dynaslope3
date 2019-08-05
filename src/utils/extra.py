@@ -22,36 +22,37 @@ from src.models.monitoring import (
     InternalAlertSymbols as ias, TriggerHierarchies as th)
 
 
-# def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True):
-#     """
+def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True):
+    """
 
-#     """
+    """
 
-#     #
-#     #   filters_dict = {
-#     #       "alert_level": 1,
-#     #       "source_id": 2
-#     #   }
-#     #
+    return_data = []
 
-#     if filters_dict is None:
-#         filters_dict = []
+    if filters_dict is None:
+        filters_dict = []
 
-#     data = MEMORY_CLIENT.get(f"D3_{table_name.upper()}")
-#     if data:
-#         conditions =
+    data = MEMORY_CLIENT.get(f"D3_{table_name.upper()}")
 
-#         for key in filters_dict:
-#             key
+    if data:
+        if filters_dict:
+            for row in data:
+                try:
+                    if all(filters_dict[key] == row[key] for key in filters_dict):
+                        if retrieve_one:
+                            return_data = row
+                            break
+                        else:
+                            return_data.append(row)
+                except KeyError as err:
+                    print(err)
+                    raise
+        else:
+            return_data = data
+    else:
+        raise Exception("Table name provided is not found in memcached")
 
-#         for row in data:
-
-#             all(filters_dict[key] == row[key] for key in filters_dict):
-
-#     else:
-#         raise Exception("Table name provided is not found in memcached")
-
-#     return None
+    return return_data
 
 
 def create_symbols_map(qualifier):
@@ -154,27 +155,3 @@ def round_to_nearest_release_time(data_ts, interval=4):
         date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
 
     return date_time
-
-
-def compute_event_validity(data_ts, alert_level):
-    """
-    Computes for event validity given set of trigger timestamps
-
-    Args:
-        data_ts (datetime)
-        alert_level (int)
-
-    Returns datetime
-    """
-
-    rounded_data_ts = round_to_nearest_release_time(data_ts)
-    if alert_level in [1, 2]:
-        add_day = 1
-    elif alert_level == 3:
-        add_day = 2
-    else:
-        raise ValueError("Alert level accepted is 1/2/3 only")
-
-    validity = rounded_data_ts + timedelta(add_day)
-
-    return validity
