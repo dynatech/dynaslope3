@@ -71,15 +71,10 @@ def create_app(config_name):
     CORS(app)
     SOCKETIO.init_app(app)
 
-<<<<<<< HEAD
-    start_monitoring_ws_bg_task()
-=======
     from connection import set_memcache
     set_memcache.main(MEMORY_CLIENT)
 
     # start_monitoring_ws_bg_task()
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
-
     # @app.route("/hello")
     # def hello_world():
     #     return "Hello, world!"

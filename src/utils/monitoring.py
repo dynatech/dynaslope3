@@ -14,21 +14,15 @@ from src.models.monitoring import (
     MonitoringTriggers, MonitoringTriggersMisc,
     MomsInstances, MomsFeatures,
     InternalAlertSymbols, PublicAlertSymbols,
-<<<<<<< HEAD
-    TriggerHierarchies, OperationalTriggerSymbols, MonitoringEventAlertsSchema)
-=======
     TriggerHierarchies, OperationalTriggerSymbols,
     MonitoringEventAlertsSchema, OperationalTriggers,
     MonitoringMoms as moms, MomsInstances as mi)
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
     var_checker, create_symbols_map)
 from src.utils.narratives import write_narratives_to_db
 
 
-<<<<<<< HEAD
-=======
 # PAS_MAP = MEMORY_CLIENT.get("PUBLIC_ALERT_SYMBOLS")
 PAS_MAP = create_symbols_map("public_alert_symbols")
 
@@ -144,7 +138,6 @@ def get_saved_event_triggers(event_id):
     return event_triggers
 
 
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
 def check_if_alert_status_entry_in_db(trigger_id):
     """
     Sample
@@ -163,10 +156,6 @@ def check_if_alert_status_entry_in_db(trigger_id):
 def update_alert_status(as_details):
     """
     Updates alert status entry in DB
-<<<<<<< HEAD
-=======
-
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
     Args:
         as_details (Dictionary): Updates current entry of alert_status
             e.g.
@@ -225,20 +214,13 @@ def get_tomorrow_noon(ts):
     return tom_noon_ts
 
 
-<<<<<<< HEAD
-def get_ongoing_extended_overdue_events():
-=======
 def get_ongoing_extended_overdue_events(run_ts=None):
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
     """
     Gets active events and organizes them into the following categories:
         (a) Ongoing
         (b) Extended
         (c) Overdue
     For use in alerts_from_db in Candidate Alerts Generator
-<<<<<<< HEAD
-    """
-=======
 
     Args:
         run_ts (Datetime) - used for testing retroactive generated alerts
@@ -249,7 +231,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     if not run_ts:
         run_ts = datetime.now()
 
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
     active_event_alerts = get_active_monitoring_events()
 
     latest = []
@@ -259,12 +240,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         validity = event_alert.event.validity
         latest_release = event_alert.releases.order_by(
             DB.desc(MonitoringReleases.data_ts)).first()
-<<<<<<< HEAD
-        data_ts = latest_release.data_ts
-        rounded_data_ts = round_to_nearest_release_time(data_ts)
-        release_time = latest_release.release_time
-
-=======
 
         # NOTE: LOUIE This formats release time to have date instead of time only
         data_ts = latest_release.data_ts
@@ -273,7 +248,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         release_time = latest_release.release_time
 
         # if data_ts.hour == 23 and release_time.hour < release_interval_hours:
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
         if data_ts.hour == 23 and release_time.hour < 4:
             # rounded_data_ts = round_to_nearest_release_time(data_ts)
             str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
@@ -281,18 +255,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
 
             release_time = f"{str_data_ts_ymd} {str_release_time}"
 
-<<<<<<< HEAD
-        event_alert_data = MonitoringEventAlertsSchema(many=False).dump(event_alert).data
-        public_alert_level = event_alert.public_alert_symbol.alert_level
-        trigger_list = latest_release.trigger_list
-        event_alert_data["internal_alert_level"] = build_internal_alert_level(None, trigger_list, public_alert_level)
-        event_alert_data["event"]["validity"] = str(datetime.strptime(event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
-
-        if datetime.now() < validity:
-            # On time release
-            latest.append(event_alert_data)
-        elif validity < datetime.now():
-=======
         event_alert_data = MonitoringEventAlertsSchema(
             many=False).dump(event_alert).data
         public_alert_level = event_alert.public_alert_symbol.alert_level
@@ -306,7 +268,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             # On time release
             latest.append(event_alert_data)
         elif validity < run_ts:
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
             # Late release
             overdue.append(event_alert_data)
         else:
@@ -315,12 +276,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             start = get_tomorrow_noon(validity)
             # Day 3 is the 3rd 12-noon from validity
             end = start + timedelta(days=2)
-<<<<<<< HEAD
-            # current = datetime.now() # Production code is current time
-            current = datetime(2020, 1, 3, 8, 0, 0)
-=======
             current = run_ts  # Production code is current time
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
             # Count the days distance between current date and day 3 to know which extended day it is
             day = 3 - (end - current).days
 
@@ -837,3 +793,4 @@ def build_internal_alert_level(public_alert_level, trigger_list=None):
             internal_alert_level = trigger_list
 
     return internal_alert_level
+
