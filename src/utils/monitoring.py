@@ -19,7 +19,7 @@ from src.models.monitoring import (
     MonitoringMoms as moms, MomsInstances as mi)
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
-    var_checker, compute_event_validity, create_symbols_map)
+    var_checker, create_symbols_map)
 from src.utils.narratives import write_narratives_to_db
 
 
@@ -32,6 +32,31 @@ PAS_MAP = create_symbols_map("public_alert_symbols")
 MAX_POSSIBLE_ALERT_LEVEL = 3  # Number of alert levels excluding zero
 RELEASE_INTERVAL_HOURS = 4  # Every how many hours per release
 ALERT_EXTENSION_LIMIT = 72  # Max hours total of 3 days
+
+
+def compute_event_validity(data_ts, alert_level):
+    """
+    NOTE: Transfer to mon utils
+    Computes for event validity given set of trigger timestamps
+
+    Args:
+        data_ts (datetime)
+        alert_level (int)
+
+    Returns datetime
+    """
+
+    rounded_data_ts = round_to_nearest_release_time(data_ts)
+    if alert_level in [1, 2]:
+        add_day = 1
+    elif alert_level == 3:
+        add_day = 2
+    else:
+        raise ValueError("Alert level accepted is 1/2/3 only")
+
+    validity = rounded_data_ts + timedelta(add_day)
+
+    return validity
 
 
 def get_site_moms_alerts(site_id, ts_start, ts_end):
@@ -295,23 +320,25 @@ def get_routine_sites(timestamp=None):
         current_data = timestamp.date()
     get_sites = get_sites_data()
     day = calendar.day_name[current_data.weekday()]
+    month = current_data.month
     wet_season = [[1, 2, 6, 7, 8, 9, 10, 11, 12], [5, 6, 7, 8, 9, 10]]
     dry_season = [[3, 4, 5], [1, 2, 3, 4, 11, 12]]
     routine_sites = []
 
     if (day == "Friday" or day == "Tuesday"):
-        # print(day)
+        print(day)
         for sites in get_sites:
             season = int(sites.season) - 1
-            if sites.season in wet_season[season]:
+            if month in wet_season[season]:
                 routine_sites.append(sites.site_code)
     elif day == "Wednesday":
-        # print(day)
+        print(day)
         for sites in get_sites:
             season = int(sites.season) - 1
-            if sites.season in dry_season[season]:
+            if month in dry_season[season]:
                 routine_sites.append(sites.site_code)
     else:
+        print(day)
         routine_sites = []
 
     # print(routine_sites)

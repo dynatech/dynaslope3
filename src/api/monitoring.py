@@ -28,7 +28,7 @@ from src.utils.monitoring import (
     write_monitoring_earthquake_to_db, get_internal_alert_symbols,
     get_monitoring_events_table, get_event_count, get_public_alert,
     get_ongoing_extended_overdue_events, update_alert_status)
-from src.utils.extra import (create_symbols_map, var_checker, compute_event_validity,
+from src.utils.extra import (create_symbols_map, var_checker,
                              retrieve_data_from_memcache)
 
 #####################################################
@@ -797,7 +797,7 @@ def insert_ewi(internal_json=None):
 
                 # Raising.
                 # NOTE: LOUIE change max alert level here
-                if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= (max_possible_alert_level + 1)
+                if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= (max_possible_alert_level + 1):
                 # if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= 4:
                     # Now that you created a new event
                     print("---RAISING")
@@ -838,7 +838,7 @@ def insert_ewi(internal_json=None):
                         event_alert_id = current_event_alert_id
 
                     # NOTE: LOUIE change timedelta to dynamic
-                    elif release_time >= (validity + timedelta(hours=alert_extension_limit))
+                    elif release_time >= (validity + timedelta(hours=alert_extension_limit)):
                     # elif release_time >= (validity + timedelta(days=3)):
                         print("---END OF EXTENDED")
                         print("---LOWER FINALLY")

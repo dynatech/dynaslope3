@@ -155,27 +155,3 @@ def round_to_nearest_release_time(data_ts, interval=4):
         date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
 
     return date_time
-
-
-def compute_event_validity(data_ts, alert_level):
-    """
-    Computes for event validity given set of trigger timestamps
-
-    Args:
-        data_ts (datetime)
-        alert_level (int)
-
-    Returns datetime
-    """
-
-    rounded_data_ts = round_to_nearest_release_time(data_ts)
-    if alert_level in [1, 2]:
-        add_day = 1
-    elif alert_level == 3:
-        add_day = 2
-    else:
-        raise ValueError("Alert level accepted is 1/2/3 only")
-
-    validity = rounded_data_ts + timedelta(add_day)
-
-    return validity
