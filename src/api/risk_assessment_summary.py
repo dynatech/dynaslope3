@@ -48,24 +48,19 @@ def get_risk_assessment_summary_data():
 @RISK_ASSESSMENT_BLUEPRINT.route("/risk_assesment_summary/save_risk_assessment_summary", methods=["POST", "GET"])
 def save_risk_assessment_summary():
     data = request.get_json()
-    # data = {
-    #     "summary_id": 0,
-    #     "location": "UPDATED",
-    #     "impact": "UPDATED",
-    #     "adaptive_capacity": "UPDATED",
-    #     "vulnerability": "UPDATED"
-    # }
+    if data is None:
+        data = request.form
 
     status = None
     message = ""
 
     print(data)
     try:
-        summary_id = data["summary_id"]
-        location = data["location"]
-        impact = data["impact"]
-        adaptive_capacity = data["adaptive_capacity"]
-        vulnerability = data["vulnerability"]
+        summary_id = int(data["summary_id"])
+        location = str(data["location"])
+        impact = str(data["impact"])
+        adaptive_capacity = str(data["adaptive_capacity"])
+        vulnerability = str(data["vulnerability"])
 
         if summary_id == 0:
             insert_data = RiskAssessmentSummary(location=location,
@@ -99,13 +94,13 @@ def save_risk_assessment_summary():
 @RISK_ASSESSMENT_BLUEPRINT.route("/risk_assesment_summary/delete_risk_assessment_summary", methods=["GET", "POST"])
 def delete_risk_assessment_summary():
     data = request.get_json()
-    # data = {
-    #     "summary_id": 3
-    # }
+    if data is None:
+        data = request.form
+
     status = None
     message = ""
 
-    summary_id = data["summary_id"]
+    summary_id = int(data["summary_id"])
 
     try:
         RiskAssessmentSummary.query.filter_by(
