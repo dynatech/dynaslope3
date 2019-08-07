@@ -5,7 +5,7 @@ Inbox Functions Controller File
 from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
 from src.models.hazard_data import (
-    HazardData, HazardDataSchema)
+    HazardData, HazardDataSchema, HazardMap, HazardMapSchema)
 
 HAZARD_DATA_BLUEPRINT = Blueprint(
     "hazard_data_blueprint", __name__)
@@ -26,6 +26,24 @@ def get_all_hazard_data():
             "speed_of_onset": row["speed_of_onset"],
             "early_warning": row["early_warning"],
             "impact": row["impact"]
+        })
+    return jsonify(data)
+
+
+@HAZARD_DATA_BLUEPRINT.route("/hazard_data/get_all_hazard_map_data", methods=["GET"])
+def get_all_hazard_map_data():
+    query = HazardMap.query.order_by(
+        HazardMap.hazard_map_id.desc()).all()
+
+    result = HazardMapSchema(
+        many=True).dump(query).data
+    data = []
+    for row in result:
+        data.append({
+            "hazard_map_id": row["hazard_map_id"],
+            "path": row["path"],
+            "file_name": row["file_name"],
+            "path": row["path"]
         })
     return jsonify(data)
 

@@ -20,6 +20,23 @@ class HazardData(DB.Model):
         return f"Class Representation"
 
 
+class HazardMap(DB.Model):
+    """
+    Class representation of hazard_data table
+    """
+    __tablename__ = "hazard_map"
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
+
+    hazard_map_id = DB.Column(DB.Integer, primary_key=True)
+    path = DB.Column(DB.String(99))
+    file_name = DB.Column(DB.String(99))
+    timestamp = DB.Column(DB.String(100))
+
+    def __repr__(self):
+        return f"Class Representation"
+
+
 class HazardDataSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of HazardData class
@@ -28,3 +45,13 @@ class HazardDataSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = HazardData
+
+
+class HazardMapSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of HazardMap class
+    """
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = HazardMap
