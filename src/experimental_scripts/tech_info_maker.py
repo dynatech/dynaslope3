@@ -162,6 +162,10 @@ def get_rainfall_tech_info(rainfall_alert_details):
     one_day_data = None
     three_day_data = None
 
+    if not rainfall_alert_details:
+        raise Exception("Code flow reaching rainfall tech info WITHOUT any" +
+                        "ENTRY on rainfall_alerts table.")
+
     for item in rainfall_alert_details:
         days = []
         cumulatives = []

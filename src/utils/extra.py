@@ -4,12 +4,9 @@ Extra Utils
 This file contains all utility functions that can be used on almost
 any module in this project.
 
-Software Infrastructure SubTeam
-CBEWS-L Team
-Dynaslope Project 2019
-
-27 May 2019
+6 August 2019
 """
+
 import pprint
 import calendar
 from connection import MEMORY_CLIENT
