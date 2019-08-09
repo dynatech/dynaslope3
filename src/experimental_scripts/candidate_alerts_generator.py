@@ -12,10 +12,10 @@ and comparing is to generated_alerts.json
 3. Extended Release
 4. Routine Release
 
-May 2019
+August 2019
 """
 
-from run import APP
+# from run import APP
 import os
 import json
 from datetime import datetime, timedelta, time
@@ -28,7 +28,8 @@ from src.models.monitoring import (
     OperationalTriggerSymbols as ots)
 from src.utils.monitoring import (get_routine_sites, build_internal_alert_level,
                                   get_ongoing_extended_overdue_events, get_saved_event_triggers,
-                                  round_down_data_ts, create_symbols_map, compute_event_validity)
+                                  round_down_data_ts, create_symbols_map, compute_event_validity,
+                                  search_if_moms_is_released)
 from src.utils.extra import var_checker, retrieve_data_from_memcache
 
 
@@ -82,6 +83,25 @@ def get_generated_alerts_list_from_file(filepath, filename):
 ###################
 # Data processors #
 ###################
+def extract_unreleased_moms(moms_list):
+    """
+    Searches through provided moms_list and looks for any unreleased 
+    moms.
+
+    Args:
+        moms_list (List)
+
+    Returns
+        All unreleased moms.
+    """
+    unreleased_moms_list = []
+    for moms in moms_list:
+        is_released = search_if_moms_is_released(moms["moms_id"])
+        if not is_released:
+            unreleased_moms_list.append(moms)
+
+    return unreleased_moms_list
+
 
 def extract_non_triggering_moms(current_trigger_alerts):
     """
@@ -151,7 +171,8 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
             "trigger_list_str": trigger_list_str
         },
         "general_status": general_status,
-        "non_triggering_moms": non_triggering_moms
+        "non_triggering_moms": non_triggering_moms,
+        "unresolved_moms_list": alert_entry["unresolved_moms_list"]
     }
 
     if general_status not in ["routine"]:
@@ -163,6 +184,7 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
                 if trigger != {}:
                     try:
                         is_trigger_new = trigger["is_trigger_new"]
+                        del trigger["is_trigger_new"]
                     except KeyError:
                         is_trigger_new = True
                         pass
@@ -180,9 +202,16 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
                                 filter(lambda x: x["type"] == "moms", alert_entry["current_trigger_alerts"])))
                             moms_list = moms_cta["details"]["moms_list"]
                             moms_trig_alert_level = trigger["alert_level"]
+
+                            # Get triggering moms from current_trigger_alerts->moms moms_list
                             moms_list = list(
                                 filter(lambda x: x["op_trigger"] == moms_trig_alert_level, moms_list))
-                            trig_dict["moms_list"] = moms_list
+
+                            # Remove MOMS that have been released
+                            unreleased_moms_list = extract_unreleased_moms(
+                                moms_list)
+
+                            trig_dict["moms_list"] = unreleased_moms_list
                             del trig_dict["moms_list_notice"]
 
                         trigger_list_arr.append(trig_dict)
@@ -275,7 +304,6 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
     totally_invalid_sites_list = []
     routine_sites_list = get_routine_sites(query_end_ts)
-    var_checker("routine_sites_list", routine_sites_list, True)
 
     # Get all latest and overdue from db alerts
     merged_db_alerts_list = latest + overdue
@@ -304,7 +332,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                     is_trigger_new = False
                     if saved_trigger:
-                        if saved_trigger[1] > datetime.strptime(event_trigger["ts_updated"], "%Y-%m-%d %H:%M:%S"):
+                        if saved_trigger[1] < datetime.strptime(event_trigger["ts_updated"], "%Y-%m-%d %H:%M:%S"):
                             is_trigger_new = True
                     else:
                         is_trigger_new = True
@@ -431,12 +459,12 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 "general_status": "routine",
                 "routine_details": [
                     {
-                        "site_ids": a0_routine_list,
+                        "site_id_list": a0_routine_list,
                         "internal_alert_level": build_internal_alert_level(0, None),
                         "trigger_list_str": None
                     },
                     {
-                        "site_ids": nd_routine_list,
+                        "site_id_list": nd_routine_list,
                         "internal_alert_level": build_internal_alert_level(0, nd_internal_alert_sym),
                         "trigger_list_str": nd_internal_alert_sym
                     }
@@ -526,4 +554,7 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
 
 
 if __name__ == "__main__":
-    main(ts="2018-11-27 11:56:00", check_legacy_candidate=True)
+    main()
+
+    # ROUTINE INVALID
+    # main(ts="<timestamp>")

@@ -1,16 +1,12 @@
 """
-Public Alert Generator (Py3) version 0.2
+Public Alert Generator (Py3) Beta
 ======
 For use of Dynaslope Early Warning System
 
-Implemented in Python 3 and SQLAlchemy by:
-    Kevin Dhale Dela Cruz
-    John Louie Nepomuceno
-
-May 2019
+August 2019
 """
 
-from run import APP
+# from run import APP
 import pprint
 import os
 import json
@@ -259,9 +255,9 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
 
             recent_triggers_list.append(trigger_dict)
     
-    else:
-        trigger_dict = {}
-        recent_triggers_list.append(trigger_dict)
+    # else:
+    #     trigger_dict = {}
+    #     recent_triggers_list.append(trigger_dict)
 
     return recent_triggers_list
 
@@ -283,7 +279,9 @@ def check_if_has_unresolved_moms_instance(site_moms_alerts_list):
 
         if not (instance_id in unique_moms_instance_set):
             if site_moms.op_trigger > 0:
-                unresolved_moms_list.append(site_moms)
+                moms_data = MonitoringMomsSchema(exclude=(
+                    "moms_releases", "validator", "reporter", "narrative")).dump(site_moms).data
+                unresolved_moms_list.append(moms_data)
 
             unique_moms_instance_set.add(instance_id)
         
@@ -1114,7 +1112,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             #############
             # LOWERING CONDITIONS STARTS HERE
             #############
-
             is_release_time_run = query_ts_end == release_time - timedelta(minutes=30)
             is_45_minute_beyond = int(query_ts_start.strftime("%M")) > 45
             is_not_yet_write_time = not (
@@ -1141,7 +1138,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             if is_end_of_validity:
                 # Checks all lowering conditions before lowering
                 if is_rainfall_rx or (is_within_alert_extension_limit and has_no_ground_alert) \
-                    or is_not_yet_write_time or has_unresolved_moms:
+                    or is_not_yet_write_time or (has_unresolved_moms and is_within_alert_extension_limit):
                     validity = round_to_nearest_release_time(data_ts=query_ts_end + timedelta(minutes=30), interval=no_data_hours_extension)
 
                     if is_release_time_run:
@@ -1220,7 +1217,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             "internal_alert": internal_alert,
             "validity": validity,
             "event_triggers": event_triggers,
-            "current_trigger_alerts": formatted_current_trigger_alerts
+            "current_trigger_alerts": formatted_current_trigger_alerts,
+            "unresolved_moms_list": unresolved_moms_list
         }
 
         try:
@@ -1242,7 +1240,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         # TRY TO WRITE TO DB PUBLIC_ALERTS #
         ####################################
         if not do_not_write_to_db:
-            print("Checking if new public alert.")
             try:
                 current_pa_id = latest_site_pa.public_id
 
@@ -1252,20 +1249,18 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
                 public_alert_result = write_to_db_public_alerts(
                     for_db_public_dict, latest_site_pa)
-                if not public_alert_result:
+                if public_alert_result == "exists":
                     print()
                     print(
                         f"Active Public alert with ID: {current_pa_id} on Database.")
                 else:
-                    print(f"Writing to DB with ID: {public_alert_result}")
+                    print()
+                    print(f"NEW PUBLIC ALERT WRITTEN with ID: {public_alert_result}")
 
             except Exception as err:
                 print(err)
                 DB.session.rollback()
                 raise
-            # var_checker(" NEW PUBLIC ALERT HAS BEEN WRITTEN", new_public_alert_id, True)
-        # else:
-        #     print(" NOTHING HAS BEEN WRITTEN")
 
         ######################
         # !!!! PRINTERS !!!! #
@@ -1281,6 +1276,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
     """
     """
+    script_start = datetime.now()
 
     try:
         query_ts_start = datetime.strptime(query_ts_start, "%Y-%m-%d %H:%M:%S")
@@ -1318,25 +1314,13 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
         file_path.write(json_data)
 
     script_end = datetime.now()
-    print(f"Runtime: {script_end - query_ts_start} | Done generating alerts!")
+    print(f"Runtime: {script_end - script_start} | Done generating alerts!")
     print()
     return json_data
 
 
 if __name__ == "__main__":
-    # main()
-    # main(is_test=True, site_code="umi")
-    # main(query_ts_end="2019-07-22 15:56:00", query_ts_start="2019-07-22 15:56:00", is_test=True, site_code="umi")
-    # main(query_ts_end="2019-07-22 15:56:00", query_ts_start="2019-07-22 15:56:00", is_test=True)
-    main(query_ts_end="2018-11-27 11:56:00", query_ts_start="2018-11-27 11:56:00", is_test=True)
-    # L2
-    # main("2019-01-22 03:00:00", True, "ime")
-    # # main("2018-12-26 11:00:00", True, "lpa")
-    # main("2018-11-30 15:51:00", True, "ime")
-    # MOMS
-    # main("2019-01-22 03:00:00", True, "dad")
-    # main("2018-08-20 06:00:00", True, "tue")
-    # main(query_ts_end="2018-11-15 15:56:00", query_ts_start="2018-11-15 15:56:00", is_test=True)
-    # main("2018-11-15 7:51:00", True)
-    # main("2018-11-14 7:51:00", True)
-    # main("2018-08-14 11:46:00", True, "tue")
+    main()
+
+    # TEST MAIN
+    # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")

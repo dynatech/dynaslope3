@@ -24,13 +24,12 @@ class MonitoringEvents(UserMixin, DB.Model):
     event_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.sites.site_id"), nullable=False)
-    event_start = DB.Column(DB.DateTime, nullable=False,
-                            default="0000-00-00 00:00:00")
-    validity = DB.Column(DB.DateTime, default="0000-00-00 00:00:00")
+    event_start = DB.Column(DB.DateTime, nullable=False)
+    validity = DB.Column(DB.DateTime)
     status = DB.Column(DB.String(20), nullable=False)
 
     event_alerts = DB.relationship(
-        "MonitoringEventAlerts", backref=DB.backref("event", lazy="select"), lazy="dynamic")
+        "MonitoringEventAlerts", order_by="desc(MonitoringEventAlerts.ts_start)", backref=DB.backref("event", lazy="select"), lazy="dynamic")
     site = DB.relationship(
         "Sites", backref=DB.backref("monitoring_events", lazy="dynamic"), lazy="select")
 
@@ -86,6 +85,7 @@ class MonitoringReleases(UserMixin, DB.Model):
     trigger_list = DB.Column(DB.String(45))
     release_time = DB.Column(DB.Time, nullable=False)
     bulletin_number = DB.Column(DB.Integer, nullable=False)
+    comments = DB.Column(DB.String(500))
 
     triggers = DB.relationship(
         "MonitoringTriggers", backref="release", lazy="dynamic")
@@ -262,6 +262,9 @@ class MonitoringMomsReleases(UserMixin, DB.Model):
 
     moms_details = DB.relationship(
         "MonitoringMoms", backref=DB.backref("moms_releases", lazy="select"), lazy="select")
+
+    release = DB.relationship(
+        "MonitoringReleases", backref=DB.backref("monitoring_releases", lazy="select"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Moms Release ID: {self.moms_rel_id}"
@@ -764,7 +767,8 @@ class MonitoringMomsReleasesSchema(MARSHMALLOW.ModelSchema):
     moms_id = fields.Integer()
     moms_details = fields.Nested(
         "MonitoringMomsSchema", exclude=("moms_release", ))
-    
+    release_id = fields.Integer()
+    trigger_misc_id = fields.Integer()
 
     class Meta:
         """Saves table class structure as schema model"""
