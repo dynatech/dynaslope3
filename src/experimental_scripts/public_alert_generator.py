@@ -1,16 +1,12 @@
 """
-Public Alert Generator (Py3) version 0.2
+Public Alert Generator (Py3) Beta
 ======
 For use of Dynaslope Early Warning System
 
-Implemented in Python 3 and SQLAlchemy by:
-    Kevin Dhale Dela Cruz
-    John Louie Nepomuceno
-
-May 2019
+August 2019
 """
 
-from run import APP
+# from run import APP
 import pprint
 import os
 import json
@@ -1116,7 +1112,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             #############
             # LOWERING CONDITIONS STARTS HERE
             #############
-
             is_release_time_run = query_ts_end == release_time - timedelta(minutes=30)
             is_45_minute_beyond = int(query_ts_start.strftime("%M")) > 45
             is_not_yet_write_time = not (
@@ -1266,9 +1261,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                 print(err)
                 DB.session.rollback()
                 raise
-            # var_checker(" NEW PUBLIC ALERT HAS BEEN WRITTEN", new_public_alert_id, True)
-        # else:
-        #     print(" NOTHING HAS BEEN WRITTEN")
 
         ######################
         # !!!! PRINTERS !!!! #
@@ -1328,36 +1320,7 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
 
 if __name__ == "__main__":
-    # main()
-    
-    # COMPLETE TEST INPUTS
-    # ONSET
-    # main(query_ts_end="2019-08-07 10:00:00", query_ts_start="2019-08-07 10:00:00", site_code="umi")
+    main()
 
-    # NEXT RELEASE (11:56:00) r0
-    # main(query_ts_end="2019-08-07 11:56:00", query_ts_start="2019-08-07 11:56:00", site_code="umi")
-
-    # NEXT RELEASE (15:46:00) r1
-    # main(query_ts_end="2019-08-07 15:46:00", query_ts_start="2019-08-07 15:46:00", site_code="umi")
-
-    # NEXT ONSET RELEASE (16:05:00) m2 - moms trigger 1600hours
-    # main(query_ts_end="2019-08-07 16:05:00", query_ts_start="2019-08-07 16:05:00", site_code="umi")
-
-    # NEXT RELEASE RETRIG (19:51:00) m2 - moms trigger 1700 hours
-    # main(query_ts_end="2019-08-07 19:51:00", query_ts_start="2019-08-07 19:51:00", site_code="umi")
-
-    # 6 NEXT Release (2330 with NoData)
-    # main(query_ts_end="2019-08-07 23:51:00", query_ts_start="2019-08-07 23:51:00", site_code="umi")   
-
-    # 7 ENDVAL Release (08/08 1930 with Rain Data)
-    # main(query_ts_end="2019-08-08 19:56:00", query_ts_start="2019-08-08 19:56:00", site_code="umi")
-
-    # 9 ENDVAL Release (08/09 0730 with Rain Data, Resolving MOMS)
-    main(query_ts_end="2019-08-09 07:56:00", query_ts_start="2019-08-09 07:56:00", site_code="umi")
-
-    # SPECIAL CASE NO DATA LIMIT (2019-08-11 19:56:00)
-    # main(query_ts_end="2019-08-11 19:56:00", query_ts_start="2019-08-11 19:56:00", is_test=True, site_code="umi")
-
-
-    # ROUTINE AND RAIN INVALIDS
-    # main(query_ts_end="2018-11-27 11:56:00", query_ts_start="2018-11-27 11:56:00", is_test=True)
+    # TEST MAIN
+    # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")

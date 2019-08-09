@@ -12,10 +12,10 @@ and comparing is to generated_alerts.json
 3. Extended Release
 4. Routine Release
 
-May 2019
+August 2019
 """
 
-from run import APP
+# from run import APP
 import os
 import json
 from datetime import datetime, timedelta, time
@@ -554,21 +554,7 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
 
 
 if __name__ == "__main__":
+    main()
+
     # ROUTINE INVALID
-    # main(ts="2018-11-27 11:56:00", check_legacy_candidate=True)
-
-    # MOMS 2019-07-22 15:56:00
-    # ONSET
-    # main(ts="2019-08-07 10:01:00", check_legacy_candidate=True)
-
-    # NEXT RELEASE (11:57:00) r0
-    # main(ts="2019-08-07 11:56:00", check_legacy_candidate=True)
-
-    # NEXT RELEASE (15:47:00) r1
-    # main(ts="2019-08-07 15:47:00")
-
-    # NEXT ONSET RELEASE (16:05:00) m2 - moms trigger 1600hours
-    # main(ts="2019-08-07 16:05:00")
-
-    # NEXT RELEASE RETRIG (19:51:00) m2 - moms trigger 1700 hours
-    main(ts="2019-08-07 19:52:00")
+    # main(ts="<timestamp>")

@@ -53,7 +53,6 @@ def wrap_retrieve_data_from_memcache():
     result = retrieve_data_from_memcache(
         table_name, filters_dict, retrieve_one)
 
-    var_checker("RESULT", result, True)
     return_data = None
     if result:
         return_data = jsonify(result)
@@ -86,22 +85,6 @@ def wrap_get_internal_alert_symbols():
 
     return jsonify(return_data)
 
-
-# @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events", methods=["GET"])
-# @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events/<event_id>", methods=["GET"])
-# def wrap_get_monitoring_events(event_id=None):
-#     """
-#     NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
-#     """
-#     event = get_monitoring_events(event_id)
-#     event_schema = MonitoringEventsSchema()
-
-#     if event_id is None:
-#         event_schema = MonitoringEventsSchema(many=True)
-
-#     event_data = event_schema.dump(event).data
-
-#     return jsonify(event_data)
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_site_public_alert", methods=["GET"])
 def wrap_get_site_public_alert():
@@ -224,7 +207,6 @@ def end_current_monitoring_event_alert(event_alert_id, ts):
         ea_to_end = event_alerts.query.filter(
             event_alerts.event_alert_id == event_alert_id).first()
         ea_to_end.ts_end = ts
-        print("Note: Previous monitoring entry ended.")
     except Exception as err:
         print(err)
         DB.session.rollback()
@@ -590,8 +572,6 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     eq_id = None
                     has_moms = True
 
-                    print("MOMS-Success")
-
                 trigger_details = {
                     "release_id": release_id,
                     "info": info,
@@ -620,6 +600,8 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     latest_trigger_ts_updated = timestamp
 
             # UPDATE VALIDITY
+            # NOTE: For CBEWS-L, a flag should be used here
+            # so this will be ignored when CBEWS-L provided it's own validity
             validity = compute_event_validity(
                 latest_trigger_ts_updated, public_alert_level)
             update_event_validity(validity, event_id)
@@ -712,7 +694,6 @@ def insert_ewi(internal_json=None):
 
                     if site_status == 1 and public_alert_level > 0:
                         # ONSET: Current status is routine and inserting an A1+ alert.
-                        print("ONSET")
                         entry_type = 2
                     # if current site is under extended and a new higher alert is released (hence new monitoring event)
                     elif is_site_under_extended and public_alert_level > 0:
@@ -771,8 +752,6 @@ def insert_ewi(internal_json=None):
                 DB.desc(MonitoringEventAlerts.event_alert_id)).first()
             pub_sym_id = get_pub_sym_id(public_alert_level)
 
-            var_checker("pub_sym_id", pub_sym_id, True)
-
             validity = site_monitoring_instance.validity
             try:
                 validity = json_data["cbewsl_validity"]
@@ -782,8 +761,6 @@ def insert_ewi(internal_json=None):
             # Default checks if not event i.e. site_status != 2
             if is_new_monitoring_instance(2, site_status):
                 # If the values are different, means new monitoring instance will be created
-                print()
-                print("--- NEW MONITORING INSTANCE! ---")
 
                 end_current_monitoring_event_alert(
                     current_event_alert.event_alert_id, datetime_data_ts)
@@ -907,10 +884,6 @@ def insert_ewi(internal_json=None):
             raise Exception(
                 "CUSTOM: Entry type specified in form is undefined. Check entry type options in the back-end.")
 
-        # Get site selected and retrieve event status
-
-        # If site is "event", check validity, check ts_end of event_alert, if ts_end is empty, then re - release
-        # If site is "routine", then re - release
     except Exception as err:
         print(err)
         raise
@@ -988,36 +961,54 @@ def insert_cbewsl_ewi():
     """
     try:
         json_data = request.get_json()
-        alert_level = json_data["alert_level"]
+        public_alert_level = json_data["alert_level"]
+        pas_row = retrieve_data_from_memcache(
+            "public_alert_symbols", {"alert_level": public_alert_level})
+        public_alert_symbol = pas_row["alert_symbol"]
         user_id = json_data["user_id"]
         data_ts = str(datetime.strptime(
             json_data["data_ts"], "%Y-%m-%d %H:%M:%S"))
         trigger_list_arr = []
-
-        moms_level_dict = {2: 13, 3: 7}
-        moms_trigger = {
-            "internal_sym_id": moms_level_dict[alert_level],
-            "info": "",
-            "moms_list": []
-        }
+        moms_trigger = {}
+        triggering_moms_list = []
+        non_triggering_moms = {}
+        non_trig_moms_list = []
 
         for trigger in json_data["trig_list"]:
-            trigger_type = trigger["int_sym"]
+            int_sym = trigger["int_sym"]
+            ots_row = retrieve_data_from_memcache(
+                "operational_trigger_symbols", {"alert_symbol": int_sym})
+            try:
+                internal_sym_id = ots_row["internal_alert_symbol"]["internal_sym_id"]
+            except TypeError:
+                internal_sym_id = None
 
-            if trigger_type == "R":
+            trigger_alert_level = ots_row["alert_level"]
+            trigger_alert_symbol = ots_row["alert_symbol"]
+            source_id = ots_row["source_id"]
+            trigger_source = ots_row["trigger_hierarchy"]["trigger_source"]
+
+            trigger_entry = {
+                "trigger_type": trigger_source,
+                "source_id": source_id,
+                "alert_level": trigger_alert_level,
+                "trigger_id": None,
+                "alert": trigger_alert_symbol,
+                "ts_updated": data_ts,
+                "internal_sym_id": internal_sym_id
+            }
+
+            if trigger_source == "rainfall":
                 trigger_entry = {
-                    "internal_sym_id": 8,
-                    "ts": data_ts,
-                    "info": trigger["info"]
+                    **trigger_entry,
+                    "tech_info": trigger["info"]
                 }
-                trigger_list_arr.append(trigger_entry)
-            elif trigger_type in ["m", "M", "M0"]:
+            elif trigger_source == "moms":
                 # Always trigger entry from app. Either m or M only.
-                c_t_info = moms_trigger["info"]
                 feature_name = trigger["f_name"]
                 feature_type = trigger["f_type"]
                 remarks = trigger["remarks"]
-                moms_trigger["info"] = f"[{feature_type}] {feature_name} - {remarks} {c_t_info}"
+
                 moms_obs = {
                     "observance_ts": data_ts,
                     "reporter_id": user_id,
@@ -1026,36 +1017,64 @@ def insert_cbewsl_ewi():
                     "validator_id": user_id,
                     "instance_id": None,
                     "feature_name": trigger["f_name"],
-                    "feature_type": trigger["f_type"]
+                    "feature_type": trigger["f_type"],
+                    "op_trigger": trigger_alert_level
                 }
-                moms_trigger["moms_list"].append(moms_obs)
 
-        if moms_trigger["moms_list"]:
+                if trigger_alert_level == 0:
+                    non_trig_moms_list.append(moms_obs)
+                    continue
+                else:
+                    triggering_moms_list.append(moms_obs)
+                    moms_trigger = {
+                        **moms_trigger,
+                        **trigger_entry,
+                        "tech_info": f"[{feature_type}] {feature_name} - {remarks}",
+                        "moms_list": triggering_moms_list
+                    }
+                    continue
+
+            trigger_list_arr.append(trigger_entry)
+
+            if non_trig_moms_list:
+                non_triggering_moms["moms_list"] = non_trig_moms_list
+
+        # The following fixes the top-level alert level and alert symbol, getting the highest
+        if moms_trigger:
+            highest_moms = next(iter(sorted(
+                moms_trigger["moms_list"], key=lambda x: x["op_trigger"], reverse=True)), None)
+            ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                                  "alert_level": highest_moms["op_trigger"], "source_id": 6})
+
+            moms_trigger["alert_level"] = highest_moms["op_trigger"]
+            moms_trigger["alert"] = ots_row["alert_symbol"]
             trigger_list_arr.append(moms_trigger)
 
         release_time = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
 
+        internal_json_data = {
+            "site_id": 50,
+            "site_code": "umi",
+            "public_alert_level": public_alert_level,
+            "public_alert_symbol": public_alert_symbol,
+            "cbewsl_validity": json_data["alert_validity"],
+            "release_details": {
+                "data_ts": data_ts,
+                "trigger_list_str": "m",
+                "release_time": release_time,
+                "comments": ""
+            },
+            "non_triggering_moms": non_triggering_moms,
+            "publisher_details": {
+                "publisher_mt_id": user_id,
+                "publisher_ct_id": user_id,
+            },
+            "trigger_list_arr": trigger_list_arr
+        }
+
     except:
         DB.session.rollback()
         raise
-
-    internal_json_data = {
-        "site_id": 50,
-        "site_code": "umi",
-        "public_alert_level": alert_level,
-        "cbewsl_validity": json_data["alert_validity"],
-        "release_details": {
-            "data_ts": data_ts,
-            "trigger_list": "m",
-            "release_time": release_time,
-            "comments": ""
-        },
-        "publisher_details": {
-            "publisher_mt_id": user_id,
-            "publisher_ct_id": user_id,
-        },
-        "trigger_list_arr": trigger_list_arr
-    }
 
     status = insert_ewi(internal_json_data)
 

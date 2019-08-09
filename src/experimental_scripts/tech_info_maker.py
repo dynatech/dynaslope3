@@ -1,12 +1,12 @@
 """
-Tech Info Maker (Py3) version 0.1
+Tech Info Maker (Py3) version 0.2
 ======
 For use of Dynaslope Early Warning System
 Receives a trigger class and uses its details to
 generate technical information for use in the
 alert release bulletins.
 
-May 2019
+August 2019
 """
 
 from datetime import datetime, timedelta, time
@@ -265,27 +265,6 @@ def format_node_details(node_alerts):
             f"{i.upper()} (nodes {', '.join(str(v.node_id) for v in sorted_nodes)})")
 
     return ", ".join(node_details)
-    # node_details = []
-    # tsm_name_list = []
-    # col_list = []
-
-    # # NOTE: OPTIMIZE
-    # for node_alert in node_alerts:
-    #     tsm_name_list.append(node_alert.tsm_sensor.logger.logger_name)
-    #     col_list.append(node_alert)
-
-    # var_checker("NODE A", node_alerts, True)
-    # var_checker("TSM", tsm_name_list, True)
-    # var_checker("COL LIST", col_list, True)
-
-    # if len(col_list) == 1:
-    #     node_details.append(f"{i.upper()} (node {col_list[0].node_id})")
-    # else:
-    #     sorted_nodes = sorted(col_list, key=lambda x: x.node_id)
-    #     node_details.append(
-    #         f"{i.upper()} (nodes {', '.join(str(v.node_id) for v in sorted_nodes)})")
-
-    # return ", ".join(node_details)
 
 
 def formulate_subsurface_tech_info(node_alert_group):
