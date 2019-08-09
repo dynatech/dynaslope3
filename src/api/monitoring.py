@@ -37,7 +37,7 @@ from src.utils.extra import (create_symbols_map, var_checker,
 MAX_POSSIBLE_ALERT_LEVEL = 3  # Number of alert levels excluding zero
 RELEASE_INTERVAL_HOURS = 4  # Every how many hours per release
 ALERT_EXTENSION_LIMIT = 72  # Max hours total of 3 days
-NO_DATA_HOURS_EXTENSION = 4 # Number of hours extended if no_data upon validity
+NO_DATA_HOURS_EXTENSION = 4  # Number of hours extended if no_data upon validity
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
@@ -50,9 +50,9 @@ def wrap_retrieve_data_from_memcache():
     filters_dict = json_data["filters_dict"]
     retrieve_one = json_data["retrieve_one"]
 
-    result = retrieve_data_from_memcache(table_name, filters_dict, retrieve_one)
+    result = retrieve_data_from_memcache(
+        table_name, filters_dict, retrieve_one)
 
-    var_checker("RESULT", result, True)
     return_data = None
     if result:
         return_data = jsonify(result)
@@ -63,7 +63,7 @@ def wrap_retrieve_data_from_memcache():
 @MONITORING_BLUEPRINT.route("/monitoring/update_alert_status", methods=["POST"])
 def wrap_update_alert_status():
     json_data = request.get_json()
-    
+
     status = update_alert_status(json_data)
 
     return status
@@ -85,22 +85,6 @@ def wrap_get_internal_alert_symbols():
 
     return jsonify(return_data)
 
-
-# @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events", methods=["GET"])
-# @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events/<event_id>", methods=["GET"])
-# def wrap_get_monitoring_events(event_id=None):
-#     """
-#     NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
-#     """
-#     event = get_monitoring_events(event_id)
-#     event_schema = MonitoringEventsSchema()
-
-#     if event_id is None:
-#         event_schema = MonitoringEventsSchema(many=True)
-
-#     event_data = event_schema.dump(event).data
-
-#     return jsonify(event_data)
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_site_public_alert", methods=["GET"])
 def wrap_get_site_public_alert():
@@ -223,7 +207,6 @@ def end_current_monitoring_event_alert(event_alert_id, ts):
         ea_to_end = event_alerts.query.filter(
             event_alerts.event_alert_id == event_alert_id).first()
         ea_to_end.ts_end = ts
-        print("Note: Previous monitoring entry ended.")
     except Exception as err:
         print(err)
         DB.session.rollback()
@@ -327,15 +310,15 @@ def write_monitoring_release_to_db(release_details):
         new_release = MonitoringReleases(
             event_alert_id=release_details["event_alert_id"],
             data_ts=release_details["data_ts"],
-            trigger_list=release_details["trigger_list"],
+            trigger_list=release_details["trigger_list_str"],
             release_time=release_details["release_time"],
-            bulletin_number=release_details["bulletin_number"]
+            bulletin_number=release_details["bulletin_number"],
+            comments=release_details["comments"]
         )
         DB.session.add(new_release)
         DB.session.flush()
 
         new_release_id = new_release.release_id
-        print("--- NEW RELEASE with ID of : " + str(new_release_id))
 
     except Exception as err:
         print(err)
@@ -389,8 +372,6 @@ def write_monitoring_release_publishers_to_db(role, user_id, release_id):
         DB.session.flush()
 
         new_publisher_id = new_publisher.publisher_id
-        print("-----NEW PUBLISHER ID of " + str(role)
-              + " Personnel: " + str(new_publisher_id))
 
     except Exception as err:
         print(err)
@@ -422,7 +403,6 @@ def write_monitoring_release_triggers_to_db(trigger_details, new_release_id):
         DB.session.flush()
 
         new_trigger_id = new_trigger.trigger_id
-        print("-----NEW TRIGGER ID " + str(new_trigger_id))
 
     except Exception as err:
         DB.session.rollback()
@@ -481,6 +461,44 @@ def write_monitoring_moms_releases_to_db(moms_id, trig_misc_id=None, release_id=
         raise
 
 
+def get_moms_id_list(moms_dictionary, site_id, event_id):
+    """
+    Retrieves the moms ID list from the given list of MonitoringMOMS
+    Retrieves IDs from front-end if MonitoringMOMS entry is already
+    in the database or writes to the database if not yet in DB.
+
+    Args:
+        moms_dictionary (Dictionary) -> Either triggering moms dictionary or
+                        non-triggering moms dictionary
+
+    Returns list of moms_ids
+    """
+
+    moms_id_list = []
+    has_moms_ids = True
+    try:
+        # NOTE: If there are pre-inserted moms, get the id and use it here.
+        moms_id_list = moms_dictionary["moms_id_list"]
+    except:
+        has_moms_ids = False
+        pass
+
+    try:
+        moms_list = moms_dictionary["moms_list"]
+
+        for moms in moms_list:
+            moms_id = write_monitoring_moms_to_db(
+                moms, site_id, event_id)
+            moms_id_list.append(moms_id)
+    except KeyError as err:
+        print(err)
+        if not has_moms_ids:
+            raise Exception("No MOMS entry")
+        pass
+
+    return moms_id_list
+
+
 def is_rain_surficial_subsurface_trigger(alert_symbol):
     flag = False
     if alert_symbol in ["R", "S", "s", "G", "g"]:
@@ -490,6 +508,8 @@ def is_rain_surficial_subsurface_trigger(alert_symbol):
 
 
 # @MONITORING_BLUEPRINT.route("/monitoring/insert_ewi_release", methods=["POST"])
+
+
 # # def insert_ewi_release(release_details, publisher_details, trigger_details):
 def insert_ewi_release(monitoring_instance_details, release_details, publisher_details, trigger_list_arr=None, non_triggering_moms=None):
     """
@@ -500,6 +520,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
         release_id = new_release
         site_id = monitoring_instance_details["site_id"]
         event_id = monitoring_instance_details["event_id"]
+        public_alert_level = monitoring_instance_details["public_alert_level"]
 
         write_monitoring_release_publishers_to_db(
             "mt", publisher_details["publisher_mt_id"], release_id)
@@ -507,41 +528,20 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
         write_monitoring_release_publishers_to_db(
             "ct", publisher_details["publisher_ct_id"], release_id)
 
-        if trigger_list_arr is not None:
+        if trigger_list_arr:
+            # latest_trigger = sorted(trigger_list_arr, key=lambda x: x["ts_updated"], reverse=True)[0]
+
+            latest_trigger_ts_updated = None
             # The following could should be in a foreach so we can handle list of triggers
-            for index, trigger in enumerate(trigger_list_arr):
-                internal_sym_id = trigger["internal_sym_id"]
-                alert_symbol = get_internal_alert_symbols(internal_sym_id)
-                is_rain_surficial_sub_trigger = is_rain_surficial_subsurface_trigger(
-                    alert_symbol)
-                moms_id_list = []
+            for trigger in trigger_list_arr:
+                trigger_type = trigger["trigger_type"]
 
                 internal_sym_id = trigger["internal_sym_id"]
-                info = trigger["info"]
-                timestamp = trigger["ts"]
+                info = trigger["tech_info"]
+                timestamp = datetime.strptime(
+                    trigger["ts_updated"], "%Y-%m-%d %H:%M:%S")
 
-                if alert_symbol in ["M", "m"]:
-                    print("---MOMS---")
-                    try:
-                        # NOTE: If there are pre-inserted moms, get the id and use it here.
-                        moms_id_list = trigger["moms_id_list"]
-                    except:
-                        moms_list = trigger["moms_list"]
-
-                        for moms in moms_list:
-                            moms["internal_sym_id"] = internal_sym_id # Will be used for op_trigger of moms
-                            moms_id = write_monitoring_moms_to_db(
-                                moms, site_id, event_id)
-                            moms_id_list.append(moms_id)
-
-                    od_id = None
-                    eq_id = None
-                    has_moms = True
-
-                    print("MOMS-Success")
-
-                elif alert_symbol == "D":
-                    print("---ON_DEMAND---")
+                if trigger_type == "on demand":
                     od_details = trigger["od_details"]
                     request_ts = datetime.strptime(
                         od_details["request_ts"], "%Y-%m-%d %H:%M:%S")
@@ -556,14 +556,21 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     eq_id = None
                     has_moms = False
 
-                elif alert_symbol == "E":
-                    print("---EARTHQUAKE---")
+                elif trigger_type == "earthquake":
                     info = ""
                     timestamp = release_details["data_ts"]
                     od_id = None
                     eq_id = write_monitoring_earthquake_to_db(
                         trigger["eq_details"])
                     has_moms = False
+
+                elif trigger_type == "moms":
+
+                    moms_id_list = get_moms_id_list(trigger, site_id, event_id)
+
+                    od_id = None
+                    eq_id = None
+                    has_moms = True
 
                 trigger_details = {
                     "release_id": release_id,
@@ -574,31 +581,38 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
 
                 new_trigger_id = write_monitoring_release_triggers_to_db(
                     trigger_details, release_id)
-                if is_rain_surficial_sub_trigger is False:
+
+                if trigger_type in ["on demand", "earthquake", "moms"]:
                     trig_misc_id = write_monitoring_triggers_misc_to_db(
                         new_trigger_id, has_moms, od_id, eq_id)
-                    if alert_symbol in ["m", "M"]:
+
+                    if trigger_type == "moms":
                         for moms_id in moms_id_list:
-                            write_monitoring_moms_releases_to_db(moms_id, trig_misc_id=trig_misc_id)
+                            write_monitoring_moms_releases_to_db(
+                                moms_id, trig_misc_id=trig_misc_id)
+
+                # Get the latest trigger timestamp to be used for
+                # computing validity
+                try:
+                    if latest_trigger_ts_updated < timestamp:
+                        latest_trigger_ts_updated = timestamp
+                except:
+                    latest_trigger_ts_updated = timestamp
+
+            # UPDATE VALIDITY
+            # NOTE: For CBEWS-L, a flag should be used here
+            # so this will be ignored when CBEWS-L provided it's own validity
+            validity = compute_event_validity(
+                latest_trigger_ts_updated, public_alert_level)
+            update_event_validity(validity, event_id)
 
         if non_triggering_moms:
-            for non_trig_moms in non_triggering_moms:
-                try:
-                    moms_id = non_trig_moms["moms_id"]
-                    print(
-                        f"Existing non-triggering MOMS given. ID is: {moms_id}")
-                except:
-                    moms_list = non_trig_moms["moms_list"]
+            moms_id_list = get_moms_id_list(
+                non_triggering_moms, site_id, event_id)
 
-                    for moms in moms_list:
-                        moms_details = moms["moms_details"]
-                        moms_details["internal_sym_id"] = internal_sym_id
-                        write_monitoring_moms_to_db(
-                            moms_details, site_id, event_id)
-                    print(f"New non-triggering MOMS written. ID is: {moms_id}")
-                
-                write_monitoring_moms_releases_to_db(moms_id, release_id=release_id)
-                
+            for moms_id in moms_id_list:
+                write_monitoring_moms_releases_to_db(
+                    moms_id, release_id=release_id)
 
         # WHEN NOTHING GOES WRONG, COMMIT!
         DB.session.commit()
@@ -637,7 +651,7 @@ def insert_ewi(internal_json=None):
             json_data = internal_json
         else:
             json_data = request.get_json()
-        
+
         global MAX_POSSIBLE_ALERT_LEVEL
         global ALERT_EXTENSION_LIMIT
         global NO_DATA_HOURS_EXTENSION
@@ -655,29 +669,40 @@ def insert_ewi(internal_json=None):
             entry_type = 1
             is_not_routine = False
 
+        # Release-related variables from JSON
+        release_details = json_data["release_details"]
+        publisher_details = json_data["publisher_details"]
+        trigger_list_arr = json_data["trigger_list_arr"]
+
+        non_triggering_moms = json_data["non_triggering_moms"]
+
+        datetime_data_ts = datetime.strptime(
+            release_details["data_ts"], "%Y-%m-%d %H:%M:%S")
+        release_details["data_ts"] = datetime_data_ts
+        public_alert_level = json_data["public_alert_level"]
+
         if is_not_routine:
             try:
-                alert_level = json_data["alert_level"]
-                release_details = json_data["release_details"]
-                datetime_data_ts = datetime.strptime(release_details["data_ts"], "%Y-%m-%d %H:%M:%S")
-
                 entry_type = 1  # Automatic, if entry_type 1, Mass ROUTINE Release
                 site_monitoring_instance = get_current_monitoring_instance_per_site(
                     site_id)
-                
+
                 if site_monitoring_instance:
                     site_status = site_monitoring_instance.status
 
                     is_site_under_extended = site_status == 2 and site_monitoring_instance.validity < datetime_data_ts
 
-                    if site_status == 1 and alert_level > 0:
+                    if site_status == 1 and public_alert_level > 0:
                         # ONSET: Current status is routine and inserting an A1+ alert.
-                        print("ONSET")
                         entry_type = 2
                     # if current site is under extended and a new higher alert is released (hence new monitoring event)
-                    elif is_site_under_extended and alert_level > 0:
+                    elif is_site_under_extended and public_alert_level > 0:
                         entry_type = 2
-                        site_status = 1 # this is necessary to make new monitoring event
+                        site_status = 1  # this is necessary to make new monitoring event
+                    elif site_status == 1 and public_alert_level == 0:
+                        # Is currently routine
+                        site_id_list = [site_id]
+                        entry_type = 1
                     else:
                         # A1+ active on site
                         entry_type = 2
@@ -685,32 +710,16 @@ def insert_ewi(internal_json=None):
                 print(err)
                 raise
 
-        # Release-related variables from JSON
-        release_details = json_data["release_details"]
-        publisher_details = json_data["publisher_details"]
-        trigger_list_arr = json_data["trigger_list_arr"]
-        non_triggering_moms = []
-        try:
-            non_triggering_moms = json_data["non_triggering_moms"]
-        except KeyError:
-            pass
-        except Exception as err:
-            print(err)
-            raise
-
-        datetime_data_ts = datetime.strptime(
-            release_details["data_ts"], "%Y-%m-%d %H:%M:%S")
-
-        release_details["data_ts"] = datetime_data_ts
-
         ##########################
         # ROUTINE or EVENT entry #
         ##########################
         if entry_type == 1:  # stands for routine
             # Mass release for routine sites.
-            print("--- It's a routine ---")
 
             for routine_site_id in site_id_list:
+                # The following lines of code: "site_monitoring_instance..." up
+                # to "if site_status == 1:..." is just a fail-safe used
+                # for making sure that the site is not on alert.
                 site_monitoring_instance = get_current_monitoring_instance_per_site(
                     routine_site_id)
                 site_status = site_monitoring_instance.status
@@ -723,38 +732,35 @@ def insert_ewi(internal_json=None):
 
                     instance_details = {
                         "site_id": routine_site_id,
-                        "event_id": site_monitoring_instance.event_id
+                        "event_id": site_monitoring_instance.event_id,
+                        "public_alert_level": public_alert_level
                     }
 
+                    site_non_trig_moms = {}
+                    try:
+                        site_non_trig_moms = non_triggering_moms[site_id]
+                    except KeyError:
+                        pass
+
                     insert_ewi_release(instance_details,
-                                       release_details, publisher_details, non_triggering_moms=non_triggering_moms)
+                                       release_details, publisher_details, non_triggering_moms=site_non_trig_moms)
                 else:
                     print("Not a routine site")
 
         elif entry_type == 2:  # stands for event
-            print("--- It's an event ---")
-
             current_event_alert = site_monitoring_instance.event_alerts.order_by(
                 DB.desc(MonitoringEventAlerts.event_alert_id)).first()
-            pub_sym_id = get_pub_sym_id(alert_level)
+            pub_sym_id = get_pub_sym_id(public_alert_level)
 
-            if alert_level > 0 and alert_level < max_possible_alert_level:
-            # if alert_level in [1, 2, 3]:
-                validity = compute_event_validity(
-                    datetime_data_ts, alert_level)
-            else:
-                validity = site_monitoring_instance.validity
-
+            validity = site_monitoring_instance.validity
             try:
                 validity = json_data["cbewsl_validity"]
             except:
                 pass
 
-            # New status is based on entry_type, event, which is 2.
+            # Default checks if not event i.e. site_status != 2
             if is_new_monitoring_instance(2, site_status):
                 # If the values are different, means new monitoring instance will be created
-                print()
-                print("--- NEW MONITORING INSTANCE! ---")
 
                 end_current_monitoring_event_alert(
                     current_event_alert.event_alert_id, datetime_data_ts)
@@ -775,13 +781,9 @@ def insert_ewi(internal_json=None):
                     new_instance_details)
                 event_id = instance_ids["event_id"]
                 event_alert_id = instance_ids["event_alert_id"]
-                print("---event_alert_id---")
-                print(event_alert_id)
 
             else:
                 # If the values are same, re-release will happen.
-                print()
-                print("--- RE-RELEASE! ---")
 
                 event_id = current_event_alert.event_id
                 event_alert_details = {
@@ -792,54 +794,53 @@ def insert_ewi(internal_json=None):
                 current_event_alert_id = current_event_alert.event_alert_id
 
                 event_alert_id = current_event_alert_id
-                print("---event_alert_id---")
-                print(event_alert_id)
 
-                # Raising.
+                # Raising from lower alert level e.g. A1->A2->A3->etc.
                 # NOTE: LOUIE change max alert level here
                 if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= (max_possible_alert_level + 1):
-                # if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= 4:
+                    # if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= 4:
                     # Now that you created a new event
                     print("---RAISING")
-                    update_event_validity(validity, event_id)
 
                     end_current_monitoring_event_alert(
                         current_event_alert_id, datetime_data_ts)
                     event_alert_id = write_monitoring_event_alert_to_db(
                         event_alert_details)
-                    print("---event_alert_id---")
-                    print(event_alert_id)
 
-                elif pub_sym_id == current_event_alert.pub_sym_id:
-                    # NOTE: LOUIE, handle no data extension here!
-                    # ALSO, need to find a way to identify the no_data extension limit 
-                    # and how to know you are reaching the limit
-                    new_validity = current_event_alert.event.validity + timedelta(hours=no_data_hours_extension)
-                    update_event_validity(new_validity, event_id)
+                elif pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30):
+                    try:
+                        to_extend_validity = json_data["to_extend_validity"]
+
+                        if to_extend_validity:
+                            # Just a safety measure in case we attached a False
+                            # in Front-End
+                            # NOTE: SHOULD BE ATTACHED VIA FRONT-END
+                            new_validity = current_event_alert.event.validity + \
+                                timedelta(hours=no_data_hours_extension)
+                            update_event_validity(new_validity, event_id)
+                    except:
+                        pass
 
                 # Lowering.
                 elif pub_sym_id == 1:
                     release_time = round_to_nearest_release_time(
                         datetime_data_ts)
 
-                    if release_time >= validity and release_time < (validity + timedelta(days=1)):
-                        print("---EXTENDED")
-                        print("---DAY 1")
-                        event_alert_id = current_event_alert_id
+                    if release_time == validity:
+                        # End of Heightened Alert
+                        end_current_monitoring_event_alert(
+                            current_event_alert_id, datetime_data_ts)
 
-                    elif release_time >= (validity + timedelta(days=1)) and release_time < (validity + timedelta(days=2)):
-                        print("---EXTENDED")
-                        print("---DAY 2")
-                        event_alert_id = current_event_alert_id
+                        event_alert_details = {
+                            "event_id": event_id,
+                            "pub_sym_id": pub_sym_id,
+                            "ts_start": datetime_data_ts
+                        }
+                        event_alert_id = write_monitoring_event_alert_to_db(
+                            event_alert_details)
 
-                    elif release_time >= (validity + timedelta(days=2)) and release_time < (validity + timedelta(days=3)):
-                        print("---EXTENDED")
-                        print("---DAY 3")
-                        event_alert_id = current_event_alert_id
-
-                    # NOTE: LOUIE change timedelta to dynamic
                     elif release_time >= (validity + timedelta(hours=alert_extension_limit)):
-                    # elif release_time >= (validity + timedelta(days=3)):
+                        # elif release_time >= (validity + timedelta(days=3)):
                         print("---END OF EXTENDED")
                         print("---LOWER FINALLY")
 
@@ -860,8 +861,6 @@ def insert_ewi(internal_json=None):
                         instance_details = start_new_monitoring_instance(
                             new_instance_details)
                         event_alert_id = instance_details["event_alert_id"]
-                        print("---event_alert_id---")
-                        print(event_alert_id)
 
             # Append the chosen event_alert_id
             release_details["event_alert_id"] = event_alert_id
@@ -872,7 +871,7 @@ def insert_ewi(internal_json=None):
             instance_details = {
                 "site_id": site_id,
                 "event_id": event_id,
-                "alert_level": alert_level
+                "public_alert_level": public_alert_level
             }
 
             insert_ewi_release(instance_details,
@@ -885,10 +884,6 @@ def insert_ewi(internal_json=None):
             raise Exception(
                 "CUSTOM: Entry type specified in form is undefined. Check entry type options in the back-end.")
 
-        # Get site selected and retrieve event status
-
-        # If site is "event", check validity, check ts_end of event_alert, if ts_end is empty, then re - release
-        # If site is "routine", then re - release
     except Exception as err:
         print(err)
         raise
@@ -966,36 +961,54 @@ def insert_cbewsl_ewi():
     """
     try:
         json_data = request.get_json()
-        alert_level = json_data["alert_level"]
+        public_alert_level = json_data["alert_level"]
+        pas_row = retrieve_data_from_memcache(
+            "public_alert_symbols", {"alert_level": public_alert_level})
+        public_alert_symbol = pas_row["alert_symbol"]
         user_id = json_data["user_id"]
         data_ts = str(datetime.strptime(
             json_data["data_ts"], "%Y-%m-%d %H:%M:%S"))
         trigger_list_arr = []
-
-        moms_level_dict = {2: 13, 3: 7}
-        moms_trigger = {
-            "internal_sym_id": moms_level_dict[alert_level],
-            "info": "",
-            "moms_list": []
-        }
+        moms_trigger = {}
+        triggering_moms_list = []
+        non_triggering_moms = {}
+        non_trig_moms_list = []
 
         for trigger in json_data["trig_list"]:
-            trigger_type = trigger["int_sym"]
+            int_sym = trigger["int_sym"]
+            ots_row = retrieve_data_from_memcache(
+                "operational_trigger_symbols", {"alert_symbol": int_sym})
+            try:
+                internal_sym_id = ots_row["internal_alert_symbol"]["internal_sym_id"]
+            except TypeError:
+                internal_sym_id = None
 
-            if trigger_type == "R":
+            trigger_alert_level = ots_row["alert_level"]
+            trigger_alert_symbol = ots_row["alert_symbol"]
+            source_id = ots_row["source_id"]
+            trigger_source = ots_row["trigger_hierarchy"]["trigger_source"]
+
+            trigger_entry = {
+                "trigger_type": trigger_source,
+                "source_id": source_id,
+                "alert_level": trigger_alert_level,
+                "trigger_id": None,
+                "alert": trigger_alert_symbol,
+                "ts_updated": data_ts,
+                "internal_sym_id": internal_sym_id
+            }
+
+            if trigger_source == "rainfall":
                 trigger_entry = {
-                    "internal_sym_id": 8,
-                    "ts": data_ts,
-                    "info": trigger["info"]
+                    **trigger_entry,
+                    "tech_info": trigger["info"]
                 }
-                trigger_list_arr.append(trigger_entry)
-            elif trigger_type in ["m", "M", "M0"]:
+            elif trigger_source == "moms":
                 # Always trigger entry from app. Either m or M only.
-                c_t_info = moms_trigger["info"]
                 feature_name = trigger["f_name"]
                 feature_type = trigger["f_type"]
                 remarks = trigger["remarks"]
-                moms_trigger["info"] = f"[{feature_type}] {feature_name} - {remarks} {c_t_info}"
+
                 moms_obs = {
                     "observance_ts": data_ts,
                     "reporter_id": user_id,
@@ -1004,41 +1017,70 @@ def insert_cbewsl_ewi():
                     "validator_id": user_id,
                     "instance_id": None,
                     "feature_name": trigger["f_name"],
-                    "feature_type": trigger["f_type"]
+                    "feature_type": trigger["f_type"],
+                    "op_trigger": trigger_alert_level
                 }
-                moms_trigger["moms_list"].append(moms_obs)
 
-        if moms_trigger["moms_list"]:
+                if trigger_alert_level == 0:
+                    non_trig_moms_list.append(moms_obs)
+                    continue
+                else:
+                    triggering_moms_list.append(moms_obs)
+                    moms_trigger = {
+                        **moms_trigger,
+                        **trigger_entry,
+                        "tech_info": f"[{feature_type}] {feature_name} - {remarks}",
+                        "moms_list": triggering_moms_list
+                    }
+                    continue
+
+            trigger_list_arr.append(trigger_entry)
+
+            if non_trig_moms_list:
+                non_triggering_moms["moms_list"] = non_trig_moms_list
+
+        # The following fixes the top-level alert level and alert symbol, getting the highest
+        if moms_trigger:
+            highest_moms = next(iter(sorted(
+                moms_trigger["moms_list"], key=lambda x: x["op_trigger"], reverse=True)), None)
+            ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                                  "alert_level": highest_moms["op_trigger"], "source_id": 6})
+
+            moms_trigger["alert_level"] = highest_moms["op_trigger"]
+            moms_trigger["alert"] = ots_row["alert_symbol"]
             trigger_list_arr.append(moms_trigger)
 
         release_time = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+
+        internal_json_data = {
+            "site_id": 50,
+            "site_code": "umi",
+            "public_alert_level": public_alert_level,
+            "public_alert_symbol": public_alert_symbol,
+            "cbewsl_validity": json_data["alert_validity"],
+            "release_details": {
+                "data_ts": data_ts,
+                "trigger_list_str": "m",
+                "release_time": release_time,
+                "comments": ""
+            },
+            "non_triggering_moms": non_triggering_moms,
+            "publisher_details": {
+                "publisher_mt_id": user_id,
+                "publisher_ct_id": user_id,
+            },
+            "trigger_list_arr": trigger_list_arr
+        }
 
     except:
         DB.session.rollback()
         raise
 
-    internal_json_data = {
-        "entry_type": 2,  # 1
-        "site_id": 50,
-        "site_code": "umi",
-        "alert_level": alert_level,
-        "cbewsl_validity": json_data["alert_validity"],
-        "release_details": {
-            "data_ts": data_ts,
-            "trigger_list": "m",
-            "release_time": release_time
-        },
-        "publisher_details": {
-            "publisher_mt_id": user_id,
-            "publisher_ct_id": user_id,
-        },
-        "trigger_list_arr": trigger_list_arr
-    }
-
     status = insert_ewi(internal_json_data)
 
     # return jsonify(internal_json_data)
     return status
+
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_candidate_and_current_alerts", methods=["GET"])
 def get_candidate_and_current_alerts():

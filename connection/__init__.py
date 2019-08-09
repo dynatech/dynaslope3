@@ -75,6 +75,7 @@ def create_app(config_name):
     set_memcache.main(MEMORY_CLIENT)
 
     # start_monitoring_ws_bg_task()
+
     # @app.route("/hello")
     # def hello_world():
     #     return "Hello, world!"

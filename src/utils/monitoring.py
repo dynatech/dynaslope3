@@ -19,7 +19,7 @@ from src.models.monitoring import (
     MonitoringMoms as moms, MomsInstances as mi)
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
-    var_checker, create_symbols_map)
+    var_checker, create_symbols_map, retrieve_data_from_memcache)
 from src.utils.narratives import write_narratives_to_db
 
 
@@ -34,6 +34,26 @@ RELEASE_INTERVAL_HOURS = 4  # Every how many hours per release
 ALERT_EXTENSION_LIMIT = 72  # Max hours total of 3 days
 
 
+def search_if_moms_is_released(moms_id):
+    """
+    Just checks if a certain MonitoringMoms entry has been
+    released already via MonitoringMomsReleases
+
+    Args:
+        moms_id (Integer)
+
+    Returns is_released (Boolean)
+    """
+    moms_release = MonitoringMomsReleases.query.filter(
+        MonitoringMomsReleases.moms_id == moms_id).first()
+
+    is_released = False
+    if moms_release:
+        is_released = True
+
+    return is_released
+
+
 def compute_event_validity(data_ts, alert_level):
     """
     NOTE: Transfer to mon utils
@@ -46,15 +66,13 @@ def compute_event_validity(data_ts, alert_level):
     Returns datetime
     """
 
-    rounded_data_ts = round_to_nearest_release_time(data_ts)
-    if alert_level in [1, 2]:
-        add_day = 1
-    elif alert_level == 3:
-        add_day = 2
-    else:
-        raise ValueError("Alert level accepted is 1/2/3 only")
+    pas_row = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": alert_level})
+    duration = int(pas_row["duration"])
 
-    validity = rounded_data_ts + timedelta(add_day)
+    rounded_data_ts = round_to_nearest_release_time(data_ts)
+
+    validity = rounded_data_ts + timedelta(hours=duration)
 
     return validity
 
@@ -325,19 +343,19 @@ def get_routine_sites(timestamp=None):
     routine_sites = []
 
     if (day == "Friday" or day == "Tuesday"):
-        print(day)
+        # print(day)
         for sites in get_sites:
             season = int(sites.season) - 1
             if month in wet_season[season]:
                 routine_sites.append(sites.site_code)
     elif day == "Wednesday":
-        print(day)
+        # print(day)
         for sites in get_sites:
             season = int(sites.season) - 1
             if month in dry_season[season]:
                 routine_sites.append(sites.site_code)
     else:
-        print(day)
+        # print(day)
         routine_sites = []
 
     # print(routine_sites)
@@ -627,13 +645,13 @@ def write_moms_instances_to_db(instance_details):
     return return_data
 
 
-def search_if_feature_name_exists(feature_name):
+def search_if_feature_name_exists(feature_id, feature_name):
     """
     Sample
     """
     mi = MomsInstances
     instance = None
-    instance = mi.query.filter(mi.feature_name == feature_name).first()
+    instance = mi.query.filter(and_(mi.feature_name == feature_name, mi.feature_id == feature_id)).first()
 
     return instance
 
@@ -654,8 +672,6 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
     Insert a moms report to db regardless of attached to release or prior to release.
     """
     try:
-        internal_sym_id = moms_details["internal_sym_id"]
-
         try:
             op_trigger = moms_details["op_trigger"]
         except:
@@ -670,15 +686,16 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         moms_narrative_id = write_narratives_to_db(
             site_id, observance_ts, narrative, event_id)
 
-        if moms_instance_id is None:
+        if not moms_instance_id:
             # Create new instance of moms
             feature_type = moms_details["feature_type"]
             feature_name = moms_details["feature_name"]
 
             moms_feature = search_if_feature_exists(feature_type)
-            moms_instance = search_if_feature_name_exists(feature_name)
 
-            if moms_feature is None:
+            # Mainly used by CBEWS-L; Central doesn't add moms_features
+            # on the fly
+            if not moms_feature:
                 feature_details = {
                     "feature_type": feature_type,
                     "description": None
@@ -687,7 +704,9 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             else:
                 feature_id = moms_feature.feature_id
 
-            if moms_instance is None:
+            moms_instance = search_if_feature_name_exists(feature_id, feature_name)
+
+            if not moms_instance:
                 instance_details = {
                     "site_id": site_id,
                     "feature_id": feature_id,
@@ -696,9 +715,9 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
                 moms_instance_id = write_moms_instances_to_db(instance_details)
             else:
                 moms_instance_id = moms_instance.instance_id
+
         elif moms_instance_id < 0:
-            print("INVALID MOMS INSTANCE ID")
-            raise
+            raise Exception("INVALID MOMS INSTANCE ID")
 
         moms = MonitoringMoms(
             instance_id=moms_instance_id,
@@ -713,12 +732,16 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         DB.session.add(moms)
         DB.session.flush()
 
-        OTS_MAP = MEMORY_CLIENT.get("OPERATIONAL_TRIGGER_SYMBOLS")
+        th_row = retrieve_data_from_memcache("trigger_hierarchies", {"trigger_source": "moms"})
+        ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                        "alert_level": op_trigger, 
+                        "source_id": th_row["source_id"]
+                        })
 
         new_op_trigger = OperationalTriggers(
             ts=observance_ts,
             site_id=site_id,
-            trigger_sym_id=OTS_MAP["trigger_sym_id", "moms", op_trigger],
+            trigger_sym_id=ots_row["trigger_sym_id"],
             ts_updated=observance_ts,
         )
 

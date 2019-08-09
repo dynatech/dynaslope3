@@ -12,10 +12,10 @@ and comparing is to generated_alerts.json
 3. Extended Release
 4. Routine Release
 
-May 2019
+August 2019
 """
 
-from run import APP
+# from run import APP
 import os
 import json
 from datetime import datetime, timedelta, time
@@ -26,15 +26,11 @@ from connection import MEMORY_CLIENT
 
 from src.models.monitoring import (
     OperationalTriggerSymbols as ots)
-<<<<<<< HEAD
-from src.utils.monitoring import get_routine_sites, build_internal_alert_level, get_ongoing_extended_overdue_events
-from src.utils.extra import var_checker, create_symbols_map, get_trigger_hierarchy
-=======
 from src.utils.monitoring import (get_routine_sites, build_internal_alert_level,
                                   get_ongoing_extended_overdue_events, get_saved_event_triggers,
-                                  round_down_data_ts, create_symbols_map, compute_event_validity)
+                                  round_down_data_ts, create_symbols_map, compute_event_validity,
+                                  search_if_moms_is_released)
 from src.utils.extra import var_checker, retrieve_data_from_memcache
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
 
 
 ROUTINE_EXTENDED_RELEASE_TIME = time(11, 30, 00)
@@ -87,6 +83,25 @@ def get_generated_alerts_list_from_file(filepath, filename):
 ###################
 # Data processors #
 ###################
+def extract_unreleased_moms(moms_list):
+    """
+    Searches through provided moms_list and looks for any unreleased 
+    moms.
+
+    Args:
+        moms_list (List)
+
+    Returns
+        All unreleased moms.
+    """
+    unreleased_moms_list = []
+    for moms in moms_list:
+        is_released = search_if_moms_is_released(moms["moms_id"])
+        if not is_released:
+            unreleased_moms_list.append(moms)
+
+    return unreleased_moms_list
+
 
 def extract_non_triggering_moms(current_trigger_alerts):
     """
@@ -156,7 +171,8 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
             "trigger_list_str": trigger_list_str
         },
         "general_status": general_status,
-        "non_triggering_moms": non_triggering_moms
+        "non_triggering_moms": non_triggering_moms,
+        "unresolved_moms_list": alert_entry["unresolved_moms_list"]
     }
 
     if general_status not in ["routine"]:
@@ -168,6 +184,7 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
                 if trigger != {}:
                     try:
                         is_trigger_new = trigger["is_trigger_new"]
+                        del trigger["is_trigger_new"]
                     except KeyError:
                         is_trigger_new = True
                         pass
@@ -185,9 +202,16 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
                                 filter(lambda x: x["type"] == "moms", alert_entry["current_trigger_alerts"])))
                             moms_list = moms_cta["details"]["moms_list"]
                             moms_trig_alert_level = trigger["alert_level"]
+
+                            # Get triggering moms from current_trigger_alerts->moms moms_list
                             moms_list = list(
                                 filter(lambda x: x["op_trigger"] == moms_trig_alert_level, moms_list))
-                            trig_dict["moms_list"] = moms_list
+
+                            # Remove MOMS that have been released
+                            unreleased_moms_list = extract_unreleased_moms(
+                                moms_list)
+
+                            trig_dict["moms_list"] = unreleased_moms_list
                             del trig_dict["moms_list_notice"]
 
                         trigger_list_arr.append(trig_dict)
@@ -280,128 +304,25 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
     totally_invalid_sites_list = []
     routine_sites_list = get_routine_sites(query_end_ts)
-    var_checker("routine_sites_list", routine_sites_list, True)
 
     # Get all latest and overdue from db alerts
     merged_db_alerts_list = latest + overdue
-<<<<<<< HEAD
-    internal_source_id = get_trigger_hierarchy("internal")
-=======
     internal_as_row = retrieve_data_from_memcache(
         "trigger_hierarchies", {"trigger_source": "internal"})
     internal_source_id = internal_as_row["source_id"]
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
 
     if with_alerts:
         for site_w_alert in with_alerts:
             is_for_release = True
             site_code = site_w_alert["site_code"]
-<<<<<<< HEAD
-            site_db_alert = list(
-                filter(lambda x: x["event"]["site"]["site_code"] == site_code, merged_db_alerts_list))
-=======
             site_db_alert = next(
                 filter(lambda x: x["event"]["site"]["site_code"] == site_code, merged_db_alerts_list), None)
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
             general_status = "onset"
 
             # If already existing in database, i.e. is released
             if site_db_alert:
                 # Get latest release data_ts
                 general_status = "on-going"
-<<<<<<< HEAD
-
-                db_latest_release_ts = site_db_alert["releases"][0]["data_ts"]
-                # if release is already released
-                if db_latest_release_ts == site_w_alert["ts"]:
-                    is_for_release = False
-
-            if is_for_release:
-                highest_valid_public_alert, trigger_list_str, validity_status = fix_internal_alert(
-                    site_w_alert, internal_source_id)
-                site_w_alert["alert_level"] = highest_valid_public_alert
-                site_w_alert["trigger_list_str"] = trigger_list_str
-
-                formatted_alert_entry = format_alerts_for_ewi_insert(
-                    site_w_alert, general_status)
-
-                candidate_alerts_list.append(formatted_alert_entry)
-
-                if validity_status == "invalid":
-                    totally_invalid_sites_list.append(site_w_alert)
-
-    a0_routine_list = []
-    nd_routine_list = []
-    nd_internal_alert_sym = IAS_MAP[(-1, internal_source_id)]
-
-    if without_alerts:
-        for site_wo_alert in without_alerts:
-            general_status = "routine"
-            site_id = site_wo_alert["site_id"]
-            site_code = site_wo_alert["site_code"]
-            internal_alert = site_wo_alert["internal_alert"]
-
-            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
-                                            == site_code, merged_db_alerts_list))
-            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
-                                                == site_code, extended))
-
-            site_wo_alert["alert_level"] = 0
-            if is_in_raised_alerts:
-                general_status = "lowering"
-            elif is_in_extended_alerts:
-                general_status = "extended"
-
-            if is_in_raised_alerts or is_in_extended_alerts:
-                if internal_alert == nd_internal_alert_sym:
-                    trigger_list_str = nd_internal_alert_sym
-
-                site_wo_alert["trigger_list_str"] = trigger_list_str
-                formatted_alert_entry = format_alerts_for_ewi_insert(
-                    site_wo_alert, general_status)
-
-                candidate_alerts_list.append(formatted_alert_entry)
-            else:
-                if site_code in routine_sites_list:
-                    if internal_alert == nd_internal_alert_sym:
-                        nd_routine_list.append(site_id)
-                    else:
-                        a0_routine_list.append(site_id)
-
-    if totally_invalid_sites_list:
-        # Process all totally invalid sites for routine
-        # Put this in a function
-        for t_i_site in totally_invalid_sites_list:
-            site_code = t_i_site["site_code"]
-
-            if site_code in routine_sites_list:
-                rel_triggers = t_i_site["release_triggers"]
-
-                has_ground_data = False
-                for rel_trigger in rel_triggers:
-                    if rel_trigger["type"] == "surficial" and rel_trigger["details"]["alert_level"] > -1:
-                        has_ground_data = True
-                        break
-                    elif rel_trigger["type"] == "subsurface":
-                        sub_details = rel_trigger["details"]
-                        if sub_details:
-                            for tsm in sub_details:
-                                if tsm["alert_level"] > -1:
-                                    has_ground_data = True
-                                    break
-
-                if has_ground_data:
-                    a0_routine_list.append(site_id)
-                else:
-                    nd_routine_list.append(site_id)
-
-    if without_alerts:
-        temp = datetime.strptime(without_alerts[0]["ts"], "%Y-%m-%d %H:%M:%S")
-        time_ts = time(temp.hour, temp.minute, temp.second)
-        to_compare = time(11, 30, 00)
-        is_routine_release_time = time_ts >= to_compare
-        var_checker("Is routine", is_routine_release_time, True)
-=======
                 saved_event_triggers = get_saved_event_triggers(
                     site_db_alert["event"]["event_id"])
 
@@ -411,7 +332,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                     is_trigger_new = False
                     if saved_trigger:
-                        if saved_trigger[1] > datetime.strptime(event_trigger["ts_updated"], "%Y-%m-%d %H:%M:%S"):
+                        if saved_trigger[1] < datetime.strptime(event_trigger["ts_updated"], "%Y-%m-%d %H:%M:%S"):
                             is_trigger_new = True
                     else:
                         is_trigger_new = True
@@ -514,7 +435,6 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     nd_routine_list.append(site_id)
 
     if without_alerts:
-        # NOTE: LOUIE VARIABLES Routine Release Time
         global ROUTINE_EXTENDED_RELEASE_TIME
         routine_extended_release_time = ROUTINE_EXTENDED_RELEASE_TIME
         temp = datetime.strptime(without_alerts[0]["ts"], "%Y-%m-%d %H:%M:%S")
@@ -522,16 +442,10 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
         # to_compare = time(11, 30, 00)
         to_compare = routine_extended_release_time
         is_routine_release_time = time_ts >= to_compare
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
         has_routine_data = a0_routine_list != [] and nd_routine_list != []
 
         if has_routine_data and is_routine_release_time:
             routine_data_ts = without_alerts[0]["ts"]
-<<<<<<< HEAD
-            routine_candidates = {
-                "public_alert_level": 0,
-                "public_alert_symbol": PAS_MAP[("alert_symbol", 0)],
-=======
 
             pas_row = retrieve_data_from_memcache(
                 "public_alert_symbols", {"alert_level": 0})
@@ -540,33 +454,21 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             routine_candidates = {
                 "public_alert_level": 0,
                 "public_alert_symbol": public_alert_symbol,
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
                 "data_ts": str(routine_data_ts),
                 "general_status": "routine",
                 "routine_details": [
                     {
-                        "site_ids": a0_routine_list,
-<<<<<<< HEAD
-                        "internal_alert_level": build_internal_alert_level(None, None, 0),
-=======
+                        "site_id_list": a0_routine_list,
                         "internal_alert_level": build_internal_alert_level(0, None),
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
                         "trigger_list_str": None
                     },
                     {
-                        "site_ids": nd_routine_list,
-<<<<<<< HEAD
-                        "internal_alert_level": build_internal_alert_level(None, nd_internal_alert_sym, 0),
-                        "trigger_list_str": nd_internal_alert_sym
-                    }
-                ]
-=======
+                        "site_id_list": nd_routine_list,
                         "internal_alert_level": build_internal_alert_level(0, nd_internal_alert_sym),
                         "trigger_list_str": nd_internal_alert_sym
                     }
                 ],
                 "non_triggering_moms": routine_non_triggering_moms
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
             }
             candidate_alerts_list.append(routine_candidates)
 
@@ -599,15 +501,9 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
             be included in Candidates Alert Generation
     """
     start_run_ts = datetime.now()
-<<<<<<< HEAD
-    # query_end_ts = ts if ts else datetime.now()
-    # query_end_ts = datetime.strptime(query_end_ts, "%Y-%m-%d %H:%M:%S")
-    # query_end_ts = datetime.now()
-=======
     query_end_ts = datetime.now()
     if ts:
         query_end_ts = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
     # is_test_string = "We are in a test run!" if is_test else "Running with DB!"
     is_test_string = "Running with DB!"
     print()
@@ -618,20 +514,6 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
     ####################
     # START OF PROCESS #
     ####################
-<<<<<<< HEAD
-    filepath = APP_CONFIG["generated_alerts_path"]
-    # filepath = "/var/www/dynaslope3/outputs/"
-    filename = "generated_alerts.json"
-    generated_alerts_list = get_generated_alerts_list_from_file(
-        filepath, filename)
-
-    # Get Active DB Alerts
-    db_alerts_dict = get_ongoing_extended_overdue_events()
-    # db_alerts_dict = requests.get(
-    #     "http://localhost:5000/api/monitoring/get_ongoing_extended_overdue_events").json()
-
-    var_checker("DB ALERTS DICT", db_alerts_dict, True)
-=======
     # If no generated alerts sent thru argument, read from
     # file.
     if not generated_alerts_list:
@@ -645,7 +527,6 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
     if check_legacy_candidate:
         query_end_ts = round_down_data_ts(query_end_ts)
     db_alerts_dict = get_ongoing_extended_overdue_events(query_end_ts)
->>>>>>> a58edf138fe53c97fe5e5ee0ceee3b4c06a87788
 
     # Split site with alerts and site with no alerts
     with_alerts, without_alerts = separate_with_alerts_wo_alerts(
@@ -678,4 +559,7 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
 
 
 if __name__ == "__main__":
-    main(ts="2018-11-27 11:56:00", check_legacy_candidate=True)
+    main()
+
+    # ROUTINE INVALID
+    # main(ts="<timestamp>")
