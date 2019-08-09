@@ -43,7 +43,7 @@ def get_all_hazard_map_data():
             "hazard_map_id": row["hazard_map_id"],
             "path": row["path"],
             "file_name": row["file_name"],
-            "path": row["path"]
+            "timestamp": row["timestamp"]
         })
     return jsonify(data)
 

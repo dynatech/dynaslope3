@@ -136,7 +136,6 @@ def delete_field_survey():
     if data is None:
         data = request.form
 
-
     status = None
     message = ""
 
@@ -172,60 +171,68 @@ def field_survey_to_pdf():
     return ""
 
 
-def field_survey_data_via_email(data):
+def latest_field_survey():
+    query = FieldSurveyLog.query.order_by(
+        FieldSurveyLog.field_survey_id.desc()).first()
 
-    features = data["features"]
-    mat_characterization = data["mat_characterization"]
-    mechanism = data["mechanism"]
-    exposure = data["exposure"]
-    note = data["note"]
-    date = data["date"]
+    result = FieldSurveyLogSchema().dump(query).data
 
-    email = "dynaslopeswat@gmail.com"
-    password = "dynaslopeswat"
-    send_to_email = "david063095@gmail.com"
-    subject = "Field Survey : " + str(date)
-    message = """
-    Features :  Scrap A
-                    -6m high from the road
-                    -53 m long
-                Scrap B
-                    -6m high from the road
-                    -53 m long
-    Material characterization : highly weathered sandstone
-    Mechanism : deep-seated rotational or translational landslide
-    Exposure : at least 9 households are at risk in the event of slope failure
-    Note : Sensor needs maintenance
-    """
-    file_location = 'pdf/test.pdf'
+    return result
 
-    msg = MIMEMultipart()
-    msg['From'] = email
-    msg['To'] = send_to_email
-    msg['Subject'] = subject
 
-    msg.attach(MIMEText(message, 'plain'))
+@FIELD_SURVEY_LOGS_BLUEPRINT.route("/field_survey/send_email", methods=["GET", "POST"])
+def field_survey_data_via_email():
+    latest_data = latest_field_survey()
+    data = request.form
+    status = None
+    message = ""
+    try:
+        features = latest_data["features"]
+        mat_characterization = latest_data["mat_characterization"]
+        mechanism = latest_data["mechanism"]
+        exposure = latest_data["exposure"]
+        note = latest_data["note"]
+        date = data["date"]
 
-    # Setup the attachment
-    filename = os.path.basename(file_location)
-    attachment = open(file_location, "rb")
-    part = MIMEBase('application', 'octet-stream')
-    part.set_payload(attachment.read())
-    encoders.encode_base64(part)
-    part.add_header('Content-Disposition',
-                    "attachment; filename= %s" % filename)
+        email = "dynaslopeswat@gmail.com"
+        password = "dynaslopeswat"
+        send_to_email = data["email"]
+        subject = "Field Survey : " + str(date)
 
-    # Attach the attachment to the MIMEMultipart object
-    msg.attach(part)
+        message = "<b>Features:</b> " + features + "<br>"
+        message += "<b>Material characterization:</b> " + mat_characterization + "<br>"
+        message += "<b>Mechanism:</b> " + mechanism + "<br>"
+        message += "<b>Exposure:</b> " + exposure + "<br>"
+        message += "<b>Note:</b> " + note + "<br>"
+        # file_location = 'test.pdf'
 
-    server = smtplib.SMTP('smtp.gmail.com', 587)
-    server.starttls()
-    server.login(email, password)
-    text = msg.as_string()
-    server.sendmail(email, send_to_email, text)
-    server.quit()
+        msg = MIMEMultipart()
+        msg['From'] = email
+        msg['To'] = send_to_email
+        msg['Subject'] = subject
 
-    return ""
+        msg.attach(MIMEText(message, 'html'))
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(email, password)
+        text = msg.as_string()
+        server.sendmail(email, send_to_email, text)
+        server.quit()
+
+        status = True
+        message = "Email sent successfully!"
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+        status = False
+        message = "Something went wrong, Please try again"
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+    return jsonify(feedback)
 
 
 # @FIELD_SURVEY_LOGS_BLUEPRINT.route("/field_survey/upload", methods=["GET", "POST"])

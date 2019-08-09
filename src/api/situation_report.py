@@ -1,6 +1,11 @@
 from flask import Blueprint, jsonify, request
 from sqlalchemy import text
+import smtplib
 from connection import DB, SOCKETIO
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 from src.models.situation_reports import (
     SituationReport, SituationReportSchema)
 
@@ -44,9 +49,9 @@ def get_report_by_date():
     if data is None:
         data = request.form
     date_selected = str(data["date_selected"])
-    
+
     query = text("SELECT * FROM commons_db.situation_report "
-                 "WHERE timestamp BETWEEN '"+date_selected+" 00:00:00' AND '"+date_selected+" 23:59:59'")
+                 "WHERE timestamp BETWEEN '" + date_selected + " 00:00:00' AND '" + date_selected + " 23:59:59'")
     result = DB.engine.execute(query)
     data = []
     for row in result:
@@ -126,6 +131,63 @@ def delete_situation_report():
         message = "Something went wrong, Please try again"
         status = False
         print(err)
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+    return jsonify(feedback)
+
+
+def latest_situation_report():
+    query = SituationReport.query.order_by(
+        SituationReport.situation_report_id.desc()).first()
+
+    result = SituationReportSchema().dump(query).data
+
+    return result
+
+
+@SITUATION_REPORT_BLUEPRINT.route("/situation_report/send_email", methods=["GET", "POST"])
+def situation_report_via_email():
+    latest_data = latest_situation_report()
+    data = request.form
+    status = None
+    message = ""
+
+    try:
+        timestamp = data["date"]
+        summary = latest_data["summary"]
+
+        email = "dynaslopeswat@gmail.com"
+        password = "dynaslopeswat"
+        send_to_email = data["email"]
+        subject = "Current Situation Report : " + str(timestamp)
+
+        message = "<b>Summary:</b> <br>" + summary
+
+        msg = MIMEMultipart()
+        msg['From'] = email
+        msg['To'] = send_to_email
+        msg['Subject'] = subject
+
+        msg.attach(MIMEText(message, 'html'))
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(email, password)
+        text = msg.as_string()
+        server.sendmail(email, send_to_email, text)
+        server.quit()
+
+        status = True
+        message = "Email sent successfully!"
+
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+        status = False
+        message = "Something went wrong, Please try again"
 
     feedback = {
         "status": status,
