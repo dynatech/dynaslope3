@@ -30,6 +30,7 @@ from src.utils.monitoring import (
     get_ongoing_extended_overdue_events, update_alert_status)
 from src.utils.extra import (create_symbols_map, var_checker,
                              retrieve_data_from_memcache)
+from src.experimental_scripts import candidate_alerts_generator
 
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
