@@ -184,7 +184,6 @@ def update_alert_status(as_details):
                     "user_id", 1
                 }
     """
-
     return_data = None
     try:
         trigger_id = as_details["trigger_id"]
@@ -196,6 +195,8 @@ def update_alert_status(as_details):
         alert_status_result = check_if_alert_status_entry_in_db(
             trigger_id)
 
+        val_map = {1: "valid", -1: "invalid", 0: "validating"}
+
         if alert_status_result:
             try:
                 alert_status_result.ts_ack = ts_ack
@@ -203,7 +204,6 @@ def update_alert_status(as_details):
                 alert_status_result.remarks = remarks
                 alert_status_result.user_id = user_id
 
-                val_map = {1: "valid", -1: "invalid", 0: "validating"}
                 return_data = f"Trigger ID [{trigger_id}] alert_status is updated as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
             except Exception as err:
                 DB.session.rollback()
