@@ -395,7 +395,7 @@ class TSMSensors(UserMixin, DB.Model):
     version = DB.Column(DB.Integer)
 
     site = DB.relationship("Sites", backref=DB.backref(
-        "tsm_sensors", lazy="subquery"))
+        "tsm_sensors", lazy="dynamic"))
 
     tsm_alert = DB.relationship(
         "TSMAlerts", backref=DB.backref("tsm_sensor", lazy="joined", innerjoin=True), lazy="dynamic")
@@ -506,7 +506,7 @@ class AlertStatus(UserMixin, DB.Model):
     stat_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts_last_retrigger = DB.Column(DB.DateTime)
     trigger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "senslopedb.operational_triggers.trigger_id"))
+        "ewi_db.operational_triggers.trigger_id"))
     ts_set = DB.Column(DB.DateTime)
     ts_ack = DB.Column(DB.DateTime)
     alert_status = DB.Column(DB.Integer)
