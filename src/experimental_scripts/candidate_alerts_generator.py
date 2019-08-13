@@ -36,7 +36,7 @@ from src.utils.extra import var_checker, retrieve_data_from_memcache
 ROUTINE_EXTENDED_RELEASE_TIME = time(11, 30, 00)
 
 ##########################
-# Utility functions here #
+# Utility functions here
 ##########################
 
 

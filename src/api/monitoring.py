@@ -31,7 +31,6 @@ from src.utils.monitoring import (
 from src.utils.extra import (create_symbols_map, var_checker,
                              retrieve_data_from_memcache)
 from src.experimental_scripts import candidate_alerts_generator
-
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
 #####################################################
