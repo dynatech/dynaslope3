@@ -27,10 +27,13 @@ from src.utils.monitoring import (
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
     write_monitoring_earthquake_to_db, get_internal_alert_symbols,
     get_monitoring_events_table, get_event_count, get_public_alert,
-    get_ongoing_extended_overdue_events, update_alert_status)
+    get_ongoing_extended_overdue_events, update_alert_status,
+    format_candidate_alerts_for_insert)
 from src.utils.extra import (create_symbols_map, var_checker,
                              retrieve_data_from_memcache)
 from src.experimental_scripts import candidate_alerts_generator
+
+
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
 #####################################################
@@ -40,6 +43,24 @@ ALERT_EXTENSION_LIMIT = 72  # Max hours total of 3 days
 NO_DATA_HOURS_EXTENSION = 4  # Number of hours extended if no_data upon validity
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/format_candidate_alerts_for_insert", methods=["POST"])
+def wrap_format_candidate_alerts_for_insert():
+    json_data = request.get_json()
+
+    insert_ewi_data = format_candidate_alerts_for_insert(json_data)
+
+    return jsonify(insert_ewi_data)
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/format_candidate_alerts_for_insert", methods=["POST"])
+def wrap_format_candidate_alerts_for_insert():
+    json_data = request.get_json()
+
+    insert_ewi_data = format_candidate_alerts_for_insert(json_data)
+
+    return jsonify(insert_ewi_data)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/retrieve_data_from_memcache", methods=["POST"])

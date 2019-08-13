@@ -23,15 +23,61 @@ from src.utils.extra import (
 from src.utils.narratives import write_narratives_to_db
 
 
-# PAS_MAP = MEMORY_CLIENT.get("PUBLIC_ALERT_SYMBOLS")
-PAS_MAP = create_symbols_map("public_alert_symbols")
-
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
 #####################################################
 MAX_POSSIBLE_ALERT_LEVEL = 3  # Number of alert levels excluding zero
 RELEASE_INTERVAL_HOURS = 4  # Every how many hours per release
 ALERT_EXTENSION_LIMIT = 72  # Max hours total of 3 days
+
+
+def format_candidate_alerts_for_insert(candidate_data):
+    """
+    Adds the candidate triggers missing data before doing the insert_ewi\
+    Most likely be used in CBEWSL
+    """
+    formatted_candidate_data = candidate_data
+
+    trigger_list_arr = formatted_candidate_data["trigger_list_arr"]
+    moms_id_list = []
+
+    formatted_candidate_data["release_details"]["release_time"] = datetime.strftime(datetime.now(), "%H:%M:%S")
+    formatted_candidate_data["release_details"]["comments"] = "CBEWSL Release"
+
+    formatted_candidate_data = {
+        **formatted_candidate_data,
+        "publisher_details": {
+            "publisher_mt_id" : 1,
+            "publisher_ct_id" : 2
+        }
+    }
+
+    if trigger_list_arr:
+        for trigger in trigger_list_arr:
+            if trigger["trigger_type"] == "moms":
+                for moms_entry in trigger["moms_list"]:
+                    moms_id_list.append(moms_entry["moms_id"])
+
+            if moms_id_list:
+                trigger["moms_id_list"] = moms_id_list
+                del trigger["moms_list"]
+    
+    non_triggering_moms = formatted_candidate_data["non_triggering_moms"]
+    non_triggering_moms_id_list = []
+    if non_triggering_moms:
+        for moms_entry in non_triggering_moms:
+            non_triggering_moms_id_list.append(moms_entry["moms_id"])
+    
+    if non_triggering_moms_id_list:
+        del formatted_candidate_data["non_triggering_moms"]
+        formatted_candidate_data = {
+            **formatted_candidate_data,
+            "non_triggering_moms": {
+                "moms_id_list": non_triggering_moms_id_list
+            }
+        }
+
+    return formatted_candidate_data
 
 
 def search_if_moms_is_released(moms_id):
@@ -829,10 +875,8 @@ def build_internal_alert_level(public_alert_level, trigger_list=None):
                     Can be set as none since this is optional
     """
 
-    # if pub_sym_id:
-    #     public_alert_level = get_public_alert_level(pub_sym_id)
-    #     public_alert_level = PAS_MAP[pub_sym_id]
-    p_a_symbol = PAS_MAP["alert_symbol", public_alert_level]
+    pas_row = retrieve_data_from_memcache("public_alert_symbols", {"alert_level": public_alert_level})
+    p_a_symbol = pas_row["alert_symbol"]
     if public_alert_level > 0:
         internal_alert_level = f"{p_a_symbol}-{trigger_list}"
 
