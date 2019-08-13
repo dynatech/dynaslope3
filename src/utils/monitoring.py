@@ -188,25 +188,54 @@ def update_alert_status(as_details):
     return_data = None
     try:
         trigger_id = as_details["trigger_id"]
+        alert_status = as_details["alert_status"]
+        remarks = as_details["remarks"]
+        user_id = as_details["user_id"]
+        ts_ack = datetime.now()
 
         alert_status_result = check_if_alert_status_entry_in_db(
             trigger_id)
 
         if alert_status_result:
-            alert_status = as_details["alert_status"]
-            remarks = as_details["remarks"]
-            user_id = as_details["user_id"]
+            try:
+                alert_status_result.ts_ack = ts_ack
+                alert_status_result.alert_status = alert_status
+                alert_status_result.remarks = remarks
+                alert_status_result.user_id = user_id
 
-            alert_status_result.ts_ack = datetime.now()
-            alert_status_result.alert_status = alert_status
-            alert_status_result.remarks = remarks
-            alert_status_result.user_id = user_id
-
-            DB.session.commit()
-            val_map = {1: "valid", -1: "invalid", 0: "validating"}
-            return_data = f"Alert ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
+                val_map = {1: "valid", -1: "invalid", 0: "validating"}
+                return_data = f"Trigger ID [{trigger_id}] alert_status is updated as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
+            except Exception as err:
+                DB.session.rollback()
+                print("Alert status found but has an error.")
+                print(err)
+                raise
         else:
-            return_data = f"Trigger ID [{trigger_id}] provided DOES NOT EXIST!"
+            # return_data = f"Alert ID [{trigger_id}] provided DOES NOT EXIST!"
+            try:
+                alert_stat = AlertStatus(
+                    ts_last_retrigger=ts_ack,
+                    trigger_id=trigger_id,
+                    ts_set=ts_ack,
+                    ts_ack=ts_ack,
+                    alert_status=alert_status,
+                    remarks=remarks,
+                    user_id=user_id
+                )
+                DB.session.add(alert_stat)
+                DB.session.flush()
+
+                stat_id = alert_stat.stat_id
+                return_data = f"New alert status written with ID: {stat_id}." + \
+                    f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
+
+            except Exception as err:
+                DB.session.rollback()
+                print("NO existing alert_status found. An ERROR has occurred.")
+                print(err)
+                raise
+        
+        DB.session.commit()
     except Exception as err:
         DB.session.rollback()
         print(err)
