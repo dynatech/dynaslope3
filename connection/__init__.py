@@ -76,10 +76,6 @@ def create_app(config_name):
 
     start_monitoring_ws_bg_task()
 
-    # @app.route("/hello")
-    # def hello_world():
-    #     return "Hello, world!"
-
     #####################################################
     # Import all created blueprint from each controller
     # and register it to the app instance
@@ -173,8 +169,8 @@ def create_app(config_name):
     from src.api.situation_report import SITUATION_REPORT_BLUEPRINT
     app.register_blueprint(SITUATION_REPORT_BLUEPRINT, url_prefix="/api")
 
-    # from src.api.rainfall import RAINFALL_BLUEPRINT
-    # app.register_blueprint(RAINFALL_BLUEPRINT, url_prefix="/api")
+    from src.api.rainfall import RAINFALL_BLUEPRINT
+    app.register_blueprint(RAINFALL_BLUEPRINT, url_prefix="/api")
 
     from src.api.analysis import ANALYSIS_BLUEPRINT
     app.register_blueprint(ANALYSIS_BLUEPRINT, url_prefix="/api")
