@@ -141,7 +141,7 @@ class MonitoringTriggers(UserMixin, DB.Model):
     release_id = DB.Column(DB.Integer, DB.ForeignKey("ewi_db.monitoring_releases.release_id"),
                            nullable=False)
     internal_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.internal_alert_symbols.internal_sym_id"), nullable=False)
+        "senslopedb.internal_alert_symbols.internal_sym_id"), nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
     info = DB.Column(DB.String(360))
 
@@ -404,18 +404,19 @@ class PublicAlertSymbols(UserMixin, DB.Model):
 class OperationalTriggers(UserMixin, DB.Model):
     """
     Class representation of operational_triggers
+    NOTE: CBEWS-L Implem, in senslopedb
     """
 
     __tablename__ = "operational_triggers"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.sites.site_id"), nullable=False)
     trigger_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.operational_trigger_symbols.trigger_sym_id"), nullable=False)
+        "senslopedb.operational_trigger_symbols.trigger_sym_id"), nullable=False)
     ts_updated = DB.Column(DB.DateTime, nullable=False)
 
     site = DB.relationship(
@@ -434,18 +435,19 @@ class OperationalTriggers(UserMixin, DB.Model):
 class OperationalTriggerSymbols(UserMixin, DB.Model):
     """
     Class representation of operational_triggers table
+    NOTE: CBEWS-L Implem, in senslopedb
     """
 
     __tablename__ = "operational_trigger_symbols"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     trigger_sym_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     alert_level = DB.Column(DB.Integer, nullable=False)
     alert_symbol = DB.Column(DB.String(2), nullable=False)
     alert_description = DB.Column(DB.String(100), nullable=False)
     source_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.trigger_hierarchies.source_id"), nullable=False)
+        "senslopedb.trigger_hierarchies.source_id"), nullable=False)
 
     trigger_hierarchy = DB.relationship(
         "TriggerHierarchies", backref="trigger_symbols", lazy="joined", innerjoin=True) # lazy="select")
@@ -460,11 +462,12 @@ class OperationalTriggerSymbols(UserMixin, DB.Model):
 class TriggerHierarchies(UserMixin, DB.Model):
     """
     Class representation of trigger_hierarchies table
+    NOTE: CBEWS-L Implem, in senslopedb
     """
 
     __tablename__ = "trigger_hierarchies"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     source_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trigger_source = DB.Column(DB.String(20))
@@ -483,16 +486,17 @@ class TriggerHierarchies(UserMixin, DB.Model):
 class InternalAlertSymbols(UserMixin, DB.Model):
     """
     Class representation of internal_alert_symbols table
+    NOTE: CBEWS-L Implem, in senslopedb
     """
 
     __tablename__ = "internal_alert_symbols"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     internal_sym_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     alert_symbol = DB.Column(DB.String(4), nullable=False)
     trigger_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.operational_trigger_symbols.trigger_sym_id"), nullable=False)
+        "senslopedb.operational_trigger_symbols.trigger_sym_id"), nullable=False)
     alert_description = DB.Column(DB.String(120))
 
     trigger_symbol = DB.relationship(

@@ -506,7 +506,7 @@ class AlertStatus(UserMixin, DB.Model):
     stat_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts_last_retrigger = DB.Column(DB.DateTime)
     trigger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.operational_triggers.trigger_id"))
+        "senslopedb.operational_triggers.trigger_id"))
     ts_set = DB.Column(DB.DateTime)
     ts_ack = DB.Column(DB.DateTime)
     alert_status = DB.Column(DB.Integer)

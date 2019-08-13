@@ -6,7 +6,7 @@ For use of Dynaslope Early Warning System
 August 2019
 """
 
-# from run import APP
+from run import APP
 import pprint
 import os
 import json
@@ -1068,7 +1068,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         # Special function to Dyna3, no need to modularize
         subsurface_alerts_list = None
         if subsurface_th_row["is_active"]:
-            site_tsm_sensors = site.tsm_sensors.all()
+            # site_tsm_sensors = site.tsm_sensors.all()
+            site_tsm_sensors = site.tsm_sensors
             subsurface_alerts_list = get_tsm_alerts(
                 site_tsm_sensors, query_ts_end)
 

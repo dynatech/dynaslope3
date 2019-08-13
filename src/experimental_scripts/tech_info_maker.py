@@ -167,9 +167,9 @@ def get_rainfall_tech_info(rainfall_alert_details):
                         "ENTRY on rainfall_alerts table.")
 
     for item in rainfall_alert_details:
-        # days = []
-        # cumulatives = []
-        # thresholds = []
+        days = []
+        cumulatives = []
+        thresholds = []
 
         rain_gauge_name = get_rainfall_gauge_name(item)
 
