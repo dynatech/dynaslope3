@@ -49,14 +49,8 @@ MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 def wrap_format_candidate_alerts_for_insert():
     json_data = request.get_json()
 
-    insert_ewi_data = format_candidate_alerts_for_insert(json_data)
-
-    return jsonify(insert_ewi_data)
-
-
-@MONITORING_BLUEPRINT.route("/monitoring/format_candidate_alerts_for_insert", methods=["POST"])
-def wrap_format_candidate_alerts_for_insert():
-    json_data = request.get_json()
+    var_checker("json_data2", json_data, True)
+    var_checker("data type", type(json_data), True)
 
     insert_ewi_data = format_candidate_alerts_for_insert(json_data)
 
@@ -81,9 +75,11 @@ def wrap_retrieve_data_from_memcache():
     return return_data
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/update_alert_status", methods=["POST"])
+@MONITORING_BLUEPRINT.route("/monitoring/update_alert_status", methods=["GET", "POST"])
 def wrap_update_alert_status():
     json_data = request.get_json()
+
+    var_checker("json_data", json_data, True)
 
     status = update_alert_status(json_data)
 
@@ -316,7 +312,11 @@ def start_new_monitoring_instance(new_instance_details):
             "event_alert_id": event_alert_id
         }
 
+        var_checker("return_ids", return_ids, True)
+
     except Exception as err:
+        DB.session.rollback()
+        print("Problem is start new monitoring")
         print(err)
         raise
 
@@ -656,6 +656,38 @@ def update_event_validity(new_validity, event_id):
         raise
 
 
+def start_alert_on_fresh_db(public_alert_level, site_id, datetime_data_ts):
+    """
+    Starts the monitoring cycle for the site by writing the starting
+    monitoring values to DB.
+    """
+    print("No existing alert on DB. Starting fresh.")
+    pub_sym_id = get_pub_sym_id(public_alert_level)
+    # Set validity as None for now.
+    new_instance_details = {
+        "event_details": {
+            "site_id": site_id,
+            "event_start": datetime_data_ts,
+            "validity": None,
+            "status": 2
+        },
+        "event_alert_details": {
+            "pub_sym_id": pub_sym_id,
+            "ts_start": datetime_data_ts
+        }
+    }
+
+    try:
+        instance_details = start_new_monitoring_instance(
+            new_instance_details)
+        var_checker("instance_details", instance_details, True)
+        DB.session.commit()
+    except Exception as err:
+        print("Problem in onset alert (fresh db)")
+        print(err)
+        raise
+
+
 @MONITORING_BLUEPRINT.route("/monitoring/insert_ewi", methods=["POST"])
 def insert_ewi(internal_json=None):
     """
@@ -727,6 +759,15 @@ def insert_ewi(internal_json=None):
                     else:
                         # A1+ active on site
                         entry_type = 2
+                else:
+                    # No alert on site. ONSET
+                    entry_type = 2
+                    start_alert_on_fresh_db(
+                        public_alert_level, site_id, datetime_data_ts)
+                    site_monitoring_instance = get_current_monitoring_instance_per_site(
+                        site_id)
+                    site_status = site_monitoring_instance.status
+                    is_site_under_extended = False
             except Exception as err:
                 print(err)
                 raise

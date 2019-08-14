@@ -461,10 +461,12 @@ def get_pub_sym_id(alert_level):
 
     Returns ID (integer)
     """
-    public_alert_symbol = PublicAlertSymbols.query.filter(
-        PublicAlertSymbols.alert_level == alert_level).first()
+    # public_alert_symbol = PublicAlertSymbols.query.filter(
+    #     PublicAlertSymbols.alert_level == alert_level).first()
+    pas_row = retrieve_data_from_memcache("public_alert_symbols", {"alert_level": alert_level})
 
-    return public_alert_symbol.pub_sym_id
+    return pas_row["pub_sym_id"]
+    # return public_alert_symbol.pub_sym_id
 
 
 def get_public_alert_level(pub_sym_id):

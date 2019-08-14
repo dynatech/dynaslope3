@@ -162,7 +162,7 @@ def delete_field_survey():
 
 def process_pdf_and_email(data):
 
-    field_survey_data_via_email(data)
+    # field_survey_data_via_email(data)
     return ""
 
 
