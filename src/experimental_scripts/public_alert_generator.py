@@ -260,6 +260,7 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                             "Use moms from current_trigger_alerts instead."
                     }
                     trigger_dict.update(moms_special_details)
+            
             else:
                 trigger_dict["tech_info"] = trigger_tech_info
 
@@ -1087,13 +1088,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             latest_rainfall_alert = site.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
                 ra.ts == query_ts_end).first()
         
-        latest_earthquake_alert = None
-        is_earthquake_active = retrieve_data_from_memcache(
-            "trigger_hierarchies", {"trigger_source": "earthquake"}, retrieve_attr="is_active")
-        if is_earthquake_active:
-            filters = 
-            latest_earthquake_alert = get_earthquake_events()
-
         current_trigger_alerts = get_current_trigger_alert_conditions(release_op_triggers_list, surficial_moms_window_ts,
                                                                     latest_rainfall_alert, subsurface_alerts_list, moms_trigger_condition)            
 
