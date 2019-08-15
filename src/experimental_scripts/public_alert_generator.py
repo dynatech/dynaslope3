@@ -6,7 +6,7 @@ For use of Dynaslope Early Warning System
 August 2019
 """
 
-from run import APP
+# from run import APP
 import pprint
 import os
 import json
@@ -1391,9 +1391,9 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
 
 if __name__ == "__main__":
-    # main()
+    main()
 
     # TEST MAIN
     # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")
     # main(query_ts_end="2019-05-22 11:00:00", query_ts_start="2019-05-22 11:00:00", is_test=True, site_code="hum")
-    main(is_test=True, site_code="umi")
+    # main(is_test=True, site_code="umi")
