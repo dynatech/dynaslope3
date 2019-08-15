@@ -11,9 +11,8 @@ from src.models.analysis import (AlertStatus, AlertStatusSchema)
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
-    MonitoringTriggers, MonitoringTriggersMisc,
-    MomsInstances, MomsFeatures,
-    InternalAlertSymbols, PublicAlertSymbols,
+    MonitoringEarthquake, MonitoringTriggers, MonitoringTriggersMisc,
+    MomsInstances, MomsFeatures, InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols,
     MonitoringEventAlertsSchema, OperationalTriggers,
     MonitoringMoms as moms, MomsInstances as mi)
@@ -41,6 +40,56 @@ def get_max_possible_alert_level():
         iter(sorted(pas_map, key=lambda x: x["alert_level"], reverse=True)))
 
     return max_row["alert_level"]
+
+
+def format_candidate_alerts_for_insert(candidate_data):
+    """
+    Adds the candidate triggers missing data before doing the insert_ewi\
+    Most likely be used in CBEWSL
+    """
+    formatted_candidate_data = candidate_data
+
+    trigger_list_arr = formatted_candidate_data["trigger_list_arr"]
+    moms_id_list = []
+
+    formatted_candidate_data["release_details"]["release_time"] = datetime.strftime(
+        datetime.now(), "%H:%M:%S")
+    formatted_candidate_data["release_details"]["comments"] = "CBEWSL Release"
+
+    formatted_candidate_data = {
+        **formatted_candidate_data,
+        "publisher_details": {
+            "publisher_mt_id": 1,
+            "publisher_ct_id": 2
+        }
+    }
+
+    if trigger_list_arr:
+        for trigger in trigger_list_arr:
+            if trigger["trigger_type"] == "moms":
+                for moms_entry in trigger["moms_list"]:
+                    moms_id_list.append(moms_entry["moms_id"])
+
+            if moms_id_list:
+                trigger["moms_id_list"] = moms_id_list
+                del trigger["moms_list"]
+
+    non_triggering_moms = formatted_candidate_data["non_triggering_moms"]
+    non_triggering_moms_id_list = []
+    if non_triggering_moms:
+        for moms_entry in non_triggering_moms:
+            non_triggering_moms_id_list.append(moms_entry["moms_id"])
+
+    if non_triggering_moms_id_list:
+        del formatted_candidate_data["non_triggering_moms"]
+        formatted_candidate_data = {
+            **formatted_candidate_data,
+            "non_triggering_moms": {
+                "moms_id_list": non_triggering_moms_id_list
+            }
+        }
+
+    return formatted_candidate_data
 
 
 def search_if_moms_is_released(moms_id):
@@ -170,7 +219,7 @@ def check_if_alert_status_entry_in_db(trigger_id):
     """
     Sample
     """
-    alert_status_result = None
+    alert_status_result = []
     try:
         alert_status_result = AlertStatus.query.filter(
             AlertStatus.trigger_id == trigger_id).first()
@@ -195,30 +244,59 @@ def update_alert_status(as_details):
                     "user_id", 1
                 }
     """
-
     return_data = None
 
     try:
         trigger_id = as_details["trigger_id"]
+        alert_status = as_details["alert_status"]
+        remarks = as_details["remarks"]
+        user_id = as_details["user_id"]
+        ts_ack = datetime.now()
 
         alert_status_result = check_if_alert_status_entry_in_db(
             trigger_id)
 
+        val_map = {1: "valid", -1: "invalid", 0: "validating"}
+
         if alert_status_result:
-            alert_status = as_details["alert_status"]
-            remarks = as_details["remarks"]
-            user_id = as_details["user_id"]
+            try:
+                alert_status_result.ts_ack = ts_ack
+                alert_status_result.alert_status = alert_status
+                alert_status_result.remarks = remarks
+                alert_status_result.user_id = user_id
 
-            alert_status_result.ts_ack = datetime.now()
-            alert_status_result.alert_status = alert_status
-            alert_status_result.remarks = remarks
-            alert_status_result.user_id = user_id
-
-            DB.session.commit()
-            val_map = {1: "valid", -1: "invalid", 0: "validating"}
-            return_data = f"Alert ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
+                return_data = f"Trigger ID [{trigger_id}] alert_status is updated as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
+            except Exception as err:
+                DB.session.rollback()
+                print("Alert status found but has an error.")
+                print(err)
+                raise
         else:
-            return_data = f"Trigger ID [{trigger_id}] provided DOES NOT EXIST!"
+            # return_data = f"Alert ID [{trigger_id}] provided DOES NOT EXIST!"
+            try:
+                alert_stat = AlertStatus(
+                    ts_last_retrigger=ts_ack,
+                    trigger_id=trigger_id,
+                    ts_set=ts_ack,
+                    ts_ack=ts_ack,
+                    alert_status=alert_status,
+                    remarks=remarks,
+                    user_id=user_id
+                )
+                DB.session.add(alert_stat)
+                DB.session.flush()
+
+                stat_id = alert_stat.stat_id
+                return_data = f"New alert status written with ID: {stat_id}." + \
+                    f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
+
+            except Exception as err:
+                DB.session.rollback()
+                print("NO existing alert_status found. An ERROR has occurred.")
+                print(err)
+                raise
+
+        DB.session.commit()
     except Exception as err:
         DB.session.rollback()
         print(err)
@@ -585,7 +663,8 @@ def write_monitoring_on_demand_to_db(od_details):
         on_demand = MonitoringOnDemand(
             request_ts=od_details["request_ts"],
             narrative_id=od_details["narrative_id"],
-            reporter_id=od_details["reporter_id"]
+            reporter_id=od_details["reporter_id"],
+            tech_info=od_details["tech_info"]
         )
         DB.session.add(on_demand)
         DB.session.flush()
@@ -771,14 +850,10 @@ def write_monitoring_earthquake_to_db(eq_details):
     """
     """
     try:
-        earthquake = MonitoringMoms(
-            instance_id=eq_details["instance_id"],
-            observance_ts=eq_details["observance_ts"],
-            reporter_id=eq_details["reporter_id"],
-            remarks=eq_details["remarks"],
-            narrative_id=eq_details["narrative_id"],
-            validator_id=eq_details["validator_id"],
-            op_trigger=eq_details["op_trigger"]
+        earthquake = MonitoringEarthquake(
+            magnitude=eq_details["magnitude"],
+            latitude=eq_details["latitude"],
+            longitude=eq_details["longitude"]
         )
 
         DB.session.add(earthquake)
@@ -808,7 +883,8 @@ def build_internal_alert_level(public_alert_level, trigger_list=None):
                     Can be set as none since this is optional
     """
 
-    pas_row = retrieve_data_from_memcache("public_alert_symbols", {"alert_level": public_alert_level})
+    pas_row = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": public_alert_level})
     p_a_symbol = pas_row["alert_symbol"]
     if public_alert_level > 0:
         internal_alert_level = f"{p_a_symbol}-{trigger_list}"

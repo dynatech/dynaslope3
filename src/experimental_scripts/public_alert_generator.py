@@ -6,7 +6,7 @@ For use of Dynaslope Early Warning System
 August 2019
 """
 
-# from run import APP
+from run import APP
 import pprint
 import os
 import json
@@ -20,13 +20,14 @@ from src.models.monitoring import (
     OperationalTriggers as ot, OperationalTriggerSymbols as ots,
     InternalAlertSymbols as ias, TriggerHierarchies,
     MonitoringMoms as moms, MomsInstances as mi,
-    MonitoringMomsSchema)
+    MonitoringMomsSchema, MonitoringOnDemandSchema)
 from src.models.analysis import (
     TSMAlerts, TSMSensors, RainfallAlerts as ra,
-    AlertStatusSchema, EarthquakeEvents as )
+    AlertStatusSchema, EarthquakeAlertsSchema)
 from src.utils.sites import get_sites_data
 from src.utils.rainfall import get_rainfall_gauge_name
 from src.utils.earthquake import get_earthquake_alerts
+from src.utils.on_demand import get_on_demand
 from src.utils.monitoring import (
     round_down_data_ts, get_site_moms_alerts,
     round_to_nearest_release_time, get_max_possible_alert_level)
@@ -35,6 +36,7 @@ from src.utils.extra import var_checker, retrieve_data_from_memcache
 
 MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=(
     "moms_releases", "validator", "reporter", "narrative"))
+ON_DEMAND_SCHEMA = MonitoringOnDemandSchema()
 
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
@@ -218,6 +220,8 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                             {"alert_level": alert_level, "source_id": source_id})
             alert_symbol = ots_row["alert_symbol"]
             internal_sym_id = ots_row["internal_alert_symbol"]["internal_sym_id"]
+            ts_updated = item.ts_updated
+            site_id = item.site_id
 
             # Form a dictionary that will hold all trigger details
             trigger_dict = {
@@ -226,22 +230,16 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                 "alert_level": alert_level,
                 "trigger_id": item.trigger_id,
                 "alert": alert_symbol,
-                "ts_updated": str(item.ts_updated),
+                "ts_updated": str(ts_updated),
                 "internal_sym_id": internal_sym_id
             }
 
             # Prepare the tech_info of the trigger
             # NOTE: MOMS list to be used should be moms_special_details (all moms within interval hours)
             # REFACTOR tech_info_maker processes if possible.
-            trigger_tech_info = tech_info_maker.main(item)
+            # trigger_tech_info = tech_info_maker.main(item)
 
-            if trigger_source == "rainfall":
-                rainfall = {
-                    "rain_gauge": trigger_tech_info["rain_gauge"],
-                    "tech_info": trigger_tech_info["tech_info_string"]
-                }
-                trigger_dict.update(rainfall)
-            elif trigger_source == "moms":
+            if trigger_source == "moms":
                 if site_moms_alerts_list:
                     recent_moms_details = list(filter(lambda x: x.observance_ts == item.ts_updated, site_moms_alerts_list))
                     # Get the highest triggering moms
@@ -251,6 +249,8 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                     if sorted_moms_details:
                         sorted_moms_details_data = MONITORING_MOMS_SCHEMA.dump(sorted_moms_details).data
                         moms_list = sorted_moms_details_data
+
+                    trigger_tech_info = tech_info_maker.main(item, sorted_moms_details)
                     
                     moms_special_details = {
                         "tech_info": trigger_tech_info,
@@ -260,8 +260,58 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                             "Use moms from current_trigger_alerts instead."
                     }
                     trigger_dict.update(moms_special_details)
-            
+
+            elif trigger_source == "earthquake":
+                latest_eq_alerts = get_earthquake_alerts(ts_updated, site_id)
+
+                if latest_eq_alerts:
+                    latest_eq_alert_data = latest_eq_alerts[0]
+                    eq_event = latest_eq_alert_data.eq_event
+                    eq_details = {
+                        "ea_id": latest_eq_alert_data.ea_id,
+                        "distance": str("%.6f" % latest_eq_alert_data.distance),
+                        "magnitude": str("%.1f" % eq_event.magnitude),
+                        "latitude": str("%.6f" % eq_event.latitude),
+                        "longitude": str("%.6f" % eq_event.longitude)
+                    }
+
+                    trigger_tech_info = tech_info_maker.main(item, eq_details)
+
+                    earthquake_special_details = {
+                        "tech_info": trigger_tech_info,
+                        "eq_details": eq_details
+                    }
+
+                    trigger_dict.update(earthquake_special_details)                    
+                else:
+                    raise Exception("Reaching EQ event trigger WITHOUT any earthquake alerts!")
+            elif trigger_source == "on demand":
+                on_demand_alerts_list = get_on_demand(ts_updated)
+                if on_demand_alerts_list:
+                    latest_on_demand = on_demand_alerts_list[0]
+                    trigger_tech_info = latest_on_demand.tech_info
+
+                    latest_on_demand_data = ON_DEMAND_SCHEMA.dump(latest_on_demand).data
+
+                    on_demand_special_details = {
+                        "tech_info": trigger_tech_info,
+                        "od_details": latest_on_demand_data
+                    }
+
+                    trigger_dict.update(on_demand_special_details)
+                else:
+                    raise Exception("Reaching OD event trigger WITHOUT any on_demand alerts!")
+
+            elif trigger_source == "rainfall":
+                trigger_tech_info = tech_info_maker.main(item)
+                rainfall = {
+                    "rain_gauge": trigger_tech_info["rain_gauge"],
+                    "tech_info": trigger_tech_info["tech_info_string"]
+                }
+                trigger_dict.update(rainfall)
+
             else:
+                trigger_tech_info = tech_info_maker.main(item)
                 trigger_dict["tech_info"] = trigger_tech_info
 
             # # Add the invalid details same level to the dictionary attributes
@@ -1338,10 +1388,9 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
 
 if __name__ == "__main__":
-    # main(site_code="umi")
-
-    # main(query_ts_end="2019-08-09 14:00:00", query_ts_start="2019-08-09 14:00:00", is_test=True, site_code="umi")
+    # main()
 
     # TEST MAIN
     # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")
+    # main(query_ts_end="2019-05-22 11:00:00", query_ts_start="2019-05-22 11:00:00", is_test=True, site_code="hum")
     main(is_test=True, site_code="umi")

@@ -1,6 +1,6 @@
 """
-    Utility file for Surficial tables.
-    Contains functions essential in accessing and saving into surficial table.
+    Utility file for Rainfall tables.
+    Contains functions essential in accessing and saving into Rainfall table.
 """
 from connection import DB
 from src.models.analysis import (

@@ -18,7 +18,8 @@ class DevelopmentConfig(Config):
     """
 
     DEBUG = True
-    SQLALCHEMY_ECHO = True
+    # SQLALCHEMY_ECHO = True
+    SQLALCHEMY_ECHO = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
@@ -35,6 +36,6 @@ class ProductionConfig(Config):
 APP_CONFIG = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
-    "generated_alerts_path": "D:/Users/swat-dynaslope/Documents/DYNASLOPE-3.0/",
-    # "generated_alerts_path": "/var/www/dynaslope3/outputs/"
+    # "generated_alerts_path": "D:/Users/swat-dynaslope/Documents/DYNASLOPE-3.0/",
+    "generated_alerts_path": "/var/www/dynaslope3/outputs/"
 }

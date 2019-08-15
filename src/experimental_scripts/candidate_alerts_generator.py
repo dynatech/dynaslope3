@@ -15,7 +15,7 @@ and comparing is to generated_alerts.json
 August 2019
 """
 
-# from run import APP
+from run import APP
 import os
 import json
 from datetime import datetime, timedelta, time, date

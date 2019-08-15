@@ -28,7 +28,7 @@ from src.utils.monitoring import (
     write_monitoring_earthquake_to_db, get_internal_alert_symbols,
     get_monitoring_events_table, get_event_count, get_public_alert,
     get_ongoing_extended_overdue_events, update_alert_status,
-    get_max_possible_alert_level)
+    get_max_possible_alert_level, format_candidate_alerts_for_insert)
 from src.utils.extra import (create_symbols_map, var_checker,
                              retrieve_data_from_memcache)
 
@@ -48,6 +48,15 @@ ALERT_EXTENSION_LIMIT = retrieve_data_from_memcache(
 # Number of hours extended if no_data upon validity
 NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "NO_DATA_HOURS_EXTENSION"}, retrieve_attr="var_value")
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/format_candidate_alerts_for_insert", methods=["POST"])
+def wrap_format_candidate_alerts_for_insert():
+    json_data = request.get_json()
+
+    insert_ewi_data = format_candidate_alerts_for_insert(json_data)
+
+    return jsonify(insert_ewi_data)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/retrieve_data_from_memcache", methods=["POST"])
@@ -555,7 +564,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     od_details = trigger["od_details"]
                     request_ts = datetime.strptime(
                         od_details["request_ts"], "%Y-%m-%d %H:%M:%S")
-                    narrative = od_details["reason"]
+                    narrative = od_details["narrative"]
                     info = narrative
                     timestamp = request_ts
 
