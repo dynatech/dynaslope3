@@ -859,30 +859,33 @@ def extract_positive_triggers_list(op_triggers_list):
     return positive_triggers_list
 
 
-def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interval_hours):
+def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interval_hours, highest_public_alert):
     """
-    Get all operational triggers released within the four-hour window (or as defined) 
-    before release with exception for subsurface and rainfall triggers
+    Get all operational triggers released within the four-hour window 
+    (when on heightened alert) or 1-day window (on alert 0, 12 MN onwards) or as defined
+    on dynamic variables, before release with exception for 
+    subsurface and rainfall triggers
     """
 
     # Get the triggers within 4 hours before the release AND use "distinct" to remove duplicates
     interval = release_interval_hours
 
-    release_op_triggers = op_triggers_query.filter(
-        ot.ts_updated >= round_to_nearest_release_time(query_ts_end, interval) - timedelta(hours=interval)).distinct().all()
+    if highest_public_alert == 0:
+        ts_compare = datetime.combine(query_ts_end.date(), time(0, 0))
+    else:
+        ts_compare = round_to_nearest_release_time(query_ts_end, interval) - timedelta(hours=interval)
 
-    # DYNAMIC: TH_MAP
+    release_op_triggers = op_triggers_query.filter(
+        ot.ts_updated >= ts_compare).distinct().all()
+
     on_run_triggers_list = retrieve_data_from_memcache(
-        "trigger_hierarchies", {"data_presence": 1}, retrieve_one=False)
-    on_run_triggers_s_id_list = []
-    for item in on_run_triggers_list:
-        on_run_triggers_s_id_list.append(item["source_id"])
+        "trigger_hierarchies", {"data_presence": 1}, retrieve_one=False, retrieve_attr="source_id")
 
     # Remove subsurface and rainfall triggers less than the actual query_ts_end
-    # Data presence for subsurface and rainfall is limited to the current runtime only (not within 4 hours)
+    # Data presence for subsurface and rainfall is limited to the current runtime only (not within release interval hours)
     release_op_triggers_list = []
     for release_op_trig in release_op_triggers:
-        if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_s_id_list and release_op_trig.ts_updated < query_ts_end):
+        if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_list and release_op_trig.ts_updated < query_ts_end):
             release_op_triggers_list.append(release_op_trig)
 
     return release_op_triggers_list
@@ -1020,11 +1023,15 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             s_op_triggers_query, monitoring_start_ts, query_ts_end)
         op_triggers_list = op_triggers_query.all()
 
-        release_op_triggers_list = extract_release_op_triggers(
-            op_triggers_query, query_ts_end, release_interval_hours)
-
         positive_triggers_list = extract_positive_triggers_list(
             op_triggers_list)
+
+        # Get highest public alert level
+        highest_public_alert = get_highest_public_alert(
+            positive_triggers_list)
+
+        release_op_triggers_list = extract_release_op_triggers(
+            op_triggers_query, query_ts_end, release_interval_hours, highest_public_alert)
 
         ###############################
         # INVALID TRIGGERS PROCESSING #
@@ -1038,10 +1045,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ######################
         # GET TRIGGER ALERTS #
         ######################
-
-        # Get highest public alert level
-        highest_public_alert = get_highest_public_alert(
-            positive_triggers_list)
 
         # Get surficial and moms data presence window timestamp query
         # DYNAMIC: Adapt window_ts values based on DB
