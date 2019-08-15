@@ -6,7 +6,7 @@ For use of Dynaslope Early Warning System
 August 2019
 """
 
-from run import APP
+# from run import APP
 import pprint
 import os
 import json

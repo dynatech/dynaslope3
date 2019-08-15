@@ -32,6 +32,7 @@ from src.utils.monitoring import (
 from src.utils.extra import (create_symbols_map, var_checker,
                              retrieve_data_from_memcache)
 from src.experimental_scripts import candidate_alerts_generator
+from src.experimental_scripts import public_alert_generator
 
 
 #####################################################
@@ -80,8 +81,9 @@ def wrap_update_alert_status():
     json_data = request.get_json()
 
     var_checker("json_data", json_data, True)
-
     status = update_alert_status(json_data)
+
+    public_alert_generator.main()
 
     return status
 
@@ -1152,3 +1154,12 @@ def get_candidate_and_current_alerts():
         "candidate_alert": candidate_alerts_generator.main()
     }
     return jsonify(ret_val)
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/update_alert_gen", methods=["GET"])
+def alert_generator():
+    public_alert_generator.main()
+    feedback = {
+        "status": True
+    }
+    return jsonify(feedback)
