@@ -1,8 +1,11 @@
 import axios from "axios";
 import { sample_subsurface_data } from "./integrated_site/sample_subsurface_data_not_final";
 
+
+const host = "http://192.168.150.167:5000";
+
 export default function getSurficialPlotData (site_code, timestamps, callback) {
-    const api_link = `http://127.0.0.1:5000/api/surficial/get_surficial_plot_data/` +
+    const api_link = `${host}/api/surficial/get_surficial_plot_data/` +
         `${site_code}/${timestamps.start}/${timestamps.end}`;
 
     axios.get(api_link)
@@ -26,7 +29,7 @@ export function getSubsurfacePlotData (input, callback) {
 }
 
 export function getEarthquakeEvents (callback) {
-    const api_link = "http://127.0.0.1:5000/api/analysis/get_earthquake_events";
+    const api_link = `${host}/api/analysis/get_earthquake_events`;
 
     axios.get(api_link)
     .then(response => {
@@ -41,7 +44,7 @@ export function getEarthquakeEvents (callback) {
 
 export function getEarthquakeAlerts (request, callback) {
     const { limit, offset } = request;
-    const api_link = "http://127.0.0.1:5000/api/analysis/get_earthquake_alerts"
+    const api_link = `${host}/api/analysis/get_earthquake_alerts`
     + `?limit=${limit}&offset=${offset}`;
 
     axios.get(api_link)
@@ -56,7 +59,7 @@ export function getEarthquakeAlerts (request, callback) {
 }
 
 export function getMOMsAlertSummary (callback) {
-    const api_link = "http://127.0.0.1:5000/api/manifestations_of_movement/get_latest_alerts";
+    const api_link = `${host}/api/manifestations_of_movement/get_latest_alerts`;
 
     axios.get(api_link)
     .then(response => {
@@ -70,7 +73,7 @@ export function getMOMsAlertSummary (callback) {
 }
 
 export function getMOMsInstances (site_code, callback) {
-    const api_link = `http://127.0.0.1:5000/api/manifestations_of_movement/get_moms_instances/${site_code}`;
+    const api_link = `${host}/api/manifestations_of_movement/get_moms_instances/${site_code}`;
 
     axios.get(api_link)
     .then(response => {

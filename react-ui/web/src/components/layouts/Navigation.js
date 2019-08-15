@@ -18,7 +18,7 @@ const styles = theme => ({
         }
     },
     popper: {
-        zIndex: 4,
+        zIndex: 500,
         marginTop: 2
     },
     list: { width: 250 },

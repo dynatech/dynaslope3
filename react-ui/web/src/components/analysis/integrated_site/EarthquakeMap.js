@@ -6,6 +6,7 @@ import MarkerIcon from "leaflet/dist/images/marker-icon.png";
 import ShadowIcon from "leaflet/dist/images/marker-shadow.png";
 import RetinaIcon from "leaflet/dist/images/marker-icon-2x.png";
 import { sites } from "../../../store";
+import { prepareSiteAddress } from "../../../UtilityFunctions";
 
 const marker = L.icon({
     iconUrl: MarkerIcon,
@@ -62,7 +63,10 @@ function EarthquakeMap (props) {
                         radius={4}
                         bringToFront
                     >
-                        <Popup>{site.site_code.toUpperCase()}</Popup>
+                        <Popup>
+                            <strong>{site.site_code.toUpperCase()}</strong> <br/>
+                            {prepareSiteAddress(site, false)}
+                        </Popup>
                     </CircleMarker>
                 ))
             }
@@ -75,7 +79,6 @@ function EarthquakeMap (props) {
                     } = event;
                     const center = [latitude, longitude];
                     const distance = critical_distance === null ? 0 : parseFloat(critical_distance);
-                    // distance = distance > 100 ? 100 : distance;
 
                     return (
                         <Fragment key={eq_id}>

@@ -8,20 +8,16 @@ from connection import DB
 from src.models.narratives import Narratives
 
 
-def get_narratives(event_id=None, start=None, end=None):
+def get_narratives(offset, limit, start, end):
     """
         Returns one or more row/s of narratives.
 
         Args:
             event_id (Integer) - 
-            start (datetime class) - 
-            end (datetime class) - 
+            start (datetime) - 
+            end (datetime) - 
     """
     nar = Narratives
-
-    # Convert timestamp string to Datetime
-    start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
-    end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
 
     if start is None and end is None:
         time_filter = ""
@@ -29,7 +25,7 @@ def get_narratives(event_id=None, start=None, end=None):
         time_filter = nar.timestamp.between(start, end)
 
     narratives = nar.query.order_by(
-        DB.desc(nar.timestamp)).filter(nar.event_id == event_id).filter(time_filter).all()
+        DB.desc(nar.timestamp)).limit(limit).offset(offset).all()
 
     return narratives
 

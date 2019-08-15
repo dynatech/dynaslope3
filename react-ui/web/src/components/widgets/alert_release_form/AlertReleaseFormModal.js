@@ -1,15 +1,13 @@
-import React, { Component, useState, useEffect, useReducer } from "react";
-import axios from "axios";
+import React, { useState, useEffect, useReducer } from "react";
 import moment from "moment";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withStyles, withMobileDialog
+    Button, withStyles, withMobileDialog,
+    Typography
 } from "@material-ui/core";
-import Typography from "@material-ui/core/Typography";
 import { compose } from "recompose";
 import AlertReleaseForm from "./AlertReleaseForm";
-import Stepper from "./Stepper";
 
 const styles = theme => ({
     inputGridContainer: {
@@ -25,7 +23,7 @@ const styles = theme => ({
 });
 
 
-function prepareTriggers(triggers) {
+function prepareTriggers (triggers) {
     const trigger_list = [];
     Object.keys(triggers).forEach((key) => {
         console.log(key, triggers[key]);
@@ -34,7 +32,7 @@ function prepareTriggers(triggers) {
     return trigger_list;
 }
 
-function AlertReleaseFormModal(props) {
+function AlertReleaseFormModal (props) {
     const { classes, fullScreen, isOpen, closeHandler } = props;
     const [activeStep, setActiveStep] = useState(0);
     const [isNextBtnDisabled, setIsNextBtnDisabled] = useState(true);
@@ -102,12 +100,12 @@ function AlertReleaseFormModal(props) {
             default: return triggs;
         }
     }, {
-            subsurface: { switchState: false, triggers: [] },
-            surficial: { switchState: false, triggers: [] },
-            rainfall: { switchState: false, triggers: [] },
-            earthquake: { switchState: false, triggers: [] },
-            on_demand: { switchState: false, triggers: [] }
-        });
+        subsurface: { switchState: false, triggers: [] },
+        surficial: { switchState: false, triggers: [] },
+        rainfall: { switchState: false, triggers: [] },
+        earthquake: { switchState: false, triggers: [] },
+        on_demand: { switchState: false, triggers: [] }
+    });
 
     useEffect(() => {
         if (activeStep === 0) {
@@ -255,20 +253,20 @@ function AlertReleaseFormModal(props) {
                                     <Button onClick={handleReset}>Reset</Button>
                                 </div>
                             ) : (
+                                <div>
                                     <div>
-                                        <div>
-                                            <Button onClick={closeHandler} color="primary">
-                                                Cancel
+                                        <Button onClick={closeHandler} color="primary">
+                                            Cancel
                                         </Button>
-                                            <Button disabled={activeStep === 0} onClick={handleBack} className={classes.backButton}>
-                                                Back
+                                        <Button disabled={activeStep === 0} onClick={handleBack} className={classes.backButton}>
+                                            Back
                                         </Button>
-                                            <Button variant="contained" color="primary" onClick={handleNext} disabled={isNextBtnDisabled}>
-                                                {activeStep === steps.length - 1 ? "Submit" : "Next"}
-                                            </Button>
-                                        </div>
+                                        <Button variant="contained" color="primary" onClick={handleNext} disabled={isNextBtnDisabled}>
+                                            {activeStep === steps.length - 1 ? "Submit" : "Next"}
+                                        </Button>
                                     </div>
-                                )
+                                </div>
+                            )
                         }
                     </div>
                 </DialogActions>
