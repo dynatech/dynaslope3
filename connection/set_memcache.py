@@ -6,6 +6,8 @@ from src.models.monitoring import (
     InternalAlertSymbols as ias, TriggerHierarchies as th,
     PublicAlertSymbolsSchema as pasS, OperationalTriggerSymbolsSchema as otsS,
     InternalAlertSymbolsSchema as iasS, TriggerHierarchiesSchema as thS)
+from src.models.dynamic_variables import (
+    DynamicVariables as dv, DynamicVariablesSchema as dvS)
 
 
 def main(memory_client):
@@ -13,18 +15,11 @@ def main(memory_client):
         "public_alert_symbols": (pas, pasS(many=True)),
         "operational_trigger_symbols": (ots, otsS(many=True)),
         "internal_alert_symbols": (ias, iasS(many=True)),
-        "trigger_hierarchies": (th, thS(many=True))
+        "trigger_hierarchies": (th, thS(many=True)),
+        "dynamic_variables": (dv, dvS(many=True))
     }
-    # table_list = {
-    #     "public_alert_symbols": pas,
-    #     "operational_trigger_symbols": ots,
-    #     "internal_alert_symbols": ias,
-    #     "trigger_hierarchies": th
-    # }
 
     for key in table_list:
-        # table = table_list[key].query.all()
-        # memory_client.set(f"D3_{key.upper()}", table)
         table = table_list[key][0].query.all()
         table_data = table_list[key][1].dump(table).data
         memory_client.set(f"D3_{key.upper()}", table_data)

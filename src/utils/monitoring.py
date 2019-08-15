@@ -17,6 +17,7 @@ from src.models.monitoring import (
     TriggerHierarchies, OperationalTriggerSymbols,
     MonitoringEventAlertsSchema, OperationalTriggers,
     MonitoringMoms as moms, MomsInstances as mi)
+from src.models.sites import Seasons, RoutineSchedules
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
     var_checker, create_symbols_map, retrieve_data_from_memcache)
@@ -29,9 +30,20 @@ PAS_MAP = create_symbols_map("public_alert_symbols")
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
 #####################################################
-MAX_POSSIBLE_ALERT_LEVEL = 3  # Number of alert levels excluding zero
-RELEASE_INTERVAL_HOURS = 4  # Every how many hours per release
-ALERT_EXTENSION_LIMIT = 72  # Max hours total of 3 days
+# Every how many hours per release
+RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
+
+EXTENDED_MONITORING_DAYS = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "EXTENDED_MONITORING_DAYS"}, retrieve_attr="var_value")
+
+
+def get_max_possible_alert_level():
+    pas_map = retrieve_data_from_memcache("public_alert_symbols")
+    max_row = next(
+        iter(sorted(pas_map, key=lambda x: x["alert_level"], reverse=True)))
+
+    return max_row["alert_level"]
 
 
 def search_if_moms_is_released(moms_id):
@@ -146,6 +158,7 @@ def round_down_data_ts(date_time):
 def get_saved_event_triggers(event_id):
     """
     """
+
     mt = MonitoringTriggers
     mr = MonitoringReleases
     mea = MonitoringEventAlerts
@@ -187,6 +200,7 @@ def update_alert_status(as_details):
     """
 
     return_data = None
+
     try:
         trigger_id = as_details["trigger_id"]
 
@@ -224,6 +238,7 @@ def get_tomorrow_noon(ts):
     Args:
         ts - datetime object
     """
+
     if ts.hour < 12:
         tom_noon_ts = datetime(ts.year, ts.month, ts.day, 12, 0, 0)
     else:
@@ -245,7 +260,9 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         run_ts (Datetime) - used for testing retroactive generated alerts
     """
     global RELEASE_INTERVAL_HOURS
+    global EXTENDED_MONITORING_DAYS
     release_interval_hours = RELEASE_INTERVAL_HOURS
+    extended_monitoring_days = EXTENDED_MONITORING_DAYS
 
     if not run_ts:
         run_ts = datetime.now()
@@ -294,10 +311,10 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             # Extended
             start = get_tomorrow_noon(validity)
             # Day 3 is the 3rd 12-noon from validity
-            end = start + timedelta(days=2)
+            end = start + timedelta(days=extended_monitoring_days)
             current = run_ts  # Production code is current time
             # Count the days distance between current date and day 3 to know which extended day it is
-            day = 3 - (end - current).days
+            day = extended_monitoring_days - (end - current).days
 
             if day <= 0:
                 latest.append(event_alert_data)
@@ -314,14 +331,10 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         "overdue": overdue
     }
 
-    # for key, value in db_alerts.items():
-    #     db_alerts[key] = MonitoringEventAlertsSchema(
-    #         many=True).dump(value).data
-
     return db_alerts
 
 
-def get_routine_sites(timestamp=None):
+def get_routine_sites(timestamp=None, include_inactive=False):
     """
     Utils counterpart of identifing the routine site per day.
     Returns "routine_sites" in a list as value.
@@ -333,33 +346,27 @@ def get_routine_sites(timestamp=None):
         ]
     }
     """
-    current_data = date.today()
+    current_date = date.today()
+
     if timestamp:
-        current_data = timestamp.date()
-    get_sites = get_sites_data()
-    day = calendar.day_name[current_data.weekday()]
-    month = current_data.month
-    wet_season = [[1, 2, 6, 7, 8, 9, 10, 11, 12], [5, 6, 7, 8, 9, 10]]
-    dry_season = [[3, 4, 5], [1, 2, 3, 4, 11, 12]]
+        current_date = timestamp.date()
+
+    weekday = current_date.isoweekday()
+    month = current_date.strftime("%B").lower()
+
+    subquery = RoutineSchedules.query.filter_by(
+        iso_week_day=weekday).subquery("t1")
+    result = Seasons.query.join(subquery, DB.and_(
+        getattr(Seasons, month) == subquery.c.season_type)).all()
+
     routine_sites = []
+    for group in result:
+        for site in group.sites:
+            if site.active:
+                routine_sites.append(site.site_code)
+            elif include_inactive and not site.active:
+                routine_sites.append(site.site_code)
 
-    if (day == "Friday" or day == "Tuesday"):
-        # print(day)
-        for sites in get_sites:
-            season = int(sites.season) - 1
-            if month in wet_season[season]:
-                routine_sites.append(sites.site_code)
-    elif day == "Wednesday":
-        # print(day)
-        for sites in get_sites:
-            season = int(sites.season) - 1
-            if month in dry_season[season]:
-                routine_sites.append(sites.site_code)
-    else:
-        # print(day)
-        routine_sites = []
-
-    # print(routine_sites)
     return routine_sites
 
 
@@ -652,7 +659,8 @@ def search_if_feature_name_exists(feature_id, feature_name):
     """
     mi = MomsInstances
     instance = None
-    instance = mi.query.filter(and_(mi.feature_name == feature_name, mi.feature_id == feature_id)).first()
+    instance = mi.query.filter(
+        and_(mi.feature_name == feature_name, mi.feature_id == feature_id)).first()
 
     return instance
 
@@ -705,7 +713,8 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             else:
                 feature_id = moms_feature.feature_id
 
-            moms_instance = search_if_feature_name_exists(feature_id, feature_name)
+            moms_instance = search_if_feature_name_exists(
+                feature_id, feature_name)
 
             if not moms_instance:
                 instance_details = {
@@ -733,11 +742,12 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         DB.session.add(moms)
         DB.session.flush()
 
-        th_row = retrieve_data_from_memcache("trigger_hierarchies", {"trigger_source": "moms"})
+        th_row = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": "moms"})
         ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
-                        "alert_level": op_trigger, 
-                        "source_id": th_row["source_id"]
-                        })
+            "alert_level": op_trigger,
+            "source_id": th_row["source_id"]
+        })
 
         new_op_trigger = OperationalTriggers(
             ts=observance_ts,

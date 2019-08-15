@@ -27,19 +27,27 @@ from src.utils.monitoring import (
     write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
     write_monitoring_earthquake_to_db, get_internal_alert_symbols,
     get_monitoring_events_table, get_event_count, get_public_alert,
-    get_ongoing_extended_overdue_events, update_alert_status)
+    get_ongoing_extended_overdue_events, update_alert_status,
+    get_max_possible_alert_level)
 from src.utils.extra import (create_symbols_map, var_checker,
                              retrieve_data_from_memcache)
+
+
+MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
 #####################################################
-MAX_POSSIBLE_ALERT_LEVEL = 3  # Number of alert levels excluding zero
-RELEASE_INTERVAL_HOURS = 4  # Every how many hours per release
-ALERT_EXTENSION_LIMIT = 72  # Max hours total of 3 days
-NO_DATA_HOURS_EXTENSION = 4  # Number of hours extended if no_data upon validity
+# Number of alert levels excluding zero
+MAX_POSSIBLE_ALERT_LEVEL = get_max_possible_alert_level()
 
-MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
+# Max hours total of 3 days
+ALERT_EXTENSION_LIMIT = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "ALERT_EXTENSION_LIMIT"}, retrieve_attr="var_value")
+
+# Number of hours extended if no_data upon validity
+NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "NO_DATA_HOURS_EXTENSION"}, retrieve_attr="var_value")
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/retrieve_data_from_memcache", methods=["POST"])
@@ -62,8 +70,10 @@ def wrap_retrieve_data_from_memcache():
 
 @MONITORING_BLUEPRINT.route("/monitoring/update_alert_status", methods=["POST"])
 def wrap_update_alert_status():
-    json_data = request.get_json()
+    """
+    """
 
+    json_data = request.get_json()
     status = update_alert_status(json_data)
 
     return status
@@ -761,7 +771,6 @@ def insert_ewi(internal_json=None):
             # Default checks if not event i.e. site_status != 2
             if is_new_monitoring_instance(2, site_status):
                 # If the values are different, means new monitoring instance will be created
-
                 end_current_monitoring_event_alert(
                     current_event_alert.event_alert_id, datetime_data_ts)
 
@@ -784,7 +793,6 @@ def insert_ewi(internal_json=None):
 
             else:
                 # If the values are same, re-release will happen.
-
                 event_id = current_event_alert.event_id
                 event_alert_details = {
                     "event_id": event_id,

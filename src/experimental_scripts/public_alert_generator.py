@@ -6,7 +6,7 @@ For use of Dynaslope Early Warning System
 August 2019
 """
 
-# from run import APP
+from run import APP
 import pprint
 import os
 import json
@@ -26,7 +26,9 @@ from src.models.analysis import (
     AlertStatusSchema)
 from src.utils.sites import get_sites_data
 from src.utils.rainfall import get_rainfall_gauge_name
-from src.utils.monitoring import round_down_data_ts, get_site_moms_alerts, round_to_nearest_release_time
+from src.utils.monitoring import (
+    round_down_data_ts, get_site_moms_alerts, 
+    round_to_nearest_release_time, get_max_possible_alert_level)
 from src.utils.extra import var_checker, retrieve_data_from_memcache
 
 
@@ -36,10 +38,20 @@ MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=(
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
 #####################################################
-MAX_POSSIBLE_ALERT_LEVEL = 3  # Number of alert levels excluding zero
-RELEASE_INTERVAL_HOURS = 4  # Every how many hours per release
-ALERT_EXTENSION_LIMIT = 72 # Max hours total of 3 days
-NO_DATA_HOURS_EXTENSION = 4 # Number of hours extended if no_data upon validity
+# Number of alert levels excluding zero
+MAX_POSSIBLE_ALERT_LEVEL = get_max_possible_alert_level()
+
+# Every how many hours per release
+RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
+
+# Max hours total of 3 days
+ALERT_EXTENSION_LIMIT = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "ALERT_EXTENSION_LIMIT"}, retrieve_attr="var_value")
+
+# Number of hours extended if no_data upon validity
+NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "NO_DATA_HOURS_EXTENSION"}, retrieve_attr="var_value")
 
 
 def check_if_routine_or_event(pub_sym_id):
@@ -416,8 +428,6 @@ def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
                         "source_id": source_id
                     }, retrieve_one=False)
 
-                # max_alert_row = list(
-                #     sorted(ots_source_row, key=lambda x: x["alert_level"], reverse=True))[0]
                 max_alert_row = next(iter(sorted(ots_source_row, key=lambda x: x["alert_level"], reverse=True)))
 
                 # Get the lowercased version of [x]2 triggers (g2, s2)
@@ -851,8 +861,8 @@ def extract_positive_triggers_list(op_triggers_list):
 
 def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interval_hours):
     """
-    Get all operational triggers released within the four-hour window before release
-    with exception for subsurface triggers
+    Get all operational triggers released within the four-hour window (or as defined) 
+    before release with exception for subsurface and rainfall triggers
     """
 
     # Get the triggers within 4 hours before the release AND use "distinct" to remove duplicates
@@ -861,7 +871,6 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interva
     release_op_triggers = op_triggers_query.filter(
         ot.ts_updated >= round_to_nearest_release_time(query_ts_end, interval) - timedelta(hours=interval)).distinct().all()
 
-
     # DYNAMIC: TH_MAP
     on_run_triggers_list = retrieve_data_from_memcache(
         "trigger_hierarchies", {"data_presence": 1}, retrieve_one=False)
@@ -869,8 +878,8 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interva
     for item in on_run_triggers_list:
         on_run_triggers_s_id_list.append(item["source_id"])
 
-    # Remove subsurface triggers less than the actual query_ts_end
-    # Data presence for subsurface is limited to the current runtime only (not within 4 hours)
+    # Remove subsurface and rainfall triggers less than the actual query_ts_end
+    # Data presence for subsurface and rainfall is limited to the current runtime only (not within 4 hours)
     release_op_triggers_list = []
     for release_op_trig in release_op_triggers:
         if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_s_id_list and release_op_trig.ts_updated < query_ts_end):
@@ -1077,7 +1086,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             latest_rainfall_alert = site.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
                 ra.ts == query_ts_end).first()
 
-        current_trigger_alerts = get_current_trigger_alert_conditions(release_op_triggers_list, surficial_moms_window_ts, latest_rainfall_alert, subsurface_alerts_list, moms_trigger_condition)            
+        current_trigger_alerts = get_current_trigger_alert_conditions(release_op_triggers_list, surficial_moms_window_ts,
+                                                                    latest_rainfall_alert, subsurface_alerts_list, moms_trigger_condition)            
 
         ###################
         # INTERNAL ALERTS #
@@ -1131,14 +1141,20 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
             is_within_alert_extension_limit = validity + \
                 timedelta(hours=alert_extension_limit) > query_ts_end + timedelta(minutes=30)
-            has_no_ground_alert = ground_alert_level == -1
+
             # If has data, True, else, False
             has_unresolved_moms = bool(unresolved_moms_list)
+
+            has_no_ground_alert = ground_alert_level == -1
+            # This code checks if moms alerts are lowered to non-triggering
+            # earlier than the release time period of end of validity
+            if has_positive_moms_trigger and not has_unresolved_moms:
+                has_no_ground_alert = False
 
             if is_end_of_validity:
                 # Checks all lowering conditions before lowering
                 if is_rainfall_rx or (is_within_alert_extension_limit and has_no_ground_alert) \
-                    or is_not_yet_write_time or (has_unresolved_moms and is_within_alert_extension_limit):
+                    or is_not_yet_write_time or (is_within_alert_extension_limit and has_unresolved_moms):
                     validity = round_to_nearest_release_time(data_ts=query_ts_end + timedelta(minutes=30), interval=no_data_hours_extension)
 
                     if is_release_time_run:
@@ -1320,7 +1336,9 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
 
 if __name__ == "__main__":
-    main()
+    main(site_code="umi")
+
+    # main(query_ts_end="2019-08-09 14:00:00", query_ts_start="2019-08-09 14:00:00", is_test=True, site_code="umi")
 
     # TEST MAIN
     # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")

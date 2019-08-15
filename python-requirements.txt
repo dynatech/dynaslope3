@@ -27,3 +27,11 @@ pylint-plugin-utils    0.4
 SQLAlchemy             1.2.16
 selenium
 phantomjs
+fpdf
+
+Analysis Scripts Library
+------------------------
+pandas
+python-memcached
+serial
+python-gsmmodem

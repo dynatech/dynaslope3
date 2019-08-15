@@ -19,7 +19,7 @@ from src.models.monitoring import (
     InternalAlertSymbols as ias, TriggerHierarchies as th)
 
 
-def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True):
+def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True, retrieve_attr=None):
     """
 
     """
@@ -46,10 +46,20 @@ def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True
                     raise
         else:
             return_data = data
+
+        final_return_data = []
+        if retrieve_attr:
+            if retrieve_one:
+                final_return_data = return_data[retrieve_attr]
+            else:
+                for d in return_data:
+                    final_return_data.append(d[retrieve_attr])
+        else:
+            final_return_data = return_data
     else:
         raise Exception("Table name provided is not found in memcached")
 
-    return return_data
+    return final_return_data
 
 
 def create_symbols_map(qualifier):
