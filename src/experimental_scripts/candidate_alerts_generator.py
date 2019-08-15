@@ -18,7 +18,7 @@ August 2019
 # from run import APP
 import os
 import json
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 import re
 import requests
 from config import APP_CONFIG
@@ -37,8 +37,9 @@ release_time = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "ROUTINE_EXTENDED_RELEASE_TIME"}, retrieve_attr="var_value")
 
 # Currently 12; so data timestamp to get should be 30 minutes before
-ROUTINE_EXTENDED_RELEASE_TIME = time(
-    hour=release_time, minute=0) - timedelta(minute=30)
+dt = datetime.combine(date.today(), time(
+    hour=release_time, minute=0)) - timedelta(minutes=30)
+ROUTINE_EXTENDED_RELEASE_TIME = dt.time()
 
 ##########################
 # Utility functions here #

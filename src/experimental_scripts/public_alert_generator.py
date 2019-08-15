@@ -6,7 +6,7 @@ For use of Dynaslope Early Warning System
 August 2019
 """
 
-from run import APP
+# from run import APP
 import pprint
 import os
 import json
@@ -23,11 +23,12 @@ from src.models.monitoring import (
     MonitoringMomsSchema)
 from src.models.analysis import (
     TSMAlerts, TSMSensors, RainfallAlerts as ra,
-    AlertStatusSchema)
+    AlertStatusSchema, EarthquakeEvents as )
 from src.utils.sites import get_sites_data
 from src.utils.rainfall import get_rainfall_gauge_name
+from src.utils.earthquake import get_earthquake_alerts
 from src.utils.monitoring import (
-    round_down_data_ts, get_site_moms_alerts, 
+    round_down_data_ts, get_site_moms_alerts,
     round_to_nearest_release_time, get_max_possible_alert_level)
 from src.utils.extra import var_checker, retrieve_data_from_memcache
 
@@ -1069,22 +1070,29 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         current_trigger_alerts = {}
 
         # Get subsurface TH map
-        subsurface_th_row = retrieve_data_from_memcache(
-            "trigger_hierarchies", {"trigger_source": "subsurface"})
+        is_subsurface_active = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": "subsurface"}, retrieve_attr="is_active")
         # Get current subsurface alert
         # Special function to Dyna3, no need to modularize
         subsurface_alerts_list = None
-        if subsurface_th_row["is_active"]:
+        if is_subsurface_active:
             site_tsm_sensors = site.tsm_sensors.all()
             subsurface_alerts_list = get_tsm_alerts(
                 site_tsm_sensors, query_ts_end)
 
         latest_rainfall_alert = None
-        rainfall_th_row = retrieve_data_from_memcache(
-            "trigger_hierarchies", {"trigger_source": "rainfall"})
-        if rainfall_th_row["is_active"]:
+        is_rainfall_active = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": "rainfall"}, retrieve_attr="is_active")
+        if is_rainfall_active:
             latest_rainfall_alert = site.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
                 ra.ts == query_ts_end).first()
+        
+        latest_earthquake_alert = None
+        is_earthquake_active = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": "earthquake"}, retrieve_attr="is_active")
+        if is_earthquake_active:
+            filters = 
+            latest_earthquake_alert = get_earthquake_events()
 
         current_trigger_alerts = get_current_trigger_alert_conditions(release_op_triggers_list, surficial_moms_window_ts,
                                                                     latest_rainfall_alert, subsurface_alerts_list, moms_trigger_condition)            
@@ -1336,9 +1344,10 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
 
 if __name__ == "__main__":
-    main(site_code="umi")
+    # main(site_code="umi")
 
     # main(query_ts_end="2019-08-09 14:00:00", query_ts_start="2019-08-09 14:00:00", is_test=True, site_code="umi")
 
     # TEST MAIN
     # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")
+    main(is_test=True, site_code="umi")
