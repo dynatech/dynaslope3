@@ -200,6 +200,7 @@ class MonitoringOnDemand(UserMixin, DB.Model):
         "commons_db.narratives.id"))
     reporter_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.users.user_id"), nullable=False)
+    tech_info = DB.Column(DB.String(500))
 
     reporter = DB.relationship(
         "Users", backref="od_reporter",
