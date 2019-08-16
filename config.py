@@ -18,7 +18,8 @@ class DevelopmentConfig(Config):
     """
 
     DEBUG = True
-    SQLALCHEMY_ECHO = False
+    SQLALCHEMY_ECHO = True
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 class ProductionConfig(Config):
@@ -28,11 +29,17 @@ class ProductionConfig(Config):
 
     DEBUG = False
     SQLALCHEMY_ECHO = False
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 APP_CONFIG = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
-    #"generated_alerts_path": "D:/Users/swat-dynaslope/Documents/DYNASLOPE-3.0/",
+    << << << < HEAD
+    # "generated_alerts_path": "D:/Users/swat-dynaslope/Documents/DYNASLOPE-3.0/",
     "generated_alerts_path": "Documents/monitoringoutput/"
+    == == == =
+    # "generated_alerts_path": "D:/Users/swat-dynaslope/Documents/DYNASLOPE-3.0/",
+    "generated_alerts_path": "/var/www/dynaslope3/outputs/"
+    >> >>>> > ee51f4f2ea7c2a01385c7a041ed7ac561bc3186b
 }

@@ -28,22 +28,37 @@ from src.utils.monitoring import (
     write_monitoring_earthquake_to_db, get_internal_alert_symbols,
     get_monitoring_events_table, get_event_count, get_public_alert,
     get_ongoing_extended_overdue_events, update_alert_status,
-    format_candidate_alerts_for_insert)
+    get_max_possible_alert_level, format_candidate_alerts_for_insert)
 from src.utils.extra import (create_symbols_map, var_checker,
                              retrieve_data_from_memcache)
 from src.experimental_scripts import candidate_alerts_generator
 from src.experimental_scripts import public_alert_generator
 
 
+MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
+
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
 #####################################################
-MAX_POSSIBLE_ALERT_LEVEL = 3  # Number of alert levels excluding zero
-RELEASE_INTERVAL_HOURS = 4  # Every how many hours per release
-ALERT_EXTENSION_LIMIT = 72  # Max hours total of 3 days
-NO_DATA_HOURS_EXTENSION = 4  # Number of hours extended if no_data upon validity
+# Number of alert levels excluding zero
+MAX_POSSIBLE_ALERT_LEVEL = get_max_possible_alert_level()
 
-MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
+# Max hours total of 3 days
+ALERT_EXTENSION_LIMIT = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "ALERT_EXTENSION_LIMIT"}, retrieve_attr="var_value")
+
+# Number of hours extended if no_data upon validity
+NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "NO_DATA_HOURS_EXTENSION"}, retrieve_attr="var_value")
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/format_candidate_alerts_for_insert", methods=["POST"])
+def wrap_format_candidate_alerts_for_insert():
+    json_data = request.get_json()
+
+    insert_ewi_data = format_candidate_alerts_for_insert(json_data)
+
+    return jsonify(insert_ewi_data)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/format_candidate_alerts_for_insert", methods=["POST"])
@@ -78,9 +93,10 @@ def wrap_retrieve_data_from_memcache():
 
 @MONITORING_BLUEPRINT.route("/monitoring/update_alert_status", methods=["GET", "POST"])
 def wrap_update_alert_status():
-    json_data = request.get_json()
+    """
+    """
 
-    var_checker("json_data", json_data, True)
+    json_data = request.get_json()
     status = update_alert_status(json_data)
 
     public_alert_generator.main()
@@ -568,7 +584,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     od_details = trigger["od_details"]
                     request_ts = datetime.strptime(
                         od_details["request_ts"], "%Y-%m-%d %H:%M:%S")
-                    narrative = od_details["reason"]
+                    narrative = od_details["narrative"]
                     info = narrative
                     timestamp = request_ts
 
@@ -825,7 +841,6 @@ def insert_ewi(internal_json=None):
             # Default checks if not event i.e. site_status != 2
             if is_new_monitoring_instance(2, site_status):
                 # If the values are different, means new monitoring instance will be created
-
                 end_current_monitoring_event_alert(
                     current_event_alert.event_alert_id, datetime_data_ts)
 
@@ -848,7 +863,6 @@ def insert_ewi(internal_json=None):
 
             else:
                 # If the values are same, re-release will happen.
-
                 event_id = current_event_alert.event_id
                 event_alert_details = {
                     "event_id": event_id,

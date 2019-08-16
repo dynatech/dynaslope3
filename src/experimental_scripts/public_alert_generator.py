@@ -20,26 +20,41 @@ from src.models.monitoring import (
     OperationalTriggers as ot, OperationalTriggerSymbols as ots,
     InternalAlertSymbols as ias, TriggerHierarchies,
     MonitoringMoms as moms, MomsInstances as mi,
-    MonitoringMomsSchema)
+    MonitoringMomsSchema, MonitoringOnDemandSchema)
 from src.models.analysis import (
     TSMAlerts, TSMSensors, RainfallAlerts as ra,
-    AlertStatusSchema)
+    AlertStatusSchema, EarthquakeAlertsSchema)
 from src.utils.sites import get_sites_data
 from src.utils.rainfall import get_rainfall_gauge_name
-from src.utils.monitoring import round_down_data_ts, get_site_moms_alerts, round_to_nearest_release_time
+from src.utils.earthquake import get_earthquake_alerts
+from src.utils.on_demand import get_on_demand
+from src.utils.monitoring import (
+    round_down_data_ts, get_site_moms_alerts,
+    round_to_nearest_release_time, get_max_possible_alert_level)
 from src.utils.extra import var_checker, retrieve_data_from_memcache
 
 
 MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=(
     "moms_releases", "validator", "reporter", "narrative"))
+ON_DEMAND_SCHEMA = MonitoringOnDemandSchema()
 
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
 #####################################################
-MAX_POSSIBLE_ALERT_LEVEL = 3  # Number of alert levels excluding zero
-RELEASE_INTERVAL_HOURS = 4  # Every how many hours per release
-ALERT_EXTENSION_LIMIT = 72  # Max hours total of 3 days
-NO_DATA_HOURS_EXTENSION = 4  # Number of hours extended if no_data upon validity
+# Number of alert levels excluding zero
+MAX_POSSIBLE_ALERT_LEVEL = get_max_possible_alert_level()
+
+# Every how many hours per release
+RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
+
+# Max hours total of 3 days
+ALERT_EXTENSION_LIMIT = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "ALERT_EXTENSION_LIMIT"}, retrieve_attr="var_value")
+
+# Number of hours extended if no_data upon validity
+NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "NO_DATA_HOURS_EXTENSION"}, retrieve_attr="var_value")
 
 
 def check_if_routine_or_event(pub_sym_id):
@@ -207,6 +222,8 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                             {"alert_level": alert_level, "source_id": source_id})
             alert_symbol = ots_row["alert_symbol"]
             internal_sym_id = ots_row["internal_alert_symbol"]["internal_sym_id"]
+            ts_updated = item.ts_updated
+            site_id = item.site_id
 
             # Form a dictionary that will hold all trigger details
             trigger_dict = {
@@ -215,22 +232,16 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                 "alert_level": alert_level,
                 "trigger_id": item.trigger_id,
                 "alert": alert_symbol,
-                "ts_updated": str(item.ts_updated),
+                "ts_updated": str(ts_updated),
                 "internal_sym_id": internal_sym_id
             }
 
             # Prepare the tech_info of the trigger
             # NOTE: MOMS list to be used should be moms_special_details (all moms within interval hours)
             # REFACTOR tech_info_maker processes if possible.
-            trigger_tech_info = tech_info_maker.main(item)
+            # trigger_tech_info = tech_info_maker.main(item)
 
-            if trigger_source == "rainfall":
-                rainfall = {
-                    "rain_gauge": trigger_tech_info["rain_gauge"],
-                    "tech_info": trigger_tech_info["tech_info_string"]
-                }
-                trigger_dict.update(rainfall)
-            elif trigger_source == "moms":
+            if trigger_source == "moms":
                 if site_moms_alerts_list:
                     recent_moms_details = list(filter(lambda x: x.observance_ts == item.ts_updated, site_moms_alerts_list))
                     # Get the highest triggering moms
@@ -240,6 +251,8 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                     if sorted_moms_details:
                         sorted_moms_details_data = MONITORING_MOMS_SCHEMA.dump(sorted_moms_details).data
                         moms_list = sorted_moms_details_data
+
+                    trigger_tech_info = tech_info_maker.main(item, sorted_moms_details)
                     
                     moms_special_details = {
                         "tech_info": trigger_tech_info,
@@ -249,7 +262,58 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                             "Use moms from current_trigger_alerts instead."
                     }
                     trigger_dict.update(moms_special_details)
+
+            elif trigger_source == "earthquake":
+                latest_eq_alerts = get_earthquake_alerts(ts_updated, site_id)
+
+                if latest_eq_alerts:
+                    latest_eq_alert_data = latest_eq_alerts[0]
+                    eq_event = latest_eq_alert_data.eq_event
+                    eq_details = {
+                        "ea_id": latest_eq_alert_data.ea_id,
+                        "distance": str("%.6f" % latest_eq_alert_data.distance),
+                        "magnitude": str("%.1f" % eq_event.magnitude),
+                        "latitude": str("%.6f" % eq_event.latitude),
+                        "longitude": str("%.6f" % eq_event.longitude)
+                    }
+
+                    trigger_tech_info = tech_info_maker.main(item, eq_details)
+
+                    earthquake_special_details = {
+                        "tech_info": trigger_tech_info,
+                        "eq_details": eq_details
+                    }
+
+                    trigger_dict.update(earthquake_special_details)                    
+                else:
+                    raise Exception("Reaching EQ event trigger WITHOUT any earthquake alerts!")
+            elif trigger_source == "on demand":
+                on_demand_alerts_list = get_on_demand(ts_updated)
+                if on_demand_alerts_list:
+                    latest_on_demand = on_demand_alerts_list[0]
+                    trigger_tech_info = latest_on_demand.tech_info
+
+                    latest_on_demand_data = ON_DEMAND_SCHEMA.dump(latest_on_demand).data
+
+                    on_demand_special_details = {
+                        "tech_info": trigger_tech_info,
+                        "od_details": latest_on_demand_data
+                    }
+
+                    trigger_dict.update(on_demand_special_details)
+                else:
+                    raise Exception("Reaching OD event trigger WITHOUT any on_demand alerts!")
+
+            elif trigger_source == "rainfall":
+                trigger_tech_info = tech_info_maker.main(item)
+                rainfall = {
+                    "rain_gauge": trigger_tech_info["rain_gauge"],
+                    "tech_info": trigger_tech_info["tech_info_string"]
+                }
+                trigger_dict.update(rainfall)
+
             else:
+                trigger_tech_info = tech_info_maker.main(item)
                 trigger_dict["tech_info"] = trigger_tech_info
 
             # # Add the invalid details same level to the dictionary attributes
@@ -418,8 +482,6 @@ def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
                         "source_id": source_id
                     }, retrieve_one=False)
 
-                # max_alert_row = list(
-                #     sorted(ots_source_row, key=lambda x: x["alert_level"], reverse=True))[0]
                 max_alert_row = next(iter(sorted(ots_source_row, key=lambda x: x["alert_level"], reverse=True)))
 
                 # Get the lowercased version of [x]2 triggers (g2, s2)
@@ -851,31 +913,33 @@ def extract_positive_triggers_list(op_triggers_list):
     return positive_triggers_list
 
 
-def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interval_hours):
+def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interval_hours, highest_public_alert):
     """
-    Get all operational triggers released within the four-hour window before release
-    with exception for subsurface triggers
+    Get all operational triggers released within the four-hour window 
+    (when on heightened alert) or 1-day window (on alert 0, 12 MN onwards) or as defined
+    on dynamic variables, before release with exception for 
+    subsurface and rainfall triggers
     """
 
     # Get the triggers within 4 hours before the release AND use "distinct" to remove duplicates
     interval = release_interval_hours
 
+    if highest_public_alert == 0:
+        ts_compare = datetime.combine(query_ts_end.date(), time(0, 0))
+    else:
+        ts_compare = round_to_nearest_release_time(query_ts_end, interval) - timedelta(hours=interval)
+
     release_op_triggers = op_triggers_query.filter(
-        ot.ts_updated >= round_to_nearest_release_time(query_ts_end, interval) - timedelta(hours=interval)).distinct().all()
+        ot.ts_updated >= ts_compare).distinct().all()
 
-
-    # DYNAMIC: TH_MAP
     on_run_triggers_list = retrieve_data_from_memcache(
-        "trigger_hierarchies", {"data_presence": 1}, retrieve_one=False)
-    on_run_triggers_s_id_list = []
-    for item in on_run_triggers_list:
-        on_run_triggers_s_id_list.append(item["source_id"])
+        "trigger_hierarchies", {"data_presence": 1}, retrieve_one=False, retrieve_attr="source_id")
 
-    # Remove subsurface triggers less than the actual query_ts_end
-    # Data presence for subsurface is limited to the current runtime only (not within 4 hours)
+    # Remove subsurface and rainfall triggers less than the actual query_ts_end
+    # Data presence for subsurface and rainfall is limited to the current runtime only (not within release interval hours)
     release_op_triggers_list = []
     for release_op_trig in release_op_triggers:
-        if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_s_id_list and release_op_trig.ts_updated < query_ts_end):
+        if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_list and release_op_trig.ts_updated < query_ts_end):
             release_op_triggers_list.append(release_op_trig)
 
     return release_op_triggers_list
@@ -1013,11 +1077,15 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             s_op_triggers_query, monitoring_start_ts, query_ts_end)
         op_triggers_list = op_triggers_query.all()
 
-        release_op_triggers_list = extract_release_op_triggers(
-            op_triggers_query, query_ts_end, release_interval_hours)
-
         positive_triggers_list = extract_positive_triggers_list(
             op_triggers_list)
+
+        # Get highest public alert level
+        highest_public_alert = get_highest_public_alert(
+            positive_triggers_list)
+
+        release_op_triggers_list = extract_release_op_triggers(
+            op_triggers_query, query_ts_end, release_interval_hours, highest_public_alert)
 
         ###############################
         # INVALID TRIGGERS PROCESSING #
@@ -1031,10 +1099,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ######################
         # GET TRIGGER ALERTS #
         ######################
-
-        # Get highest public alert level
-        highest_public_alert = get_highest_public_alert(
-            positive_triggers_list)
 
         # Get surficial and moms data presence window timestamp query
         # DYNAMIC: Adapt window_ts values based on DB
@@ -1062,25 +1126,25 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         current_trigger_alerts = {}
 
         # Get subsurface TH map
-        subsurface_th_row = retrieve_data_from_memcache(
-            "trigger_hierarchies", {"trigger_source": "subsurface"})
+        is_subsurface_active = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": "subsurface"}, retrieve_attr="is_active")
         # Get current subsurface alert
         # Special function to Dyna3, no need to modularize
         subsurface_alerts_list = None
-        if subsurface_th_row["is_active"]:
-            # site_tsm_sensors = site.tsm_sensors.all()
-            site_tsm_sensors = site.tsm_sensors
+        if is_subsurface_active:
+            site_tsm_sensors = site.tsm_sensors.all()
             subsurface_alerts_list = get_tsm_alerts(
                 site_tsm_sensors, query_ts_end)
 
         latest_rainfall_alert = None
-        rainfall_th_row = retrieve_data_from_memcache(
-            "trigger_hierarchies", {"trigger_source": "rainfall"})
-        if rainfall_th_row["is_active"]:
+        is_rainfall_active = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": "rainfall"}, retrieve_attr="is_active")
+        if is_rainfall_active:
             latest_rainfall_alert = site.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
                 ra.ts == query_ts_end).first()
-
-        current_trigger_alerts = get_current_trigger_alert_conditions(release_op_triggers_list, surficial_moms_window_ts, latest_rainfall_alert, subsurface_alerts_list, moms_trigger_condition)            
+        
+        current_trigger_alerts = get_current_trigger_alert_conditions(release_op_triggers_list, surficial_moms_window_ts,
+                                                                    latest_rainfall_alert, subsurface_alerts_list, moms_trigger_condition)            
 
         ###################
         # INTERNAL ALERTS #
@@ -1134,14 +1198,20 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
             is_within_alert_extension_limit = validity + \
                 timedelta(hours=alert_extension_limit) > query_ts_end + timedelta(minutes=30)
-            has_no_ground_alert = ground_alert_level == -1
+
             # If has data, True, else, False
             has_unresolved_moms = bool(unresolved_moms_list)
+
+            has_no_ground_alert = ground_alert_level == -1
+            # This code checks if moms alerts are lowered to non-triggering
+            # earlier than the release time period of end of validity
+            if has_positive_moms_trigger and not has_unresolved_moms:
+                has_no_ground_alert = False
 
             if is_end_of_validity:
                 # Checks all lowering conditions before lowering
                 if is_rainfall_rx or (is_within_alert_extension_limit and has_no_ground_alert) \
-                    or is_not_yet_write_time or (has_unresolved_moms and is_within_alert_extension_limit):
+                    or is_not_yet_write_time or (is_within_alert_extension_limit and has_unresolved_moms):
                     validity = round_to_nearest_release_time(data_ts=query_ts_end + timedelta(minutes=30), interval=no_data_hours_extension)
 
                     if is_release_time_run:
@@ -1327,3 +1397,5 @@ if __name__ == "__main__":
 
     # TEST MAIN
     # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")
+    # main(query_ts_end="2019-05-22 11:00:00", query_ts_start="2019-05-22 11:00:00", is_test=True, site_code="hum")
+    # main(is_test=True, site_code="umi")

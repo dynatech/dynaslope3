@@ -18,12 +18,38 @@ from src.models.analysis import (
     NodeAlerts as na, TSMSensors as tsma)
 from src.models.monitoring import (MonitoringMoms as mm)
 from src.utils.rainfall import (get_rainfall_gauge_name)
-from src.utils.extra import var_checker
+from src.utils.extra import var_checker, retrieve_data_from_memcache
 from src.utils.monitoring import round_to_nearest_release_time
+
+
+# Every how many hours per release
+RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
 
 #####################################
 # DATA PROCESSING CODES BEYOND HERE #
 #####################################
+
+
+def get_on_demand_tech_info(on_demand_details):
+    """
+    """
+    # on_demand_details
+
+    return on_demand_details
+
+
+def get_earthquake_tech_info(earthquake_details):
+    """
+    """
+    # ea_id = earthquake_details["ea_id"]
+    magnitude = earthquake_details["magnitude"]
+    latitude = earthquake_details["latitude"]
+    longitude = earthquake_details["longitude"]
+    # distance = earthquake_details["distance"]
+
+    return f"An earthquake with Magnitude {magnitude} " + \
+        f"({latitude} N, {longitude} E) recorded."
 
 
 def get_moms_tech_info(moms_alert_details):
@@ -334,38 +360,56 @@ def get_subsurface_tech_info(subsurface_node_alerts):
     return subsurface_tech_info
 
 
-def main(trigger):
+def main(trigger, special_details=None):
     """
     Return tech_info
     """
+    global RELEASE_INTERVAL_HOURS
+    release_interval = RELEASE_INTERVAL_HOURS
+
+    has_special_details = False
+    if special_details:
+        has_special_details = True
+
     site_id = trigger.site_id
     latest_trigger_ts = trigger.ts_updated
     trigger_source = trigger.trigger_symbol.trigger_hierarchy.trigger_source
     start_ts = round_to_nearest_release_time(
-        latest_trigger_ts) - timedelta(hours=4)
+        latest_trigger_ts) - timedelta(hours=release_interval)
 
     if trigger_source == 'subsurface':
         subsurface_node_alerts = get_subsurface_node_alerts(
             site_id, start_ts, latest_trigger_ts)
+
         technical_info = get_subsurface_tech_info(
             subsurface_node_alerts)
+
     elif trigger_source == 'rainfall':
         rainfall_alerts = get_rainfall_alerts(site_id, latest_trigger_ts)
         # Something special with rainfall. Attaches data source with the tech_info
         technical_info = get_rainfall_tech_info(
             rainfall_alerts)
+
     elif trigger_source == 'surficial':
         surficial_alert_details = get_surficial_alerts(
             site_id, latest_trigger_ts)
         technical_info = get_surficial_tech_info(
             surficial_alert_details)
+
     elif trigger_source == 'moms':
-        moms_alert_details = get_moms_alerts(site_id, latest_trigger_ts)
+        if not has_special_details:
+            moms_alert_details = get_moms_alerts(site_id, latest_trigger_ts)
+        else:
+            moms_alert_details = special_details
         technical_info = get_moms_tech_info(moms_alert_details)
-    elif trigger_source == 'on demand':
-        technical_info = ""
+
     elif trigger_source == 'earthquake':
-        technical_info = ""
+        if not has_special_details:
+            earthquake_details = "COMING SOON..."
+        else:
+            earthquake_details = special_details
+        technical_info = get_earthquake_tech_info(earthquake_details)
+
     else:
         raise Exception("Something wrong in tech_info_maker")
 

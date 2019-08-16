@@ -18,7 +18,7 @@ August 2019
 # from run import APP
 import os
 import json
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 import re
 import requests
 from config import APP_CONFIG
@@ -33,7 +33,13 @@ from src.utils.monitoring import (get_routine_sites, build_internal_alert_level,
 from src.utils.extra import var_checker, retrieve_data_from_memcache
 
 
-ROUTINE_EXTENDED_RELEASE_TIME = time(11, 30, 00)
+release_time = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "ROUTINE_EXTENDED_RELEASE_TIME"}, retrieve_attr="var_value")
+
+# Currently 12; so data timestamp to get should be 30 minutes before
+dt = datetime.combine(date.today(), time(
+    hour=release_time, minute=0)) - timedelta(minutes=30)
+ROUTINE_EXTENDED_RELEASE_TIME = dt.time()
 
 ##########################
 # Utility functions here
@@ -125,16 +131,6 @@ def extract_non_triggering_moms(current_trigger_alerts):
         raise
 
     return non_triggering_moms
-
-
-def check_if_extended(validity, data_ts, data_time, is_extended_entry):
-    is_extended_entry = validity < data_ts and data_ts < (
-        validity + timedelta(days=3))
-    is_extended_release = datetime.strptime(
-        "11:00:00", "%H:%M:%S") < \
-        data_time < \
-        datetime.strptime("13:00:00", "%H:%M:%S")
-    return is_extended_entry, is_extended_release
 
 
 def format_alerts_for_ewi_insert(alert_entry, general_status):
@@ -303,7 +299,14 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
     overdue = db_alerts_dict["overdue"]
 
     totally_invalid_sites_list = []
-    routine_sites_list = get_routine_sites(query_end_ts)
+
+    # NOTE: LOUIE VARIABLES Routine Release Time
+    global ROUTINE_EXTENDED_RELEASE_TIME
+    routine_extended_release_time = ROUTINE_EXTENDED_RELEASE_TIME
+
+    routine_sites_list = []
+    if query_end_ts.hour == routine_extended_release_time.hour:
+        routine_sites_list = get_routine_sites(query_end_ts)
 
     # Get all latest and overdue from db alerts
     merged_db_alerts_list = latest + overdue
@@ -374,10 +377,10 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             site_code = site_wo_alert["site_code"]
             internal_alert = site_wo_alert["internal_alert"]
 
-            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
-                                              == site_code, merged_db_alerts_list))
-            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
-                                                == site_code, extended))
+            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
+                                              site_code, merged_db_alerts_list))
+            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
+                                                site_code, extended))
 
             site_wo_alert["alert_level"] = 0
             if is_in_raised_alerts:
@@ -395,16 +398,23 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 candidate_alerts_list.append(formatted_alert_entry)
             else:
-                non_triggering_moms = extract_non_triggering_moms(
-                    site_wo_alert["current_trigger_alerts"])
                 if site_code in routine_sites_list:
-                    if internal_alert == nd_internal_alert_sym:
-                        nd_routine_list.append(site_id)
-                    else:
-                        a0_routine_list.append(site_id)
+                    ts = datetime.strptime(
+                        site_wo_alert["ts"], "%Y-%m-%d %H:%M:%S")
 
-                    if non_triggering_moms:
-                        routine_non_triggering_moms[site_id] = non_triggering_moms
+                    # Check if site data entry on generated alerts is already
+                    # for release time
+                    if ts.time() == routine_extended_release_time:
+                        non_triggering_moms = extract_non_triggering_moms(
+                            site_wo_alert["current_trigger_alerts"])
+
+                        if internal_alert == nd_internal_alert_sym:
+                            nd_routine_list.append(site_id)
+                        else:
+                            a0_routine_list.append(site_id)
+
+                        if non_triggering_moms:
+                            routine_non_triggering_moms[site_id] = non_triggering_moms
 
     if totally_invalid_sites_list:
         # Process all totally invalid sites for routine
@@ -434,22 +444,14 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 else:
                     nd_routine_list.append(site_id)
 
-    if without_alerts:
-        global ROUTINE_EXTENDED_RELEASE_TIME
-        routine_extended_release_time = ROUTINE_EXTENDED_RELEASE_TIME
-        temp = datetime.strptime(without_alerts[0]["ts"], "%Y-%m-%d %H:%M:%S")
-        time_ts = time(temp.hour, temp.minute, temp.second)
-        # to_compare = time(11, 30, 00)
-        to_compare = routine_extended_release_time
-        is_routine_release_time = time_ts >= to_compare
+    if routine_sites_list:
         has_routine_data = a0_routine_list != [] and nd_routine_list != []
 
-        if has_routine_data and is_routine_release_time:
-            routine_data_ts = without_alerts[0]["ts"]
+        if has_routine_data:
+            routine_data_ts = a0_routine_list[0]["ts"]
 
-            pas_row = retrieve_data_from_memcache(
-                "public_alert_symbols", {"alert_level": 0})
-            public_alert_symbol = pas_row["alert_symbol"]
+            public_alert_symbol = retrieve_data_from_memcache(
+                "public_alert_symbols", {"alert_level": 0}, retrieve_attr="alert_symbol")
 
             routine_candidates = {
                 "public_alert_level": 0,
@@ -509,7 +511,7 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
     print()
     query_end_ts = datetime.now()
     print(
-        f"Started at {start_run_ts}. {is_test_string}. QUERY END TS is {query_end_ts} | Generating Candidate Alerts for Release")
+        f"Started at {start_run_ts}. {is_test_string}. QUERY END TS is {query_end_ts} | Candidate Alerts being generated for Release")
 
     ####################
     # START OF PROCESS #
@@ -546,9 +548,9 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    var_checker("directory", directory, True)
+    # var_checker("directory", directory, True)
     with open(directory + "candidate_alerts.json", "w") as file_path:
-        var_checker("CAN PATH", file_path, True)
+        # var_checker("CAN PATH", file_path, True)
         file_path.write(json_data)
 
     end_run_ts = datetime.now()

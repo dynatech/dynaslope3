@@ -76,10 +76,6 @@ def create_app(config_name):
 
     # start_monitoring_ws_bg_task()
 
-    # @app.route("/hello")
-    # def hello_world():
-    #     return "Hello, world!"
-
     #####################################################
     # Import all created blueprint from each controller
     # and register it to the app instance
