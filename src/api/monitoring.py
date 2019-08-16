@@ -37,6 +37,9 @@ from src.experimental_scripts import public_alert_generator
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
+
+MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
+
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
 #####################################################
@@ -55,18 +58,6 @@ NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
 @MONITORING_BLUEPRINT.route("/monitoring/format_candidate_alerts_for_insert", methods=["POST"])
 def wrap_format_candidate_alerts_for_insert():
     json_data = request.get_json()
-
-    insert_ewi_data = format_candidate_alerts_for_insert(json_data)
-
-    return jsonify(insert_ewi_data)
-
-
-@MONITORING_BLUEPRINT.route("/monitoring/format_candidate_alerts_for_insert", methods=["POST"])
-def wrap_format_candidate_alerts_for_insert():
-    json_data = request.get_json()
-
-    var_checker("json_data2", json_data, True)
-    var_checker("data type", type(json_data), True)
 
     insert_ewi_data = format_candidate_alerts_for_insert(json_data)
 

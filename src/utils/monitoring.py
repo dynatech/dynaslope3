@@ -112,75 +112,6 @@ def search_if_moms_is_released(moms_id):
     return is_released
 
 
-def format_candidate_alerts_for_insert(candidate_data):
-    """
-    Adds the candidate triggers missing data before doing the insert_ewi\
-    Most likely be used in CBEWSL
-    """
-    formatted_candidate_data = candidate_data
-
-    trigger_list_arr = formatted_candidate_data["trigger_list_arr"]
-    moms_id_list = []
-
-    formatted_candidate_data["release_details"]["release_time"] = datetime.strftime(datetime.now(), "%H:%M:%S")
-    formatted_candidate_data["release_details"]["comments"] = "CBEWSL Release"
-
-    formatted_candidate_data = {
-        **formatted_candidate_data,
-        "publisher_details": {
-            "publisher_mt_id" : 1,
-            "publisher_ct_id" : 2
-        }
-    }
-
-    if trigger_list_arr:
-        for trigger in trigger_list_arr:
-            if trigger["trigger_type"] == "moms":
-                for moms_entry in trigger["moms_list"]:
-                    moms_id_list.append(moms_entry["moms_id"])
-
-            if moms_id_list:
-                trigger["moms_id_list"] = moms_id_list
-                del trigger["moms_list"]
-    
-    non_triggering_moms = formatted_candidate_data["non_triggering_moms"]
-    non_triggering_moms_id_list = []
-    if non_triggering_moms:
-        for moms_entry in non_triggering_moms:
-            non_triggering_moms_id_list.append(moms_entry["moms_id"])
-    
-    if non_triggering_moms_id_list:
-        del formatted_candidate_data["non_triggering_moms"]
-        formatted_candidate_data = {
-            **formatted_candidate_data,
-            "non_triggering_moms": {
-                "moms_id_list": non_triggering_moms_id_list
-            }
-        }
-
-    return formatted_candidate_data
-
-
-def search_if_moms_is_released(moms_id):
-    """
-    Just checks if a certain MonitoringMoms entry has been
-    released already via MonitoringMomsReleases
-
-    Args:
-        moms_id (Integer)
-
-    Returns is_released (Boolean)
-    """
-    moms_release = MonitoringMomsReleases.query.filter(
-        MonitoringMomsReleases.moms_id == moms_id).first()
-
-    is_released = False
-    if moms_release:
-        is_released = True
-
-    return is_released
-
-
 def compute_event_validity(data_ts, alert_level):
     """
     NOTE: Transfer to mon utils
@@ -363,6 +294,7 @@ def update_alert_status(as_details):
                 print("NO existing alert_status found. An ERROR has occurred.")
                 print(err)
                 raise
+
         DB.session.commit()
     except Exception as err:
         DB.session.rollback()
