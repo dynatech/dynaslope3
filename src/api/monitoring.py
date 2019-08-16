@@ -37,9 +37,6 @@ from src.experimental_scripts import public_alert_generator
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
-
-MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
-
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
 #####################################################
