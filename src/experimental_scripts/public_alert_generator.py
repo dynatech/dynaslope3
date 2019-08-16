@@ -112,8 +112,7 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
         prev_pub_sym_id = previous_latest_site_pa.pub_sym_id
         new_pub_sym_id = output_dict["pub_sym_id"]
 
-        pas_row = retrieve_data_from_memcache("public_alert_symbols", {"pub_sym_id": new_pub_sym_id})
-        new_alert_level = pas_row["alert_level"]
+        new_alert_level = retrieve_data_from_memcache("public_alert_symbols", {"pub_sym_id": new_pub_sym_id}, retrieve_attr="alert_level")
         is_new_public_alert = prev_pub_sym_id != new_pub_sym_id
         prev_l_s_pa_ts_updated = previous_latest_site_pa.ts_updated
         new_l_s_pa_ts_updated = output_dict["ts_updated"]
@@ -362,11 +361,9 @@ def create_internal_alert(highest_public_alert, processed_triggers_list, current
         internal_alert (String)
     """
     internal_alert = ""
-    pas_row = retrieve_data_from_memcache("public_alert_symbols", {
-                                            "alert_level": highest_public_alert})
-    public_alert_symbol = pas_row["alert_symbol"]
-    th_row = retrieve_data_from_memcache("trigger_hierarchies", {"trigger_source": "internal"})
-    internal_source_id = th_row["source_id"]
+    public_alert_symbol = retrieve_data_from_memcache("public_alert_symbols", {
+                                            "alert_level": highest_public_alert}, retrieve_attr="alert_symbol")
+    internal_source_id = retrieve_data_from_memcache("trigger_hierarchies", {"trigger_source": "internal"}, retrieve_attr="source_id")
 
     if ground_alert_level == -1 and highest_public_alert <= 1:
         ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
@@ -581,9 +578,9 @@ def get_processed_internal_alert_symbols(unique_positive_triggers_list, current_
         highest_unique_positive_triggers_list, no_data_list, query_ts_end)
 
     # Check first if rainfall trigger is active.
-    rainfall_th_row = retrieve_data_from_memcache(
-        "trigger_hierarchies", {"trigger_source": "rainfall"})
-    if rainfall_th_row["is_active"]:
+    is_rainfall_active = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "rainfall"}, retrieve_attr="is_active")
+    if is_rainfall_active:
         # Process rainfall trigger if above 75% threshold
         if current_trigger_alerts["rainfall"]["alert_level"] == 0 and latest_rainfall_alert and is_end_of_validity:
             rain_trigger_index = next((index for (index, trig) in enumerate(updated_h_u_p_t_list) \
@@ -609,9 +606,8 @@ def get_validity_variables(positive_triggers_list, highest_public_alert, query_t
     max_trigger_ts_updated = max(
         positive_triggers_list, key=lambda x: x.ts_updated).ts_updated
 
-    high_pas_row = retrieve_data_from_memcache(
-        "public_alert_symbols", {"alert_level": highest_public_alert})
-    high_pas_duration = high_pas_row["duration"]
+    high_pas_duration = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": highest_public_alert}, retrieve_attr="duration")
 
     validity = max_trigger_ts_updated + \
         timedelta(hours=high_pas_duration)
@@ -645,10 +641,10 @@ def add_special_case_details(trigger_source, accessory_detail):
                 current_moms_list).data
             highest_row = next(iter(sorted(current_moms_list, key=lambda x: x.op_trigger, reverse=True)))
             highest_moms_alert_for_release_period = highest_row.op_trigger
-            moms_th_row = retrieve_data_from_memcache("trigger_hierarchies", {"trigger_source": "moms"})
-            ot_row = retrieve_data_from_memcache("operational_trigger_symbols", { \
+            moms_source_id = retrieve_data_from_memcache("trigger_hierarchies", {"trigger_source": "moms"}, retrieve_attr="source_id")
+            alert_symbol = retrieve_data_from_memcache("operational_trigger_symbols", { \
                 "alert_level": highest_moms_alert_for_release_period,
-                "source_id": moms_th_row["source_id"]})
+                "source_id": moms_source_id}, retrieve_attr="alert_symbol")
 
             ###
             # Overwrite initial alert level and alert symbol set on parent function
@@ -657,7 +653,7 @@ def add_special_case_details(trigger_source, accessory_detail):
             ###
             trigger_details = {
                 "alert_level": highest_moms_alert_for_release_period,
-                "alert_symbol": ot_row["alert_symbol"],
+                "alert_symbol": alert_symbol,
                 "moms_list": current_moms_list_data
             }
     elif trigger_source == "surficial":
@@ -678,13 +674,11 @@ def get_rainfall_rx_symbol(rain_trigger_index):
     Returns:
         rainfall_rx_symbol (String): Rx if there is rainfall trigger; rx if no rainfall trigger
     """
-    rain_th_row = retrieve_data_from_memcache(
-        "trigger_hierarchies", {"trigger_source": "rainfall"})
-    ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
-                                          "alert_level": -2, "source_id": rain_th_row["source_id"]})
-    rain_75_id = ots_row["trigger_sym_id"]
-    ias_row = retrieve_data_from_memcache("internal_alert_symbols", {"trigger_sym_id": rain_75_id})
-    rainfall_rx_symbol = ias_row["alert_symbol"]
+    rain_source_id = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "rainfall"}, retrieve_attr="source_id")
+    rain_75_id = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                          "alert_level": -2, "source_id": rain_source_id}, retrieve_attr="trigger_sym_id")
+    rainfall_rx_symbol = retrieve_data_from_memcache("internal_alert_symbols", {"trigger_sym_id": rain_75_id}, retrieve_attr="alert_symbol")
 
     if not rain_trigger_index:
         rainfall_rx_symbol = rainfall_rx_symbol.lower()
@@ -720,8 +714,7 @@ def get_current_trigger_alert_conditions(release_op_triggers_list, surficial_mom
             # It is ND. Add default ND values.
             if not rel_trigger_entry:
                 no_data_list.append(th)
-                nd_alert_symbol_row = retrieve_data_from_memcache("operational_trigger_symbols", {"alert_level": -1, "source_id": source_id})
-                nd_alert_symbol = nd_alert_symbol_row["alert_symbol"]
+                nd_alert_symbol = retrieve_data_from_memcache("operational_trigger_symbols", {"alert_level": -1, "source_id": source_id}, retrieve_attr="alert_symbol")
 
                 current_trigger_alerts[trigger_source] = {
                     "alert_level": -1,
@@ -775,9 +768,8 @@ def get_tsm_alerts(site_tsm_sensors, query_ts_end):
     """
     ta = TSMAlerts
 
-    subsurface_th_row = retrieve_data_from_memcache(
-        "trigger_hierarchies", {"trigger_source": "subsurface"})
-    subsurface_source_id = subsurface_th_row["source_id"]
+    subsurface_source_id = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "subsurface"}, retrieve_attr="source_id")
 
     tsm_alerts_list = []
     for sensor in site_tsm_sensors:
@@ -894,9 +886,8 @@ def extract_positive_triggers_list(op_triggers_list):
 
     positive_triggers_list = []
 
-    surficial_th_row = retrieve_data_from_memcache(
-        "trigger_hierarchies", {"trigger_source": "surficial"})
-    surficial_source_id = surficial_th_row["source_id"]
+    surficial_source_id = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "surficial"}, retrieve_attr="source_id")
 
     for op_trigger in op_triggers_list:
         op_trig = op_trigger.trigger_symbol
@@ -1222,7 +1213,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             validity = ""
             highest_public_alert = 0
             source_id = retrieve_data_from_memcache(
-                "trigger_hierarchies", {"trigger_source": "internal"})["source_id"]
+                "trigger_hierarchies", {"trigger_source": "internal"}, retrieve_attr="source_id")
             ots_row = retrieve_data_from_memcache(
                 "operational_trigger_symbols", {
                     "alert_level": ground_alert_level,

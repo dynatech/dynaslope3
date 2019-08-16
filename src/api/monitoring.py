@@ -979,9 +979,8 @@ def insert_cbewsl_ewi():
     try:
         json_data = request.get_json()
         public_alert_level = json_data["alert_level"]
-        pas_row = retrieve_data_from_memcache(
-            "public_alert_symbols", {"alert_level": public_alert_level})
-        public_alert_symbol = pas_row["alert_symbol"]
+        public_alert_symbol = retrieve_data_from_memcache(
+            "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
         user_id = json_data["user_id"]
         data_ts = str(datetime.strptime(
             json_data["data_ts"], "%Y-%m-%d %H:%M:%S"))
@@ -1060,11 +1059,11 @@ def insert_cbewsl_ewi():
         if moms_trigger:
             highest_moms = next(iter(sorted(
                 moms_trigger["moms_list"], key=lambda x: x["op_trigger"], reverse=True)), None)
-            ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
-                                                  "alert_level": highest_moms["op_trigger"], "source_id": 6})
+            alert_symbol = retrieve_data_from_memcache("operational_trigger_symbols", {
+                "alert_level": highest_moms["op_trigger"], "source_id": 6}, retrieve_attr="alert_symbol")
 
             moms_trigger["alert_level"] = highest_moms["op_trigger"]
-            moms_trigger["alert"] = ots_row["alert_symbol"]
+            moms_trigger["alert"] = alert_symbol
             trigger_list_arr.append(moms_trigger)
 
         release_time = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")

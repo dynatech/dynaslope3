@@ -124,13 +124,12 @@ def compute_event_validity(data_ts, alert_level):
     Returns datetime
     """
 
-    pas_row = retrieve_data_from_memcache(
-        "public_alert_symbols", {"alert_level": alert_level})
-    duration = int(pas_row["duration"])
+    duration = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": alert_level}, retrieve_attr="duration")
 
     rounded_data_ts = round_to_nearest_release_time(data_ts)
 
-    validity = rounded_data_ts + timedelta(hours=duration)
+    validity = rounded_data_ts + timedelta(hours=int(duration))
 
     return validity
 
@@ -818,17 +817,17 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         DB.session.add(moms)
         DB.session.flush()
 
-        th_row = retrieve_data_from_memcache(
-            "trigger_hierarchies", {"trigger_source": "moms"})
-        ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+        source_id = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": "moms"}, retrieve_attr="source_id")
+        trigger_sym_id = retrieve_data_from_memcache("operational_trigger_symbols", {
             "alert_level": op_trigger,
-            "source_id": th_row["source_id"]
-        })
+            "source_id": source_id
+        }, retrieve_attr="trigger_sym_id")
 
         new_op_trigger = OperationalTriggers(
             ts=observance_ts,
             site_id=site_id,
-            trigger_sym_id=ots_row["trigger_sym_id"],
+            trigger_sym_id=trigger_sym_id,
             ts_updated=observance_ts,
         )
 
@@ -883,9 +882,8 @@ def build_internal_alert_level(public_alert_level, trigger_list=None):
                     Can be set as none since this is optional
     """
 
-    pas_row = retrieve_data_from_memcache(
-        "public_alert_symbols", {"alert_level": public_alert_level})
-    p_a_symbol = pas_row["alert_symbol"]
+    p_a_symbol = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
     if public_alert_level > 0:
         internal_alert_level = f"{p_a_symbol}-{trigger_list}"
 
