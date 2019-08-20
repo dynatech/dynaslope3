@@ -150,9 +150,8 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         "site_code": site_code
     }
 
-    pas_row = retrieve_data_from_memcache(
-        "public_alert_symbols", {"alert_level": alert_level})
-    public_alert_symbol = pas_row["alert_symbol"]
+    public_alert_symbol = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": int(alert_level)}, retrieve_attr="alert_symbol")
 
     non_triggering_moms = extract_non_triggering_moms(
         alert_entry["current_trigger_alerts"])
@@ -241,7 +240,7 @@ def fix_internal_alert(alert_entry, internal_source_id):
         source_id = trigger["source_id"]
         alert_level = trigger["alert_level"]
         op_trig_row = retrieve_data_from_memcache("operational_trigger_symbols", {
-            "alert_level": alert_level, "source_id": source_id})
+            "alert_level": int(alert_level), "source_id": source_id})
         internal_alert_symbol = op_trig_row["internal_alert_symbol"]["alert_symbol"]
 
         try:
@@ -251,9 +250,8 @@ def fix_internal_alert(alert_entry, internal_source_id):
                     "%s(0|x)?" % internal_alert_symbol, internal_alert_symbol, internal_alert)
 
         except KeyError:  # If valid, trigger should have no "invalid" key
-            ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
-                "alert_symbol": alert_symbol})
-            valid_a_l = ots_row["alert_level"]
+            valid_a_l = retrieve_data_from_memcache("operational_trigger_symbols", {
+                "alert_symbol": alert_symbol}, retrieve_attr="alert_level")
             valid_alert_levels.append(valid_a_l)
 
     highest_valid_public_alert = 0
@@ -310,9 +308,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
     # Get all latest and overdue from db alerts
     merged_db_alerts_list = latest + overdue
-    internal_as_row = retrieve_data_from_memcache(
-        "trigger_hierarchies", {"trigger_source": "internal"})
-    internal_source_id = internal_as_row["source_id"]
+    internal_source_id = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "internal"}, retrieve_attr="source_id")
 
     if with_alerts:
         for site_w_alert in with_alerts:

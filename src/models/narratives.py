@@ -26,5 +26,8 @@ class NarrativesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Narratives class
     """
+
+    timestamp = fields.DateTime("%Y-%m-%d %H:%M:%S")
+
     class Meta:
         model = Narratives

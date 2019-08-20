@@ -58,7 +58,7 @@ def monitoring_background_task():
             emit_data("receive_alerts_from_db")
             emit_data("receive_candidate_alerts")
 
-        SOCKETIO.sleep(60)  # Every 60 seconds in production stage
+        SOCKETIO.sleep(120)  # Every 60 seconds in production stage
 
 
 @SOCKETIO.on('connect', namespace='/monitoring')
@@ -134,7 +134,7 @@ def generate_alerts(site_code=None):
             site_code=site_code)
         generated_alerts_json = generated_alerts_json[0]
     else:
-        generated_alerts_json = public_alert_generator.main()
+        generated_alerts_json = public_alert_generator.main(is_test=True)
     # generated_alerts_json = public_alert_generator.main()
     # generated_alerts_json = public_alert_generator.main(site_code="umi")
 
