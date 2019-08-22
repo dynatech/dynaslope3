@@ -28,11 +28,12 @@ from src.utils.monitoring import (
     write_monitoring_earthquake_to_db, get_internal_alert_symbols,
     get_monitoring_events_table, get_event_count, get_public_alert,
     get_ongoing_extended_overdue_events, update_alert_status,
-    get_max_possible_alert_level, format_candidate_alerts_for_insert)
+    get_max_possible_alert_level, format_candidate_alerts_for_insert,
+    round_down_data_ts)
 from src.utils.extra import (create_symbols_map, var_checker,
                              retrieve_data_from_memcache)
-from src.experimental_scripts import candidate_alerts_generator
 from src.experimental_scripts import public_alert_generator
+from src.experimental_scripts import candidate_alerts_generator
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -46,7 +47,6 @@ MAX_POSSIBLE_ALERT_LEVEL = get_max_possible_alert_level()
 # Max hours total of 3 days
 ALERT_EXTENSION_LIMIT = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "ALERT_EXTENSION_LIMIT"}, retrieve_attr="var_value")
-
 # Number of hours extended if no_data upon validity
 NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "NO_DATA_HOURS_EXTENSION"}, retrieve_attr="var_value")
@@ -79,15 +79,13 @@ def wrap_retrieve_data_from_memcache():
     return return_data
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/update_alert_status", methods=["GET", "POST"])
+@MONITORING_BLUEPRINT.route("/monitoring/update_alert_status", methods=["POST"])
 def wrap_update_alert_status():
     """
     """
 
     json_data = request.get_json()
     status = update_alert_status(json_data)
-
-    public_alert_generator.main()
 
     return status
 
@@ -254,6 +252,7 @@ def write_monitoring_event_to_db(event_details):
         )
         DB.session.add(new_event)
         DB.session.flush()
+        # DB.session.commit()
 
         new_event_id = new_event.event_id
     except Exception as err:
@@ -261,7 +260,8 @@ def write_monitoring_event_to_db(event_details):
         DB.session.rollback()
         raise
 
-    return new_event_id
+    # return new_event_id
+    return new_event
 
 
 def write_monitoring_event_alert_to_db(event_alert_details):
@@ -283,6 +283,7 @@ def write_monitoring_event_alert_to_db(event_alert_details):
         )
         DB.session.add(new_ea)
         DB.session.flush()
+        # DB.session.commit()
 
         new_ea_id = new_ea.event_alert_id
     except Exception as err:
@@ -290,7 +291,8 @@ def write_monitoring_event_alert_to_db(event_alert_details):
         DB.session.rollback()
         raise
 
-    return new_ea_id
+    # return new_ea_id
+    return new_ea
 
 
 def start_new_monitoring_instance(new_instance_details):
@@ -303,22 +305,19 @@ def start_new_monitoring_instance(new_instance_details):
     Returns event alert ID for use in releases
     """
     try:
-        print(new_instance_details)
         event_details = new_instance_details["event_details"]
         event_alert_details = new_instance_details["event_alert_details"]
 
-        event_id = write_monitoring_event_to_db(event_details)
+        event = write_monitoring_event_to_db(event_details)
 
-        event_alert_details["event_id"] = event_id
-        event_alert_id = write_monitoring_event_alert_to_db(
+        event_alert_details["event_id"] = event.event_id
+        event_alert = write_monitoring_event_alert_to_db(
             event_alert_details)
 
-        return_ids = {
-            "event_id": event_id,
-            "event_alert_id": event_alert_id
+        returns = {
+            "event": event,
+            "event_alert": event_alert
         }
-
-        var_checker("return_ids", return_ids, True)
 
     except Exception as err:
         DB.session.rollback()
@@ -326,7 +325,7 @@ def start_new_monitoring_instance(new_instance_details):
         print(err)
         raise
 
-    return return_ids
+    return returns
 
 
 def write_monitoring_release_to_db(release_details):
@@ -344,6 +343,7 @@ def write_monitoring_release_to_db(release_details):
         )
         DB.session.add(new_release)
         DB.session.flush()
+        # DB.session.commit()
 
         new_release_id = new_release.release_id
 
@@ -397,6 +397,7 @@ def write_monitoring_release_publishers_to_db(role, user_id, release_id):
         )
         DB.session.add(new_publisher)
         DB.session.flush()
+        # DB.session.commit()
 
         new_publisher_id = new_publisher.publisher_id
 
@@ -428,6 +429,7 @@ def write_monitoring_release_triggers_to_db(trigger_details, new_release_id):
         )
         DB.session.add(new_trigger)
         DB.session.flush()
+        # DB.session.commit()
 
         new_trigger_id = new_trigger.trigger_id
 
@@ -451,6 +453,7 @@ def write_monitoring_triggers_misc_to_db(trigger_id, has_moms, od_id=None, eq_id
         )
         DB.session.add(trigger_misc)
         DB.session.flush()
+        # DB.session.commit()
 
         new_trig_misc_id = trigger_misc.trig_misc_id
     except Exception as err:
@@ -470,6 +473,7 @@ def write_monitoring_moms_releases_to_db(moms_id, trig_misc_id=None, release_id=
 
     Returns nothing for now since there is no use for it's moms_release_id.
     """
+    var_checker("moms_id", moms_id, True)
     try:
         if trig_misc_id:
             moms_release = MonitoringMomsReleases(
@@ -482,7 +486,8 @@ def write_monitoring_moms_releases_to_db(moms_id, trig_misc_id=None, release_id=
                 moms_id=moms_id
             )
         DB.session.add(moms_release)
-        # DB.session.flush()
+        DB.session.flush()
+        # DB.session.commit()
     except Exception as err:
         print(err)
         raise
@@ -500,7 +505,6 @@ def get_moms_id_list(moms_dictionary, site_id, event_id):
 
     Returns list of moms_ids
     """
-
     moms_id_list = []
     has_moms_ids = True
     try:
@@ -534,9 +538,21 @@ def is_rain_surficial_subsurface_trigger(alert_symbol):
     return flag
 
 
+def update_event_validity(new_validity, event_id):
+    """
+    Adjust validity
+    """
+    try:
+        event = MonitoringEvents.query.filter(
+            MonitoringEvents.event_id == event_id).first()
+        event.validity = new_validity
+        # DB.session.commit()
+    except Exception as err:
+        print(err)
+        raise
+
+
 # @MONITORING_BLUEPRINT.route("/monitoring/insert_ewi_release", methods=["POST"])
-
-
 # # def insert_ewi_release(release_details, publisher_details, trigger_details):
 def insert_ewi_release(monitoring_instance_details, release_details, publisher_details, trigger_list_arr=None, non_triggering_moms=None):
     """
@@ -631,6 +647,8 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
             # so this will be ignored when CBEWS-L provided it's own validity
             validity = compute_event_validity(
                 latest_trigger_ts_updated, public_alert_level)
+            var_checker("validity", validity, True)
+            var_checker("event_id", event_id, True)
             update_event_validity(validity, event_id)
 
         if non_triggering_moms:
@@ -645,19 +663,6 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
         DB.session.commit()
     except Exception as err:
         DB.session.rollback()
-        print(err)
-        raise
-
-
-def update_event_validity(new_validity, event_id):
-    """
-    Adjust validity
-    """
-    try:
-        event = MonitoringEvents.query.filter(
-            MonitoringEvents.event_id == event_id).first()
-        event.validity = new_validity
-    except Exception as err:
         print(err)
         raise
 
@@ -686,12 +691,13 @@ def start_alert_on_fresh_db(public_alert_level, site_id, datetime_data_ts):
     try:
         instance_details = start_new_monitoring_instance(
             new_instance_details)
-        var_checker("instance_details", instance_details, True)
-        DB.session.commit()
+
     except Exception as err:
         print("Problem in onset alert (fresh db)")
         print(err)
         raise
+
+    return instance_details
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/insert_ewi", methods=["POST"])
@@ -735,9 +741,14 @@ def insert_ewi(internal_json=None):
 
         non_triggering_moms = json_data["non_triggering_moms"]
 
-        datetime_data_ts = datetime.strptime(
-            release_details["data_ts"], "%Y-%m-%d %H:%M:%S")
-        release_details["data_ts"] = datetime_data_ts
+        data_ts = release_details["data_ts"]
+        if isinstance(data_ts, str):
+            datetime_data_ts = datetime.strptime(
+                release_details["data_ts"], "%Y-%m-%d %H:%M:%S")
+        else:
+            datetime_data_ts = data_ts
+
+        release_details["data_ts"] = data_ts
         public_alert_level = json_data["public_alert_level"]
 
         if is_not_routine:
@@ -765,13 +776,15 @@ def insert_ewi(internal_json=None):
                     else:
                         # A1+ active on site
                         entry_type = 2
+
+                    is_fresh_data = False
                 else:
                     # No alert on site. ONSET
                     entry_type = 2
-                    start_alert_on_fresh_db(
+                    is_fresh_data = True
+                    instance_details = start_alert_on_fresh_db(
                         public_alert_level, site_id, datetime_data_ts)
-                    site_monitoring_instance = get_current_monitoring_instance_per_site(
-                        site_id)
+                    site_monitoring_instance = instance_details["event"]
                     site_status = site_monitoring_instance.status
                     is_site_under_extended = False
             except Exception as err:
@@ -816,8 +829,11 @@ def insert_ewi(internal_json=None):
                     print("Not a routine site")
 
         elif entry_type == 2:  # stands for event
-            current_event_alert = site_monitoring_instance.event_alerts.order_by(
-                DB.desc(MonitoringEventAlerts.event_alert_id)).first()
+            if is_fresh_data:
+                current_event_alert = instance_details["event_alert"]
+            else:
+                current_event_alert = site_monitoring_instance.event_alerts.order_by(
+                    DB.desc(MonitoringEventAlerts.event_alert_id)).first()
             pub_sym_id = get_pub_sym_id(public_alert_level)
 
             validity = site_monitoring_instance.validity
@@ -828,6 +844,7 @@ def insert_ewi(internal_json=None):
 
             # Default checks if not event i.e. site_status != 2
             if is_new_monitoring_instance(2, site_status):
+                print("NEW INSTANCE")
                 # If the values are different, means new monitoring instance will be created
                 end_current_monitoring_event_alert(
                     current_event_alert.event_alert_id, datetime_data_ts)
@@ -850,6 +867,7 @@ def insert_ewi(internal_json=None):
                 event_alert_id = instance_ids["event_alert_id"]
 
             else:
+                print("OLD INSTANCE")
                 # If the values are same, re-release will happen.
                 event_id = current_event_alert.event_id
                 event_alert_details = {
@@ -1027,13 +1045,11 @@ def insert_cbewsl_ewi():
     """
     try:
         json_data = request.get_json()
-        public_alert_level = json_data["alert_level"]
-        pas_row = retrieve_data_from_memcache(
-            "public_alert_symbols", {"alert_level": public_alert_level})
-        public_alert_symbol = pas_row["alert_symbol"]
+        public_alert_level = int(json_data["alert_level"])
+        public_alert_symbol = retrieve_data_from_memcache(
+            "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
         user_id = json_data["user_id"]
-        data_ts = str(datetime.strptime(
-            json_data["data_ts"], "%Y-%m-%d %H:%M:%S"))
+        data_ts = json_data["data_ts"]
         trigger_list_arr = []
         moms_trigger = {}
         triggering_moms_list = []
@@ -1109,14 +1125,14 @@ def insert_cbewsl_ewi():
         if moms_trigger:
             highest_moms = next(iter(sorted(
                 moms_trigger["moms_list"], key=lambda x: x["op_trigger"], reverse=True)), None)
-            ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
-                                                  "alert_level": highest_moms["op_trigger"], "source_id": 6})
+            alert_symbol = retrieve_data_from_memcache("operational_trigger_symbols", {
+                "alert_level": highest_moms["op_trigger"], "source_id": 6}, retrieve_attr="alert_symbol")
 
             moms_trigger["alert_level"] = highest_moms["op_trigger"]
-            moms_trigger["alert"] = ots_row["alert_symbol"]
+            moms_trigger["alert"] = alert_symbol
             trigger_list_arr.append(moms_trigger)
 
-        release_time = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")
+        release_time = datetime.now().time()
 
         internal_json_data = {
             "site_id": 50,
@@ -1160,6 +1176,7 @@ def get_candidate_and_current_alerts():
 
 @MONITORING_BLUEPRINT.route("/monitoring/update_alert_gen", methods=["GET"])
 def alert_generator():
+    DB.session.flush()
     public_alert_generator.main()
     feedback = {
         "status": True

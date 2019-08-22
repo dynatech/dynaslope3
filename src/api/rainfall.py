@@ -2,7 +2,7 @@
 """
 
 from flask import Blueprint, jsonify, request
-from datetime import time
+from datetime import time, datetime
 from connection import DB, SOCKETIO
 import analysis.rainfall.rainfall as rainfall
 
@@ -32,7 +32,7 @@ def get_rainfall_data(site_code=None, end_ts=None):
 def get_rainfall_plot_data(site_code, end_ts=None):
     ts = end_ts
     if end_ts is None:
-        ts = time.strftime("%Y-%m-%d %H:%M:%S")
+        ts = datetime.now()
 
     rainfall_data = rainfall.main(
         site_code=site_code, end=ts, print_plot=True, save_plot=False, days=7)

@@ -212,7 +212,7 @@ class UserAccounts(DB.Model):
     password = DB.Column(DB.String(200))
     is_active = DB.Column(DB.Integer, nullable=True)
     salt = DB.Column(DB.String(200))
-
+    role = DB.Column(DB.Integer, nullable=True)
     # user = DB.relationship(
     #     "Users", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
 

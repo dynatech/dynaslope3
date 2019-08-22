@@ -2,6 +2,7 @@
 Utility file for Monitoring Tables
 Contains functions for getting and accesing monitoring-related tables only
 """
+import time as sys_time
 import calendar
 from flask import request
 from datetime import datetime, timedelta, time, date
@@ -10,12 +11,12 @@ from sqlalchemy import and_
 from src.models.analysis import (AlertStatus, AlertStatusSchema)
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
-    MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
+    MonitoringMoms as moms, MonitoringMomsReleases, MonitoringOnDemand,
     MonitoringEarthquake, MonitoringTriggers, MonitoringTriggersMisc,
     MomsInstances, MomsFeatures, InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols,
     MonitoringEventAlertsSchema, OperationalTriggers,
-    MonitoringMoms as moms, MomsInstances as mi)
+    MomsInstances as mi)
 from src.models.sites import Seasons, RoutineSchedules
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
@@ -32,6 +33,24 @@ RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
 
 EXTENDED_MONITORING_DAYS = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "EXTENDED_MONITORING_DAYS"}, retrieve_attr="var_value")
+
+
+def write_operational_trigger(ts, site_id, trigger_sym_id, ts_updated):
+    try:
+        new_op_trigger = OperationalTriggers(
+            ts=str(ts),
+            site_id=str(site_id),
+            trigger_sym_id=str(trigger_sym_id),
+            ts_updated=str(ts_updated)
+        )
+
+        DB.session.add(new_op_trigger)
+        DB.session.flush()
+        DB.session.commit()
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+        raise
 
 
 def get_max_possible_alert_level():
@@ -124,9 +143,8 @@ def compute_event_validity(data_ts, alert_level):
     Returns datetime
     """
 
-    pas_row = retrieve_data_from_memcache(
-        "public_alert_symbols", {"alert_level": alert_level})
-    duration = int(pas_row["duration"])
+    duration = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": int(alert_level)}, retrieve_attr="duration")
 
     rounded_data_ts = round_to_nearest_release_time(data_ts)
 
@@ -266,9 +284,9 @@ def update_alert_status(as_details):
 
                 return_data = f"Trigger ID [{trigger_id}] alert_status is updated as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
             except Exception as err:
-                DB.session.rollback()
                 print("Alert status found but has an error.")
                 print(err)
+                DB.session.rollback()
                 raise
         else:
             # return_data = f"Alert ID [{trigger_id}] provided DOES NOT EXIST!"
@@ -284,21 +302,22 @@ def update_alert_status(as_details):
                 )
                 DB.session.add(alert_stat)
                 DB.session.flush()
+                DB.session.commit()
 
                 stat_id = alert_stat.stat_id
                 return_data = f"New alert status written with ID: {stat_id}." + \
                     f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
 
             except Exception as err:
-                DB.session.rollback()
                 print("NO existing alert_status found. An ERROR has occurred.")
                 print(err)
+                DB.session.rollback()
                 raise
 
         DB.session.commit()
     except Exception as err:
-        DB.session.rollback()
         print(err)
+        DB.session.rollback()
         raise
 
     return return_data
@@ -348,8 +367,11 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     overdue = []
     for event_alert in active_event_alerts:
         validity = event_alert.event.validity
+        var_checker("event_alert", event_alert, True)
         latest_release = event_alert.releases.order_by(
             DB.desc(MonitoringReleases.data_ts)).first()
+        
+        var_checker("latest_release", latest_release, True)
 
         # NOTE: LOUIE This formats release time to have date instead of time only
         data_ts = latest_release.data_ts
@@ -357,8 +379,8 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             data_ts, release_interval_hours)
         release_time = latest_release.release_time
 
-        # if data_ts.hour == 23 and release_time.hour < release_interval_hours:
-        if data_ts.hour == 23 and release_time.hour < 4:
+        if data_ts.hour == 23 and release_time.hour < release_interval_hours:
+        # if data_ts.hour == 23 and release_time.hour < 4:
             # rounded_data_ts = round_to_nearest_release_time(data_ts)
             str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
             str_release_time = str(release_time)
@@ -470,9 +492,10 @@ def get_pub_sym_id(alert_level):
     """
     # public_alert_symbol = PublicAlertSymbols.query.filter(
     #     PublicAlertSymbols.alert_level == alert_level).first()
-    pas_row = retrieve_data_from_memcache("public_alert_symbols", {"alert_level": alert_level})
+    pub_sym_id = retrieve_data_from_memcache("public_alert_symbols", {
+                                             "alert_level": int(alert_level)}, retrieve_attr="pub_sym_id")
 
-    return pas_row["pub_sym_id"]
+    return pub_sym_id
     # return public_alert_symbol.pub_sym_id
 
 
@@ -669,13 +692,14 @@ def write_monitoring_on_demand_to_db(od_details):
         )
         DB.session.add(on_demand)
         DB.session.flush()
+        DB.session.commit()
 
         new_od_id = on_demand.od_id
         return_data = new_od_id
 
     except Exception as err:
-        DB.session.rollback()
         print(err)
+        DB.session.rollback()
         raise
 
     return return_data
@@ -693,13 +717,14 @@ def write_moms_feature_type_to_db(feature_details):
         )
         DB.session.add(feature)
         DB.session.flush()
+        DB.session.commit()
 
         feature_id = feature.feature_id
         return_data = feature_id
 
     except Exception as err:
-        DB.session.rollback()
         print(err)
+        DB.session.rollback()
         raise
 
     return return_data
@@ -718,13 +743,14 @@ def write_moms_instances_to_db(instance_details):
         )
         DB.session.add(moms_instance)
         DB.session.flush()
+        DB.session.commit()
 
         new_moms_instance_id = moms_instance.instance_id
         return_data = new_moms_instance_id
 
     except Exception as err:
-        DB.session.rollback()
         print(err)
+        DB.session.rollback()
         raise
 
     return return_data
@@ -746,6 +772,7 @@ def search_if_feature_exists(feature_type):
     """
     Search features if feature type exists already
     """
+    print("Checking if feature exists")
     mf = MomsFeatures
     moms_feat = None
     moms_feat = mf.query.filter(mf.feature_type == feature_type).first()
@@ -758,6 +785,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
     Insert a moms report to db regardless of attached to release or prior to release.
     """
     try:
+        var_checker("PUMASOK SA WRITE MOMS", moms_details, True)
         try:
             op_trigger = moms_details["op_trigger"]
         except:
@@ -765,14 +793,18 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             print("No op_trigger given.")
             raise
 
-        observance_ts = moms_details["observance_ts"]
+        observance_ts = datetime.strptime(
+            moms_details["observance_ts"], "%Y-%m-%d %H:%M:%S")
         narrative = moms_details["report_narrative"]
         moms_instance_id = moms_details["instance_id"]
+
+        print("PUTA")
 
         moms_narrative_id = write_narratives_to_db(
             site_id, observance_ts, narrative, event_id)
 
         if not moms_instance_id:
+            print("NO instance ID provided")
             # Create new instance of moms
             feature_type = moms_details["feature_type"]
             feature_name = moms_details["feature_name"]
@@ -806,7 +838,9 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         elif moms_instance_id < 0:
             raise Exception("INVALID MOMS INSTANCE ID")
 
-        moms = MonitoringMoms(
+        print("PUTA3")
+
+        new_moms = moms(
             instance_id=moms_instance_id,
             observance_ts=observance_ts,
             reporter_id=moms_details["reporter_id"],
@@ -816,32 +850,31 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             op_trigger=op_trigger
         )
 
-        DB.session.add(moms)
+        var_checker("new_moms", new_moms, True)
+        DB.session.add(new_moms)
         DB.session.flush()
+        DB.session.commit()
 
-        th_row = retrieve_data_from_memcache(
-            "trigger_hierarchies", {"trigger_source": "moms"})
-        ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+        print("PUTA4")
+        var_checker("new_moms", new_moms.moms_id, True)
+
+        source_id = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": "moms"}, retrieve_attr="source_id")
+        trigger_sym_id = retrieve_data_from_memcache("operational_trigger_symbols", {
             "alert_level": op_trigger,
-            "source_id": th_row["source_id"]
-        })
+            "source_id": source_id
+        }, retrieve_attr="trigger_sym_id")
 
-        new_op_trigger = OperationalTriggers(
-            ts=observance_ts,
-            site_id=site_id,
-            trigger_sym_id=ots_row["trigger_sym_id"],
-            ts_updated=observance_ts,
-        )
+        # write_operational_trigger(
+        #     observance_ts, site_id, trigger_sym_id, observance_ts)
+        var_checker("observance_ts", observance_ts, True)
 
-        DB.session.add(new_op_trigger)
-        DB.session.flush()
-
-        new_moms_id = moms.moms_id
+        new_moms_id = new_moms.moms_id
         return_data = new_moms_id
 
     except Exception as err:
-        DB.session.rollback()
         print(err)
+        DB.session.rollback()
         raise
 
     return return_data
@@ -859,13 +892,14 @@ def write_monitoring_earthquake_to_db(eq_details):
 
         DB.session.add(earthquake)
         DB.session.flush()
+        DB.session.commit()
 
-        new_eq_id = earthquake.od_id
+        new_eq_id = earthquake.eq_id
         return_data = new_eq_id
 
     except Exception as err:
-        DB.session.rollback()
         print(err)
+        DB.session.rollback()
         raise
 
     return return_data
@@ -884,19 +918,17 @@ def build_internal_alert_level(public_alert_level, trigger_list=None):
                     Can be set as none since this is optional
     """
 
-    pas_row = retrieve_data_from_memcache(
-        "public_alert_symbols", {"alert_level": public_alert_level})
-    p_a_symbol = pas_row["alert_symbol"]
+    public_alert_symbol = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
     if public_alert_level > 0:
-        internal_alert_level = f"{p_a_symbol}-{trigger_list}"
+        internal_alert_level = f"{public_alert_symbol}-{trigger_list}"
 
         if public_alert_level == 1 and trigger_list:
             if "-" in trigger_list:
                 internal_alert_level = trigger_list
     else:
-        internal_alert_level = f"{p_a_symbol}"
+        internal_alert_level = f"{public_alert_symbol}"
         if trigger_list:
             internal_alert_level = trigger_list
 
     return internal_alert_level
-

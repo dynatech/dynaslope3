@@ -26,6 +26,7 @@ def user_login():
         message = "Successfuly logged in!"
         user_data = result["user_data"]
         session['user'] = user_data
+        role = result["user_data"]["role"]
     else:
         status = False
         message = "Invalid Account"
@@ -33,7 +34,7 @@ def user_login():
     feedback = {
         "status": status,
         "message": message,
-        "role": role,
+        "role_id": role,
         "user_data": user_data
     }
 

@@ -429,8 +429,8 @@ class OperationalTriggers(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger_ID: {self.trigger_id}"
                 f" Site_ID: {self.site_id} trigger_sym_id: {self.trigger_sym_id}"
-                f" ts: {self.ts} ts_updated: {self.ts_updated}"
-                f" | TRIGGER SYMBOL alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}")
+                f" ts: {self.ts} ts_updated: {self.ts_updated}")
+                # f" | TRIGGER SYMBOL alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}"
 
 
 class OperationalTriggerSymbols(UserMixin, DB.Model):
@@ -745,6 +745,7 @@ class MonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
     """
 
     reporter = fields.Nested("UsersSchema",)
+    request_ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     narrative = fields.Nested("NarrativesSchema")
 
     class Meta:
