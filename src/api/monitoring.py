@@ -239,7 +239,8 @@ def write_monitoring_event_to_db(event_details):
     Writes to DB all event details
     Args:
         event_details (dict)
-            site_id (int), event_start (datetime), validity (datetime), status  (int)
+            site_id (int), event_start (
+                datetime), validity (datetime), status  (int)
 
     Returns event_id (integer)
     """
@@ -252,7 +253,13 @@ def write_monitoring_event_to_db(event_details):
         )
         DB.session.add(new_event)
         DB.session.flush()
+
+
+<< << << < HEAD
         # DB.session.commit()
+== == == =
+        DB.session.commit()
+>>>>>> > 1a25f0574d0f2ba36b1cd8921f79cfb84120f0fe
 
         new_event_id = new_event.event_id
     except Exception as err:
@@ -660,7 +667,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     moms_id, release_id=release_id)
 
         # WHEN NOTHING GOES WRONG, COMMIT!
-        DB.session.commit()
+        # DB.session.commit()
     except Exception as err:
         DB.session.rollback()
         print(err)

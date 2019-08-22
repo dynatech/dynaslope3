@@ -389,6 +389,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
 
         event_alert_data = MonitoringEventAlertsSchema(
             many=False).dump(event_alert).data
+        var_checker("event_alert_data", event_alert_data, True)
         public_alert_level = event_alert.public_alert_symbol.alert_level
         trigger_list = latest_release.trigger_list
         event_alert_data["internal_alert_level"] = build_internal_alert_level(
