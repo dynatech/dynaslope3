@@ -211,7 +211,14 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
 
                         trigger_list_arr.append(trig_dict)
 
-        formatted_alerts_for_ewi["trigger_list_arr"] = trigger_list_arr
+        # THIS IS THE BACKEND to_extend_validity.
+        to_extend_validity = True if alert_entry["ground_alert_level"] == -1 else False
+
+        formatted_alerts_for_ewi = {
+            **formatted_alerts_for_ewi,
+            "to_extend_validity": to_extend_validity,
+            "trigger_list_arr": trigger_list_arr
+        }
 
     return formatted_alerts_for_ewi
 
@@ -312,7 +319,6 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
         "trigger_hierarchies", {"trigger_source": "internal"}, retrieve_attr="source_id")
 
     if with_alerts:
-        var_checker("is_with_alerts", True, True)
         for site_w_alert in with_alerts:
             is_for_release = True
             site_code = site_w_alert["site_code"]

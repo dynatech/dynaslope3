@@ -755,7 +755,7 @@ def insert_ewi(internal_json=None):
         non_triggering_moms = json_data["non_triggering_moms"]
 
         data_ts = release_details["data_ts"]
-        var_checker("data_ts", data_ts, True)
+        # var_checker("data_ts", data_ts, True)
         if isinstance(data_ts, str):
             datetime_data_ts = datetime.strptime(
                 release_details["data_ts"], "%Y-%m-%d %H:%M:%S")
@@ -851,8 +851,6 @@ def insert_ewi(internal_json=None):
             # pub_sym_id = get_pub_sym_id(public_alert_level)
             pub_sym_id = retrieve_data_from_memcache("public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="pub_sym_id")
 
-            var_checker("pub_sym_id", pub_sym_id, True)
-
             validity = site_monitoring_instance.validity
             try:
                 validity = json_data["cbewsl_validity"]
@@ -909,13 +907,16 @@ def insert_ewi(internal_json=None):
                         event_alert_details).event_alert_id
 
                 elif pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30):
+                    # This extends the validity of the event in cases where
+                    # no ground data is available.
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
                         if to_extend_validity:
                             # Just a safety measure in case we attached a False
                             # in Front-End
-                            # NOTE: SHOULD BE ATTACHED VIA FRONT-END
+                            # NOTE: SHOULD BE ATTACHED VIA FRONT-END??
+                            print(f"{datetime.now()} | NO GROUND DATA? Updating validity. New validity: {validity}")
                             new_validity = current_event_alert.event.validity + \
                                 timedelta(hours=no_data_hours_extension)
                             update_event_validity(new_validity, event_id)

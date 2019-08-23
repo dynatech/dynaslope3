@@ -934,7 +934,6 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interva
         if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_list and release_op_trig.ts_updated < query_ts_end):
             release_op_triggers_list.append(release_op_trig)
 
-    var_checker("release_op_triggers", release_op_triggers, True)
     return release_op_triggers_list
 
 
@@ -1036,8 +1035,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
     max_possible_alert_level = MAX_POSSIBLE_ALERT_LEVEL
     release_interval_hours = RELEASE_INTERVAL_HOURS
-
-    var_checker("query_ts_end", query_ts_end, True)
 
     site_public_alerts_list = []
     # Check if not a list, which means run one site only.
@@ -1281,6 +1278,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             "barangay": site.barangay,
             "public_alert": public_alert_symbol,
             "internal_alert": internal_alert,
+            "ground_alert_level": ground_alert_level,
             "validity": validity,
             "event_triggers": event_triggers,
             "current_trigger_alerts": formatted_current_trigger_alerts,
@@ -1316,13 +1314,13 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
                 public_alert_result = write_to_db_public_alerts(
                     for_db_public_dict, latest_site_pa)
-                if public_alert_result == "exists":
+                if not public_alert_result:
                     print()
                     print(
-                        f"Active Public alert with ID: {current_pa_id} on Database.")
+                        f"{datetime.now()} | Active Public alert with ID: {current_pa_id} on Database.")
                 else:
                     print()
-                    print(f"NEW PUBLIC ALERT WRITTEN with ID: {public_alert_result}")
+                    print(f"{datetime.now()} | NEW PUBLIC ALERT WRITTEN with ID: {public_alert_result}")
 
             except Exception as err:
                 print(err)
@@ -1385,7 +1383,7 @@ def main(query_ts_end=None, query_ts_start=None, is_instantaneous=False, is_test
         file_path.write(json_data)
 
     script_end = datetime.now()
-    print(f"Runtime: {script_end - script_start} | Done generating alerts!")
+    print(f"{datetime.now()} | Done generating alerts! Runtime: {script_end - script_start}")
     print()
     return json_data
 
