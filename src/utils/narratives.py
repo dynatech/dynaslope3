@@ -62,6 +62,8 @@ def write_narratives_to_db(site_id, timestamp, narrative, event_id=None):
         DB.rollback()
         raise
 
+    print(f"{datetime.now()} | Narratives written with ID: {new_narrative_id}")
+
     return new_narrative_id
 
 

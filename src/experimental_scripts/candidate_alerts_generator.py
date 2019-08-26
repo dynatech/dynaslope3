@@ -312,6 +312,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
         "trigger_hierarchies", {"trigger_source": "internal"}, retrieve_attr="source_id")
 
     if with_alerts:
+        var_checker("is_with_alerts", True, True)
         for site_w_alert in with_alerts:
             is_for_release = True
             site_code = site_w_alert["site_code"]
@@ -388,6 +389,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             if is_in_raised_alerts or is_in_extended_alerts:
                 if internal_alert == nd_internal_alert_sym:
                     trigger_list_str = nd_internal_alert_sym
+                else:
+                    trigger_list_str = ""
 
                 site_wo_alert["trigger_list_str"] = trigger_list_str
                 formatted_alert_entry = format_alerts_for_ewi_insert(

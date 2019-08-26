@@ -2,8 +2,13 @@
 EWI Functions Controller File
 """
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 from src.models.ewi_templates import (
     EwiTemplates, EwiTemplatesSchema)
 
@@ -29,3 +34,27 @@ def get_template_data():
     result = EwiTemplatesSchema().dump(query).data
 
     return jsonify(result)
+
+
+@EWI_TEMPLATE_BLUEPRINT.route("/ewi/send_ewi_via_email", methods=["GET", "POST"])
+def send_ewi_via_email():
+    data = request.form
+    status = None
+    message = ""
+    try:
+        email = "dynaslopeswat@gmail.com"
+        password = "dynaslopeswat"
+        send_to_email = data["email"]
+        status = True
+        message = "Email sent successfully!"
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+        status = False
+        message = "Something went wrong, Please try again"
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+    return jsonify(feedback)

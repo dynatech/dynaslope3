@@ -46,7 +46,7 @@ def write_operational_trigger(ts, site_id, trigger_sym_id, ts_updated):
 
         DB.session.add(new_op_trigger)
         DB.session.flush()
-        DB.session.commit()
+        # DB.session.commit()
     except Exception as err:
         print(err)
         DB.session.rollback()
@@ -85,6 +85,14 @@ def format_candidate_alerts_for_insert(candidate_data):
 
     if trigger_list_arr:
         for trigger in trigger_list_arr:
+            try:
+                is_invalid_trigger = trigger["invalid"]
+                if is_invalid_trigger:
+                    trigger_list_arr.remove(trigger)
+                    continue
+            except KeyError:
+                pass
+
             if trigger["trigger_type"] == "moms":
                 for moms_entry in trigger["moms_list"]:
                     moms_id_list.append(moms_entry["moms_id"])
@@ -92,6 +100,8 @@ def format_candidate_alerts_for_insert(candidate_data):
             if moms_id_list:
                 trigger["moms_id_list"] = moms_id_list
                 del trigger["moms_list"]
+
+        var_checker("trigger_list_arr", trigger_list_arr, True)
 
     non_triggering_moms = formatted_candidate_data["non_triggering_moms"]
     non_triggering_moms_id_list = []
@@ -302,7 +312,7 @@ def update_alert_status(as_details):
                 )
                 DB.session.add(alert_stat)
                 DB.session.flush()
-                DB.session.commit()
+                # DB.session.commit()
 
                 stat_id = alert_stat.stat_id
                 return_data = f"New alert status written with ID: {stat_id}." + \
@@ -367,11 +377,10 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     overdue = []
     for event_alert in active_event_alerts:
         validity = event_alert.event.validity
-        var_checker("event_alert", event_alert, True)
         latest_release = event_alert.releases.order_by(
             DB.desc(MonitoringReleases.data_ts)).first()
-        
-        var_checker("latest_release", latest_release, True)
+
+        # var_checker("latest_release", latest_release, True)
 
         # NOTE: LOUIE This formats release time to have date instead of time only
         data_ts = latest_release.data_ts
@@ -380,7 +389,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         release_time = latest_release.release_time
 
         if data_ts.hour == 23 and release_time.hour < release_interval_hours:
-        # if data_ts.hour == 23 and release_time.hour < 4:
+            # if data_ts.hour == 23 and release_time.hour < 4:
             # rounded_data_ts = round_to_nearest_release_time(data_ts)
             str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
             str_release_time = str(release_time)
@@ -692,7 +701,7 @@ def write_monitoring_on_demand_to_db(od_details):
         )
         DB.session.add(on_demand)
         DB.session.flush()
-        DB.session.commit()
+        # DB.session.commit()
 
         new_od_id = on_demand.od_id
         return_data = new_od_id
@@ -701,6 +710,8 @@ def write_monitoring_on_demand_to_db(od_details):
         print(err)
         DB.session.rollback()
         raise
+
+    print(f"{datetime.now()} | Monitoring on Demand written with ID: {new_od_id}")
 
     return return_data
 
@@ -717,7 +728,7 @@ def write_moms_feature_type_to_db(feature_details):
         )
         DB.session.add(feature)
         DB.session.flush()
-        DB.session.commit()
+        # DB.session.commit()
 
         feature_id = feature.feature_id
         return_data = feature_id
@@ -726,6 +737,8 @@ def write_moms_feature_type_to_db(feature_details):
         print(err)
         DB.session.rollback()
         raise
+
+    print(f"{datetime.now()} | MomsFeatures written with ID: {feature_id}")
 
     return return_data
 
@@ -743,7 +756,7 @@ def write_moms_instances_to_db(instance_details):
         )
         DB.session.add(moms_instance)
         DB.session.flush()
-        DB.session.commit()
+        # DB.session.commit()
 
         new_moms_instance_id = moms_instance.instance_id
         return_data = new_moms_instance_id
@@ -752,6 +765,8 @@ def write_moms_instances_to_db(instance_details):
         print(err)
         DB.session.rollback()
         raise
+
+    print(f"{datetime.now()} | MomsInstances written with ID: {new_moms_instance_id}")
 
     return return_data
 
@@ -785,7 +800,6 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
     Insert a moms report to db regardless of attached to release or prior to release.
     """
     try:
-        var_checker("PUMASOK SA WRITE MOMS", moms_details, True)
         try:
             op_trigger = moms_details["op_trigger"]
         except:
@@ -797,8 +811,6 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             moms_details["observance_ts"], "%Y-%m-%d %H:%M:%S")
         narrative = moms_details["report_narrative"]
         moms_instance_id = moms_details["instance_id"]
-
-        print("PUTA")
 
         moms_narrative_id = write_narratives_to_db(
             site_id, observance_ts, narrative, event_id)
@@ -838,8 +850,6 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         elif moms_instance_id < 0:
             raise Exception("INVALID MOMS INSTANCE ID")
 
-        print("PUTA3")
-
         new_moms = moms(
             instance_id=moms_instance_id,
             observance_ts=observance_ts,
@@ -853,10 +863,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         var_checker("new_moms", new_moms, True)
         DB.session.add(new_moms)
         DB.session.flush()
-        DB.session.commit()
-
-        print("PUTA4")
-        var_checker("new_moms", new_moms.moms_id, True)
+        # DB.session.commit()
 
         source_id = retrieve_data_from_memcache(
             "trigger_hierarchies", {"trigger_source": "moms"}, retrieve_attr="source_id")
@@ -865,8 +872,8 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             "source_id": source_id
         }, retrieve_attr="trigger_sym_id")
 
-        # write_operational_trigger(
-        #     observance_ts, site_id, trigger_sym_id, observance_ts)
+        write_operational_trigger(
+            observance_ts, site_id, trigger_sym_id, observance_ts)
         var_checker("observance_ts", observance_ts, True)
 
         new_moms_id = new_moms.moms_id
@@ -876,6 +883,8 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         print(err)
         DB.session.rollback()
         raise
+
+    print(f"{datetime.now()} | MonitoringMoms written with ID: {new_moms_id}")
 
     return return_data
 
@@ -892,7 +901,7 @@ def write_monitoring_earthquake_to_db(eq_details):
 
         DB.session.add(earthquake)
         DB.session.flush()
-        DB.session.commit()
+        # DB.session.commit()
 
         new_eq_id = earthquake.eq_id
         return_data = new_eq_id
@@ -902,16 +911,18 @@ def write_monitoring_earthquake_to_db(eq_details):
         DB.session.rollback()
         raise
 
+    print(f"{datetime.now()} | MonitoringEarthquake written with ID: {new_eq_id}")
+
     return return_data
 
 
-def build_internal_alert_level(public_alert_level, trigger_list=None):
+def build_internal_alert_level(public_alert_level, trigger_list_str=None):
     """
     This function builds the internal alert string using a public alert level
-    and the provided trigger_list_str. 
+    and the provided trigger_list_str.
 
     Args:
-        trigger_list (String) - Used as the historical log of valid triggers
+        trigger_list_str (String) - Used as the historical log of valid triggers
                     Can be set as "None" for A0
         public_alert_level (Integer) - This will be used instead of 
                     pub_sym_id for building the Internal alert string
@@ -921,14 +932,14 @@ def build_internal_alert_level(public_alert_level, trigger_list=None):
     public_alert_symbol = retrieve_data_from_memcache(
         "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
     if public_alert_level > 0:
-        internal_alert_level = f"{public_alert_symbol}-{trigger_list}"
+        internal_alert_level = f"{public_alert_symbol}-{trigger_list_str}"
 
-        if public_alert_level == 1 and trigger_list:
-            if "-" in trigger_list:
-                internal_alert_level = trigger_list
+        if public_alert_level == 1 and trigger_list_str:
+            if "-" in trigger_list_str:
+                internal_alert_level = trigger_list_str
     else:
         internal_alert_level = f"{public_alert_symbol}"
-        if trigger_list:
-            internal_alert_level = trigger_list
+        if trigger_list_str:
+            internal_alert_level = trigger_list_str
 
     return internal_alert_level

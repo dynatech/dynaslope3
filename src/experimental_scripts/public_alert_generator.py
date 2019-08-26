@@ -699,11 +699,11 @@ def get_current_trigger_alert_conditions(release_op_triggers_list, surficial_mom
         2. alert_symbol
         3. details of trigger
     """
-
     current_trigger_alerts = {}
 
     th_map = retrieve_data_from_memcache("trigger_hierarchies", {"is_active": 1}, retrieve_one=False)
     no_data_list = []
+
     for th in th_map:
         # Only entertain trigger sources who needs checking of data presence
         if th["data_presence"] != 0:
@@ -934,6 +934,7 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interva
         if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_list and release_op_trig.ts_updated < query_ts_end):
             release_op_triggers_list.append(release_op_trig)
 
+    var_checker("release_op_triggers", release_op_triggers, True)
     return release_op_triggers_list
 
 
@@ -1036,6 +1037,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
     max_possible_alert_level = MAX_POSSIBLE_ALERT_LEVEL
     release_interval_hours = RELEASE_INTERVAL_HOURS
 
+    var_checker("query_ts_end", query_ts_end, True)
 
     site_public_alerts_list = []
     # Check if not a list, which means run one site only.
@@ -1110,8 +1112,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             unresolved_moms_list = check_if_has_unresolved_moms_instance(site_moms_alerts_list)
 
         moms_trigger_condition = {
-            "site_moms_alerts_list": site_moms_alerts_list, 
-            "highest_moms_alert": highest_moms_alert, 
+            "site_moms_alerts_list": site_moms_alerts_list,
+            "highest_moms_alert": highest_moms_alert,
             "has_positive_moms_trigger": has_positive_moms_trigger
         }
 
@@ -1134,7 +1136,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         if is_rainfall_active:
             latest_rainfall_alert = site.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
                 ra.ts == query_ts_end).first()
-        
+
         current_trigger_alerts = get_current_trigger_alert_conditions(release_op_triggers_list, surficial_moms_window_ts,
                                                                     latest_rainfall_alert, subsurface_alerts_list, moms_trigger_condition)            
 
@@ -1176,7 +1178,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             is_not_yet_write_time = not (
                 is_release_time_run and is_45_minute_beyond)
 
-            # Check first if rainfall trigger is active, if key does not 
+            # Check first if rainfall trigger is active, if key does not
             # exist, is_rainfall_rx is automatically False
             # -2 is currently the alert level for Rx/rx
             try:
@@ -1338,7 +1340,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
     return site_public_alerts_list
 
 
-def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
+def main(query_ts_end=None, query_ts_start=None, is_instantaneous=False, is_test=False, site_code=None):
     """
     """
     script_start = datetime.now()
@@ -1352,12 +1354,16 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
     do_not_write_to_db = is_test
 
     if query_ts_end is None:
-        query_ts_end = datetime.now()
+        query_ts_end = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        query_ts_end = datetime.strptime(query_ts_end, "%Y-%m-%d %H:%M:%S")
     else:
         query_ts_end = datetime.strptime(query_ts_end, "%Y-%m-%d %H:%M:%S")
 
     # query_ts_end will be rounded off at this point
-    query_ts_end = round_down_data_ts(query_ts_end)
+    if not is_instantaneous:
+        print(f"{datetime.now()} | NOT INSTANTANEOUS")
+        query_ts_end = round_down_data_ts(query_ts_end)
+
     active_sites = get_sites_data(site_code)  # site_code is default to None
 
     generated_alerts = get_site_public_alerts(
