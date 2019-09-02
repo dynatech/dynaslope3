@@ -849,7 +849,8 @@ def insert_ewi(internal_json=None):
                 current_event_alert = site_monitoring_instance.event_alerts.order_by(
                     DB.desc(MonitoringEventAlerts.event_alert_id)).first()
             # pub_sym_id = get_pub_sym_id(public_alert_level)
-            pub_sym_id = retrieve_data_from_memcache("public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="pub_sym_id")
+            pub_sym_id = retrieve_data_from_memcache("public_alert_symbols", {
+                                                     "alert_level": public_alert_level}, retrieve_attr="pub_sym_id")
 
             validity = site_monitoring_instance.validity
             try:
@@ -916,7 +917,8 @@ def insert_ewi(internal_json=None):
                             # Just a safety measure in case we attached a False
                             # in Front-End
                             # NOTE: SHOULD BE ATTACHED VIA FRONT-END??
-                            print(f"{datetime.now()} | NO GROUND DATA? Updating validity. New validity: {validity}")
+                            print(
+                                f"{datetime.now()} | NO GROUND DATA? Updating validity. New validity: {validity}")
                             new_validity = current_event_alert.event.validity + \
                                 timedelta(hours=no_data_hours_extension)
                             update_event_validity(new_validity, event_id)
@@ -928,7 +930,7 @@ def insert_ewi(internal_json=None):
                     print("---LOWERING")
                     release_time = round_to_nearest_release_time(
                         datetime_data_ts)
-                    
+
                     var_checker("release_time", release_time, True)
                     var_checker("validity", validity, True)
 
@@ -1067,6 +1069,7 @@ def insert_cbewsl_moms():
         op_trigger = int(json_data["alert_level"])
         user_id = json_data["user_id"]
         data_ts = json_data["data_ts"]
+        run_status = ""
 
         # NOTE: With the assumption that surficial "RAISE" button always send
         # one and only one trigger
@@ -1086,154 +1089,171 @@ def insert_cbewsl_moms():
             "feature_type": feature_name,
             "op_trigger": op_trigger
         }
-        current_monitoring_instance = get_current_monitoring_instance_per_site(site_id=50)
+        current_monitoring_instance = get_current_monitoring_instance_per_site(
+            site_id=50)
         event_id = None
         if current_monitoring_instance:
             event_id = current_monitoring_instance.event_id
         try:
             moms_id = write_monitoring_moms_to_db(moms_obs, 50, event_id)
             DB.session.commit()
+            print(f"Insert MOMS Success with ID: {moms_id}")
+            run_status += "MOMS HAS BEEN INSERTED. "
         except Exception as err:
             print(err)
             raise
+        
+        # RUN ALERT GEN TO GET THE LATEST DATA INSERTED
+        if not op_trigger == 0:
+            try: 
+                generated_alert = public_alert_generator.main(site_code="umi", is_instantaneous=True)
+                generated_alert = json.loads(generated_alert)
+                var_checker("generated_alert", generated_alert, True)
+                candidate = candidate_alerts_generator.main(generated_alerts_list=generated_alert)
+                var_checker("candidate", candidate, True)
+                candidate = json.loads(candidate)
+                if candidate:
+                    print("#### CANDIDATE GENERATED")
+                    formatted_candidate = format_candidate_alerts_for_insert(candidate[0])
+                    status = insert_ewi(formatted_candidate)
+                    run_status += "Candidate Release also has been inserted. "
+                else:
+                    print("#### NO CANDIDATE GENERATED")
+                    run_status += "NO candidate inserted. "
+
+            except Exception as err:
+                print("PROBLEM IN ALERT GEN IN CBEWS MOMS INSERT")
+                print(err)
+                raise
 
     except Exception as err:
         var_checker("THERE IS AN ERROR IN CBEWS MOMS", err, True)
         raise
 
-    return f"Insert MOMS Success with ID: {moms_id}"
+    return run_status
 
 
-# @MONITORING_BLUEPRINT.route("/monitoring/insert_cbewsl_ewi", methods=["POST"])
-# def insert_cbewsl_ewi():
-#     """
-#     This function formats the json data sent by CBEWS-L app and adds
-#     the remaining needed data to fit with the requirements of
-#     the existing insert_ewi() api.
+@MONITORING_BLUEPRINT.route("/monitoring/insert_cbewsl_moms_ewi_web", methods=["POST"])
+def insert_cbewsl_moms_ewi_web():
+    """
+    This function formats the json data sent by CBEWS-L app and adds
+    the remaining needed data to fit with the requirements of
+    the existing insert_ewi() api.
 
-#     Note: This API is required since, currently, there is a data size limit
-#     of which the CBEWS-L App can send via SMS.
-#     """
-#     try:
-#         json_data = request.get_json()
-#         var_checker("JSON DATA FROM INSERT_CBEWSL", json_data, True)
-#         public_alert_level = int(json_data["alert_level"])
-#         public_alert_symbol = retrieve_data_from_memcache(
-#             "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
-#         user_id = json_data["user_id"]
-#         data_ts = json_data["data_ts"]
-#         trigger_list_arr = []
-#         moms_trigger = {}
-#         triggering_moms_list = []
-#         non_triggering_moms = {}
-#         non_trig_moms_list = []
+    Note: This API is required since, currently, there is a data size limit
+    of which the CBEWS-L App can send via SMS.
+    """
+    try:
+        json_data = request.get_json()
+        var_checker("JSON DATA FROM INSERT_CBEWSL", json_data, True)
+        public_alert_level = int(json_data["alert_level"])
+        public_alert_symbol = retrieve_data_from_memcache(
+            "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
+        user_id = json_data["user_id"]
+        data_ts = json_data["data_ts"]
+        trigger_list_arr = []
+        moms_trigger = {}
+        triggering_moms_list = []
+        non_triggering_moms = {}
+        non_trig_moms_list = []
 
-#         for trigger in json_data["trig_list"]:
-#             int_sym = trigger["int_sym"]
-#             ots_row = retrieve_data_from_memcache(
-#                 "operational_trigger_symbols", {"alert_symbol": int_sym})
-#             try:
-#                 internal_sym_id = ots_row["internal_alert_symbol"]["internal_sym_id"]
-#             except TypeError:
-#                 internal_sym_id = None
+        for trigger in json_data["trig_list"]:
+            int_sym = trigger["int_sym"]
+            ots_row = retrieve_data_from_memcache(
+                "operational_trigger_symbols", {"alert_symbol": int_sym})
+            try:
+                internal_sym_id = ots_row["internal_alert_symbol"]["internal_sym_id"]
+            except TypeError:
+                internal_sym_id = None
 
-#             trigger_alert_level = ots_row["alert_level"]
-#             trigger_alert_symbol = ots_row["alert_symbol"]
-#             source_id = ots_row["source_id"]
-#             trigger_source = ots_row["trigger_hierarchy"]["trigger_source"]
+            trigger_alert_level = ots_row["alert_level"]
+            trigger_alert_symbol = ots_row["alert_symbol"]
+            source_id = ots_row["source_id"]
+            trigger_source = ots_row["trigger_hierarchy"]["trigger_source"]
 
-#             trigger_entry = {
-#                 "trigger_type": trigger_source,
-#                 "source_id": source_id,
-#                 "alert_level": trigger_alert_level,
-#                 "trigger_id": None,
-#                 "alert": trigger_alert_symbol,
-#                 "ts_updated": data_ts,
-#                 "internal_sym_id": internal_sym_id
-#             }
+            trigger_entry = {
+                "trigger_type": trigger_source,
+                "source_id": source_id,
+                "alert_level": trigger_alert_level,
+                "trigger_id": None,
+                "alert": trigger_alert_symbol,
+                "ts_updated": data_ts,
+                "internal_sym_id": internal_sym_id
+            }
 
-#             if trigger_source == "rainfall":
-#                 trigger_entry = {
-#                     **trigger_entry,
-#                     "tech_info": trigger["info"]
-#                 }
-#             elif trigger_source == "moms":
-#                 # Always trigger entry from app. Either m or M only.
-#                 feature_name = trigger["f_name"]
-#                 feature_type = trigger["f_type"]
-#                 remarks = trigger["remarks"]
+            if trigger_source == "moms":
 
-#                 moms_obs = {
-#                     "observance_ts": data_ts,
-#                     "reporter_id": user_id,
-#                     "remarks": remarks,
-#                     "report_narrative": f"[{feature_type}] {feature_name} - {remarks}",
-#                     "validator_id": user_id,
-#                     "instance_id": None,
-#                     "feature_name": trigger["f_name"],
-#                     "feature_type": trigger["f_type"],
-#                     "op_trigger": trigger_alert_level
-#                 }
+                moms_obs = {
+                    "observance_ts": data_ts,
+                    "reporter_id": user_id,
+                    "remarks": remarks,
+                    "report_narrative": f"[{feature_type}] {feature_name} - {remarks}",
+                    "validator_id": user_id,
+                    "instance_id": None,
+                    "feature_name": trigger["f_name"],
+                    "feature_type": trigger["f_type"],
+                    "op_trigger": trigger_alert_level
+                }
 
-#                 if trigger_alert_level == 0:
-#                     non_trig_moms_list.append(moms_obs)
-#                     continue
-#                 else:
-#                     triggering_moms_list.append(moms_obs)
-#                     moms_trigger = {
-#                         **moms_trigger,
-#                         **trigger_entry,
-#                         "tech_info": f"[{feature_type}] {feature_name} - {remarks}",
-#                         "moms_list": triggering_moms_list
-#                     }
-#                     continue
+                if trigger_alert_level == 0:
+                    non_trig_moms_list.append(moms_obs)
+                    continue
+                else:
+                    triggering_moms_list.append(moms_obs)
+                    moms_trigger = {
+                        **moms_trigger,
+                        **trigger_entry,
+                        "tech_info": f"[{feature_type}] {feature_name} - {remarks}",
+                        "moms_list": triggering_moms_list
+                    }
+                    continue
 
-#             trigger_list_arr.append(trigger_entry)
+            trigger_list_arr.append(trigger_entry)
 
-#             if non_trig_moms_list:
-#                 non_triggering_moms["moms_list"] = non_trig_moms_list
+            if non_trig_moms_list:
+                non_triggering_moms["moms_list"] = non_trig_moms_list
 
-#         # The following fixes the top-level alert level and alert symbol, getting the highest
-#         if moms_trigger:
-#             highest_moms = next(iter(sorted(
-#                 moms_trigger["moms_list"], key=lambda x: x["op_trigger"], reverse=True)), None)
-#             alert_symbol = retrieve_data_from_memcache("operational_trigger_symbols", {
-#                 "alert_level": highest_moms["op_trigger"], "source_id": 6}, retrieve_attr="alert_symbol")
+        # The following fixes the top-level alert level and alert symbol, getting the highest
+        if moms_trigger:
+            highest_moms = next(iter(sorted(
+                moms_trigger["moms_list"], key=lambda x: x["op_trigger"], reverse=True)), None)
+            alert_symbol = retrieve_data_from_memcache("operational_trigger_symbols", {
+                "alert_level": highest_moms["op_trigger"], "source_id": 6}, retrieve_attr="alert_symbol")
 
-#             moms_trigger["alert_level"] = highest_moms["op_trigger"]
-#             moms_trigger["alert"] = alert_symbol
-#             trigger_list_arr.append(moms_trigger)
+            moms_trigger["alert_level"] = highest_moms["op_trigger"]
+            moms_trigger["alert"] = alert_symbol
+            trigger_list_arr.append(moms_trigger)
 
-#         release_time = datetime.now().time()
+        release_time = datetime.now().time()
 
-#         internal_json_data = {
-#             "site_id": 50,
-#             "site_code": "umi",
-#             "public_alert_level": public_alert_level,
-#             "public_alert_symbol": public_alert_symbol,
-#             "cbewsl_validity": json_data["alert_validity"],
-#             "release_details": {
-#                 "data_ts": data_ts,
-#                 "trigger_list_str": "m",
-#                 "release_time": release_time,
-#                 "comments": ""
-#             },
-#             "non_triggering_moms": non_triggering_moms,
-#             "publisher_details": {
-#                 "publisher_mt_id": user_id,
-#                 "publisher_ct_id": user_id,
-#             },
-#             "trigger_list_arr": trigger_list_arr
-#         }
+        internal_json_data = {
+            "site_id": 50,
+            "site_code": "umi",
+            "public_alert_level": public_alert_level,
+            "public_alert_symbol": public_alert_symbol,
+            "cbewsl_validity": json_data["alert_validity"],
+            "release_details": {
+                "data_ts": data_ts,
+                "trigger_list_str": "m",
+                "release_time": release_time,
+                "comments": ""
+            },
+            "non_triggering_moms": non_triggering_moms,
+            "publisher_details": {
+                "publisher_mt_id": user_id,
+                "publisher_ct_id": user_id,
+            },
+            "trigger_list_arr": trigger_list_arr
+        }
 
-#     except:
-#         DB.session.rollback()
-#         raise
+    except:
+        DB.session.rollback()
+        raise
 
-#     status = insert_ewi(internal_json_data)
+    status = insert_ewi(internal_json_data)
 
-#     # return jsonify(internal_json_data)
-#     return status
+    # return jsonify(internal_json_data)
+    return status
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_candidate_and_current_alerts", methods=["GET"])
@@ -1246,18 +1266,17 @@ def get_candidate_and_current_alerts():
     return jsonify(ret_val)
 
 
+@MONITORING_BLUEPRINT.route("/monitoring/update_alert_gen", methods=["GET"])
 @MONITORING_BLUEPRINT.route("/monitoring/update_alert_gen/<is_instantaneous>", methods=["GET"])
-def alert_generator(is_instantaneous):
+def alert_generator(is_instantaneous=None):
     DB.session.flush()
-    
-    if isinstance(is_instantaneous, str):
+
+    if is_instantaneous and isinstance(is_instantaneous, str):
         if is_instantaneous.lower() == "true":
             is_instantaneous = True
         else:
             is_instantaneous = False
 
-    public_alert_generator.main(is_instantaneous=is_instantaneous)
-    feedback = {
-        "status": True
-    }
-    return jsonify(feedback)
+    result = public_alert_generator.main(is_instantaneous=is_instantaneous)
+
+    return result

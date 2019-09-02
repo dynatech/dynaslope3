@@ -525,6 +525,7 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
     # If no generated alerts sent thru argument, read from
     # file.
     if not generated_alerts_list:
+        print("### WALANG GENERATED ALERTS")
         filepath = APP_CONFIG["generated_alerts_path"]
         # filepath = "/var/www/dynaslope3/outputs/"
         filename = "generated_alerts.json"

@@ -97,9 +97,9 @@ def format_candidate_alerts_for_insert(candidate_data):
                 for moms_entry in trigger["moms_list"]:
                     moms_id_list.append(moms_entry["moms_id"])
 
-            if moms_id_list:
-                trigger["moms_id_list"] = moms_id_list
-                del trigger["moms_list"]
+                if moms_id_list:
+                    trigger["moms_id_list"] = moms_id_list
+                    del trigger["moms_list"]
 
         var_checker("trigger_list_arr", trigger_list_arr, True)
 
@@ -366,21 +366,28 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     global EXTENDED_MONITORING_DAYS
     release_interval_hours = RELEASE_INTERVAL_HOURS
     extended_monitoring_days = EXTENDED_MONITORING_DAYS
+    mea = MonitoringEventAlerts
 
     if not run_ts:
         run_ts = datetime.now()
 
-    active_event_alerts = get_active_monitoring_events()
+    event = get_current_monitoring_instance_per_site(site_id=50)
+    event_alert = None
+    if event:
+        # event_alert = event.event_alerts.order_by(DB.desc(mea.event_alert_id)).filter(DB.and_(mea.ts_end == None, mea.pub_sym_id != 1)).first()
+        event_alert = event.event_alerts.order_by(DB.desc(mea.event_alert_id)).filter(mea.ts_end == None).first()
 
     latest = []
     extended = []
     overdue = []
-    for event_alert in active_event_alerts:
+
+    if event_alert:
         validity = event_alert.event.validity
         latest_release = event_alert.releases.order_by(
             DB.desc(MonitoringReleases.data_ts)).first()
 
-        # var_checker("latest_release", latest_release, True)
+        var_checker("validity", validity, True)
+        var_checker("latest_release", latest_release, True)
 
         # NOTE: LOUIE This formats release time to have date instead of time only
         data_ts = latest_release.data_ts
@@ -404,14 +411,20 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             public_alert_level, trigger_list)
         event_alert_data["event"]["validity"] = str(datetime.strptime(
             event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
+        
+        var_checker("run_ts", run_ts, True)
 
         if run_ts < validity:
+            print("LATEST")
             # On time release
             latest.append(event_alert_data)
-        elif validity < run_ts:
+        # elif validity < run_ts and run_ts < (get_tomorrow_noon(validity) - timedelta(hours=12)):
+        elif validity < run_ts and event_alert.public_alert_symbol.alert_level > 0:
+            print("OVERDUE")
             # Late release
             overdue.append(event_alert_data)
         else:
+            print("EXTENDED")
             # elif validity < rounded_data_ts and rounded_data_ts < (validity + timedelta(days=3)):
             # Extended
             start = get_tomorrow_noon(validity)
@@ -421,14 +434,82 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             # Count the days distance between current date and day 3 to know which extended day it is
             day = extended_monitoring_days - (end - current).days
 
+            var_checker("start", start, True)
+            var_checker("end", end, True)
+            var_checker("day", day, True)
+            var_checker("extended_monitoring_days", extended_monitoring_days, True)
+
             if day <= 0:
                 latest.append(event_alert_data)
-            elif day > 0 and day < end:
+            elif day > 0 and day < extended_monitoring_days:
                 event_alert_data["day"] = day
                 extended.append(event_alert_data)
             else:
                 # NOTE: Make an API call to end an event when extended is finished? based on old code
                 print("FINISH EVENT")
+
+    # NOTE: OLD GENERIC CODE
+    # active_event_alerts = get_active_monitoring_events()
+
+    # var_checker("active_event_alerts", active_event_alerts, True)
+    # latest = []
+    # extended = []
+    # overdue = []
+    # for event_alert in active_event_alerts:
+    #     validity = event_alert.event.validity
+    #     latest_release = event_alert.releases.order_by(
+    #         DB.desc(MonitoringReleases.data_ts)).first()
+
+    #     var_checker("validity", validity, True)
+    #     var_checker("latest_release", latest_release, True)
+
+    #     # NOTE: LOUIE This formats release time to have date instead of time only
+    #     data_ts = latest_release.data_ts
+    #     rounded_data_ts = round_to_nearest_release_time(
+    #         data_ts, release_interval_hours)
+    #     release_time = latest_release.release_time
+
+    #     if data_ts.hour == 23 and release_time.hour < release_interval_hours:
+    #         # if data_ts.hour == 23 and release_time.hour < 4:
+    #         # rounded_data_ts = round_to_nearest_release_time(data_ts)
+    #         str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
+    #         str_release_time = str(release_time)
+
+    #         release_time = f"{str_data_ts_ymd} {str_release_time}"
+
+    #     event_alert_data = MonitoringEventAlertsSchema(
+    #         many=False).dump(event_alert).data
+    #     public_alert_level = event_alert.public_alert_symbol.alert_level
+    #     trigger_list = latest_release.trigger_list
+    #     event_alert_data["internal_alert_level"] = build_internal_alert_level(
+    #         public_alert_level, trigger_list)
+    #     event_alert_data["event"]["validity"] = str(datetime.strptime(
+    #         event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
+
+    #     if run_ts < validity:
+    #         # On time release
+    #         latest.append(event_alert_data)
+    #     elif validity < run_ts:
+    #         # Late release
+    #         overdue.append(event_alert_data)
+    #     else:
+    #         # elif validity < rounded_data_ts and rounded_data_ts < (validity + timedelta(days=3)):
+    #         # Extended
+    #         start = get_tomorrow_noon(validity)
+    #         # Day 3 is the 3rd 12-noon from validity
+    #         end = start + timedelta(days=extended_monitoring_days)
+    #         current = run_ts  # Production code is current time
+    #         # Count the days distance between current date and day 3 to know which extended day it is
+    #         day = extended_monitoring_days - (end - current).days
+
+    #         if day <= 0:
+    #             latest.append(event_alert_data)
+    #         elif day > 0 and day < end:
+    #             event_alert_data["day"] = day
+    #             extended.append(event_alert_data)
+    #         else:
+    #             # NOTE: Make an API call to end an event when extended is finished? based on old code
+    #             print("FINISH EVENT")
 
     db_alerts = {
         "latest": latest,
@@ -665,6 +746,7 @@ def get_active_monitoring_events():
     # since SQLAlchemy interprets "is None" differently.
     active_events = mea.query.order_by(
         DB.desc(mea.ts_start)).filter(and_(mea.ts_end == None, mea.pub_sym_id != 1)).all()
+        # DB.desc(mea.ts_start)).filter(and_(mea.ts_end == None)).all()
 
     return active_events
 

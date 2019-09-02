@@ -118,36 +118,34 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
         is_new_public_alert = prev_pub_sym_id != new_pub_sym_id
         prev_l_s_pa_ts_updated = previous_latest_site_pa.ts_updated
         new_l_s_pa_ts_updated = output_dict["ts_updated"]
-        is_retroactive_run = prev_l_s_pa_ts_updated >= new_l_s_pa_ts_updated
         no_alerts_wtn_30_mins = new_l_s_pa_ts_updated - \
             timedelta(minutes=30) > prev_l_s_pa_ts_updated
 
         # If the alert symbol is different, create a new entry
-        if not is_retroactive_run:
-            if no_alerts_wtn_30_mins and new_alert_level == 0:
-                is_new_public_alert = True
-            else:
-                if not is_new_public_alert:
-                    # Update the previous public alert first
-                    previous_latest_site_pa.ts_updated = output_dict["ts"]
+        if no_alerts_wtn_30_mins and new_alert_level == 0:
+            is_new_public_alert = True
+        else:
+            if not is_new_public_alert:
+                # Update the previous public alert first
+                previous_latest_site_pa.ts_updated = output_dict["ts"]
 
-            if is_new_public_alert:
-                new_pub_alert = pa(
-                    ts=output_dict["ts"],
-                    site_id=output_dict["site_id"],
-                    pub_sym_id=output_dict["pub_sym_id"],
-                    ts_updated=output_dict["ts_updated"]
-                )
-                DB.session.add(new_pub_alert)
-                DB.session.flush()
-                new_public_id = new_pub_alert.public_id
-                return_data = new_public_id
+        if is_new_public_alert:
+            new_pub_alert = pa(
+                ts=output_dict["ts"],
+                site_id=output_dict["site_id"],
+                pub_sym_id=output_dict["pub_sym_id"],
+                ts_updated=output_dict["ts_updated"]
+            )
+            DB.session.add(new_pub_alert)
+            DB.session.flush()
+            new_public_id = new_pub_alert.public_id
+            return_data = new_public_id
 
-                # If no problems, commit
-            elif not is_new_public_alert:
-                return_data = "exists"
+            # If no problems, commit
+        elif not is_new_public_alert:
+            return_data = "exists"
 
-            DB.session.commit()
+        DB.session.commit()
 
     except Exception as err:
         print(err)
