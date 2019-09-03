@@ -170,6 +170,14 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         "unresolved_moms_list": alert_entry["unresolved_moms_list"]
     }
 
+    try:
+        formatted_alerts_for_ewi = {
+            **formatted_alerts_for_ewi,
+            "is_release_time": alert_entry["is_release_time"]
+        }
+    except KeyError:
+        pass
+
     if general_status not in ["routine"]:
         triggers = alert_entry["event_triggers"]
         trigger_list_arr = []
@@ -351,7 +359,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 # if release is already released
                 if db_latest_release_ts == site_w_alert["ts"]:
-                    is_new_release = False
+                    is_release_time = False
 
             if is_new_release:
                 highest_valid_public_alert, trigger_list_str, validity_status = fix_internal_alert(
@@ -392,11 +400,18 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
                                                 site_code, extended))
 
+            is_for_release = True
             site_wo_alert["alert_level"] = 0
             if is_in_raised_alerts:
                 general_status = "lowering"
             elif is_in_extended_alerts:
                 general_status = "extended"
+
+                # RELEASE TIME HANDLER TRY 1
+                ts = datetime.strptime(
+                    site_wo_alert["ts"], "%Y-%m-%d %H:%M:%S")
+                if query_end_ts.hour != routine_extended_release_time.hour:
+                    is_for_release = False
 
             if is_in_raised_alerts or is_in_extended_alerts:
                 if internal_alert == nd_internal_alert_sym:
@@ -404,7 +419,12 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 else:
                     trigger_list_str = ""
 
-                site_wo_alert["trigger_list_str"] = trigger_list_str
+                site_wo_alert = {
+                    **site_wo_alert,
+                    "trigger_list_str": trigger_list_str,
+                    "is_for_release": is_for_release
+                }
+
                 formatted_alert_entry = format_alerts_for_ewi_insert(
                     site_wo_alert, general_status)
 
