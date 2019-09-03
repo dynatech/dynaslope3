@@ -320,7 +320,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
     if with_alerts:
         for site_w_alert in with_alerts:
-            is_for_release = True
+            is_new_release = True
+            is_release_time = True
             site_code = site_w_alert["site_code"]
             site_db_alert = next(
                 filter(lambda x: x["event"]["site"]["site_code"] == site_code, merged_db_alerts_list), None)
@@ -350,13 +351,18 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 # if release is already released
                 if db_latest_release_ts == site_w_alert["ts"]:
-                    is_for_release = False
+                    is_new_release = False
 
-            if is_for_release:
+            if is_new_release:
                 highest_valid_public_alert, trigger_list_str, validity_status = fix_internal_alert(
                     site_w_alert, internal_source_id)
-                site_w_alert["alert_level"] = highest_valid_public_alert
-                site_w_alert["trigger_list_str"] = trigger_list_str
+
+                site_w_alert = {
+                    **site_w_alert,
+                    "alert_level": highest_valid_public_alert,
+                    "trigger_list_str": trigger_list_str,
+                    "is_release_time": is_release_time
+                }
 
                 formatted_alert_entry = format_alerts_for_ewi_insert(
                     site_w_alert, general_status)
