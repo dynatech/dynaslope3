@@ -357,8 +357,17 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 db_latest_release_ts = site_db_alert["releases"][0]["data_ts"]
 
+                # RELEASE TIME HANDLER
+                # if can release
+                ts = datetime.strptime(site_w_alert["ts"], "%Y-%m-%d %H:%M:%S")
+                release_start_range = round_to_nearest_release_time(
+                    ts) - timedelta(minutes=30)
+                is_release_schedule_range = ts >= release_start_range
+
                 # if release is already released
-                if db_latest_release_ts == site_w_alert["ts"]:
+                is_already_released = db_latest_release_ts == site_w_alert["ts"]
+
+                if not is_release_schedule_range and is_already_released:
                     is_release_time = False
 
             if is_new_release:
@@ -410,7 +419,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 # RELEASE TIME HANDLER TRY 1
                 ts = datetime.strptime(
                     site_wo_alert["ts"], "%Y-%m-%d %H:%M:%S")
-                if query_end_ts.hour != routine_extended_release_time.hour:
+                if ts.hour != routine_extended_release_time.hour:
                     is_for_release = False
 
             if is_in_raised_alerts or is_in_extended_alerts:
