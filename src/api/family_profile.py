@@ -77,9 +77,16 @@ def save_family_profile():
     status = None
     message = ""
 
+
     try:
         if data["value"] is not None:
             data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass 
+
+
+    try:
 
         family_profile_id = int(data["family_profile_id"])
         members_count = str(data["members_count"])
@@ -133,6 +140,12 @@ def save_risk_profile():
     try:
         if data["value"] is not None:
             data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass 
+
+
+    try:
 
         risk_profile_id = int(data["risk_profile_id"])
         entry = str(data["entry"])
