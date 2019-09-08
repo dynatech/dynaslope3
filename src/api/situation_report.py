@@ -15,7 +15,7 @@ SITUATION_REPORT_BLUEPRINT = Blueprint("situation_report_blueprint", __name__)
 @SITUATION_REPORT_BLUEPRINT.route("/situation_report/get_all_situation_report", methods=["GET"])
 def get_all_situation_report():
     query = SituationReport.query.order_by(
-        SituationReport.situation_report_id.desc()).all()
+        SituationReport.timestamp.desc()).all()
 
     result = SituationReportSchema(
         many=True).dump(query).data
@@ -34,7 +34,7 @@ def get_all_situation_report():
 @SITUATION_REPORT_BLUEPRINT.route("/situation_report/get_latest_situation_report_data", methods=["GET"])
 def get_latest_situation_report_data():
     query = SituationReport.query.order_by(
-        SituationReport.situation_report_id.desc()).first()
+        SituationReport.timestamp.desc()).first()
 
     result = SituationReportSchema().dump(query).data
 
@@ -72,10 +72,11 @@ def save_situation_report():
         data = request.form
     status = None
     message = ""
-
+    print(data)
     try:
+        final_timestamp = str(data["timestamp"])+" "+str(data["time_selected"])
         situation_report_id = int(data["situation_report_id"])
-        timestamp = str(data["timestamp"])
+        timestamp = str(final_timestamp)
         summary = str(data["summary"])
         pdf_path = str(data["pdf_path"])
         image_path = str(data["image_path"])

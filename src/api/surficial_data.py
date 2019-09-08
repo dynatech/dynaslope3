@@ -153,7 +153,7 @@ def save_monitoring_log():
         type_of_feature = str(data["type_of_feature"])
         description = str(data["description"])
         name_of_feature = str(data["name_of_feature"])
-        timestamp = current_date_time  # str(data["timestamp"])
+        timestamp = str(data["timestamp"])
 
         if moms_id == 0:
             insert_data = ManifestationsOfMovements(

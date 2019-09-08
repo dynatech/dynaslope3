@@ -1,12 +1,12 @@
 [sb_local]
-host = 127.0.0.1
+host = 192.168.1.10
 port = 3306
 user = root
 password = senslope
 schema = senslopedb
 
 [gsm_pi]
-host = 192.168.150.10
+host = 192.168.1.10
 port = 3306
 user = root
 password = senslope
@@ -14,21 +14,21 @@ schema = comms_db
 
 
 [ubuntu75_pysys_local]
-host = 192.168.150.10
+host = 192.168.1.10
 port = 3306
 user = root
 password = senslope
 schema = senslopedb
 
 [staff1]
-host = 127.0.0.1
+host = 192.168.1.10
 port = 3306
 user = root
 password = senslope
 schema = senslopedb
 
 [smsdb_remote]
-host = 192.168.150.10
+host = 192.168.1.10
 port = 3306
 user = root
 password = senslope
