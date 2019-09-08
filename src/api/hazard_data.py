@@ -78,7 +78,16 @@ def save_hazard_data():
 
     status = None
     message = ""
+
     try:
+        if data["value"] is not None:
+            data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass 
+
+    try:
+
         hazard_data_id = int(data["hazard_data_id"])
         hazard = str(data["hazard"])
         speed_of_onset = str(data["speed_of_onset"])

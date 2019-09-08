@@ -59,7 +59,18 @@ def save_resources_and_capacities():
     status = None
     message = ""
 
+
     try:
+        if data["value"] is not None:
+            data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass 
+
+    try:
+        print(data)
+        print(data["resources_and_capacities_id"])
+
         resources_and_capacities_id = int(data["resources_and_capacities_id"])
         resource_and_capacity = str(data["resource_and_capacity"])
         status = str(data["status"])
@@ -82,7 +93,6 @@ def save_resources_and_capacities():
         DB.session.commit()
         status = True
     except Exception as err:
-        print(err)
         DB.session.rollback()
         status = False
         message = "Something went wrong, Please try again"

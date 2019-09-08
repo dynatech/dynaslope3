@@ -88,7 +88,17 @@ def save_field_survey():
 
     status = None
     message = ""
+
     try:
+        if data["value"] is not None:
+            data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass 
+
+
+    try:
+
         field_survey_id = int(data["field_survey_id"])
         features = str(data["features"])
         mat_characterization = str(data["mat_characterization"])

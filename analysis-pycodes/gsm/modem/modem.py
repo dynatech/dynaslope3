@@ -10,10 +10,10 @@ sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from gsmmodem import pdu as PduDecoder
 import volatile.memory as mem
 
-try:
-    import RPi.GPIO as GPIO
-except ImportError:
-    warnings.warn("Warning: RPi.GPIO module Skipping import")
+#try:
+#    import RPi.GPIO as GPIO
+#except ImportError:
+#    warnings.warn("Warning: RPi.GPIO module Skipping import")
 
 class ResetException(Exception):
     pass

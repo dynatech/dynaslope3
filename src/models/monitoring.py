@@ -715,7 +715,7 @@ class MonitoringReleasePublishersSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Monitoring Release Publishers class
     """
 
-    user_details = fields.Nested(UsersSchema, exclude=("pu"))
+    user_details = fields.Nested(UsersSchema, exclude=("pu",))
 
     class Meta:
         """Saves table class structure as schema model"""

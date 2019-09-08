@@ -79,7 +79,16 @@ def save_sensor_maintenance_logs():
     print(data)
     status = None
     message = ""
+
     try:
+        if data["value"] is not None:
+            data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass 
+
+    try:
+            
         current_time = time.strftime('%H:%M:%S')
         sensor_maintenance_id = int(data["sensor_maintenance_id"])
         # remarks = data["remarks"]

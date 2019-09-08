@@ -72,8 +72,16 @@ def save_situation_report():
         data = request.form
     status = None
     message = ""
-    print(data)
+
     try:
+        if data["value"] is not None:
+            data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass 
+
+    try:
+
         final_timestamp = str(data["timestamp"])+" "+str(data["time_selected"])
         situation_report_id = int(data["situation_report_id"])
         timestamp = str(final_timestamp)

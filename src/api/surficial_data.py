@@ -147,8 +147,15 @@ def save_monitoring_log():
     status = None
     message = ""
 
-    print(data)
     try:
+        if data["value"] is not None:
+            data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass
+
+    try:
+
         moms_id = int(data["moms_id"])
         type_of_feature = str(data["type_of_feature"])
         description = str(data["description"])

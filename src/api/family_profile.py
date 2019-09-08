@@ -78,6 +78,9 @@ def save_family_profile():
     message = ""
 
     try:
+        if data["value"] is not None:
+            data = data["value"]
+
         family_profile_id = int(data["family_profile_id"])
         members_count = str(data["members_count"])
         vulnerable_members_count = str(data["vulnerable_members_count"])
@@ -128,8 +131,8 @@ def save_risk_profile():
     message = ""
 
     try:
-        # if data is None:
-        #     data = request.form
+        if data["value"] is not None:
+            data = data["value"]
 
         risk_profile_id = int(data["risk_profile_id"])
         entry = str(data["entry"])

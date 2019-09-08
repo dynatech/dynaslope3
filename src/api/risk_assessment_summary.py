@@ -54,8 +54,15 @@ def save_risk_assessment_summary():
     status = None
     message = ""
 
-    print(data)
     try:
+        if data["value"] is not None:
+            data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass
+
+    try:
+            
         summary_id = int(data["summary_id"])
         location = str(data["location"])
         impact = str(data["impact"])
