@@ -127,6 +127,9 @@ def forgot_password():
     message = str("CBEWS-L Account New Password\n\n"
                   "You new password is : "+new_password)
 
+    # FETCH all level 3 role mobile_ids
+    # Na nakalist para sa mobile_ids sa write_message fucntion
+    
     write_message(
         message=message, mobile_ids=[1, 2])
 
