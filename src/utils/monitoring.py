@@ -432,7 +432,10 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             end = start + timedelta(days=extended_monitoring_days)
             current = run_ts  # Production code is current time
             # Count the days distance between current date and day 3 to know which extended day it is
-            day = extended_monitoring_days - (end - current).days
+            
+            current_day = get_current_day(end, current)
+
+            day = extended_monitoring_days - current_day
 
             var_checker("start", start, True)
             var_checker("end", end, True)
@@ -996,6 +999,28 @@ def write_monitoring_earthquake_to_db(eq_details):
     print(f"{datetime.now()} | MonitoringEarthquake written with ID: {new_eq_id}")
 
     return return_data
+
+
+def get_current_day(end, current):
+    current_day = 0
+    temp = end - current
+    has_excess = False
+    try:
+        if temp.minutes > 0:
+            has_excess = True
+    except AttributeError:
+        pass            
+    try:
+        if temp.seconds > 0:
+            has_excess = True
+    except AttributeError:
+        pass
+
+    if has_excess:
+        temp = temp + timedelta(days=1)
+    current_day = temp.days
+
+    return current_day
 
 
 def build_internal_alert_level(public_alert_level, trigger_list_str=None):
