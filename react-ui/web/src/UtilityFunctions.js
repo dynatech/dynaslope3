@@ -17,4 +17,17 @@ function prepareSiteAddress (site_details, include_site_code = true, position = 
     return address;
 }
 
-export { prepareSiteAddress };
+function capitalizeFirstLetter (str, every_word = false) {
+    const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+    if (every_word) {
+        const arr = str.split(" ");
+        const cap_arr = arr.map(s => capitalize(s));
+
+        return cap_arr.join(" ");
+    }
+
+    return capitalize(str);
+}
+
+export { prepareSiteAddress, capitalizeFirstLetter };

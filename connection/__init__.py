@@ -44,7 +44,7 @@ def start_monitoring_ws_bg_task():
             MONITORING_WS_THREAD.start()
 
 
-def create_app(config_name):
+def create_app(config_name, run_memcache):
     """
     Instantiate Flask App variable and other related packages
     """
@@ -71,8 +71,9 @@ def create_app(config_name):
     CORS(app)
     SOCKETIO.init_app(app)
 
-    from connection import set_memcache
-    set_memcache.main(MEMORY_CLIENT)
+    if run_memcache:
+        from connection import set_memcache
+        set_memcache.main(MEMORY_CLIENT)
 
     # start_monitoring_ws_bg_task()
 

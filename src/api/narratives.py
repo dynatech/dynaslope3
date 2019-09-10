@@ -24,6 +24,12 @@ def wrap_get_narratives(start=None, end=None):
     """
     offset = request.args.get("offset", default=0, type=int)
     limit = request.args.get("limit", default=10, type=int)
+    include_count = request.args.get(
+        "include_count", default="false", type=str)
+    site_ids = request.args.getlist("site_ids", type=int)
+    search = request.args.get("search", default="", type=str)
+
+    include_count = True if include_count.lower() == "true" else False
 
     narrative_schema = NarrativesSchema(many=True)
 
@@ -31,8 +37,22 @@ def wrap_get_narratives(start=None, end=None):
         start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
         end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
 
-    narrative = get_narratives(offset, limit, start, end)
+    return_val = get_narratives(
+        offset, limit, start, end,
+        site_ids, include_count, search)
 
-    narratives_data = narrative_schema.dump(narrative).data
+    if include_count:
+        narratives = return_val[0]
+        count = return_val[1]
+    else:
+        narratives = return_val
+
+    narratives_data = narrative_schema.dump(narratives).data
+
+    if include_count:
+        narratives_data = {
+            "narratives": narratives_data,
+            "count": count
+        }
 
     return jsonify(narratives_data)

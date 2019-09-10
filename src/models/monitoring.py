@@ -363,6 +363,29 @@ class MomsFeatures(UserMixin, DB.Model):
                 f" Description: {self.description} Feature Type: {self.feature_type}")
 
 
+class MomsFeatureAlerts(UserMixin, DB.Model):
+    """
+    Class representation of moms_features table
+    """
+
+    __tablename__ = "moms_feature_alerts"
+    __bind_key__ = "ewi_db"
+    __table_args__ = {"schema": "ewi_db"}
+
+    feature_alert_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    feature_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "ewi_db.moms_features.feature_id"), nullable=False)
+    alert_level = DB.Column(DB.Integer)
+    description = DB.Column(DB.String(500))
+
+    feature = DB.relationship(
+        "MomsFeatures", backref=DB.backref("alerts", lazy="subquery"), lazy="select")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Feature ID: {self.feature_alert_id}"
+                f" Feature Type: {self.feature_id} Alert Level: {self.alert_level}")
+
+
 class BulletinTracker(UserMixin, DB.Model):
     """
     Class representation of bulletin_tracker table
@@ -799,6 +822,8 @@ class MomsInstancesSchema(MARSHMALLOW.ModelSchema):
     """
     moms = fields.Nested("MonitoringMomsSchema", many=True, exclude=("moms_instance", ))
     feature = fields.Nested("MomsFeaturesSchema", exclude=("instances", ))
+    site_id = fields.Integer()
+    site = fields.Nested("SitesSchema")
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -809,10 +834,24 @@ class MomsFeaturesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of MomsFeatures class
     """
+    instances = fields.Nested(MomsInstancesSchema, many=True, exclude=("feature", "moms"))
+    alerts = fields.Nested("MomsFeatureAlertsSchema", many=True, exclude=("feature", ))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = MomsFeatures
+
+
+class MomsFeatureAlertsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of MomsFeatureAlerts class
+    """
+    feature = fields.Nested(MomsFeaturesSchema, exclude=("instances", ))
+    feature_id = fields.Integer()
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MomsFeatureAlerts
 
 
 class BulletinTrackerSchema(MARSHMALLOW.ModelSchema):

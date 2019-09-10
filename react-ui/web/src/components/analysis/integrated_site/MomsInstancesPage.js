@@ -1,7 +1,10 @@
 import React, { Fragment, useState, useEffect } from "react";
 import { Route, Link } from "react-router-dom";
 
-import { withStyles, Grid, Paper, Typography } from "@material-ui/core";
+import {
+    withStyles, Grid, Paper,
+    Typography
+} from "@material-ui/core";
 import MUIDataTable from "mui-datatables";
 import moment from "moment";
 
@@ -9,6 +12,8 @@ import { getMOMsInstances } from "../ajax";
 
 import GeneralStyles from "../../../GeneralStyles";
 import BackToMainButton from "./BackToMainButton";
+import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
+import InsertMomsButton from "../../widgets/moms/InsertMomsButton";
 
 
 function formatTimestamp (ts) {
@@ -20,7 +25,7 @@ function buildName (name) {
     return `${first_name} ${last_name}`;
 }
 
-function processMOMsReportData (moms) {
+function processMomsReportData (moms) {
     const data = moms.map(report => {
         const {
             moms_id, observance_ts, narrative: n_details, reporter, validator
@@ -86,9 +91,15 @@ function MomsInstancesPage (props) {
         });
     }, []);
 
+    const [is_moms_modal_open, setMomsModal] = useState(false);
+    const set_moms_modal_fn = bool => () => setMomsModal(bool);
+
     return (
         <Fragment>
-            <BackToMainButton {...props} />
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <BackToMainButton {...props} />
+                <InsertMomsButton clickHandler={set_moms_modal_fn(true)} />
+            </div>
 
             <Paper style={{ marginTop: 16 }}>
                 <MUIDataTable
@@ -105,7 +116,7 @@ function MomsInstancesPage (props) {
                         rowsPerPageOptions: [],
                         print: false,
                         download: false,
-                        responsive: "scroll",
+                        responsive: "scrollMaxHeight",
                         onRowClick (data, meta, e) {
                             const { instance_id } = data[4];
                             history.push(`${url}/${instance_id}`);
@@ -114,10 +125,17 @@ function MomsInstancesPage (props) {
                     data={moms_features}
                 />
             </Paper>
+
+            <MomsInsertModal
+                {...props}
+                isOpen={is_moms_modal_open}
+                closeHandler={set_moms_modal_fn(false)}
+                width={width}
+            />
             
             <Route path={`${url}/:instance_id`} render={
                 props => {
-                    return <MOMsReportsTable 
+                    return <MomsReportsTable 
                         {...props}
                         moms_data={moms_data}
                     />;
@@ -127,7 +145,7 @@ function MomsInstancesPage (props) {
     );
 }
 
-function MOMsReportsTable (props) {
+function MomsReportsTable (props) {
     const { moms_data, match: { params: { instance_id } } } = props;
     const columns = ["Observance Timestamp", "Narrative", "Report Timestamp", "Reporter", "Validator"];
 
@@ -141,7 +159,7 @@ function MOMsReportsTable (props) {
         subtitle = `${feature_type} - ${feature_name}`;
     }
 
-    const moms_reports = processMOMsReportData(moms);
+    const moms_reports = processMomsReportData(moms);
 
     return (
         <Paper style={{ marginTop: 16 }}>
@@ -163,7 +181,7 @@ function MOMsReportsTable (props) {
                     rowsPerPageOptions: [],
                     print: false,
                     download: false,
-                    responsive: "scroll",
+                    responsive: "scrollMaxHeight",
                 }}
                 data={moms_reports}
             />

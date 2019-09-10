@@ -12,7 +12,8 @@ import { InsertChart } from "@material-ui/icons";
 import withWidth, { isWidthDown } from "@material-ui/core/withWidth";
 import { Route, Switch, Link } from "react-router-dom";
 
-import Highcharts from "highcharts/highmaps";
+import Highcharts from "highcharts/highcharts.src";
+import heatmap from "highcharts/modules/heatmap.src";
 import HighchartsReact from "highcharts-react-official";
 import { compose } from "recompose";
 import moment from "moment";
@@ -37,6 +38,7 @@ import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 
+heatmap(Highcharts);
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
@@ -445,7 +447,7 @@ function Container (props) {
                                                 print: false,
                                                 download: false,
                                                 viewColumns: false,
-                                                responsive: "scroll"
+                                                responsive: "scrollMaxHeight"
                                             }}
                                             data={moms_alerts}
                                         />

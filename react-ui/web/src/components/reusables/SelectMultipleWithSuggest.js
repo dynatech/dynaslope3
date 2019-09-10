@@ -58,7 +58,7 @@ const styles = theme => ({
     },
     divider: {
         height: theme.spacing(2),
-    },
+    }
 });
 
 function NoOptionsMessage (props) {
@@ -176,7 +176,8 @@ function SelectMultipleWithSuggest (props) {
     const {
         classes, theme, changeHandler,
         options, value, label, placeholder,
-        renderDropdownIndicator, openMenuOnClick, isMulti
+        renderDropdownIndicator, openMenuOnClick, isMulti,
+        isDisabled, isClearable
     } = props;
 
     const selectStyles = {
@@ -196,11 +197,13 @@ function SelectMultipleWithSuggest (props) {
         NoOptionsMessage,
         Option,
         Placeholder,
-        ValueContainer,
+        ValueContainer
     };
 
     const open_menu_on_click = openMenuOnClick === undefined ? true : openMenuOnClick;
     const is_multi = isMulti === undefined ? false : isMulti;
+    const is_disabled = isDisabled === undefined ? false : isDisabled;
+    const is_clearable = isClearable === undefined ? false : isClearable;
 
     const rdd = renderDropdownIndicator === undefined ? true : renderDropdownIndicator;
     if (rdd === false) {
@@ -228,6 +231,8 @@ function SelectMultipleWithSuggest (props) {
                     isMulti={is_multi}
                     openMenuOnFocus={false}
                     openMenuOnClick={open_menu_on_click}
+                    isDisabled={is_disabled}
+                    isClearable={is_clearable}
                 />
             </NoSsr>
         </div>

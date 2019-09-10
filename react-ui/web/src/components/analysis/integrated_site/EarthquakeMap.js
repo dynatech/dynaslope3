@@ -50,27 +50,6 @@ function EarthquakeMap (props) {
                 id="mapbox.streets"
                 url="https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw"
             />
-
-            {
-                sites.map(site => (
-                    <CircleMarker
-                        key={site.site_id}
-                        center={[site.latitude, site.longitude]}
-                        fillColor="green"
-                        fillOpacity={1}
-                        color="black"
-                        weight={1}
-                        radius={4}
-                        bringToFront
-                    >
-                        <Popup>
-                            <strong>{site.site_code.toUpperCase()}</strong> <br/>
-                            {prepareSiteAddress(site, false)}
-                        </Popup>
-                    </CircleMarker>
-                ))
-            }
-
             {
                 eqEvents.map(event => {
                     const {
@@ -94,6 +73,27 @@ function EarthquakeMap (props) {
                     );
                 })
             }
+
+            {
+                sites.map(site => (
+                    <CircleMarker
+                        key={site.site_id}
+                        center={[site.latitude, site.longitude]}
+                        fillColor="green"
+                        fillOpacity={1}
+                        color="black"
+                        weight={1}
+                        radius={4}
+                        bringToFront
+                    >
+                        <Popup>
+                            <strong>{site.site_code.toUpperCase()}</strong> <br/>
+                            {prepareSiteAddress(site, false)}
+                        </Popup>
+                    </CircleMarker>
+                ))
+            }
+
             
             {/* <Marker icon={marker} position={position}>
                 <Popup>
