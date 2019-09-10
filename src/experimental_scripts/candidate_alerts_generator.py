@@ -444,6 +444,10 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                                           "alert_level": -1, "source_id": internal_source_id})
     nd_internal_alert_sym = ots_row["internal_alert_symbol"]["alert_symbol"]
 
+    merged_db_alerts_list_copy = latest + overdue
+    no_a0_db_alerts_list = list(filter(lambda x: x["event"]["site"]["site_code"] ==
+                                       site_code, merged_db_alerts_list_copy))
+
     if without_alerts:
         for site_wo_alert in without_alerts:
             general_status = "routine"
@@ -451,8 +455,10 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             site_code = site_wo_alert["site_code"]
             internal_alert = site_wo_alert["internal_alert"]
 
+            # is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
+            #                                   site_code, merged_db_alerts_list))
             is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                              site_code, merged_db_alerts_list))
+                                              site_code, no_a0_db_alerts_list))
             is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
                                                 site_code, extended))
 
@@ -460,6 +466,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             site_wo_alert["alert_level"] = 0
             if is_in_raised_alerts:
                 general_status = "lowering"
+                # Empty event_triggers since for lowering
+                site_wo_alert["event_triggers"] = []
             elif is_in_extended_alerts:
                 general_status = "extended"
 
@@ -631,11 +639,11 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
         with_alerts, without_alerts, db_alerts_dict, query_end_ts)
 
     # NOTE: TAG LOWERING CANDIDATES
-    tagged_candidates_alerts_list = remove_for_lowering_sites(
-        candidate_alerts_list, db_alerts_dict)
+    # candidate_alerts_list = remove_for_lowering_sites(
+    #     candidate_alerts_list, db_alerts_dict)
 
     # Convert data to JSON
-    json_data = json.dumps(tagged_candidates_alerts_list)
+    json_data = json.dumps(candidate_alerts_list)
 
     # Write to specified filepath and filename
     directory = APP_CONFIG["generated_alerts_path"]
