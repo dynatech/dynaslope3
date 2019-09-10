@@ -129,9 +129,9 @@ def forgot_password():
 
     # FETCH all level 3 role mobile_ids
     # Na nakalist para sa mobile_ids sa write_message fucntion
-    
+    mobile_ids = get_admin_mobile_ids()
     write_message(
-        message=message, mobile_ids=[1, 2])
+        message=message, mobile_ids=mobile_ids)
 
     return jsonify({"status": True, "message": "Message successfully send to you mobile number!"})
 
@@ -174,3 +174,17 @@ def generate_validation_code(size=4, chars=string.ascii_uppercase + string.digit
     validation_code = ''.join(random.choice(chars) for _ in range(size))
 
     return validation_code
+
+
+def get_admin_mobile_ids():
+    query = text("SELECT * FROM commons_db.user_accounts "
+                 "JOIN comms_db.user_mobile ON comms_db.user_mobile.user_id = commons_db.user_accounts.user_fk_id "
+                 "WHERE commons_db.user_accounts.role = 3;")
+
+    result = DB.engine.execute(query)
+    mobile_ids = []
+
+    for row in result:
+        mobile_ids.append(row["mobile_id"])
+
+    return mobile_ids
