@@ -235,7 +235,7 @@ def field_survey_data_via_email():
         print(err)
         DB.session.rollback()
         status = False
-        message = "Something went wrong, Please try again"
+        message = "No internet connection."
 
     feedback = {
         "status": status,

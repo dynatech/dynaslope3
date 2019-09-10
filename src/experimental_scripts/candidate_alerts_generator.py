@@ -372,13 +372,18 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     ts) - timedelta(minutes=30)
                 is_release_schedule_range = ts >= release_start_range
 
+                var_checker("release_start_range", release_start_range, True)
+                var_checker("ts", ts, True)
+                var_checker("db_latest_release_ts", db_latest_release_ts, True)
+                var_checker("site_w_alert[ts]", site_w_alert["ts"], True)
+
                 # if release is already released
                 is_already_released = db_latest_release_ts == site_w_alert["ts"]
 
                 if not is_release_schedule_range and is_already_released:
                     is_release_time = False
 
-            if is_new_release:
+            if not is_already_released:
                 highest_valid_public_alert, trigger_list_str, validity_status = fix_internal_alert(
                     site_w_alert, internal_source_id)
 

@@ -78,7 +78,7 @@ def save_situation_report():
             data = data["value"]
     except KeyError:
         print("Value is defined.")
-        pass 
+        pass
 
     try:
 
@@ -196,7 +196,7 @@ def situation_report_via_email():
         print(err)
         DB.session.rollback()
         status = False
-        message = "Something went wrong, Please try again"
+        message = "No internet connection."
 
     feedback = {
         "status": status,
