@@ -2,7 +2,7 @@
 Inbox Functions Controller File
 """
 import time
-# import pdfkit
+import pdfkit
 import smtplib
 import os
 from flask import Blueprint, jsonify, request
@@ -191,16 +191,12 @@ def latest_field_survey():
 
 @FIELD_SURVEY_LOGS_BLUEPRINT.route("/field_survey/send_email", methods=["GET", "POST"])
 def field_survey_data_via_email():
-    latest_data = latest_field_survey()
     data = request.form
     status = None
     message = ""
+
     try:
-        features = latest_data["features"]
-        mat_characterization = latest_data["mat_characterization"]
-        mechanism = latest_data["mechanism"]
-        exposure = latest_data["exposure"]
-        note = latest_data["note"]
+        report = data["html"]
         date = data["date"]
 
         email = "dynaslopeswat@gmail.com"
@@ -208,19 +204,27 @@ def field_survey_data_via_email():
         send_to_email = data["email"]
         subject = "Field Survey : " + str(date)
 
-        message = "<b>Features:</b> " + features + "<br>"
-        message += "<b>Material characterization:</b> " + mat_characterization + "<br>"
-        message += "<b>Mechanism:</b> " + mechanism + "<br>"
-        message += "<b>Exposure:</b> " + exposure + "<br>"
-        message += "<b>Note:</b> " + note + "<br>"
-        # file_location = 'test.pdf'
-
         msg = MIMEMultipart()
         msg['From'] = email
         msg['To'] = send_to_email
         msg['Subject'] = subject
+        header = "<img src='http://cbewsl.com/assets/images/letter_header1.png' style='width: 100%'/><img src='http://cbewsl.com/assets/images/banner_new.png' style='width: 100%'/>"
+        footer = "<img src='http://cbewsl.com/assets/images/letter_footer1.png' style='width: 100%;  position: fixed; bottom: 0;'/>"
+        paddingTop = "<div style='padding-top: 100px;'></div>"
+        paddingBottom = "<div style='padding-top: 700px;'></div>"
 
-        msg.attach(MIMEText(message, 'html'))
+        render_pdf = header+paddingTop+report+paddingBottom+footer
+
+        pdfkit.from_string(render_pdf,'field_survey_report.pdf')
+        
+        with open('field_survey_report.pdf', 'rb') as f:
+            mime = MIMEBase('image', 'png', filename='field_survey_report.pdf')
+            mime.add_header('Content-Disposition', 'attachment', filename='field_survey_report.pdf')
+            mime.add_header('X-Attachment-Id', '0')
+            mime.add_header('Content-ID', '<0>')
+            mime.set_payload(f.read())
+            encoders.encode_base64(mime)
+            msg.attach(mime)
 
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()

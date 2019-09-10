@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from sqlalchemy import text
 import smtplib
+import pdfkit
 from connection import DB, SOCKETIO
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -173,14 +174,29 @@ def situation_report_via_email():
         send_to_email = data["email"]
         subject = "Current Situation Report : " + str(timestamp)
 
-        message = "<b>Summary:</b> <br>" + summary
-
         msg = MIMEMultipart()
         msg['From'] = email
         msg['To'] = send_to_email
         msg['Subject'] = subject
 
-        msg.attach(MIMEText(message, 'html'))
+        header = "<img src='http://cbewsl.com/assets/images/letter_header1.png' style='width: 100%'/><img src='http://cbewsl.com/assets/images/banner_new.png' style='width: 100%'/>"
+        footer = "<img src='http://cbewsl.com/assets/images/letter_footer1.png' style='width: 100%;  position: fixed; bottom: 0;'/>"
+        paddingTop = "<div style='padding-top: 100px;'></div>"
+        paddingBottom = "<div style='padding-top: 700px;'></div>"
+
+        message = "<b>Date: <b>"+ str(timestamp)+" <br><br> <b>Summary:</b> <br>" + summary
+        render_pdf = header+paddingTop+message+paddingBottom+footer
+
+        pdfkit.from_string(render_pdf,'situation_report.pdf')
+        
+        with open('situation_report.pdf', 'rb') as f:
+            mime = MIMEBase('image', 'png', filename='situation_report.pdf')
+            mime.add_header('Content-Disposition', 'attachment', filename='situation_report.pdf')
+            mime.add_header('X-Attachment-Id', '0')
+            mime.add_header('Content-ID', '<0>')
+            mime.set_payload(f.read())
+            encoders.encode_base64(mime)
+            msg.attach(mime)
 
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
