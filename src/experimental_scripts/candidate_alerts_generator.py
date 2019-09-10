@@ -46,9 +46,44 @@ ROUTINE_EXTENDED_RELEASE_TIME = dt.time()
 ##########################
 
 
+def remove_for_lowering_sites(candidates, db_alerts_dict):
+    """
+    Remove sites that are already released.
+    """
+    latest = db_alerts_dict["latest"]
+    overdue = db_alerts_dict["overdue"]
+    merged = latest + overdue
+    new_candidate_list = []
+
+    for key, candidate in enumerate(candidates):
+        p_alert_level = candidate["public_alert_level"]
+        gen_status = candidate["general_status"]
+
+        if p_alert_level == 0 and gen_status == "lowering":
+            candidate["trigger_list_arr"] = []
+            candidate["to_extend_validity"] = False
+
+            site_code = candidate["public_alert_level"]
+            datetime_ts = datetime.strptime(
+                candidate["ts"], "%Y-%m-%d %H:%M:%S")
+
+            site_alert = next(
+                iter(filter(lambda x: x["site_code"] == site_code, merged)), None)
+            in_latest = bool(site_alert)
+
+            if in_latest:
+                datetime_data_ts = datetime.strptime(
+                    site_alert["releases"][0]["data_ts"], "%Y-%m-%d %H:%M:%S")
+                is_already_released = datetime_ts == datetime_data_ts
+
+        if not is_already_released:
+            new_candidate_list.append(candidate)
+
+    return new_candidate_list
+
+
 def generate_ias_x_ots_map():
     """
-
     """
     cross_map = {}
     trigger_symbols_list = ots.query.all()
@@ -173,7 +208,8 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
     try:
         formatted_alerts_for_ewi = {
             **formatted_alerts_for_ewi,
-            "is_release_time": alert_entry["is_release_time"]
+            "is_release_time": alert_entry["is_release_time"],
+            "release_schedule": alert_entry["release_schedule"]
         }
     except KeyError:
         pass
@@ -221,11 +257,6 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
 
         # THIS IS THE BACKEND to_extend_validity.
         to_extend_validity = True if alert_entry["ground_alert_level"] == -1 else False
-
-        # NOTE: LOUIE CODE TO HANDLE LOWERING
-        if general_status == "lowering":
-            trigger_list_arr = []
-            to_extend_validity = False
 
         formatted_alerts_for_ewi = {
             **formatted_alerts_for_ewi,
@@ -334,7 +365,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
     if with_alerts:
         for site_w_alert in with_alerts:
             is_new_release = True
-            is_release_time = True
+            is_release_time = False
             site_code = site_w_alert["site_code"]
             site_db_alert = next(
                 filter(lambda x: x["event"]["site"]["site_code"] == site_code, merged_db_alerts_list), None)
@@ -363,27 +394,29 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     var_checker("is_trigger_new", is_trigger_new, True)
                     event_trigger["is_trigger_new"] = is_trigger_new
 
-                db_latest_release_ts = site_db_alert["releases"][0]["data_ts"]
+                db_latest_release_ts = datetime.strptime(
+                    site_db_alert["releases"][0]["data_ts"], "%Y-%m-%d %H:%M:%S")
 
                 # RELEASE TIME HANDLER
                 # if can release
-                ts = datetime.strptime(site_w_alert["ts"], "%Y-%m-%d %H:%M:%S")
+                site_alert_ts = datetime.strptime(
+                    site_w_alert["ts"], "%Y-%m-%d %H:%M:%S")
                 release_start_range = round_to_nearest_release_time(
-                    ts) - timedelta(minutes=30)
-                is_release_schedule_range = ts >= release_start_range
+                    site_alert_ts) - timedelta(minutes=30)
+                is_release_schedule_range = site_alert_ts >= release_start_range
 
                 var_checker("release_start_range", release_start_range, True)
                 var_checker("ts", ts, True)
                 var_checker("db_latest_release_ts", db_latest_release_ts, True)
-                var_checker("site_w_alert[ts]", site_w_alert["ts"], True)
+                var_checker("site_alert_ts", site_alert_ts, True)
 
-                # if release is already released
-                is_already_released = db_latest_release_ts == site_w_alert["ts"]
+                # if incoming data_ts has not yet released:
+                is_new_release = db_latest_release_ts < site_alert_ts
 
-                if not is_release_schedule_range and is_already_released:
-                    is_release_time = False
+                if is_release_schedule_range and is_new_release:
+                    is_release_time = True
 
-            if not is_already_released:
+            if is_new_release:
                 highest_valid_public_alert, trigger_list_str, validity_status = fix_internal_alert(
                     site_w_alert, internal_source_id)
 
@@ -391,7 +424,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     **site_w_alert,
                     "alert_level": highest_valid_public_alert,
                     "trigger_list_str": trigger_list_str,
-                    "is_release_time": is_release_time
+                    "is_release_time": is_release_time,
+                    "release_schedule": release_start_range + timedelta(minutes=1)
                 }
 
                 formatted_alert_entry = format_alerts_for_ewi_insert(
@@ -589,14 +623,19 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
     with_alerts, without_alerts = separate_with_alerts_wo_alerts(
         generated_alerts_list)
 
-    # var_checker("with alerts", with_alerts, True)
-    # var_checker("without alerts", without_alerts, True)
+    var_checker("with alerts", with_alerts, True)
+    var_checker("without alerts", without_alerts, True)
 
+    # PROCESS CANDIDATES
     candidate_alerts_list = process_candidate_alerts(
         with_alerts, without_alerts, db_alerts_dict, query_end_ts)
 
+    # NOTE: TAG LOWERING CANDIDATES
+    tagged_candidates_alerts_list = remove_for_lowering_sites(
+        candidate_alerts_list, db_alerts_dict)
+
     # Convert data to JSON
-    json_data = json.dumps(candidate_alerts_list)
+    json_data = json.dumps(tagged_candidates_alerts_list)
 
     # Write to specified filepath and filename
     directory = APP_CONFIG["generated_alerts_path"]
