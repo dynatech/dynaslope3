@@ -30,7 +30,7 @@ const styles = theme => ({
         overflow: "hidden",
     },
     chip: {
-        margin: `${theme.spacing.unit / 2}px ${theme.spacing.unit / 4}px`,
+        margin: theme.spacing(1 * 0.5, 1 * 0.25),
     },
     chipFocused: {
         backgroundColor: emphasize(
@@ -39,7 +39,7 @@ const styles = theme => ({
         ),
     },
     noOptionsMessage: {
-        padding: `${theme.spacing.unit}px ${theme.spacing.unit * 2}px`,
+        padding: theme.spacing(1, 2)
     },
     singleValue: {
         fontSize: 16,
@@ -52,13 +52,13 @@ const styles = theme => ({
     paper: {
         position: "absolute",
         zIndex: 2,
-        marginTop: theme.spacing.unit,
+        marginTop: theme.spacing(1),
         left: 0,
         right: 0,
     },
     divider: {
-        height: theme.spacing.unit * 2,
-    },
+        height: theme.spacing(2),
+    }
 });
 
 function NoOptionsMessage (props) {
@@ -176,7 +176,8 @@ function SelectMultipleWithSuggest (props) {
     const {
         classes, theme, changeHandler,
         options, value, label, placeholder,
-        renderDropdownIndicator, openMenuOnClick, isMulti
+        renderDropdownIndicator, openMenuOnClick, isMulti,
+        isDisabled, isClearable
     } = props;
 
     const selectStyles = {
@@ -196,11 +197,13 @@ function SelectMultipleWithSuggest (props) {
         NoOptionsMessage,
         Option,
         Placeholder,
-        ValueContainer,
+        ValueContainer
     };
 
     const open_menu_on_click = openMenuOnClick === undefined ? true : openMenuOnClick;
     const is_multi = isMulti === undefined ? false : isMulti;
+    const is_disabled = isDisabled === undefined ? false : isDisabled;
+    const is_clearable = isClearable === undefined ? false : isClearable;
 
     const rdd = renderDropdownIndicator === undefined ? true : renderDropdownIndicator;
     if (rdd === false) {
@@ -228,6 +231,8 @@ function SelectMultipleWithSuggest (props) {
                     isMulti={is_multi}
                     openMenuOnFocus={false}
                     openMenuOnClick={open_menu_on_click}
+                    isDisabled={is_disabled}
+                    isClearable={is_clearable}
                 />
             </NoSsr>
         </div>

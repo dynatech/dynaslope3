@@ -110,7 +110,7 @@ function EarthquakeContainer (props) {
         search: false,
         filter: false,
         viewColumns: false,
-        responsive: "scroll",
+        responsive: "scrollMaxHeight",
         onRowClick (data, meta, e) {
             select_map_event(data[2], eqEvents);
         }
@@ -129,7 +129,7 @@ function EarthquakeContainer (props) {
         print: false,
         download: false,
         viewColumns: false,
-        responsive: "scroll",
+        responsive: "scrollMaxHeight",
         serverSide: true,
         onChangePage: page => {
             const { limit } = eqAlertsPagination;

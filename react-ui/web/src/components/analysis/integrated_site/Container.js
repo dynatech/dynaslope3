@@ -1,5 +1,5 @@
-import React, {
-    Fragment, useState,
+import React, { 
+    Fragment, useState, 
     useEffect
 } from "react";
 import { createPortal } from "react-dom";
@@ -12,7 +12,8 @@ import { InsertChart } from "@material-ui/icons";
 import withWidth, { isWidthDown } from "@material-ui/core/withWidth";
 import { Route, Switch, Link } from "react-router-dom";
 
-import Highcharts from "highcharts/highmaps";
+import Highcharts from "highcharts/highcharts.src";
+import heatmap from "highcharts/modules/heatmap.src";
 import HighchartsReact from "highcharts-react-official";
 import { compose } from "recompose";
 import moment from "moment";
@@ -23,24 +24,25 @@ import RainfallGraph from "./RainfallGraph";
 import SubsurfaceGraph from "./SubsurfaceGraph";
 import ConsolidatedSiteCharts from "./ConsolidatedSiteCharts";
 import ConsolidateSiteChartsModal from "./ConsolidateSiteChartsModal";
-// import EarthquakeContainer from "./EarthquakeContainer";
-// import MomsInstancesPage from "./MomsInstancesPage";
+import EarthquakeContainer from "./EarthquakeContainer";
+import MomsInstancesPage from "./MomsInstancesPage";
 
-import { getMOMsAlertSummary } from "../ajax";
+import { getMOMsAlertSummary, getEarthquakeEvents, getEarthquakeAlerts } from "../ajax";
 // sample data
-import {
-    sites, data_presence_rain_gauges,
-    data_presence_tsm, data_presence_loggers
+import { 
+    sites, data_presence_rain_gauges, 
+    data_presence_tsm, data_presence_loggers 
 } from "../../../store";
 
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 
+heatmap(Highcharts);
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
-
+    
     return {
         ...gen_style,
         tabBar: {
@@ -50,33 +52,33 @@ const styles = theme => {
         tabBarContent: {
             marginTop: 30
         }
-    };
+    }; 
 };
 
-function CustomButtons(change_consolidate_modal_fn) {
+function CustomButtons (change_consolidate_modal_fn) {
     return <span>
         <Button
             aria-label="Consolidate by site"
-            variant="contained"
+            variant="contained" 
             color="primary"
-            size="small"
+            size="small" 
             style={{ marginRight: 8 }}
             onClick={change_consolidate_modal_fn(true)}
         >
-            <InsertChart style={{ paddingRight: 4, fontSize: 20 }} />
-            Consolidate by site
+            <InsertChart style={{ paddingRight: 4, fontSize: 20 }}/>
+                    Consolidate by site
         </Button>
     </span>;
 }
 
-function prepareOptions(is_mobile, type) {
+function prepareOptions (is_mobile, type) {
     const uc_type = type.charAt(0).toUpperCase() + type.slice(1);
     const title = `<b>${uc_type} Data Availability</b>`;
 
     let data_list;
     let height = 50;
     let additional_height = 60;
-
+    
     switch (type) {
         case "surficial":
             data_list = sites;
@@ -93,7 +95,7 @@ function prepareOptions(is_mobile, type) {
             data_list = data_presence_loggers;
             height = 95;
             additional_height = 100;
-        // fallthrough
+            // fallthrough
         default:
             break;
     }
@@ -139,14 +141,14 @@ function prepareOptions(is_mobile, type) {
         },
         tooltip: {
             outside: true,
-            formatter() {
+            formatter () {
                 const {
                     label, type, value,
                     ts_last_data, ts_updated, diff_days
                 } = this.point;
                 const presence = value ? "With" : "No";
                 const format_str = "D MMM YYYY, HH:mm";
-
+                
                 let type_label;
                 switch (type) {
                     case "rainfall":
@@ -160,16 +162,16 @@ function prepareOptions(is_mobile, type) {
                         break;
                     case "loggers":
                         type_label = "Logger";
-                    // fallthrough
+                        // fallthrough
                     default:
                         break;
                 }
 
-                return `${type_label}: <b>${label}</b><br/>` +
-                    `Presence: <b>${presence} data</b><br/>` +
-                    `Last data timestamp: <b>${moment(ts_last_data).format(format_str)}</b><br/>` +
-                    `Last update timestamp: <b>${moment(ts_updated).format(format_str)}</b><br/>` +
-                    `Days since last data: <b>${diff_days}</b><br/>`;
+                return `${type_label}: <b>${label}</b><br/>` + 
+                   `Presence: <b>${presence} data</b><br/>` + 
+                   `Last data timestamp: <b>${moment(ts_last_data).format(format_str)}</b><br/>` +
+                   `Last update timestamp: <b>${moment(ts_updated).format(format_str)}</b><br/>` +
+                   `Days since last data: <b>${diff_days}</b><br/>`;
             }
         },
         credits: {
@@ -189,7 +191,7 @@ function prepareOptions(is_mobile, type) {
                     fontWeight: 100,
                     // fontSize: "0.75rem"
                 },
-                formatter() {
+                formatter () {
                     const { label } = this.point;
                     return label;
                 }
@@ -200,7 +202,7 @@ function prepareOptions(is_mobile, type) {
     return options;
 }
 
-function generateData(data_list, type, is_mobile) {
+function generateData (data_list, type, is_mobile) {
     const data = [];
     let x = 0;
 
@@ -239,7 +241,7 @@ function generateData(data_list, type, is_mobile) {
             diff_days: diff_days !== undefined ? diff_days : Math.round(Math.random() * 10)
         };
         data.push(a);
-
+        
         // const cond = is_mobile ? i % 5 === 4 : i % 10 === 9;
         const cond = i % 5 === 4;
         if (cond) x += 1;
@@ -248,7 +250,7 @@ function generateData(data_list, type, is_mobile) {
     return data;
 }
 
-function createCustomLabels(chart, url) {
+function createCustomLabels (chart, url) {
     const custom_labels = [];
     if (chart && Object.keys(chart).length !== 0 && chart.xAxis[0]) {
         chart.series[0].points.forEach(p => {
@@ -258,17 +260,17 @@ function createCustomLabels(chart, url) {
     return custom_labels;
 }
 
-function LabelComponent(url, p) {
+function LabelComponent (url, p) {
     const { data, type, dataLabel } = p;
 
     return (
         <div key={data}>
             {createPortal(
-                <Link
+                <Link 
                     to={`${url}/${type}/${data}`}
-                    style={{
-                        textDecoration: "none",
-                        fontSize: dataLabel.options.style.fontSize,
+                    style={{ 
+                        textDecoration: "none", 
+                        fontSize: dataLabel.options.style.fontSize, 
                         fontWeight: 800,
                         position: "absolute",
                         fontFamily: "Lucida Grande, Lucida Sans Unicode, Arial Helvetica, sans-serif",
@@ -282,7 +284,7 @@ function LabelComponent(url, p) {
     );
 }
 
-function Container(props) {
+function Container (props) {
     const {
         classes, width, location,
         match: { path, url }
@@ -324,13 +326,35 @@ function Container(props) {
             });
 
             setMOMsAlerts(table_data);
-        });
+        });  
     }, []);
 
     const temp = {};
     Object.keys(chart_instances).forEach(key => {
         temp[key] = createCustomLabels(chart_instances[key], url);
     });
+
+    const [eq_events, setEqEvents] = useState([]);
+    useEffect(() => {
+        getEarthquakeEvents(data => {
+            setEqEvents(data);
+        });
+    }, []);
+
+    const [eq_alerts, setEqAlerts] = React.useState([]);
+    const [eq_al_tbl_pagination, setEqAlTblPage] = React.useState({ limit: 5, offset: 0, count: 0 });
+    const [is_first_pass, setFirstPass] = React.useState(true);
+    React.useEffect(() => {
+        getEarthquakeAlerts(eq_al_tbl_pagination, data => {
+            const { count, data: eq_data } = data;
+            setEqAlerts([...eq_data]);
+
+            if (is_first_pass) {
+                setFirstPass(false);
+                setEqAlTblPage({ ...eq_al_tbl_pagination, count });
+            }
+        });
+    }, [eq_al_tbl_pagination]);
 
     const is_main_page = location.pathname === path;
 
@@ -397,8 +421,12 @@ function Container(props) {
 
                                 <Grid item xs={12} md={12} lg={6}>
                                     <Paper elevation={2}>
-                                        {/* <EarthquakeMap /> */}
-                                        {/* <EarthquakeContainer /> */}
+                                        <EarthquakeContainer
+                                            eqEvents={eq_events}
+                                            eqAlerts={eq_alerts}
+                                            eqAlertsPagination={eq_al_tbl_pagination}
+                                            setEqAlTblPage={setEqAlTblPage}
+                                        />
                                     </Paper>
                                 </Grid>
 
@@ -419,7 +447,7 @@ function Container(props) {
                                                 print: false,
                                                 download: false,
                                                 viewColumns: false,
-                                                responsive: "scroll"
+                                                responsive: "scrollMaxHeight"
                                             }}
                                             data={moms_alerts}
                                         />
@@ -427,7 +455,7 @@ function Container(props) {
                                 </Grid>
                             </Grid>
                         )
-                    } />
+                    }/>
 
                     <Route path={`${url}/surficial/:site_code`} render={
                         props => (
@@ -436,36 +464,34 @@ function Container(props) {
                                 width={width}
                             />
                         )
-                    } />
+                    }/>
 
                     <Route path={`${url}/rainfall/:rain_gauge`} render={
-                        props => <RainfallGraph
+                        props => <RainfallGraph 
                             {...props}
                             width={width}
-                        />}
+                        />} 
                     />
 
                     <Route path={`${url}/subsurface/:tsm_sensor`} render={
-                        props => <SubsurfaceGraph
+                        props => <SubsurfaceGraph 
                             {...props}
                             width={width}
-                        />}
+                        />} 
                     />
 
-                    <Route path={`${url}/moms/:site_code`}
-                    // render={
-                    //     props => <MomsInstancesPage
-                    //         {...props}
-                    //         width={width}
-                    //     />
-                    // } 
+                    <Route path={`${url}/moms/:site_code`} render={
+                        props => <MomsInstancesPage
+                            {...props}
+                            width={width}
+                        />} 
                     />
 
                     <Route path={`${url}/consolidated/:site_code`} render={
                         props => <ConsolidatedSiteCharts
                             {...props}
                             width={width}
-                        />}
+                        />} 
                     />
                 </Switch>
             </div>
