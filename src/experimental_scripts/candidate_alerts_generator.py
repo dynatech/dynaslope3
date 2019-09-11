@@ -486,7 +486,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 site_wo_alert = {
                     **site_wo_alert,
                     "trigger_list_str": trigger_list_str,
-                    "is_for_release": is_for_release
+                    "   ": is_for_release
                 }
 
                 formatted_alert_entry = format_alerts_for_ewi_insert(
