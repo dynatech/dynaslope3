@@ -1,23 +1,36 @@
 import React, { useState, useEffect, Fragment } from "react";
 
 import { 
-    Paper, Grid, Button, 
-    withStyles, TextField, TableRow, TableCell
+    Paper, Typography, LinearProgress,
+    withStyles, Dialog, DialogContent
 } from "@material-ui/core";
 import { ArrowForwardIos } from "@material-ui/icons";
-import { isWidthDown } from "@material-ui/core/withWidth";
+import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 
 import moment from "moment";
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDatePicker, KeyboardTimePicker } from "@material-ui/pickers";
 import MUIDataTable from "mui-datatables";
-import axios from "axios";
+import { compose } from "recompose";
 
+import CustomSearchRender from "./CustomSearchRender";
+import { getNarratives } from "../ajax";
 import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
-import SelectMultipleWithSuggest from "../../reusables/SelectMultipleWithSuggest";
+import { prepareSiteAddress } from "../../../UtilityFunctions";
+import { sites } from "../../../store";
+
+const filter_sites_option = [];
+const sites_dict = {};
+
+sites.forEach(site => {
+    const address = prepareSiteAddress(site, true, "start");
+    const site_code = site.site_code.toUpperCase();
+    filter_sites_option.push(site_code);
+    sites_dict[site_code] = site.site_id;
+});
 
 const styles = theme => ({
     inputGridContainer: {
@@ -48,14 +61,30 @@ const getMuiTheme = createMuiTheme({
     }
 });
 
+function processTableData (data) {
+    const processed = data.map(row => (
+        {
+            ...row,
+            site_name: prepareSiteAddress(row.site, true, "start"),
+            ts: moment(row.timestamp).format("DD MMMM YYYY, HH:mm:ss"),
+            type: 0,
+            actions: "icon"
+        }
+    ));
+
+    return processed;
+}
+
 function SiteLogs (props) {
     const { classes, width } = props;
-    // const [data, setData] = useState([["Loading Data..."]]);
+    const [table_data, setTableData] = useState([]);
     const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(5);
-    const [count, setCount] = useState(1);
-    const [isLoading, setIsLoading] = useState(false);
-
+    const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [count, setCount] = useState(0);
+    const [filters, setFilters] = useState([]);
+    const [filter_list, setFilterList] = useState([]);
+    const [search_str, setSearchString] = useState("");
+    const [is_loading, setIsLoading] = useState(true);
 
     const [date, setDate] = useState(null); // useState(null);
     const [time, setTime] = useState(null);
@@ -68,130 +97,151 @@ function SiteLogs (props) {
     const set_narrative_fn = x => setNarrative(x.target.value);
 
     useEffect(() => {
-        axios.get("http://192.168.150.167:5000/api/narratives/get_narratives/2018-08-20 18:30:00/2018-08-29 18:30:00")
-        .then(ret => {
-            const { data } = ret;
+        setIsLoading(true);
 
+        const input = {
+            include_count: true,
+            limit: rowsPerPage, offset: page * rowsPerPage,
+            filters,
+            search_str
+        };
+
+        getNarratives(input, ret => {
+            const { narratives, count: total } = ret;
+            const processed = processTableData(narratives);
+            setTableData(processed);
+            setCount(total);
+            setIsLoading(false);
         });
-    });
+    }, [page, rowsPerPage, filters, search_str]);
+      
+    const options = {
+        textLabels: {
+            body: {
+                noMatch: "No data",
+            }
+        },
+        selectableRows: "none",
+        print: false,
+        download: false,
+        filterType: "multiselect",
+        responsive: isWidthUp(width, "xs") ? "scroll" : "scrollFullHeight",
+        serverSide: true,
+        searchText: search_str,
+        searchPlaceholder: "Type words to search narrative column",
+        rowsPerPageOptions: [5, 10, 15],
+        rowsPerPage,
+        count,
+        page,
+        onTableChange (action, table_state) {
+            if (action === "changePage") {
+                const { page } = table_state;
+                setPage(page);
+            } else if (action === "changeRowsPerPage") {
+                const { rowsPerPage: cur_rpp } = table_state;
 
-    // const options = {
-    //     filter: true,
-    //     selectableRows: "none",
-    //     print: false,
-    //     download: false,
-    //     filterType: "dropdown",
-    //     responsive: "scroll",
-    //     serverSide: true,
-    //     count: 100,
-    //     page: 1,
-    //     rowsPerPageOptions: [5, 10, 15, 25, 50],
-    //     rowsPerPage: 10
-    // };
+                if (cur_rpp !== rowsPerPage) setRowsPerPage(cur_rpp);
+            } else if (action === "resetFilters") {
+                setFilterList({});
+                setFilters([]);
+            }
+            // } else if (action === "search") {
+            //     const { searchText } = table_state;
+            //     setSearchString(searchText);
+            // }
 
-    // const options = {
-    //     textLabels: {
-    //         body: {
-    //             noMatch: "No data"
-    //         }
-    //     },
-    //     selectableRows: "none",
-    //     rowsPerPage: 5,
-    //     rowsPerPageOptions: [],
-    //     print: false,
-    //     download: false,
-    //     search: false,
-    //     filter: false,
-    //     viewColumns: false,
-    //     responsive: "scroll"
-    // };
+            // console.log(action, table_state);
+        },
+        onFilterChange (column, ret_filters) {
+            const chosen_filters = [];
+            let is_empty = true;
+            ret_filters.forEach((row, index) => {
+                if (row.length !== 0) {
+                    is_empty = false;
+                    const { name: column_name } = columns[index];
+                    if (column_name === "site_name") {
+                        const site_ids = [];
+                        const site_names = [];
 
+                        row.forEach(site => {
+                            site_ids.push(sites_dict[site]);
+                            site_names.push(site);
+                        });
+
+                        chosen_filters.push({
+                            name: "site_ids",
+                            data: site_ids
+                        });
+
+                        setFilterList({ ...filter_list, [column_name]: site_names });
+                    }
+                }
+            });
+
+            if (is_empty) setFilterList({});
+            setFilters(chosen_filters);
+        },
+        // onSearchChange (str) {
+        //     setSearchString(str);
+        // },
+        customSearchRender: (searchText, handleSearch, hideSearch, options) => {
+            const searchStr = searchText || "";
+
+            return (
+                <CustomSearchRender
+                    searchText={searchText}
+                    onSearch={handleSearch}
+                    onHide={hideSearch}
+                    options={options}
+                    onSearchClick={() => setSearchString(searchStr)}
+                />
+            );
+        }
+    };
 
     const columns = [
         {
-            name: "Site",
-            options: {
-                filter: true,
-            }
-        },
-        {
-            name: "Timestamp",
+            name: "ts",
+            label: "Timestamp",
             options: {
                 filter: false,
             }
         },
         {
-            name: "Narrative",
+            name: "site_name",
+            label: "Site",
             options: {
-                filter: false,
+                filter: true,
+                filterList: typeof filter_list.site_name === "undefined" ? [] : filter_list.site_name, 
+                filterOptions: {
+                    names: filter_sites_option
+                }
             }
         },
         {
-            name: "Type",
+            name: "narrative",
+            label: "Narrative",
+            options: {
+                filter: false,
+                sort: false
+            }
+        },
+        {
+            name: "type",
+            label: "Type",
             options: {
                 filter: true,
             }
         },
         {
-            name: "Actions",
+            name: "actions",
+            label: "Actions",
             options: {
                 filter: false,
                 sort: false
             }
         }
     ];
-  
-    const data = [
-        ["Gabby George", "Business Analyst", "Minneapolis", 30, "$100,000"],
-        ["Aiden Lloyd", "Business Consultant", "Dallas", 55, "$200,000"],
-        ["Jaden Collins", "Attorney", "Santa Ana", 27, "$500,000"],
-        ["Franky Rees", "Business Analyst", "St. Petersburg", 22, "$50,000"],
-        ["Aaren Rose", "Business Consultant", "Toledo", 28, "$75,000"],
-        ["Blake Duncan", "Business Management Analyst", "San Diego", 65, "$94,000"],
-        ["Frankie Parry", "Agency Legal Counsel", "Jacksonville", 71, "$210,000"],
-        ["Lane Wilson", "Commercial Specialist", "Omaha", 19, "$65,000"],
-        ["Robin Duncan", "Business Analyst", "Los Angeles", 20, "$77,000"],
-        ["Mel Brooks", "Business Consultant", "Oklahoma City", 37, "$135,000"],
-        ["Harper White", "Attorney", "Pittsburgh", 52, "$420,000"],
-        ["Kris Humphrey", "Agency Legal Counsel", "Laredo", 30, "$150,000"],
-        ["Frankie Long", "Industrial Analyst", "Austin", 31, "$170,000"],
-        ["Brynn Robbins", "Business Analyst", "Norfolk", 22, "$90,000"],
-        ["Justice Mann", "Business Consultant", "Chicago", 24, "$133,000"],
-        ["Addison Navarro", "Business Management Analyst", "New York", 50, "$295,000"],
-        ["Jesse Welch", "Agency Legal Counsel", "Seattle", 28, "$200,000"],
-        ["Eli Mejia", "Commercial Specialist", "Long Beach", 65, "$400,000"],
-        ["Gene Leblanc", "Industrial Analyst", "Hartford", 34, "$110,000"],
-        ["Danny Leon", "Computer Scientist", "Newark", 60, "$220,000"],
-        ["Lane Lee", "Corporate Counselor", "Cincinnati", 52, "$180,000"],
-        ["Jesse Hall", "Business Analyst", "Baltimore", 44, "$99,000"],
-        ["Danni Hudson", "Agency Legal Counsel", "Tampa", 37, "$90,000"],
-        ["Terry Macdonald", "Commercial Specialist", "Miami", 39, "$140,000"],
-        ["Justice Mccarthy", "Attorney", "Tucson", 26, "$330,000"],
-        ["Silver Carey", "Computer Scientist", "Memphis", 47, "$250,000"],
-        ["Franky Miles", "Industrial Analyst", "Buffalo", 49, "$190,000"],
-        ["Glen Nixon", "Corporate Counselor", "Arlington", 44, "$80,000"],
-        ["Gabby Strickland", "Business Process Consultant", "Scottsdale", 26, "$45,000"],
-        ["Mason Ray", "Computer Scientist", "San Francisco", 39, "$142,000"]
-    ];
-  
-    const options = {
-        filter: true,
-        filterType: "dropdown",
-        responsive: "scroll",
-        expandableRows: true,
-        expandableRowsOnClick: false,
-        rowsExpanded: [0, 2, 3],
-        renderExpandableRow: (rowData, rowMeta) => {
-            const colSpan = rowData.length + 1;
-            return (
-                <TableRow>
-                    <TableCell colSpan={colSpan}>
-                        Custom expandable row option. Data: {JSON.stringify(rowData)}
-                    </TableCell>
-                </TableRow>
-            );
-        }
-    };
 
     return (
         <Fragment>
@@ -291,14 +341,28 @@ function SiteLogs (props) {
                 </MuiPickersUtilsProvider>
             </div> */}
 
+            {
+                <Dialog open={is_loading} fullWidth>
+                    <DialogContent>
+                        <div style={{ flexGrow: 1 }}>
+                            <LinearProgress variant="query" color="secondary" />
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            }
+
             <div className={classes.pageContentMargin}>
                 <Paper className={classes.paperContainer}>
                     <MuiThemeProvider theme={getMuiTheme}>
                         <MUIDataTable
                             title="Site Logs"
-                            // data={[]}
-                            // columns={}
-                            data={data}
+                            // title={
+                            //     <Typography variant="h6">
+                            //         Site Logs
+                            //         {is_loading && <LinearProgress variant="query" color="secondary" />}
+                            //     </Typography>
+                            // }
+                            data={table_data}
                             columns={columns}
                             options={options}
                         />
@@ -309,10 +373,12 @@ function SiteLogs (props) {
     );
 }
 
-export default withStyles(
-    (theme) => ({
-        ...GeneralStyles(theme),
-        ...styles(theme),
-    }),
-    { withTheme: true },
+export default compose(
+    withStyles(
+        (theme) => ({
+            ...GeneralStyles(theme),
+            ...styles(theme),
+        }),
+        { withTheme: true },
+    ), withWidth()  
 )(SiteLogs);

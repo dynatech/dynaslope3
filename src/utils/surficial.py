@@ -14,23 +14,34 @@ from src.models.sites import (
 from src.utils.extra import var_checker
 
 
-def get_surficial_data(filter_val="agb", ts_order="asc", end_ts=datetime.now(), start_ts=None, limit=None):
+def get_surficial_data(
+        site_code=None, marker_id=None,
+        data_id=None, mo_id=None,
+        ts_order="asc", end_ts=None,
+        start_ts=None, limit=None):
     """
     Returns surficial data of a site or marker specified.
     You can filter data more using start, end timestamps and a limit.
     """
-    base_query = md.query.join(mo)
 
-    if ts_order == "asc":
-        base_query = base_query.order_by(DB.asc(mo.ts))
-    elif ts_order == "desc":
-        base_query = base_query.order_by(DB.desc(mo.ts))
-
-    if isinstance(filter_val, int):  # If digit, meaning, marker_id is what the user is looking for
-        filtered_query = base_query.filter(md.marker_id == filter_val)
+    if data_id:
+        filtered_query = md.query.filter(md.data_id == data_id)
+    elif mo_id:
+        filtered_query = mo.query.filter(mo.mo_id == mo_id)
     else:
+        base_query = md.query.join(mo)
+
+        if ts_order == "asc":
+            base_query = base_query.order_by(DB.asc(mo.ts))
+        elif ts_order == "desc":
+            base_query = base_query.order_by(DB.desc(mo.ts))
+
+    if marker_id:
+        filtered_query = base_query.filter(md.marker_id == marker_id)
+
+    if site_code:
         filtered_query = base_query.join(Sites).filter(
-            Sites.site_code == filter_val)
+            Sites.site_code == site_code)
 
     if end_ts:
         end_ts = datetime.strptime(end_ts, "%Y-%m-%d %H:%M:%S")
@@ -43,7 +54,10 @@ def get_surficial_data(filter_val="agb", ts_order="asc", end_ts=datetime.now(), 
     if limit:
         filtered_query = filtered_query.limit(limit)
 
-    filtered_marker_data = filtered_query.all()
+    if limit == 1:
+        filtered_marker_data = filtered_query.first()
+    else:
+        filtered_marker_data = filtered_query.all()
 
     return filtered_marker_data
 
@@ -113,6 +127,32 @@ def insert_if_not_exists(table, data):
             new_obs_id = new_obs.mo_did
             return_id = new_obs_id
     return return_id
+
+
+def delete_surficial_data(mo_id=None, site_id=None, ts=None, data_id=None):
+    """
+    """
+
+    if data_id:
+        row = md.query.filter_by(data_id=data_id).first()
+        obs = row.marker_observation
+        obs_data = obs.marker_data.all()
+        DB.session.delete(row)
+
+        if (len(obs_data) == 1):
+            mo_id = obs.mo_id
+            mo.query.filter_by(mo_id=mo_id).delete()
+    elif mo_id:
+        mo.query.filter_by(mo_id=mo_id).delete()
+        md.query.filter_by(mo_id=mo_id).delete()
+    elif site_id and ts:
+        row = mo.query.filter(
+            DB.and_(mo.site_id == site_id, mo.ts == ts)).first()
+        mo_id = row.mo_id
+        row.delete()
+        md.query.filter_by(mo_id=mo_id).delete()
+
+    DB.session.commit()
 
 
 def update(column, key, table, data):
