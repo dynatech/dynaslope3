@@ -33,6 +33,7 @@ const handleSwitchChange = (setTriggersState, trigger_type) => event => {
                 alert_level: 1, // Uses alert_level 1 since all earthquake and ondemand alerts are Alert 1 only
                 timestamp: null,
                 tech_info: "",
+                internal_sym_id: null,
                 ...special_case_states
             }
         });
@@ -51,7 +52,8 @@ const handleCheckboxChange = (setTriggersState, trigger_type) => value => event 
             status: is_checked,
             disabled: false,
             timestamp: null,
-            tech_info: ""
+            tech_info: "",
+            internal_sym_id: null
         }
     });
 };
@@ -73,7 +75,8 @@ const handleRadioChange = (setTriggersState, trigger_type) => event => {
         value: {
             alert_level: parseInt(value, 10),
             timestamp: null,
-            tech_info: ""
+            tech_info: "",
+            internal_sym_id: 14
         }
     });
 };

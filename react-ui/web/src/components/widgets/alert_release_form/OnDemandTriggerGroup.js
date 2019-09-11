@@ -31,7 +31,7 @@ const styles = theme => ({
 });
 
 
-function OnDemandTriggerGroup(props) {
+function OnDemandTriggerGroup (props) {
     const {
         classes, triggersState, setTriggersState
     } = props;
@@ -46,8 +46,6 @@ function OnDemandTriggerGroup(props) {
         if (reporterId !== null) contact_person = community_contacts.find(x => x.user_id === reporterId).name;
         console.log(contact_person);
     }
-
-    console.log("<triggersState>", triggersState);
 
     return (
         <Fragment>
@@ -101,8 +99,8 @@ function OnDemandTriggerGroup(props) {
 
                     </Fragment>
                 ) : (
-                        <div />
-                    )
+                    <div />
+                )
             }
         </Fragment>
     );

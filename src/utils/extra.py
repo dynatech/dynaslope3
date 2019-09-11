@@ -162,3 +162,32 @@ def round_to_nearest_release_time(data_ts, interval=4):
         date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
 
     return date_time
+
+
+def get_system_time():
+    """
+    Just a function that returns system time for
+    logging purposes.
+    """
+    system_time = datetime.strftime(
+        datetime.now(), "%Y-%m-%d %H:%M:%S")
+
+    return system_time
+
+
+def get_process_status_log(key, status):
+    """
+    Just a function used to 
+    """
+    sys_time = get_system_time()
+    status_log = f"[{sys_time}] | "
+    if status == "request":
+        status_log += f"{key} msg request received. Executing {key} process..."
+    elif status == "start":
+        status_log += f"{key} is starting..."
+    elif status == "success" or status:
+        status_log += f"{key} SUCCESS!"
+    else:
+        sys_time += f"{key} FAILED..."
+
+    return status_log

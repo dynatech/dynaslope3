@@ -30,7 +30,8 @@ from src.utils.monitoring import (
     get_ongoing_extended_overdue_events, update_alert_status,
     get_max_possible_alert_level, format_candidate_alerts_for_insert)
 from src.utils.extra import (create_symbols_map, var_checker,
-                             retrieve_data_from_memcache)
+                             retrieve_data_from_memcache, get_process_status_log,
+                             get_system_time)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -662,6 +663,10 @@ def insert_ewi(internal_json=None):
     it means re-release.
     If it is different, create a new event.
     """
+    return_data = None
+
+    print(get_process_status_log("insert", "start"))
+
     try:
         ############################
         # Variable Initializations #
@@ -901,11 +906,14 @@ def insert_ewi(internal_json=None):
             raise Exception(
                 "CUSTOM: Entry type specified in form is undefined. Check entry type options in the back-end.")
 
+        print(f"{get_system_time()} | Insert EWI Successful!")
+        return_data = "success"
     except Exception as err:
+        print(f"{get_system_time()} | Insert EWI FAILED!")
         print(err)
         raise
 
-    return "EWI Successfully inserted to DB"
+    return return_data
 
 
 ###############

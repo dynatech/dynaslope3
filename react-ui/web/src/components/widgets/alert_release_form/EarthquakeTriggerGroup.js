@@ -40,7 +40,6 @@ function EarthquakeTriggerGroup (props) {
     if (triggers.length !== 0) {
         const { timestamp, tech_info, magnitude, latitude, longitude } = triggers[0]; // There is always only ONE EQ trigger
     }
-    console.log("<triggersState>", triggersState);
 
     return (
         <Fragment>

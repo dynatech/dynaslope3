@@ -29,14 +29,14 @@ function searchSites (site_code) {
 }
 
 function getAlertDialog (chosen_site, open, handleClose) {
-    const { site_code, ts, internal_alert, validity, release_triggers, event_triggers } = chosen_site;
+    const { site_code, ts, internal_alert, validity, current_trigger_alerts, event_triggers } = chosen_site;
     const site_details = searchSites(site_code);
     const timestamp = moment(ts).format("D MMMM YYYY, h:mm");
     const address = prepareSiteAddress(site_details);
     const rel_trigger_divs = [];
     let rel_subsurface = null;
 
-    release_triggers.forEach((trigger) => {
+    current_trigger_alerts.forEach((trigger) => {
         const { type, details } = trigger;
 
         if (type === "subsurface") {

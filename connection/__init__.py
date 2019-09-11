@@ -75,7 +75,7 @@ def create_app(config_name, run_memcache):
         from connection import set_memcache
         set_memcache.main(MEMORY_CLIENT)
 
-    # start_monitoring_ws_bg_task()
+    start_monitoring_ws_bg_task()
 
     #####################################################
     # Import all created blueprint from each controller

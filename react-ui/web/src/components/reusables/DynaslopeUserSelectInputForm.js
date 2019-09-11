@@ -15,7 +15,7 @@ class DynaslopeUserSelectInputForm extends Component {
     }
 
     componentDidMount () {
-        axios.get("http://192.168.150.167:5000/api/users/get_dynaslope_users")
+        axios.get("http://localhost:5000/api/users/get_dynaslope_users")
         .then(response => {
             const arr = prepareUsersArray(response.data);
             this.setState({ users: arr });
@@ -26,7 +26,7 @@ class DynaslopeUserSelectInputForm extends Component {
     }
 
     render () {
-        const { 
+        const {
             variant, label, div_id,
             changeHandler, value, css
         } = this.props;

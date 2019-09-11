@@ -72,23 +72,30 @@ function AlertReleaseForm (props) {
     /* RELEASE FORM TAB CONTENTS EVENT HANDLER */
     const getSummaryForm = () => {
         const {
-            siteId, dataTimestamp,
+            siteId, publicAlert, dataTimestamp,
             releaseTime, reporterIdMt,
             reporterIdCt
         } = generalData;
-        console.log(sites);
-        const site = sites.find(obj => obj.site_id == siteId);
-        const mt = users.find(obj => obj.user_id == reporterIdMt);
-        const ct = users.find(obj => obj.user_id == reporterIdCt);
+        console.log(generalData);
+        console.log("siteId", siteId);
+        const site = sites.find(obj => obj.site_id === "50");
+        const mt = users.find(obj => obj.user_id === reporterIdMt);
+        const ct = users.find(obj => obj.user_id === reporterIdCt);
         const data_ts = moment(dataTimestamp).format("YYYY-MM-DD HH:mm:ss");
         const release_time = moment(releaseTime).format("HH:mm");
 
         return (
             <Fragment>
-                <Grid item xs={12} >
+                <Grid item xs={9} >
                     <Typography variant="body1" color="textSecondary">Site ID</Typography>
                     <Typography variant="body1" color="textPrimary">
                         {site.site_name.toUpperCase()}
+                    </Typography>
+                </Grid>
+                <Grid item xs={3} >
+                    <Typography variant="body1" color="textSecondary">Alert Level</Typography>
+                    <Typography variant="body1" color="textPrimary">
+                        {publicAlert}
                     </Typography>
                 </Grid>
 
@@ -105,19 +112,20 @@ function AlertReleaseForm (props) {
                     </Typography>
                 </Grid>
 
-                {/* <Grid item xs={6} >
+                <Grid item xs={6} >
                     <Typography variant="body1" color="textSecondary">MT</Typography>
                     <Typography variant="body1" color="textPrimary">
-                        {mt.name}
+                        {reporterIdMt}
+                        {/* {mt.name} */}
                     </Typography>
                 </Grid>
                 <Grid item xs={6} >
                     <Typography variant="body1" color="textSecondary">CT</Typography>
                     <Typography variant="body1" color="textPrimary">
-                        {ct.name}
+                        {reporterIdCt}
+                        {/* {ct.name} */}
                     </Typography>
-                </Grid> */}
-
+                </Grid>
             </Fragment>
         );
     };
@@ -285,8 +293,6 @@ function AlertReleaseForm (props) {
     };
 
     const steps = getSteps();
-
-    console.log(generalData);
 
     return (
         <MuiPickersUtilsProvider utils={MomentUtils}>

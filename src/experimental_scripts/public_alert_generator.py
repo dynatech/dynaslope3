@@ -31,7 +31,7 @@ from src.utils.on_demand import get_on_demand
 from src.utils.monitoring import (
     round_down_data_ts, get_site_moms_alerts,
     round_to_nearest_release_time, get_max_possible_alert_level)
-from src.utils.extra import var_checker, retrieve_data_from_memcache
+from src.utils.extra import (var_checker, retrieve_data_from_memcache, get_process_status_log)
 
 
 MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=(
@@ -105,10 +105,8 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
         output_dict (dictionary) - the generated public_alert for each site
         previous_latest_site_pa (PublicAlert class) - the previous public_alert before the script run
     """
-    return_data = None
     try:
         # latest_site_pa_id = previous_latest_site_pa.public_id
-
         prev_pub_sym_id = previous_latest_site_pa.pub_sym_id
         new_pub_sym_id = output_dict["pub_sym_id"]
 
@@ -116,35 +114,33 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
         is_new_public_alert = prev_pub_sym_id != new_pub_sym_id
         prev_l_s_pa_ts_updated = previous_latest_site_pa.ts_updated
         new_l_s_pa_ts_updated = output_dict["ts_updated"]
-        is_retroactive_run = prev_l_s_pa_ts_updated >= new_l_s_pa_ts_updated
         no_alerts_wtn_30_mins = new_l_s_pa_ts_updated - timedelta(minutes=30) > prev_l_s_pa_ts_updated
 
         # If the alert symbol is different, create a new entry
-        if not is_retroactive_run:
-            if no_alerts_wtn_30_mins and new_alert_level == 0:
-                is_new_public_alert = True
-            else:
-                if not is_new_public_alert:
-                    # Update the previous public alert first
-                    previous_latest_site_pa.ts_updated = output_dict["ts"]
+        if no_alerts_wtn_30_mins and new_alert_level == 0:
+            is_new_public_alert = True
+        else:
+            if not is_new_public_alert:
+                # Update the previous public alert first
+                previous_latest_site_pa.ts_updated = output_dict["ts"]
 
-            if is_new_public_alert:
-                new_pub_alert = pa(
-                    ts=output_dict["ts"],
-                    site_id=output_dict["site_id"],
-                    pub_sym_id=output_dict["pub_sym_id"],
-                    ts_updated=output_dict["ts_updated"]
-                )
-                DB.session.add(new_pub_alert)
-                DB.session.flush()
-                new_public_id = new_pub_alert.public_id
-                return_data = new_public_id
+        if is_new_public_alert:
+            new_pub_alert = pa(
+                ts=output_dict["ts"],
+                site_id=output_dict["site_id"],
+                pub_sym_id=output_dict["pub_sym_id"],
+                ts_updated=output_dict["ts_updated"]
+            )
+            DB.session.add(new_pub_alert)
+            DB.session.flush()
+            new_public_id = new_pub_alert.public_id
+            return_data = new_public_id
 
-                # If no problems, commit
-            elif not is_new_public_alert:
-                return_data = "exists"
-        
-            DB.session.commit()
+        else:
+            return_data = "exists"
+
+        # If no problems, commit
+        DB.session.commit()
 
     except Exception as err:
         print(err)
@@ -1277,6 +1273,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             "barangay": site.barangay,
             "public_alert": public_alert_symbol,
             "internal_alert": internal_alert,
+            "ground_alert_level": ground_alert_level,
             "validity": validity,
             "event_triggers": event_triggers,
             "current_trigger_alerts": formatted_current_trigger_alerts,
@@ -1312,11 +1309,9 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                 public_alert_result = write_to_db_public_alerts(
                     for_db_public_dict, latest_site_pa)
                 if public_alert_result == "exists":
-                    print()
                     print(
                         f"Active Public alert with ID: {current_pa_id} on Database.")
                 else:
-                    print()
                     print(f"NEW PUBLIC ALERT WRITTEN with ID: {public_alert_result}")
 
             except Exception as err:
@@ -1345,7 +1340,7 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
     except:
         query_ts_start = datetime.now()
 
-    print(f"{query_ts_start} | Generating Alerts...")
+    print(get_process_status_log("Alert Generation", "start"))
     do_not_write_to_db = is_test
 
     if query_ts_end is None:
@@ -1382,9 +1377,10 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
 
 if __name__ == "__main__":
-    main()
+    # main()
 
     # TEST MAIN
     # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")
+    main(query_ts_end="2019-09-05 15:50:00", query_ts_start="2019-09-05 15:50:00", is_test=True, site_code="umi")
     # main(query_ts_end="2019-05-22 11:00:00", query_ts_start="2019-05-22 11:00:00", is_test=True, site_code="hum")
     # main(is_test=True, site_code="umi")
