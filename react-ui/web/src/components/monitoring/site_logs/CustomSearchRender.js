@@ -43,6 +43,8 @@ handleTextChange = event => {
 onKeyDown = event => {
     if (event.keyCode === 27) {
         this.props.onHide();
+    } else if (event.keyCode === 13) {
+        this.props.onSearchClick();
     }
 };
 
