@@ -84,6 +84,7 @@ function SiteLogs (props) {
     const [filters, setFilters] = useState([]);
     const [filter_list, setFilterList] = useState([]);
     const [search_str, setSearchString] = useState("");
+    const [on_search_open, setOnSearchOpen] = useState(false);
     const [is_loading, setIsLoading] = useState(true);
 
     const [date, setDate] = useState(null); // useState(null);
@@ -144,13 +145,9 @@ function SiteLogs (props) {
             } else if (action === "resetFilters") {
                 setFilterList({});
                 setFilters([]);
+            } else if (action === "onSearchOpen") {
+                setOnSearchOpen(true);
             }
-            // } else if (action === "search") {
-            //     const { searchText } = table_state;
-            //     setSearchString(searchText);
-            // }
-
-            // console.log(action, table_state);
         },
         onFilterChange (column, ret_filters) {
             const chosen_filters = [];
@@ -181,17 +178,24 @@ function SiteLogs (props) {
             if (is_empty) setFilterList({});
             setFilters(chosen_filters);
         },
-        // onSearchChange (str) {
-        //     setSearchString(str);
-        // },
         customSearchRender: (searchText, handleSearch, hideSearch, options) => {
-            const searchStr = searchText || "";
+            let searchStr = searchText || "";
+
+            if (on_search_open) {
+                searchStr = search_str;
+                setOnSearchOpen(false);
+            }
+
+            const custom_on_hide_fn = () => {
+                hideSearch();
+                setOnSearchOpen(false);
+            };
 
             return (
                 <CustomSearchRender
                     searchText={searchText}
                     onSearch={handleSearch}
-                    onHide={hideSearch}
+                    onHide={custom_on_hide_fn}
                     options={options}
                     onSearchClick={() => setSearchString(searchStr)}
                 />
