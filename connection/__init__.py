@@ -44,7 +44,7 @@ def start_monitoring_ws_bg_task():
             MONITORING_WS_THREAD.start()
 
 
-def create_app(config_name, run_memcache):
+def create_app(config_name, skip_memcache=False, skip_websocket=False):
     """
     Instantiate Flask App variable and other related packages
     """
@@ -71,11 +71,12 @@ def create_app(config_name, run_memcache):
     CORS(app)
     SOCKETIO.init_app(app)
 
-    if run_memcache:
+    if not skip_memcache:
         from connection import set_memcache
         set_memcache.main(MEMORY_CLIENT)
 
-    start_monitoring_ws_bg_task()
+    if not skip_websocket:
+        start_monitoring_ws_bg_task()
 
     #####################################################
     # Import all created blueprint from each controller

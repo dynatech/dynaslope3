@@ -10,6 +10,8 @@ class Config(object):
     """
 
     # Put any config here
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    JSON_SORT_KEYS = False
 
 
 class DevelopmentConfig(Config):
@@ -19,7 +21,6 @@ class DevelopmentConfig(Config):
 
     DEBUG = True
     SQLALCHEMY_ECHO = True
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 class ProductionConfig(Config):
@@ -29,7 +30,6 @@ class ProductionConfig(Config):
 
     DEBUG = False
     SQLALCHEMY_ECHO = False
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
 APP_CONFIG = {
