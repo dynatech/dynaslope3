@@ -366,6 +366,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
         for site_w_alert in with_alerts:
             is_new_release = True
             is_release_time = False
+            release_start_range = None
             site_code = site_w_alert["site_code"]
             site_db_alert = next(
                 filter(lambda x: x["event"]["site"]["site_code"] == site_code, merged_db_alerts_list), None)
@@ -406,7 +407,6 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 is_release_schedule_range = site_alert_ts >= release_start_range
 
                 var_checker("release_start_range", release_start_range, True)
-                var_checker("ts", ts, True)
                 var_checker("db_latest_release_ts", db_latest_release_ts, True)
                 var_checker("site_alert_ts", site_alert_ts, True)
 
@@ -425,7 +425,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     "alert_level": highest_valid_public_alert,
                     "trigger_list_str": trigger_list_str,
                     "is_release_time": is_release_time,
-                    "release_schedule": release_start_range + timedelta(minutes=1)
+                    "release_schedule": str(release_start_range)
                 }
 
                 formatted_alert_entry = format_alerts_for_ewi_insert(
@@ -441,12 +441,10 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
     routine_non_triggering_moms = {}
 
     ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
-                                          "alert_level": -1, "source_id": internal_source_id})
+        "alert_level": -1, "source_id": internal_source_id})
     nd_internal_alert_sym = ots_row["internal_alert_symbol"]["alert_symbol"]
 
     merged_db_alerts_list_copy = latest + overdue
-    no_a0_db_alerts_list = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                       site_code, merged_db_alerts_list_copy))
 
     if without_alerts:
         for site_wo_alert in without_alerts:
@@ -454,6 +452,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             site_id = site_wo_alert["site_id"]
             site_code = site_wo_alert["site_code"]
             internal_alert = site_wo_alert["internal_alert"]
+            no_a0_db_alerts_list = list(filter(
+                lambda x: x["public_alert_symbol"]["alert_level"] != 0, merged_db_alerts_list_copy))
 
             # is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
             #                                   site_code, merged_db_alerts_list))
