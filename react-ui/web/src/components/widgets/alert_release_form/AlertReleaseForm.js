@@ -63,210 +63,198 @@ function getSitePublicAlert (site_id, generalData, setGeneralData) {
     });
 }
 
+function GeneralInputForm (props) {
+    const { generalData, classes, handleEventChange, handleDateTime } = props;
+    const {
+        siteId, dataTimestamp, releaseTime,
+        reporterIdMt, reporterIdCt 
+    } = generalData;
+
+    return (
+        <Fragment>
+            <Grid item xs={12} className={classes.inputGridContainer}>
+                <SelectInputForm
+                    label="Site"
+                    div_id="site_id"
+                    changeHandler={handleEventChange("siteId")}
+                    value={siteId}
+                    list={sites}
+                    mapping={{ id: "site_id", label: "site_name" }}
+                    css={classes.selectInput}
+                />
+            </Grid>
+
+            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                <KeyboardDateTimePicker
+                    required
+                    autoOk
+                    label="Data Timestamp"
+                    value={dataTimestamp}
+                    onChange={handleDateTime("dataTimestamp")}
+                    ampm={false}
+                    placeholder="2010/01/01 00:00"
+                    format="YYYY/MM/DD HH:mm"
+                    mask="__/__/____ __:__"
+                    clearable
+                    disableFuture
+                />
+            </Grid>
+
+            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                <KeyboardTimePicker
+                    required
+                    autoOk
+                    ampm={false}
+                    label="Time of Release"
+                    mask="__:__"
+                    placeholder="00:00"
+                    value={releaseTime}
+                    onChange={handleDateTime("releaseTime")}
+                    clearable
+                />
+            </Grid>
+
+            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                <DynaslopeUserSelectInputForm
+                    variant="standard"
+                    label="IOMP-MT"
+                    div_id="reporter_id_mt"
+                    changeHandler={handleEventChange("reporterIdMt")}
+                    value={reporterIdMt}
+                />
+            </Grid>
+
+            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                <DynaslopeUserSelectInputForm
+                    variant="standard"
+                    label="IOMP-CT"
+                    div_id="reporter_id_ct"
+                    changeHandler={handleEventChange("reporterIdCt")}
+                    value={reporterIdCt}
+                />
+            </Grid>
+        </Fragment>
+    );
+}
+
+function TriggersInputForm (props) {
+    const { triggersState, setTriggersState } = props;
+
+    return (
+        <Fragment>
+            <SubsurfaceTriggerGroup
+                triggersState={triggersState}
+                setTriggersState={setTriggersState}
+            />
+
+            <SurficialTriggerGroup
+                triggersState={triggersState}
+                setTriggersState={setTriggersState}
+            />
+
+            <RainfallTriggerGroup
+                triggersState={triggersState}
+                setTriggersState={setTriggersState}
+            />
+
+            <EarthquakeTriggerGroup
+                triggersState={triggersState}
+                setTriggersState={setTriggersState}
+            />
+
+            <OnDemandTriggerGroup
+                triggersState={triggersState}
+                setTriggersState={setTriggersState}
+            />
+        </Fragment>
+    );
+}
+
+function CommentsInputForm (props) {
+    const { generalData: { comments }, handleEventChange, classes } = props;
+    return (
+        <Fragment>
+            <Grid item xs={12} className={classes.inputGridContainer}>
+                <TextField
+                    label="Comments"
+                    multiline
+                    rowsMax="2"
+                    placeholder="Enter additional comments necessary"
+                    value={comments}
+                    onChange={handleEventChange("comments")}
+                    fullWidth
+                />
+            </Grid>
+        </Fragment>
+    );
+}
+
+function SummaryForm (props) {
+    const { generalData } = props;
+    const {
+        siteId, publicAlert, dataTimestamp,
+        releaseTime, reporterIdMt,
+        reporterIdCt
+    } = generalData;
+    console.log(generalData);
+    console.log("siteId", siteId);
+    const site = sites.find(obj => obj.site_id === "50");
+    const mt = users.find(obj => obj.user_id === reporterIdMt);
+    const ct = users.find(obj => obj.user_id === reporterIdCt);
+    const data_ts = moment(dataTimestamp).format("YYYY-MM-DD HH:mm:ss");
+    const release_time = moment(releaseTime).format("HH:mm");
+
+    return (
+        <Fragment>
+            <Grid item xs={9} >
+                <Typography variant="body1" color="textSecondary">Site ID</Typography>
+                <Typography variant="body1" color="textPrimary">
+                    {site.site_name.toUpperCase()}
+                </Typography>
+            </Grid>
+            <Grid item xs={3} >
+                <Typography variant="body1" color="textSecondary">Alert Level</Typography>
+                <Typography variant="body1" color="textPrimary">
+                    {publicAlert}
+                </Typography>
+            </Grid>
+
+            <Grid item xs={6} >
+                <Typography variant="body1" color="textSecondary">Data Timestamp</Typography>
+                <Typography variant="body1" color="textPrimary">
+                    {data_ts}
+                </Typography>
+            </Grid>
+            <Grid item xs={6} >
+                <Typography variant="body1" color="textSecondary">Release Time</Typography>
+                <Typography variant="body1" color="textPrimary">
+                    {release_time}
+                </Typography>
+            </Grid>
+
+            <Grid item xs={6} >
+                <Typography variant="body1" color="textSecondary">MT</Typography>
+                <Typography variant="body1" color="textPrimary">
+                    {reporterIdMt}
+                    {/* {mt.name} */}
+                </Typography>
+            </Grid>
+            <Grid item xs={6} >
+                <Typography variant="body1" color="textSecondary">CT</Typography>
+                <Typography variant="body1" color="textPrimary">
+                    {reporterIdCt}
+                    {/* {ct.name} */}
+                </Typography>
+            </Grid>
+        </Fragment>
+    );
+}
+
 function AlertReleaseForm (props) {
     const {
-        classes, activeStep, generalData, setGeneralData,
-        triggersState, setTriggersState
+        classes, activeStep, generalData, 
+        setGeneralData
     } = props;
-
-    /* RELEASE FORM TAB CONTENTS EVENT HANDLER */
-    const getSummaryForm = () => {
-        const {
-            siteId, dataTimestamp,
-            releaseTime, reporterIdMt,
-            reporterIdCt
-        } = generalData;
-        console.log(sites);
-        const site = sites.find(obj => obj.site_id == siteId);
-        const mt = users.find(obj => obj.user_id == reporterIdMt);
-        const ct = users.find(obj => obj.user_id == reporterIdCt);
-        const data_ts = moment(dataTimestamp).format("YYYY-MM-DD HH:mm:ss");
-        const release_time = moment(releaseTime).format("HH:mm");
-
-        return (
-            <Fragment>
-                <Grid item xs={12} >
-                    <Typography variant="body1" color="textSecondary">Site ID</Typography>
-                    <Typography variant="body1" color="textPrimary">
-                        {site.site_name.toUpperCase()}
-                    </Typography>
-                </Grid>
-
-                <Grid item xs={6} >
-                    <Typography variant="body1" color="textSecondary">Data Timestamp</Typography>
-                    <Typography variant="body1" color="textPrimary">
-                        {data_ts}
-                    </Typography>
-                </Grid>
-                <Grid item xs={6} >
-                    <Typography variant="body1" color="textSecondary">Release Time</Typography>
-                    <Typography variant="body1" color="textPrimary">
-                        {release_time}
-                    </Typography>
-                </Grid>
-
-                {/* <Grid item xs={6} >
-                    <Typography variant="body1" color="textSecondary">MT</Typography>
-                    <Typography variant="body1" color="textPrimary">
-                        {mt.name}
-                    </Typography>
-                </Grid>
-                <Grid item xs={6} >
-                    <Typography variant="body1" color="textSecondary">CT</Typography>
-                    <Typography variant="body1" color="textPrimary">
-                        {ct.name}
-                    </Typography>
-                </Grid> */}
-
-            </Fragment>
-        );
-    };
-
-    const getCommentsInputForm = () => {
-        const { comments } = generalData;
-        return (
-            <Fragment>
-                <Grid item xs={12} className={classes.inputGridContainer}>
-                    <TextField
-                        label="Comments"
-                        multiline
-                        rowsMax="2"
-                        placeholder="Enter additional comments necessary"
-                        value={comments}
-                        onChange={handleEventChange("comments")}
-                        fullWidth
-                    />
-                </Grid>
-            </Fragment>
-        );
-    };
-
-    const getTriggersInputForm = () => {
-
-        return (
-            <Fragment>
-                <SubsurfaceTriggerGroup
-                    triggersState={triggersState}
-                    setTriggersState={setTriggersState}
-                />
-
-                <SurficialTriggerGroup
-                    triggersState={triggersState}
-                    setTriggersState={setTriggersState}
-                />
-
-                <RainfallTriggerGroup
-                    triggersState={triggersState}
-                    setTriggersState={setTriggersState}
-                />
-
-                <EarthquakeTriggerGroup
-                    triggersState={triggersState}
-                    setTriggersState={setTriggersState}
-                />
-
-                <OnDemandTriggerGroup
-                    triggersState={triggersState}
-                    setTriggersState={setTriggersState}
-                />
-            </Fragment>
-        );
-    };
-
-    const getGeneralInputForm = () => {
-        const { siteId, dataTimestamp,
-            releaseTime, reporterIdMt,
-            reporterIdCt } = generalData;
-
-        return (
-            <Fragment>
-                <Grid item xs={12} className={classes.inputGridContainer}>
-                    <SelectInputForm
-                        label="Site"
-                        div_id="site_id"
-                        changeHandler={handleEventChange("siteId")}
-                        value={siteId}
-                        list={sites}
-                        mapping={{ id: "site_id", label: "site_name" }}
-                        css={classes.selectInput}
-                    />
-                </Grid>
-
-                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                    <KeyboardDateTimePicker
-                        required
-                        autoOk
-                        label="Data Timestamp"
-                        value={dataTimestamp}
-                        onChange={handleDateTime("dataTimestamp")}
-                        ampm={false}
-                        placeholder="2010/01/01 00:00"
-                        format="YYYY/MM/DD HH:mm"
-                        mask="__/__/____ __:__"
-                        clearable
-                        disableFuture
-                    />
-                </Grid>
-
-                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                    <KeyboardTimePicker
-                        required
-                        autoOk
-                        ampm={false}
-                        label="Time of Release"
-                        mask="__:__"
-                        placeholder="00:00"
-                        value={releaseTime}
-                        onChange={handleDateTime("releaseTime")}
-                        clearable
-                    />
-                </Grid>
-
-                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                    <DynaslopeUserSelectInputForm
-                        variant="standard"
-                        label="IOMP-MT"
-                        div_id="reporter_id_mt"
-                        changeHandler={handleEventChange("reporterIdMt")}
-                        value={reporterIdMt}
-                    />
-                </Grid>
-
-                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                    <DynaslopeUserSelectInputForm
-                        variant="standard"
-                        label="IOMP-CT"
-                        div_id="reporter_id_ct"
-                        changeHandler={handleEventChange("reporterIdCt")}
-                        value={reporterIdCt}
-                    />
-                </Grid>
-            </Fragment>
-        );
-    };
-    /* END OF RELEASE FORM TAB CONTENTS EVENT HANDLER */
-
-
-    /* STEPPER EVENT HANDLER */
-    const getSteps = () => {
-        return ["What are the release details?", "List the triggers.", "Add Comments and Description", "Review Release Summary"];
-    };
-
-    const getStepContent = (stepIndex) => {
-        switch (stepIndex) {
-            case 0:
-                return getGeneralInputForm();
-            case 1:
-                return getTriggersInputForm();
-            case 2:
-                return getCommentsInputForm();
-            case 3:
-                return getSummaryForm();
-            default:
-                return "Uknown stepIndex";
-        }
-    };
-    /* END OF STEPPER EVENT HANDLER */
 
     const changeState = (key, value) => {
         setGeneralData({ ...generalData, [key]: value });
@@ -278,15 +266,32 @@ function AlertReleaseForm (props) {
 
     const handleEventChange = key => event => {
         const { value } = event.target;
-        if (key === "siteId") {
-            console.log("site id", value);
-            getSitePublicAlert(value, generalData, setGeneralData);
-        } else changeState(key, value);
+        changeState(key, value);
     };
 
+    const getSteps = () => {
+        return ["What are the release details?", "List the triggers.", "Add Comments and Description", "Review Release Summary"];
+    };
     const steps = getSteps();
 
-    console.log(generalData);
+    const getStepContent = stepIndex => {
+        switch (stepIndex) {
+            case 0:
+                return (<GeneralInputForm 
+                    {...props}
+                    handleDateTime={handleDateTime} 
+                    handleEventChange={handleEventChange} 
+                />);
+            case 1:
+                return <TriggersInputForm {...props} />;
+            case 2:
+                return <CommentsInputForm {...props} handleEventChange={handleEventChange} />;
+            case 3:
+                return <SummaryForm {...props} />;
+            default:
+                return "Uknown stepIndex";
+        }
+    };
 
     return (
         <MuiPickersUtilsProvider utils={MomentUtils}>
@@ -296,7 +301,7 @@ function AlertReleaseForm (props) {
                 alignItems="center"
                 spacing={1}
             >
-                {getStepContent(activeStep)}
+                { getStepContent(activeStep) }
                 <div className={classes.root}>
                     <Typography className={classes.instructions} />
 
@@ -308,10 +313,6 @@ function AlertReleaseForm (props) {
                         ))}
                     </Stepper>
                 </div>
-
-                {/* <Grid item xs={12} className={classes.inputGridContainer}>
-                    <Divider />
-                </Grid> */}
             </Grid>
         </MuiPickersUtilsProvider>
     );
