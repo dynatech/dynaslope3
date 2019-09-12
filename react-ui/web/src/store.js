@@ -537,7 +537,7 @@ export const sites = [
         site_id: 36, 
         sitio: null,
         latitude: 9.757190,
-        longitude: 9.757190
+        longitude: 125.401400
     }, 
     {
         active: true, 

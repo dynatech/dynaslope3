@@ -55,7 +55,7 @@ function createDateTime ({ label, value, id }, handleDateTime) {
     );
 }
 
-class MonitoringShiftChe extends Component {
+class EndOfShiftGenerator extends Component {
     state = {
         start_ts: null,
         end_ts: null
@@ -122,4 +122,4 @@ class MonitoringShiftChe extends Component {
     }
 }
 
-export default compose(withWidth(), withStyles(styles))(MonitoringShiftChe);
+export default compose(withWidth(), withStyles(styles))(EndOfShiftGenerator);

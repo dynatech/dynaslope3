@@ -23,7 +23,7 @@ const styles = theme => ({
         maxWidth: 360
     },
     nested: {
-        paddingLeft: theme.spacing.unit * 3,
+        paddingLeft: theme.spacing(3),
     },
     nestedText: {
         fontSize: "0.9rem"

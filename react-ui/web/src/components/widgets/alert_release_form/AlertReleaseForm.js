@@ -1,15 +1,14 @@
-import React, { useEffect, Fragment } from "react";
+import React, { Fragment } from "react";
 import axios from "axios";
 import moment from "moment";
 import {
-    TextField, Grid, withStyles, Divider
+    TextField, Grid, withStyles
 } from "@material-ui/core";
 
 // Stepper Related Imports
 import Stepper from "@material-ui/core/Stepper";
 import Step from "@material-ui/core/Step";
 import StepLabel from "@material-ui/core/StepLabel";
-import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
 
 // Form Related Imports
@@ -53,18 +52,18 @@ const styles = theme => ({
     }
 });
 
-function getSitePublicAlert(site_id, generalData, setGeneralData) {
+function getSitePublicAlert (site_id, generalData, setGeneralData) {
     axios.get(`http://127.0.0.1:5000/api/monitoring/get_site_public_alert?site_id=${site_id}`)
-        .then(response => {
-            const public_alert = response.data;
-            setGeneralData({ ...generalData, siteId: site_id, publicAlert: public_alert });
-        })
-        .catch(error => {
-            console.log(error);
-        });
+    .then(response => {
+        const public_alert = response.data;
+        setGeneralData({ ...generalData, siteId: site_id, publicAlert: public_alert });
+    })
+    .catch(error => {
+        console.log(error);
+    });
 }
 
-function AlertReleaseForm(props) {
+function AlertReleaseForm (props) {
     const {
         classes, activeStep, generalData, setGeneralData,
         triggersState, setTriggersState
