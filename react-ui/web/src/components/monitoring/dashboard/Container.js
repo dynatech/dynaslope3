@@ -44,17 +44,17 @@ function Container (props) {
 
     useEffect(() => {
         const socket_fns = {
-            receive_generated_alerts: (err, data) => {
+            receive_generated_alerts (err, data) {
                 const generated_alerts_data = JSON.parse(data);
                 console.log(generated_alerts_data);
                 setGeneratedAlerts(generated_alerts_data);
             },
-            receive_candidate_alerts: (err, data) => {
+            receive_candidate_alerts (err, data) {
                 const candidate_alerts_data = JSON.parse(data);
                 console.log(candidate_alerts_data);
                 setCandidateAlertsData(candidate_alerts_data);
             },
-            receive_alerts_from_db: (err, data) => {
+            receive_alerts_from_db (err, data) {
                 const alertsFromDbData = JSON.parse(data);
                 console.log(alertsFromDbData);
                 setAlertsFromDbData(alertsFromDbData);
@@ -133,6 +133,7 @@ function Container (props) {
                 isOpen={isOpenReleaseModal}
                 closeHandler={handleBoolean("is_open_release_modal", false)}
                 chosenCandidateAlert={chosenCandidateAlert}
+                alertsFromDbData={alertsFromDbData}
             />
         </Fragment>
     );

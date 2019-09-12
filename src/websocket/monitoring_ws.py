@@ -216,8 +216,9 @@ def handle_message(payload):
 
     if key == "insert_ewi":
         print(get_process_status_log("insert_ewi", "request"))
-        status = execute_insert_ewi(data)
-        print(status)
+        var_checker("insert data", data, True)
+        # status = execute_insert_ewi(data)
+        print("status")
 
     elif key == "validate_trigger":
         print(get_process_status_log("validate_trigger", "request"))

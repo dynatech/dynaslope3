@@ -24,6 +24,8 @@ const styles = theme => ({
     }
 });
 
+
+
 function prepareTriggers (triggers) {
     const trigger_list = [];
     Object.keys(triggers).forEach((key) => {
@@ -51,10 +53,65 @@ function prepareTriggers (triggers) {
     return trigger_list;
 }
 
+function alertTriggersReducer (triggs, { action, trigger_type, value }) {
+    const trigger = triggs[trigger_type];
+    console.log("triggs", triggs);
+    const { triggers: triggers_array } = trigger;
+
+    switch (action) {
+        case "TOGGLE_SWITCH":
+            return {
+                ...triggs,
+                [trigger_type]: {
+                    ...trigger,
+                    switchState: value
+                }
+            };
+        case "ADD_TRIGGER":
+            return {
+                ...triggs,
+                [trigger_type]: {
+                    ...trigger,
+                    triggers: [...triggers_array, value]
+                }
+            };
+        case "REMOVE_TRIGGER":
+            let temp;
+            if (value === "clear_all") {
+                temp = [];
+            } else {
+                temp = triggers_array.filter(trig => trig.alert_level !== value.alert_level);
+            }
+
+            return {
+                ...triggs,
+                [trigger_type]: {
+                    ...trigger,
+                    triggers: temp
+                }
+            };
+        case "UPDATE_DETAILS":
+            // eslint-disable-next-line no-case-declarations
+            const temp2 = triggers_array.map(trig => {
+                if (trig.alert_level === value.alert_level) return { ...trig, ...value };
+                return trig;
+            });
+            return {
+                ...triggs,
+                [trigger_type]: {
+                    ...trigger,
+                    triggers: temp2
+                }
+            };
+        default: return triggs;
+    }
+}
+
 function AlertReleaseFormModal (props) {
     const {
         classes, fullScreen, isOpen,
-        closeHandler, chosenCandidateAlert
+        closeHandler, chosenCandidateAlert,
+        alertsFromDbData
     } = props;
 
     const [ewiPayload, setEwiPayload] = useState({});
@@ -69,61 +126,11 @@ function AlertReleaseFormModal (props) {
         reporterIdCt: "",
         reporterIdMt: "",
         comments: "",
-        publicAlert: ""
+        publicAlertSymbol: "",
+        publicAlertLevel: ""
     });
 
-    const [triggers, setTriggers] = useReducer((triggs, { action, trigger_type, value }) => {
-        const trigger = triggs[trigger_type];
-        console.log("triggs", triggs);
-        const { triggers: triggers_array } = trigger;
-
-        switch (action) {
-            case "TOGGLE_SWITCH":
-                return {
-                    ...triggs,
-                    [trigger_type]: {
-                        ...trigger,
-                        switchState: value
-                    }
-                };
-            case "ADD_TRIGGER":
-                return {
-                    ...triggs,
-                    [trigger_type]: {
-                        ...trigger,
-                        triggers: [...triggers_array, value]
-                    }
-                };
-            case "REMOVE_TRIGGER":
-                let temp;
-                if (value === "clear_all") {
-                    temp = [];
-                } else {
-                    temp = triggers_array.filter(trig => trig.alert_level !== value.alert_level);
-                }
-
-                return {
-                    ...triggs,
-                    [trigger_type]: {
-                        ...trigger,
-                        triggers: temp
-                    }
-                };
-            case "UPDATE_DETAILS":
-                const temp2 = triggers_array.map(trig => {
-                    if (trig.alert_level === value.alert_level) return { ...trig, ...value };
-                    return trig;
-                });
-                return {
-                    ...triggs,
-                    [trigger_type]: {
-                        ...trigger,
-                        triggers: temp2
-                    }
-                };
-            default: return triggs;
-        }
-    }, {
+    const [triggers, setTriggers] = useReducer(alertTriggersReducer, {
         subsurface: { switchState: false, triggers: [] },
         surficial: { switchState: false, triggers: [] },
         rainfall: { switchState: false, triggers: [] },
@@ -135,7 +142,7 @@ function AlertReleaseFormModal (props) {
         if (chosenCandidateAlert != null) {
             const {
                 site_id, site_code, ts, public_alert_level,
-                release_details, trigger_list_arr
+                public_alert_symbol, release_details, trigger_list_arr
             } = chosenCandidateAlert;
 
             const { data_ts, trigger_list_str } = release_details;
@@ -149,7 +156,8 @@ function AlertReleaseFormModal (props) {
                 reporterIdMt: "",
                 comments: "",
                 triggerListStr: trigger_list_str,
-                publicAlert: public_alert_level
+                publicAlertSymbol: public_alert_symbol,
+                publicAlertLevel: public_alert_level
             };
             setGeneralData(initial_general_data);
 
@@ -280,9 +288,10 @@ function AlertReleaseFormModal (props) {
         console.log(activeStep);
 
         const {
-            siteId, siteCode, publicAlert, 
-            dataTimestamp, releaseTime, reporterIdMt, 
-            reporterIdCt, comments, triggerListStr
+            siteId, siteCode, publicAlertLevel,
+            dataTimestamp, releaseTime, reporterIdMt,
+            reporterIdCt, comments, triggerListStr,
+            publicAlertSymbol
         } = generalData;
         let trigger_list = {};
         let temp = {};
@@ -294,7 +303,8 @@ function AlertReleaseFormModal (props) {
                     ...ewiPayload,
                     site_id: siteId,
                     site_code: siteCode,
-                    public_alert_level: publicAlert,
+                    public_alert_level: publicAlertLevel,
+                    public_alert_symbol: publicAlertSymbol,
                     release_details: {
                         data_ts: moment(dataTimestamp).format("YYYY-MM-DD HH:mm:ss"),
                         trigger_list_str: triggerListStr,
@@ -362,12 +372,6 @@ function AlertReleaseFormModal (props) {
                     />
                 </DialogContent>
                 <DialogActions>
-                    {/* <Button onClick={closeHandler} color="primary">
-                            Cancel
-                    </Button>
-                    <Button onClick={closeHandler} color="primary">
-                            Submit
-                    </Button> */}
                     <div>
                         {
                             activeStep === steps.length ? (
@@ -380,10 +384,10 @@ function AlertReleaseFormModal (props) {
                                     <div>
                                         <Button onClick={closeHandler} color="primary">
                                                 Cancel
-                                        </Button>
+                                            </Button>
                                         <Button disabled={activeStep === 0} onClick={handleBack} className={classes.backButton}>
                                                 Back
-                                        </Button>
+                                            </Button>
                                         <Button variant="contained" color="primary" onClick={handleNext} disabled={isNextBtnDisabled}>
                                             {activeStep === steps.length - 1 ? "Submit" : "Next"}
                                         </Button>

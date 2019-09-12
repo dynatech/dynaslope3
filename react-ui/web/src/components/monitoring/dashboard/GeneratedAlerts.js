@@ -230,8 +230,7 @@ function createCard (alert_detail, index, handleClickOpen, handleClickClose) {
 class GeneratedAlerts extends PureComponent {
     state = {
         open: false,
-        key: 0,
-        generated_alerts: []
+        key: 0
     };
 
     handleClickOpen = i => event => {
@@ -242,16 +241,14 @@ class GeneratedAlerts extends PureComponent {
         this.setState({ open: false });
     };
 
-
-
     render () {
         const { open, key } = this.state;
         let dialog = "";
-        const { generated_alerts_data } = this.props;
+        const { generatedAlertsData } = this.props;
 
 
-        if (generated_alerts_data.length > 0) {
-            const chosen_site = generated_alerts_data[key];
+        if (generatedAlertsData.length > 0) {
+            const chosen_site = generatedAlertsData[key];
             dialog = getAlertDialog(chosen_site, open, this.handleClose);
         }
 
@@ -259,7 +256,7 @@ class GeneratedAlerts extends PureComponent {
             <Fragment>
                 <Grid container spacing={2}>
                     {
-                        generated_alerts_data.map((alert_detail, index) => createCard(alert_detail, index, this.handleClickOpen, this.handleClickClose))
+                        generatedAlertsData.map((alert_detail, index) => createCard(alert_detail, index, this.handleClickOpen, this.handleClickClose))
                     }
                     {dialog}
                     {/* {cards} */}
