@@ -1,6 +1,5 @@
 import axios from "axios";
-
-const host = "http://192.168.150.167:5000";
+import host from "../../config";
 
 // eslint-disable-next-line import/prefer-default-export
 export function getNarratives (input, callback) {
@@ -23,7 +22,7 @@ export function getNarratives (input, callback) {
     }
 
     if (search_str !== "") api_link += `&search=${search_str}`;
-    
+
     axios.get(api_link)
     .then(response => {
         const { data } = response;

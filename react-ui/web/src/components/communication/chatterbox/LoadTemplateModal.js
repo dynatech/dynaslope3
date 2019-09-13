@@ -8,6 +8,7 @@ import {
 import { compose } from "recompose";
 import { axios } from "axios";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
+import host from "../../../config";
 
 const styles = theme => ({
     link: { textDecoration: "none" }
@@ -18,7 +19,7 @@ function useFetchTagOptions (tag_selection) {
 
     useEffect(() => {
         // AJAX CALLS HERE FOR OPRIONS
-        // axios.get("http://192.168.150.167:5000/api/users/get_dynaslope_users")
+        // axios.get(host + "/api/users/get_dynaslope_users")
         // .then(response => {
         //     const arr = prepareUsersArray(response.data);
         //     this.setState({ users: arr });

@@ -1,7 +1,5 @@
 import axios from "axios";
-
-
-const host = "http://192.168.150.167:5000";
+import host from "../../../config";
 
 
 export default function getMOMsFeatures (site_code, callback) {

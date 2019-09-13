@@ -48,16 +48,19 @@ function Container (props) {
                 const generated_alerts_data = JSON.parse(data);
                 console.log(generated_alerts_data);
                 setGeneratedAlerts(generated_alerts_data);
+                if (err != null) console.log(err);
             },
             receive_candidate_alerts (err, data) {
                 const candidate_alerts_data = JSON.parse(data);
                 console.log(candidate_alerts_data);
                 setCandidateAlertsData(candidate_alerts_data);
+                if (err != null) console.log(err);
             },
             receive_alerts_from_db (err, data) {
-                const alertsFromDbData = JSON.parse(data);
-                console.log(alertsFromDbData);
-                setAlertsFromDbData(alertsFromDbData);
+                const alerts_from_db_data = JSON.parse(data);
+                console.log(alerts_from_db_data);
+                setAlertsFromDbData(alerts_from_db_data);
+                if (err != null) console.log(err);
             }
         };
         subscribeToWebSocket(socket_fns);

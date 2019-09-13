@@ -136,8 +136,8 @@ function SiteLogs (props) {
         page,
         onTableChange (action, table_state) {
             if (action === "changePage") {
-                const { page } = table_state;
-                setPage(page);
+                const { page: cur_page } = table_state;
+                setPage(cur_page);
             } else if (action === "changeRowsPerPage") {
                 const { rowsPerPage: cur_rpp } = table_state;
 

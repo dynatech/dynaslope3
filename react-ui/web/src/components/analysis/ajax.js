@@ -1,7 +1,6 @@
 import axios from "axios";
 import { sample_subsurface_data } from "./integrated_site/sample_subsurface_data_not_final";
-
-const host = "http://192.168.150.167:5000";
+import host from "../../config";
 
 export function getSurficialPlotData (site_code, timestamps, callback) {
     const api_link = `${host}/api/surficial/get_surficial_plot_data/` +
@@ -88,7 +87,7 @@ export function getEarthquakeEvents (callback) {
 export function getEarthquakeAlerts (request, callback) {
     const { limit, offset } = request;
     const api_link = `${host}/api/analysis/get_earthquake_alerts`
-    + `?limit=${limit}&offset=${offset}`;
+        + `?limit=${limit}&offset=${offset}`;
 
     axios.get(api_link)
     .then(response => {

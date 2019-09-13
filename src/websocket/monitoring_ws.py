@@ -5,7 +5,7 @@ from flask import request
 from config import APP_CONFIG
 from src.experimental_scripts import public_alert_generator, candidate_alerts_generator
 from src.api.monitoring import wrap_get_ongoing_extended_overdue_events, insert_ewi
-from src.utils.monitoring import update_alert_status
+from src.utils.monitoring import update_alert_status, get_event_count
 from src.utils.extra import var_checker, get_system_time, get_process_status_log
 
 
@@ -209,7 +209,6 @@ def handle_message(payload):
     This handles all messages and connects per message to it's
     corresponding functions.
     """
-    sys_time = get_system_time()
 
     key = payload["key"]
     data = payload["data"]
@@ -226,8 +225,7 @@ def handle_message(payload):
         print(status)
     elif key == "update_monitoring_tables":
         print(get_process_status_log("update_monitoring_tables", "request"))
-        print("Update the monitoring table data")
-        print(data)
+        # NOTE: UNFINISHED BUSINESS
     else:
         print("ERROR: Key provided not found.")
         raise Exception("WEBSOCKET MESSAGE: KEY NOT FOUND")
