@@ -13,9 +13,13 @@ def get_narratives(offset, limit, start, end, site_ids, include_count, search):
         Returns one or more row/s of narratives.
 
         Args:
-            event_id (Integer) - 
-            start (datetime) - 
-            end (datetime) - 
+            offset (Integer) -
+            limit (Integer) -
+            start () -
+            end () - 
+            site_ids (Integer) -
+            include_count (Boolean)
+            search (String)
     """
     nar = Narratives
     base = nar.query
