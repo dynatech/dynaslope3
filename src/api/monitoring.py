@@ -747,6 +747,12 @@ def insert_ewi(internal_json=None):
             entry_type = 1
             is_not_routine = False
 
+        is_overdue = False
+        try:
+            is_overdue = json_data["is_overdue"]
+        except KeyError:
+            pass
+
         # Release-related variables from JSON
         release_details = json_data["release_details"]
         publisher_details = json_data["publisher_details"]
@@ -804,6 +810,13 @@ def insert_ewi(internal_json=None):
             except Exception as err:
                 print(err)
                 raise
+
+        # SPECIAL CODE FOR CBEWSL OVERDUE
+        if is_overdue:
+            print()
+            print("RELEASING OVERDUE!")
+            print()
+            site_status = 2
 
         ##########################
         # ROUTINE or EVENT entry #
@@ -907,7 +920,7 @@ def insert_ewi(internal_json=None):
                     event_alert_id = write_monitoring_event_alert_to_db(
                         event_alert_details).event_alert_id
 
-                elif pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30):
+                elif pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30) or is_overdue:
                     # This extends the validity of the event in cases where
                     # no ground data is available.
                     try:
@@ -921,10 +934,14 @@ def insert_ewi(internal_json=None):
                                 f"{datetime.now()} | NO GROUND DATA? Updating validity. New validity: {validity}")
                             new_validity = current_event_alert.event.validity + \
                                 timedelta(hours=no_data_hours_extension)
+                            if is_overdue:
+                                new_validity = round_to_nearest_release_time(datetime_data_ts) + \
+                                    timedelta(hours=no_data_hours_extension)
                             update_event_validity(new_validity, event_id)
+
                     except:
                         pass
-
+                    
                 # Lowering.
                 elif pub_sym_id == 1:
                     print("---LOWERING")

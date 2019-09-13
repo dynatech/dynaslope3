@@ -222,6 +222,11 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         # THIS IS THE BACKEND to_extend_validity.
         to_extend_validity = True if alert_entry["ground_alert_level"] == -1 else False
 
+        # NOTE: LOUIE CODE TO HANDLE LOWERING
+        if general_status == "lowering":
+            trigger_list_arr = []
+            to_extend_validity = False
+
         formatted_alerts_for_ewi = {
             **formatted_alerts_for_ewi,
             "to_extend_validity": to_extend_validity,
@@ -346,6 +351,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     saved_trigger = next(filter(
                         lambda x: x[0] == event_trigger["internal_sym_id"], saved_event_triggers), None)
 
+                    var_checker("saved_trigger", saved_trigger, True)
+
                     is_trigger_new = False
                     if saved_trigger:
                         if saved_trigger[1] < datetime.strptime(event_trigger["ts_updated"], "%Y-%m-%d %H:%M:%S"):
@@ -353,6 +360,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     else:
                         is_trigger_new = True
 
+                    var_checker("is_trigger_new", is_trigger_new, True)
                     event_trigger["is_trigger_new"] = is_trigger_new
 
                 db_latest_release_ts = site_db_alert["releases"][0]["data_ts"]

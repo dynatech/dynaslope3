@@ -94,8 +94,7 @@ def save_field_survey():
             data = data["value"]
     except KeyError:
         print("Value is defined.")
-        pass 
-
+        pass
 
     try:
 
@@ -209,8 +208,7 @@ def field_survey_data_via_email():
         send_to_email = data["email"]
         subject = "Field Survey : " + str(date)
 
-        message = "<img src='http://cbewsl.com/assets/images/letter_header1.png' width='1200px' height='70px'></img>"
-        message += "<b>Features:</b> " + features + "<br>"
+        message = "<b>Features:</b> " + features + "<br>"
         message += "<b>Material characterization:</b> " + mat_characterization + "<br>"
         message += "<b>Mechanism:</b> " + mechanism + "<br>"
         message += "<b>Exposure:</b> " + exposure + "<br>"
