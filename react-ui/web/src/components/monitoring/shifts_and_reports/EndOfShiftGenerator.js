@@ -63,7 +63,6 @@ function prepareEOSRequest (startTs, setEosData, setIsLoading) {
     const input = {
         shift_start: moment_start_ts
     };
-    console.log(input);     
 
     getEndOfShiftReports(input, ret => {
         setEosData(ret);

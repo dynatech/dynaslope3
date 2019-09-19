@@ -9,7 +9,7 @@ import Typography from "@material-ui/core/Typography";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
-import { TextField, Grid } from "@material-ui/core";
+import { TextField, Grid, FormGroup, FormControlLabel, Checkbox } from "@material-ui/core";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { compose } from "recompose";
 import { Refresh, SaveAlt, Send } from "@material-ui/icons";
@@ -53,25 +53,14 @@ const styles = theme => ({
 });
 
 
-function createNodeElement (value) {
-    // const placeholder = document.createElement("div");
-    // placeholder.innerHTML = value;
-    // const node = placeholder;
-    // console.log(node);
-    // const doc = new DOMParser().parseFromString(value, "text/xml");
-    // console.log(doc);
-    // // return node;
-    // return doc.firstChild.innerHTML;
-    return value;
-}
-
-
 function DetailedExpansionPanel (props) {
     const { data: eos_report, classes, width } = props;
     const [siteCode, setSiteCode] = useState("");
     const [shiftSummary, setShiftSummary] = useState("");
     const [dataAnalysis, setDataAnalysis] = useState("");
     const [shiftNarratives, setShiftNarratives] = useState("");
+    const [isRainfallChecked, setIsRainfallChecked] = useState(false);
+    const [isSurficialChecked, setIsSurficialChecked] = useState(false);
 
     useEffect(() => {
         const {
@@ -80,12 +69,10 @@ function DetailedExpansionPanel (props) {
         } = eos_report;
 
         setSiteCode(site_code);
-        const node_shift_summary = `${eos_head}<br />${shift_start_info}<br />${shift_end_info}`;
+        const node_shift_summary = `${eos_head}<br />${shift_start_info}<br /><br />${shift_end_info}`;
         setShiftSummary(node_shift_summary);
-        const node_data_analysis = data_analysis;
-        setDataAnalysis(node_data_analysis);
-        const node_narratives = narratives;
-        setShiftNarratives(node_narratives);
+        setDataAnalysis(data_analysis);
+        setShiftNarratives(narratives);
     }, []);
 
     const showTextLabel = (label, width) => (
@@ -93,13 +80,17 @@ function DetailedExpansionPanel (props) {
     );
 
     const changeState = (key, value) => {
+        console.log("First run", typeof(!isRainfallChecked));
+        console.log("data type", typeof(isRainfallChecked));
         const dictionary = {
             shift_summary: setShiftSummary,
             data_analysis: setDataAnalysis,
-            shift_narratives: setShiftNarratives
+            shift_narratives: setShiftNarratives,
+            checked_rain: setIsRainfallChecked,
+            checked_surficial: setIsSurficialChecked
         };
-        const node = createNodeElement(value);
-        dictionary[key](node);
+        console.log(key, value);
+        dictionary[key](value);
     };
 
     const handleEventChange = key => event => {
@@ -121,6 +112,31 @@ function DetailedExpansionPanel (props) {
                 <Divider />
                 <ExpansionPanelDetails className={classes.details}>
                     <Grid container>
+                        <Grid item xs={12}>
+                            <FormGroup row>
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={isRainfallChecked}
+                                            onChange={handleEventChange("checked_rain")}
+                                            value={!isRainfallChecked} 
+                                        />
+                                    }
+                                    label="Secondary"
+                                />
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={isSurficialChecked}
+                                            onChange={handleEventChange("checked_surficial")}
+                                            value={!isSurficialChecked}
+                                            color="primary"
+                                        />
+                                    }
+                                    label="Primary"
+                                />
+                            </FormGroup>
+                        </Grid>
                         {   
                             [
                                 { label: "Shift Summary", value: shiftSummary, key: "shift_summary" },

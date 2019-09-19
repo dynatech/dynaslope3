@@ -15,7 +15,6 @@ import Typography from "@material-ui/core/Typography";
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker, KeyboardTimePicker } from "@material-ui/pickers";
 import SelectInputForm from "../../reusables/SelectInputForm";
-import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import SubsurfaceTriggerGroup from "./SubsurfaceTriggerGroup";
 import SurficialTriggerGroup from "./SurficialTriggerGroup";
@@ -54,18 +53,18 @@ const styles = theme => ({
     }
 });
 
-function getSitePublicAlert(site_id, generalData, setGeneralData) {
+function getSitePublicAlert (site_id, generalData, setGeneralData) {
     axios.get(`http://127.0.0.1:5000/api/monitoring/get_site_public_alert?site_id=${site_id}`)
-        .then(response => {
-            const public_alert = response.data;
-            setGeneralData({ ...generalData, siteId: site_id, publicAlert: public_alert });
-        })
-        .catch(error => {
-            console.log(error);
-        });
+    .then(response => {
+        const public_alert = response.data;
+        setGeneralData({ ...generalData, siteId: site_id, publicAlert: public_alert });
+    })
+    .catch(error => {
+        console.log(error);
+    });
 }
 
-function GeneralInputForm(props) {
+function GeneralInputForm (props) {
     const { generalData, classes, handleEventChange, handleDateTime } = props;
     const {
         siteId, dataTimestamp, releaseTime,
@@ -139,7 +138,7 @@ function GeneralInputForm(props) {
     );
 }
 
-function TriggersInputForm(props) {
+function TriggersInputForm (props) {
     const { triggersState, setTriggersState } = props;
 
     return (
@@ -172,7 +171,7 @@ function TriggersInputForm(props) {
     );
 }
 
-function CommentsInputForm(props) {
+function CommentsInputForm (props) {
     const { generalData: { comments }, handleEventChange, classes } = props;
     return (
         <Fragment>
@@ -191,7 +190,7 @@ function CommentsInputForm(props) {
     );
 }
 
-function SummaryForm(props) {
+function SummaryForm (props) {
     const { generalData } = props;
     const {
         siteId, publicAlert, dataTimestamp,
@@ -252,7 +251,7 @@ function SummaryForm(props) {
     );
 }
 
-function AlertReleaseForm(props) {
+function AlertReleaseForm (props) {
     const {
         classes, activeStep, generalData,
         setGeneralData
