@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from "react";
+import React, { Component, Fragment, useState } from "react";
 import { withStyles } from "@material-ui/core/styles";
 import TabBar from "../../reusables/TabBar";
 import GeneralStyles from "../../../GeneralStyles";
@@ -26,43 +26,37 @@ const tabs_array = [
     { label: "Monitoring Shift Checker", href: "shift-checker" }
 ];
 
-class Container extends Component {
-    state = {
-        chosen_tab: 0
-    }
 
-    handleTabSelected = chosen_tab => {
-        this.setState({
-            chosen_tab
-        });
-    }
+function Container (props) {
+    const { classes } = props;
+    const [chosenTab, setChosenTab] = useState(0);
 
-    render () {
-        const { classes } = this.props;
-        const { chosen_tab } = this.state;
+    const handleTabSelected = chosen_tab => {
+        setChosenTab(chosen_tab);
+    };
 
-        return (
-            <Fragment>
-                <div className={classes.pageContentMargin}>
-                    <PageTitle title="Alert Monitoring | Shifts & Reports" />
-                </div>
+    return (
+        <Fragment>
+            <div className={classes.pageContentMargin}>
+                <PageTitle title="Alert Monitoring | Shifts & Reports" />
+            </div>
 
-                <div className={classes.tabBar}>
-                    <TabBar 
-                        chosenTab={chosen_tab}
-                        onSelect={this.handleTabSelected}
-                        tabsArray={tabs_array}
-                    />
-                </div>
+            <div className={classes.tabBar}>
+                <TabBar 
+                    chosenTab={chosenTab}
+                    onSelect={handleTabSelected}
+                    tabsArray={tabs_array}
+                />
+            </div>
 
-                <div className={`${classes.pageContentMargin} ${classes.tabBarContent}`}>
-                    {chosen_tab === 0 && <EndOfShiftGenerator />}
-                    {chosen_tab === 1 && <MonitoringShiftChecker/>}
-                </div>
+            <div className={`${classes.pageContentMargin} ${classes.tabBarContent}`}>
+                {chosenTab === 0 && <EndOfShiftGenerator />}
+                {chosenTab === 1 && <MonitoringShiftChecker/>}
+            </div>
 
-            </Fragment>
-        );
-    }
+        </Fragment>
+    );
 }
+
 
 export default withStyles(styles)(Container);

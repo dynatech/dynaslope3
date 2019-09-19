@@ -1,4 +1,5 @@
 import io from "socket.io-client";
+import host from "../config";
 
 let socket;
 
@@ -12,7 +13,7 @@ let socket;
 // }
 
 function subscribeToWebSocket (socket_fns) {
-    socket = io("http://127.0.0.1:5000/monitoring");
+    socket = io(`${host}/monitoring`);
     socket.on("receive_generated_alerts", data => socket_fns.receive_generated_alerts(null, data));
     socket.on("receive_candidate_alerts", data => socket_fns.receive_candidate_alerts(null, data));
     socket.on("receive_alerts_from_db", data => socket_fns.receive_alerts_from_db(null, data));

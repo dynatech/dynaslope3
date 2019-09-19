@@ -58,7 +58,7 @@ const ValidationModal = ({ isShowing, hide, classes, data }) => {
         hide();
     }
 
-    const handleOnClick = (key) => (event) => {
+    const handleOnClick = key => event => {
         validate_trigger(site, trigger_id, ts_updated, triggerValidity, remarks, 1);
         hide();
     };

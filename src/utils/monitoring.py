@@ -522,21 +522,69 @@ def get_internal_alert_symbols(internal_sym_id=None):
 #############################################
 
 
-def get_monitoring_releases(release_id=None):
+def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_id=None):
     """
-    Something
-    """
+    Returns monitoring_releases based on given parameters.
 
-    # NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
-    if release_id is None:
-        release = MonitoringReleases.query.order_by(
-            DB.desc(MonitoringReleases.release_id)).all()
+    Args:
+        release_id (Integer) -
+        ts_start (Datetime) -
+        ts_end (Datetime) -
+    """
+    mr = MonitoringReleases
+    base = mr.query
+    return_data = None
+    if release_id:
+        return_data = base.filter(
+            mr.release_id == release_id).first()
+    elif ts_start and ts_end:
+        me = MonitoringEvents
+        mea = MonitoringEventAlerts
+        base = base.order_by(DB.desc(mr.data_ts)).filter(DB.and_(
+            ts_start < mr.data_ts, mr.data_ts < ts_end
+        ))
+        if event_id:
+            base = base.join(mea).join(me).filter(me.event_id)
+        
+        return_data = base.all()
     else:
-        release = MonitoringReleases.query.filter(
-            MonitoringReleases.release_id == release_id).first()
+        return_data = base.order_by(
+            DB.desc(mr.release_time)).all()
 
-    return release
+    return return_data
 
+
+def get_monitoring_triggers(event_id=None, event_alert_id=None, release_id=None, ts_start=None, ts_end=None, return_one=False, order_by_desc=True):
+    """
+    NOTE: To fill
+    """
+    mt = MonitoringTriggers
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    mr = MonitoringReleases
+    base = mt.query
+
+    if ts_start and ts_end:
+        base = base.filter(DB.and_(ts_start < mt.ts, mt.ts < ts_end))
+
+    if event_id:
+        base = base.join(mr).join(mea).join(me).filter(me.event_id == event_id)
+    elif event_alert_id:
+        base = base.join(mr).join(mea).filter(mea.event_alert_id == event_alert_id)
+    elif release_id:
+        base = base.join(mr).filter(mr.release_id == release_id)
+    
+    if order_by_desc:
+        base = base.order_by(DB.desc(mt.ts))
+    else:
+        base = base.order_by(DB.asc(mt.ts))
+    
+    if return_one:
+        return_data = base.first()
+    else:
+         return_data = base.all()
+
+    return return_data
 
 ##########################################
 #   MONITORING_EVENT RELATED FUNCTIONS   #

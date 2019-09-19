@@ -4,7 +4,7 @@ import axios from "axios";
 import MUIDataTable from "mui-datatables";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { CircularProgress, Typography, Paper } from "@material-ui/core";
-import { withStyles } from "@material-ui/core/styles";
+import { withStyles, createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 import { compose } from "recompose";
 
 import CustomSearchRender from "./CustomSearchRender";
@@ -31,16 +31,6 @@ const styles = theme => ({
     }
 });
 
-function setTotalEventCount (setCount) {
-    axios.get("http://127.0.0.1:5000/api/monitoring/get_monitoring_events?filter_type=count")
-    .then(response => {
-        setCount(response.data);
-    })
-    .catch(error => {
-        console.log(error);
-    });
-}
-
 
 function prepareEventsArray (arr) {
     return arr.map(
@@ -53,13 +43,16 @@ function prepareEventsArray (arr) {
         }) => {
             // let final_ts_end = "ON-GOING";
             // if (ts_end !== "" && ts_end !== null) final_ts_end = moment(ts_end).format("D MMMM YYYY, h:mm");
+            let final_event_start = null;
             let final_ts_end = "ROUTINE";
-            if (validity !== "" && validity !== null) final_ts_end = moment(validity).format("D MMMM YYYY, h:mm");            
+            
+            if (event_start !== "" && event_start !== null) final_event_start = moment(event_start).format("D MMMM YYYY, h:mm");
+            if (validity !== "" && validity !== null) final_ts_end = moment(validity).format("D MMMM YYYY, h:mm");
             const event_entry = [
                 event_id,
                 sites_dict[site_code.toUpperCase()].address,
                 entry_type,
-                event_start,
+                final_event_start,
                 final_ts_end
                 // moment(ts_start).format("D MMMM YYYY, h:mm"),
                 // final_ts_end
@@ -68,11 +61,21 @@ function prepareEventsArray (arr) {
         });
 }
 
+const getMuiTheme = createMuiTheme({
+    overrides: {
+        MUIDataTableHeadCell: {
+            root: {
+                zIndex: "0 !important"
+            }
+        }
+    }
+});
+
 function MonitoringEventsTable (props) {
     const { classes, width } = props;
     const [data, setData] = useState([["Loading Data..."]]);
     const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(5);
+    const [rowsPerPage, setRowsPerPage] = useState(10);
     const [count, setCount] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -299,27 +302,29 @@ function MonitoringEventsTable (props) {
 
             <div className={`${classes.pageContentMargin}`}>
                 <Paper className={classes.paperContainer}>
-                    <MUIDataTable
-                        title={
-                            <Typography>
-                                Monitoring Events Table
-                                {
-                                    isLoading &&
-                                        <CircularProgress
-                                            size={24}
-                                            style={{
-                                                marginLeft: 15,
-                                                position: "relative",
-                                                top: 4
-                                            }}
-                                        />
-                                }
-                            </Typography>
-                        }
-                        data={data}
-                        columns={columns}
-                        options={options}
-                    />
+                    <MuiThemeProvider theme={getMuiTheme}>
+                        <MUIDataTable
+                            title={
+                                <Typography>
+                                    Monitoring Events Table
+                                    {
+                                        isLoading &&
+                                            <CircularProgress
+                                                size={24}
+                                                style={{
+                                                    marginLeft: 15,
+                                                    position: "relative",
+                                                    top: 4
+                                                }}
+                                            />
+                                    }
+                                </Typography>
+                            }
+                            data={data}
+                            columns={columns}
+                            options={options}
+                        />
+                    </MuiThemeProvider>                    
                 </Paper>
             </div>
         </Fragment>

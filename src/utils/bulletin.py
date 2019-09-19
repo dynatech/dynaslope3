@@ -127,7 +127,7 @@ def create_monitoring_bulletin(release_id):
     """
     Creates monitoring bulletin
     """
-    release = get_monitoring_releases(release_id)
+    release = get_monitoring_releases(release_id=release_id)
     event_alert = release.event_alert
     public_alert = event_alert.public_alert
 

@@ -57,7 +57,7 @@ render () {
         <Grow appear in timeout={300}>
             <div className={classes.main} ref={el => (this.rootRef = el)}>
                 <TextField
-                    placeholder="Type words to search event start and end columns..."
+                    placeholder="Search events using YYYY-MM-DD format..."
                     className={classes.searchText}
                     InputProps={{
                         "aria-label": options.textLabels.toolbar.search,

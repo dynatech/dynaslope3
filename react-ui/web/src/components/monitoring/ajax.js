@@ -2,6 +2,24 @@ import axios from "axios";
 import host from "../../config";
 
 // eslint-disable-next-line import/prefer-default-export
+export function getEndOfShiftReports (input, callback) {
+    const {
+        shift_start
+    } = input;
+
+    const api_link = `${host}/api/end_of_shift/get_end_of_shift_reports/${shift_start}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch(error => {
+        console.error("Problem in Axios request");
+        console.error(error);
+    });
+}
+
 export function getNarratives (input, callback) {
     const {
         include_count, limit, offset,
@@ -26,7 +44,6 @@ export function getNarratives (input, callback) {
 
     if (search_str !== "") api_link += `&search=${search_str}`;
 
-    console.log("ETO UNG API LINK", api_link);
     axios.get(api_link)
     .then(response => {
         const { data } = response;
@@ -62,7 +79,6 @@ export function getMonitoringEvents (input, callback) {
 
     if (search_str !== "") api_link += `&search=${search_str}`;
 
-    console.log("ETO UNG API LINK", api_link);
     axios.get(api_link)
     .then(response => {
         const { data } = response;
