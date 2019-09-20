@@ -192,11 +192,11 @@ def wrap_get_ongoing_extended_overdue_events():
         (c) Overdue
     For use in alerts_from_db in Candidate Alerts Generator
     """
-    ongoing_events = get_ongoing_extended_overdue_events()
+    ongoing_events = get_ongoing_extended_overdue_events(run_ts=datetime.strptime("2019-09-25 11:59:00", "%Y-%m-%d %H:%M:%S")) # pakibura
 
     return_data = []
     if ongoing_events:
-        return_data = json.dumps(ongoing_events, indent=4, sort_keys=True)
+        return_data = json.dumps(ongoing_events, indent=4)
 
     return return_data
 
@@ -1363,8 +1363,9 @@ def get_candidate_and_current_alerts():
     print(get_active_monitoring_events())
     ret_val = {
         "leo": json.loads(wrap_get_ongoing_extended_overdue_events()),
-        "candidate_alert": candidate_alerts_generator.main()
+        "candidate_alert": candidate_alerts_generator.main(ts="2019-09-25 11:59:00") # pakibura
     }
+
     return jsonify(ret_val)
 
 
@@ -1379,6 +1380,7 @@ def alert_generator(is_instantaneous=None):
         else:
             is_instantaneous = False
 
-    result = public_alert_generator.main(is_instantaneous=is_instantaneous)
+    # result = public_alert_generator.main(query_ts_end='2019-09-24 11:59:00', query_ts_start='2019-09-24 11:59:00', is_instantaneous=is_instantaneous)
+    result = public_alert_generator.main(query_ts_end='2019-09-25 11:59:00', query_ts_start='2019-09-25 11:59:00')
 
     return result
