@@ -20,5 +20,5 @@ APP = create_app(CONFIG_NAME, skip_memcache=args.skip_memcache,
                  skip_websocket=args.skip_websocket)
 
 if __name__ == "__main__":
-    SOCKETIO.run(APP, host="192.168.1.10", port=5000,
+    SOCKETIO.run(APP, host="127.0.0.1", port=5000,
                  debug=True, use_reloader=False)

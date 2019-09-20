@@ -7,7 +7,6 @@ NAMING CONVENTION
 """
 
 import json
-import time
 from datetime import datetime, timedelta, time
 from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
@@ -197,7 +196,7 @@ def wrap_get_ongoing_extended_overdue_events():
 
     return_data = []
     if ongoing_events:
-        return_data = json.dumps(ongoing_events)
+        return_data = json.dumps(ongoing_events, indent=4, sort_keys=True)
 
     return return_data
 
