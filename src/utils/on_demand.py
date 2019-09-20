@@ -8,8 +8,8 @@ from src.models.monitoring import (MonitoringOnDemand)
 
 def get_on_demand(timestamp):
     """
+    Sample docs only. Replace ASAP
     """
-
     m_od = MonitoringOnDemand
 
     on_demand_alerts = m_od.query.order_by(

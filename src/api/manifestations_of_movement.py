@@ -4,7 +4,8 @@ from sqlalchemy import func
 from src.models.sites import Sites, SitesSchema
 from src.models.monitoring import (
     MonitoringMoms, MomsInstances, MomsFeatures,
-    MonitoringMomsSchema, MomsInstancesSchema
+    MonitoringMomsSchema, MomsInstancesSchema,
+    MomsFeaturesSchema
 )
 
 from src.utils.sites import get_sites_data
@@ -51,7 +52,29 @@ def get_moms_instances(site_code):
     # print(aquery)
 
     query = mi.query.join(Sites).filter(Sites.site_code == site_code).all()
+
     result = MomsInstancesSchema(many=True, exclude=(
         "moms.moms_releases", )).dump(query).data
+
+    return jsonify(result)
+
+
+@MOMS_BLUEPRINT.route("/manifestations_of_movement/get_moms_features", methods=["GET"])
+@MOMS_BLUEPRINT.route("/manifestations_of_movement/get_moms_features/<site_code>", methods=["GET"])
+def get_moms_features(site_code=None):
+    features = MomsFeatures.query.all()
+
+    result = MomsFeaturesSchema(
+        many=True, exclude=("instances.site", )).dump(features).data
+
+    if site_code:
+        sites_data = get_sites_data(site_code=site_code)
+        site_id = sites_data.site_id
+
+        for feature in result:
+            instances = feature["instances"]
+            filtered = [d for d in instances if d["site_id"] == site_id]
+
+            feature["instances"] = filtered
 
     return jsonify(result)

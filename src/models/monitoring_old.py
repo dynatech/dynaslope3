@@ -193,6 +193,26 @@ class OldMonitoringEQ(UserMixin, DB.Model):
                 f" Magnitude: {self.magnitude} Trigger ID: {self.trigger_id}")
 
 
+class OldNarratives(DB.Model):
+    """
+    Class representation of narratives table
+    """
+    __tablename__ = "narratives"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
+
+    id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    site_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.sites.site_id"), nullable=False)
+    event_id = DB.Column(DB.Integer)
+    timestamp = DB.Column(
+        DB.DateTime, default=datetime.datetime.utcnow, nullable=False)
+    narrative = DB.Column(DB.String(500), nullable=False)
+
+    def __repr__(self):
+        return f"{self.timestamp, self.narrative}\n"
+
+
 # Moved
 # class MonitoringBulletinTracker(UserMixin, DB.Model):
 #     """
@@ -210,22 +230,6 @@ class OldMonitoringEQ(UserMixin, DB.Model):
 
 
 # Do we use this? - Louie
-class MonitoringOperationalTriggers(UserMixin, DB.Model):
-    """
-    Class representation of operational_triggers table
-    """
-
-    __tablename__ = "operational_triggers"
-
-    trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    ts = DB.Column(DB.DateTime)
-    site_id = DB.Column(DB.Integer, nullable=False)
-    trigger_sym_id = DB.Column(DB.Integer, nullable=False)
-    ts_updated = DB.Column(DB.DateTime)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> OP Trigger ID: {self.trigger_id}"
-                f" Site ID: {self.trigger_id}")
 
 
 # Moved
@@ -263,23 +267,6 @@ class MonitoringOperationalTriggers(UserMixin, DB.Model):
 #                 # must change db column name to alert_description instead of 'alert description'
 #                 # f" Alert Symbol: {self.alert_symbol} Alert Desc: {self.alert_description}")
 #                 f" Alert Symbol: {self.alert_symbol}")
-
-
-# Transfer to Analysis - Louie
-class MonitoringEndOfShiftAnalysis(UserMixin, DB.Model):
-    """
-    Class representation of end_of_shift_analysis table
-    """
-
-    __tablename__ = "end_of_shift_analysis"
-
-    event_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    shift_start = DB.Column(DB.DateTime, nullable=False)
-    analysis = DB.Column(DB.String(1500), nullable=False)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
-                f" Shift Start: {self.shift_start} Analysis: {self.analysis}")
 
 
 # Moved

@@ -8,30 +8,54 @@ from connection import DB
 from src.models.narratives import Narratives
 
 
-def get_narratives(event_id=None, start=None, end=None):
+def get_narratives(offset=None, limit=None, start=None, end=None, site_ids=None, include_count=None, search=None, event_id=None):
     """
         Returns one or more row/s of narratives.
 
         Args:
-            event_id (Integer) - 
-            start (datetime class) - 
-            end (datetime class) - 
+            offset (Integer) -
+            limit (Integer) -
+            start () -
+            end () -
+            site_ids (Integer) -
+            include_count (Boolean)
+            search (String)
+            event_id (Integer)
     """
     nar = Narratives
+    base = nar.query
 
-    # Convert timestamp string to Datetime
-    start = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
-    end = datetime.strptime(end, "%Y-%m-%d %H:%M:%S")
 
     if start is None and end is None:
-        time_filter = ""
+        pass
     else:
-        time_filter = nar.timestamp.between(start, end)
+        base = base.filter(nar.timestamp.between(start, end))
 
-    narratives = nar.query.order_by(
-        DB.desc(nar.timestamp)).filter(nar.event_id == event_id).filter(time_filter).all()
+    if not event_id:
+        if site_ids:
+            base = base.filter(nar.site_id.in_(site_ids))
 
-    return narratives
+        if search != "":
+            base = base.filter(nar.narrative.ilike("%" + search + "%"))
+
+        narratives = base.order_by(
+            DB.desc(nar.timestamp)).limit(limit).offset(offset).all()
+
+        if include_count:
+            count = get_narrative_count(base)
+            return [narratives, count]
+        else:
+            return narratives
+    else:
+        narratives = base.order_by(DB.asc(nar.timestamp)).filter(nar.event_id == event_id).all()
+        return narratives
+
+
+def get_narrative_count(q):
+    count_q = q.statement.with_only_columns([DB.func.count()]).order_by(None)
+    count = q.session.execute(count_q).scalar()
+
+    return count
 
 
 def write_narratives_to_db(site_id, timestamp, narrative, event_id=None):

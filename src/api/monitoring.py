@@ -31,7 +31,8 @@ from src.utils.monitoring import (
     get_max_possible_alert_level, format_candidate_alerts_for_insert,
     round_down_data_ts)
 from src.utils.extra import (create_symbols_map, var_checker,
-                             retrieve_data_from_memcache)
+                             retrieve_data_from_memcache, get_process_status_log,
+                             get_system_time)
 from src.experimental_scripts import public_alert_generator
 from src.experimental_scripts import candidate_alerts_generator
 
@@ -134,8 +135,17 @@ def wrap_get_monitoring_events(value=None):
     elif filter_type == "complete":
         offset = request.args.get('offset', default=0, type=int)
         limit = request.args.get('limit', default=5, type=int)
+        include_count = request.args.get(
+            "include_count", default="false", type=str)
+        site_ids = request.args.getlist("site_ids", type=int)
+        entry_types = request.args.getlist("entry_types", type=int)
+        status = request.args.get("status", type=str)
+        search = request.args.get("search", default="", type=str)
 
-        return_data = get_monitoring_events_table(offset=offset, limit=limit)
+        include_count = True if include_count.lower() == "true" else False
+
+        # return_data = get_monitoring_events_table(offset, limit)
+        return_data = get_monitoring_events_table(offset, limit, site_ids, entry_types, include_count, search, status)
     elif filter_type == "count":
         return_data = get_event_count()
     else:
@@ -542,6 +552,44 @@ def get_moms_id_list(moms_dictionary, site_id, event_id):
     return moms_id_list
 
 
+def get_moms_id_list(moms_dictionary, site_id, event_id):
+    """
+    Retrieves the moms ID list from the given list of MonitoringMOMS
+    Retrieves IDs from front-end if MonitoringMOMS entry is already
+    in the database or writes to the database if not yet in DB.
+
+    Args:
+        moms_dictionary (Dictionary) -> Either triggering moms dictionary or
+                        non-triggering moms dictionary
+
+    Returns list of moms_ids
+    """
+
+    moms_id_list = []
+    has_moms_ids = True
+    try:
+        # NOTE: If there are pre-inserted moms, get the id and use it here.
+        moms_id_list = moms_dictionary["moms_id_list"]
+    except:
+        has_moms_ids = False
+        pass
+
+    try:
+        moms_list = moms_dictionary["moms_list"]
+
+        for moms in moms_list:
+            moms_id = write_monitoring_moms_to_db(
+                moms, site_id, event_id)
+            moms_id_list.append(moms_id)
+    except KeyError as err:
+        print(err)
+        if not has_moms_ids:
+            raise Exception("No MOMS entry")
+        pass
+
+    return moms_id_list
+
+
 def is_rain_surficial_subsurface_trigger(alert_symbol):
     flag = False
     if alert_symbol in ["R", "S", "s", "G", "g"]:
@@ -565,6 +613,8 @@ def update_event_validity(new_validity, event_id):
 
 
 # @MONITORING_BLUEPRINT.route("/monitoring/insert_ewi_release", methods=["POST"])
+
+
 # # def insert_ewi_release(release_details, publisher_details, trigger_details):
 def insert_ewi_release(monitoring_instance_details, release_details, publisher_details, trigger_list_arr=None, non_triggering_moms=None):
     """
@@ -719,6 +769,10 @@ def insert_ewi(internal_json=None):
     it means re-release.
     If it is different, create a new event.
     """
+    return_data = None
+
+    print(get_process_status_log("insert", "start"))
+
     try:
         ############################
         # Variable Initializations #
@@ -1009,11 +1063,14 @@ def insert_ewi(internal_json=None):
             raise Exception(
                 "CUSTOM: Entry type specified in form is undefined. Check entry type options in the back-end.")
 
+        print(f"{get_system_time()} | Insert EWI Successful!")
+        return_data = "success"
     except Exception as err:
+        print(f"{get_system_time()} | Insert EWI FAILED!")
         print(err)
         raise
 
-    return "EWI Successfully inserted to DB"
+    return return_data
 
 
 ###############
@@ -1198,7 +1255,16 @@ def insert_cbewsl_moms_ewi_web():
                 "internal_sym_id": internal_sym_id
             }
 
-            if trigger_source == "moms":
+            if trigger_source == "rainfall":
+                trigger_entry = {
+                    **trigger_entry,
+                    "tech_info": trigger["info"]
+                }
+            elif trigger_source == "moms":
+                # Always trigger entry from app. Either m or M only.
+                feature_name = trigger["f_name"]
+                feature_type = trigger["f_type"]
+                remarks = trigger["remarks"]
 
                 moms_obs = {
                     "observance_ts": data_ts,
@@ -1207,8 +1273,8 @@ def insert_cbewsl_moms_ewi_web():
                     "report_narrative": f"[{feature_type}] {feature_name} - {remarks}",
                     "validator_id": user_id,
                     "instance_id": None,
-                    "feature_name": trigger["f_name"],
-                    "feature_type": trigger["f_type"],
+                    "feature_name": feature_name,
+                    "feature_type": feature_type,
                     "op_trigger": trigger_alert_level
                 }
 
@@ -1242,6 +1308,26 @@ def insert_cbewsl_moms_ewi_web():
             trigger_list_arr.append(moms_trigger)
 
         release_time = datetime.now().time()
+
+        internal_json_data = {
+            "site_id": 50,
+            "site_code": "umi",
+            "public_alert_level": public_alert_level,
+            "public_alert_symbol": public_alert_symbol,
+            "cbewsl_validity": json_data["alert_validity"],
+            "release_details": {
+                "data_ts": data_ts,
+                "trigger_list_str": "m",
+                "release_time": release_time,
+                "comments": ""
+            },
+            "non_triggering_moms": non_triggering_moms,
+            "publisher_details": {
+                "publisher_mt_id": user_id,
+                "publisher_ct_id": user_id,
+            },
+            "trigger_list_arr": trigger_list_arr
+        }
 
         internal_json_data = {
             "site_id": 50,

@@ -10,6 +10,8 @@ class Config(object):
     """
 
     # Put any config here
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    JSON_SORT_KEYS = False
 
 
 class DevelopmentConfig(Config):
@@ -36,6 +38,5 @@ class ProductionConfig(Config):
 APP_CONFIG = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
-    # "generated_alerts_path": "D:/Users/swat-dynaslope/Documents/DYNASLOPE-3.0/",
     "generated_alerts_path": "Documents/monitoringoutput/"
 }

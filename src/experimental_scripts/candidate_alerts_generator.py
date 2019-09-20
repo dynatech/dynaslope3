@@ -32,14 +32,17 @@ from src.utils.monitoring import (get_routine_sites, build_internal_alert_level,
                                   search_if_moms_is_released, round_to_nearest_release_time)
 from src.utils.extra import var_checker, retrieve_data_from_memcache
 
+# Every how many hours per release
+RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
 
-release_time = retrieve_data_from_memcache(
+ROU_EXT_RELEASE_TIME = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "ROUTINE_EXTENDED_RELEASE_TIME"}, retrieve_attr="var_value")
 
 # Currently 12; so data timestamp to get should be 30 minutes before
-dt = datetime.combine(date.today(), time(
-    hour=release_time, minute=0)) - timedelta(minutes=30)
-ROUTINE_EXTENDED_RELEASE_TIME = dt.time()
+DT = datetime.combine(date.today(), time(
+    hour=ROU_EXT_RELEASE_TIME, minute=0)) - timedelta(minutes=30)
+ROUTINE_EXTENDED_RELEASE_TIME = DT.time()
 
 ##########################
 # Utility functions here
@@ -351,7 +354,9 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
     # NOTE: LOUIE VARIABLES Routine Release Time
     global ROUTINE_EXTENDED_RELEASE_TIME
+    global RELEASE_INTERVAL_HOURS
     routine_extended_release_time = ROUTINE_EXTENDED_RELEASE_TIME
+    release_interval_hours = RELEASE_INTERVAL_HOURS
 
     routine_sites_list = []
     if query_end_ts.hour == routine_extended_release_time.hour:
@@ -403,12 +408,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 site_alert_ts = datetime.strptime(
                     site_w_alert["ts"], "%Y-%m-%d %H:%M:%S")
                 release_start_range = round_to_nearest_release_time(
-                    site_alert_ts) - timedelta(minutes=30)
+                    query_end_ts, release_interval_hours) - timedelta(minutes=30)
                 is_release_schedule_range = site_alert_ts >= release_start_range
-
-                var_checker("release_start_range", release_start_range, True)
-                var_checker("db_latest_release_ts", db_latest_release_ts, True)
-                var_checker("site_alert_ts", site_alert_ts, True)
 
                 # if incoming data_ts has not yet released:
                 is_new_release = db_latest_release_ts < site_alert_ts
@@ -586,7 +587,7 @@ def separate_with_alerts_wo_alerts(generated_alerts_list):
     return with_alerts, without_alerts
 
 
-def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
+def main(ts=None, generated_alerts_list=None):
     """
 
     Args:
@@ -604,8 +605,6 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
         query_end_ts = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
     # is_test_string = "We are in a test run!" if is_test else "Running with DB!"
     is_test_string = "Running with DB!"
-    print()
-    query_end_ts = datetime.now()
     print(
         f"Started at {start_run_ts}. {is_test_string}. QUERY END TS is {query_end_ts} | Candidate Alerts being generated for Release")
 
@@ -622,9 +621,6 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
         generated_alerts_list = get_generated_alerts_list_from_file(
             filepath, filename)
 
-    # Get Active DB Alerts
-    if check_legacy_candidate:
-        query_end_ts = round_down_data_ts(query_end_ts)
     db_alerts_dict = get_ongoing_extended_overdue_events(query_end_ts)
 
     # Split site with alerts and site with no alerts
@@ -641,7 +637,6 @@ def main(ts=None, generated_alerts_list=None, check_legacy_candidate=False):
     # NOTE: TAG LOWERING CANDIDATES
     # candidate_alerts_list = remove_for_lowering_sites(
     #     candidate_alerts_list, db_alerts_dict)
-
     # Convert data to JSON
     json_data = json.dumps(candidate_alerts_list)
 
