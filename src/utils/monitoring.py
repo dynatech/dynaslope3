@@ -421,13 +421,16 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                 # Late release
                 overdue.append(event_alert_data)
             else:
-                # Extended
-                start = get_tomorrow_noon(validity)
+                # EXTENDED
+                # Get Next Day 00:00
+                next_day = validity + timedelta(days=1)
+                start = datetime(next_day.year, next_day.month, next_day.day, 0, 0, 0)
                 # Day 3 is the 3rd 12-noon from validity
                 end = start + timedelta(days=extended_monitoring_days)
                 current = run_ts  # Production code is current time
                 # Count the days distance between current date and day 3 to know which extended day it is
-                day = extended_monitoring_days - (end - current).days
+                difference = end - current
+                day = extended_monitoring_days - difference.days
 
                 if day <= 0:
                     latest.append(event_alert_data)
@@ -627,7 +630,7 @@ def get_public_alert(site_id):
     result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(
         me).filter(me.site_id == site_id).first()
     if result:
-        result = result.public_alert_symbol.alert_symbol
+        result = result.public_alert_symbol
 
     return result
 
@@ -863,14 +866,14 @@ def write_moms_instances_to_db(instance_details):
     return return_data
 
 
-def search_if_feature_name_exists(feature_id, feature_name):
+def search_if_feature_name_exists(site_id, feature_id, feature_name):
     """
     Sample
     """
     mi = MomsInstances
     instance = None
     instance = mi.query.filter(
-        and_(mi.feature_name == feature_name, mi.feature_id == feature_id)).first()
+        and_(mi.site_id == site_id, mi.feature_name == feature_name, mi.feature_id == feature_id)).first()
 
     return instance
 
@@ -926,7 +929,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             else:
                 feature_id = moms_feature.feature_id
 
-            moms_instance = search_if_feature_name_exists(
+            moms_instance = search_if_feature_name_exists(site_id, 
                 feature_id, feature_name)
 
             if not moms_instance:

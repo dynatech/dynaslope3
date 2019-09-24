@@ -110,7 +110,7 @@ def wrap_get_internal_alert_symbols():
 @MONITORING_BLUEPRINT.route("/monitoring/get_site_public_alert", methods=["GET"])
 def wrap_get_site_public_alert():
     site_id = request.args.get('site_id', default=1, type=int)
-    return_data = get_public_alert(site_id)
+    return_data = get_public_alert(site_id).alert_symbol
     return return_data
 
 
@@ -1230,6 +1230,9 @@ def insert_cbewsl_moms_ewi_web():
         non_triggering_moms = {}
         non_trig_moms_list = []
 
+        raised_alert_level = get_public_alert(site_id=50).alert_level
+        insert_alert_level = 0
+
         for trigger in json_data["trig_list"]:
             int_sym = trigger["int_sym"]
             ots_row = retrieve_data_from_memcache(
@@ -1303,9 +1306,17 @@ def insert_cbewsl_moms_ewi_web():
                 "alert_level": highest_moms["op_trigger"], "source_id": 6}, retrieve_attr="alert_symbol")
 
             moms_trigger["alert_level"] = highest_moms["op_trigger"]
+            insert_alert_level = highest_moms["op_trigger"]
             moms_trigger["alert"] = alert_symbol
             trigger_list_arr.append(moms_trigger)
+        else:
+            insert_alert_level = raised_alert_level
 
+    except:
+        DB.session.rollback()
+        raise
+
+    if raised_alert_level < insert_alert_level:
         release_time = datetime.now().time()
 
         internal_json_data = {
@@ -1327,32 +1338,9 @@ def insert_cbewsl_moms_ewi_web():
             },
             "trigger_list_arr": trigger_list_arr
         }
-
-        internal_json_data = {
-            "site_id": 50,
-            "site_code": "umi",
-            "public_alert_level": public_alert_level,
-            "public_alert_symbol": public_alert_symbol,
-            "cbewsl_validity": json_data["alert_validity"],
-            "release_details": {
-                "data_ts": data_ts,
-                "trigger_list_str": "m",
-                "release_time": release_time,
-                "comments": ""
-            },
-            "non_triggering_moms": non_triggering_moms,
-            "publisher_details": {
-                "publisher_mt_id": user_id,
-                "publisher_ct_id": user_id,
-            },
-            "trigger_list_arr": trigger_list_arr
-        }
-
-    except:
-        DB.session.rollback()
-        raise
-
-    status = insert_ewi(internal_json_data)
+        status = insert_ewi(internal_json_data)
+    else:
+        status = "no ewi released"
 
     # return jsonify(internal_json_data)
     return status
