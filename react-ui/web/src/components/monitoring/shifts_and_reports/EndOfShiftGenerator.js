@@ -1,11 +1,14 @@
-import React, { Component, Fragment } from "react";
-import { Grid, withStyles, Button, withWidth, Paper } from "@material-ui/core";
+import React, { Component, Fragment, useState, useEffect } from "react";
+import moment from "moment";
+import { Grid, withStyles, Button, withWidth, Paper, Typography, CircularProgress } from "@material-ui/core";
 import { isWidthDown } from "@material-ui/core/withWidth";
 import { ArrowForwardIos } from "@material-ui/icons";
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 import { compose } from "recompose";
 import DetailedExpansionPanels from "./DetailedExpansionPanels";
+
+import { getEndOfShiftReports } from "../ajax";
 
 const styles = theme => ({
     inputGridContainer: {
@@ -39,11 +42,11 @@ function createDateTime ({ label, value, id }, handleDateTime) {
             autoOk
             label={label}
             value={value}
-            onChange={handleDateTime(id)}
+            onChange={handleDateTime}
             ampm={false}
             placeholder="2010/01/01 00:00"
             format="YYYY/MM/DD HH:mm"
-            mask="__/__/____ __:__"
+            mask="____/__/__ __:__"
             clearable
             disableFuture
             variant="outlined"
@@ -55,71 +58,110 @@ function createDateTime ({ label, value, id }, handleDateTime) {
     );
 }
 
-class EndOfShiftGenerator extends Component {
-    state = {
-        start_ts: null,
-        end_ts: null
-    }
+function prepareEOSRequest (startTs, setEosData, setIsLoading) {
+    const moment_start_ts = moment(startTs).format("YYYY-MM-DD HH:mm:ss");
+    const input = {
+        shift_start: moment_start_ts
+    };
 
-    changeState = (key, value) => {
-        this.setState({ [key]: value });
-    }
+    getEndOfShiftReports(input, ret => {
+        setEosData(ret);
+        setIsLoading(false);
+    });   
+}
 
-    handleDateTime = key => value => {
-        this.changeState(key, value);
-    }
+function EndOfShiftGenerator (props) {
+    const { classes, width } = props;
+    const [startTs, setStartTs] = useState(
+        moment().format("YYYY-MM-DD HH:mm:ss")
+    );
+    const [isLoading, setIsLoading] = useState(false);
+    const [eosData, setEosData] = useState(null);
 
-    render () {
-        const { classes, width } = this.props;
-        const { start_ts, end_ts } = this.state;
+    const handleDateTime = value => {
+        setStartTs(value);
+    };
 
-        return (
-            <Fragment>
-                <MuiPickersUtilsProvider utils={MomentUtils}>
-                    <Grid 
-                        container
-                        justify="space-between"
-                        alignContent="center"
-                        alignItems="center"
-                        spacing={4}
+    const handleClick = key => event => {
+        setIsLoading(true);
+        if (key === "generate_report") {
+            prepareEOSRequest(startTs, setEosData, setIsLoading);
+        }
+
+    };  
+
+    return (
+        <Fragment>
+            <MuiPickersUtilsProvider utils={MomentUtils}>
+                <Grid 
+                    container
+                    justify="space-between"
+                    alignContent="center"
+                    alignItems="center"
+                    spacing={4}
+                >
+                    {
+                        [
+                            { label: "Shift Start", value: startTs, id: "start_ts" },
+                        ].map(row => {
+                            const { id } = row;
+
+                            return (
+                                <Grid item xs={12} md={5} key={id} className={classes.inputGridContainer}>
+                                    { createDateTime(row, handleDateTime) }
+                                </Grid>
+                            );
+                        })
+                    }
+
+                    <Grid
+                        item xs={12} md={2}
+                        className={`${classes.inputGridContainer} ${classes.buttonGrid}`}
                     >
-                        {
-                            [
-                                { label: "Shift Start", value: start_ts, id: "start_ts" },
-                                { label: "Shift End", value: end_ts, id: "end_ts" },
-                            ].map(row => {
-                                const { id } = row;
-
-                                return (
-                                    <Grid item xs={12} md={5} key={id} className={classes.inputGridContainer}>
-                                        { createDateTime(row, this.handleDateTime) }
-                                    </Grid>
-                                );
-                            })
-                        }
-
-                        <Grid
-                            item xs={12} md={2}
-                            className={`${classes.inputGridContainer} ${classes.buttonGrid}`}
+                        <Button 
+                            variant="contained"
+                            color="secondary"
+                            size={isWidthDown("sm", width) ? "small" : "medium"}
+                            onClick={
+                                handleClick("generate_report")
+                            }
                         >
-                            <Button variant="contained" color="secondary" size={isWidthDown("sm", width) ? "small" : "medium"}>
-                                Generate <ArrowForwardIos className={classes.button} />
-                            </Button>
-                        </Grid>
+                            Generate <ArrowForwardIos className={classes.button} />
+                        </Button>
                     </Grid>
-                </MuiPickersUtilsProvider>
+                </Grid>
+            </MuiPickersUtilsProvider>
 
-                <div className={classes.expansionPanelsGroup}>
-                    <Paper>
-                        <DetailedExpansionPanels/>
-                        <DetailedExpansionPanels/>
-                        <DetailedExpansionPanels/>
-                    </Paper>
-                </div>
-                
-            </Fragment>
-        );
-    }
+            <div className={classes.expansionPanelsGroup}>
+                <Typography>
+                    End of Shift Reports for {moment(startTs).format("D MMMM YYYY, h:mm A")} Shift
+                    {
+                        isLoading &&
+                        <CircularProgress
+                            size={24}
+                            style={{
+                                marginLeft: 15,
+                                position: "relative",
+                                top: 4
+                            }}
+                        />
+                    }                    
+                </Typography>
+                <Paper>
+                    {
+                        eosData !== null && eosData.map(row => {
+                            const eos_report = row;
+                            // const {  } = eos_data;
+                            return (
+                                <DetailedExpansionPanels data={eos_report} />
+                            );
+                        })
+                    }
+                </Paper>
+            </div>
+            
+        </Fragment>
+    );
 }
 
 export default compose(withWidth(), withStyles(styles))(EndOfShiftGenerator);

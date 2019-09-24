@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from "react";
+import React, { Component, Fragment, useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { withStyles } from "@material-ui/core/styles";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
@@ -13,6 +13,9 @@ import { TextField, Grid } from "@material-ui/core";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { compose } from "recompose";
 import { Refresh, SaveAlt, Send } from "@material-ui/icons";
+import CKEditor from "@ckeditor/ckeditor5-react";
+import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import CheckboxesGroup from "../../reusables/CheckboxGroup";
 
 const styles = theme => ({
     root: {
@@ -50,84 +53,130 @@ const styles = theme => ({
     },
 });
 
-class DetailedExpansionPanel extends Component {
-    state = {
-        shift_summary: "",
-        data_analysis: "",
-        shift_narratives: ""
-    }
 
-    showTextLabel = (label, width) => (
+function createNodeElement (value) {
+    // const placeholder = document.createElement("div");
+    // placeholder.innerHTML = value;
+    // const node = placeholder;
+    // console.log(node);
+    // const doc = new DOMParser().parseFromString(value, "text/xml");
+    // console.log(doc);
+    // // return node;
+    // return doc.firstChild.innerHTML;
+    return value;
+}
+
+
+function DetailedExpansionPanel (props) {
+    const { data: eos_report, classes, width } = props;
+    const [siteCode, setSiteCode] = useState("");
+    const [shiftSummary, setShiftSummary] = useState("");
+    const [dataAnalysis, setDataAnalysis] = useState("");
+    const [shiftNarratives, setShiftNarratives] = useState("");
+
+    useEffect(() => {
+        const {
+            site_code, eos_head, shift_start_info,
+            shift_end_info, data_analysis, narratives 
+        } = eos_report;
+
+        setSiteCode(site_code);
+        const node_shift_summary = `${eos_head}<br />${shift_start_info}<br /><br />${shift_end_info}`;
+        setShiftSummary(node_shift_summary);
+        setDataAnalysis(data_analysis);
+        setShiftNarratives(narratives);
+    }, []);
+
+    const showTextLabel = (label, width) => (
         isWidthUp("sm", width) ? <span style={{ paddingLeft: 6 }}>{label}</span> : ""
-    )
+    );
 
-    changeState = (key, value) => {
-        this.setState({ [key]: value });
+    const changeState = (key, value) => {
+        const dictionary = {
+            shift_summary: setShiftSummary,
+            data_analysis: setDataAnalysis,
+            shift_narratives: setShiftNarratives
+        };
+        const node = createNodeElement(value);
+        dictionary[key](node);
     };
 
-    handleEventChange = key => event => {
+    const handleEventChange = key => event => {
         const { value } = event.target;
-        this.changeState(key, value);
-    }
+        changeState(key, value);
+    };
 
-    render () {
-        const { classes, width } = this.props;
-        const { shift_summary, data_analysis, shift_narratives } = this.state;
-
-        return (
-            <Fragment>
-                <ExpansionPanel>
-                    <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
-                        <div className={classes.column}>
-                            <Typography className={classes.heading}>AGB</Typography>
-                        </div>
-                        <div className={classes.column}>
-                            <Typography className={classes.secondaryHeading}>Shift Report</Typography>
-                        </div>
-                    </ExpansionPanelSummary>
-                    <Divider />
-                    <ExpansionPanelDetails className={classes.details}>
-                        <Grid container>
-                            {
-                                [
-                                    { label: "Shift Summary", value: shift_summary, key: "shift_summary" },
-                                    { label: "Data Analysis", value: data_analysis, key: "data_analysis" },
-                                    { label: "Shift Narratives", value: shift_narratives, key: "shift_narratives" }
-                                ].map(({ label, value, key }) => (
-                                    <Grid item xs={12} key={key}>
-                                        <TextField
-                                            label={label}
-                                            multiline
-                                            rowsMax="4"
-                                            placeholder={`Enter ${label.toLowerCase()} details`}
-                                            value={value}
-                                            onChange={this.handleEventChange(key)}
-                                            margin="normal"
-                                            variant="outlined"
-                                            fullWidth
-                                        />
-                                    </Grid>
-                                ))
-                            }
+    return (
+        <Fragment>
+            <ExpansionPanel>
+                <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
+                    <div className={classes.column}>
+                        <Typography className={classes.heading}>{siteCode.toUpperCase()}</Typography>
+                    </div>
+                    <div className={classes.column}>
+                        <Typography className={classes.secondaryHeading}>Shift Report</Typography>
+                    </div>
+                </ExpansionPanelSummary>
+                <Divider />
+                <ExpansionPanelDetails className={classes.details}>
+                    <Grid container>
+                        <Grid item xs={12}>
+                            <CheckboxesGroup />
                         </Grid>
-                    </ExpansionPanelDetails>
-                    <Divider />
-                    <ExpansionPanelActions>
-                        <Button size="small">
-                            <SaveAlt className={classes.icons} /> {this.showTextLabel("Download Charts", width)}
-                        </Button>
-                        <Button size="small">
-                            <Refresh className={classes.icons} /> {this.showTextLabel("Refresh", width)}
-                        </Button>
-                        <Button size="small" color="primary">
-                            <Send className={classes.icons} /> {this.showTextLabel("Send", width)}
-                        </Button>
-                    </ExpansionPanelActions>
-                </ExpansionPanel>
-            </Fragment>
-        );
-    }
+                        {   
+                            [
+                                { label: "Shift Summary", value: shiftSummary, key: "shift_summary" },
+                                { label: "Data Analysis", value: dataAnalysis, key: "data_analysis" },
+                                { label: "Shift Narratives", value: shiftNarratives, key: "shift_narratives" }
+                            ].map(({ label, value, key }) => (
+                                <Grid item xs={12} key={key}>
+                                    <Typography variant="h6" className={classes.heading}>
+                                        {label}
+                                    </Typography>
+                                    <CKEditor
+                                        editor={ ClassicEditor }
+                                        // data="<strong>END-OF-SHIFT REPORT (AJ,             KG)</strong> <br /><br /><b>SHIFT START:<br/>            January 12, 2019, 07:30 AM</b> <br />- Monitoring continued with the following recent trigger/s: <ul><li> Rainfall - alerted on                     January 12, 2019, 03:30 AM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (60.00 mm) exceeded threshold (58.10 mm))</li><li> Rainfall - alerted on                     January 11, 2019, 11:30 PM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (60.50 mm) exceeded threshold (58.10 mm))</li><li> Rainfall - alerted on                     January 11, 2019, 08:00 PM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (58.50 mm) exceeded threshold (58.10 mm))</li></ul>- Event monitoring started on January 11, 2019, 08:00 PM due toaccumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (58.50 mm) exceeded threshold (58.10 mm)).<br /><b>SHIFT END:<br/>January 12, 2019, 08:30 PM</b><br />- Alert <b>lowered to A0</b>; monitoring ended at <b>             2019-01-13 12:00:00</b>.<br/>"
+                                        data="<p>Hi! Starting entering data</p>"
+                                        onInit={ editor => {
+                                        // You can store the "editor" and use when it is needed.
+                                            editor.setData(value);
+                                            console.log( "Editor is ready to use!", editor );
+                                        } }
+                                        onChange={ ( event, editor ) => {
+                                            const data = editor.getData();
+
+                                            console.log( { event, editor, data } );
+                                        } }
+                                        onBlur={ ( event, editor ) => {
+                                            console.log( "Blur.", editor );
+                                        } }
+                                        onFocus={ ( event, editor ) => {
+                                            console.log( "Focus.", editor );
+                                        } }
+                                    />                                    
+                                </Grid>
+                            )
+                            )
+                        }
+                    </Grid>
+                </ExpansionPanelDetails>
+                <Divider />
+                <ExpansionPanelActions>
+                    <Button size="small">
+                        <SaveAlt className={classes.icons} /> {showTextLabel("Download Charts", width)}
+                    </Button>
+                    <Button size="small">
+                        <Refresh className={classes.icons} /> {showTextLabel("Refresh", width)}
+                    </Button>
+                    <Button size="small" color="primary">
+                        <Send className={classes.icons} /> {showTextLabel("Send", width)}
+                    </Button>
+                </ExpansionPanelActions>
+            </ExpansionPanel>
+        </Fragment>
+    );
 }
+
 
 DetailedExpansionPanel.propTypes = {
     classes: PropTypes.object.isRequired,

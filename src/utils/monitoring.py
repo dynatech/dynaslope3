@@ -16,10 +16,11 @@ from src.models.monitoring import (
     TriggerHierarchies, OperationalTriggerSymbols,
     MonitoringEventAlertsSchema, OperationalTriggers,
     MonitoringMoms as moms, MomsInstances as mi)
-from src.models.sites import Seasons, RoutineSchedules
+from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
-    var_checker, create_symbols_map, retrieve_data_from_memcache)
+    var_checker, create_symbols_map, retrieve_data_from_memcache, get_system_time,
+    get_process_status_log)
 from src.utils.narratives import write_narratives_to_db
 
 
@@ -124,13 +125,12 @@ def compute_event_validity(data_ts, alert_level):
     Returns datetime
     """
 
-    pas_row = retrieve_data_from_memcache(
-        "public_alert_symbols", {"alert_level": alert_level})
-    duration = int(pas_row["duration"])
+    duration = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": alert_level}, retrieve_attr="duration")
 
     rounded_data_ts = round_to_nearest_release_time(data_ts)
 
-    validity = rounded_data_ts + timedelta(hours=duration)
+    validity = rounded_data_ts + timedelta(hours=int(duration))
 
     return validity
 
@@ -244,14 +244,21 @@ def update_alert_status(as_details):
                     "user_id", 1
                 }
     """
-    return_data = None
+    print(get_process_status_log("update_alert_status", "start"))
 
+    return_data = None
     try:
         trigger_id = as_details["trigger_id"]
         alert_status = as_details["alert_status"]
         remarks = as_details["remarks"]
         user_id = as_details["user_id"]
         ts_ack = datetime.now()
+
+        try:
+            ts_last_retrigger = as_details["trigger_ts"]
+        except KeyError:
+            ts_last_retrigger = datetime.now()
+            pass
 
         alert_status_result = check_if_alert_status_entry_in_db(
             trigger_id)
@@ -265,7 +272,9 @@ def update_alert_status(as_details):
                 alert_status_result.remarks = remarks
                 alert_status_result.user_id = user_id
 
-                return_data = f"Trigger ID [{trigger_id}] alert_status is updated as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
+                print(
+                    f"Trigger ID [{trigger_id}] alert_status is updated as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                return_data = "success"
             except Exception as err:
                 DB.session.rollback()
                 print("Alert status found but has an error.")
@@ -275,7 +284,7 @@ def update_alert_status(as_details):
             # return_data = f"Alert ID [{trigger_id}] provided DOES NOT EXIST!"
             try:
                 alert_stat = AlertStatus(
-                    ts_last_retrigger=ts_ack,
+                    ts_last_retrigger=ts_last_retrigger,
                     trigger_id=trigger_id,
                     ts_set=ts_ack,
                     ts_ack=ts_ack,
@@ -287,8 +296,9 @@ def update_alert_status(as_details):
                 DB.session.flush()
 
                 stat_id = alert_stat.stat_id
-                return_data = f"New alert status written with ID: {stat_id}." + \
-                    f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\""
+                print(f"New alert status written with ID: {stat_id}." +
+                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                return_data = "success"
 
             except Exception as err:
                 DB.session.rollback()
@@ -512,21 +522,69 @@ def get_internal_alert_symbols(internal_sym_id=None):
 #############################################
 
 
-def get_monitoring_releases(release_id=None):
+def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_id=None):
     """
-    Something
-    """
+    Returns monitoring_releases based on given parameters.
 
-    # NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
-    if release_id is None:
-        release = MonitoringReleases.query.order_by(
-            DB.desc(MonitoringReleases.release_id)).all()
+    Args:
+        release_id (Integer) -
+        ts_start (Datetime) -
+        ts_end (Datetime) -
+    """
+    mr = MonitoringReleases
+    base = mr.query
+    return_data = None
+    if release_id:
+        return_data = base.filter(
+            mr.release_id == release_id).first()
+    elif ts_start and ts_end:
+        me = MonitoringEvents
+        mea = MonitoringEventAlerts
+        base = base.order_by(DB.desc(mr.data_ts)).filter(DB.and_(
+            ts_start < mr.data_ts, mr.data_ts < ts_end
+        ))
+        if event_id:
+            base = base.join(mea).join(me).filter(me.event_id)
+        
+        return_data = base.all()
     else:
-        release = MonitoringReleases.query.filter(
-            MonitoringReleases.release_id == release_id).first()
+        return_data = base.order_by(
+            DB.desc(mr.release_time)).all()
 
-    return release
+    return return_data
 
+
+def get_monitoring_triggers(event_id=None, event_alert_id=None, release_id=None, ts_start=None, ts_end=None, return_one=False, order_by_desc=True):
+    """
+    NOTE: To fill
+    """
+    mt = MonitoringTriggers
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    mr = MonitoringReleases
+    base = mt.query
+
+    if ts_start and ts_end:
+        base = base.filter(DB.and_(ts_start < mt.ts, mt.ts < ts_end))
+
+    if event_id:
+        base = base.join(mr).join(mea).join(me).filter(me.event_id == event_id)
+    elif event_alert_id:
+        base = base.join(mr).join(mea).filter(mea.event_alert_id == event_alert_id)
+    elif release_id:
+        base = base.join(mr).filter(mr.release_id == release_id)
+    
+    if order_by_desc:
+        base = base.order_by(DB.desc(mt.ts))
+    else:
+        base = base.order_by(DB.asc(mt.ts))
+    
+    if return_one:
+        return_data = base.first()
+    else:
+         return_data = base.all()
+
+    return return_data
 
 ##########################################
 #   MONITORING_EVENT RELATED FUNCTIONS   #
@@ -545,30 +603,20 @@ def get_public_alert(site_id):
 
 def get_event_count(filters=None):
     if filters:
-        print("Filters!")
-        return_data = 10000
+        return_data = filters.count()
     else:
         return_data = MonitoringEvents.query.count()
 
     return return_data
 
 
-def get_monitoring_events_table(offset, limit):
-    me = MonitoringEvents
+def format_events_table_data(events):
+    """
+    Organizes data required by the front end table
+    """
     mea = MonitoringEventAlerts
-    #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
-    # DB.session.query(
-    #     me, mea.pub_sym_id,
-    #     mea.ts_start, mea.ts_end).join(mea).order_by(
-    #         DB.desc(me.event_id),
-    #         DB.desc(mea.event_alert_id)
-    #         ).all()[offset:limit]
-
-    #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
-    temp = me.query.order_by(DB.desc(me.event_id)).all()[offset:limit]
-
     event_data = []
-    for event in temp:
+    for event in events:
         if event.status == 2:
             entry_type = "EVENT"
         else:
@@ -594,8 +642,99 @@ def get_monitoring_events_table(offset, limit):
             "ts_end": latest_event_alert.ts_end
         }
         event_data.append(event_dict)
-
+    
     return event_data
+
+
+def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_count, search, status):
+    """
+        Returns one or more row/s of narratives.
+
+        Args:
+            offset (Integer) -
+            limit (datetime) -
+            site_ids (datetime) -
+            include_count
+            search
+    """
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    
+    # base = me.query.order_by(DB.desc(me.event_id))
+    base = me.query.join(Sites).join(mea)
+
+    if site_ids:
+        var_checker("site_ids", site_ids, True)
+        base = base.filter(me.site_id.in_(site_ids))
+
+    if entry_types:
+        var_checker("entry_types", entry_types, True)
+        base = base.filter(me.status.in_(entry_types))
+
+    if search != "":
+        base = base.filter(DB.or_(mea.ts_start.ilike("%" + search + "%"), mea.ts_end.ilike("%" + search + "%")))
+
+    events = base.order_by(
+        DB.desc(me.event_id)).all()[offset:limit]
+
+    formatted_events = format_events_table_data(events)
+
+    if include_count:
+        count = get_event_count(base)
+        return_data = {
+            "events": formatted_events,
+            "count":count
+        }
+    else:
+        return_data = formatted_events
+
+    var_checker("return_data", return_data, True)
+    return return_data
+
+
+# def get_monitoring_events_table(offset, limit):
+#     me = MonitoringEvents
+#     mea = MonitoringEventAlerts
+#     #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
+#     # DB.session.query(
+#     #     me, mea.pub_sym_id,
+#     #     mea.ts_start, mea.ts_end).join(mea).order_by(
+#     #         DB.desc(me.event_id),
+#     #         DB.desc(mea.event_alert_id)
+#     #         ).all()[offset:limit]
+
+#     #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
+#     temp = me.query.order_by(DB.desc(me.event_id)).all()[offset:limit]
+
+#     event_data = []
+#     for event in temp:
+#         if event.status == 2:
+#             entry_type = "EVENT"
+#         else:
+#             entry_type = "ROUTINE"
+
+#         latest_event_alert = event.event_alerts.order_by(
+#             DB.desc(mea.event_alert_id)).first()
+
+#         event_dict = {
+#             "event_id": event.event_id,
+#             "site_id": event.site.site_id,
+#             "site_code": event.site.site_code,
+#             "purok": event.site.purok,
+#             "sitio": event.site.sitio,
+#             "barangay": event.site.barangay,
+#             "municipality": event.site.municipality,
+#             "province": event.site.province,
+#             "event_start": event.event_start,
+#             "validity": event.validity,
+#             "entry_type": entry_type,
+#             "public_alert": latest_event_alert.public_alert_symbol.alert_symbol,
+#             "ts_start": latest_event_alert.ts_start,
+#             "ts_end": latest_event_alert.ts_end
+#         }
+#         event_data.append(event_dict)
+
+#     return event_data
 
 
 def get_monitoring_events(event_id=None):
@@ -818,17 +957,17 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         DB.session.add(moms)
         DB.session.flush()
 
-        th_row = retrieve_data_from_memcache(
-            "trigger_hierarchies", {"trigger_source": "moms"})
-        ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+        source_id = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": "moms"}, retrieve_attr="source_id")
+        trigger_sym_id = retrieve_data_from_memcache("operational_trigger_symbols", {
             "alert_level": op_trigger,
-            "source_id": th_row["source_id"]
-        })
+            "source_id": source_id
+        }, retrieve_attr="trigger_sym_id")
 
         new_op_trigger = OperationalTriggers(
             ts=observance_ts,
             site_id=site_id,
-            trigger_sym_id=ots_row["trigger_sym_id"],
+            trigger_sym_id=trigger_sym_id,
             ts_updated=observance_ts,
         )
 
@@ -883,9 +1022,8 @@ def build_internal_alert_level(public_alert_level, trigger_list=None):
                     Can be set as none since this is optional
     """
 
-    pas_row = retrieve_data_from_memcache(
-        "public_alert_symbols", {"alert_level": public_alert_level})
-    p_a_symbol = pas_row["alert_symbol"]
+    p_a_symbol = retrieve_data_from_memcache(
+        "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
     if public_alert_level > 0:
         internal_alert_level = f"{p_a_symbol}-{trigger_list}"
 
@@ -898,3 +1036,84 @@ def build_internal_alert_level(public_alert_level, trigger_list=None):
             internal_alert_level = trigger_list
 
     return internal_alert_level
+
+
+def fix_internal_alert(alert_entry, internal_source_id):
+    """
+    Changes the internal alert string of each alert entry.
+    """
+    event_triggers = alert_entry["event_triggers"]
+    internal_alert = alert_entry["internal_alert"]
+    valid_alert_levels = []
+    invalid_triggers = []
+    trigger_list_str = None
+
+    for trigger in trigger_list_arr:
+        alert_level = trigger["alert_level"]
+        alert_symbol = trigger["alert_symbol"]
+        internal_sym_id = trigger["internal_sym_id"]
+        trigger_type = trigger["trigger_type"]
+
+        try:
+            if True:
+                print("Oh yes!")
+        except Exception as err:
+            print(err)
+            raise
+
+    for trigger in event_triggers:
+        alert_symbol = trigger["alert"]
+        ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                              "alert_symbol": alert_symbol})
+        trigger["internal_sym_id"] = ots_row["internal_alert_symbol"]["internal_sym_id"]
+
+        # trigger["internal_sym_id"] = IAS_X_OTS_MAP["alert_symbol",
+        #                                            alert_symbol]["internal_alert_id"]
+        source_id = trigger["source_id"]
+        alert_level = trigger["alert_level"]
+        op_trig_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+            "alert_level": alert_level, "source_id": source_id})
+        internal_alert_symbol = op_trig_row["internal_alert_symbol"]["alert_symbol"]
+
+        try:
+            if trigger["invalid"]:
+                invalid_triggers.append(trigger)
+                internal_alert = re.sub(
+                    r"%s(0|x)?" % internal_alert_symbol, "", internal_alert)
+
+        except KeyError:  # If valid, trigger should have no "invalid" key
+            valid_a_l = retrieve_data_from_memcache("operational_trigger_symbols", {
+                "alert_symbol": alert_symbol}, retrieve_attr="alert_level")
+            valid_alert_levels.append(valid_a_l)
+
+    highest_valid_public_alert = 0
+    if valid_alert_levels:
+        # Get the maximum valid alert level
+        highest_valid_public_alert = max(valid_alert_levels)
+
+        validity_status = "valid"
+        if invalid_triggers:  # If there are invalid triggers, yet there are valid triggers.
+            validity_status = "partially_invalid"
+    else:
+        validity_status = "invalid"
+
+    public_alert_sym = internal_alert.split("-")[0]
+    op_trig_row = retrieve_data_from_memcache("operational_trigger_symbols", {
+        "alert_level": -1, "source_id": internal_source_id})
+    nd_internal_alert_sym = op_trig_row["internal_alert_symbol"]["alert_symbol"]
+
+    is_nd = public_alert_sym == nd_internal_alert_sym
+    if is_nd:
+        trigger_list_str = nd_internal_alert_sym
+    elif highest_valid_public_alert != 0:
+        trigger_list_str = ""
+
+    try:
+        if is_nd:
+            trigger_list_str += "-"
+
+        trigger_list_str += internal_alert.split("-")[1]
+    except:
+        pass
+
+    return highest_valid_public_alert, trigger_list_str, validity_status

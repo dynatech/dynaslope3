@@ -764,6 +764,7 @@ class MonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
     """
 
     reporter = fields.Nested("UsersSchema",)
+    request_ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     narrative = fields.Nested("NarrativesSchema")
 
     class Meta:

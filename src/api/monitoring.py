@@ -30,7 +30,8 @@ from src.utils.monitoring import (
     get_ongoing_extended_overdue_events, update_alert_status,
     get_max_possible_alert_level, format_candidate_alerts_for_insert)
 from src.utils.extra import (create_symbols_map, var_checker,
-                             retrieve_data_from_memcache)
+                             retrieve_data_from_memcache, get_process_status_log,
+                             get_system_time)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -132,8 +133,17 @@ def wrap_get_monitoring_events(value=None):
     elif filter_type == "complete":
         offset = request.args.get('offset', default=0, type=int)
         limit = request.args.get('limit', default=5, type=int)
+        include_count = request.args.get(
+            "include_count", default="false", type=str)
+        site_ids = request.args.getlist("site_ids", type=int)
+        entry_types = request.args.getlist("entry_types", type=int)
+        status = request.args.get("status", type=str)
+        search = request.args.get("search", default="", type=str)
 
-        return_data = get_monitoring_events_table(offset=offset, limit=limit)
+        include_count = True if include_count.lower() == "true" else False
+
+        # return_data = get_monitoring_events_table(offset, limit)
+        return_data = get_monitoring_events_table(offset, limit, site_ids, entry_types, include_count, search, status)
     elif filter_type == "count":
         return_data = get_event_count()
     else:
@@ -662,6 +672,10 @@ def insert_ewi(internal_json=None):
     it means re-release.
     If it is different, create a new event.
     """
+    return_data = None
+
+    print(get_process_status_log("insert", "start"))
+
     try:
         ############################
         # Variable Initializations #
@@ -901,11 +915,14 @@ def insert_ewi(internal_json=None):
             raise Exception(
                 "CUSTOM: Entry type specified in form is undefined. Check entry type options in the back-end.")
 
+        print(f"{get_system_time()} | Insert EWI Successful!")
+        return_data = "success"
     except Exception as err:
+        print(f"{get_system_time()} | Insert EWI FAILED!")
         print(err)
         raise
 
-    return "EWI Successfully inserted to DB"
+    return return_data
 
 
 ###############
@@ -979,9 +996,8 @@ def insert_cbewsl_ewi():
     try:
         json_data = request.get_json()
         public_alert_level = json_data["alert_level"]
-        pas_row = retrieve_data_from_memcache(
-            "public_alert_symbols", {"alert_level": public_alert_level})
-        public_alert_symbol = pas_row["alert_symbol"]
+        public_alert_symbol = retrieve_data_from_memcache(
+            "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
         user_id = json_data["user_id"]
         data_ts = str(datetime.strptime(
             json_data["data_ts"], "%Y-%m-%d %H:%M:%S"))
@@ -1060,11 +1076,11 @@ def insert_cbewsl_ewi():
         if moms_trigger:
             highest_moms = next(iter(sorted(
                 moms_trigger["moms_list"], key=lambda x: x["op_trigger"], reverse=True)), None)
-            ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
-                                                  "alert_level": highest_moms["op_trigger"], "source_id": 6})
+            alert_symbol = retrieve_data_from_memcache("operational_trigger_symbols", {
+                "alert_level": highest_moms["op_trigger"], "source_id": 6}, retrieve_attr="alert_symbol")
 
             moms_trigger["alert_level"] = highest_moms["op_trigger"]
-            moms_trigger["alert"] = ots_row["alert_symbol"]
+            moms_trigger["alert"] = alert_symbol
             trigger_list_arr.append(moms_trigger)
 
         release_time = datetime.strftime(datetime.now(), "%Y-%m-%d %H:%M:%S")

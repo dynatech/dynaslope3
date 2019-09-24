@@ -8,36 +8,46 @@ from connection import DB
 from src.models.narratives import Narratives
 
 
-def get_narratives(offset, limit, start, end, site_ids, include_count, search):
+def get_narratives(offset=None, limit=None, start=None, end=None, site_ids=None, include_count=None, search=None, event_id=None):
     """
         Returns one or more row/s of narratives.
 
         Args:
-            event_id (Integer) - 
-            start (datetime) - 
-            end (datetime) - 
+            offset (Integer) -
+            limit (Integer) -
+            start () -
+            end () -
+            site_ids (Integer) -
+            include_count (Boolean)
+            search (String)
+            event_id (Integer)
     """
     nar = Narratives
     base = nar.query
+
 
     if start is None and end is None:
         pass
     else:
         base = base.filter(nar.timestamp.between(start, end))
 
-    if site_ids:
-        base = base.filter(nar.site_id.in_(site_ids))
+    if not event_id:
+        if site_ids:
+            base = base.filter(nar.site_id.in_(site_ids))
 
-    if search != "":
-        base = base.filter(nar.narrative.ilike("%" + search + "%"))
+        if search != "":
+            base = base.filter(nar.narrative.ilike("%" + search + "%"))
 
-    narratives = base.order_by(
-        DB.desc(nar.timestamp)).limit(limit).offset(offset).all()
+        narratives = base.order_by(
+            DB.desc(nar.timestamp)).limit(limit).offset(offset).all()
 
-    if include_count:
-        count = get_narrative_count(base)
-        return [narratives, count]
+        if include_count:
+            count = get_narrative_count(base)
+            return [narratives, count]
+        else:
+            return narratives
     else:
+        narratives = base.order_by(DB.asc(nar.timestamp)).filter(nar.event_id == event_id).all()
         return narratives
 
 

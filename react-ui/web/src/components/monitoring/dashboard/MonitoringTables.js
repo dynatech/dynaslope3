@@ -1,37 +1,25 @@
-import React, { Fragment } from "react";
+import React, { Fragment, useState } from "react";
 import {
     Grid, Paper, Table, TableHead,
     TableBody, TableRow, TableCell, Typography,
     Divider, Button, ButtonGroup
 } from "@material-ui/core";
-import { withStyles } from "@material-ui/core/styles";
+import { withStyles, makeStyles } from "@material-ui/core/styles";
 import { isWidthUp } from "@material-ui/core/withWidth";
 
-import { makeStyles } from "@material-ui/core/styles";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
 import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
 import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import GeneralStyles from "../../../GeneralStyles";
+import ValidationModal from "./ValidationModal";
+import useModal from "../../reusables/useModal";
 
 const styles = theme => ({
     monitoringTable: {
         minWidth: "700px"
     }
 });
-
-let id = 0;
-function createData (name, calories, fat, carbs, protein) {
-    id += 1;
-    return { id, name, calories, fat, carbs, protein };
-}
-
-const rows = [
-    createData("HIN", "08 April 2019 09:30", "08 April 2019 09:30", "R1", "09 April 2019 12:00"),
-    createData("LAB", "08 April 2019 09:30", "08 April 2019 09:30", "R1", "09 April 2019 12:00"),
-    createData("BAR", "08 April 2019 09:30", "---", "---", "End of Validity"),
-    createData("ROUTINE", "08 April 2019 09:30", "---", "---", "---"),
-];
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -67,19 +55,50 @@ const useStyles = makeStyles(theme => ({
     }
 }));
 
+function release_candidate (site_code, candidate_data) {
+    console.log(`Releasing candidate for site ${site_code}`);
+    console.log("DATA", candidate_data);
+}
+
+function open_validation_modal (site, trigger_id, ts_updated) {
+    console.log(site, trigger_id, ts_updated);
+    const data = {
+        site, trigger_id, ts_updated
+    };
+
+    return (
+        <ValidationModal data={data} />
+    );
+}
+
 function MonitoringTables (props) {
-    const { candidateAlertsData, alertsFromDbData, width } = props;
+    const {
+        candidateAlertsData, alertsFromDbData, width,
+        releaseFormOpenHandler, chosenCandidateHandler
+    } = props;
+    // console.log("candidateAlertsData", candidateAlertsData);
+    // console.log("alertsFromDbData", alertsFromDbData);
     const classes = useStyles();
-    const [expanded, setExpanded] = React.useState(false);
+    const [expanded, setExpanded] = useState(false);
+    const { isShowing, toggle } = useModal();
+    // const { isShowing: isAlertFormShowing, toggle: alertFromToggle } = useModal();
 
     const handleChange = panel => (event, isExpanded) => {
         setExpanded(isExpanded ? panel : false);
+    };
+
+    const handleOnClick = (chosen_candidate) => () => {
+        console.log(chosen_candidate);
+        chosenCandidateHandler(chosen_candidate);
+        releaseFormOpenHandler();
     };
 
     const is_desktop = isWidthUp("md", width);
 
     const latest_db_alerts = [];
     const { latest, extended, overdue } = alertsFromDbData;
+    let as_details = {};
+
     // latest_db_alerts = latest;
     return (
         <div className={classes.root}>
@@ -153,8 +172,7 @@ function MonitoringTables (props) {
                                                             has_new_triggers
                                                                 ?
                                                                 trigger_arr.map((trigger, key) => {
-                                                                    const { ts_updated, alert, tech_info } = trigger;
-                                                                    console.log(trigger);
+                                                                    const { ts_updated, alert, tech_info, trigger_id } = trigger;
                                                                     let trigger_validity = "VALID";
                                                                     try {
                                                                         const { invalid } = trigger;
@@ -165,6 +183,10 @@ function MonitoringTables (props) {
                                                                     catch (err) {
                                                                         // PASS
                                                                     }
+
+                                                                    as_details = {
+                                                                        site, trigger_id, ts_updated
+                                                                    };
                                                                     // const formatted_ts = moment(ts_updated).format("D MMMM YYYY, h:mm");
                                                                     return (
                                                                         <Fragment>
@@ -174,8 +196,16 @@ function MonitoringTables (props) {
                                                                             </Grid>
                                                                             <Grid item xs={12} sm={3} style={{ textAlign: is_desktop ? "center" : "right" }}>
                                                                                 <ButtonGroup variant="contained" color="secondary" size="small" aria-label="Alert Actions">
-                                                                                    <Button disabled>Invalidate</Button>
-                                                                                    <Button>Validate</Button>
+                                                                                    <Button
+                                                                                        onClick={toggle}
+                                                                                    >
+                                                                                        Validate
+                                                                                    </Button>
+                                                                                    <ValidationModal
+                                                                                        isShowing={isShowing}
+                                                                                        data={as_details}
+                                                                                        hide={toggle}
+                                                                                    />
                                                                                 </ButtonGroup>
                                                                             </Grid>
                                                                         </Fragment>
@@ -190,7 +220,12 @@ function MonitoringTables (props) {
                                                 </Grid>
                                                 <Grid item xs={12} align="right">
                                                     <ButtonGroup variant="contained" color="primary" size="small" aria-label="Alert Actions">
-                                                        <Button>Release Candidate Alert</Button>
+                                                        {/* <Button onClick={(e) => release_candidate(site, row)}>Release Candidate Alert</Button> */}
+                                                        <Button
+                                                            onClick={handleOnClick(row)}
+                                                        >
+                                                            Release Candidate Alert
+                                                        </Button>
                                                     </ButtonGroup>
                                                 </Grid>
                                             </Grid>
@@ -295,6 +330,7 @@ function MonitoringTables (props) {
                     }
                 </Grid>
             </Grid>
+
         </div>
     );
 }
