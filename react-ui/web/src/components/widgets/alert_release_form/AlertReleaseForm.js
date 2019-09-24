@@ -252,6 +252,7 @@ function SummaryForm (props) {
 }
 
 function AlertReleaseForm (props) {
+    console.log(props);
     const {
         classes, activeStep, generalData,
         setGeneralData

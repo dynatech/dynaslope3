@@ -9,12 +9,13 @@ import Typography from "@material-ui/core/Typography";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
-import { TextField, Grid, FormGroup, FormControlLabel, Checkbox } from "@material-ui/core";
+import { TextField, Grid } from "@material-ui/core";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { compose } from "recompose";
 import { Refresh, SaveAlt, Send } from "@material-ui/icons";
 import CKEditor from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import CheckboxesGroup from "../../reusables/CheckboxGroup";
 
 const styles = theme => ({
     root: {
@@ -53,14 +54,25 @@ const styles = theme => ({
 });
 
 
+function createNodeElement (value) {
+    // const placeholder = document.createElement("div");
+    // placeholder.innerHTML = value;
+    // const node = placeholder;
+    // console.log(node);
+    // const doc = new DOMParser().parseFromString(value, "text/xml");
+    // console.log(doc);
+    // // return node;
+    // return doc.firstChild.innerHTML;
+    return value;
+}
+
+
 function DetailedExpansionPanel (props) {
     const { data: eos_report, classes, width } = props;
     const [siteCode, setSiteCode] = useState("");
     const [shiftSummary, setShiftSummary] = useState("");
     const [dataAnalysis, setDataAnalysis] = useState("");
     const [shiftNarratives, setShiftNarratives] = useState("");
-    const [isRainfallChecked, setIsRainfallChecked] = useState(false);
-    const [isSurficialChecked, setIsSurficialChecked] = useState(false);
 
     useEffect(() => {
         const {
@@ -80,17 +92,13 @@ function DetailedExpansionPanel (props) {
     );
 
     const changeState = (key, value) => {
-        console.log("First run", typeof(!isRainfallChecked));
-        console.log("data type", typeof(isRainfallChecked));
         const dictionary = {
             shift_summary: setShiftSummary,
             data_analysis: setDataAnalysis,
-            shift_narratives: setShiftNarratives,
-            checked_rain: setIsRainfallChecked,
-            checked_surficial: setIsSurficialChecked
+            shift_narratives: setShiftNarratives
         };
-        console.log(key, value);
-        dictionary[key](value);
+        const node = createNodeElement(value);
+        dictionary[key](node);
     };
 
     const handleEventChange = key => event => {
@@ -113,29 +121,7 @@ function DetailedExpansionPanel (props) {
                 <ExpansionPanelDetails className={classes.details}>
                     <Grid container>
                         <Grid item xs={12}>
-                            <FormGroup row>
-                                <FormControlLabel
-                                    control={
-                                        <Checkbox
-                                            checked={isRainfallChecked}
-                                            onChange={handleEventChange("checked_rain")}
-                                            value={!isRainfallChecked} 
-                                        />
-                                    }
-                                    label="Secondary"
-                                />
-                                <FormControlLabel
-                                    control={
-                                        <Checkbox
-                                            checked={isSurficialChecked}
-                                            onChange={handleEventChange("checked_surficial")}
-                                            value={!isSurficialChecked}
-                                            color="primary"
-                                        />
-                                    }
-                                    label="Primary"
-                                />
-                            </FormGroup>
+                            <CheckboxesGroup />
                         </Grid>
                         {   
                             [

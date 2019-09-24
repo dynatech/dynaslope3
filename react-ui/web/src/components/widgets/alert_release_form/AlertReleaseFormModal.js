@@ -8,7 +8,6 @@ import {
 } from "@material-ui/core";
 import { compose } from "recompose";
 import AlertReleaseForm from "./AlertReleaseForm";
-import Stepper from "./Stepper";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
 
 const styles = theme => ({
@@ -384,10 +383,10 @@ function AlertReleaseFormModal (props) {
                                     <div>
                                         <Button onClick={closeHandler} color="primary">
                                                 Cancel
-                                            </Button>
+                                        </Button>
                                         <Button disabled={activeStep === 0} onClick={handleBack} className={classes.backButton}>
                                                 Back
-                                            </Button>
+                                        </Button>
                                         <Button variant="contained" color="primary" onClick={handleNext} disabled={isNextBtnDisabled}>
                                             {activeStep === steps.length - 1 ? "Submit" : "Next"}
                                         </Button>
