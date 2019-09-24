@@ -1093,7 +1093,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         # Get current moms alerts within ts_onset and query_ts_end
         # A.K.A. all moms within an event
         site_moms_alerts_list, highest_moms_alert = get_site_moms_alerts(
-            site_id, monitoring_start_ts, query_ts_end)
+            site_id, surficial_moms_window_ts, query_ts_end)
         has_positive_moms_trigger = False
         if highest_moms_alert > 0:
             has_positive_moms_trigger = True
