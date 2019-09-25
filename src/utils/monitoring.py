@@ -396,9 +396,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             data_ts, release_interval_hours)
         release_time = latest_release.release_time
 
-        # if data_ts.hour == 23 and release_time.hour < release_interval_hours:
-        if data_ts.hour == 23 and release_time.hour < 4:
-            # rounded_data_ts = round_to_nearest_release_time(data_ts)
+        if data_ts.hour == 23 and release_time.hour < release_interval_hours:
             str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
             str_release_time = str(release_time)
 
