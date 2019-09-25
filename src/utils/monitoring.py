@@ -15,7 +15,7 @@ from src.models.monitoring import (
     MomsInstances, MomsFeatures, InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols,
     MonitoringEventAlertsSchema, OperationalTriggers,
-    MonitoringMoms as moms, MomsInstances as mi)
+    MonitoringMoms as moms, MomsInstances as mi, MonitoringTriggersSchema)
 from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
@@ -315,24 +315,6 @@ def update_alert_status(as_details):
     return return_data
 
 
-def get_tomorrow_noon(ts):
-    """
-    Used for identifying extended monitoring start ts
-    Returns the next 12 noon TS for start of extended monitoring
-
-    Args:
-        ts - datetime object
-    """
-
-    if ts.hour < 12:
-        tom_noon_ts = datetime(ts.year, ts.month, ts.day, 12, 0, 0)
-    else:
-        tom = ts + timedelta(days=1)
-        tom_noon_ts = datetime(tom.year, tom.month, tom.day, 12, 0, 0)
-
-    return tom_noon_ts
-
-
 def get_ongoing_extended_overdue_events(run_ts=None):
     """
     Gets active events and organizes them into the following categories:
@@ -359,6 +341,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     overdue = []
     for event_alert in active_event_alerts:
         validity = event_alert.event.validity
+        event_id = event_alert.event.event_id
         latest_release = event_alert.releases.order_by(
             DB.desc(MonitoringReleases.data_ts)).first()
 
@@ -368,8 +351,8 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             data_ts, release_interval_hours)
         release_time = latest_release.release_time
 
-        # if data_ts.hour == 23 and release_time.hour < release_interval_hours:
-        if data_ts.hour == 23 and release_time.hour < 4:
+        if data_ts.hour == 23 and release_time.hour < release_interval_hours:
+        # if data_ts.hour == 23 and release_time.hour < 4:
             # rounded_data_ts = round_to_nearest_release_time(data_ts)
             str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
             str_release_time = str(release_time)
@@ -384,31 +367,43 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             public_alert_level, trigger_list)
         event_alert_data["event"]["validity"] = str(datetime.strptime(
             event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
+        
+        # NOTE: LOUIE SPECIAL intervention to add all triggers of the whole event.
+        # Bypassing the use of MonitoringEvent instead
+        all_event_triggers = get_monitoring_triggers(event_id=event_id)
+        latest_triggers_per_kind = get_unique_triggers(trigger_list=all_event_triggers)
+        mtS_m = MonitoringTriggersSchema(many=True)
+        event_alert_data["latest_event_triggers"] = mtS_m.dump(latest_triggers_per_kind).data
 
-        if run_ts < validity:
+        if run_ts <= validity:
             # On time release
             latest.append(event_alert_data)
         elif validity < run_ts:
-            # Late release
-            overdue.append(event_alert_data)
-        else:
-            # elif validity < rounded_data_ts and rounded_data_ts < (validity + timedelta(days=3)):
-            # Extended
-            start = get_tomorrow_noon(validity)
-            # Day 3 is the 3rd 12-noon from validity
-            end = start + timedelta(days=extended_monitoring_days)
-            current = run_ts  # Production code is current time
-            # Count the days distance between current date and day 3 to know which extended day it is
-            day = extended_monitoring_days - (end - current).days
-
-            if day <= 0:
-                latest.append(event_alert_data)
-            elif day > 0 and day < end:
-                event_alert_data["day"] = day
-                extended.append(event_alert_data)
+            if event_alert.pub_sym_id > 1:
+                # Late release
+                overdue.append(event_alert_data)
             else:
-                # NOTE: Make an API call to end an event when extended is finished? based on old code
-                print("FINISH EVENT")
+                # elif validity < rounded_data_ts and rounded_data_ts < (validity + timedelta(days=3)):
+                # EXTENDED
+
+                # Get Next Day 00:00
+                next_day = validity + timedelta(days=1)
+                start = datetime(next_day.year, next_day.month, next_day.day, 0, 0, 0)
+                # Day 3 is the 3rd 12-noon from validity
+                end = start + timedelta(days=extended_monitoring_days)
+                current = run_ts  # Production code is current time
+                # Count the days distance between current date and day 3 to know which extended day it is
+                difference = end - current
+                day = extended_monitoring_days - difference.days
+
+                if day <= 0:
+                    latest.append(event_alert_data)
+                elif day > 0 and day < extended_monitoring_days:
+                    event_alert_data["day"] = day
+                    extended.append(event_alert_data)
+                else:
+                    # NOTE: Make an API call to end an event when extended is finished? based on old code
+                    print("FINISH EVENT")
 
     db_alerts = {
         "latest": latest,
@@ -554,6 +549,39 @@ def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_i
     return return_data
 
 
+def get_unique_triggers(trigger_list, reverse=True):
+    """
+    Returns unique latest unique trigger per internal sym id
+
+    Args:
+        trigger_list (list) - This can be list of MonitoringTriggers (SQLAlchemy Object)
+        reverse (Boolean) - None for now
+    """
+    # if not reverse:
+    #     ascending_trigger_list = sorted(
+    #     trigger_list, key=lambda x: x.trigger_symbol.alert_level, reverse=False)
+
+    print(get_process_status_log("Filter Unique Triggers", "start"))
+
+    new_trigger_list = []
+    unique_triggers_set = set({})
+    for trigger in trigger_list:
+        if isinstance(trigger, object):
+            internal_sym_id = trigger.internal_sym_id
+        elif isinstance(trigger, dict):
+            internal_sym_id = trigger["internal_sym_id"]
+        else:
+            raise TypeError("Trigger provided is neither a Dictionary nor Object!")
+
+        if not internal_sym_id in unique_triggers_set:
+            unique_triggers_set.add(internal_sym_id)
+            new_trigger_list.append(trigger)
+
+    print(get_process_status_log("Filter Unique Triggers", "end"))
+
+    return new_trigger_list
+
+
 def get_monitoring_triggers(event_id=None, event_alert_id=None, release_id=None, ts_start=None, ts_end=None, return_one=False, order_by_desc=True):
     """
     NOTE: To fill
@@ -688,8 +716,8 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
     else:
         return_data = formatted_events
 
-    var_checker("return_data", return_data, True)
     return return_data
+
 
 
 # def get_monitoring_events_table(offset, limit):
@@ -769,8 +797,8 @@ def get_active_monitoring_events():
 
     # Ignore the pylinter error on using "== None" vs "is None",
     # since SQLAlchemy interprets "is None" differently.
-    active_events = mea.query.order_by(
-        DB.desc(mea.ts_start)).filter(and_(mea.ts_end == None, mea.pub_sym_id != 1)).all()
+    active_events = mea.query.join(me).order_by(
+        DB.desc(mea.ts_start)).filter(and_(me.status == 2, mea.ts_end == None)).all()
 
     return active_events
 
@@ -868,14 +896,14 @@ def write_moms_instances_to_db(instance_details):
     return return_data
 
 
-def search_if_feature_name_exists(feature_id, feature_name):
+def search_if_feature_name_exists(site_id, feature_id, feature_name):
     """
     Sample
     """
     mi = MomsInstances
     instance = None
     instance = mi.query.filter(
-        and_(mi.feature_name == feature_name, mi.feature_id == feature_id)).first()
+        and_(mi.site_id == site_id, mi.feature_name == feature_name, mi.feature_id == feature_id)).first()
 
     return instance
 
@@ -929,7 +957,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
                 feature_id = moms_feature.feature_id
 
             moms_instance = search_if_feature_name_exists(
-                feature_id, feature_name)
+                site_id, feature_id, feature_name)
 
             if not moms_instance:
                 instance_details = {

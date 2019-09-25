@@ -12,7 +12,7 @@ import Divider from "@material-ui/core/Divider";
 import { TextField, Grid } from "@material-ui/core";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { compose } from "recompose";
-import { Refresh, SaveAlt, Send } from "@material-ui/icons";
+import { Refresh, SaveAlt, Send, FreeBreakfastOutlined } from "@material-ui/icons";
 import CKEditor from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
@@ -54,16 +54,24 @@ const styles = theme => ({
 });
 
 
-function createNodeElement (value) {
-    // const placeholder = document.createElement("div");
-    // placeholder.innerHTML = value;
-    // const node = placeholder;
-    // console.log(node);
-    // const doc = new DOMParser().parseFromString(value, "text/xml");
-    // console.log(doc);
-    // // return node;
-    // return doc.firstChild.innerHTML;
-    return value;
+function handleCheckboxToggle (value, checkboxStatus, setCheckboxStatus) {
+    switch (value) {
+        case "rainfall":
+            setCheckboxStatus({ ...checkboxStatus, rainfall: !checkboxStatus.rainfall });
+            console.log("BOOM! Opens rainfall chart...");
+            break;
+        case "surficial":
+            setCheckboxStatus({ ...checkboxStatus, surficial: !checkboxStatus.surficial });
+            console.log("BOOM! Opens surficial chart...");
+            break;
+        case "subsurface":
+            setCheckboxStatus({ ...checkboxStatus, subsurface: !checkboxStatus.subsurface });
+            console.log("BOOM! Opens a multiselect...");
+            break;
+        default:
+            console.log("DEF!");
+            break;
+    }
 }
 
 
@@ -73,6 +81,16 @@ function DetailedExpansionPanel (props) {
     const [shiftSummary, setShiftSummary] = useState("");
     const [dataAnalysis, setDataAnalysis] = useState("");
     const [shiftNarratives, setShiftNarratives] = useState("");
+
+    const [checkboxStatus, setCheckboxStatus] = useState({
+        rainfall: false, surficial: false, subsurface: false
+    });
+
+    const choices = [
+        { state: checkboxStatus.rainfall, value: "rainfall", label: "Rainfall" },
+        { state: checkboxStatus.surficial, value: "surficial", label: "Surficial" },
+        { state: checkboxStatus.subsurface, value: "subsurface", label: "Subsurface" }
+    ];
 
     useEffect(() => {
         const {
@@ -97,14 +115,15 @@ function DetailedExpansionPanel (props) {
             data_analysis: setDataAnalysis,
             shift_narratives: setShiftNarratives
         };
-        const node = createNodeElement(value);
-        dictionary[key](node);
+        dictionary[key](value);
     };
 
     const handleEventChange = key => event => {
         const { value } = event.target;
         changeState(key, value);
     };
+
+    const handleCheckboxEvent = value => event => handleCheckboxToggle(value, checkboxStatus, setCheckboxStatus);
 
     return (
         <Fragment>
@@ -121,7 +140,12 @@ function DetailedExpansionPanel (props) {
                 <ExpansionPanelDetails className={classes.details}>
                     <Grid container>
                         <Grid item xs={12}>
-                            <CheckboxesGroup />
+                            <CheckboxesGroup 
+                                label="Data Sources"
+                                changeHandler={handleCheckboxEvent}
+                                choices={choices}
+                                checkboxStyle="primary"
+                            />
                         </Grid>
                         {   
                             [
@@ -140,7 +164,6 @@ function DetailedExpansionPanel (props) {
                                         onInit={ editor => {
                                         // You can store the "editor" and use when it is needed.
                                             editor.setData(value);
-                                            console.log( "Editor is ready to use!", editor );
                                         } }
                                         onChange={ ( event, editor ) => {
                                             const data = editor.getData();

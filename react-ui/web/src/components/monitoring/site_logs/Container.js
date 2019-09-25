@@ -1,10 +1,11 @@
 import React, { useState, useEffect, Fragment } from "react";
 
-import { 
+import {
     Paper, Typography, LinearProgress,
-    withStyles, Dialog, DialogContent
+    withStyles, Dialog, DialogContent,
+    Button
 } from "@material-ui/core";
-import { ArrowForwardIos } from "@material-ui/icons";
+import { ArrowForwardIos, AddAlert } from "@material-ui/icons";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 
@@ -19,6 +20,7 @@ import { getNarratives } from "../ajax";
 import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
+import NarrativeFormModal from "../../widgets/narrative_form/NarrativeFormModal";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 import { sites } from "../../../store";
 
@@ -75,6 +77,7 @@ function processTableData (data) {
     return processed;
 }
 
+
 function SiteLogs (props) {
     const { classes, width } = props;
     const [table_data, setTableData] = useState([]);
@@ -86,6 +89,7 @@ function SiteLogs (props) {
     const [search_str, setSearchString] = useState("");
     const [on_search_open, setOnSearchOpen] = useState(false);
     const [is_loading, setIsLoading] = useState(true);
+    const [isOpenNarrativeModal, setIsOpenNarrativeModal] = useState(false);
 
     const [date, setDate] = useState(null); // useState(null);
     const [time, setTime] = useState(null);
@@ -115,7 +119,14 @@ function SiteLogs (props) {
             setIsLoading(false);
         });
     }, [page, rowsPerPage, filters, search_str]);
-      
+
+    const handleBoolean = (data, bool) => () => {
+        // NOTE: there was no need to use the bool for opening a modal or switch
+        if (data === "is_narrative_modal_open") {
+            setIsOpenNarrativeModal(!isOpenNarrativeModal);
+        }
+    };
+
     const options = {
         textLabels: {
             body: {
@@ -216,7 +227,7 @@ function SiteLogs (props) {
             label: "Site",
             options: {
                 filter: true,
-                filterList: typeof filter_list.site_name === "undefined" ? [] : filter_list.site_name, 
+                filterList: typeof filter_list.site_name === "undefined" ? [] : filter_list.site_name,
                 filterOptions: {
                     names: filter_sites_option
                 }
@@ -247,10 +258,29 @@ function SiteLogs (props) {
         }
     ];
 
+    const is_desktop = isWidthUp("md", width);
+
+    const custom_buttons = <span>
+        <Button
+            aria-label="Compose message"
+            variant="contained"
+            color="primary"
+            size="small"
+            style={{ marginRight: 8 }}
+            onClick={handleBoolean("is_narrative_modal_open", true)}
+        >
+            <AddAlert style={{ paddingRight: 4, fontSize: 20 }} />
+            Write a Site Log
+        </Button>
+    </span>;
+
     return (
         <Fragment>
             <div className={classes.pageContentMargin}>
-                <PageTitle title="Alert Monitoring | Site Logs" />
+                <PageTitle 
+                    title="Alert Monitoring | Site Logs" 
+                    customButtons={is_desktop ? custom_buttons : false}
+                />
             </div>
 
             {/* <div className={classes.pageContentMargin}>
@@ -373,6 +403,12 @@ function SiteLogs (props) {
                     </MuiThemeProvider>
                 </Paper>
             </div>
+
+            <NarrativeFormModal
+                isOpen={isOpenNarrativeModal}
+                closeHandler={handleBoolean("is_narrative_modal_open", false)}
+                // chosenCandidateAlert=
+            />
         </Fragment>
     );
 }
@@ -384,5 +420,5 @@ export default compose(
             ...styles(theme),
         }),
         { withTheme: true },
-    ), withWidth()  
+    ), withWidth()
 )(SiteLogs);
