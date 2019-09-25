@@ -15,7 +15,8 @@ from src.models.monitoring import (
     MonitoringEarthquake, MonitoringTriggers, MonitoringTriggersMisc,
     MomsInstances, MomsFeatures, InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols,
-    MonitoringEventAlertsSchema, OperationalTriggers, MomsInstances as mi)
+    MonitoringEventAlertsSchema, OperationalTriggers, MomsInstances as mi,
+    MonitoringTriggersSchema)
 from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
@@ -387,6 +388,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     overdue = []
     for event_alert in active_event_alerts:
         validity = event_alert.event.validity
+        event_id = event_alert.event.event_id
         latest_release = event_alert.releases.order_by(
             DB.desc(MonitoringReleases.data_ts)).first()
 
@@ -410,6 +412,15 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             public_alert_level, trigger_list)
         event_alert_data["event"]["validity"] = str(datetime.strptime(
             event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
+
+
+        # NOTE: LOUIE SPECIAL intervention to add all triggers of the whole event.
+        # Bypassing the use of MonitoringEvent instead
+        all_event_triggers = get_monitoring_triggers(event_id=event_id)
+        latest_triggers_per_kind = get_unique_triggers(trigger_list=all_event_triggers)
+        mtS_m = MonitoringTriggersSchema(many=True)
+        event_alert_data["latest_event_triggers"] = mtS_m.dump(latest_triggers_per_kind).data
+
 
         if run_ts <= validity:
             # On time release
@@ -584,6 +595,39 @@ def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_i
             DB.desc(mr.release_time)).all()
 
     return return_data
+
+
+def get_unique_triggers(trigger_list, reverse=True):
+    """
+    Returns unique latest unique trigger per internal sym id
+
+    Args:
+        trigger_list (list) - This can be list of MonitoringTriggers (SQLAlchemy Object)
+        reverse (Boolean) - None for now
+    """
+    # if not reverse:
+    #     ascending_trigger_list = sorted(
+    #     trigger_list, key=lambda x: x.trigger_symbol.alert_level, reverse=False)
+
+    print(get_process_status_log("Filter Unique Triggers", "start"))
+
+    new_trigger_list = []
+    unique_triggers_set = set({})
+    for trigger in trigger_list:
+        if isinstance(trigger, object):
+            internal_sym_id = trigger.internal_sym_id
+        elif isinstance(trigger, dict):
+            internal_sym_id = trigger["internal_sym_id"]
+        else:
+            raise TypeError("Trigger provided is neither a Dictionary nor Object!")
+
+        if not internal_sym_id in unique_triggers_set:
+            unique_triggers_set.add(internal_sym_id)
+            new_trigger_list.append(trigger)
+
+    print(get_process_status_log("Filter Unique Triggers", "end"))
+
+    return new_trigger_list
 
 
 def get_monitoring_triggers(event_id=None, event_alert_id=None, release_id=None, ts_start=None, ts_end=None, return_one=False, order_by_desc=True):
