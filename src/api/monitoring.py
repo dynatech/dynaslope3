@@ -1351,7 +1351,7 @@ def get_candidate_and_current_alerts():
     print(get_active_monitoring_events())
     ret_val = {
         "leo": json.loads(wrap_get_ongoing_extended_overdue_events()),
-        "candidate_alert": candidate_alerts_generator.main(ts="2019-09-25 11:59:00") # pakibura
+        "candidate_alert": candidate_alerts_generator.main() # pakibura
     }
 
     return jsonify(ret_val)
@@ -1369,6 +1369,6 @@ def alert_generator(is_instantaneous=None):
             is_instantaneous = False
 
     # result = public_alert_generator.main(query_ts_end='2019-09-24 11:59:00', query_ts_start='2019-09-24 11:59:00', is_instantaneous=is_instantaneous)
-    result = public_alert_generator.main(query_ts_end='2019-09-25 11:59:00', query_ts_start='2019-09-25 11:59:00')
+    result = public_alert_generator.main(is_instantaneous=is_instantaneous)
 
     return result
