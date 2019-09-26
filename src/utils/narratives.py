@@ -3,9 +3,25 @@
     Contains functions essential in accessing and saving into narratives table.
 """
 
-from datetime import datetime, timedelta
 from connection import DB
 from src.models.narratives import Narratives
+from src.models.monitoring import MonitoringEvents, MonitoringEventAlerts
+from src.utils.extra import (
+    var_checker, retrieve_data_from_memcache, get_process_status_log)
+
+
+def find_narrative_event(timestamp, site_id):
+    """
+    """
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    event = None
+
+    result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(me).filter(DB.and_(mea.ts_start <= timestamp, timestamp <= mea.ts_end)).filter(me.site_id == site_id).first()
+    if result:
+        event = result
+
+    return event
 
 
 def get_narratives(offset=None, limit=None, start=None, end=None, site_ids=None, include_count=None, search=None, event_id=None):
@@ -58,7 +74,7 @@ def get_narrative_count(q):
     return count
 
 
-def write_narratives_to_db(site_id, timestamp, narrative, event_id=None):
+def write_narratives_to_db(site_id, timestamp, narrative, type_id, user_id, event_id=None):
     """
     Insert method for narratives table. Returns new narrative ID.
 
@@ -70,12 +86,15 @@ def write_narratives_to_db(site_id, timestamp, narrative, event_id=None):
 
     Returns narrative ID.
     """
+    print(get_process_status_log("write_narratives_to_db", "start"))
     try:
         narrative = Narratives(
             site_id=site_id,
             event_id=event_id,
             timestamp=timestamp,
-            narrative=narrative
+            narrative=narrative,
+            type_id=type_id,
+            user_id=user_id
         )
         DB.session.add(narrative)
         DB.session.flush()
@@ -83,11 +102,37 @@ def write_narratives_to_db(site_id, timestamp, narrative, event_id=None):
         new_narrative_id = narrative.id
     except Exception as err:
         print(err)
-        DB.rollback()
+        DB.session.rollback()
         raise
+
+    print(get_process_status_log("write_narratives_to_db", "end"))
 
     return new_narrative_id
 
+
+def update_narratives_on_db(narrative_id, site_id, timestamp, narrative, type_id, user_id, event_id=None):
+    """
+    """
+    print(get_process_status_log("update_narratives_on_db", "start"))
+    try:
+        narrative_row = Narratives.query.filter_by(id=narrative_id).first()
+
+        if narrative_row:
+            narrative_row.site_id = site_id
+            narrative_row.timestamp = timestamp
+            narrative_row.narrative = narrative
+            narrative_row.type_id = type_id
+            narrative_row.user_id = user_id
+            narrative_row.event_id = event_id
+        else:
+            print(get_process_status_log("Narrative not found!", "fail"))
+            raise Exception("Narrative not found!")
+
+    except Exception as err:
+        print(err)
+        raise
+
+    return "Success"
 
 # def get_narratives_based_on_timestamps(start_time, end_time):
 #     print()

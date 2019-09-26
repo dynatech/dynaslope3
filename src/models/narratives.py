@@ -2,6 +2,7 @@ import datetime
 from connection import DB, MARSHMALLOW
 from marshmallow import fields
 from src.models.sites import SitesSchema
+from src.models.users import Users
 
 
 class Narratives(DB.Model):
@@ -19,12 +20,19 @@ class Narratives(DB.Model):
     timestamp = DB.Column(
         DB.DateTime, default=datetime.datetime.utcnow, nullable=False)
     narrative = DB.Column(DB.String(500), nullable=False)
+    type_id = DB.Column(DB.Integer, nullable=False)
+    user_id = DB.Column(DB.Integer, DB.ForeignKey("commons_db.users.user_id"), nullable=False)
 
     site = DB.relationship(
         "Sites", backref=DB.backref("narratives", lazy="raise"), lazy="select")
+    user_details = DB.relationship(
+        "Users", backref=DB.backref("narratives", lazy="raise"), lazy="select")
 
     def __repr__(self):
-        return f"{self.timestamp, self.narrative}\n"
+        return (f"Type <{self.__class__.__name__}> Narrative ID: {self.id}"
+                f" Site ID: {self.site_id} Event ID: {self.event_id}"
+                f" Narrative: {self.narrative} Type ID: {self.type_id}")
+
 
 
 class NarrativesSchema(MARSHMALLOW.ModelSchema):

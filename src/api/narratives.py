@@ -1,13 +1,79 @@
 """
 Narratives functions API File
 """
-from flask import Blueprint, jsonify, request
+
+from connection import DB
 from datetime import datetime
+from flask import Blueprint, jsonify, request
 from src.models.narratives import (NarrativesSchema)
-from src.utils.narratives import (get_narratives)
+from src.utils.narratives import (get_narratives, write_narratives_to_db,
+                                  update_narratives_on_db, find_narrative_event)
+from src.utils.extra import var_checker, get_process_status_log
 
 
 NARRATIVES_BLUEPRINT = Blueprint("narratives_blueprint", __name__)
+
+
+@NARRATIVES_BLUEPRINT.route(
+    "/narratives/write_narratives_to_db", methods=["POST"])
+def wrap_write_narratives_to_db():
+    """
+        Writes narratives to database.
+    """
+    try:
+        json_data = request.get_json()
+
+        var_checker("json_data", json_data, True)
+
+        site_id = int(json_data["site_id"])
+        narrative = str(json_data["narrative"])
+        type_id = json_data["type_id"]
+        event_id = None
+        user_id = json_data["user_id"]
+
+        timestamp = json_data["timestamp"]
+        if not isinstance(timestamp, datetime):
+            timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
+
+        try:
+            event_id = json_data["event_id"]
+            if not event_id:
+                event_id = find_narrative_event(timestamp, site_id).event_id
+        except KeyError:
+            event_id = find_narrative_event(timestamp, site_id).event_id
+
+        try:
+            narrative_id = json_data["narrative_id"]
+            status = update_narratives_on_db(
+                narrative_id=narrative_id,
+                site_id=site_id,
+                timestamp=timestamp,
+                narrative=narrative,
+                type_id=type_id,
+                user_id=user_id,
+                event_id=event_id
+            )
+            print(get_process_status_log(f"{status} updated narrative with ID: {narrative_id}", "end"))
+        except KeyError:
+            narrative_id = write_narratives_to_db(
+                site_id=site_id,
+                timestamp=timestamp,
+                narrative=narrative,
+                type_id=type_id,
+                user_id=user_id,
+                event_id=event_id
+            )
+            print(get_process_status_log(f"New narrative with ID {narrative_id}", "end"))
+
+        # If nothing goes wrong:
+        DB.session.commit()
+
+    except Exception as err:
+        print("MAIN")
+        print(err)
+        raise
+
+    return "success"
 
 
 @NARRATIVES_BLUEPRINT.route("/narratives/get_narratives", methods=["GET"])

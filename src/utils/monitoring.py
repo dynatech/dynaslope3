@@ -2,25 +2,22 @@
 Utility file for Monitoring Tables
 Contains functions for getting and accesing monitoring-related tables only
 """
-import calendar
-from flask import request
+import re
+from connection import DB
 from datetime import datetime, timedelta, time, date
-from connection import DB, MEMORY_CLIENT
 from sqlalchemy import and_
-from src.models.analysis import (AlertStatus, AlertStatusSchema)
+from src.models.analysis import AlertStatus
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
-    MonitoringMoms, MonitoringMomsReleases, MonitoringOnDemand,
-    MonitoringEarthquake, MonitoringTriggers, MonitoringTriggersMisc,
-    MomsInstances, MomsFeatures, InternalAlertSymbols, PublicAlertSymbols,
+    MonitoringMomsReleases, MonitoringOnDemand,
+    MonitoringEarthquake, MonitoringTriggers, 
+    MomsFeatures, InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols,
     MonitoringEventAlertsSchema, OperationalTriggers,
     MonitoringMoms as moms, MomsInstances as mi, MonitoringTriggersSchema)
 from src.models.sites import Seasons, RoutineSchedules, Sites
-from src.utils.sites import get_sites_data
 from src.utils.extra import (
-    var_checker, create_symbols_map, retrieve_data_from_memcache, get_system_time,
-    get_process_status_log)
+    var_checker, retrieve_data_from_memcache, get_process_status_log)
 from src.utils.narratives import write_narratives_to_db
 
 
@@ -936,7 +933,12 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
         moms_instance_id = moms_details["instance_id"]
 
         moms_narrative_id = write_narratives_to_db(
-            site_id, observance_ts, narrative, event_id)
+            site_id=site_id,
+            timestamp=observance_ts,
+            narrative=narrative,
+            narrative_type=2, # Event Narrative Type
+            event_id=event_id
+        )
 
         if not moms_instance_id:
             # Create new instance of moms
@@ -1076,27 +1078,25 @@ def fix_internal_alert(alert_entry, internal_source_id):
     invalid_triggers = []
     trigger_list_str = None
 
-    for trigger in trigger_list_arr:
-        alert_level = trigger["alert_level"]
-        alert_symbol = trigger["alert_symbol"]
-        internal_sym_id = trigger["internal_sym_id"]
-        trigger_type = trigger["trigger_type"]
+    # for trigger in trigger_list_arr:
+    #     alert_level = trigger["alert_level"]
+    #     alert_symbol = trigger["alert_symbol"]
+    #     internal_sym_id = trigger["internal_sym_id"]
+    #     trigger_type = trigger["trigger_type"]
 
-        try:
-            if True:
-                print("Oh yes!")
-        except Exception as err:
-            print(err)
-            raise
+    #     try:
+    #         if True:
+    #             print("Oh yes!")
+    #     except Exception as err:
+    #         print(err)
+    #         raise
 
     for trigger in event_triggers:
         alert_symbol = trigger["alert"]
         ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
-                                              "alert_symbol": alert_symbol})
+            "alert_symbol": alert_symbol})
         trigger["internal_sym_id"] = ots_row["internal_alert_symbol"]["internal_sym_id"]
 
-        # trigger["internal_sym_id"] = IAS_X_OTS_MAP["alert_symbol",
-        #                                            alert_symbol]["internal_alert_id"]
         source_id = trigger["source_id"]
         alert_level = trigger["alert_level"]
         op_trig_row = retrieve_data_from_memcache("operational_trigger_symbols", {

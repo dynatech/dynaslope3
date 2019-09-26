@@ -13,7 +13,7 @@ import Typography from "@material-ui/core/Typography";
 
 // Form Related Imports
 import MomentUtils from "@date-io/moment";
-import { MuiPickersUtilsProvider, KeyboardDateTimePicker, KeyboardTimePicker } from "@material-ui/pickers";
+import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 import SelectInputForm from "../../reusables/SelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 
@@ -56,8 +56,17 @@ function NarrativeForm (props) {
         setNarrativeData
     } = props;
 
-    const { siteId, narrative, userId } = narrativeData;
+    const {
+        site_id, narrative, event_id,
+        type_id, timestamp, user_id
+    } = narrativeData;
 
+    const handleDateTime = key => value => {
+        setNarrativeData({
+            ...narrativeData,
+            [key]: value  
+        });
+    };
 
     const handleEventChange = key => event => {
         const { value } = event.target;
@@ -69,49 +78,72 @@ function NarrativeForm (props) {
     };
 
     return (
-        <Grid
-            container
-            justify="space-evenly"
-            alignItems="center"
-            spacing={1}
-        >
-            <Grid item xs={12} className={classes.inputGridContainer}>
-                <SelectInputForm
-                    label="Site"
-                    div_id="site_id"
-                    changeHandler={handleEventChange("siteId")}
-                    value={siteId}
-                    list={sites}
-                    mapping={{ id: "site_id", label: "site_name" }}
-                    css={classes.selectInput}
-                />
-            </Grid>
 
-            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                <TextField
-                    required
-                    id="narrative"
-                    label="Narrative"
-                    value={narrative}
-                    onChange={handleEventChange("narrative")}
-                    placeholder="Enter narrative"
-                    multiline
-                    rowsMax={2}
-                    fullWidth
-                />
-            </Grid>
+        <MuiPickersUtilsProvider utils={MomentUtils}>
+            <Grid
+                container
+                justify="space-evenly"
+                alignItems="center"
+                spacing={1}
+            >
+ 
+                <Grid item xs={12} className={classes.inputGridContainer}>
+                    <SelectInputForm
+                        label="Site"
+                        div_id="site_id"
+                        changeHandler={handleEventChange("site_id")}
+                        value={site_id}
+                        list={sites}
+                        mapping={{ id: "site_id", label: "site_name" }}
+                        css={classes.selectInput}
+                    />
+                </Grid>
 
-            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                <DynaslopeUserSelectInputForm
-                    variant="standard"
-                    label="Reporter"
-                    div_id="userId"
-                    changeHandler={handleEventChange("userId")}
-                    value={userId}
-                />
-            </Grid>
+                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                    <DynaslopeUserSelectInputForm
+                        variant="standard"
+                        label="Reporter"
+                        div_id="user_id"
+                        changeHandler={handleEventChange("user_id")}
+                        value={user_id}
+                    />
+                </Grid>
 
-        </Grid>
+                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                    <KeyboardDateTimePicker
+                        required
+                        autoOk
+                        label="Timestamp"
+                        value={timestamp}
+                        onChange={handleDateTime("timestamp")}
+                        ampm={false}
+                        placeholder="2010/01/01 00:00"
+                        format="YYYY/MM/DD HH:mm"
+                        mask="__/__/____ __:__"
+                        clearable
+                        disableFuture
+                    />
+                </Grid>
+
+                <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
+                    <TextField
+                        required
+                        id="standard-multiline-static"
+                        label="Narrative"
+                        value={narrative}
+                        onChange={handleEventChange("narrative")}
+                        placeholder="Enter narrative"
+                        multiline
+                        rows="4"
+                        rowsMax={4}
+                        fullWidth
+                        className={classes.textField}
+                        variant="filled"
+                    />
+                </Grid>
+
+            </Grid>
+        </MuiPickersUtilsProvider>           
     );
 }
 

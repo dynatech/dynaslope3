@@ -9,6 +9,7 @@ import {
 import { compose } from "recompose";
 // import AlertReleaseForm from "./AlertReleaseForm";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
+import { handleNarratives } from "./ajax";
 import NarrativeForm from "./NarrativeForm";
 
 const styles = theme => ({
@@ -31,14 +32,20 @@ function NarrativeFormModal (props) {
         closeHandler
     } = props;
 
-    const [narrativeData, setNarrativeData] = useState({
-        siteId: 1,
+    const [narrative_data, setNarrativeData] = useState({
+        site_id: null,
+        timestamp: "",
         narrative: "",
-        userId: ""
+        user_id: null,
+        event_id: null,
+        type_id: 1
     });
 
     const handleSubmit = () => {
         console.log("SUBMIT!");
+        // console.log("PAYLOAD", narrativePayload);
+        narrative_data.timestamp = moment(narrative_data.timestamp).format("YYYY-MM-DD HH:mm:ss");
+        handleNarratives(narrative_data);
         // console.log("PAYLOAD", ewiPayload);
         // sendWSMessage("insert_ewi", ewiPayload);
     };
@@ -46,9 +53,12 @@ function NarrativeFormModal (props) {
     const handleReset = () => {
         console.log("RESET!");
         setNarrativeData({
-            siteId: 1,
+            site_id: null,
+            user_id: null,
             narrative: "",
-            userId: ""            
+            event_id: null,
+            type_id: 1, // Type for General Monitoring Narratives
+            timestamp: ""
         });
     };
 
@@ -64,11 +74,12 @@ function NarrativeFormModal (props) {
                 <DialogTitle id="form-dialog-title">Narrative Form</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Provide accurate details for the narrative.
+                        Note: Only monitoring-related narratives can be entered in this form. 
+                        Please use other forms dedicated to its purposes.
                     </DialogContentText>
 
                     <NarrativeForm
-                        narrativeData={narrativeData} setNarrativeData={setNarrativeData}
+                        narrativeData={narrative_data} setNarrativeData={setNarrativeData}
                     />
                 </DialogContent>
                 <DialogActions>

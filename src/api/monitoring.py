@@ -29,9 +29,8 @@ from src.utils.monitoring import (
     get_monitoring_events_table, get_event_count, get_public_alert,
     get_ongoing_extended_overdue_events, update_alert_status,
     get_max_possible_alert_level, format_candidate_alerts_for_insert)
-from src.utils.extra import (create_symbols_map, var_checker,
-                             retrieve_data_from_memcache, get_process_status_log,
-                             get_system_time)
+from src.utils.extra import (var_checker, retrieve_data_from_memcache, 
+    get_process_status_log, get_system_time)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
