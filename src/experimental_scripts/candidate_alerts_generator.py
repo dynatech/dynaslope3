@@ -385,6 +385,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     site_db_alert["event"]["event_id"])
 
                 for event_trigger in site_w_alert["event_triggers"]:
+                    var_checker("event_trigger", event_trigger, True)
+                    var_checker("saved_event_triggers", saved_event_triggers, True)
                     saved_trigger = next(filter(
                         lambda x: x[0] == event_trigger["internal_sym_id"], saved_event_triggers), None)
 

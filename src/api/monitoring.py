@@ -192,7 +192,7 @@ def wrap_get_ongoing_extended_overdue_events():
         (c) Overdue
     For use in alerts_from_db in Candidate Alerts Generator
     """
-    ongoing_events = get_ongoing_extended_overdue_events(run_ts=datetime.strptime("2019-09-25 11:59:00", "%Y-%m-%d %H:%M:%S")) # pakibura
+    ongoing_events = get_ongoing_extended_overdue_events() # pakibura
 
     return_data = []
     if ongoing_events:
@@ -1158,8 +1158,8 @@ def insert_cbewsl_moms():
             "report_narrative": f"[{feature_type}] {feature_name} - {remarks}",
             "validator_id": user_id,
             "instance_id": None,
-            "feature_name": feature_type,
-            "feature_type": feature_name,
+            "feature_name": feature_name,
+            "feature_type": feature_type,
             "op_trigger": op_trigger
         }
         current_monitoring_instance = get_current_monitoring_instance_per_site(
@@ -1177,7 +1177,7 @@ def insert_cbewsl_moms():
             raise
         
         # RUN ALERT GEN TO GET THE LATEST DATA INSERTED
-        if not op_trigger == 0:
+        if not op_trigger == 0: # if not is_raised or is_heightened
             try: 
                 generated_alert = public_alert_generator.main(site_code="umi", is_instantaneous=True)
                 generated_alert = json.loads(generated_alert)
@@ -1224,13 +1224,19 @@ def insert_cbewsl_moms_ewi_web():
             "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
         user_id = json_data["user_id"]
         data_ts = json_data["data_ts"]
+        observance_ts = json_data["observance_ts"]
         trigger_list_arr = []
         moms_trigger = {}
         triggering_moms_list = []
         non_triggering_moms = {}
         non_trig_moms_list = []
 
-        raised_alert_level = get_public_alert(site_id=50).alert_level
+        current_alert = get_public_alert(site_id=50)
+        if current_alert:
+            raised_alert_level = current_alert.alert_level
+        else:
+            raised_alert_level = 0
+
         insert_alert_level = 0
 
         for trigger in json_data["trig_list"]:
@@ -1269,7 +1275,7 @@ def insert_cbewsl_moms_ewi_web():
                 remarks = trigger["remarks"]
 
                 moms_obs = {
-                    "observance_ts": data_ts,
+                    "observance_ts": observance_ts,
                     "reporter_id": user_id,
                     "remarks": remarks,
                     "report_narrative": f"[{feature_type}] {feature_name} - {remarks}",
@@ -1368,7 +1374,7 @@ def alert_generator(is_instantaneous=None):
         else:
             is_instantaneous = False
 
-    # result = public_alert_generator.main(query_ts_end='2019-09-24 11:59:00', query_ts_start='2019-09-24 11:59:00', is_instantaneous=is_instantaneous)
+    # result = public_alert_generator.main(query_ts_end='2019-09-27 16:30:00', query_ts_start='2019-09-27 16:30:00', is_instantaneous=is_instantaneous)
     result = public_alert_generator.main(is_instantaneous=is_instantaneous)
 
     return result

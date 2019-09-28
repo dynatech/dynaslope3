@@ -15,6 +15,7 @@ class ManifestationsOfMovements(DB.Model):
     description = DB.Column(DB.String(455))
     name_of_feature = DB.Column(DB.String(255))
     date = DB.Column(DB.String(45))
+    date_updated = DB.Column(DB.String(45))
 
     def __repr__(self):
         return f"Class Representation"

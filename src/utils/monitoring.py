@@ -441,11 +441,15 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                 difference = end - current
                 day = extended_monitoring_days - difference.days
 
+                print("DAY", day)
+
                 if day <= 0:
                     latest.append(event_alert_data)
+                    print("ENTERED LAT")
                 elif day > 0 and day < extended_monitoring_days:
                     event_alert_data["day"] = day
                     extended.append(event_alert_data)
+                    print("ENTERED EXT")
                 else:
                     # NOTE: Make an API call to end an event when extended is finished? based on old code
                     print("FINISH EVENT")

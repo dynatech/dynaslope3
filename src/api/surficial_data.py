@@ -4,6 +4,7 @@ from sqlalchemy import text
 from connection import DB, SOCKETIO
 from src.models.manifestations_of_movements import (
     ManifestationsOfMovements, ManifestationsOfMovementsSchema)
+from src.models.monitoring import MomsFeatures, MomsFeaturesSchema    
 
 
 SURFICIAL_DATA_BLUEPRINT = Blueprint(
@@ -73,7 +74,8 @@ def get_moms_data(is_api=True):
                 "type_of_feature": row["type_of_feature"],
                 "description": row["description"],
                 "name_of_feature": row["name_of_feature"],
-                "date": str(row["date"])
+                "date": str(row["date"]),
+                "date_updated": str(row["date_updated"])
             })
         return jsonify(data)
     else:
@@ -88,7 +90,8 @@ def get_moms_data(is_api=True):
                 "type_of_feature": row["type_of_feature"],
                 "description": row["description"],
                 "name_of_feature": row["name_of_feature"],
-                "date": str(row["date"])
+                "date": str(row["date"]),
+                "date_updated": str(row["date_updated"])
             })
         return data
 
@@ -161,29 +164,40 @@ def save_monitoring_log():
         description = str(data["description"])
         name_of_feature = str(data["name_of_feature"])
         timestamp = str(data["timestamp"])
+        observance_ts = str(data["observance_ts"])
+        
+        get_name_of_feature = ManifestationsOfMovements.query.filter_by(
+            name_of_feature=name_of_feature.lower(), type_of_feature=type_of_feature.lower()).all()
 
-        if moms_id == 0:
-            insert_data = ManifestationsOfMovements(
-                type_of_feature=type_of_feature, description=description, name_of_feature=name_of_feature, date=timestamp)
-            DB.session.add(insert_data)
-            message = "Successfully added new data!"
-        else:
-            update_data = ManifestationsOfMovements.query.get(moms_id)
-            update_data.type_of_feature = type_of_feature
-            update_data.description = description
-            update_data.name_of_feature = name_of_feature
-            update_data.timestamp = timestamp
+        result = ManifestationsOfMovementsSchema(many=True).dump(get_name_of_feature).data
 
-            message = "Successfully updated data!"
-            # site_id = 50
-            # timestamp = date["datetime"]
-            # measurement_type = date["measurement_type"]
-            # weather = date["weather"]
-            # data_source = 'CBEWSL_APP'
-            # reliability = 1
+        if len(result) > 0:
+            message = "Name of feature on same Feature type is already in the database."
+            status = False
+        else:    
+            if moms_id == 0:
+                insert_data = ManifestationsOfMovements(
+                    type_of_feature=type_of_feature, description=description, name_of_feature=name_of_feature, date=timestamp, date_updated=observance_ts)
+                DB.session.add(insert_data)
+                message = "Successfully added new data!"
+            else:
+                update_data = ManifestationsOfMovements.query.get(moms_id)
+                update_data.type_of_feature = type_of_feature
+                update_data.description = description
+                update_data.name_of_feature = name_of_feature
+                update_data.date = timestamp
+                update_data.date_updated = observance_ts
 
-        DB.session.commit()
-        status = True
+                message = "Successfully updated data!"
+                # site_id = 50
+                # timestamp = date["datetime"]
+                # measurement_type = date["measurement_type"]
+                # weather = date["weather"]
+                # data_source = 'CBEWSL_APP'
+                # reliability = 1
+
+            DB.session.commit()
+            status = True
     except Exception as err:
         print(err)
         DB.session.rollback()
@@ -303,3 +317,17 @@ def delete_moms_data():
         "message": message
     }
     return jsonify(feedback)
+
+@SURFICIAL_DATA_BLUEPRINT.route("/moms/get_moms_features", methods=["GET", "POST"])
+def get_moms_features():
+    query = MomsFeatures.query.all()
+    result = MomsFeaturesSchema(many=True, exclude=("instances",)).dump(query).data
+    data = []
+
+    for row in result:
+        if row["feature_type"] == "none":
+            data.append({"feature_value": row["feature_type"], "feature_type": row["description"].title()})
+        else:
+            data.append({"feature_value": row["feature_type"], "feature_type": row["feature_type"].title()})
+    
+    return jsonify(data)
