@@ -40,6 +40,7 @@ class NarrativesSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Narratives class
     """
     site_id = fields.Integer()
+    user_id = fields.Integer()
     site = fields.Nested(SitesSchema)
     timestamp = fields.DateTime("%Y-%m-%d %H:%M:%S")
 

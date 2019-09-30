@@ -22,10 +22,16 @@ def wrap_write_narratives_to_db():
     """
     try:
         json_data = request.get_json()
-
         var_checker("json_data", json_data, True)
+        site_list = []
 
-        site_id = int(json_data["site_id"])
+        try:
+            site_list = json_data["site_list"]
+            print(get_process_status_log("Multiple Site Narrative", "start"))
+            is_multiple_insert = True
+        except KeyError:
+            raise
+
         narrative = str(json_data["narrative"])
         type_id = json_data["type_id"]
         event_id = None
@@ -35,35 +41,50 @@ def wrap_write_narratives_to_db():
         if not isinstance(timestamp, datetime):
             timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
 
-        try:
-            event_id = json_data["event_id"]
-            if not event_id:
-                event_id = find_narrative_event(timestamp, site_id).event_id
-        except KeyError:
-            event_id = find_narrative_event(timestamp, site_id).event_id
 
-        try:
-            narrative_id = json_data["narrative_id"]
-            status = update_narratives_on_db(
-                narrative_id=narrative_id,
-                site_id=site_id,
-                timestamp=timestamp,
-                narrative=narrative,
-                type_id=type_id,
-                user_id=user_id,
-                event_id=event_id
-            )
-            print(get_process_status_log(f"{status} updated narrative with ID: {narrative_id}", "end"))
-        except KeyError:
-            narrative_id = write_narratives_to_db(
-                site_id=site_id,
-                timestamp=timestamp,
-                narrative=narrative,
-                type_id=type_id,
-                user_id=user_id,
-                event_id=event_id
-            )
-            print(get_process_status_log(f"New narrative with ID {narrative_id}", "end"))
+        # UPDATING OF NARRATIVE
+        narrative_id = json_data["narrative_id"]
+        if narrative_id:
+            for site_id in site_list:
+                has_event_id = bool(json_data["event_id"])
+                if has_event_id:
+                    event_id = json_data["event_id"]            
+                else:
+                    event = find_narrative_event(timestamp, site_id)
+                    if event:
+                        event_id = event.event_id
+                    else:
+                        raise Exception(get_process_status_log("INSERT NARRATIVES", "fail"))
+
+                var_checker("narrative_id", narrative_id, True)
+                status = update_narratives_on_db(
+                    narrative_id=narrative_id,
+                    site_id=site_id,
+                    timestamp=timestamp,
+                    narrative=narrative,
+                    type_id=type_id,
+                    user_id=user_id,
+                    event_id=event_id
+                )
+                print(get_process_status_log(f"{status} updated narrative with ID: {narrative_id}", "end"))
+
+        # INSERT OF NARRATIVE
+        else:
+            for site_id in site_list:
+                event = find_narrative_event(timestamp, site_id)
+                if event:
+                    narrative_id = write_narratives_to_db(
+                        site_id=site_id,
+                        timestamp=timestamp,
+                        narrative=narrative,
+                        type_id=type_id,
+                        user_id=user_id,
+                        event_id=event.event_id
+                    )
+                    print(get_process_status_log(f"New narrative with ID {narrative_id}", "end"))
+                else:
+                    print(get_process_status_log(f"No event found in specified timestamp on site {site_id} | {timestamp}", "fail"))
+                    raise Exception(get_process_status_log("NO EVENT IN SPECIFIED TIMESTAMP", "fail"))
 
         # If nothing goes wrong:
         DB.session.commit()
