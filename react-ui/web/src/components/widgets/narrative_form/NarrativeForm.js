@@ -14,15 +14,23 @@ import { prepareSiteAddress } from "../../../UtilityFunctions";
 import { sites } from "../../../store";
 
 
-const sites_option = [];
+function prepareSitesOption (arr) {
+    return arr.map(site => {
+        const { 
+            site_code, sitio, purok,
+            barangay, municipality, province,
+            site_id
+        } = site;
+        let address = sitio !== null ? `Sitio ${sitio}, ` : "";
+        address += purok !== null ? `Purok ${purok}, ` : "";
+        address += `Brgy. ${barangay}, ${municipality}, ${province}`;
+        address = `${site_code.toUpperCase()} (${address})`;
 
-sites.forEach(site => {
-    const address = prepareSiteAddress(site, true, "start");
-    const site_name = site.site_code.toUpperCase();
-    sites_option.push({
-        site_id: site.site_id, site_code: site.site_code, site_name, address         
+        return { value: site_id, label: address, data: site };
     });
-});
+}
+
+const sites_option = prepareSitesOption(sites);
 
 const styles = theme => ({
     inputGridContainer: {
@@ -64,20 +72,16 @@ function NarrativeForm (props) {
     } = narrativeData;
 
     useEffect(() => {
-        const temp = [];
-        if (Number.isInteger(site_list[0])) {
-            console.log("is integer");
-            site_list.forEach(site_id => {
-                const site = sites_option.filter((number) => number.site_id === site_id);
-                temp.push(site);
-            });
-        } 
-        setNarrativeData({
-            ...narrativeData,
-            site_list: temp
-        });
+        if (narrative_id !== "") {
+            const site_id = site_list[0];
+            const site = sites_option.filter((number) => number.value === site_id);
+
+            setNarrativeData({
+                ...narrativeData,
+                site_list: site
+            });            
+        }
     }, []);
-    console.log("site_list", site_list);
 
     const handleDateTime = key => value => {
         setNarrativeData({
@@ -100,8 +104,6 @@ function NarrativeForm (props) {
         });
     };
 
-    console.log("narrativeData", narrativeData);
-
     return (
 
         <MuiPickersUtilsProvider utils={MomentUtils}>
@@ -111,13 +113,13 @@ function NarrativeForm (props) {
                 alignItems="center"
                 spacing={1}
             >
-                {/* <Grid item xs={12} className={classes.inputGridContainer}>
+                <Grid item xs={12} className={classes.inputGridContainer}>
                     <DynaslopeSiteSelectInputForm 
                         value={site_list}
                         changeHandler={update_site_value}
                         isMulti                    
                     />
-                </Grid> */}
+                </Grid>
                 <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
                     <DynaslopeUserSelectInputForm
                         variant="standard"

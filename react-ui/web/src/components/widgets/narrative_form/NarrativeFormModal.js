@@ -27,8 +27,8 @@ const styles = theme => ({
 function NarrativeFormModal (props) {
     const {
         classes, fullScreen, isOpen,
-        closeHandler, pageHandler,
-        chosenNarrative
+        closeHandler, setIsUpdateNeeded,
+        chosenNarrative, isUpdateNeeded
     } = props;
 
     const [narrative_data, setNarrativeData] = useState({
@@ -44,8 +44,6 @@ function NarrativeFormModal (props) {
     useEffect(() => {
         let default_narr_data = {};
         if (chosenNarrative !== {}) {
-            console.log("chosenNarrative", chosenNarrative);
-            console.log("chosenNarrative meron!");
             const {
                 id, narrative, timestamp, site_id, user_id, event_id, type_id
             } = chosenNarrative;
@@ -66,10 +64,13 @@ function NarrativeFormModal (props) {
         });
         narrative_data.site_list = temp;
         narrative_data.timestamp = moment(narrative_data.timestamp).format("YYYY-MM-DD HH:mm:ss");
-        handleNarratives(narrative_data);
-        closeHandler();
-        handleReset();
-        pageHandler(1);
+        handleNarratives(narrative_data, ret => {
+            console.log("ret", ret);
+            closeHandler();
+            handleReset();
+            setIsUpdateNeeded(!isUpdateNeeded);
+        });
+
     };
 
     const handleReset = () => {

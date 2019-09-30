@@ -10,6 +10,22 @@ from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log)
 
 
+def delete_narratives_from_db(narrative_id):
+    """
+    """
+    print(get_process_status_log("delete_narratives_from_db", "start"))
+    try:
+        narrative_for_delete = Narratives.query.filter(Narratives.id == narrative_id).first()
+        DB.session.delete(narrative_for_delete)
+        DB.session.commit()
+        print(get_process_status_log("delete_narratives_from_db", "end"))
+    except:
+        print(get_process_status_log("delete_narratives_from_db", "fail"))
+        raise
+
+    return "Success"
+
+
 def find_narrative_event(timestamp, site_id):
     """
     """
@@ -56,6 +72,8 @@ def get_narratives(offset=None, limit=None, start=None, end=None, site_ids=None,
 
         narratives = base.order_by(
             DB.desc(nar.timestamp)).limit(limit).offset(offset).all()
+        
+        DB.session.commit()
 
         if include_count:
             count = get_narrative_count(base)
@@ -64,6 +82,7 @@ def get_narratives(offset=None, limit=None, start=None, end=None, site_ids=None,
             return narratives
     else:
         narratives = base.order_by(DB.asc(nar.timestamp)).filter(nar.event_id == event_id).all()
+        DB.session.commit()
         return narratives
 
 

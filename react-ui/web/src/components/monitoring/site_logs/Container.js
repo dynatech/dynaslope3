@@ -19,6 +19,7 @@ import { getNarratives } from "../ajax";
 import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
 import NarrativeFormModal from "../../widgets/narrative_form/NarrativeFormModal";
+import DeleteNarrativeModal from "../../widgets/narrative_form/DeleteNarrativeModal";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 import { sites } from "../../../store";
 
@@ -63,24 +64,33 @@ const getMuiTheme = createMuiTheme({
 
 
 function getManipulationButtons (narrative, data_handlers) {
-    const { setChosenNarrative, isOpenNarrativeModal, setIsOpenNarrativeModal } = data_handlers;
+    const { 
+        setChosenNarrative, setIsOpenNarrativeModal,
+        setIsOpenDeleteModal } = data_handlers;
 
-    const handleEdit = key => value => {
-        const temp = narrative;
+    const handleEdit = value => {
         setChosenNarrative(narrative);
-        setIsOpenNarrativeModal(!isOpenNarrativeModal);
+        setIsOpenNarrativeModal(true);
         console.log(narrative);
         console.log("Clicked Edit");
     };
 
+    const handleDelete = value => {
+        console.log("Clicked delete");
+        setChosenNarrative(narrative);
+        setIsOpenDeleteModal(true);
+    };
+
     return (
         <span>
-            <IconButton tooltip="Edit" style={{ "float": "left" }} iconStyle={{ marginTop: 0 }} onClick={handleEdit("edit")}>
+            <IconButton tooltip="Edit" style={{ "float": "left" }} onClick={handleEdit}>
                 <Edit style={{ fontSize: 20 }}/>
             </IconButton>
-            <IconButton tooltip="Delete" style={{ "float": "left" }} iconStyle={{ marginTop: 0 }} onClick={console.log("hello")}>
-                <Delete style={{ fontSize: 20 }}/>
-            </IconButton>
+            {narrative.type_id === 1 && ( 
+                <IconButton tooltip="Delete" style={{ "float": "left" }} onClick={handleDelete}>
+                    <Delete style={{ fontSize: 20 }}/>
+                </IconButton>
+            )}
         </span>        
     );
 }
@@ -92,7 +102,7 @@ function processTableData (data, data_handlers) {
             ...row,
             site_name: prepareSiteAddress(row.site, true, "start"),
             ts: moment(row.timestamp).format("DD MMMM YYYY, HH:mm:ss"),
-            type: 0,
+            type: row.type_id,
             actions: getManipulationButtons(row, data_handlers)
         }
     ));
@@ -113,8 +123,10 @@ function SiteLogs (props) {
     const [on_search_open, setOnSearchOpen] = useState(false);
     const [is_loading, setIsLoading] = useState(true);
     const [isOpenNarrativeModal, setIsOpenNarrativeModal] = useState(false);
+    const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
 
     const [chosenNarrative, setChosenNarrative] = useState({});
+    const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
 
 
     useEffect(() => {
@@ -129,17 +141,25 @@ function SiteLogs (props) {
 
         getNarratives(input, ret => {
             const { narratives, count: total } = ret;
-            const processed = processTableData(narratives, { setChosenNarrative, setIsOpenNarrativeModal, isOpenNarrativeModal });
+            const processed = processTableData(
+                narratives, 
+                { 
+                    setChosenNarrative, 
+                    setIsOpenNarrativeModal, isOpenNarrativeModal,
+                    setIsOpenDeleteModal, isOpenDeleteModal
+                });
             setTableData(processed);
             setCount(total);
             setIsLoading(false);
         });
-    }, [page, rowsPerPage, filters, search_str]);
+    }, [page, rowsPerPage, filters, search_str, isUpdateNeeded]);
 
     const handleBoolean = (data, bool) => () => {
         // NOTE: there was no need to use the bool for opening a modal or switch
         if (data === "is_narrative_modal_open") {
             setIsOpenNarrativeModal(!isOpenNarrativeModal);
+        } else if (data === "is_open_delete_modal") {
+            setIsOpenDeleteModal(!isOpenDeleteModal);
         }
     };
 
@@ -325,8 +345,17 @@ function SiteLogs (props) {
             <NarrativeFormModal
                 isOpen={isOpenNarrativeModal}
                 closeHandler={handleBoolean("is_narrative_modal_open", false)}
-                pageHandler={setPage}
+                setIsUpdateNeeded={setIsUpdateNeeded}
+                isUpdateNeeded={isUpdateNeeded}
                 chosenNarrative={chosenNarrative}
+            />
+
+            <DeleteNarrativeModal
+                isOpen={isOpenDeleteModal}
+                closeHandler={handleBoolean("is_open_delete_modal", false)}
+                chosenNarrative={chosenNarrative}
+                setIsUpdateNeeded={setIsUpdateNeeded}
+                isUpdateNeeded={isUpdateNeeded}
             />
         </Fragment>
     );

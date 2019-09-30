@@ -7,11 +7,25 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from src.models.narratives import (NarrativesSchema)
 from src.utils.narratives import (get_narratives, write_narratives_to_db,
-                                  update_narratives_on_db, find_narrative_event)
+                                  update_narratives_on_db, find_narrative_event,
+                                  delete_narratives_from_db)
 from src.utils.extra import var_checker, get_process_status_log
 
 
 NARRATIVES_BLUEPRINT = Blueprint("narratives_blueprint", __name__)
+
+
+@NARRATIVES_BLUEPRINT.route(
+    "/narratives/delete_narratives_from_db", methods=["POST"])
+def wrap_delete_narratives_from_db():
+    """
+        Deletes specific narrative.
+    """
+    json_data = request.get_json()
+    var_checker("json_data", json_data, True)
+    status = delete_narratives_from_db(json_data["narrative_id"])
+
+    return status
 
 
 @NARRATIVES_BLUEPRINT.route(
