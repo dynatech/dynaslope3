@@ -3,15 +3,14 @@ import React, { useState, useEffect, Fragment } from "react";
 import {
     Paper, Typography, LinearProgress,
     withStyles, Dialog, DialogContent,
-    Button
+    Button, IconButton
 } from "@material-ui/core";
-import { ArrowForwardIos, AddAlert } from "@material-ui/icons";
+import { AddAlert, Edit, Delete } from "@material-ui/icons";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 
 import moment from "moment";
 import MomentUtils from "@date-io/moment";
-import { MuiPickersUtilsProvider, KeyboardDatePicker, KeyboardTimePicker } from "@material-ui/pickers";
 import MUIDataTable from "mui-datatables";
 import { compose } from "recompose";
 
@@ -19,8 +18,8 @@ import CustomSearchRender from "./CustomSearchRender";
 import { getNarratives } from "../ajax";
 import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
-import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import NarrativeFormModal from "../../widgets/narrative_form/NarrativeFormModal";
+import DeleteNarrativeModal from "../../widgets/narrative_form/DeleteNarrativeModal";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 import { sites } from "../../../store";
 
@@ -63,14 +62,48 @@ const getMuiTheme = createMuiTheme({
     }
 });
 
-function processTableData (data) {
+
+function getManipulationButtons (narrative, data_handlers) {
+    const { 
+        setChosenNarrative, setIsOpenNarrativeModal,
+        setIsOpenDeleteModal } = data_handlers;
+
+    const handleEdit = value => {
+        setChosenNarrative(narrative);
+        setIsOpenNarrativeModal(true);
+        console.log(narrative);
+        console.log("Clicked Edit");
+    };
+
+    const handleDelete = value => {
+        console.log("Clicked delete");
+        setChosenNarrative(narrative);
+        setIsOpenDeleteModal(true);
+    };
+
+    return (
+        <span>
+            <IconButton tooltip="Edit" style={{ "float": "left" }} onClick={handleEdit}>
+                <Edit style={{ fontSize: 20 }}/>
+            </IconButton>
+            {narrative.type_id === 1 && ( 
+                <IconButton tooltip="Delete" style={{ "float": "left" }} onClick={handleDelete}>
+                    <Delete style={{ fontSize: 20 }}/>
+                </IconButton>
+            )}
+        </span>        
+    );
+}
+
+
+function processTableData (data, data_handlers) {
     const processed = data.map(row => (
         {
             ...row,
             site_name: prepareSiteAddress(row.site, true, "start"),
             ts: moment(row.timestamp).format("DD MMMM YYYY, HH:mm:ss"),
-            type: 0,
-            actions: "icon"
+            type: row.type_id,
+            actions: getManipulationButtons(row, data_handlers)
         }
     ));
 
@@ -90,16 +123,11 @@ function SiteLogs (props) {
     const [on_search_open, setOnSearchOpen] = useState(false);
     const [is_loading, setIsLoading] = useState(true);
     const [isOpenNarrativeModal, setIsOpenNarrativeModal] = useState(false);
+    const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
 
-    const [date, setDate] = useState(null); // useState(null);
-    const [time, setTime] = useState(null);
-    const [site_value, setSiteValue] = useState([]);
-    const [narrative, setNarrative] = useState("");
+    const [chosenNarrative, setChosenNarrative] = useState({});
+    const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
 
-    const set_date_fn = (value, str_val) => setDate(value);
-    const set_time_fn = (value, str_val) => setTime(value);
-    const update_site_value = value => setSiteValue(value);
-    const set_narrative_fn = x => setNarrative(x.target.value);
 
     useEffect(() => {
         setIsLoading(true);
@@ -113,17 +141,25 @@ function SiteLogs (props) {
 
         getNarratives(input, ret => {
             const { narratives, count: total } = ret;
-            const processed = processTableData(narratives);
+            const processed = processTableData(
+                narratives, 
+                { 
+                    setChosenNarrative, 
+                    setIsOpenNarrativeModal, isOpenNarrativeModal,
+                    setIsOpenDeleteModal, isOpenDeleteModal
+                });
             setTableData(processed);
             setCount(total);
             setIsLoading(false);
         });
-    }, [page, rowsPerPage, filters, search_str]);
+    }, [page, rowsPerPage, filters, search_str, isUpdateNeeded]);
 
     const handleBoolean = (data, bool) => () => {
         // NOTE: there was no need to use the bool for opening a modal or switch
         if (data === "is_narrative_modal_open") {
             setIsOpenNarrativeModal(!isOpenNarrativeModal);
+        } else if (data === "is_open_delete_modal") {
+            setIsOpenDeleteModal(!isOpenDeleteModal);
         }
     };
 
@@ -262,7 +298,7 @@ function SiteLogs (props) {
 
     const custom_buttons = <span>
         <Button
-            aria-label="Compose message"
+            aria-label="Write a site log"
             variant="contained"
             color="primary"
             size="small"
@@ -283,98 +319,6 @@ function SiteLogs (props) {
                 />
             </div>
 
-            {/* <div className={classes.pageContentMargin}>
-                <MuiPickersUtilsProvider utils={MomentUtils}>
-                    <Grid 
-                        container
-                        justify="space-between"
-                        alignContent="center"
-                        alignItems="center"
-                        spacing={4}
-                    >
-                        <Grid container item xs={12} md={7} spacing={2}>
-                            <Grid item xs={12} md={12}>
-                                <DynaslopeSiteSelectInputForm
-                                    value={site_value}
-                                    changeHandler={update_site_value}
-                                    isMulti
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} md={4} className={classes.inputGridContainer}>
-                                <KeyboardDatePicker
-                                    required
-                                    autoOk
-                                    label="Date"
-                                    value={date}
-                                    onChange={set_date_fn}
-                                    placeholder="2010/01/01"
-                                    format="YYYY/MM/DD"
-                                    mask="__/__/____"
-                                    clearable
-                                    disableFuture
-                                    variant="outlined"
-                                    InputProps={{
-                                        style: { paddingRight: 0 }
-                                    }}
-                                />
-                            </Grid>
-                            <Grid item xs={12} md={4} className={classes.inputGridContainer}>
-                                <KeyboardTimePicker
-                                    required
-                                    autoOk
-                                    ampm={false}
-                                    label="Time"
-                                    mask="__:__"
-                                    placeholder="00:00"
-                                    value={time}
-                                    onChange={set_time_fn}
-                                    clearable
-                                />
-                            </Grid>
-
-                            <Grid item xs={12} md={4} className={classes.inputGridContainer}>
-                                <SelectMultipleWithSuggest
-                                    label="Log Type"
-                                    options={[]}
-                                    value={[]}
-                                    changeHandler={() => {}}
-                                    placeholder="Choose log type"
-                                    renderDropdownIndicator
-                                    isMulti={false}
-                                />
-                            </Grid>
-                        </Grid>
-
-                        <Grid item xs={12} md={5}>
-                            <TextField
-                                id="message_textbox"
-                                value={narrative}
-                                onChange={set_narrative_fn}
-                                label="Narrative"
-                                multiline
-                                rows="6"
-                                // rowsMax={ limit ? 4 : 10 }
-                                fullWidth
-                                // className={classes.textBox}
-                                inputProps={{ maxLength: 360 }}
-                                margin="dense"
-                                variant="filled"
-                            />
-                        </Grid>
-                        
-                        <Grid
-                            item xs={12} md={12}
-                            className={classes.buttonGrid}
-                        >
-                            <Button variant="contained" color="secondary" size={isWidthDown("sm", width) ? "small" : "medium"}>
-                                    Insert <ArrowForwardIos className={classes.button} />
-                            </Button>
-                        </Grid>
-                    </Grid>
-                </MuiPickersUtilsProvider>
-            </div> */}
-
             {
                 <Dialog open={is_loading} fullWidth>
                     <DialogContent>
@@ -390,12 +334,6 @@ function SiteLogs (props) {
                     <MuiThemeProvider theme={getMuiTheme}>
                         <MUIDataTable
                             title="Site Logs"
-                            // title={
-                            //     <Typography variant="h6">
-                            //         Site Logs
-                            //         {is_loading && <LinearProgress variant="query" color="secondary" />}
-                            //     </Typography>
-                            // }
                             data={table_data}
                             columns={columns}
                             options={options}
@@ -407,7 +345,17 @@ function SiteLogs (props) {
             <NarrativeFormModal
                 isOpen={isOpenNarrativeModal}
                 closeHandler={handleBoolean("is_narrative_modal_open", false)}
-                // chosenCandidateAlert=
+                setIsUpdateNeeded={setIsUpdateNeeded}
+                isUpdateNeeded={isUpdateNeeded}
+                chosenNarrative={chosenNarrative}
+            />
+
+            <DeleteNarrativeModal
+                isOpen={isOpenDeleteModal}
+                closeHandler={handleBoolean("is_open_delete_modal", false)}
+                chosenNarrative={chosenNarrative}
+                setIsUpdateNeeded={setIsUpdateNeeded}
+                isUpdateNeeded={isUpdateNeeded}
             />
         </Fragment>
     );

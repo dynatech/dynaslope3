@@ -25,7 +25,7 @@ export function getNarratives (input, callback) {
         include_count, limit, offset,
         filters, search_str
     } = input;
-    console.log("input", input);
+    // console.log("input", input);
 
     let api_link = `${host}/api/narratives/get_narratives?limit=${limit}&offset=${offset}`;
 
@@ -47,7 +47,6 @@ export function getNarratives (input, callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
-        console.log("Narratives", data);
         callback(data);
     })
     .catch(error => {
@@ -60,7 +59,7 @@ export function getMonitoringEvents (input, callback) {
         limit, offset, include_count,
         filters, search_str
     } = input;
-    console.log("input", input);
+    // console.log("input", input);
 
     let api_link = `${host}/api/monitoring/get_monitoring_events?filter_type=complete&offset=${offset}&limit=${limit}`;
     
@@ -82,7 +81,7 @@ export function getMonitoringEvents (input, callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
-        console.log("Events", data);
+        // console.log("Events", data);
         // setIsLoading(false);
         // final_data = prepareEventsArray(response.data);
         // setData(final_data);

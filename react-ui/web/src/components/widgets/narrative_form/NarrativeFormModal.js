@@ -3,12 +3,11 @@ import moment from "moment";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withStyles, withMobileDialog,
-    Typography
+    Button, withStyles, withMobileDialog
 } from "@material-ui/core";
 import { compose } from "recompose";
 // import AlertReleaseForm from "./AlertReleaseForm";
-import { sendWSMessage } from "../../../websocket/monitoring_ws";
+import { handleNarratives } from "./ajax";
 import NarrativeForm from "./NarrativeForm";
 
 const styles = theme => ({
@@ -28,27 +27,61 @@ const styles = theme => ({
 function NarrativeFormModal (props) {
     const {
         classes, fullScreen, isOpen,
-        closeHandler
+        closeHandler, setIsUpdateNeeded,
+        chosenNarrative, isUpdateNeeded
     } = props;
 
-    const [narrativeData, setNarrativeData] = useState({
-        siteId: 1,
+    const [narrative_data, setNarrativeData] = useState({
+        narrative_id: null,
+        site_list: [],
+        timestamp: moment().format("YYYY-MM-DD HH:mm"),
         narrative: "",
-        userId: ""
-    });
+        user_id: "",
+        event_id: "",
+        type_id: 1
+    });    
+
+    useEffect(() => {
+        let default_narr_data = {};
+        if (chosenNarrative !== {}) {
+            const {
+                id, narrative, timestamp, site_id, user_id, event_id, type_id
+            } = chosenNarrative;
+            default_narr_data = {
+                narrative_id: id, site_list: [site_id],
+                timestamp, narrative,
+                user_id, event_id, type_id
+            };
+            setNarrativeData(default_narr_data);
+        }
+    }, [chosenNarrative]); 
 
     const handleSubmit = () => {
-        console.log("SUBMIT!");
-        // console.log("PAYLOAD", ewiPayload);
-        // sendWSMessage("insert_ewi", ewiPayload);
+        const temp = [];
+        narrative_data.site_list.forEach(({ value }) => {
+            // Value is site_id
+            temp.push(value);
+        });
+        narrative_data.site_list = temp;
+        narrative_data.timestamp = moment(narrative_data.timestamp).format("YYYY-MM-DD HH:mm:ss");
+        handleNarratives(narrative_data, ret => {
+            console.log("ret", ret);
+            closeHandler();
+            handleReset();
+            setIsUpdateNeeded(!isUpdateNeeded);
+        });
+
     };
 
     const handleReset = () => {
-        console.log("RESET!");
         setNarrativeData({
-            siteId: 1,
+            narrative_id: null,
+            site_list: [],
+            timestamp: moment().format("YYYY-MM-DD HH:mm"),
             narrative: "",
-            userId: ""            
+            user_id: "",
+            event_id: "",
+            type_id: 1
         });
     };
 
@@ -61,14 +94,15 @@ function NarrativeFormModal (props) {
                 aria-labelledby="form-dialog-title"
 
             >
-                <DialogTitle id="form-dialog-title">Narrative Form</DialogTitle>
+                <DialogTitle id="form-dialog-title">Site Logs Form</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Provide accurate details for the narrative.
+                        Note: Only monitoring-related narratives can be entered in this form. 
+                        Please use other forms dedicated to its purposes.
                     </DialogContentText>
 
                     <NarrativeForm
-                        narrativeData={narrativeData} setNarrativeData={setNarrativeData}
+                        narrativeData={narrative_data} setNarrativeData={setNarrativeData}
                     />
                 </DialogContent>
                 <DialogActions>
