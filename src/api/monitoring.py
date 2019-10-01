@@ -18,19 +18,38 @@ from src.models.monitoring import (
     InternalAlertSymbols, MonitoringMomsReleases, BulletinTracker)
 from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
-    InternalAlertSymbolsSchema)
-from src.utils.narratives import (write_narratives_to_db)
+    InternalAlertSymbolsSchema, EndOfShiftAnalysisSchema)
+from src.models.narratives import (Narratives, NarrativesSchema)
+from src.utils.narratives import (write_narratives_to_db, get_narratives)
 from src.utils.monitoring import (
-    get_monitoring_events, get_monitoring_releases,
-    get_active_monitoring_events, get_current_monitoring_instance_per_site,
-    compute_event_validity, round_to_nearest_release_time, get_pub_sym_id,
-    write_monitoring_moms_to_db, write_monitoring_on_demand_to_db,
-    write_monitoring_earthquake_to_db, get_internal_alert_symbols,
-    get_monitoring_events_table, get_event_count, get_public_alert,
-    get_ongoing_extended_overdue_events, update_alert_status,
-    get_max_possible_alert_level, format_candidate_alerts_for_insert)
-from src.utils.extra import (var_checker, retrieve_data_from_memcache, 
-    get_process_status_log, get_system_time)
+    # GET functions
+    get_pub_sym_id, get_event_count,
+    get_moms_id_list, get_internal_alert_symbols, 
+    get_monitoring_events, get_active_monitoring_events,
+    get_monitoring_releases, get_monitoring_events_table,
+    get_current_monitoring_instance_per_site, get_public_alert,
+    get_ongoing_extended_overdue_events, get_max_possible_alert_level,
+
+    # Logic functions
+    format_candidate_alerts_for_insert, update_alert_status,
+    compute_event_validity, round_to_nearest_release_time,
+
+    # Logic: Insert EWI specific
+    is_new_monitoring_instance, start_new_monitoring_instance,
+    end_current_monitoring_event_alert, update_bulletin_number,
+
+    # Write functions
+    write_monitoring_event_alert_to_db,
+    write_monitoring_release_to_db, write_monitoring_release_publishers_to_db,
+    write_monitoring_release_triggers_to_db, write_monitoring_triggers_misc_to_db,
+    write_monitoring_moms_releases_to_db,
+    write_monitoring_on_demand_to_db, write_monitoring_earthquake_to_db
+)
+from src.api.end_of_shift import (get_eos_data_analysis)
+from src.utils.extra import (
+    var_checker, retrieve_data_from_memcache,
+    get_process_status_log, get_system_time
+)
 
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -213,329 +232,6 @@ def wrap_get_pub_sym_id(alert_level):
     pub_sym = get_pub_sym_id(alert_level)
 
     return str(pub_sym)
-
-
-def is_new_monitoring_instance(new_status, current_status):
-    """
-    Checks is new.
-    """
-    is_new = False
-    if new_status != current_status:
-        is_new = True
-
-    return is_new
-
-
-def end_current_monitoring_event_alert(event_alert_id, ts):
-    """
-    If new alert is initiated, this will end the previous event_alert before creating a new one.
-    """
-    try:
-        event_alerts = MonitoringEventAlerts
-        ea_to_end = event_alerts.query.filter(
-            event_alerts.event_alert_id == event_alert_id).first()
-        ea_to_end.ts_end = ts
-    except Exception as err:
-        print(err)
-        DB.session.rollback()
-        raise
-
-
-def write_monitoring_event_to_db(event_details):
-    """
-    Writes to DB all event details
-    Args:
-        event_details (dict)
-            site_id (int), event_start (datetime), validity (datetime), status  (int)
-
-    Returns event_id (integer)
-    """
-    try:
-        new_event = MonitoringEvents(
-            site_id=event_details["site_id"],
-            event_start=event_details["event_start"],
-            validity=event_details["validity"],
-            status=event_details["status"]
-        )
-        DB.session.add(new_event)
-        DB.session.flush()
-
-        new_event_id = new_event.event_id
-    except Exception as err:
-        print(err)
-        DB.session.rollback()
-        raise
-
-    return new_event_id
-
-
-def write_monitoring_event_alert_to_db(event_alert_details):
-    """
-    Writes to DB all event alert details
-    Args:
-        event_alert_details (dict)
-            event_id (int), pub_sym_id (int), ts_start (datetime)
-        Note: There is no ts_end because it is only filled when the event ends.
-
-    Returns event_id (integer)
-    """
-    try:
-        new_ea = MonitoringEventAlerts(
-            event_id=event_alert_details["event_id"],
-            pub_sym_id=event_alert_details["pub_sym_id"],
-            ts_start=event_alert_details["ts_start"],
-            ts_end=None
-        )
-        DB.session.add(new_ea)
-        DB.session.flush()
-
-        new_ea_id = new_ea.event_alert_id
-    except Exception as err:
-        print(err)
-        DB.session.rollback()
-        raise
-
-    return new_ea_id
-
-
-def start_new_monitoring_instance(new_instance_details):
-    """
-    Initiates a new monitoring instance
-
-    Args:
-        new_instance_details (dict) - contains event_details (dict) and event_alert_details (dict)
-
-    Returns event alert ID for use in releases
-    """
-    try:
-        print(new_instance_details)
-        event_details = new_instance_details["event_details"]
-        event_alert_details = new_instance_details["event_alert_details"]
-
-        event_id = write_monitoring_event_to_db(event_details)
-
-        event_alert_details["event_id"] = event_id
-        event_alert_id = write_monitoring_event_alert_to_db(
-            event_alert_details)
-
-        return_ids = {
-            "event_id": event_id,
-            "event_alert_id": event_alert_id
-        }
-
-    except Exception as err:
-        print(err)
-        raise
-
-    return return_ids
-
-
-def write_monitoring_release_to_db(release_details):
-    """
-    Returns release_id
-    """
-    try:
-        new_release = MonitoringReleases(
-            event_alert_id=release_details["event_alert_id"],
-            data_ts=release_details["data_ts"],
-            trigger_list=release_details["trigger_list_str"],
-            release_time=release_details["release_time"],
-            bulletin_number=release_details["bulletin_number"],
-            comments=release_details["comments"]
-        )
-        DB.session.add(new_release)
-        DB.session.flush()
-
-        new_release_id = new_release.release_id
-
-    except Exception as err:
-        print(err)
-        DB.session.rollback()
-        raise
-
-    return new_release_id
-
-
-def get_bulletin_number(site_id):
-    """
-    Gets the bulletin number of a site specified
-    """
-    bulletin_number_row = BulletinTracker.query.filter(
-        BulletinTracker.site_id == site_id).first()
-
-    return bulletin_number_row["bulletin_number"]
-
-
-def update_bulletin_number(site_id, custom_bulletin_value=1):
-    """
-    Returns an updated bulletin number based on specified increments or decrements.
-
-    Args:
-        site_id (int) - the site you want to manipulate the bulletin number
-        custom_bulletin_number (int) - default is one. You can set other values to either
-        increase or decrease the bulletin number. Useful for fixing any mis-releases
-    """
-    try:
-        row_to_update = BulletinTracker.query.filter(
-            BulletinTracker.site_id == site_id).first()
-        row_to_update.bulletin_number = row_to_update.bulletin_number + custom_bulletin_value
-    except Exception as err:
-        print(err)
-        raise
-
-    return row_to_update.bulletin_number
-
-
-def write_monitoring_release_publishers_to_db(role, user_id, release_id):
-    """
-    Writes a release publisher to DB and returns the new ID.
-    """
-    try:
-        new_publisher = MonitoringReleasePublishers(
-            user_id=user_id,
-            release_id=release_id,
-            role=role
-        )
-        DB.session.add(new_publisher)
-        DB.session.flush()
-
-        new_publisher_id = new_publisher.publisher_id
-
-    except Exception as err:
-        print(err)
-        DB.session.rollback()
-        raise
-
-    return new_publisher_id
-
-
-def write_monitoring_release_triggers_to_db(trigger_details, new_release_id):
-    """
-    Write triggers to the database one by one. Must be looped if needed.
-
-    Args:
-        trigger_details (dict)
-        new_release_id (int)
-
-    Returns trigger_id (possibly appended to a list to the owner function)
-    """
-    try:
-        datetime_ts = trigger_details["ts"]
-        new_trigger = MonitoringTriggers(
-            release_id=new_release_id,
-            internal_sym_id=trigger_details["internal_sym_id"],
-            ts=datetime_ts,
-            info=trigger_details["info"]
-        )
-        DB.session.add(new_trigger)
-        DB.session.flush()
-
-        new_trigger_id = new_trigger.trigger_id
-
-    except Exception as err:
-        DB.session.rollback()
-        print(err)
-        raise
-
-    return new_trigger_id
-
-
-def write_monitoring_triggers_misc_to_db(trigger_id, has_moms, od_id=None, eq_id=None):
-    """
-    """
-    try:
-        trigger_misc = MonitoringTriggersMisc(
-            trigger_id=trigger_id,
-            od_id=od_id,
-            eq_id=eq_id,
-            has_moms=has_moms
-        )
-        DB.session.add(trigger_misc)
-        DB.session.flush()
-
-        new_trig_misc_id = trigger_misc.trig_misc_id
-    except Exception as err:
-        print(err)
-        raise
-
-    return new_trig_misc_id
-
-
-def write_monitoring_moms_releases_to_db(moms_id, trig_misc_id=None, release_id=None):
-    """
-    Writes a record that links trigger_misc and the moms report.
-
-    Args:
-        trig_misc_id (Int)
-        moms_id (Int)
-
-    Returns nothing for now since there is no use for it's moms_release_id.
-    """
-    try:
-        if trig_misc_id:
-            moms_release = MonitoringMomsReleases(
-                trig_misc_id=trig_misc_id,
-                moms_id=moms_id
-            )
-        elif release_id:
-            moms_release = MonitoringMomsReleases(
-                release_id=release_id,
-                moms_id=moms_id
-            )
-        DB.session.add(moms_release)
-        # DB.session.flush()
-    except Exception as err:
-        print(err)
-        raise
-
-
-def get_moms_id_list(moms_dictionary, site_id, event_id):
-    """
-    Retrieves the moms ID list from the given list of MonitoringMOMS
-    Retrieves IDs from front-end if MonitoringMOMS entry is already
-    in the database or writes to the database if not yet in DB.
-
-    Args:
-        moms_dictionary (Dictionary) -> Either triggering moms dictionary or
-                        non-triggering moms dictionary
-
-    Returns list of moms_ids
-    """
-
-    moms_id_list = []
-    has_moms_ids = True
-    try:
-        # NOTE: If there are pre-inserted moms, get the id and use it here.
-        moms_id_list = moms_dictionary["moms_id_list"]
-    except:
-        has_moms_ids = False
-        pass
-
-    try:
-        moms_list = moms_dictionary["moms_list"]
-
-        for moms in moms_list:
-            moms_id = write_monitoring_moms_to_db(
-                moms, site_id, event_id)
-            moms_id_list.append(moms_id)
-    except KeyError as err:
-        print(err)
-        if not has_moms_ids:
-            raise Exception("No MOMS entry")
-        pass
-
-    return moms_id_list
-
-
-def is_rain_surficial_subsurface_trigger(alert_symbol):
-    flag = False
-    if alert_symbol in ["R", "S", "s", "G", "g"]:
-        flag = True
-
-    return flag
-
-
-# @MONITORING_BLUEPRINT.route("/monitoring/insert_ewi_release", methods=["POST"])
 
 
 # # def insert_ewi_release(release_details, publisher_details, trigger_details):
@@ -1112,3 +808,98 @@ def insert_cbewsl_ewi():
 
     # return jsonify(internal_json_data)
     return status
+
+
+# NOTE: WORK IN PROGRESS FUNCTIONS
+@MONITORING_BLUEPRINT.route("/monitoring/get_event_timeline_data/<event_id>", methods=["GET"])
+def get_event_timeline_data(event_id):
+    """
+    This function returns a modified list of event history which
+    is used for the event timeline.
+
+    Args:
+        event_id (Integer) - variable name speaks for itself.
+    """
+    timeline_data = {
+        "event_details": {},
+        "timeline_items": []
+    }    
+    me_schema = MonitoringEventsSchema()
+    event_collection_obj = get_monitoring_events(event_id=event_id)
+    event_collection_data = me_schema.dump(event_collection_obj).data
+    var_checker("event_collection_data", event_collection_data, True)
+
+    # CORE VALUES
+    # event_details: this contains the values needed mostly for the UI
+    # Include here the other details you might need for the front end.
+
+    if event_collection_data:
+        event_details = {
+            "event_start": event_collection_data["event_start"],
+            "event_id": event_collection_data["event_id"],
+            "validity": event_collection_data["validity"],
+            "site_id": event_collection_data["site"]["site_id"],
+            "site_code": event_collection_data["site"]["site_code"],
+            "site_address": "<WIP>",
+
+            # EXTRA
+            "status": event_collection_data["status"],
+            "latest_public_alert_symbol": event_collection_data["event_alerts"][0]["public_alert_symbol"]["alert_symbol"]
+        }
+        timeline_entries = []
+
+        # Releases
+        if event_collection_data: 
+            for event_alert in event_collection_data["event_alerts"]:
+                for release in event_alert["releases"]:
+                    release_time = datetime.strptime(release["release_time"], "%H:%M:%S")
+                    data_ts = datetime.strptime(release["data_ts"], "%Y-%m-%d %H:%M:%S")
+                    timestamp = datetime(year=data_ts.year, month=data_ts.month, day=data_ts.day, hour=release_time.hour, minute=release_time.minute, second=release_time.second)
+                    timestamp = datetime.strftime(timestamp, "%Y-%m-%d %H:%M:%S")
+                    timeline_entries.append({
+                        "item_timestamp": timestamp,
+                        "item_type": "release",
+                        "item_data": release
+                    })
+        
+        # Narratives
+        # Temporary Build - not using Schema for the relationship with events and narratives
+        # have not been set up as of Oct 1 2019. Will followup tomorrow.
+        narratives_list = get_narratives(event_id=event_id)
+        narratives_data_list = NarrativesSchema(many=True).dump(narratives_list).data
+        if narratives_data_list:
+            for narrative in narratives_data_list:
+                timestamp = narrative["timestamp"]
+                timeline_entries.append({
+                    "item_timestamp": timestamp,
+                    "item_type": "narrative",
+                    "item_data": narrative
+                })
+
+        # EOS Analysis
+        # Temporary Build - not using Schema for the relationship with events and eos_analysis
+        # have not been set up as of Oct 1 2019. Will followup tomorrow.
+        eos_analysis_list = get_eos_data_analysis(event_id=event_id)
+        var_checker("eos_analysis_list", eos_analysis_list, True)
+        eos_analysis_data_list = EndOfShiftAnalysisSchema(many=True).dump(eos_analysis_list).data
+        if eos_analysis_data_list:
+            var_checker("eos_analysis_data_list", eos_analysis_data_list, True)
+            for eos_analysis in eos_analysis_data_list:
+                var_checker("eos_analysis", eos_analysis, True)
+                shift_end = datetime.strptime(eos_analysis["shift_start"], "%Y-%m-%d %H:%M:%S") + timedelta(hours=13)
+                shift_end_ts = datetime.strftime(shift_end, "%Y-%m-%d %H:%M:%S")
+                timeline_entries.append({
+                    "item_timestamp": shift_end_ts,
+                    "item_type": "eos",
+                    "item_data": eos_analysis["analysis"]
+                })
+
+        # Sort the timeline entries descending
+        sorted_desc_timeline_entries = sorted(timeline_entries, key=lambda x: x["item_timestamp"], reverse=True)
+
+        timeline_data = {
+            "event_details": event_details,
+            "timeline_items": sorted_desc_timeline_entries
+        }
+
+    return jsonify(timeline_data)

@@ -615,8 +615,8 @@ class EndOfShiftAnalysis(UserMixin, DB.Model):
     shift_start = DB.Column(DB.DateTime, primary_key=True, nullable=False)
     analysis = DB.Column(DB.String(1500))
 
-    event = DB.relationship(
-        "MonitoringEvents", backref="eos_analysis", lazy="joined")
+    # event = DB.relationship(
+    #     "MonitoringEvents", backref="eos_analysis", lazy="joined")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
@@ -948,6 +948,7 @@ class EndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of EndOfShiftAnalysis class
     """
+    shift_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
 
     class Meta:
         """Saves table class structure as schema model"""

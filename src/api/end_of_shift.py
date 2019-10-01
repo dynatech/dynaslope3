@@ -215,12 +215,22 @@ def get_eos_data_analysis(shift_start=None, event_id=None):
         Args:
             --
     """
+    return_data = None
     eosa = EndOfShiftAnalysis
-    filter_value = eosa.shift_start == shift_start and eosa.event_id == event_id
+    base_query = eosa.query
+    if shift_start and event_id:
+        filter_value = eosa.shift_start == shift_start and eosa.event_id == event_id
+        eos_data_analysis = base_query.filter(filter_value).first()
+        return_data = eos_data_analysis.analysis
+    elif event_id:
+        filter_value = eosa.event_id == event_id
+        eos_data_analysis = base_query.filter(filter_value).all()
+        return_data = eos_data_analysis
+    else:
+        eos_data_analysis = base_query.all()
+        return_data = eos_data_analysis
 
-    eos_data_analysis = eosa.query.filter(filter_value).first()
-
-    return eos_data_analysis.analysis
+    return return_data
 
 
 def get_eos_narratives(start_timestamp, end_timestamp, event_id):

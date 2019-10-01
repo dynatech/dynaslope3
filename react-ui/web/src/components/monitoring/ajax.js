@@ -91,3 +91,25 @@ export function getMonitoringEvents (input, callback) {
         console.log(error);
     });    
 }
+
+export function getEventTimelineEntries (input, callback) {
+    const {
+        event_id
+    } = input;
+
+    const api_link = `${host}/api/monitoring/get_event_timeline_data/${event_id}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch(error => {
+        console.error("Problem in getEventTimelineEntries Axios request");
+        console.error(error);
+    });    
+}
+
+
+
+
