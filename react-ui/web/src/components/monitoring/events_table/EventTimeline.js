@@ -2,7 +2,7 @@ import React, { useState, useEffect, Fragment } from "react";
 import moment from "moment";
 import { Timeline, TimelineItem } from "vertical-timeline-component-for-react";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
-import { CircularProgress, Typography, Paper } from "@material-ui/core";
+import { CircularProgress, Typography, Paper, Grid, Button } from "@material-ui/core";
 import { withStyles, createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 import { compose } from "recompose";
 
@@ -11,7 +11,7 @@ import GeneralStyles from "../../../GeneralStyles";
 import { getEventTimelineEntries } from "../ajax";
 
 
-function buildTimelineElements (timelineItems) {
+function buildTimelineElements (timelineItems, bulletinHandler) {
     const temp = [];
     let key = 0;
     timelineItems.forEach(item => {
@@ -21,13 +21,15 @@ function buildTimelineElements (timelineItems) {
         } = item;
         let element = null;
 
+        const moment_item_timestamp = moment(item_timestamp).format("D MMMM YYYY, h:mm A");
+
         switch (item_type) {
             case "narrative":
                 element = (
                     <TimelineItem
                         // key="001"
                         key={key}
-                        dateText={item_timestamp}
+                        dateText={moment_item_timestamp}
                         style={{ color: "#e86971" }}
                         dateComponent={(
                             <div
@@ -39,26 +41,37 @@ function buildTimelineElements (timelineItems) {
                                     color: "#fff",
                                 }}
                             >
-                                {item_timestamp}
+                                {moment_item_timestamp}
                             </div>
                         )}                                            
                     >
-                        <p>
-                            {item_data.narrative}
-                        </p>
+                        {item_data.narrative}
                     </TimelineItem>
                 );
                 
                 break;
             case "release":
                 const {
-                    release_time, data_ts
+                    release_time, data_ts, release_publishers
                 } = item_data;
+                
+                const moment_data_ts = moment(data_ts).format("D MMMM YYYY, h:mm A");
+                
+                let mt = "";
+                let ct = "";
+                release_publishers.forEach(publisher => {
+                    const { role, user_details } = publisher;
+                    const { first_name, last_name } = user_details;
+                    if (role === "mt") mt = `${first_name} ${last_name}`;
+                    if (role === "ct") ct = `${first_name} ${last_name}`;
+                });
+
                 element = (
                     <TimelineItem
                         key={key}
-                        dateText={item_timestamp}
-                        style={{ color: "#e86971" }}
+                        dateText={moment_item_timestamp}
+                        style={{ color: "#F8991D" }}
+                        dateInnerStyle={{ background: "#F8991D" }}
                         bodyContainerStyle={{
                             background: "#ddd",
                             padding: "20px",
@@ -66,23 +79,42 @@ function buildTimelineElements (timelineItems) {
                             boxShadow: "0.5rem 0.5rem 2rem 0 rgba(0, 0, 0, 0.2)",
                         }}
                     >
-                        <h3 style={{ color: "#e86971" }}>EWI {data_ts}</h3>
-                        <h4 style={{ color: "#e86971" }}>Release Time: {release_time}</h4>
-                        <p>
-                            [TRIGGERS GOES HERE] 
-                            or 
-                            NO TRIGGERS
-                        </p>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={12}>
+                                <h3 style={{ color: "#F8991D" }}>EWI {moment_data_ts}</h3>
+                                <h4 style={{ color: "#F8991D" }}>Release Time: {release_time}</h4>
+                            </Grid>
+                            <Grid item xs={12} sm={12}>
+                                [TRIGGERS HERE]
+                            </Grid>
+                            <Grid item xs={12} sm={8}>
+                                {mt} | {ct}
+                            </Grid>
+                            <Grid item xs={12} sm={2}>
+                                <span>
+                                    <Button
+                                        // aria-label="Compose message"
+                                        variant="contained"
+                                        color="primary"
+                                        size="small"
+                                        // style={{ marginRight: 8 }}
+                                        onClick={bulletinHandler}
+                                    >
+                                        Bulletin
+                                    </Button>
+                                </span>                                
+                            </Grid>
+                        </Grid>
                     </TimelineItem>
                 );
                 break;
             case "eos":
-                console.log(item_data);
                 element = (
                     <TimelineItem
                         key={key}
-                        dateText={item_timestamp}
-                        dateInnerStyle={{ background: "#76bb7f" }}
+                        dateText={moment_item_timestamp}
+                        style={{ color: "#3f51b5" }}
+                        dateInnerStyle={{ background: "#3f51b5" }}
                         bodyContainerStyle={{
                             background: "#ddd",
                             padding: "20px",
@@ -90,8 +122,11 @@ function buildTimelineElements (timelineItems) {
                             boxShadow: "0.5rem 0.5rem 2rem 0 rgba(0, 0, 0, 0.2)",
                         }}
                     >
-                        <h3 style={{ color: "#76bb7f" }}>EOS {data_ts}</h3>
-                        <p>{item_data}</p>
+                        <h3 style={{ color: "#3f51b5" }}>End-of-Shift Release for {moment_item_timestamp}</h3>
+                        {/* HIGHLY DANGEROUS REACT CODE: */}
+                        {/* Might wanna use react-html-parser in the future  */}
+                        <div dangerouslySetInnerHTML={{ __html: item_data }} />
+                        
                     </TimelineItem>
                 );                
                 break;
@@ -109,7 +144,13 @@ function MonitoringEventTimeline (props) {
     const { classes, width, 
         match: { url, params: { event_id } } 
     } = props;
-    const [eventDetails, setEventDetails] = useState({});
+    const [eventDetails, setEventDetails] = useState({
+        event_id,
+        site_code: "",
+        site_id: 1,
+        validity: "",
+        event_start: ""
+    });
     const [timelineItems, setTimelineItems] = useState([]);
 
     useEffect(() => {
@@ -127,12 +168,36 @@ function MonitoringEventTimeline (props) {
         });
     }, []);
 
+    const bulletinHandler = key => event => {
+        console.log("Clicked"); 
+    };
+
     return (
         <Fragment>
-            Hello World! Link provided is: {event_id}. URL is: {url}.
-            Event Monitoring Timeline
+            <Typography 
+                variant="h4" 
+                gutterBottom
+                align="center"
+            >
+                Event Monitoring Timeline
+            </Typography>
+            <hr/>
+            <Typography 
+                variant="h2" 
+                gutterBottom
+                align="center"
+            >
+                {eventDetails.site_code.toUpperCase()}
+            </Typography>
+            <Typography 
+                variant="h6" 
+                gutterBottom
+                align="center"
+            >
+                {eventDetails.event_start} to {eventDetails.validity}
+            </Typography>
             <Timeline lineColor="#ddd">
-                {buildTimelineElements(timelineItems)}
+                {buildTimelineElements(timelineItems, bulletinHandler)}
             </Timeline>            
         </Fragment>
     );
