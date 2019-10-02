@@ -434,6 +434,7 @@ def write_monitoring_release_triggers_to_db(trigger_details, new_release_id):
 
     Returns trigger_id (possibly appended to a list to the owner function)
     """
+    print(f"{datetime.now()} | Writing Monitoring Release Trigger...")
     try:
         datetime_ts = trigger_details["ts"]
         new_trigger = MonitoringTriggers(
@@ -448,6 +449,7 @@ def write_monitoring_release_triggers_to_db(trigger_details, new_release_id):
 
         new_trigger_id = new_trigger.trigger_id
 
+        print(f"{datetime.now()} | New Monitoring Release Trigger: {new_trigger_id}")
     except Exception as err:
         DB.session.rollback()
         print(err)
@@ -526,43 +528,6 @@ def get_moms_id_list(moms_dictionary, site_id, event_id):
 
     Returns list of moms_ids
     """
-    moms_id_list = []
-    has_moms_ids = True
-    try:
-        # NOTE: If there are pre-inserted moms, get the id and use it here.
-        moms_id_list = moms_dictionary["moms_id_list"]
-    except:
-        has_moms_ids = False
-        pass
-
-    try:
-        moms_list = moms_dictionary["moms_list"]
-
-        for moms in moms_list:
-            moms_id = write_monitoring_moms_to_db(
-                moms, site_id, event_id)
-            moms_id_list.append(moms_id)
-    except KeyError as err:
-        print(err)
-        if not has_moms_ids:
-            raise Exception("No MOMS entry")
-        pass
-
-    return moms_id_list
-
-
-def get_moms_id_list(moms_dictionary, site_id, event_id):
-    """
-    Retrieves the moms ID list from the given list of MonitoringMOMS
-    Retrieves IDs from front-end if MonitoringMOMS entry is already
-    in the database or writes to the database if not yet in DB.
-
-    Args:
-        moms_dictionary (Dictionary) -> Either triggering moms dictionary or
-                        non-triggering moms dictionary
-
-    Returns list of moms_ids
-    """
 
     moms_id_list = []
     has_moms_ids = True
@@ -621,6 +586,8 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
     """
     try:
         print("")
+
+        var_checker("trigger_list_arr", trigger_list_arr, True)
         new_release = write_monitoring_release_to_db(release_details)
         release_id = new_release
         site_id = monitoring_instance_details["site_id"]
@@ -1130,82 +1097,6 @@ def get_latest_cbewsl_ewi(site_id):
     return jsonify(minimal_data)
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/insert_cbewsl_moms", methods=["POST"])
-def insert_cbewsl_moms():
-    """
-    This function is a revision from the below commented insert_cbewsl_ewi. 
-    Since the community will no more send alerts via SMS, and will only use the web.
-    """
-    try:
-        json_data = request.get_json()
-        var_checker("JSON DATA FROM INSERT_CBEWSL_MOMS", json_data, True)
-        op_trigger = int(json_data["alert_level"])
-        user_id = json_data["user_id"]
-        data_ts = json_data["data_ts"]
-        run_status = ""
-
-        # NOTE: With the assumption that surficial "RAISE" button always send
-        # one and only one trigger
-        trigger = json_data["trig_list"][0]
-        feature_name = trigger["f_name"]
-        feature_type = trigger["f_type"]
-        remarks = trigger["remarks"]
-
-        moms_obs = {
-            "observance_ts": data_ts,
-            "reporter_id": user_id,
-            "remarks": remarks,
-            "report_narrative": f"[{feature_type}] {feature_name} - {remarks}",
-            "validator_id": user_id,
-            "instance_id": None,
-            "feature_name": feature_name,
-            "feature_type": feature_type,
-            "op_trigger": op_trigger
-        }
-        current_monitoring_instance = get_current_monitoring_instance_per_site(
-            site_id=50)
-        event_id = None
-        if current_monitoring_instance:
-            event_id = current_monitoring_instance.event_id
-        try:
-            moms_id = write_monitoring_moms_to_db(moms_obs, 50, event_id)
-            DB.session.commit()
-            print(f"Insert MOMS Success with ID: {moms_id}")
-            run_status += "MOMS HAS BEEN INSERTED. "
-        except Exception as err:
-            print(err)
-            raise
-        
-        # RUN ALERT GEN TO GET THE LATEST DATA INSERTED
-        if not op_trigger == 0: # if not is_raised or is_heightened
-            try: 
-                generated_alert = public_alert_generator.main(site_code="umi", is_instantaneous=True)
-                generated_alert = json.loads(generated_alert)
-                var_checker("generated_alert", generated_alert, True)
-                candidate = candidate_alerts_generator.main(generated_alerts_list=generated_alert)
-                var_checker("candidate", candidate, True)
-                candidate = json.loads(candidate)
-                if candidate:
-                    print("#### CANDIDATE GENERATED")
-                    formatted_candidate = format_candidate_alerts_for_insert(candidate[0])
-                    status = insert_ewi(formatted_candidate)
-                    run_status += "Candidate Release also has been inserted. "
-                else:
-                    print("#### NO CANDIDATE GENERATED")
-                    run_status += "NO candidate inserted. "
-
-            except Exception as err:
-                print("PROBLEM IN ALERT GEN IN CBEWS MOMS INSERT")
-                print(err)
-                raise
-
-    except Exception as err:
-        var_checker("THERE IS AN ERROR IN CBEWS MOMS", err, True)
-        raise
-
-    return run_status
-
-
 @MONITORING_BLUEPRINT.route("/monitoring/insert_cbewsl_moms_ewi_web", methods=["POST"])
 def insert_cbewsl_moms_ewi_web():
     """
@@ -1227,6 +1118,7 @@ def insert_cbewsl_moms_ewi_web():
         observance_ts = json_data["observance_ts"]
         trigger_list_arr = []
         moms_trigger = {}
+        triggering_moms_id_list = []
         triggering_moms_list = []
         non_triggering_moms = {}
         non_trig_moms_list = []
@@ -1236,6 +1128,8 @@ def insert_cbewsl_moms_ewi_web():
             raised_alert_level = current_alert.alert_level
         else:
             raised_alert_level = 0
+        
+        var_checker("JSON DATA", json_data, True);
 
         insert_alert_level = 0
 
@@ -1290,11 +1184,31 @@ def insert_cbewsl_moms_ewi_web():
                     non_trig_moms_list.append(moms_obs)
                     continue
                 else:
+                    ## NOTE: Changes been made by LOUIE
+                    current_monitoring_instance = get_current_monitoring_instance_per_site(
+                        site_id=50)
+                    event_id = None
+
+                    if current_monitoring_instance:
+                        event_id = current_monitoring_instance.event_id
+                    else:
+                        event_id = 1
+
+                    try:
+                        moms_id = write_monitoring_moms_to_db(moms_obs, 50, event_id)
+                        DB.session.commit()
+                        print(f"Insert MOMS Success with ID: {moms_id}")
+                    except Exception as err:
+                        print(err)
+                        raise
+
+                    triggering_moms_id_list.append(moms_id)
                     triggering_moms_list.append(moms_obs)
                     moms_trigger = {
                         **moms_trigger,
                         **trigger_entry,
                         "tech_info": f"[{feature_type}] {feature_name} - {remarks}",
+                        "moms_id_list": triggering_moms_id_list,
                         "moms_list": triggering_moms_list
                     }
                     continue
@@ -1314,6 +1228,7 @@ def insert_cbewsl_moms_ewi_web():
             moms_trigger["alert_level"] = highest_moms["op_trigger"]
             insert_alert_level = highest_moms["op_trigger"]
             moms_trigger["alert"] = alert_symbol
+            del moms_trigger["moms_list"]
             trigger_list_arr.append(moms_trigger)
         else:
             insert_alert_level = raised_alert_level

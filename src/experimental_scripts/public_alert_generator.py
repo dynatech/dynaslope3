@@ -1017,7 +1017,7 @@ def get_latest_public_alerts_per_site(s_pub_alerts_query, query_ts_end, max_poss
     return most_recent
 
 
-def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_write_to_db):
+def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_write_to_db, is_instantaneous=True):
     ######################################
     # LOOP THROUGH ACTIVE SITES PROVIDED #
     ######################################
@@ -1283,6 +1283,10 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         except:
             public_alert_ts = query_ts_end
 
+        # NOTE: LOUIE Haphazard fix, problem in public_alert table timestamps
+        if is_instantaneous:
+            public_alert_ts = query_ts_end
+
         # writes public alert to database
         pub_sym_id = retrieve_data_from_memcache(
             "public_alert_symbols", {"alert_level": highest_public_alert}, retrieve_attr="pub_sym_id")
@@ -1357,7 +1361,7 @@ def main(query_ts_end=None, query_ts_start=None, is_instantaneous=False, is_test
     active_sites = get_sites_data(site_code)  # site_code is default to None
 
     generated_alerts = get_site_public_alerts(
-        active_sites, query_ts_start, query_ts_end, do_not_write_to_db)
+        active_sites, query_ts_start, query_ts_end, do_not_write_to_db, is_instantaneous)
 
     # Sort per alert level
     generated_alerts.sort(key=extract_alert_level, reverse=True)
@@ -1381,10 +1385,10 @@ def main(query_ts_end=None, query_ts_start=None, is_instantaneous=False, is_test
 
 
 if __name__ == "__main__":
-    # main()
+    main()
 
     # TEST MAIN
     # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")
-    main(query_ts_end="2019-09-05 15:50:00", query_ts_start="2019-09-05 15:50:00", is_test=True, site_code="umi")
+    # main(query_ts_end="2019-09-05 15:50:00", query_ts_start="2019-09-05 15:50:00", is_test=True, site_code="umi")
     # main(query_ts_end="2019-05-22 11:00:00", query_ts_start="2019-05-22 11:00:00", is_test=True, site_code="hum")
     # main(is_test=True, site_code="umi")

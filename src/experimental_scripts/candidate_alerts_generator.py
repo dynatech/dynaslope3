@@ -411,10 +411,16 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     site_w_alert["ts"], "%Y-%m-%d %H:%M:%S")
                 release_start_range = round_to_nearest_release_time(
                     query_end_ts, release_interval_hours) - timedelta(minutes=30)
+                
+                # NOTE: LOUIE dangerous haphazard fix. Consult Kevin
+                if site_alert_ts.minute != 30 or site_alert_ts.minute != 0:
+                    site_alert_ts = round_down_data_ts(site_alert_ts)
+
                 is_release_schedule_range = site_alert_ts >= release_start_range
 
                 # if incoming data_ts has not yet released:
                 is_new_release = db_latest_release_ts < site_alert_ts
+                var_checker("is_new_release", is_new_release, True)
 
                 if is_release_schedule_range and is_new_release:
                     is_release_time = True
