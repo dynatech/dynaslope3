@@ -1010,14 +1010,14 @@ def get_latest_public_alerts_per_site(s_pub_alerts_query, query_ts_end, max_poss
     """
 
     limit = max_possible_alert_level
-    most_recent = s_pub_alerts_query.order_by(DB.desc(pa.ts)).filter(
+    most_recent = s_pub_alerts_query.order_by(DB.desc(pa.ts)).order_by(DB.desc(pa.pub_sym_id)).filter(
         or_(pa.ts_updated <= query_ts_end, and_(pa.ts <= query_ts_end, query_ts_end <= pa.ts_updated))).limit(limit).all()
 
     # If return_one is False, return the AppenderBaseQuery to be filtered.
     return most_recent
 
 
-def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_write_to_db, is_instantaneous=True):
+def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_write_to_db):
     ######################################
     # LOOP THROUGH ACTIVE SITES PROVIDED #
     ######################################
@@ -1056,9 +1056,14 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ###################################
         # OPERATIONAL TRIGGERS MANIPULATION
         ###################################
+        # NOTE: LOUIE
+        op_query_ts_end = query_ts_end
+        if query_ts_end == monitoring_start_ts:
+            op_query_ts_end = op_query_ts_end + timedelta(minutes=30)
+
         # Get all operational triggers of the site
         op_triggers_query = get_operational_triggers_within_monitoring_period(
-            s_op_triggers_query, monitoring_start_ts, query_ts_end)
+            s_op_triggers_query, monitoring_start_ts, op_query_ts_end)
         op_triggers_list = op_triggers_query.all()
 
         positive_triggers_list = extract_positive_triggers_list(
@@ -1283,10 +1288,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         except:
             public_alert_ts = query_ts_end
 
-        # NOTE: LOUIE Haphazard fix, problem in public_alert table timestamps
-        if is_instantaneous:
-            public_alert_ts = query_ts_end
-
         # writes public alert to database
         pub_sym_id = retrieve_data_from_memcache(
             "public_alert_symbols", {"alert_level": highest_public_alert}, retrieve_attr="pub_sym_id")
@@ -1361,7 +1362,7 @@ def main(query_ts_end=None, query_ts_start=None, is_instantaneous=False, is_test
     active_sites = get_sites_data(site_code)  # site_code is default to None
 
     generated_alerts = get_site_public_alerts(
-        active_sites, query_ts_start, query_ts_end, do_not_write_to_db, is_instantaneous)
+        active_sites, query_ts_start, query_ts_end, do_not_write_to_db)
 
     # Sort per alert level
     generated_alerts.sort(key=extract_alert_level, reverse=True)

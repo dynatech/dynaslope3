@@ -1106,10 +1106,16 @@ def insert_cbewsl_moms():
     try:
         json_data = request.get_json()
         var_checker("JSON DATA FROM INSERT_CBEWSL_MOMS", json_data, True)
-        op_trigger = int(json_data["alert_level"])
+        public_alert_level = int(json_data["alert_level"])
+        public_alert_symbol = retrieve_data_from_memcache(
+            "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
         user_id = json_data["user_id"]
         data_ts = json_data["data_ts"]
+        observance_ts = json_data["observance_ts"]
         run_status = ""
+        non_triggering_moms = {}
+        non_trig_moms_list = []
+        trigger_list_arr = []
 
         # NOTE: With the assumption that surficial "RAISE" button always send
         # one and only one trigger
@@ -1119,7 +1125,7 @@ def insert_cbewsl_moms():
         remarks = trigger["remarks"]
 
         moms_obs = {
-            "observance_ts": data_ts,
+            "observance_ts": observance_ts,
             "reporter_id": user_id,
             "remarks": remarks,
             "report_narrative": f"[{feature_type}] {feature_name} - {remarks}",
@@ -1127,8 +1133,9 @@ def insert_cbewsl_moms():
             "instance_id": None,
             "feature_name": feature_name,
             "feature_type": feature_type,
-            "op_trigger": op_trigger
+            "op_trigger": public_alert_level
         }
+
         current_monitoring_instance = get_current_monitoring_instance_per_site(
             site_id=50)
         event_id = None
@@ -1143,6 +1150,43 @@ def insert_cbewsl_moms():
             print(err)
             raise
         
+        if public_alert_level == 0:
+            non_trig_moms_list.append(moms_id)
+            non_triggering_moms["moms_id_list"] = non_trig_moms_list
+        else:
+            ##############################
+            # PREPARE TRIGGER_LIST_ARRAY
+            int_sym = trigger["int_sym"]
+            ots_row = retrieve_data_from_memcache(
+                "operational_trigger_symbols", {"alert_symbol": int_sym})
+            try:
+                internal_sym_id = ots_row["internal_alert_symbol"]["internal_sym_id"]
+            except TypeError:
+                internal_sym_id = None
+
+            trigger_alert_level = ots_row["alert_level"]
+            trigger_alert_symbol = ots_row["alert_symbol"]
+            source_id = ots_row["source_id"]
+            trigger_source = ots_row["trigger_hierarchy"]["trigger_source"]
+
+            trigger_entry = {
+                "trigger_type": "moms",
+                "source_id": source_id,
+                "alert_level": trigger_alert_level,
+                "trigger_id": None,
+                "alert": trigger_alert_symbol,
+                "ts_updated": observance_ts,
+                "internal_sym_id": internal_sym_id
+            }            
+
+            moms_trigger = {
+                **trigger_entry,
+                "tech_info": f"[{feature_type}] {feature_name} - {remarks}",
+                "moms_id_list": [moms_id]
+            }
+
+            trigger_list_arr.append(moms_trigger)
+        
         ###############################
         # GET THE CURRENT ALERT LEVEL #
         ###############################
@@ -1151,12 +1195,10 @@ def insert_cbewsl_moms():
             raised_alert_level = current_alert.alert_level
         else:
             raised_alert_level = 0
-        
-        
 
         # RUN ALERT GEN TO GET THE LATEST DATA INSERTED
         # if not op_trigger == 0: # if not is_raised or is_heightened
-        if op_trigger > raised_alert_level:
+        if public_alert_level > raised_alert_level:
             try:
                 release_time = datetime.now().time()
 
@@ -1179,6 +1221,9 @@ def insert_cbewsl_moms():
                     },
                     "trigger_list_arr": trigger_list_arr
                 }
+
+
+                var_checker("internal_json_data", internal_json_data, True)                
                 run_status = insert_ewi(internal_json_data)                
                 # generated_alert = public_alert_generator.main(site_code="umi", is_instantaneous=True)
                 # generated_alert = json.loads(generated_alert)
@@ -1241,7 +1286,7 @@ def insert_cbewsl_moms_ewi_web():
         else:
             raised_alert_level = 0
         
-        var_checker("JSON DATA", json_data, True);
+        var_checker("JSON DATA", json_data, True)
 
         insert_alert_level = 0
 
