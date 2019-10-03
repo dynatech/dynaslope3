@@ -52,10 +52,12 @@ function buildTimelineElements (timelineItems, bulletinHandler) {
                 break;
             case "release":
                 const {
-                    release_time, data_ts, release_publishers
+                    release_time, data_ts, release_publishers,
+                    triggers
                 } = item_data;
                 
-                const moment_data_ts = moment(data_ts).format("D MMMM YYYY, h:mm A");
+                const moment_data_ts = moment(data_ts).format("D MMMM YYYY, h:mm A")
+                .toUpperCase();
                 
                 let mt = "";
                 let ct = "";
@@ -65,6 +67,18 @@ function buildTimelineElements (timelineItems, bulletinHandler) {
                     if (role === "mt") mt = `${first_name} ${last_name}`;
                     if (role === "ct") ct = `${first_name} ${last_name}`;
                 });
+
+                const trigger_info = [];
+                if (triggers.length !== 0) {
+                    triggers.forEach(trigger => {
+                        const { info } = trigger;
+                        console.log(info);
+                        trigger_info.push(info);
+                    });
+                } else {
+                    console.log("walang triger");
+                    trigger_info.push("No triggers");
+                }
 
                 element = (
                     <TimelineItem
@@ -85,7 +99,9 @@ function buildTimelineElements (timelineItems, bulletinHandler) {
                                 <h4 style={{ color: "#F8991D" }}>Release Time: {release_time}</h4>
                             </Grid>
                             <Grid item xs={12} sm={12}>
-                                [TRIGGERS HERE]
+                                {
+                                    trigger_info
+                                } 
                             </Grid>
                             <Grid item xs={12} sm={8}>
                                 {mt} | {ct}
@@ -122,7 +138,8 @@ function buildTimelineElements (timelineItems, bulletinHandler) {
                             boxShadow: "0.5rem 0.5rem 2rem 0 rgba(0, 0, 0, 0.2)",
                         }}
                     >
-                        <h3 style={{ color: "#3f51b5" }}>End-of-Shift Release for {moment_item_timestamp}</h3>
+                        <h3 style={{ color: "#3f51b5" }}>END-OF-SHIFT ANALYSIS</h3>
+                        <h4>{moment_item_timestamp.toUpperCase()}</h4><br/> 
                         {/* HIGHLY DANGEROUS REACT CODE: */}
                         {/* Might wanna use react-html-parser in the future  */}
                         <div dangerouslySetInnerHTML={{ __html: item_data }} />
@@ -194,7 +211,7 @@ function MonitoringEventTimeline (props) {
                 gutterBottom
                 align="center"
             >
-                {eventDetails.event_start} to {eventDetails.validity}
+                {moment(eventDetails.event_start).format("D MMMM YYYY, h:mm A")} to {moment(eventDetails.validity).format("D MMMM YYYY, h:mm A")}
             </Typography>
             <Timeline lineColor="#ddd">
                 {buildTimelineElements(timelineItems, bulletinHandler)}
