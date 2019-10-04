@@ -1097,6 +1097,118 @@ def get_latest_cbewsl_ewi(site_id):
     return jsonify(minimal_data)
 
 
+@MONITORING_BLUEPRINT.route("/monitoring/insert_cbewsl_moms_ewi_web2", methods=["POST"])
+def insert_cbewsl_moms():
+    """
+    This function is a revision from the below commented insert_cbewsl_ewi. 
+    Since the community will no more send alerts via SMS, and will only use the web.
+    """
+    try:
+        json_data = request.get_json()
+        var_checker("JSON DATA FROM INSERT_CBEWSL_MOMS", json_data, True)
+        op_trigger = int(json_data["alert_level"])
+        user_id = json_data["user_id"]
+        data_ts = json_data["data_ts"]
+        run_status = ""
+
+        # NOTE: With the assumption that surficial "RAISE" button always send
+        # one and only one trigger
+        trigger = json_data["trig_list"][0]
+        feature_name = trigger["f_name"]
+        feature_type = trigger["f_type"]
+        remarks = trigger["remarks"]
+
+        moms_obs = {
+            "observance_ts": data_ts,
+            "reporter_id": user_id,
+            "remarks": remarks,
+            "report_narrative": f"[{feature_type}] {feature_name} - {remarks}",
+            "validator_id": user_id,
+            "instance_id": None,
+            "feature_name": feature_name,
+            "feature_type": feature_type,
+            "op_trigger": op_trigger
+        }
+        current_monitoring_instance = get_current_monitoring_instance_per_site(
+            site_id=50)
+        event_id = None
+        if current_monitoring_instance:
+            event_id = current_monitoring_instance.event_id
+        try:
+            moms_id = write_monitoring_moms_to_db(moms_obs, 50, event_id)
+            DB.session.commit()
+            print(f"Insert MOMS Success with ID: {moms_id}")
+            run_status += "MOMS HAS BEEN INSERTED. "
+        except Exception as err:
+            print(err)
+            raise
+        
+        ###############################
+        # GET THE CURRENT ALERT LEVEL #
+        ###############################
+        current_alert = get_public_alert(site_id=50)
+        if current_alert:
+            raised_alert_level = current_alert.alert_level
+        else:
+            raised_alert_level = 0
+        
+        
+
+        # RUN ALERT GEN TO GET THE LATEST DATA INSERTED
+        # if not op_trigger == 0: # if not is_raised or is_heightened
+        if op_trigger > raised_alert_level:
+            try:
+                release_time = datetime.now().time()
+
+                internal_json_data = {
+                    "site_id": 50,
+                    "site_code": "umi",
+                    "public_alert_level": public_alert_level,
+                    "public_alert_symbol": public_alert_symbol,
+                    "cbewsl_validity": json_data["alert_validity"],
+                    "release_details": {
+                        "data_ts": data_ts,
+                        "trigger_list_str": "m",
+                        "release_time": release_time,
+                        "comments": ""
+                    },
+                    "non_triggering_moms": non_triggering_moms,
+                    "publisher_details": {
+                        "publisher_mt_id": user_id,
+                        "publisher_ct_id": user_id,
+                    },
+                    "trigger_list_arr": trigger_list_arr
+                }
+                run_status = insert_ewi(internal_json_data)                
+                # generated_alert = public_alert_generator.main(site_code="umi", is_instantaneous=True)
+                # generated_alert = json.loads(generated_alert)
+                # var_checker("generated_alert", generated_alert, True)
+                # candidate = candidate_alerts_generator.main(generated_alerts_list=generated_alert)
+                # var_checker("candidate", candidate, True)
+                # candidate = json.loads(candidate)
+                # if candidate:
+                #     print("#### CANDIDATE GENERATED")
+                #     formatted_candidate = format_candidate_alerts_for_insert(candidate[0])
+                #     status = insert_ewi(formatted_candidate)
+                #     run_status += "Candidate Release also has been inserted. "
+                # else:
+                #     print("#### NO CANDIDATE GENERATED")
+                #     run_status += "NO candidate inserted. "
+
+            except Exception as err:
+                # print("PROBLEM IN ALERT GEN IN CBEWS MOMS INSERT")
+                print(err)
+                raise
+        else:
+            run_status = "no ewi released"
+
+    except Exception as err:
+        var_checker("THERE IS AN ERROR IN CBEWS MOMS", err, True)
+        raise
+
+    return run_status
+
+
 @MONITORING_BLUEPRINT.route("/monitoring/insert_cbewsl_moms_ewi_web", methods=["POST"])
 def insert_cbewsl_moms_ewi_web():
     """

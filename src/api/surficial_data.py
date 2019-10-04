@@ -171,33 +171,29 @@ def save_monitoring_log():
 
         result = ManifestationsOfMovementsSchema(many=True).dump(get_name_of_feature).data
 
-        if len(result) > 0:
-            message = "Name of feature on same Feature type is already in the database."
-            status = False
-        else:    
-            if moms_id == 0:
+        
+        if moms_id == 0:
+            if len(result) > 0:
+                message = "Name of feature on same Feature type is already in the database."
+                status = False
+            else:   
                 insert_data = ManifestationsOfMovements(
                     type_of_feature=type_of_feature, description=description, name_of_feature=name_of_feature, date=timestamp, date_updated=observance_ts)
                 DB.session.add(insert_data)
                 message = "Successfully added new data!"
-            else:
-                update_data = ManifestationsOfMovements.query.get(moms_id)
-                update_data.type_of_feature = type_of_feature
-                update_data.description = description
-                update_data.name_of_feature = name_of_feature
-                update_data.date = timestamp
-                update_data.date_updated = observance_ts
+                status = True
+        else:
+            update_data = ManifestationsOfMovements.query.get(moms_id)
+            update_data.type_of_feature = type_of_feature
+            update_data.description = description
+            update_data.name_of_feature = name_of_feature
+            update_data.date = timestamp
+            update_data.date_updated = observance_ts
 
-                message = "Successfully updated data!"
-                # site_id = 50
-                # timestamp = date["datetime"]
-                # measurement_type = date["measurement_type"]
-                # weather = date["weather"]
-                # data_source = 'CBEWSL_APP'
-                # reliability = 1
-
-            DB.session.commit()
+            message = "Successfully updated data!"
             status = True
+
+        DB.session.commit()
     except Exception as err:
         print(err)
         DB.session.rollback()
