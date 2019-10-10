@@ -1225,6 +1225,9 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ######################
         # START OF AN EVENT! #
         ######################
+        var_checker("monitoring_type", monitoring_type, True)
+        var_checker("positive_triggers_list", positive_triggers_list, True)
+        
         if monitoring_type != "event" and positive_triggers_list:
             ts_onset = min(positive_triggers_list,
                            key=lambda x: x.ts).ts
@@ -1286,7 +1289,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         try:
             public_alert_ts = round_down_data_ts(ts_onset)
         except:
-            public_alert_ts = query_ts_end
+            public_alert_ts = round_down_data_ts(query_ts_end)
+            # public_alert_ts = query_ts_end
 
         # writes public alert to database
         pub_sym_id = retrieve_data_from_memcache(
@@ -1358,6 +1362,8 @@ def main(query_ts_end=None, query_ts_start=None, is_instantaneous=False, is_test
     if not is_instantaneous:
         print(f"{datetime.now()} | NOT INSTANTANEOUS")
         query_ts_end = round_down_data_ts(query_ts_end)
+
+    var_checker("query_ts_end", query_ts_end, True)
 
     active_sites = get_sites_data(site_code)  # site_code is default to None
 

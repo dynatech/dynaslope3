@@ -635,9 +635,6 @@ def main(ts=None, generated_alerts_list=None):
     with_alerts, without_alerts = separate_with_alerts_wo_alerts(
         generated_alerts_list)
 
-    var_checker("with alerts", with_alerts, True)
-    var_checker("without alerts", without_alerts, True)
-
     # PROCESS CANDIDATES
     candidate_alerts_list = process_candidate_alerts(
         with_alerts, without_alerts, db_alerts_dict, query_end_ts)

@@ -1015,7 +1015,6 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
 
         write_operational_trigger(
             observance_ts, site_id, trigger_sym_id, observance_ts)
-        var_checker("observance_ts", observance_ts, True)
 
         new_moms_id = new_moms.moms_id
         return_data = new_moms_id

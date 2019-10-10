@@ -163,8 +163,8 @@ def save_monitoring_log():
         type_of_feature = str(data["type_of_feature"])
         description = str(data["description"])
         name_of_feature = str(data["name_of_feature"])
-        timestamp = str(data["timestamp"])
-        observance_ts = str(data["observance_ts"])
+        timestamp = current_date_time
+        observance_ts = current_date_time
         
         get_name_of_feature = ManifestationsOfMovements.query.filter_by(
             name_of_feature=name_of_feature.lower(), type_of_feature=type_of_feature.lower()).all()
@@ -182,7 +182,10 @@ def save_monitoring_log():
                 DB.session.add(insert_data)
                 message = "Successfully added new data!"
                 status = True
+                DB.session.commit()
         else:
+            timestamp = str(data["timestamp"])
+            observance_ts = str(data["observance_ts"])
             update_data = ManifestationsOfMovements.query.get(moms_id)
             update_data.type_of_feature = type_of_feature
             update_data.description = description
@@ -193,7 +196,7 @@ def save_monitoring_log():
             message = "Successfully updated data!"
             status = True
 
-        DB.session.commit()
+            DB.session.commit()
     except Exception as err:
         print(err)
         DB.session.rollback()
