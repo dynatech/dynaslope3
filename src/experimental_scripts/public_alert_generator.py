@@ -1194,8 +1194,10 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             has_no_ground_alert = ground_alert_level == -1
             # This code checks if moms alerts are lowered to non-triggering
             # earlier than the release time period of end of validity
-            if has_positive_moms_trigger and not has_unresolved_moms:
-                has_no_ground_alert = False
+            # NOTE: Removed the following code since we need the LATEST (within 4 hours) M0 data
+            # NOTE: for us to lower
+            # if has_positive_moms_trigger and not has_unresolved_moms:
+            #     has_no_ground_alert = False
 
             if is_end_of_validity:
                 # Checks all lowering conditions before lowering
