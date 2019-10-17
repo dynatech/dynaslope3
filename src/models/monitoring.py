@@ -530,35 +530,35 @@ class InternalAlertSymbols(UserMixin, DB.Model):
                 f" OP Trigger Symbols: {self.trigger_symbol}")
 
 
-class IssuesAndReminders(UserMixin, DB.Model):
-    """
-    Class representation of issues_and_reminders table
-    """
+# class IssuesAndReminders(UserMixin, DB.Model):
+#     """
+#     Class representation of issues_and_reminders table
+#     """
 
-    __tablename__ = "issues_and_reminders"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+#     __tablename__ = "issues_and_reminders"
+#     __bind_key__ = "ewi_db"
+#     __table_args__ = {"schema": "ewi_db"}
 
-    iar_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    detail = DB.Column(DB.String(360), nullable=False)
-    user_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.users.user_id"), nullable=False)
-    ts_posted = DB.Column(DB.DateTime, nullable=False)
-    event_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_events.event_id"), nullable=False)
-    status = DB.Column(DB.String(10), nullable=False)
-    resolved_by = DB.Column(DB.Integer)
-    resolution = DB.Column(DB.String(360))
+#     iar_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+#     detail = DB.Column(DB.String(360), nullable=False)
+#     user_id = DB.Column(DB.Integer, DB.ForeignKey(
+#         "commons_db.users.user_id"), nullable=False)
+#     ts_posted = DB.Column(DB.DateTime, nullable=False)
+#     event_id = DB.Column(DB.Integer, DB.ForeignKey(
+#         "ewi_db.monitoring_events.event_id"), nullable=False)
+#     status = DB.Column(DB.String(10), nullable=False)
+#     resolved_by = DB.Column(DB.Integer)
+#     resolution = DB.Column(DB.String(360))
 
-    # Louie - Relationship
-    issue_reporter = DB.relationship(
-        "Users", backref="issue_and_reminder_reporter",
-        primaryjoin="IssuesAndReminders.user_id==Users.user_id",
-        lazy="joined", innerjoin=True)
+#     # Louie - Relationship
+#     issue_reporter = DB.relationship(
+#         "Users", backref="issue_and_reminder_reporter",
+#         primaryjoin="IssuesAndReminders.user_id==Users.user_id",
+#         lazy="joined", innerjoin=True)
 
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> IAR ID: {self.iar_id}"
-                f" Detail: {self.detail} Analysis: {self.user_id}")
+#     def __repr__(self):
+#         return (f"Type <{self.__class__.__name__}> IAR ID: {self.iar_id}"
+#                 f" Detail: {self.detail} Analysis: {self.user_id}")
 
 
 class LUTResponses(UserMixin, DB.Model):
@@ -916,14 +916,14 @@ class InternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
         exclude = ["trigger"]
 
 
-class IssuesAndRemindersSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Issues And Reminders class
-    """
+# class IssuesAndRemindersSchema(MARSHMALLOW.ModelSchema):
+#     """
+#     Schema representation of Issues And Reminders class
+#     """
 
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = IssuesAndReminders
+#     class Meta:
+#         """Saves table class structure as schema model"""
+#         model = IssuesAndReminders
 
 
 class LUTResponsesSchema(MARSHMALLOW.ModelSchema):

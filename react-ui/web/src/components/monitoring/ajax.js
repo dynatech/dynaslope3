@@ -1,7 +1,7 @@
 import axios from "axios";
 import host from "../../config";
 
-// eslint-disable-next-line import/prefer-default-export
+
 export function getEndOfShiftReports (input, callback) {
     const {
         shift_start
@@ -25,7 +25,6 @@ export function getNarratives (input, callback) {
         include_count, limit, offset,
         filters, search_str
     } = input;
-    // console.log("input", input);
 
     let api_link = `${host}/api/narratives/get_narratives?limit=${limit}&offset=${offset}`;
 
@@ -34,8 +33,6 @@ export function getNarratives (input, callback) {
     if (filters.length !== 0) {
         const filter_str = filters.map(row => {
             const { name, data } = row;
-            console.log(row);
-            console.log(data);
             return data.map(x => `&${name}=${x}`).join("");
         });
 
@@ -59,7 +56,6 @@ export function getMonitoringEvents (input, callback) {
         limit, offset, include_count,
         filters, search_str
     } = input;
-    // console.log("input", input);
 
     let api_link = `${host}/api/monitoring/get_monitoring_events?filter_type=complete&offset=${offset}&limit=${limit}`;
     
@@ -68,8 +64,6 @@ export function getMonitoringEvents (input, callback) {
     if (filters.length !== 0) {
         const filter_str = filters.map(row => {
             const { name, data } = row;
-            console.log(row);
-            console.log(data);
             return data.map(x => `&${name}=${x}`).join("");
         });
 

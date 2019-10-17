@@ -1,11 +1,12 @@
 import json
-from connection import SOCKETIO
+from connection import SOCKETIO, DB
 from datetime import datetime
 from flask import request
 from config import APP_CONFIG
 from src.experimental_scripts import public_alert_generator, candidate_alerts_generator
 from src.api.monitoring import wrap_get_ongoing_extended_overdue_events, insert_ewi
 from src.utils.monitoring import update_alert_status, get_event_count
+from src.utils.issues_and_reminders import write_issue_reminder_to_db
 from src.utils.extra import var_checker, get_system_time, get_process_status_log
 
 
@@ -163,6 +164,31 @@ def update_alert_gen(site_code=None):
 # - - - API-RELATED FUNCTIONS - - - #
 #####################################
 
+def execute_write_issues_reminders(issues_and_reminders_details):
+    data = issues_and_reminders_details
+    var_checker("data", data, True)
+    try:
+        status = write_issue_reminder_to_db(
+            iar_id=data["iar_id"],
+            detail=data["detail"],
+            user_id=data["user_id"],
+            ts_posted=data["ts_posted"],
+            ts_posted_until=data["ts_posted_until"],
+            resolved_by=data["resolved_by"],
+            resolution=data["resolution"],
+            site_id_list=data["site_id_list"],
+            is_event_entry=data["is_event_entry"]
+        )
+        DB.session.commit()
+    except:
+        DB.session.rollback()
+
+    # Prepare process status log
+    status_log = get_process_status_log("write_issue_reminder_to_db", status)
+
+    return status_log
+
+
 def execute_alert_status_validation(as_details):
     """
     Function used to prepare the whole validation
@@ -223,9 +249,16 @@ def handle_message(payload):
         print(get_process_status_log("validate_trigger", "request"))
         status = execute_alert_status_validation(data)
         print(status)
+
+    elif key == "write_issues_and_reminders":
+        print(get_process_status_log("write_issue_reminder_to_db", "request"))
+        status = execute_write_issues_reminders(data)
+        print(status)
+
     elif key == "update_monitoring_tables":
         print(get_process_status_log("update_monitoring_tables", "request"))
         # NOTE: UNFINISHED BUSINESS
+
     else:
         print("ERROR: Key provided not found.")
         raise Exception("WEBSOCKET MESSAGE: KEY NOT FOUND")

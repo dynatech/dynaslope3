@@ -12,7 +12,7 @@ let socket;
 //     }
 // }
 
-function subscribeToWebSocket (socket_fns) {
+export function subscribeToWebSocket (socket_fns) {
     socket = io(`${host}/monitoring`);
     socket.on("receive_generated_alerts", data => socket_fns.receive_generated_alerts(null, data));
     socket.on("receive_candidate_alerts", data => socket_fns.receive_candidate_alerts(null, data));
@@ -20,7 +20,7 @@ function subscribeToWebSocket (socket_fns) {
 }
 
 
-function sendWSMessage (key, data) {
+export function sendWSMessage (key, data) {
     console.log("KEY:", key);
     console.log("DATA:", data);
     const payload = {
@@ -31,17 +31,15 @@ function sendWSMessage (key, data) {
 }
 
 
-function onWSMessage (message) {
+export function onWSMessage (message) {
     socket.on("message", (msg) => {
         console.log(msg);
     });
 }
 
-function unsubscribeToWebSocket () {
+export function unsubscribeToWebSocket () {
     socket.close();
 }
-
-export { subscribeToWebSocket, unsubscribeToWebSocket, sendWSMessage };
 
 // // Note: Sample implem on "functional components" using Hooks
 // const [data, setData] = useState(null);
