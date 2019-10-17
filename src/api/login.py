@@ -1,8 +1,9 @@
 """
 """
 import hashlib
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, jsonify, request
 from src.models.users import UserAccounts, UserAccountsSchema
+from connection import LOGIN_MANAGER
 
 LOGIN_BLUEPRINT = Blueprint("login_blueprint", __name__)
 
@@ -25,7 +26,8 @@ def user_login():
         status = True
         message = "Successfuly logged in!"
         user_data = result["user_data"]
-        session['user'] = user_data
+        LOGIN_MANAGER.user = user_data
+        print(LOGIN_MANAGER)
         role = result["user_data"]["role"]
     else:
         status = False
@@ -69,3 +71,27 @@ def get_account(username, password):
         }
 
     return data
+
+@LOGIN_BLUEPRINT.route("/logout", methods=["POST", "GET"])
+def logout():
+    user_data = {}
+    LOGIN_MANAGER.user = user_data
+
+    return jsonify(True)
+
+@LOGIN_BLUEPRINT.route("/check_session", methods=["POST", "GET"])
+def check_session():
+    
+    status = False
+    check_session = {}
+    try:
+        check_session = len(LOGIN_MANAGER.user)
+        if(check_session > 0):
+            status = True
+        else:
+            status = False
+    except Exception as err:
+        status = False
+
+    return jsonify(status)
+    

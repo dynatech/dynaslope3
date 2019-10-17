@@ -953,6 +953,8 @@ def get_operational_triggers_within_monitoring_period(s_op_triggers_query, monit
     op_trigger_of_site = s_op_triggers_query.order_by(DB.desc(ot.ts)).filter(
         and_(ot.ts_updated >= monitoring_start_ts, ot.ts <= query_ts_end)).join(ots).filter(ots.alert_level != -1)
 
+    print(monitoring_start_ts, query_ts_end)
+
     return op_trigger_of_site
 
 
@@ -1010,7 +1012,7 @@ def get_latest_public_alerts_per_site(s_pub_alerts_query, query_ts_end, max_poss
     """
 
     limit = max_possible_alert_level
-    most_recent = s_pub_alerts_query.order_by(DB.desc(pa.ts)).order_by(DB.desc(pa.pub_sym_id)).filter(
+    most_recent = s_pub_alerts_query.order_by(DB.desc(pa.ts_updated)).order_by(DB.desc(pa.pub_sym_id)).filter(
         or_(pa.ts_updated <= query_ts_end, and_(pa.ts <= query_ts_end, query_ts_end <= pa.ts_updated))).limit(limit).all()
 
     # If return_one is False, return the AppenderBaseQuery to be filtered.
@@ -1072,6 +1074,9 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         # Get highest public alert level
         highest_public_alert = get_highest_public_alert(
             positive_triggers_list)
+
+        var_checker("HPA", highest_public_alert, True)
+        var_checker("TTR", positive_triggers_list, True)
 
         release_op_triggers_list = extract_release_op_triggers(
             op_triggers_query, query_ts_end, release_interval_hours, highest_public_alert)
@@ -1199,6 +1204,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             # if has_positive_moms_trigger and not has_unresolved_moms:
             #     has_no_ground_alert = False
 
+            var_checker("ground alert", ground_alert_level, True)
+            var_checker("has no ground alert", has_no_ground_alert, True)
             if is_end_of_validity:
                 # Checks all lowering conditions before lowering
                 if is_rainfall_rx or (is_within_alert_extension_limit and has_no_ground_alert) \

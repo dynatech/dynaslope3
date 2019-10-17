@@ -184,13 +184,11 @@ def save_monitoring_log():
                 status = True
                 DB.session.commit()
         else:
-            timestamp = str(data["timestamp"])
             observance_ts = str(data["observance_ts"])
             update_data = ManifestationsOfMovements.query.get(moms_id)
             update_data.type_of_feature = type_of_feature
             update_data.description = description
             update_data.name_of_feature = name_of_feature
-            update_data.date = timestamp
             update_data.date_updated = observance_ts
 
             message = "Successfully updated data!"

@@ -89,8 +89,8 @@ def save_family_profile():
     try:
 
         family_profile_id = int(data["family_profile_id"])
-        members_count = str(data["members_count"])
-        vulnerable_members_count = str(data["vulnerable_members_count"])
+        members_count = int(data["members_count"])
+        vulnerable_members_count = int(data["vulnerable_members_count"])
         vulnerability_nature = str(data["vulnerability_nature"])
 
         if family_profile_id == 0:
