@@ -171,10 +171,12 @@ def wrap_get_monitoring_releases(release_id=None):
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases_by_event_id/<event_id>", methods=["GET"])
-def wrap_get_monitoring_releases_by_event_id(event_id=None):
+def wrap_get_monitoring_releases_by_site_id(site_id=None):
     """
     Gets a single release with the specificied ID
     """
+    current_instance = get_current_monitoring_instance_per_site(site_id=site_id)
+    event_id = current_instance.event_id
     releases = get_monitoring_releases_by_event_id(event_id)
     releases_data = MonitoringReleasesSchema(many=True, exclude=("event_alert")).dump(releases).data
 
