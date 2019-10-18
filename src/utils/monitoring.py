@@ -801,7 +801,7 @@ def get_monitoring_releases_by_event_id(event_id):
     releases = []
 
     if event_id:
-        releases = MonitoringReleases.join(mea).join(me).filter(me.event_id == event_id).all()
+        releases = mr.query.join(mea).join(me).filter(me.event_id == event_id).all()
 
     return releases
 

@@ -170,17 +170,22 @@ def wrap_get_monitoring_releases(release_id=None):
     return jsonify(releases_data)
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases_by_event_id/<event_id>", methods=["GET"])
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases_by_site_id", methods=["GET"])
 def wrap_get_monitoring_releases_by_site_id(site_id=None):
     """
     Gets a single release with the specificied ID
     """
-    current_instance = get_current_monitoring_instance_per_site(site_id=site_id)
-    event_id = current_instance.event_id
-    releases = get_monitoring_releases_by_event_id(event_id)
-    releases_data = MonitoringReleasesSchema(many=True, exclude=("event_alert")).dump(releases).data
+    releases_data = []
+    try:
+        site_id = 50
+        current_instance = get_current_monitoring_instance_per_site(site_id=site_id)
+        event_id = current_instance.event_id
+        releases = get_monitoring_releases_by_event_id(event_id)
+        releases_data = MonitoringReleasesSchema(many=True, exclude=("event_alert")).dump(releases).data
+    except Exception as err:
+        releases_data = []
 
-    return jsonify(releases_data)
+    return releases_data
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_active_monitoring_events", methods=["GET"])
@@ -954,6 +959,8 @@ def insert_ewi(internal_json=None):
                         event_alert_details).event_alert_id
 
                 elif pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30) or is_overdue:
+                    var_checker("validity ext", pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30), True)
+                    var_checker("is_overdue", is_overdue, True)
                     # This extends the validity of the event in cases where
                     # no ground data is available.
                     try:
@@ -1262,6 +1269,7 @@ def insert_cbewsl_moms():
 def get_candidate_and_current_alerts():
     print(get_active_monitoring_events())
     ret_val = {
+        "releases": wrap_get_monitoring_releases_by_site_id(),
         "leo": json.loads(wrap_get_ongoing_extended_overdue_events()),
         "candidate_alert": candidate_alerts_generator.main() # pakibura
     }
