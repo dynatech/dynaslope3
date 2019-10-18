@@ -175,7 +175,7 @@ def wrap_get_monitoring_releases_by_event_id(event_id=None):
     """
     Gets a single release with the specificied ID
     """
-    release = get_monitoring_releases_by_event_id(event_id)
+    releases = get_monitoring_releases_by_event_id(event_id)
     releases_data = MonitoringReleasesSchema(many=True, exclude=("event_alert")).dump(releases).data
 
     return jsonify(releases_data)
