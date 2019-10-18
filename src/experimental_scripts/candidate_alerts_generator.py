@@ -259,7 +259,8 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
                         trigger_list_arr.append(trig_dict)
 
         # THIS IS THE BACKEND to_extend_validity.
-        to_extend_validity = True if alert_entry["ground_alert_level"] == -1 else False
+        has_unresolved_moms = bool(formatted_alerts_for_ewi["unresolved_moms_list"])
+        to_extend_validity = True if alert_entry["ground_alert_level"] == -1 or has_unresolved_moms else False
 
         formatted_alerts_for_ewi = {
             **formatted_alerts_for_ewi,
