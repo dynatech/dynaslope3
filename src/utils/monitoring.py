@@ -791,6 +791,21 @@ def get_monitoring_events(event_id=None):
     return event
 
 
+def get_monitoring_releases_by_event_id(event_id):
+    """
+    """
+    mr = MonitoringReleases
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+
+    releases = []
+
+    if event_id:
+        releases = MonitoringReleases.join(mea).join(me).filter(me.event_id == event_id).all()
+
+    return releases
+
+
 # NOTE: LOUIE Make this restroactive testing friendly
 # TWO Cases to Consider:
 # 1. Return empty list if testing onset on retroactive event
