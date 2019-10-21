@@ -22,12 +22,14 @@ const styles = theme => ({
 });
 
 function MessageInputTextbox (props) {
-    const { classes, limitRows } = props;
+    const {
+        classes, limitRows, value,
+        messageChangeHandler, sendButtonClickHandler
+    } = props;
     const limit = limitRows === undefined ? true : limitRows;
     const [is_modal_open, set_is_modal_open] = useState(false);
 
     const set_function = bool => () => set_is_modal_open(bool);
-
 
     return (
         <Fragment>
@@ -42,10 +44,16 @@ function MessageInputTextbox (props) {
                     className={classes.textBox}
                     margin="dense"
                     variant="filled"
+                    value={value}
+                    onChange={messageChangeHandler}
                 />
 
                 <div className={classes.iconArea}>
-                    <IconButton color="primary" aria-label="Send message">
+                    <IconButton
+                        color="primary"
+                        aria-label="Send message"
+                        onClick={sendButtonClickHandler}
+                    >
                         <SendRounded />
                     </IconButton>
                     <IconButton color="primary" aria-label="More options" onClick={set_function(true)}>

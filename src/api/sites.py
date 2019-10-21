@@ -3,7 +3,7 @@ Sites Functions Controller File
 """
 
 from flask import Blueprint, jsonify, request
-from src.utils.sites import get_sites_data, get_site_events
+from src.utils.sites import get_sites_data, get_site_events, get_all_geographical_selection_per_category
 from src.models.sites import SitesSchema
 from src.models.monitoring import MonitoringEventsSchema
 
@@ -39,3 +39,18 @@ def wrap_get_site_events(site_code):
         "releases", "site")).dump(events).data
     site_json = SitesSchema().dump(site).data
     return jsonify({"site": site_json, "events": events_json})
+
+
+@SITES_BLUEPRINT.route("/sites/get_all_geographical_selection_per_category/<category>", methods=["GET"])
+def wrap_g_a_g_s_p_c(category):
+    """
+    """
+    include_inactive = request.args.get(
+        "include_inactive", default="false", type=str)
+    include_inactive = True if include_inactive.lower() == "true" else False
+
+    selection = get_all_geographical_selection_per_category(
+        category, include_inactive)
+    site_json = SitesSchema(many=True).dump(selection).data
+
+    return jsonify(site_json)

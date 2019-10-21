@@ -2,11 +2,10 @@ import React, { useState, useEffect, forwardRef } from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withMobileDialog, Slide,
-    Fade, withStyles
+    Button, withMobileDialog, withStyles
 } from "@material-ui/core";
 import { compose } from "recompose";
-import { axios } from "axios";
+import axios from "axios";
 import SelectMultipleWithSuggest from "../reusables/SelectMultipleWithSuggest";
 import { SlideTransition, FadeTransition } from "../reusables/TransitionList";
 import host from "../../config";
@@ -19,40 +18,48 @@ function useFetchTagOptions (tag_selection) {
     const [tags, update_tags] = useState([]);
 
     useEffect(() => {
-        // AJAX CALLS HERE FOR OPRIONS
-        // axios.get(host + "/api/users/get_dynaslope_users")
-        // .then(response => {
-        //     const arr = prepareUsersArray(response.data);
-        //     this.setState({ users: arr });
-        // })
-        // .catch(error => {
-        //     console.log(error);
-        // });
-
-        let json = [];
-        if (tag_selection === "messages") {
-            json = [
-                "#ewireponse", "#ewimessage", "#groundmeasreminder",
-                "#groundmeas", "#groundobs", "#groundobsreminder"
-            ].map(val => ({
-                value: val,
-                label: val
+        axios.get(`${host}/api/chatterbox/get_message_tag_options/sms${tag_selection}_users`)
+        .then(({ data }) => {
+            const arr = data.map(row => ({
+                value: row.tag_id,
+                label: row.tag
             }));
-        }
 
-        update_tags(json);
+            update_tags(arr);
+        })
+        .catch(error => {
+            console.log(error);
+        });
     }, [tag_selection]);
 
     return tags;
 }
 
+function preparePassedTags (tag_obj) {
+    const { tags } = tag_obj;
+    
+    const tag_arr = tags.map(x => ({
+        value: x.tag_id,
+        label: x.tag.tag
+    }));
+
+    return tag_arr;
+}
+
 function GeneralDataTagModal (props) {
     const {
-        classes, fullScreen, isOpen,
-        clickHandler, tagOption, isMobile
+        fullScreen, isOpen,
+        clickHandler, tagOption, isMobile,
+        tagObject
     } = props;
+
     const tag_options = useFetchTagOptions(tagOption);
-    const [tags, update_tags] = useState(null);
+    const [tags, update_tags] = useState([]);
+
+    useEffect(() =>{
+        const tag_arr = preparePassedTags(tagObject);
+        update_tags(tag_arr);
+    }, [tagObject]);
 
     const update_tags_fn = value => update_tags(value);
 

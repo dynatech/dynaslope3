@@ -4,7 +4,7 @@ Sites table (and related tables)
 """
 
 from flask_login import UserMixin
-from sqlalchemy.dialects.mysql import TINYINT, SMALLINT
+from sqlalchemy.dialects.mysql import TINYINT
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
 
@@ -99,5 +99,5 @@ class SitesSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = Sites
-        exclude = ("season_months", )
+        exclude = ("season_months", "moms_instance")
         ordered = False
