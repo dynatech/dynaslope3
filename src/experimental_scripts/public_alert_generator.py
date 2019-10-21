@@ -1010,7 +1010,8 @@ def get_latest_public_alerts_per_site(s_pub_alerts_query, query_ts_end, max_poss
     """
 
     limit = max_possible_alert_level
-    most_recent = s_pub_alerts_query.order_by(DB.desc(pa.ts)).filter(
+    # [14 October 2019] Updated but has doubts on this. Will need to test further
+    most_recent = s_pub_alerts_query.order_by(DB.desc(pa.ts_updated)).filter(
         or_(pa.ts_updated <= query_ts_end, and_(pa.ts <= query_ts_end, query_ts_end <= pa.ts_updated))).limit(limit).all()
 
     # If return_one is False, return the AppenderBaseQuery to be filtered.

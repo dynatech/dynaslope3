@@ -74,11 +74,6 @@ function Container (props) {
         setChosenTab(chosen_tab);
     };
 
-    const handleChosenCandidate = (chosen_candidate_alert) => {
-        console.log("chosenCandidateAlert", chosenCandidateAlert);
-        setChosenCandidateAlert(chosenCandidateAlert);
-    };
-
     const handleBoolean = (data, bool) => () => {
         setIsOpenReleaseModal(!isOpenReleaseModal);
     };
