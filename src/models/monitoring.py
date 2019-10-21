@@ -31,7 +31,7 @@ class MonitoringEvents(UserMixin, DB.Model):
     event_alerts = DB.relationship(
         "MonitoringEventAlerts", order_by="desc(MonitoringEventAlerts.ts_start)", backref=DB.backref("event", lazy="select"), lazy="dynamic")
     site = DB.relationship(
-        "Sites", backref=DB.backref("monitoring_events", lazy="dynamic"), lazy="select")
+        Sites, backref=DB.backref("monitoring_events", lazy="dynamic"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
@@ -209,7 +209,7 @@ class MonitoringOnDemand(UserMixin, DB.Model):
     trigger_misc = DB.relationship(
         "MonitoringTriggersMisc", backref="on_demand", lazy=True)
     narrative = DB.relationship(
-        "Narratives", backref="on_demand_narrative",
+        Narratives, backref="on_demand_narrative",
         primaryjoin="MonitoringOnDemand.narrative_id==Narratives.id",
         lazy="joined", innerjoin=True)
 
@@ -334,7 +334,7 @@ class MomsInstances(UserMixin, DB.Model):
     feature_name = DB.Column(DB.String(45))
 
     site = DB.relationship("Sites", backref=DB.backref(
-        "moms_instance", lazy="subquery"))
+        "moms_instance", lazy="raise"))
     feature = DB.relationship(
         "MomsFeatures", backref=DB.backref("instances", lazy="dynamic"), lazy="select")
 

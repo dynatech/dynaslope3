@@ -28,6 +28,7 @@ SQLAlchemy             1.2.16
 selenium
 phantomjs
 fpdf
+eventlet
 
 Analysis Scripts Library
 ------------------------

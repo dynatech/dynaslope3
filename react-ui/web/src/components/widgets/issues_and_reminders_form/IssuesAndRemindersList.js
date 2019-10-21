@@ -32,7 +32,7 @@ const styles = theme => ({
         backgroundColor: theme.palette.background.paper,
     },
     gridList: {
-        width: maxWidth,
+        width: "auto",
         height: 500,
         color: "rgba(1, 1, 1, 1)",
     },

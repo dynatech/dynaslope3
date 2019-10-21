@@ -19,11 +19,12 @@ function prepareSitesOption (arr) {
 }
 
 function DynaslopeSiteSelectInputForm (props) {
-    const { value, changeHandler, isMulti } = props;
+    const { value, changeHandler, isMulti, renderDropdownIndicator } = props;
     const options = prepareSitesOption(sites);
 
     const is_multi = (typeof isMulti === "undefined") ? false : isMulti;
     const placeholder = is_multi ? "Select site(s)" : "Select site";
+    const to_render_dropdown = (typeof renderDropdownIndicator === "undefined") ? false : renderDropdownIndicator;
     
     return (
         <SelectMultipleWithSuggest
@@ -32,7 +33,7 @@ function DynaslopeSiteSelectInputForm (props) {
             value={value}
             changeHandler={changeHandler}
             placeholder={placeholder}
-            renderDropdownIndicator
+            renderDropdownIndicator={to_render_dropdown}
             openMenuOnClick
             isMulti={is_multi}
         />

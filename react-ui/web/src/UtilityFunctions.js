@@ -30,4 +30,37 @@ function capitalizeFirstLetter (str, every_word = false) {
     return capitalize(str);
 }
 
-export { prepareSiteAddress, capitalizeFirstLetter };
+function getUserOrganizations (user, return_grouped = false) {
+    const { organizations } = user;
+    let org = null;
+    const sites = organizations.map(row => {
+        const { site, org_name } = row;
+        org = org_name.toUpperCase();
+
+        if (return_grouped) return site;
+
+        return site.site_code.toUpperCase();
+    });
+
+    if (return_grouped) {
+        return {
+            sites,
+            org
+        };
+    } 
+    
+    if (org) {
+        sites.unshift(org);
+    }
+
+    return sites;
+}
+
+function simNumFormatter (sim_num) {
+    return sim_num[0] === "0" ? sim_num : `+${sim_num}`;
+}
+
+export {
+    prepareSiteAddress, capitalizeFirstLetter,
+    getUserOrganizations, simNumFormatter
+};

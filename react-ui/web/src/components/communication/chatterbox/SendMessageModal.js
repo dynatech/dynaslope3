@@ -26,7 +26,7 @@ function SendMessageModal (props) {
                     <span>Send a Message</span>
                     <IconButton 
                         color="inherit" 
-                        onClick={modalStateHandler(false)}
+                        onClick={modalStateHandler}
                         aria-label="Close"
                         style={{ padding: 0 }}
                     >
@@ -44,7 +44,7 @@ function SendMessageModal (props) {
                 </div>
             </DialogContent>
             <DialogActions>
-                <Button onClick={modalStateHandler(false)} color="primary">
+                <Button onClick={modalStateHandler} color="primary">
                     Cancel
                 </Button>
             </DialogActions>

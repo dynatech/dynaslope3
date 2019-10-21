@@ -50,7 +50,7 @@ class SearchMessageModal extends Component {
         } = this.props;
         const { sites, organizations } = this.state;
         const compound_fn = () => {
-            modalStateHandler(false);
+            modalStateHandler();
             clickHandler();
         };
 
@@ -68,7 +68,7 @@ class SearchMessageModal extends Component {
                         <span>Search messages</span>
                         <IconButton 
                             color="inherit" 
-                            onClick={modalStateHandler(false)}
+                            onClick={modalStateHandler}
                             aria-label="Close"
                             style={{ padding: 0 }}
                         >
@@ -123,7 +123,7 @@ class SearchMessageModal extends Component {
                         Search
                         </Link>
                     </Button>
-                    <Button onClick={modalStateHandler(false)}>
+                    <Button onClick={modalStateHandler}>
                     Cancel
                     </Button>
                 </DialogActions>

@@ -8,8 +8,11 @@ import ListItemText from "@material-ui/core/ListItemText";
 import ListItemAvatar from "@material-ui/core/ListItemAvatar";
 import Avatar from "@material-ui/core/Avatar";
 import Typography from "@material-ui/core/Typography";
-import { IconButton } from "@material-ui/core";
-import { TurnedIn, TurnedInNot } from "@material-ui/icons";
+import { IconButton, Tooltip, makeStyles } from "@material-ui/core";
+import {
+    TurnedIn, TurnedInNot,
+    RadioButtonUnchecked, CheckCircle, Cancel
+} from "@material-ui/icons";
 import GenericAvatar from "../../../images/generic-user-icon.jpg";
 import GeneralDataTagModal from "../../widgets/GeneralDataTagModal";
 
@@ -35,17 +38,68 @@ const styles = theme => ({
         }, 
         paddingLeft: "12px !important",
         paddingRight: 12,
-
         paddingTop: 12,
         paddingBottom: 6,
-        border: "solid 1px rgba(0, 0, 0, 0.12)",
-        backgroundColor: "rgba(0, 0, 0, 0.04)"
+        border: "solid 1px rgba(215, 215, 215, 1)",
+        backgroundColor: "rgba(245, 245, 245, 1)"
     },
     chatBubbleReceived: {
         marginLeft: 14,
+        "&:before": {
+            content: "''",
+            left: 69,
+            right: "auto",
+            top: 14,
+            border: "18px solid",
+
+            position: "absolute",
+            width: 0,
+            height: 0,
+            bottom: "auto",
+            borderColor: "rgba(215, 215, 215, 1) transparent transparent transparent",
+        },
+        "&:after": {
+            content: "''",
+            left: 71.5,
+            right: "auto",
+            top: 15,
+            border: "20px solid",
+
+            position: "absolute",
+            width: 0,
+            height: 0,
+            bottom: "auto",
+            borderColor: "rgba(245, 245, 245, 1) transparent transparent transparent",
+        }
     },
     chatBubbleSent: {
-        marginRight: 14
+        marginRight: 14,
+        "&:before": {
+            content: "''",
+            left: "auto",
+            right: 69,
+            top: 14,
+            border: "18px solid",
+
+            position: "absolute",
+            width: 0,
+            height: 0,
+            bottom: "auto",
+            borderColor: "rgba(215, 215, 215, 1) transparent transparent transparent",
+        },
+        "&:after": {
+            content: "''",
+            left: "auto",
+            right: 71.5,
+            top: 15,
+            border: "20px solid",
+
+            position: "absolute",
+            width: 0,
+            height: 0,
+            bottom: "auto",
+            borderColor: "rgba(245, 245, 245, 1) transparent transparent transparent",
+        }
     },
     chatMessage: {
         display: "flex",
@@ -54,29 +108,151 @@ const styles = theme => ({
         fontSize: "0.75rem",
         lineHeight: "1.25em"
     },
-    timestampArea: { textAlign: "right" },
+    timestampArea: { 
+        display: "flex",
+        justifyContent: "flex-end",
+        alignItems: "center",
+        marginTop: 12
+    },
     timestamp: {
         fontSize: "0.65rem",
-        paddingTop: 6
     },
     tagButton: {
-        padding: 0
+        padding: 0,
+        zIndex: 1
+    },
+    sentIcon: {
+        fontSize: "1rem"
     }
 });
 
-function chatBubbleCreator (classes, message_row, set_function) {
+function arrowGenerator (color) {
+    return {
+        "&[x-placement*=\"bottom\"] $arrow": {
+            top: 0,
+            left: 0,
+            marginTop: "-0.95em",
+            width: "2em",
+            height: "1em",
+            "&::before": {
+                borderWidth: "0 1em 1em 1em",
+                borderColor: `transparent transparent ${color} transparent`,
+            },
+        },
+        "&[x-placement*=\"top\"] $arrow": {
+            bottom: 0,
+            left: 0,
+            marginBottom: "-0.95em",
+            width: "2em",
+            height: "1em",
+            "&::before": {
+                borderWidth: "1em 1em 0 1em",
+                borderColor: `${color} transparent transparent transparent`,
+            },
+        },
+        "&[x-placement*=\"right\"] $arrow": {
+            left: 0,
+            marginLeft: "-0.95em",
+            height: "2em",
+            width: "1em",
+            "&::before": {
+                borderWidth: "1em 1em 1em 0",
+                borderColor: `transparent ${color} transparent transparent`,
+            },
+        },
+        "&[x-placement*=\"left\"] $arrow": {
+            right: 0,
+            marginRight: "-0.95em",
+            height: "2em",
+            width: "1em",
+            "&::before": {
+                borderWidth: "1em 0 1em 1em",
+                borderColor: `transparent transparent transparent ${color}`,
+            },
+        },
+    };
+}
+
+const useStylesBootstrap = makeStyles(theme => ({
+    arrow: {
+        position: "absolute",
+        fontSize: 6,
+        "&::before": {
+            content: "\"\"",
+            margin: "auto",
+            display: "block",
+            width: 0,
+            height: 0,
+            borderStyle: "solid",
+        },
+    },
+    popper: arrowGenerator(theme.palette.common.black),
+    tooltip: {
+        position: "relative",
+        backgroundColor: theme.palette.common.black,
+    },
+    tooltipPlacementLeft: {
+        margin: "0 8px",
+    },
+    tooltipPlacementRight: {
+        margin: "0 8px",
+    },
+    tooltipPlacementTop: {
+        margin: "8px 0",
+    },
+    tooltipPlacementBottom: {
+        margin: "8px 0",
+    },
+}));
+  
+function BootstrapTooltip (props) {
+    const { arrow, ...classes } = useStylesBootstrap();
+    const [arrowRef, setArrowRef] = React.useState(null);
+    const { title } = props;
+
+    return (
+        <Tooltip
+            classes={classes}
+            PopperProps={{
+                popperOptions: {
+                    modifiers: {
+                        arrow: {
+                            enabled: Boolean(arrowRef),
+                            element: arrowRef,
+                        },
+                    },
+                },
+            }}
+            {...props}
+            title={
+                <React.Fragment>
+                    {title}
+                    <span className={arrow} ref={setArrowRef} />
+                </React.Fragment>
+            }
+        />
+    );
+}
+
+function chatBubbleCreator (classes, message_row, set_gdt_fn) {
     const {
-        convo_id,
-        user, sms_msg: message,
+        convo_id, inbox_id, outbox_id, 
+        source, sms_msg: message,
         ts_received, ts_written,
-        tags
+        ts_sent, send_status, tags
     } = message_row;
 
-    const is_you = user === "You";
+    const tag_object = {
+        tags,
+        source,
+        id: message_row[`${source}_id`],
+    };
+
+    const is_you = source === "outbox";
     let timestamp = is_you ? ts_written : ts_received;
     timestamp = moment(timestamp).format("M/D/YYYY HH:mm");
 
-    const avatar_component = <ListItemAvatar>
+    const avatar_component = <ListItemAvatar style={{ textAlign: "-webkit-center" }}>
         <Avatar alt="Remy Sharp" src={GenericAvatar} />
     </ListItemAvatar>;
 
@@ -88,14 +264,34 @@ function chatBubbleCreator (classes, message_row, set_function) {
         className={`${classes.chatBubble} ${is_you ? classes.chatBubbleSent : classes.chatBubbleReceived}`}
         primary={
             <Typography component="span" className={classes.chatMessage} variant="body2" color="textPrimary">
-                <span style={{ paddingRight: 6 }}>{message}</span>
-                <IconButton className={classes.tagButton} onClick={set_function(true)}>
+                <span style={{ paddingRight: 6, zIndex: 1 }}>{message}</span>
+                <IconButton className={classes.tagButton} onClick={set_gdt_fn(true, tag_object)}>
                     {tag_icon}
                 </IconButton>
             </Typography>
         }
         secondary={
-            <div className={classes.timestamp}>{timestamp}</div>
+            <Fragment>
+                <div 
+                    className={classes.timestamp}
+                    style={{ paddingRight: is_you ? 6 : 0 }}
+                >
+                    {timestamp}
+                </div>
+                {
+                    (send_status === 0 || (send_status === null && ts_sent !== null)) && <RadioButtonUnchecked className={classes.sentIcon} />
+                }
+                {
+                    send_status > 0 && send_status <= 5 && (
+                        <BootstrapTooltip disableFocusListener title={ moment(ts_sent).format("M/D/YYYY HH:mm") }>
+                            <CheckCircle color="primary" className={classes.sentIcon} />
+                        </BootstrapTooltip>
+                    )
+                }
+                {
+                    (send_status === -1 || send_status > 5) && <Cancel color="error" className={classes.sentIcon} />
+                }
+            </Fragment>
         }
         secondaryTypographyProps={{ component: "div", className: classes.timestampArea }}
     />;
@@ -116,21 +312,30 @@ function chatBubbleCreator (classes, message_row, set_function) {
 function ChatThread (props) {
     const { classes, message_list } = props;
     const [is_gdt_modal_open, set_is_gdt_modal_open] = useState(false);
+    const default_tag_obj = {
+        id: "", source: "", tags: []
+    };
+    const [tag_object, update_tag_object] = useState(default_tag_obj);
 
-    const set_function = bool => () => set_is_gdt_modal_open(bool);
+    const set_gdt_fn = (bool, obj = default_tag_obj) => () => {
+        update_tag_object(obj);
+        set_is_gdt_modal_open(bool);
+    };
 
     return (
         <Fragment>
             <List className={classes.root}>
                 {
-                    message_list.map(row => chatBubbleCreator(classes, row, set_function))
+                    message_list.slice(0).reverse()
+                    .map(row => chatBubbleCreator(classes, row, set_gdt_fn))
                 }
             </List>
 
             <GeneralDataTagModal
                 isOpen={is_gdt_modal_open}
-                clickHandler={set_function(false)}
-                tagOption="messages"
+                clickHandler={set_gdt_fn(false)}
+                tagOption="outbox" // UPDATE THIS FOR GOD SAKE
+                tagObject={tag_object}
             />
         </Fragment>
     );

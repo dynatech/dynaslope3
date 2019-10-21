@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Fragment } from "react";
 import {
     FormControl, InputLabel, Select,
     MenuItem, withStyles
@@ -14,31 +14,41 @@ function SelectInputForm (props) {
     const {
         classes, list, mapping,
         label, div_id,
-        changeHandler, value, css
+        changeHandler, value, css,
+        error, required
     } = props;
 
+    const is_required = typeof required !== "undefined" ? required : false;
+    const is_error = typeof error !== "undefined" ? error : false;
+
     return (
-        <FormControl required className={`${classes.formControl} ${css}`}>
-            <InputLabel htmlFor={div_id}>{label}</InputLabel>
-            <Select
-                value={value}
-                onChange={changeHandler}
-                name={div_id}
-                inputProps={{
-                    id: div_id,
-                }}
+        <Fragment>
+            <FormControl 
+                required={is_required}
+                error={is_error}
+                className={`${classes.formControl} ${css}`} 
                 fullWidth
             >
-                <MenuItem value="">
-                    <em>---</em>
-                </MenuItem>
-                {
-                    list.map((item, i) => (
-                        <MenuItem value={item[mapping.id]} key={i}>{item[mapping.label]}</MenuItem>
-                    ))
-                }
-            </Select>
-        </FormControl>
+                <InputLabel htmlFor={div_id}>{label}</InputLabel>
+                <Select
+                    value={value}
+                    onChange={changeHandler}
+                    name={div_id}
+                    inputProps={{
+                        id: div_id,
+                    }}
+                >
+                    <MenuItem value="">
+                        <em>---</em>
+                    </MenuItem>
+                    {
+                        list.map((item, i) => (
+                            <MenuItem value={item[mapping.id]} key={i}>{item[mapping.label]}</MenuItem>
+                        ))
+                    }
+                </Select>
+            </FormControl>
+        </Fragment>
     );
     
 }
