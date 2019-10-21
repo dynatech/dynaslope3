@@ -1,6 +1,6 @@
 import axios from "axios";
 import { sample_subsurface_data } from "./integrated_site/sample_subsurface_data_not_final";
-import host from "../../config";
+import { host } from "../../config";
 
 export function getSurficialPlotData (site_code, timestamps, callback) {
     const api_link = `${host}/api/surficial/get_surficial_plot_data/` +

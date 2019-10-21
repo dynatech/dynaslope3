@@ -1,5 +1,5 @@
 import axios from "axios";
-import host from "../../config";
+import { host } from "../../config";
 
 // eslint-disable-next-line import/prefer-default-export
 export function getEndOfShiftReports (input, callback) {
