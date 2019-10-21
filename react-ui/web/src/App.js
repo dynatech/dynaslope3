@@ -9,8 +9,8 @@ import { withStyles } from "@material-ui/core";
 import LoginComponent from "./components/sessions/Login";
 import { Header, Footer, Navigation } from "./components/layouts";
 import { isLoggedIn, refreshSession } from "./components/sessions/auth";
-
 import RoutesCollection from "./Routes";
+import { access_refresh_interval } from "./config";
 
 const styles = theme => ({
     app: {
@@ -47,7 +47,7 @@ function App (props) {
         isLoggedIn(bool => {
             setIsLogged(bool);
             clearInterval(interval_ref.current);
-            interval_ref.current = setInterval(refreshSession, 1000 * 60 * 5); // 1000 * 60 * 25
+            interval_ref.current = setInterval(refreshSession, access_refresh_interval);
         });
 
         return () => clearInterval(interval_ref.current);

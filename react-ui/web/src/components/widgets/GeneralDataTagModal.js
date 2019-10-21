@@ -8,7 +8,7 @@ import { compose } from "recompose";
 import axios from "axios";
 import SelectMultipleWithSuggest from "../reusables/SelectMultipleWithSuggest";
 import { SlideTransition, FadeTransition } from "../reusables/TransitionList";
-import host from "../../config";
+import { host } from "../../config";
 
 const styles = theme => ({
     link: { textDecoration: "none" }

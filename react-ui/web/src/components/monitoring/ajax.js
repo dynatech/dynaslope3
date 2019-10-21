@@ -1,5 +1,5 @@
 import axios from "axios";
-import host from "../../config";
+import { host } from "../../config";
 
 
 export function getEndOfShiftReports (input, callback) {

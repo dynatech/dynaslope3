@@ -1,5 +1,5 @@
 import axios from "axios";
-import host from "../../../config";
+import { host } from "../../../config";
 
 function makeAxiosRequest (json_data, api_link, callback = null) {
     axios.post(api_link, json_data)

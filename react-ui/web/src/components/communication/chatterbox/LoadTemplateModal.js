@@ -8,7 +8,6 @@ import {
 import { compose } from "recompose";
 import { axios } from "axios";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
-import host from "../../../config";
 
 const styles = theme => ({
     link: { textDecoration: "none" }
