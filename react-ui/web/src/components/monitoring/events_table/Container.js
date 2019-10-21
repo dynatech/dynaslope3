@@ -305,7 +305,7 @@ function MonitoringEventsTable (props) {
                     <MuiThemeProvider theme={getMuiTheme}>
                         <MUIDataTable
                             title={
-                                <Typography>
+                                <Typography component="div">
                                     Monitoring Events Table
                                     {
                                         isLoading &&

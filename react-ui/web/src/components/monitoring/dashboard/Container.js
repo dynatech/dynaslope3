@@ -70,7 +70,6 @@ function Container (props) {
         };
     }, []);
 
-
     const handleTabSelected = chosen_tab => {
         setChosenTab(chosen_tab);
     };

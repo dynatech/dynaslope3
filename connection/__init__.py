@@ -3,45 +3,55 @@ Main application file
 Contains initialization lines for main project methods
 """
 
+from threading import Thread, Lock
+import datetime
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_login import LoginManager
 from flask_cors import CORS
-# from flask_bcrypt import Bcrypt
+from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO
-from flask_jwt_extended import JWTManager, create_access_token
+from flask_jwt_extended import JWTManager
 from connection import memory
-
-from threading import Thread, Lock
 
 from config import APP_CONFIG
 
 DB = SQLAlchemy()
 MARSHMALLOW = Marshmallow()
-# # BCRYPT = Bcrypt()
+BCRYPT = Bcrypt()
 JWT = JWTManager()
 LOGIN_MANAGER = LoginManager()
-SOCKETIO = SocketIO()
+# SOCKETIO = SocketIO(async_mode="eventlet")
+SOCKETIO = SocketIO(async_mode="threading")
 
 MONITORING_WS_THREAD = None
+COMMUNICATION_WS_THREAD = None
 THREAD_LOCK = Lock()
 
 MEMORY_CLIENT = memory
 
 
-def start_monitoring_ws_bg_task():
+def start_ws_bg_task(module, background_task):
     """
     Start monitoring websocket background thread
     """
-    from src.websocket.monitoring_ws import monitoring_background_task
 
-    global MONITORING_WS_THREAD
-    with THREAD_LOCK:
-        if MONITORING_WS_THREAD is None:
-            MONITORING_WS_THREAD = Thread(target=monitoring_background_task)
-            MONITORING_WS_THREAD.setDaemon(True)
-            MONITORING_WS_THREAD.start()
+    if module == "monitoring":
+        global MONITORING_WS_THREAD
+        with THREAD_LOCK:
+            if MONITORING_WS_THREAD is None:
+                MONITORING_WS_THREAD = Thread(target=background_task)
+                MONITORING_WS_THREAD.setDaemon(True)
+                MONITORING_WS_THREAD.start()
+    elif module == "communication":
+        global COMMUNICATION_WS_THREAD
+        with THREAD_LOCK:
+            if COMMUNICATION_WS_THREAD is None:
+                COMMUNICATION_WS_THREAD = Thread(target=background_task)
+                COMMUNICATION_WS_THREAD.setDaemon(True)
+                COMMUNICATION_WS_THREAD.start()
 
 
 def create_app(config_name, skip_memcache=False, skip_websocket=False):
@@ -68,6 +78,7 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
 
     # BCRYPT.init_app(app)
     JWT.init_app(app)
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=30)
     CORS(app)
     SOCKETIO.init_app(app)
 
@@ -75,8 +86,16 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
         from connection import set_memcache
         set_memcache.main(MEMORY_CLIENT)
 
+    from src.websocket.monitoring_ws import monitoring_background_task
+    from src.websocket.communications_ws import (
+        main as comms_ws_main,
+        communication_background_task
+    )
+
     if not skip_websocket:
-        start_monitoring_ws_bg_task()
+        start_ws_bg_task("monitoring", monitoring_background_task)
+        comms_ws_main()  # outside from skip_websocket for now
+        start_ws_bg_task("communication", communication_background_task)
 
     #####################################################
     # Import all created blueprint from each controller
@@ -129,6 +148,9 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     from src.api.inbox_outbox import INBOX_OUTBOX_BLUEPRINT
     app.register_blueprint(INBOX_OUTBOX_BLUEPRINT, url_prefix="/api")
 
+    from src.api.chatterbox import CHATTERBOX_BLUEPRINT
+    app.register_blueprint(CHATTERBOX_BLUEPRINT, url_prefix="/api")
+
     from src.api.general_data_tag import GENERAL_DATA_TAG_BLUEPRINT
     app.register_blueprint(GENERAL_DATA_TAG_BLUEPRINT, url_prefix="/api")
 
@@ -164,9 +186,6 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     from src.api.sensor_maintenance import SENSOR_MAINTENANCE_BLUEPRINT
     app.register_blueprint(
         SENSOR_MAINTENANCE_BLUEPRINT, url_prefix="/api")
-
-    from src.api.surficial_data import SURFICIAL_DATA_BLUEPRINT
-    app.register_blueprint(SURFICIAL_DATA_BLUEPRINT, url_prefix="/api")
 
     from src.api.situation_report import SITUATION_REPORT_BLUEPRINT
     app.register_blueprint(SITUATION_REPORT_BLUEPRINT, url_prefix="/api")

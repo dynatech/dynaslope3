@@ -20,6 +20,19 @@ function MomsInsertModal (props) {
     const initial_state = MomsInitialState(site_code);
     const [ moms_entries, setMomsEntries ] = useReducer(reducerFunction, initial_state);
 
+    const [sample, setSample] = useState({ a: "", b: "" });
+    useEffect(() => {
+        console.log("Hello me");
+    }, [sample.b]);
+
+    const sample_fn = () => {
+        if (sample.a === "") {
+            setSample({ ...sample, a: "a" });
+        } else {
+            setSample({ ...sample, a: "" });
+        }
+    };
+
     return (
         <div>
             <Dialog
@@ -44,7 +57,7 @@ function MomsInsertModal (props) {
                     <Button onClick={closeHandler} color="primary">
                         Cancel
                     </Button>
-                    <Button onClick={closeHandler} color="primary">
+                    <Button onClick={sample_fn} color="primary">
                         Submit
                     </Button>
                 </DialogActions>

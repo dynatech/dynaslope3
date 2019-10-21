@@ -1,8 +1,8 @@
-import React, { Component } from "react";
+import React, { useState } from "react";
 import {
     AppBar, Toolbar, Typography,
     Menu, MenuItem, IconButton,
-    Badge
+    Badge, Button
 } from "@material-ui/core";
 import {
     Menu as MenuIcon,
@@ -14,6 +14,7 @@ import { withStyles } from "@material-ui/core/styles";
 import DynaLogo from "../../images/dynaslope-logo.png";
 import DostPhivolcsLogo from "../../images/dost-phivolcs-logo.png";
 import GeneralStyles from "../../GeneralStyles";
+import { logout, getCurrentUser } from "../sessions/auth";
 
 const styles = theme => ({
     root: {
@@ -69,99 +70,107 @@ const styles = theme => ({
     },
     list: {
         width: 250,
-    }
+    },
+    menu: { marginTop: 40 }
 });
   
-class HeaderBar extends Component {
-    state = {
-        anchorEl: null
-    };
-  
-    handleProfileMenuOpen = event => {
-        this.setState({ anchorEl: event.currentTarget });
-    };
-  
-    handleMenuClose = () => {
-        this.setState({ anchorEl: null });
-    };
-  
-    render () {
-        const { anchorEl } = this.state;
-        const { classes, drawerHandler } = this.props;
-        const isMenuOpen = Boolean(anchorEl);
-  
-        const renderMenu = (
-            <Menu
-                anchorEl={anchorEl}
-                anchorOrigin={{ vertical: "top", horizontal: "right" }}
-                transformOrigin={{ vertical: "top", horizontal: "right" }}
-                open={isMenuOpen}
-                onClose={this.handleMenuClose}
-            >
-                <MenuItem onClick={this.handleMenuClose}>Profile</MenuItem>
-                <MenuItem onClick={this.handleMenuClose}>My account</MenuItem>
-            </Menu>
-        );
+function Header (props) {
+    const {
+        classes, drawerHandler, history,
+        onLogout
+    } = props;
+    const [anchorEl, setAnchorEl] = useState(null);
 
-        return (
-            <div className={classes.root}>
-                <AppBar position="fixed" color="primary">
-                    <Toolbar>
-                        <IconButton
-                            onClick={drawerHandler(true)}
-                            className={classes.menuButton}
-                            color="inherit"
-                            aria-label="Open drawer"
-                        >
-                            <MenuIcon />
+    const handleClick = event => {
+        setAnchorEl(event.currentTarget);
+    };
+    const handleClose = () => {
+        setAnchorEl(null);
+    };
+
+    const onClickLogout = () => {
+        logout(() => {
+            onLogout();
+            history.push("/login");
+        });
+    };
+
+    const { first_name } = getCurrentUser();
+    
+    return (
+        <div className={classes.root}>
+            <AppBar position="fixed" color="primary">
+                <Toolbar>
+                    <IconButton
+                        onClick={drawerHandler(true)}
+                        className={classes.menuButton}
+                        color="inherit"
+                        aria-label="Open drawer"
+                    >
+                        <MenuIcon />
+                    </IconButton>
+
+                    <img
+                        src={DynaLogo}
+                        alt="Dynaslope Logo"
+                        className={`${classes.dynaLogo} ${classes.dynaslopeLogo} ${classes.sectionDesktop}`}
+                    />
+                    <div className={classes.titleBlock}>
+                        <Typography className={classes.projectTitle} variant="h6" color="inherit" noWrap>
+                            PROJECT DYNASLOPE
+                        </Typography>
+                        <Typography variant="caption" className={classes.projectSubtitle} color="inherit">
+                            IMPLEMENTED AND FUNDED BY
+                        </Typography>
+                    </div>
+                    <img
+                        src={DostPhivolcsLogo}
+                        alt="PHIVOLCS Logo"
+                        className={`${classes.sectionDesktop} ${classes.phivolcsLogo}`}
+                    />
+
+                    <div className={classes.grow} />
+                    <div className={classes.sectionDesktop}>
+                        <IconButton color="inherit">
+                            <Badge badgeContent={4} color="secondary">
+                                <MailIcon />
+                            </Badge>
                         </IconButton>
+                        <IconButton color="inherit">
+                            <Badge badgeContent={17} color="secondary">
+                                <NotificationsIcon />
+                            </Badge>
+                        </IconButton>
+                        <Button
+                            aria-owns="menu-list-grow"
+                            aria-haspopup="true"
+                            onClick={handleClick}
+                            color="inherit"
+                            startIcon={<AccountCircle />}
+                        >
+                            <strong>{first_name}</strong>
+                        </Button>
+                        {/* <Typography variant="body2" component="div">
+                            <strong>Kevin Dhale</strong>
+                        </Typography> */}
+                    </div>
+                </Toolbar>
+            </AppBar>
 
-                        <img
-                            src={DynaLogo}
-                            alt="Dynaslope Logo"
-                            className={`${classes.dynaLogo} ${classes.dynaslopeLogo} ${classes.sectionDesktop}`}
-                        />
-                        <div className={classes.titleBlock}>
-                            <Typography className={classes.projectTitle} variant="h6" color="inherit" noWrap>
-                                PROJECT DYNASLOPE
-                            </Typography>
-                            <Typography variant="caption" className={classes.projectSubtitle} color="inherit">
-                                IMPLEMENTED AND FUNDED BY
-                            </Typography>
-                        </div>
-                        <img
-                            src={DostPhivolcsLogo}
-                            alt="PHIVOLCS Logo"
-                            className={`${classes.sectionDesktop} ${classes.phivolcsLogo}`}
-                        />
-
-                        <div className={classes.grow} />
-                        <div className={classes.sectionDesktop}>
-                            <IconButton color="inherit">
-                                <Badge badgeContent={4} color="secondary">
-                                    <MailIcon />
-                                </Badge>
-                            </IconButton>
-                            <IconButton color="inherit">
-                                <Badge badgeContent={17} color="secondary">
-                                    <NotificationsIcon />
-                                </Badge>
-                            </IconButton>
-                            <IconButton
-                                aria-owns={isMenuOpen ? "material-appbar" : undefined}
-                                aria-haspopup="true"
-                                onClick={this.handleProfileMenuOpen}
-                                color="inherit"
-                            >
-                                <AccountCircle />
-                            </IconButton>
-                        </div>
-                    </Toolbar>
-                </AppBar>
-                {renderMenu}
-            </div>
-        );
-    }
+            <Menu
+                id="simple-menu"
+                anchorEl={anchorEl}
+                keepMounted
+                open={Boolean(anchorEl)}
+                onClose={handleClose}
+                className={classes.menu}
+            >
+                <MenuItem onClick={handleClose}>Profile</MenuItem>
+                <MenuItem onClick={handleClose}>My account</MenuItem>
+                <MenuItem onClick={onClickLogout}>Logout</MenuItem>
+            </Menu>
+        </div>
+    );
 }
   
 export default withStyles(
@@ -170,4 +179,4 @@ export default withStyles(
         ...styles(theme),
     }),
     { withTheme: true },
-)(HeaderBar);
+)(Header);

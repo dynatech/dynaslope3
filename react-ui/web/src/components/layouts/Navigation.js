@@ -83,9 +83,13 @@ const navigation_labels = [
                 link: "/communication/chatterbox"
             },
             {
-                label: "Callbox",
-                link: "/communication/callbox"
+                label: "Contacts",
+                link: "/communication/contacts"
             },
+            // {
+            //     label: "Callbox",
+            //     link: "/communication/callbox"
+            // },
             {
                 label: "Mailbox",
                 link: "/communication/mailbox"

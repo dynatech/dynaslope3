@@ -3,12 +3,13 @@ File containing class representation of
 tables of users
 """
 
+from flask_login import UserMixin
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
 from src.models.sites import Sites
 
 
-class Users(DB.Model):
+class Users(DB.Model, UserMixin):
     """
     Class representation of users table
     """
@@ -26,8 +27,13 @@ class Users(DB.Model):
     status = DB.Column(DB.Integer, nullable=True)
     birthday = DB.Column(DB.Integer, nullable=True)
 
+    def get_id(self):
+        return self.user_id
+
     def __repr__(self):
-        return f"Type <{self.first_name}>"
+        return (f"Type <{self.__class__.__name__}> User ID: {self.user_id}"
+                f" First Name: {self.first_name} Last Name: {self.last_name}"
+                f" Status: {self.status}")
 
 
 class UsersRelationship(Users):
@@ -39,16 +45,24 @@ class UsersRelationship(Users):
     __table_args__ = {"schema": "commons_db"}
 
     mobile_numbers = DB.relationship(
-        "UserMobile", backref=DB.backref("user", lazy=True), order_by="UserMobile.priority", lazy="subquery")
+        "UserMobile", backref=DB.backref("user", lazy="joined", innerjoin=True), order_by="UserMobile.priority", lazy="subquery")
 
     organizations = DB.relationship(
-        "UserOrganization", backref=DB.backref("user", lazy=True), lazy="subquery")
+        "UserOrganization", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
 
-    user_hierarchy = DB.relationship(
-        "UserHierarchy", backref=DB.backref("user", lazy=True), lazy="subquery")
+    # user_hierarchy = DB.relationship(
+    #     "UserHierarchy", backref=DB.backref("user", lazy=True), lazy="subquery")
 
-    team = DB.relationship(
-        "UserTeamMembers", backref=DB.backref("user", lazy=True), lazy="subquery")
+    teams = DB.relationship(
+        "UserTeamMembers", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
+
+    landline_numbers = DB.relationship(
+        "UserLandlines", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        lazy="subquery")
+
+    emails = DB.relationship(
+        "UserEmails", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        lazy="subquery")
 
     # user_accounts = DB.relationship(
     #     "UserAccounts", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
@@ -57,6 +71,8 @@ class UsersRelationship(Users):
         return f"Type relationship"
 
 
+# SOON TO BE DELETED BECAUSE OF REFACTORING
+# SEE models/mobile_numbers.py
 class UserMobile(DB.Model):
     """
     Class representation of user mobile table
@@ -95,7 +111,7 @@ class UserOrganization(DB.Model):
     scope = DB.Column(DB.Integer, nullable=True)
 
     site = DB.relationship(
-        "Sites", backref=DB.backref("user", lazy="select"),
+        Sites, backref=DB.backref("user", lazy="select"),
         primaryjoin="UserOrganization.fk_site_id==Sites.site_id", lazy=True)
 
     def __repr__(self):
@@ -120,25 +136,25 @@ class UserLandlines(DB.Model):
         return f"Type <{self.landline_num}"
 
 
-class UserHierarchy(DB.Model):
-    """
-    Class representation of user_hierarchy table
-    """
-    __tablename__ = "user_hierarchy"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+# class UserHierarchy(DB.Model):
+#     """
+#     Class representation of user_hierarchy table
+#     """
+#     __tablename__ = "user_hierarchy"
+#     __bind_key__ = "comms_db"
+#     __table_args__ = {"schema": "comms_db"}
 
-    contact_hierarchy_id = DB.Column(DB.Integer, primary_key=True)
-    fk_user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
-    fk_user_organization_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.user_organization.org_id"))
-    fk_site_id = DB.Column(
-        DB.Integer, DB.ForeignKey("sites.site_id"))
-    priority = DB.Column(DB.Integer, nullable=False)
+#     contact_hierarchy_id = DB.Column(DB.Integer, primary_key=True)
+#     fk_user_id = DB.Column(
+#         DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
+#     fk_user_organization_id = DB.Column(
+#         DB.Integer, DB.ForeignKey("commons_db.user_organization.org_id"))
+#     fk_site_id = DB.Column(
+#         DB.Integer, DB.ForeignKey("sites.site_id"))
+#     priority = DB.Column(DB.Integer, nullable=False)
 
-    def __repr__(self):
-        return f"Type <{self.priority}>"
+#     def __repr__(self):
+#         return f"Type <{self.priority}>"
 
 
 class UserTeams(DB.Model):
@@ -166,14 +182,14 @@ class UserTeamMembers(DB.Model):
     __bind_key__ = "commons_db"
     __table_args__ = {"schema": "commons_db"}
 
-    members_id = DB.Column(DB.Integer, primary_key=True)
-    users_users_id = DB.Column(
+    member_id = DB.Column(DB.Integer, primary_key=True)
+    user_id = DB.Column(
         DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
-    user_teams_team_id = DB.Column(
+    team_id = DB.Column(
         DB.Integer, DB.ForeignKey("commons_db.user_teams.team_id"))
 
-    user_team = DB.relationship(
-        "UserTeams", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
+    team = DB.relationship(
+        "UserTeams", backref=DB.backref("team_members", lazy="joined", innerjoin=True), lazy="subquery")
 
     def __repr__(self):
         return (f"Member ID : {self.members_id} | User ID : {self.users_users_id}"
@@ -213,8 +229,8 @@ class UserAccounts(DB.Model):
     is_active = DB.Column(DB.Integer, nullable=True)
     salt = DB.Column(DB.String(200))
 
-    # user = DB.relationship(
-    #     "Users", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
+    user = DB.relationship(Users, backref=DB.backref(
+        "account", lazy="raise", innerjoin=True), lazy="joined", innerjoin=True, uselist=False)
 
     def __repr__(self):
         return f"{self.email}"
@@ -251,6 +267,7 @@ class UsersSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = Users
+        exclude = ["mobile_numbers", "landline_numbers", "account"]
 
 
 class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
@@ -263,11 +280,17 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     organizations = fields.Nested(
         "UserOrganizationSchema", many=True, exclude=("user",))
 
-    user_hierarchy = fields.Nested(
-        "UserHierarchySchema", many=True, exclude=("user",))
+    # user_hierarchy = fields.Nested(
+    #     "UserHierarchySchema", many=True, exclude=("user",))
 
-    team = fields.Nested(
+    teams = fields.Nested(
         "UserTeamMembersSchema", many=True, exclude=("user",))
+
+    landline_numbers = fields.Nested(
+        "UserLandlinesSchema", many=True, exclude=("user",))
+
+    emails = fields.Nested(
+        "UserEmailsSchema", many=True, exclude=("user",))
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -296,16 +319,43 @@ class UserOrganizationSchema(MARSHMALLOW.ModelSchema):
         model = UserOrganization
 
 
-class UserHierarchySchema(MARSHMALLOW.ModelSchema):
+class UserLandlinesSchema(MARSHMALLOW.ModelSchema):
     """
-    Schema representation of Users class
+    Schema representation of user_landlines class
     """
 
-    user = fields.Nested(UsersSchema)
+    user = fields.Nested(UsersRelationshipSchema,
+                         exclude=("landline_numbers",))
 
     class Meta:
         """Saves table class structure as schema model"""
-        model = UserHierarchy
+
+        model = UserLandlines
+
+
+class UserEmailsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of user_emails class
+    """
+
+    user = fields.Nested(UsersRelationshipSchema, exclude=("emails",))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+
+        model = UserEmails
+
+
+# class UserHierarchySchema(MARSHMALLOW.ModelSchema):
+#     """
+#     Schema representation of Users class
+#     """
+
+#     user = fields.Nested(UsersSchema)
+
+#     class Meta:
+#         """Saves table class structure as schema model"""
+#         model = UserHierarchy
 
 
 class UserTeamsSchema(MARSHMALLOW.ModelSchema):
@@ -322,21 +372,11 @@ class UserTeamMembersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
     """
-    user_team = fields.Nested("UserTeamsSchema", exclude=("user",))
+    team = fields.Nested("UserTeamsSchema", exclude=("team_members",))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = UserTeamMembers
-
-
-class UserEmailsSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Users class
-    """
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = UserEmails
 
 
 class UserAccountsSchema(MARSHMALLOW.ModelSchema):
