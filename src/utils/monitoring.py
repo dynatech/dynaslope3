@@ -16,7 +16,7 @@ from src.models.monitoring import (
     MomsInstances, MomsFeatures, InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols,
     MonitoringEventAlertsSchema, OperationalTriggers, MomsInstances as mi,
-    MonitoringTriggersSchema)
+    MonitoringTriggersSchema, MonitoringMomsSchema)
 from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
@@ -801,7 +801,7 @@ def get_monitoring_releases_by_event_id(event_id):
     releases = []
 
     if event_id:
-        releases = mr.query.join(mea).join(me).filter(me.event_id == event_id).all()
+        releases = MonitoringReleases.join(mea).join(me).filter(me.event_id == event_id).all()
 
     return releases
 
@@ -1201,3 +1201,27 @@ def fix_internal_alert(alert_entry, internal_source_id):
         pass
 
     return highest_valid_public_alert, trigger_list_str, validity_status
+
+
+#############
+# HOT FIXES #
+#############
+
+def get_event_moms(site_id=50):
+    """
+    """
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    mr = MonitoringReleases
+    mt = MonitoringTriggers
+    mtm = MonitoringTriggersMisc
+    mmr = MonitoringMomsReleases
+    # moms = MonitoringMoms
+
+    event_id = me.query.order_by(DB.desc(me.event_start)).filter(me.site_id == site_id).first().event_id
+    
+    result = moms.query.join(mmr).join(mtm).join(mt).join(mr).join(mea).join(me).filter(me.event_id == event_id).all()
+
+    var_checker("result", result, True)
+
+    return result

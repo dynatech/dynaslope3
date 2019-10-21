@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+from datetime import datetime, timedelta
 from connection import DB
 from sqlalchemy import func
 from src.models.sites import Sites, SitesSchema
@@ -7,8 +8,10 @@ from src.models.monitoring import (
     MonitoringMomsSchema, MomsInstancesSchema,
     MomsFeaturesSchema
 )
-
 from src.utils.sites import get_sites_data
+
+from src.utils.monitoring import get_event_moms
+
 
 MOMS_BLUEPRINT = Blueprint("moms_blueprint", __name__)
 
@@ -78,3 +81,18 @@ def get_moms_features(site_code=None):
             feature["instances"] = filtered
 
     return jsonify(result)
+
+
+@MOMS_BLUEPRINT.route("/manifestations_of_movement/get_event_moms", methods=["GET"])
+# @MOMS_BLUEPRINT.route("/manifestations_of_movement/get_event_moms", methods=["POST"])
+def wrap_get_event_moms():
+    """
+    """
+    # Commented because we only have one site UMI
+    # json_input = requests.get_json()
+
+    event_moms = get_event_moms(site_id=50)
+    event_moms_data = MonitoringMomsSchema(many=True, exclude=("moms_releases",)).dump(event_moms).data
+
+    # return jsonify(event_moms_data)
+    return event_moms_data
