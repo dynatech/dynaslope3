@@ -630,8 +630,14 @@ def add_special_case_details(trigger_source, accessory_detail):
         site_moms_alerts_list = accessory_detail["site_moms_alerts_list"]
         surficial_moms_window_ts = accessory_detail["surficial_moms_window_ts"]
 
+        # NOTE: LOUIE
+        var_checker("site_moms_alerts_list", site_moms_alerts_list, True)
+
         current_moms_list = list(filter(
             lambda x: x.observance_ts >= surficial_moms_window_ts, site_moms_alerts_list))
+
+        # NOTE: LOUIE
+        var_checker("current_moms_list", current_moms_list, True)
 
         if current_moms_list:
             current_moms_list_data = MONITORING_MOMS_SCHEMA.dump(
@@ -1106,6 +1112,9 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         has_positive_moms_trigger = False
         if highest_moms_alert > 0:
             has_positive_moms_trigger = True
+
+        # NOTE: LOUIE
+        var_checker("site_moms_alerts_list", site_moms_alerts_list, True)
 
         unresolved_moms_list = []
         if site_moms_alerts_list and has_positive_moms_trigger:
