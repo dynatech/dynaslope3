@@ -1,5 +1,5 @@
 import axios from "axios";
-import host from "../../config";
+import { host } from "../../config";
 
 export function getSession (access_token, callback) {
     const api_link = `${host}/api/check_session`;

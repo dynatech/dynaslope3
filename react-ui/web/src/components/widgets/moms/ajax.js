@@ -1,5 +1,5 @@
 import axios from "axios";
-import host from "../../../config";
+import { host } from "../../../config";
 
 
 export default function getMOMsFeatures (site_code, callback) {
