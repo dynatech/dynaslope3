@@ -25,6 +25,7 @@ function RoutesCollection (props) {
             <Route exact path={url} component={DashboardContainer} />
             <Route path={`${url}monitoring/events`} component={EventsTableContainer} />
             <Route path={`${url}monitoring/shifts_and_reports`} component={ShiftsAndReportsContainer} />
+            <Route path={`${url}monitoring/issues_and_reminders`} component={IssuesAndReminders} />
             <Route path={`${url}monitoring/logs`} component={SiteLogsContainer} />
             <Route path={`${url}monitoring`} render={() => <h3> Not yet created</h3>} />
 

@@ -2,6 +2,29 @@ import axios from "axios";
 import { host } from "../../config";
 
 
+//
+// TEMPLATE
+//
+function makeAxiosRequest (json_data, api_link, callback = null) {
+    axios.post(api_link, json_data)
+    .then((response) => {
+        const { data } = response; 
+        if (callback !== null) {
+            callback(data);
+        } 
+    })
+    .catch((error) => {
+        console.log(error);
+    });
+}
+
+
+export function getShiftData (input, callback) {
+    const api_link = `${host}/api/shift_checker/get_shift_data`;
+    console.log(api_link);
+    makeAxiosRequest(input, api_link, callback);
+}
+
 export function getEndOfShiftReports (input, callback) {
     const {
         shift_start

@@ -1,6 +1,6 @@
 import axios from "axios";
 import moment from "moment";
-import host from "../../../config";
+import { host } from "../../../config";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
 
 function makeAxiosRequest (json_data, api_link, callback = null) {

@@ -516,7 +516,7 @@ def get_internal_alert_symbols(internal_sym_id=None):
 #############################################
 
 
-def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_id=None):
+def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_id=None, user_id=None, exclude_routine=False):
     """
     Returns monitoring_releases based on given parameters.
 
@@ -525,6 +525,8 @@ def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_i
         ts_start (Datetime) -
         ts_end (Datetime) -
     """
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
     mr = MonitoringReleases
     base = mr.query
     return_data = None
@@ -532,14 +534,19 @@ def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_i
         return_data = base.filter(
             mr.release_id == release_id).first()
     elif ts_start and ts_end:
-        me = MonitoringEvents
-        mea = MonitoringEventAlerts
-        base = base.order_by(DB.desc(mr.data_ts)).filter(DB.and_(
+        base = base.order_by(DB.desc(mr.release_time)).join(mea).filter(DB.and_(
             ts_start < mr.data_ts, mr.data_ts < ts_end
-        ))
+        )).filter(me.status == 2)
         if event_id:
             base = base.join(mea).join(me).filter(me.event_id)
-        
+
+        if user_id:
+            mrp = MonitoringReleasePublishers
+            base = base.join(mrp).filter(mrp.user_id == user_id)
+
+        if exclude_routine:
+            base = base.join(me).filter(me.status == 2)
+
         return_data = base.all()
     else:
         return_data = base.order_by(
@@ -600,12 +607,12 @@ def get_monitoring_triggers(event_id=None, event_alert_id=None, release_id=None,
         base = base.join(mr).join(mea).filter(mea.event_alert_id == event_alert_id)
     elif release_id:
         base = base.join(mr).filter(mr.release_id == release_id)
-    
+
     if order_by_desc:
         base = base.order_by(DB.desc(mt.ts))
     else:
         base = base.order_by(DB.asc(mt.ts))
-    
+
     if return_one:
         return_data = base.first()
     else:
@@ -691,11 +698,9 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
     base = me.query.join(Sites).join(mea)
 
     if site_ids:
-        var_checker("site_ids", site_ids, True)
         base = base.filter(me.site_id.in_(site_ids))
 
     if entry_types:
-        var_checker("entry_types", entry_types, True)
         base = base.filter(me.status.in_(entry_types))
 
     if search != "":

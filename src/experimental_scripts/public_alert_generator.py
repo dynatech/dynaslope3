@@ -34,8 +34,9 @@ from src.utils.monitoring import (
 from src.utils.extra import (var_checker, retrieve_data_from_memcache, get_process_status_log)
 
 
-MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=(
-    "moms_releases", "validator", "reporter", "narrative"))
+MOMS_SCHEMA_EXCLUSION = (
+    "moms_releases", "validator", "reporter", "narrative", "moms_instance.feature.alerts")
+MONITORING_MOMS_SCHEMA = MonitoringMomsSchema(many=True, exclude=MOMS_SCHEMA_EXCLUSION)
 ON_DEMAND_SCHEMA = MonitoringOnDemandSchema()
 
 #####################################################
@@ -338,8 +339,7 @@ def check_if_has_unresolved_moms_instance(site_moms_alerts_list):
 
         if not (instance_id in unique_moms_instance_set):
             if site_moms.op_trigger > 0:
-                moms_data = MonitoringMomsSchema(exclude=(
-                    "moms_releases", "validator", "reporter", "narrative")).dump(site_moms).data
+                moms_data = MonitoringMomsSchema(exclude=MOMS_SCHEMA_EXCLUSION).dump(site_moms).data
                 unresolved_moms_list.append(moms_data)
 
             unique_moms_instance_set.add(instance_id)
@@ -1382,6 +1382,6 @@ if __name__ == "__main__":
 
     # TEST MAIN
     # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")
-    main(query_ts_end="2019-09-05 15:50:00", query_ts_start="2019-09-05 15:50:00", is_test=True, site_code="umi")
+    # main(query_ts_end="2019-09-05 15:50:00", query_ts_start="2019-09-05 15:50:00", is_test=True, site_code="umi")
     # main(query_ts_end="2019-05-22 11:00:00", query_ts_start="2019-05-22 11:00:00", is_test=True, site_code="hum")
-    # main(is_test=True, site_code="umi")
+    main(is_test=True, site_code="umi")
