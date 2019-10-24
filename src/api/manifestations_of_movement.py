@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 from connection import DB
 from sqlalchemy import func
@@ -38,6 +38,38 @@ def get_latest_alerts():
     sites_data.sort(key=lambda x: x["moms_alert"], reverse=True)
 
     return jsonify(sites_data)
+
+
+# @MOMS_BLUEPRINT.route("/manifestations_of_movement/get_latest_site_moms_alerts", methods=["GET", "POST"])
+def get_latest_site_moms_alerts(instance_id_list):
+    """
+    MonitoringMoms 
+    """
+    moms = MonitoringMoms
+    mi = MomsInstances
+   
+    try:
+        site_moms_alerts_list = moms.query.order_by(DB.desc(moms.observance_ts)).join(mi).filter(moms.op_trigger > 0).filter(mi.instance_id.in_(instance_id_list)).all()
+    except Exception:
+        site_moms_alerts_list = []
+    
+    unique_instances = []
+    unique_instance_ids = set({})
+
+    list_length = len(instance_id_list)
+
+    for item in site_moms_alerts_list:
+        if len(unique_instances) == list_length:
+            break
+
+        instance_id = item.moms_instance.instance_id
+        if instance_id not in unique_instance_ids:
+            unique_instance_ids.add(instance_id)
+            unique_instances.append(item)
+
+    data = MonitoringMomsSchema(many=True, exclude=("moms_releases",)).dump(unique_instances).data
+
+    return data
 
 
 @MOMS_BLUEPRINT.route("/manifestations_of_movement/get_moms_instances/<site_code>", methods=["GET"])
@@ -90,9 +122,10 @@ def wrap_get_event_moms():
     """
     # Commented because we only have one site UMI
     # json_input = requests.get_json()
-
-    event_moms = get_event_moms(site_id=50)
-    event_moms_data = MonitoringMomsSchema(many=True, exclude=("moms_releases",)).dump(event_moms).data
-
+    try:
+        event_moms = get_event_moms(site_id=50)
+        event_moms_data = MonitoringMomsSchema(many=True, exclude=("moms_releases",)).dump(event_moms).data
+    except Exception as err:
+        event_moms_data = []
     # return jsonify(event_moms_data)
     return event_moms_data

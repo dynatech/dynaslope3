@@ -19,6 +19,7 @@ from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
     InternalAlertSymbolsSchema)
 from src.utils.narratives import (write_narratives_to_db)
+from src.api.manifestations_of_movement import (wrap_get_event_moms, get_latest_site_moms_alerts)
 from src.utils.monitoring import (
     get_monitoring_events, get_monitoring_releases,
     get_active_monitoring_events, get_current_monitoring_instance_per_site,
@@ -170,17 +171,22 @@ def wrap_get_monitoring_releases(release_id=None):
     return jsonify(releases_data)
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases_by_event_id/<event_id>", methods=["GET"])
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases_by_site_id", methods=["GET"])
 def wrap_get_monitoring_releases_by_site_id(site_id=None):
     """
     Gets a single release with the specificied ID
     """
-    current_instance = get_current_monitoring_instance_per_site(site_id=site_id)
-    event_id = current_instance.event_id
-    releases = get_monitoring_releases_by_event_id(event_id)
-    releases_data = MonitoringReleasesSchema(many=True, exclude=("event_alert")).dump(releases).data
+    releases_data = []
+    try:
+        site_id = 50
+        current_instance = get_current_monitoring_instance_per_site(site_id=site_id)
+        event_id = current_instance.event_id
+        releases = get_monitoring_releases_by_event_id(event_id)
+        releases_data = MonitoringReleasesSchema(many=True, exclude=("event_alert")).dump(releases).data
+    except Exception as err:
+        releases_data = []
 
-    return jsonify(releases_data)
+    return releases_data
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_active_monitoring_events", methods=["GET"])
@@ -954,6 +960,8 @@ def insert_ewi(internal_json=None):
                         event_alert_details).event_alert_id
 
                 elif pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30) or is_overdue:
+                    var_checker("validity ext", pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30), True)
+                    var_checker("is_overdue", is_overdue, True)
                     # This extends the validity of the event in cases where
                     # no ground data is available.
                     try:
@@ -1100,7 +1108,8 @@ def get_latest_cbewsl_ewi(site_id):
         raise
 
     minimal_data = {
-        "alert_level": latest_event_alert.public_alert_symbol.alert_level,
+        "alert_level": latest_event_alert.public_alert_symbol.alert_level,            ###
+            ###
         "alert_validity": str(datetime.strftime(site_event.validity, "%Y-%m-%d %H:%M:%S")),
         "data_ts": str(datetime.strftime(latest_release.data_ts, "%Y-%m-%d %H:%M:%S")),
         "user_id": release_publishers.user_id,
@@ -1118,6 +1127,8 @@ def insert_cbewsl_moms():
     """
     try:
         json_data = request.get_json()
+        var_checker("json_data", json_data, True)
+        json_data = json_data[0]
         user_id = json_data["user_id"]
         data_ts = json_data["data_ts"]
         run_status = ""
@@ -1133,7 +1144,7 @@ def insert_cbewsl_moms():
             event_id = current_monitoring_instance.event_id        
 
         for trigger in json_data["trig_list"]:
-            alert_level = trigger["alert_level"]
+            alert_level = int(trigger["alert_level"])
 
             # Add alert level on set to check highest alert level
             alert_level_set.add(alert_level)
@@ -1171,6 +1182,7 @@ def insert_cbewsl_moms():
                 print(err)
                 raise
 
+            # INSERT EWI STARTS HERE
             # PREPARE TRIGGER_LIST_ARRAY
             int_sym = trigger["int_sym"]
             ots_row = retrieve_data_from_memcache(
@@ -1205,9 +1217,11 @@ def insert_cbewsl_moms():
 
             trigger_list_arr.append(moms_trigger)
             
-
+        # INSERT EWI CONT. HERE
         # GET THE HIGHEST ALERT LEVEL 
         public_alert_level = sorted(alert_level_set, reverse=True)[0]
+        public_alert_symbol = retrieve_data_from_memcache(
+            "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
         if non_trig_moms_list:
             non_triggering_moms["moms_id_list"] = non_trig_moms_list
         
@@ -1265,13 +1279,33 @@ def insert_cbewsl_moms():
 @MONITORING_BLUEPRINT.route("/monitoring/get_candidate_and_current_alerts", methods=["GET"])
 def get_candidate_and_current_alerts():
     print(get_active_monitoring_events())
+    releases = wrap_get_monitoring_releases_by_site_id()
+    instance_ids = get_instance_ids(releases)
+    latest_releases_moms_per_instance = get_latest_site_moms_alerts(instance_ids)
     ret_val = {
+        "releases": releases,
+        "latest_release_moms": latest_releases_moms_per_instance,
         "leo": json.loads(wrap_get_ongoing_extended_overdue_events()),
-        "candidate_alert": candidate_alerts_generator.main() # pakibura
+        "candidate_alert": candidate_alerts_generator.main(), # pakibura,
     }
 
     return jsonify(ret_val)
 
+def get_instance_ids(releases):
+    print(releases)
+    moms_instance_ids = []
+    releases_length = len(releases)
+    if releases_length > 0:
+        for releases_row in releases:
+            release_triggers = releases_row["triggers"]
+            for triggers_row in release_triggers:
+                internal_symbol = triggers_row["internal_sym"]["alert_symbol"]
+                if internal_symbol == "m" or internal_symbol == "M":
+                    instance_id = triggers_row["trigger_misc"]["moms_releases"][0]["moms_details"]["moms_instance"]["instance_id"]
+                    if instance_id not in moms_instance_ids:
+                        moms_instance_ids.append(instance_id)
+
+    return moms_instance_ids
 
 @MONITORING_BLUEPRINT.route("/monitoring/update_alert_gen", methods=["GET"])
 @MONITORING_BLUEPRINT.route("/monitoring/update_alert_gen/<is_instantaneous>", methods=["GET"])

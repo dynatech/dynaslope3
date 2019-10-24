@@ -51,7 +51,7 @@ def write_operational_trigger(ts, site_id, trigger_sym_id, ts_updated):
     except Exception as err:
         print(err)
         DB.session.rollback()
-        raise
+        raise #removed by Kevin to quick bug fix MOMs with same ts and alert but different
 
 
 def get_max_possible_alert_level():
@@ -801,7 +801,7 @@ def get_monitoring_releases_by_event_id(event_id):
     releases = []
 
     if event_id:
-        releases = MonitoringReleases.join(mea).join(me).filter(me.event_id == event_id).all()
+        releases = mr.query.order_by(DB.desc(mr.data_ts)).join(mea).join(me).filter(me.event_id == event_id).all()
 
     return releases
 
@@ -1016,13 +1016,12 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             op_trigger=op_trigger
         )
 
-        var_checker("new_moms", new_moms, True)
-        DB.session.add(new_moms)
-        DB.session.flush()
-        # DB.session.commit()
-
         source_id = retrieve_data_from_memcache(
             "trigger_hierarchies", {"trigger_source": "moms"}, retrieve_attr="source_id")
+        
+        var_checker("source_id", source_id, True)
+        var_checker("op_trigger", op_trigger, True)
+
         trigger_sym_id = retrieve_data_from_memcache("operational_trigger_symbols", {
             "alert_level": op_trigger,
             "source_id": source_id
@@ -1030,6 +1029,11 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
 
         write_operational_trigger(
             observance_ts, site_id, trigger_sym_id, observance_ts)
+
+        var_checker("new_moms", new_moms, True)
+        DB.session.add(new_moms)
+        DB.session.flush()
+        # DB.session.commit()
 
         new_moms_id = new_moms.moms_id
         return_data = new_moms_id
@@ -1217,11 +1221,13 @@ def get_event_moms(site_id=50):
     mtm = MonitoringTriggersMisc
     mmr = MonitoringMomsReleases
     # moms = MonitoringMoms
-
-    event_id = me.query.order_by(DB.desc(me.event_start)).filter(me.site_id == site_id).first().event_id
-    
-    result = moms.query.join(mmr).join(mtm).join(mt).join(mr).join(mea).join(me).filter(me.event_id == event_id).all()
-
+    try:
+        event_id = me.query.order_by(DB.desc(me.event_start)).filter(me.site_id == site_id).first().event_id
+        
+        result = moms.query.join(mmr).join(mtm).join(mt).join(mr).join(mea).join(me).filter(me.event_id == event_id).all()
+    except Exception as err:
+        result = []
+        
     var_checker("result", result, True)
 
     return result
