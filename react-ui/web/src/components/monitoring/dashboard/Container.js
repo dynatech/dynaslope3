@@ -2,13 +2,16 @@ import React, { Fragment, useEffect, useState } from "react";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { withStyles } from "@material-ui/core/styles";
 import { compose } from "recompose";
-import { Button } from "@material-ui/core";
+import { Button, Grid, Typography } from "@material-ui/core";
+import Hidden from "@material-ui/core/Hidden";
 import { AddAlert } from "@material-ui/icons";
+
 import PageTitle from "../../reusables/PageTitle";
 import TabBar from "../../reusables/TabBar";
 import MonitoringTables from "./MonitoringTables";
 import GeneratedAlerts from "./GeneratedAlerts";
 import AlertReleaseFormModal from "../../widgets/alert_release_form/AlertReleaseFormModal";
+import IssuesAndRemindersList from "../../widgets/issues_and_reminders_form/IssuesAndRemindersList";
 import CircularAddButton from "../../reusables/CircularAddButton";
 import GeneralStyles from "../../../GeneralStyles";
 import { subscribeToWebSocket, unsubscribeToWebSocket } from "../../../websocket/monitoring_ws";
@@ -75,6 +78,7 @@ function Container (props) {
     };
 
     const handleBoolean = (data, bool) => () => {
+        console.log(data, bool);
         setIsOpenReleaseModal(!isOpenReleaseModal);
     };
 
@@ -103,26 +107,40 @@ function Container (props) {
                 />
             </div>
 
-            <div className={classes.tabBar}>
-                <TabBar
-                    chosenTab={chosenTab}
-                    onSelect={handleTabSelected}
-                    tabsArray={tabs_array}
-                />
-            </div>
+            <Grid container spacing={2}>
+                <Grid item xs={12} md={9}>
+                    <div className={classes.tabBar}>
+                        <TabBar
+                            chosenTab={chosenTab}
+                            onSelect={handleTabSelected}
+                            tabsArray={tabs_array}
+                        />
+                    </div>
 
-            <div className={`${classes.pageContentMargin} ${classes.tabBarContent}`}>
-                {chosenTab === 0 && (
-                    <MonitoringTables
-                        width={width}
-                        candidateAlertsData={candidateAlertsData}
-                        alertsFromDbData={alertsFromDbData}
-                        releaseFormOpenHandler={handleBoolean("is_open_release_modal", true)}
-                        chosenCandidateHandler={setChosenCandidateAlert}
-                    />
-                )}
-                {chosenTab === 1 && <GeneratedAlerts generatedAlertsData={generatedAlerts} />}
-            </div>
+                    <div className={classes.tabBarContent} style={{
+                        marginLeft: 100,
+                        marginRight: 20
+                    }}>
+                        {chosenTab === 0 && (
+                            <MonitoringTables
+                                width={width}
+                                candidateAlertsData={candidateAlertsData}
+                                alertsFromDbData={alertsFromDbData}
+                                releaseFormOpenHandler={handleBoolean("is_open_release_modal", true)}
+                                chosenCandidateHandler={setChosenCandidateAlert}
+                            />
+                        )}
+                        {chosenTab === 1 && <GeneratedAlerts generatedAlertsData={generatedAlerts} />}
+                    </div>
+                </Grid>
+                <Hidden xsDown>
+                    <Grid item xs={12} md={3}>
+                        <IssuesAndRemindersList style={{ marginRight: 100 }} />
+                    </Grid>
+                </Hidden>
+
+            </Grid>
+
 
             {!is_desktop && <CircularAddButton clickHandler={handleBoolean("is_open_release_modal", true)} />}
 

@@ -6,8 +6,10 @@ import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { CircularProgress, Typography, Paper } from "@material-ui/core";
 import { withStyles, createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 import { compose } from "recompose";
+import { Route, Switch, Link } from "react-router-dom";
 
 import CustomSearchRender from "./CustomSearchRender";
+import EventTimeline from "./EventTimeline";
 import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
@@ -32,7 +34,18 @@ const styles = theme => ({
 });
 
 
-function prepareEventsArray (arr) {
+function prepareEventTimelineLink (url, event_id) {
+    return (
+        <Link
+            to={`${url}/${event_id}`}
+        >
+            {event_id}
+        </Link>
+    );
+}
+
+
+function prepareEventsArray (url, arr) {
     return arr.map(
         ({
             event_id, site_code, purok,
@@ -48,8 +61,10 @@ function prepareEventsArray (arr) {
             
             if (event_start !== "" && event_start !== null) final_event_start = moment(event_start).format("D MMMM YYYY, h:mm");
             if (validity !== "" && validity !== null) final_ts_end = moment(validity).format("D MMMM YYYY, h:mm");
+
+            const event_link = prepareEventTimelineLink(url, event_id);
             const event_entry = [
-                event_id,
+                event_link,
                 sites_dict[site_code.toUpperCase()].address,
                 entry_type,
                 final_event_start,
@@ -72,7 +87,11 @@ const getMuiTheme = createMuiTheme({
 });
 
 function MonitoringEventsTable (props) {
-    const { classes, width } = props;
+    const {
+        classes, width, location,
+        match: { path, url }
+    } = props;
+
     const [data, setData] = useState([["Loading Data..."]]);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -97,13 +116,10 @@ function MonitoringEventsTable (props) {
             include_count: true,
             limit, offset, filters, search_str
         };
-        console.log(input);
 
         getMonitoringEvents(input, ret => {
             const { events, count: total } = ret;
-            console.log("ret", ret);
-            const final_data = prepareEventsArray(events);
-            console.log("final_data", final_data);
+            const final_data = prepareEventsArray(url, events);
             setData(final_data);
             setCount(total);
             setIsLoading(false);
@@ -147,17 +163,6 @@ function MonitoringEventsTable (props) {
             } else if (action === "onSearchOpen") {
                 setOnSearchOpen(true);
             }
-
-            // switch (action) {
-            //     case "changePage":
-            //         changePage(tableState.page);
-            //         break;
-            //     case "changeRowsPerPage":
-            //         changeRowsPerPage(tableState.rowsPerPage);
-            //         break;
-            //     default:
-            //         break;
-            // }
         },
         onSearchChange: (search_string) => {
             // Looking for proper async implementation
@@ -299,33 +304,47 @@ function MonitoringEventsTable (props) {
             <div className={classes.pageContentMargin}>
                 <PageTitle title="Alert Monitoring | Events" />
             </div>
+            <div className={classes.pageContentMargin}>
+                <Switch location={location}>
+                    <Route exact path={url} render={
+                        props => (
+                            <Paper className={classes.paperContainer}>
+                                <MuiThemeProvider theme={getMuiTheme}>
+                                    <MUIDataTable
+                                        title={
+                                            <Typography>
+                                                Monitoring Events Table
+                                                {
+                                                    isLoading &&
+                                                        <CircularProgress
+                                                            size={24}
+                                                            style={{
+                                                                marginLeft: 15,
+                                                                position: "relative",
+                                                                top: 4
+                                                            }}
+                                                        />
+                                                }
+                                            </Typography>
+                                        }
+                                        data={data}
+                                        columns={columns}
+                                        options={options}
+                                    />
+                                </MuiThemeProvider>                    
+                            </Paper>
+                        )
+                    }/>
 
-            <div className={`${classes.pageContentMargin}`}>
-                <Paper className={classes.paperContainer}>
-                    <MuiThemeProvider theme={getMuiTheme}>
-                        <MUIDataTable
-                            title={
-                                <Typography component="div">
-                                    Monitoring Events Table
-                                    {
-                                        isLoading &&
-                                            <CircularProgress
-                                                size={24}
-                                                style={{
-                                                    marginLeft: 15,
-                                                    position: "relative",
-                                                    top: 4
-                                                }}
-                                            />
-                                    }
-                                </Typography>
-                            }
-                            data={data}
-                            columns={columns}
-                            options={options}
-                        />
-                    </MuiThemeProvider>                    
-                </Paper>
+                    <Route path={`${url}/:event_id`} render={
+                        props => (
+                            <EventTimeline
+                                {...props}
+                                width={width}
+                            />
+                        )
+                    }/>
+                </Switch>
             </div>
         </Fragment>
     );

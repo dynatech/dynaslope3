@@ -1,7 +1,30 @@
 import axios from "axios";
 import { host } from "../../config";
 
-// eslint-disable-next-line import/prefer-default-export
+
+//
+// TEMPLATE
+//
+function makeAxiosRequest (json_data, api_link, callback = null) {
+    axios.post(api_link, json_data)
+    .then((response) => {
+        const { data } = response; 
+        if (callback !== null) {
+            callback(data);
+        } 
+    })
+    .catch((error) => {
+        console.log(error);
+    });
+}
+
+
+export function getShiftData (input, callback) {
+    const api_link = `${host}/api/shift_checker/get_shift_data`;
+    console.log(api_link);
+    makeAxiosRequest(input, api_link, callback);
+}
+
 export function getEndOfShiftReports (input, callback) {
     const {
         shift_start
@@ -25,7 +48,6 @@ export function getNarratives (input, callback) {
         include_count, limit, offset,
         filters, search_str
     } = input;
-    // console.log("input", input);
 
     let api_link = `${host}/api/narratives/get_narratives?limit=${limit}&offset=${offset}`;
 
@@ -34,8 +56,6 @@ export function getNarratives (input, callback) {
     if (filters.length !== 0) {
         const filter_str = filters.map(row => {
             const { name, data } = row;
-            console.log(row);
-            console.log(data);
             return data.map(x => `&${name}=${x}`).join("");
         });
 
@@ -59,7 +79,6 @@ export function getMonitoringEvents (input, callback) {
         limit, offset, include_count,
         filters, search_str
     } = input;
-    // console.log("input", input);
 
     let api_link = `${host}/api/monitoring/get_monitoring_events?filter_type=complete&offset=${offset}&limit=${limit}`;
     
@@ -68,8 +87,6 @@ export function getMonitoringEvents (input, callback) {
     if (filters.length !== 0) {
         const filter_str = filters.map(row => {
             const { name, data } = row;
-            console.log(row);
-            console.log(data);
             return data.map(x => `&${name}=${x}`).join("");
         });
 
@@ -91,3 +108,25 @@ export function getMonitoringEvents (input, callback) {
         console.log(error);
     });    
 }
+
+export function getEventTimelineEntries (input, callback) {
+    const {
+        event_id
+    } = input;
+
+    const api_link = `${host}/api/monitoring/get_event_timeline_data/${event_id}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch(error => {
+        console.error("Problem in getEventTimelineEntries Axios request");
+        console.error(error);
+    });    
+}
+
+
+
+

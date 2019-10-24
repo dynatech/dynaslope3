@@ -73,13 +73,15 @@ function NarrativeForm (props) {
 
     useEffect(() => {
         if (narrative_id !== "") {
+            console.log("site list before shit", site_list); 
             const site_id = site_list[0];
             const site = sites_option.filter((number) => number.value === site_id);
+            console.log(site);
 
             setNarrativeData({
                 ...narrativeData,
                 site_list: site
-            });            
+            });
         }
     }, []);
 
@@ -104,6 +106,9 @@ function NarrativeForm (props) {
         });
     };
 
+    const temp = site_list;
+    console.log("narrativeData", narrativeData);
+
     return (
 
         <MuiPickersUtilsProvider utils={MomentUtils}>
@@ -115,7 +120,7 @@ function NarrativeForm (props) {
             >
                 <Grid item xs={12} className={classes.inputGridContainer}>
                     <DynaslopeSiteSelectInputForm 
-                        value={site_list}
+                        value={temp}
                         changeHandler={update_site_value}
                         isMulti                    
                     />

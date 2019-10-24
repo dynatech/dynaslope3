@@ -1,4 +1,4 @@
-import React, { Component, Fragment, useState, useEffect } from "react";
+import React, { Fragment, useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { withStyles } from "@material-ui/core/styles";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
@@ -9,10 +9,10 @@ import Typography from "@material-ui/core/Typography";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
-import { TextField, Grid } from "@material-ui/core";
+import { Grid } from "@material-ui/core";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { compose } from "recompose";
-import { Refresh, SaveAlt, Send, FreeBreakfastOutlined } from "@material-ui/icons";
+import { Refresh, SaveAlt, Send } from "@material-ui/icons";
 import CKEditor from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import CheckboxesGroup from "../../reusables/CheckboxGroup";

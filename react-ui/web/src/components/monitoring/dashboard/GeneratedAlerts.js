@@ -52,7 +52,7 @@ function getAlertDialog (chosen_site, open, handleClose) {
                         {alert_symbol}
                     </Typography>
                     {
-                        type === "rainfall" && alert_level != -1
+                        type === "rainfall" && alert_level !== -1
                             ? (
                                 <Typography variant="caption" color="textPrimary">
                                     {details.rain_gauge}

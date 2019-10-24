@@ -9,7 +9,6 @@ import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 
 import SelectMultipleWithSuggest from "../../reusables/SelectMultipleWithSuggest";
-import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 
 function MomsInputFields (props) {
     const {

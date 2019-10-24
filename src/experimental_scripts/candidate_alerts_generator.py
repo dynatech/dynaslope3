@@ -20,15 +20,12 @@ import os
 import json
 from datetime import datetime, timedelta, time, date
 import re
-import requests
 from config import APP_CONFIG
-from connection import MEMORY_CLIENT
 
 from src.models.monitoring import (
     OperationalTriggerSymbols as ots)
 from src.utils.monitoring import (get_routine_sites, build_internal_alert_level,
                                   get_ongoing_extended_overdue_events, get_saved_event_triggers,
-                                  round_down_data_ts, create_symbols_map, compute_event_validity,
                                   search_if_moms_is_released, round_to_nearest_release_time)
 from src.utils.extra import var_checker, retrieve_data_from_memcache
 

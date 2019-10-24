@@ -109,8 +109,7 @@ function alertTriggersReducer (triggs, { action, trigger_type, value }) {
 function AlertReleaseFormModal (props) {
     const {
         classes, fullScreen, isOpen,
-        closeHandler, chosenCandidateAlert,
-        alertsFromDbData
+        closeHandler, chosenCandidateAlert
     } = props;
 
     const [ewiPayload, setEwiPayload] = useState({});
@@ -140,7 +139,7 @@ function AlertReleaseFormModal (props) {
     useEffect(() => {
         if (chosenCandidateAlert != null) {
             const {
-                site_id, site_code, ts, public_alert_level,
+                site_id, site_code, public_alert_level,
                 public_alert_symbol, release_details, trigger_list_arr
             } = chosenCandidateAlert;
 

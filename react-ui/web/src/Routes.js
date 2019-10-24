@@ -5,10 +5,12 @@ import DashboardContainer from "./components/monitoring/dashboard/Container";
 import EventsTableContainer from "./components/monitoring/events_table/Container";
 import ShiftsAndReportsContainer from "./components/monitoring/shifts_and_reports/Container";
 import SiteLogsContainer from "./components/monitoring/site_logs/Container";
+import IssuesAndReminders from "./components/monitoring/issues_and_reminders/Container";
 
 import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_site/Container";
 
 import ChatterboxContainer from "./components/communication/chatterbox/Container";
+import TestComponent from "./components/test/TestComponent";
 import ContactsContainer from "./components/communication/contacts/Container";
 
 
@@ -23,6 +25,7 @@ function RoutesCollection (props) {
             <Route exact path={url} component={DashboardContainer} />
             <Route path={`${url}monitoring/events`} component={EventsTableContainer} />
             <Route path={`${url}monitoring/shifts_and_reports`} component={ShiftsAndReportsContainer} />
+            <Route path={`${url}monitoring/issues_and_reminders`} component={IssuesAndReminders} />
             <Route path={`${url}monitoring/logs`} component={SiteLogsContainer} />
             <Route path={`${url}monitoring`} render={() => <h3> Not yet created</h3>} />
 

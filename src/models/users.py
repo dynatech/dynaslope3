@@ -295,6 +295,7 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = UsersRelationship
+        exclude = ("account",)
 
 
 class UserMobileSchema(MARSHMALLOW.ModelSchema):
