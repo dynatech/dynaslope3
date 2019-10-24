@@ -6,6 +6,7 @@ import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, DateTimePicker, DatePicker } from "@material-ui/pickers";
 import { compose } from "recompose";
 import moment from "moment";
+import { Route, Switch, Link } from "react-router-dom";
 
 // EXP IMPORTS
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
@@ -14,6 +15,7 @@ import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
 import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
+import EventTimeline from "../events_table/EventTimeline";
 import SelectInputForm from "../../reusables/SelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { getShiftData } from "../ajax";
@@ -53,18 +55,32 @@ const styles = theme => ({
         fontSize: theme.typography.pxToRem(15),
         fontWeight: theme.typography.fontWeightRegular,
     },
+    link: {
+        textDecoration: "none"
+    }
 });
+
+function prepareEventTimelineLink (classes, event_id, site_code) {
+    return (
+        <Link
+            className={classes.link}
+            to={`events/${event_id}`}
+        >
+            {site_code.toUpperCase()}
+        </Link>
+    );
+}
 
 
 function processShiftData (classes, select_by, raw_data) {
-    console.log(raw_data);
     let new_data;
 
     if (select_by === "staff_name") {
         new_data = raw_data.map((row, index) => {
-            console.log(index);
             const { date, data, ampm } = row;
 
+
+            const alert_summary = `${data.length} sites were monitored.`;
             const new_stuff = data.map((second_row, index) => {
                 const {
                     general_status, site_code, 
@@ -73,45 +89,27 @@ function processShiftData (classes, select_by, raw_data) {
                     comments
                 } = second_row;
 
+                const event_link = prepareEventTimelineLink(classes, event_id, site_code);
+
                 return (
                     <Grid item xs={3}>
                         <Typography color="textPrimary">
-                            {`${site_code.toUpperCase()} | ${public_alert_symbol} | ${general_status}`}
+                            {/* {`${site_code.toUpperCase()} | ${public_alert_symbol} | ${general_status}`} */}
+                            {event_link}
+                            {` | ${public_alert_symbol} | ${general_status}`}
                         </Typography>
                     </Grid>
                 );
             });
 
             return (
-
-                // <Grid item xs={6} sm={4} key={`grid-${index + 1}`}>
-                //     <Card className={classes.card}>
-                //         <CardContent>
-            // <Typography className={classes.title} color="textSecondary" gutterBottom>
-            //     Shift Date
-            // </Typography>
-            // <Typography variant="h5" component="h2">
-            //     {date}
-            // </Typography>
-            // <Typography className={classes.pos} color="textSecondary">
-            //     {ampm}
-            // </Typography>
-            // {
-            //     new_stuff                            
-            // }
-                //         </CardContent>
-                //         {/* <CardActions>
-                //             <Button size="small">Learn More</Button>
-                //         </CardActions> */}
-                //     </Card>
-                // </Grid>    
                 <ExpansionPanel>
                     <ExpansionPanelSummary
                         expandIcon={<ExpandMoreIcon />}
                         aria-controls="panel1a-content"
                         id="panel1a-header"
                     >
-                        <Typography className={classes.heading}>{date}</Typography>
+                        <Typography className={classes.heading}>{`${moment(date).format("MMMM D YYYY")} | ${alert_summary}`}</Typography>
                     </ExpansionPanelSummary>
                     <Divider />
                     <ExpansionPanelDetails>
@@ -148,8 +146,6 @@ function processShiftData (classes, select_by, raw_data) {
             );
         });
     }
-
-    console.log("new_data", new_data);
     
     return new_data;
 }
@@ -206,18 +202,18 @@ function createDateTime ({ label, value, id }, handleDateTime) {
 
 
 function MonitoringShiftChecker (props) {
-    const { classes, width } = props;
+    const { classes, width, location,
+        match: path, url
+    } = props;
     const [ts_start, setTSStart] = useState(null);
     const [ts_end, setTSEnd] = useState(null);
     const [shift_date, setShiftDate] = useState(null);
     const [shift_sched, setShiftSched] = useState("");
-    const [select_by, setSelectBy] = useState("shift_date");
+    const [select_by, setSelectBy] = useState("staff_name");
     const [user_id, setUserID] = useState("");
 
     const [payload, setPayload] = useState({});
-    const [shift_data, setShiftData] = useState("test");
-
-    const [expanded, setExpanded] = useState(false);
+    const [shift_data, setShiftData] = useState("Please enter filters.");
 
     useEffect(() => {
         if (select_by === "staff_name") {
@@ -272,146 +268,152 @@ function MonitoringShiftChecker (props) {
         }        
     };
 
-    const handleChange = panel => (event, isExpanded) => {
-        console.log("event", event);
-        console.log("isExpanded", isExpanded);  
-        setExpanded(isExpanded ? panel : false);
-    };  
-
     const handleSubmit = () => {
-        console.log(`SUBMITTED  ${select_by}`);
-
-        console.log(payload);
-
         getShiftData(payload, ret => {
             // const processed_data = processShiftData(classes, select_by, ret);
             const processed_data = processShiftData(classes, select_by, ret);
-            setShiftData(processed_data);
+            setShiftData((
+                <Typography style={{ fontStyle: "italic" }}>
+                No shift data
+                </Typography>
+            ));
+            if (processed_data.length > 0) setShiftData(processed_data);
         });
 
     };
 
-    console.log(select_by);
-
     return (
         <Fragment>
             <MuiPickersUtilsProvider utils={MomentUtils}>
-                <Grid 
-                    container
-                    justify="space-between"
-                    alignContent="center"
-                    alignItems="center"
-                    spacing={2}
-                >
-                    <Grid item sm={12} md={3}>
-                        <Paper className={classes.paper}>
-                            <div className={classes.form_input}>
-                                <SelectInputForm
-                                    label="Select by"
-                                    div_id="select_by"
-                                    changeHandler={handleEventChange("select_by")}
-                                    value={select_by}
-                                    list={[{ id: "shift_date", label: "Shift Date" }, { id: "staff_name", label: "Staff Name" }]}
-                                    mapping={{ id: "id", label: "label" }}
-                                    // css={classes.selects}
-                                />
-                            </div>
-                            {select_by === "shift_date" && (
-                                <Fragment>
-                                    <div className={classes.form_input}>
-                                        <SelectInputForm
-                                            label="AM or PM?"
-                                            div_id="shift_sched"
-                                            changeHandler={handleEventChange("shift_sched")}
-                                            value={shift_sched}
-                                            list={[{ id: "am", label: "AM Shift" }, { id: "pm", label: "PM Shift" }]}
-                                            mapping={{ id: "id", label: "label" }}
-                                        // css={classes.selects}
-                                        />
-
-                                    </div>
-
-                                    <div className={classes.form_input}>
-
-                                        <DatePicker
-                                            required
-                                            autoOk
-                                            label="Shift Date"
-                                            value={shift_date}
-                                            onChange={handleDateTime("shift_date")}
-                                            ampm={false}
-                                            placeholder="2010/01/01"
-                                            format="YYYY/MM/DD"
-                                            mask="__/__/____"
-                                            clearable
-                                            disableFuture
-                                            variant="outlined"
-                                            fullWidth
-                                            InputProps={{
-                                                style: { paddingRight: 0 }
-                                            }}
-                                        />
-                                    </div>
-                                </Fragment>
-                            )}
-
-                            {select_by === "staff_name" && (
-                                <Fragment>
-
-                                    <div className={classes.form_input}>
-                                        <DynaslopeUserSelectInputForm
-                                            label="Staff Name"
-                                            div_id="user_id"
-                                            changeHandler={handleEventChange("user_id")}
-                                            value={user_id}
-                                            // css={classes.selects}
-                                            variant="standard"
-                                        />
-                                    </div>
-
-                                    {
-                                        [
-                                            { label: "Start Timestamp", value: ts_start, id: "ts_start" },
-                                            { label: "End Timestamp", value: ts_end, id: "ts_end" },
-                                        ].map(row => {
-                                            const { id } = row;
-
-                                            return (
+                <Switch location={location}>
+                    <Route exact path={url} render={
+                        props => (
+                            <Grid 
+                                container
+                                justify="space-between"
+                                alignContent="center"
+                                spacing={2}
+                            >
+                                <Grid item sm={12} md={3}>
+                                    <Paper className={classes.paper}>
+                                        <div className={classes.form_input}>
+                                            <SelectInputForm
+                                                label="Select by"
+                                                div_id="select_by"
+                                                changeHandler={handleEventChange("select_by")}
+                                                value={select_by}
+                                                list={[{ id: "shift_date", label: "Shift Date" }, { id: "staff_name", label: "Staff Name" }]}
+                                                mapping={{ id: "id", label: "label" }}
+                                                // css={classes.selects}
+                                            />
+                                        </div>
+                                        {select_by === "shift_date" && (
+                                            <Fragment>
                                                 <div className={classes.form_input}>
-                                                    {createDateTime(row, handleDateTime)}
+                                                    <SelectInputForm
+                                                        label="AM or PM?"
+                                                        div_id="shift_sched"
+                                                        changeHandler={handleEventChange("shift_sched")}
+                                                        value={shift_sched}
+                                                        list={[{ id: "am", label: "AM Shift" }, { id: "pm", label: "PM Shift" }]}
+                                                        mapping={{ id: "id", label: "label" }}
+                                                        // css={classes.selects}
+                                                    />
+
                                                 </div>
-                                            );
-                                        })
-                                    }         
-                                </Fragment>
-                            )}
 
-                            <div style={{ paddingTop: 20, paddingBottom: 20 }}>
-                                <Divider />
-                            </div>
+                                                <div className={classes.form_input}>
+                                                    <DatePicker
+                                                        required
+                                                        autoOk
+                                                        label="Shift Date"
+                                                        value={shift_date}
+                                                        onChange={handleDateTime("shift_date")}
+                                                        ampm={false}
+                                                        placeholder="2010/01/01"
+                                                        format="YYYY/MM/DD"
+                                                        mask="__/__/____"
+                                                        clearable
+                                                        disableFuture
+                                                        variant="outlined"
+                                                        fullWidth
+                                                        InputProps={{
+                                                            style: { paddingRight: 0 }
+                                                        }}
+                                                    />
+                                                </div>
+                                            </Fragment>
+                                        )}
 
-                            <div style={{ textAlign: "right" }}>
-                                <Button variant="contained" 
-                                    color="secondary" 
-                                    size={isWidthDown("sm", width) ? "small" : "medium"}
-                                    onClick={handleSubmit}
-                                >
+                                        {select_by === "staff_name" && (
+                                            <Fragment>
+
+                                                <div className={classes.form_input}>
+                                                    <DynaslopeUserSelectInputForm
+                                                        label="Staff Name"
+                                                        div_id="user_id"
+                                                        changeHandler={handleEventChange("user_id")}
+                                                        value={user_id}
+                                                        // css={classes.selects}
+                                                        variant="standard"
+                                                    />
+                                                </div>
+
+                                                {
+                                                    [
+                                                        { label: "Start Timestamp", value: ts_start, id: "ts_start" },
+                                                        { label: "End Timestamp", value: ts_end, id: "ts_end" },
+                                                    ].map(row => {
+                                                        const { id } = row;
+
+                                                        return (
+                                                            <div className={classes.form_input}>
+                                                                {createDateTime(row, handleDateTime)}
+                                                            </div>
+                                                        );
+                                                    })
+                                                }         
+                                            </Fragment>
+                                        )}
+
+                                        <div style={{ paddingTop: 20, paddingBottom: 20 }}>
+                                            <Divider />
+                                        </div>
+
+                                        <div style={{ textAlign: "right" }}>
+                                            <Button variant="contained" 
+                                                color="secondary" 
+                                                size={isWidthDown("sm", width) ? "small" : "medium"}
+                                                onClick={handleSubmit}
+                                            >
                                         Generate <ArrowForwardIos className={classes.button} />
-                                </Button>                                
-                            </div>
-                        </Paper>
-                    </Grid>
+                                            </Button>                                
+                                        </div>
+                                    </Paper>
+                                </Grid>
 
-                    <Grid item sm={12} md={9}>
-                        {/* <Grid container spacing={6}>
+                                <Grid item sm={12} md={9}>
+                                    {/* <Grid container spacing={6}>
                             {shift_data}
                         </Grid> */}
-                        <div className={classes.root}>
-                            {shift_data}
-                        </div>
-                    </Grid>
+                                    <div className={classes.root}>
+                                        {shift_data}
+                                    </div>
+                                </Grid>
                     
-                </Grid>
+                            </Grid>
+                        )
+                    }/>
+
+                    <Route path={`${url}/:event_id`} render={
+                        props => (
+                            <EventTimeline
+                                {...props}
+                                width={width}
+                            />
+                        )
+                    }/>
+                </Switch>
             </MuiPickersUtilsProvider>
         
         </Fragment>
@@ -419,3 +421,5 @@ function MonitoringShiftChecker (props) {
 }
 
 export default compose(withWidth(), withStyles(styles))(MonitoringShiftChecker);
+
+

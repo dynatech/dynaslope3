@@ -4,6 +4,7 @@ import { host } from "../config";
 let socket;
 
 export function subscribeToWebSocket (socket_fns) {
+    console.log("subscribe");
     socket = io(`${host}/monitoring`);
     socket.on("receive_generated_alerts", data => socket_fns.receive_generated_alerts(null, data));
     socket.on("receive_candidate_alerts", data => socket_fns.receive_candidate_alerts(null, data));
@@ -35,6 +36,7 @@ export function unsubscribeToWebSocket () {
 
 
 export function receiveIssuesAndReminders (callback) {
+    console.log("receive");    
     socket.on("receive_issues_and_reminders", data => {
         console.log(data);    
         callback(data);
