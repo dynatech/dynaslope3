@@ -206,9 +206,9 @@ def wrap_get_shift_data():
 
     if "user_id" in json_input:
         print("Select by ID chosen...")
-        releases_data = group_by_alert(releases_list)
+        releases_data = group_by_date(releases_list)
     else:
         print("Select by Dates chosen...")
-        releases_data = group_by_date(releases_list)
+        releases_data = group_by_alert(releases_list)
 
     return jsonify(releases_data)

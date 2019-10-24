@@ -126,77 +126,75 @@ function DetailedExpansionPanel (props) {
     const handleCheckboxEvent = value => event => handleCheckboxToggle(value, checkboxStatus, setCheckboxStatus);
 
     return (
-        <Fragment>
-            <ExpansionPanel>
-                <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
-                    <div className={classes.column}>
-                        <Typography className={classes.heading}>{siteCode.toUpperCase()}</Typography>
-                    </div>
-                    <div className={classes.column}>
-                        <Typography className={classes.secondaryHeading}>Shift Report</Typography>
-                    </div>
-                </ExpansionPanelSummary>
-                <Divider />
-                <ExpansionPanelDetails className={classes.details}>
-                    <Grid container>
-                        <Grid item xs={12}>
-                            <CheckboxesGroup 
-                                label="Data Sources"
-                                changeHandler={handleCheckboxEvent}
-                                choices={choices}
-                                checkboxStyle="primary"
-                            />
-                        </Grid>
-                        {   
-                            [
-                                { label: "Shift Summary", value: shiftSummary, key: "shift_summary" },
-                                { label: "Data Analysis", value: dataAnalysis, key: "data_analysis" },
-                                { label: "Shift Narratives", value: shiftNarratives, key: "shift_narratives" }
-                            ].map(({ label, value, key }) => (
-                                <Grid item xs={12} key={key}>
-                                    <Typography variant="h6" className={classes.heading}>
-                                        {label}
-                                    </Typography>
-                                    <CKEditor
-                                        editor={ ClassicEditor }
-                                        // data="<strong>END-OF-SHIFT REPORT (AJ,             KG)</strong> <br /><br /><b>SHIFT START:<br/>            January 12, 2019, 07:30 AM</b> <br />- Monitoring continued with the following recent trigger/s: <ul><li> Rainfall - alerted on                     January 12, 2019, 03:30 AM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (60.00 mm) exceeded threshold (58.10 mm))</li><li> Rainfall - alerted on                     January 11, 2019, 11:30 PM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (60.50 mm) exceeded threshold (58.10 mm))</li><li> Rainfall - alerted on                     January 11, 2019, 08:00 PM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (58.50 mm) exceeded threshold (58.10 mm))</li></ul>- Event monitoring started on January 11, 2019, 08:00 PM due toaccumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (58.50 mm) exceeded threshold (58.10 mm)).<br /><b>SHIFT END:<br/>January 12, 2019, 08:30 PM</b><br />- Alert <b>lowered to A0</b>; monitoring ended at <b>             2019-01-13 12:00:00</b>.<br/>"
-                                        data="<p>Hi! Starting entering data</p>"
-                                        onInit={ editor => {
-                                        // You can store the "editor" and use when it is needed.
-                                            editor.setData(value);
-                                        } }
-                                        onChange={ ( event, editor ) => {
-                                            const data = editor.getData();
-
-                                            console.log( { event, editor, data } );
-                                        } }
-                                        onBlur={ ( event, editor ) => {
-                                            console.log( "Blur.", editor );
-                                        } }
-                                        onFocus={ ( event, editor ) => {
-                                            console.log( "Focus.", editor );
-                                        } }
-                                    />                                    
-                                </Grid>
-                            )
-                            )
-                        }
+        <ExpansionPanel>
+            <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
+                <div className={classes.column}>
+                    <Typography className={classes.heading}>{siteCode.toUpperCase()}</Typography>
+                </div>
+                <div className={classes.column}>
+                    <Typography className={classes.secondaryHeading}>Shift Report</Typography>
+                </div>
+            </ExpansionPanelSummary>
+            <Divider />
+            <ExpansionPanelDetails className={classes.details}>
+                <Grid container>
+                    <Grid item xs={12}>
+                        <CheckboxesGroup 
+                            label="Data Sources"
+                            changeHandler={handleCheckboxEvent}
+                            choices={choices}
+                            checkboxStyle="primary"
+                        />
                     </Grid>
-                </ExpansionPanelDetails>
-                <Divider />
-                <ExpansionPanelActions>
-                    <Button size="small">
-                        <SaveAlt className={classes.icons} /> {showTextLabel("Download Charts", width)}
-                    </Button>
-                    <Button size="small">
-                        <Refresh className={classes.icons} /> {showTextLabel("Refresh", width)}
-                    </Button>
-                    <Button size="small" color="primary">
-                        <Send className={classes.icons} /> {showTextLabel("Send", width)}
-                    </Button>
-                </ExpansionPanelActions>
-            </ExpansionPanel>
-        </Fragment>
+                    {   
+                        [
+                            { label: "Shift Summary", value: shiftSummary, key: "shift_summary" },
+                            { label: "Data Analysis", value: dataAnalysis, key: "data_analysis" },
+                            { label: "Shift Narratives", value: shiftNarratives, key: "shift_narratives" }
+                        ].map(({ label, value, key }) => (
+                            <Grid item xs={12} key={key}>
+                                <Typography variant="h6" className={classes.heading}>
+                                    {label}
+                                </Typography>
+                                <CKEditor
+                                    editor={ ClassicEditor }
+                                    // data="<strong>END-OF-SHIFT REPORT (AJ,             KG)</strong> <br /><br /><b>SHIFT START:<br/>            January 12, 2019, 07:30 AM</b> <br />- Monitoring continued with the following recent trigger/s: <ul><li> Rainfall - alerted on                     January 12, 2019, 03:30 AM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (60.00 mm) exceeded threshold (58.10 mm))</li><li> Rainfall - alerted on                     January 11, 2019, 11:30 PM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (60.50 mm) exceeded threshold (58.10 mm))</li><li> Rainfall - alerted on                     January 11, 2019, 08:00 PM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (58.50 mm) exceeded threshold (58.10 mm))</li></ul>- Event monitoring started on January 11, 2019, 08:00 PM due toaccumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (58.50 mm) exceeded threshold (58.10 mm)).<br /><b>SHIFT END:<br/>January 12, 2019, 08:30 PM</b><br />- Alert <b>lowered to A0</b>; monitoring ended at <b>             2019-01-13 12:00:00</b>.<br/>"
+                                    data="<p>Hi! Starting entering data</p>"
+                                    onInit={ editor => {
+                                        // You can store the "editor" and use when it is needed.
+                                        editor.setData(value);
+                                    } }
+                                    onChange={ ( event, editor ) => {
+                                        const data = editor.getData();
+
+                                        console.log( { event, editor, data } );
+                                    } }
+                                    onBlur={ ( event, editor ) => {
+                                        console.log( "Blur.", editor );
+                                    } }
+                                    onFocus={ ( event, editor ) => {
+                                        console.log( "Focus.", editor );
+                                    } }
+                                />                                    
+                            </Grid>
+                        )
+                        )
+                    }
+                </Grid>
+            </ExpansionPanelDetails>
+            <Divider />
+            <ExpansionPanelActions>
+                <Button size="small">
+                    <SaveAlt className={classes.icons} /> {showTextLabel("Download Charts", width)}
+                </Button>
+                <Button size="small">
+                    <Refresh className={classes.icons} /> {showTextLabel("Refresh", width)}
+                </Button>
+                <Button size="small" color="primary">
+                    <Send className={classes.icons} /> {showTextLabel("Send", width)}
+                </Button>
+            </ExpansionPanelActions>
+        </ExpansionPanel>
     );
 }
 

@@ -138,18 +138,20 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
     iar = IssuesAndReminders
     irp = IssuesRemindersPostings
     # base = DB.session.query(iar)
-    base = DB.session.query(iar).options(joinedload(iar.postings).joinedload(irp.event))
+    base = DB.session.query(iar).options(joinedload(iar.postings).joinedload(irp.event)).filter(iar.resolution == None)
     return_data = None
 
     if start and end:
         base = base.filter(iar.ts_posted.between(start, end))
 
     if not event_id:
-        if search != "":
+        if search:
             base = base.filter(iar.detail.ilike("%" + search + "%"))
 
         if not include_expired:
-            base = base.filter(iar.ts_posted_until > datetime.now());
+            base = base.filter(iar.ts_posted_until > datetime.now())
+
+
         issues_and_reminders = base.order_by(DB.desc(iar.ts_posted)).limit(limit).offset(offset).all()
         DB.session.commit()
 

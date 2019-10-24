@@ -31,7 +31,7 @@ class IssuesAndReminders(UserMixin, DB.Model):
     resolution = DB.Column(DB.String(360))
 
     postings = DB.relationship(
-        "IssuesRemindersPostings", backref="issue_and_reminder", lazy="joined")
+        "IssuesRemindersPostings", backref=DB.backref("issue_and_reminder", lazy="joined"), lazy="subquery")
 
     # Louie - Relationship
     issue_reporter = DB.relationship(
