@@ -10,7 +10,7 @@ import InfoIcon from "@material-ui/icons/Info";
 import { compose } from "recompose";
 
 import IssuesAndReminderModal from "./IssuesAndReminderModal";
-import { getIssuesAndReminders } from "./ajax";
+import { receiveIssuesAndReminders } from "../../../websocket/monitoring_ws";
 
 
 const styles = theme => ({
@@ -77,12 +77,10 @@ function prepareTileData (classes, processed_i_n_r, handleEdit) {
                 <GridListTileBar
                     title={item_title}
                     subtitle={`${issue_reporter.first_name} ${issue_reporter.last_name}`}
-                    // subtitle="This is subtitle"
                     actionIcon={
                         <IconButton 
                             aria-label={`info about ${title}`}
                             className={classes.icon}
-                            // onClick={handleBoolean("is_issue_reminder_modal_open", true)}
                             onClick={handleEdit(tile)}
                         >
                             <InfoIcon />
@@ -126,26 +124,15 @@ function includeSiteList (issues_and_reminders) {
 
 
 function IssuesAndReminderList (props) {
-    const {
-        classes,
-    } = props;
+    const { classes } = props;
     const [tile_data, setTileData] = useState([]);
     const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
     const [chosenIssueReminder, setChosenIssueReminder] = useState({});
     const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
 
     useEffect(() => {
-        const input = {
-            include_count: true,
-            limit: null, offset: null,
-            filters: [],
-            search_str: "",
-            // include_expired: false
-            include_expired: true
-        };
-
-        getIssuesAndReminders(input, ret => {
-            const issues_and_reminders = ret;
+        receiveIssuesAndReminders(issues_and_reminders => {
+            console.log(issues_and_reminders);
             setTileData(
                 (
                     <Typography style={{ fontStyle: "italic" }}>

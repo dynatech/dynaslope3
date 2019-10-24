@@ -2,7 +2,7 @@ import React, { Fragment, useEffect, useState } from "react";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { withStyles } from "@material-ui/core/styles";
 import { compose } from "recompose";
-import { Button, Grid, Typography } from "@material-ui/core";
+import { Button, Grid } from "@material-ui/core";
 import Hidden from "@material-ui/core/Hidden";
 import { AddAlert } from "@material-ui/icons";
 
@@ -14,7 +14,9 @@ import AlertReleaseFormModal from "../../widgets/alert_release_form/AlertRelease
 import IssuesAndRemindersList from "../../widgets/issues_and_reminders_form/IssuesAndRemindersList";
 import CircularAddButton from "../../reusables/CircularAddButton";
 import GeneralStyles from "../../../GeneralStyles";
-import { subscribeToWebSocket, unsubscribeToWebSocket } from "../../../websocket/monitoring_ws";
+import { 
+    subscribeToWebSocket, unsubscribeToWebSocket
+} from "../../../websocket/monitoring_ws";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
@@ -42,6 +44,7 @@ function Container (props) {
     const [generatedAlerts, setGeneratedAlerts] = useState([]);
     const [candidateAlertsData, setCandidateAlertsData] = useState([]);
     const [alertsFromDbData, setAlertsFromDbData] = useState({ latest: [], extended: [], overdue: [] });
+    const [issuesAndReminders, setIssuesAndReminders] = useState([]);
     const [isOpenReleaseModal, setIsOpenReleaseModal] = useState(false);
     const [chosenCandidateAlert, setChosenCandidateAlert] = useState(null);
 

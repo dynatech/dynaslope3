@@ -1,11 +1,18 @@
-import React, { Component, Fragment, useState, useEffect } from "react";
-import { Grid, withStyles, Button, withWidth, Paper, Divider } from "@material-ui/core";
+import React, { Fragment, useState, useEffect } from "react";
+import { Grid, withStyles, Button, withWidth, Paper, Divider, Typography } from "@material-ui/core";
 import { isWidthDown } from "@material-ui/core/withWidth";
 import { ArrowForwardIos } from "@material-ui/icons";
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, DateTimePicker, DatePicker } from "@material-ui/pickers";
 import { compose } from "recompose";
 import moment from "moment";
+
+// EXP IMPORTS
+import ExpansionPanel from "@material-ui/core/ExpansionPanel";
+import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
+import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
+import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
+import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
 import SelectInputForm from "../../reusables/SelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
@@ -36,21 +43,113 @@ const styles = theme => ({
     },
     form_input: {
         paddingTop: 10
-    }
+    },
+
+    // EXP REL styles
+    root: {
+        width: "100%",
+    },
+    heading: {
+        fontSize: theme.typography.pxToRem(15),
+        fontWeight: theme.typography.fontWeightRegular,
+    },
 });
 
 
-function processShiftData (select_by, raw_data) {
+function processShiftData (classes, select_by, raw_data) {
     console.log(raw_data);
     let new_data;
 
-    // if (select_by === "staff_name") {
-    //     raw_data.map({
+    if (select_by === "staff_name") {
+        new_data = raw_data.map((row, index) => {
+            console.log(index);
+            const { date, data, ampm } = row;
 
-    //     } => {
+            const new_stuff = data.map((second_row, index) => {
+                const {
+                    general_status, site_code, 
+                    public_alert_symbol, internal_alert, event_id,
+                    release_id, release_time, data_ts, public_alert_level,
+                    comments
+                } = second_row;
 
-    //     });
-    // }
+                return (
+                    <Grid item xs={3}>
+                        <Typography color="textPrimary">
+                            {`${site_code.toUpperCase()} | ${public_alert_symbol} | ${general_status}`}
+                        </Typography>
+                    </Grid>
+                );
+            });
+
+            return (
+
+                // <Grid item xs={6} sm={4} key={`grid-${index + 1}`}>
+                //     <Card className={classes.card}>
+                //         <CardContent>
+            // <Typography className={classes.title} color="textSecondary" gutterBottom>
+            //     Shift Date
+            // </Typography>
+            // <Typography variant="h5" component="h2">
+            //     {date}
+            // </Typography>
+            // <Typography className={classes.pos} color="textSecondary">
+            //     {ampm}
+            // </Typography>
+            // {
+            //     new_stuff                            
+            // }
+                //         </CardContent>
+                //         {/* <CardActions>
+                //             <Button size="small">Learn More</Button>
+                //         </CardActions> */}
+                //     </Card>
+                // </Grid>    
+                <ExpansionPanel>
+                    <ExpansionPanelSummary
+                        expandIcon={<ExpandMoreIcon />}
+                        aria-controls="panel1a-content"
+                        id="panel1a-header"
+                    >
+                        <Typography className={classes.heading}>{date}</Typography>
+                    </ExpansionPanelSummary>
+                    <Divider />
+                    <ExpansionPanelDetails>
+                        <Grid container spacing={2}>
+                            <Grid item xs={6}>
+                                <Typography color="textSecondary" gutterBottom>
+                                    Shift Schedule: {ampm}
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                                <Typography color="textSecondary">
+                                    Partner: {"In the works..."}
+                                </Typography>
+                            </Grid>
+                            {
+                                new_stuff                            
+                            }
+                        </Grid>
+                    </ExpansionPanelDetails>
+                    <Divider />
+                    {/* <ExpansionPanelActions>
+                        <Button size="small">
+                            <SaveAlt className={classes.icons} /> {showTextLabel("Download Charts", width)}
+                        </Button>
+                        <Button size="small">
+                            <Refresh className={classes.icons} /> {showTextLabel("Refresh", width)}
+                        </Button>
+                        <Button size="small" color="primary">
+                            <Send className={classes.icons} /> {showTextLabel("Send", width)}
+                        </Button>
+                    </ExpansionPanelActions> */}
+
+                </ExpansionPanel>                         
+            );
+        });
+    }
+
+    console.log("new_data", new_data);
     
     return new_data;
 }
@@ -118,6 +217,8 @@ function MonitoringShiftChecker (props) {
     const [payload, setPayload] = useState({});
     const [shift_data, setShiftData] = useState("test");
 
+    const [expanded, setExpanded] = useState(false);
+
     useEffect(() => {
         if (select_by === "staff_name") {
             setPayload({
@@ -171,13 +272,20 @@ function MonitoringShiftChecker (props) {
         }        
     };
 
+    const handleChange = panel => (event, isExpanded) => {
+        console.log("event", event);
+        console.log("isExpanded", isExpanded);  
+        setExpanded(isExpanded ? panel : false);
+    };  
+
     const handleSubmit = () => {
         console.log(`SUBMITTED  ${select_by}`);
 
         console.log(payload);
 
         getShiftData(payload, ret => {
-            const processed_data = processShiftData(select_by, ret);
+            // const processed_data = processShiftData(classes, select_by, ret);
+            const processed_data = processShiftData(classes, select_by, ret);
             setShiftData(processed_data);
         });
 
@@ -295,9 +403,12 @@ function MonitoringShiftChecker (props) {
                     </Grid>
 
                     <Grid item sm={12} md={9}>
-                        <Paper className={classes.paper}>
+                        {/* <Grid container spacing={6}>
                             {shift_data}
-                        </Paper>
+                        </Grid> */}
+                        <div className={classes.root}>
+                            {shift_data}
+                        </div>
                     </Grid>
                     
                 </Grid>

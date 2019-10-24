@@ -1,12 +1,12 @@
 import json
-from connection import SOCKETIO, DB
 from datetime import datetime
 from flask import request
-from config import APP_CONFIG
+from connection import SOCKETIO, DB
 from src.experimental_scripts import public_alert_generator, candidate_alerts_generator
 from src.api.monitoring import wrap_get_ongoing_extended_overdue_events, insert_ewi
-from src.utils.monitoring import update_alert_status, get_event_count
+from src.utils.monitoring import update_alert_status
 from src.utils.issues_and_reminders import write_issue_reminder_to_db
+from src.api.issues_and_reminders import wrap_get_issue_reminder
 from src.utils.extra import var_checker, get_system_time, get_process_status_log
 
 
@@ -14,17 +14,20 @@ CLIENTS = []
 GENERATED_ALERTS = []
 CANDIDATE_ALERTS = []
 ALERTS_FROM_DB = []
+ISSUES_AND_REMINDERS = []
 
 
 def emit_data(keyword):
     global GENERATED_ALERTS
     global CANDIDATE_ALERTS
     global ALERTS_FROM_DB
+    global ISSUES_AND_REMINDERS
 
     data_list = {
         "receive_generated_alerts": GENERATED_ALERTS,
         "receive_candidate_alerts": CANDIDATE_ALERTS,
-        "receive_alerts_from_db": ALERTS_FROM_DB
+        "receive_alerts_from_db": ALERTS_FROM_DB,
+        "receive_issues_and_reminders": ISSUES_AND_REMINDERS
     }
 
     # var_checker("data_list", data_list, True)
@@ -35,6 +38,7 @@ def monitoring_background_task():
     global GENERATED_ALERTS
     global CANDIDATE_ALERTS
     global ALERTS_FROM_DB
+    global ISSUES_AND_REMINDERS
     while True:
         if not GENERATED_ALERTS:
             GENERATED_ALERTS = generate_alerts()
@@ -64,8 +68,13 @@ def monitoring_background_task():
             emit_data("receive_generated_alerts")
             emit_data("receive_alerts_from_db")
             emit_data("receive_candidate_alerts")
+        
 
-        SOCKETIO.sleep(120)  # Every 60 seconds in production stage
+        ISSUES_AND_REMINDERS = wrap_get_issue_reminder()
+        var_checker("ISSUES_AND_REMINDERS", ISSUES_AND_REMINDERS, True)
+        emit_data("receive_issues_and_reminders")
+
+        SOCKETIO.sleep(60)  # Every 60 seconds in production stage
 
 
 @SOCKETIO.on('connect', namespace='/monitoring')
@@ -78,6 +87,7 @@ def connect():
     emit_data("receive_generated_alerts")
     emit_data("receive_alerts_from_db")
     emit_data("receive_candidate_alerts")
+    emit_data("receive_issues_and_reminders")
 
 
 @SOCKETIO.on('disconnect', namespace='/monitoring')
@@ -89,10 +99,10 @@ def disconnect():
 # @SOCKETIO.on("get_generated_alerts", namespace="/monitoring")
 def generate_alerts(site_code=None):
     """
-    Standalone function to update alert gen by anything that 
+    Standalone function to update alert gen by anything that
     requires updating.
 
-    Currently used by the loop that reruns alert gen every 
+    Currently used by the loop that reruns alert gen every
     60 seconds (production code)
 
     Args:
@@ -117,9 +127,9 @@ def generate_alerts(site_code=None):
 def update_alert_gen(site_code=None):
     """
     May be used to update all alert_gen related data when
-    a change was made either by validating triggers or 
+    a change was made either by validating triggers or
     an insert was made.
-    Compared to the function above, this function handles all three 
+    Compared to the function above, this function handles all three
     important data for the dashboard. Mainly the ff:
         1. generated alerts - current trigger and alert status of sites
         2. candidate alerts - potential releases for sites
@@ -136,6 +146,7 @@ def update_alert_gen(site_code=None):
     global GENERATED_ALERTS
     global CANDIDATE_ALERTS
     global ALERTS_FROM_DB
+    global ISSUES_AND_REMINDERS
 
     site_gen_alert = generate_alerts(site_code)
 
@@ -151,11 +162,13 @@ def update_alert_gen(site_code=None):
     ALERTS_FROM_DB = wrap_get_ongoing_extended_overdue_events()
     CANDIDATE_ALERTS = candidate_alerts_generator.main()
     GENERATED_ALERTS = json.dumps(json_generated_alerts)
+    ISSUES_AND_REMINDERS = wrap_get_issue_reminder()
 
     print(f"{get_system_time()} | DONE! Emitting updated alert gen data...")
     emit_data("receive_generated_alerts")
     emit_data("receive_alerts_from_db")
     emit_data("receive_candidate_alerts")
+    emit_data("receive_issues_and_reminders")
 
     print(f"{get_system_time()} | DONE! EMITTED updated alert gen data.")
 

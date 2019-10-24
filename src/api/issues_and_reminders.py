@@ -2,16 +2,24 @@
 Narratives functions API File
 """
 
-from connection import DB
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask import Blueprint, jsonify, request
+from connection import DB
 # from src.models.monitoring import (IssuesAndRemindersSchema)
 from src.models.issues_and_reminders import (IssuesAndRemindersSchema)
 from src.utils.issues_and_reminders import (get_issues_and_reminders, write_issue_reminder_to_db)
-from src.utils.extra import var_checker, get_process_status_log
+from src.utils.extra import var_checker
 
 
 ISSUES_AND_REMINDERS_BLUEPRINT = Blueprint("issues_and_reminders_blueprint", __name__)
+
+
+@ISSUES_AND_REMINDERS_BLUEPRINT.route("/issues_and_reminders/get_issues_reminders", methods=["GET"])
+def wrap_get_issue_reminder():
+    issues = get_issues_and_reminders(include_expired=False)
+    data = IssuesAndRemindersSchema(many=True).dump(issues).data
+
+    return data
 
 
 @ISSUES_AND_REMINDERS_BLUEPRINT.route("/issues_and_reminders/write_issue_reminder_to_db", methods=["POST"])
