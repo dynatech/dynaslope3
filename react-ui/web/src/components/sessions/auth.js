@@ -7,7 +7,8 @@ export function isLoggedIn (callback) {
     if (data !== null) {
         const { tokens: { access_token, refresh_token } } = data;
         getSession(access_token, response => {
-            const { message, is_logged_in } = response;
+            // const { message, is_logged_in } = response;
+            const { is_logged_in } = response;
 
             if (is_logged_in) {
                 rS(refresh_token, res => {

@@ -133,7 +133,6 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
             event_id (Integer)
     """
     print(get_process_status_log("get_issues_and_reminders", "start"))
-    var_checker("include_expired", include_expired, True)
 
     iar = IssuesAndReminders
     irp = IssuesRemindersPostings

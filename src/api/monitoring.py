@@ -274,7 +274,9 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     timestamp = request_ts
 
                     od_details["narrative_id"] = write_narratives_to_db(
-                        site_id, request_ts, narrative, event_id)
+                        site_id=site_id, timestamp=request_ts, narrative=narrative, 
+                        type_id=2, user_id=publisher_details["publisher_ct_id"], event_id=event_id
+                    )
 
                     od_id = write_monitoring_on_demand_to_db(od_details)
                     eq_id = None
@@ -827,7 +829,6 @@ def get_event_timeline_data(event_id):
     me_schema = MonitoringEventsSchema()
     event_collection_obj = get_monitoring_events(event_id=event_id)
     event_collection_data = me_schema.dump(event_collection_obj).data
-    var_checker("event_collection_data", event_collection_data, True)
 
     # CORE VALUES
     # event_details: this contains the values needed mostly for the UI
@@ -880,12 +881,9 @@ def get_event_timeline_data(event_id):
         # Temporary Build - not using Schema for the relationship with events and eos_analysis
         # have not been set up as of Oct 1 2019. Will followup tomorrow.
         eos_analysis_list = get_eos_data_analysis(event_id=event_id)
-        var_checker("eos_analysis_list", eos_analysis_list, True)
         eos_analysis_data_list = EndOfShiftAnalysisSchema(many=True).dump(eos_analysis_list).data
         if eos_analysis_data_list:
-            var_checker("eos_analysis_data_list", eos_analysis_data_list, True)
             for eos_analysis in eos_analysis_data_list:
-                var_checker("eos_analysis", eos_analysis, True)
                 shift_end = datetime.strptime(eos_analysis["shift_start"], "%Y-%m-%d %H:%M:%S") + timedelta(hours=13)
                 shift_end_ts = datetime.strftime(shift_end, "%Y-%m-%d %H:%M:%S")
                 timeline_entries.append({

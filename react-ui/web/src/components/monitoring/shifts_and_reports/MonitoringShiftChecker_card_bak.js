@@ -12,8 +12,23 @@ import { Route, Switch, Link } from "react-router-dom";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
 import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
 import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
-// import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
+import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+
+// EXP
+import clsx from "clsx";
+import Card from "@material-ui/core/Card";
+import CardHeader from "@material-ui/core/CardHeader";
+import CardMedia from "@material-ui/core/CardMedia";
+import CardContent from "@material-ui/core/CardContent";
+import CardActions from "@material-ui/core/CardActions";
+import Collapse from "@material-ui/core/Collapse";
+import Avatar from "@material-ui/core/Avatar";
+import IconButton from "@material-ui/core/IconButton";
+import { red } from "@material-ui/core/colors";
+import FavoriteIcon from "@material-ui/icons/Favorite";
+import ShareIcon from "@material-ui/icons/Share";
+import MoreVertIcon from "@material-ui/icons/MoreVert";
 
 // User Defined Imports
 import GeneralStyles from "../../../GeneralStyles";
@@ -74,7 +89,29 @@ const styles = theme => {
         },
         valueFont: {
             color: "black"
-        }
+        },
+
+
+        // card: {
+        //     maxWidth: 345,
+        // },
+        media: {
+            height: 0,
+            paddingTop: "56.25%", // 16:9
+        },
+        expand: {
+            transform: "rotate(0deg)",
+            marginLeft: "auto",
+            transition: theme.transitions.create("transform", {
+                duration: theme.transitions.duration.shortest,
+            }),
+        },
+        expandOpen: {
+            transform: "rotate(180deg)",
+        },
+        avatar: {
+            backgroundColor: red[500],
+        },
     };
 };
 
@@ -90,18 +127,21 @@ function prepareEventTimelineLink (classes, event_id, site_code) {
 }
 
 
-function processShiftData (classes, select_by, raw_data) {
+function processShiftData (classes, select_by, raw_data, handleExpandClick, expanded) {
     let new_data = [];
 
     if (select_by === "staff_name") {
         new_data = raw_data.map((row, index1) => {
+            console.log("row", row);
             const { date, data, ampm, mt, ct } = row;
 
             const alert_summary = `${data.length} sites were monitored.`;
             const new_stuff = data.map((second_row, index2) => {
                 const {
                     general_status, site_code, 
-                    public_alert_symbol, event_id
+                    public_alert_symbol, internal_alert, event_id,
+                    release_id, release_time, data_ts, public_alert_level,
+                    comments
                 } = second_row;
 
                 const event_link = prepareEventTimelineLink(classes, event_id, site_code);
@@ -191,7 +231,8 @@ function processShiftData (classes, select_by, raw_data) {
         });
     } else if (select_by === "shift_date") {
         new_data = raw_data.map((row, index1) => {
-            const { public_alert_symbol, data } = row;
+            console.log("row", row);
+            const { public_alert_symbol, public_alert_level, data } = row;
 
             const alert_summary = `${data.length} sites were under ${public_alert_symbol}.`;
             const new_stuff = data.map((second_row, index2) => {
@@ -220,27 +261,23 @@ function processShiftData (classes, select_by, raw_data) {
                         aria-controls="panel1a-content"
                         id="panel1a-header"
                     >
-                        <Typography color="textSecondary">
-                            Alert Level: <span className={classes.valueFont}>{public_alert_symbol}</span>
-                        </Typography>
-                        &nbsp;
-                        &nbsp;
-                        <Typography color="textSecondary">
-                            Alert Summary: <span className={classes.valueFont}>{alert_summary}</span>
-                        </Typography>
+                        <Avatar aria-label="recipe" className={classes.avatar}>
+                            {public_alert_symbol}
+                        </Avatar>
                     </ExpansionPanelSummary>
                     <Divider />
                     <ExpansionPanelDetails>
+                        Alert Summary: <span className={classes.valueFont}>{alert_summary}</span>
                         <Grid container spacing={2}>
                             {
                                 new_stuff                            
                             }
                         </Grid>
                     </ExpansionPanelDetails>
-                    {/* <div style={{ paddingTop: 20, paddingBottom: 20 }}>
+                    <div style={{ paddingTop: 20, paddingBottom: 20 }}>
                         <Divider />
                     </div>
-                    <ExpansionPanelActions>
+                    {/* <ExpansionPanelActions>
                         <Button size="small">
                             <SaveAlt className={classes.icons} /> {showTextLabel("Download Charts", width)}
                         </Button>
@@ -251,8 +288,52 @@ function processShiftData (classes, select_by, raw_data) {
                             <Send className={classes.icons} /> {showTextLabel("Send", width)}
                         </Button>
                     </ExpansionPanelActions> */}
+                </ExpansionPanel>
 
-                </ExpansionPanel>                         
+            // <Grid item xs={12} sm={6} lg={4} key={`card-${ index1 + 1 }`}>
+            //     <Card className={classes.card}>
+            //         <CardHeader
+            //             avatar={
+            //                 <Avatar aria-label="recipe" className={classes.avatar}>
+            //                     {public_alert_symbol}
+            //                 </Avatar>
+            //             }
+            //             title={`Alert ${public_alert_level}`}
+            //             subheader={alert_summary}
+            //         />
+            //         {/* <CardMedia
+            //             className={classes.media}
+            //             image="/static/images/cards/paella.jpg"
+            //             title="Paella dish"
+            //         /> */}
+            //         {/* <CardContent>
+            //             <Typography variant="body2" color="textSecondary" component="p">
+            //             This impressive paella is a perfect party dish and a fun meal to cook together with your
+            //             guests. Add 1 cup of frozen peas along with the mussels, if you like.
+            //             </Typography>
+            //         </CardContent> */}
+            //         <CardActions disableSpacing>
+            //             <IconButton
+            //                 className={clsx(classes.expand, {
+            //                     [classes.expandOpen]: expanded,
+            //                 })}
+            //                 onClick={handleExpandClick}
+            //                 aria-expanded={expanded}
+            //                 aria-label="show more"
+            //             >
+            //                 <ExpandMoreIcon />
+            //             </IconButton>
+            //         </CardActions>
+            //         <Collapse in={expanded} timeout="auto" unmountOnExit>
+            //             <CardContent>
+            //                 {
+            //                     new_stuff                            
+            //                 }
+            //             </CardContent>
+            //         </Collapse>
+            //     </Card>
+            // </Grid>
+
             );
         });
     }
@@ -317,6 +398,7 @@ function prepareDataHeader (classes, ui_data, handlers) {
     const ui_ts_start = moment(ts_start).format("MMMM Mo, YYYY");
     const ui_ts_end = moment(ts_end).format("MMMM Mo, YYYY");
     if (select_by === "shift_date") {
+        console.log(classes, ui_data);
         const temp = ui_data[0];
         const {
             ampm, ct, mt
@@ -370,7 +452,7 @@ function prepareDataHeader (classes, ui_data, handlers) {
 
 function MonitoringShiftChecker (props) {
     const { classes, width, location,
-        match: url
+        match: path, url
     } = props;
     const current_user = getCurrentUser();
 
@@ -379,17 +461,16 @@ function MonitoringShiftChecker (props) {
     const [shift_date, setShiftDate] = useState(null);
     const [shift_sched, setShiftSched] = useState("");
     const [select_by, setSelectBy] = useState("staff_name");
-    // const [user_id, setUserID] = useState((current_user.user_id));
-    const [user_id, setUserID] = useState("");
+    const [user_id, setUserID] = useState(current_user.user_id);
 
     const [payload, setPayload] = useState({});
     const [data_header, setDataHeader] = useState("");
     const [shift_data, setShiftData] = useState("Please enter filters.");
+    const [expanded, setExpanded] = useState(false);
+ 
 
     useEffect(() => {
         if (select_by === "staff_name") {
-            setDataHeader("");
-            setShiftData("Please enter filters.");
             setPayload({
                 ts_start: moment(ts_start).format("YYYY-MM-DD HH:mm:ss"), 
                 ts_end: moment(ts_end).format("YYYY-MM-DD HH:mm:ss"), 
@@ -397,8 +478,6 @@ function MonitoringShiftChecker (props) {
             });
             
         } else if (select_by === "shift_date") {
-            setDataHeader("");
-            setShiftData("Please enter filters.");
             const { shift_start, shift_end } = get_shift_timestamps(shift_date, shift_sched);
             setPayload({
                 ts_start: shift_start,
@@ -442,12 +521,18 @@ function MonitoringShiftChecker (props) {
                 break;
         }        
     };
+  
+    const handleExpandClick = () => {
+        console.log("clicked", !expanded);
+        setExpanded(!expanded);
+    };
 
     const handleSubmit = () => {
+        console.log(payload);
         getShiftData(payload, ret => {
             const handler = { select_by, setDataHeader, payload };
             prepareDataHeader(classes, ret, handler);
-            const processed_data = processShiftData(classes, select_by, ret);
+            const processed_data = processShiftData(classes, select_by, ret, handleExpandClick, expanded);
             setShiftData((
                 <Typography style={{ fontStyle: "italic" }}>
                 No shift data
@@ -540,6 +625,8 @@ function MonitoringShiftChecker (props) {
                                                         { label: "Start Timestamp", value: ts_start, id: "ts_start" },
                                                         { label: "End Timestamp", value: ts_end, id: "ts_end" },
                                                     ].map(row => {
+                                                        const { id } = row;
+
                                                         return (
                                                             <div className={classes.form_input}>
                                                                 {createDateTime(row, handleDateTime)}
@@ -571,8 +658,19 @@ function MonitoringShiftChecker (props) {
                                         {data_header}
                                         <div style={{ paddingTop: 20, paddingBottom: 20 }}>
                                             <Divider />
-                                        </div>                                        
-                                        {shift_data}
+                                        </div>
+                                        {
+                                            select_by === "staff_name" && shift_data
+                                        }
+                                        {
+                                            select_by === "shift_date" && (
+                                                <Grid container spacing="6">
+                                                    {
+                                                        shift_data
+                                                    }
+                                                </Grid>
+                                            )
+                                        }
                                     </div>
                                 </Grid>
                     
@@ -581,7 +679,7 @@ function MonitoringShiftChecker (props) {
                     }/>
 
                     <Route path={`${url}/:event_id`} render={
-                        new_props => (
+                        props => (
                             <EventTimeline
                                 {...props}
                                 width={width}
@@ -596,5 +694,3 @@ function MonitoringShiftChecker (props) {
 }
 
 export default compose(withWidth(), withStyles(styles))(MonitoringShiftChecker);
-
-

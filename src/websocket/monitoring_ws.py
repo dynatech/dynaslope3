@@ -71,7 +71,6 @@ def monitoring_background_task():
         
 
         ISSUES_AND_REMINDERS = wrap_get_issue_reminder()
-        var_checker("ISSUES_AND_REMINDERS", ISSUES_AND_REMINDERS, True)
         emit_data("receive_issues_and_reminders")
 
         SOCKETIO.sleep(60)  # Every 60 seconds in production stage

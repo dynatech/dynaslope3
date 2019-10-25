@@ -10,7 +10,6 @@ import IssuesAndReminders from "./components/monitoring/issues_and_reminders/Con
 import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_site/Container";
 
 import ChatterboxContainer from "./components/communication/chatterbox/Container";
-import TestComponent from "./components/test/TestComponent";
 import ContactsContainer from "./components/communication/contacts/Container";
 
 

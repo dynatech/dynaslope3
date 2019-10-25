@@ -32,6 +32,23 @@ EXTENDED_MONITORING_DAYS = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "EXTENDED_MONITORING_DAYS"}, retrieve_attr="var_value")
 
 
+def get_release_publisher_names(release):
+    """
+    Return an object of full names for MT and CT
+    """
+    publishers = release.release_publishers.all()
+    publisher_names = {
+        "mt": "",
+        "ct": ""
+    }
+
+    for publisher in publishers:
+        user = publisher.user_details
+        publisher_names[publisher.role] = f"{user.first_name} {user.last_name}"
+
+    return publisher_names
+
+
 def get_max_possible_alert_level():
     pas_map = retrieve_data_from_memcache("public_alert_symbols")
     max_row = next(
@@ -534,9 +551,10 @@ def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_i
         return_data = base.filter(
             mr.release_id == release_id).first()
     elif ts_start and ts_end:
-        base = base.order_by(DB.desc(mr.release_time)).join(mea).filter(DB.and_(
+        base = base.order_by(DB.desc(mr.data_ts)).order_by(DB.desc(mr.release_time)).join(mea).filter(DB.and_(
             ts_start < mr.data_ts, mr.data_ts < ts_end
         )).filter(me.status == 2)
+
         if event_id:
             base = base.join(mea).join(me).filter(me.event_id)
 
@@ -546,7 +564,7 @@ def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_i
 
         if exclude_routine:
             base = base.join(me).filter(me.status == 2)
-
+            
         return_data = base.all()
     else:
         return_data = base.order_by(
