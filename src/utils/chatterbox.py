@@ -23,9 +23,13 @@ from src.models.users import (
     Users, UsersRelationship, UserOrganization,
     UserMobile, UserMobileSchema, UserTeamMembers
 )
-from src.models.mobile_numbers import UserMobiles, UserMobilesSchema
+from src.models.mobile_numbers import (
+    UserMobiles, UserMobilesSchema,
+    MobileNumbers, MobileNumbersSchema
+)
 
 from datetime import datetime, timedelta
+from src.utils.extra import var_checker
 
 
 def get_quick_inbox():
@@ -122,17 +126,12 @@ def get_user_mobile_details(mobile_id):
     """
     """
 
-    mobile_details = DB.session.query(
-        UserMobile).options(joinedload(
-            UserMobile.user, innerjoin=True).joinedload(
-            UsersRelationship.organizations).joinedload(UserOrganization.site, innerjoin=True), raiseload("*")).filter_by(mobile_id=mobile_id).first()
-
-    # mobile_details = UserMobiles.query.options(
-    #     joinedload("user").subqueryload("organizations").joinedload("site").raiseload("*")).filter_by(mobile_id=mobile_id).first()
-
-    mobile_schema = UserMobileSchema(
-        exclude=["user.user_hierarchy", "user.teams", "user.landline_numbers", "user.emails"]).dump(mobile_details).data
-    # mobile_schema = UserMobilesSchema().dump(mobile_details).data
+    user = joinedload("user_details").joinedload(
+        "user", innerjoin=True)
+    mobile_details = MobileNumbers.query.options(user.subqueryload("organizations").joinedload(
+        "site", innerjoin=True).raiseload("*"), user.subqueryload("teams"), raiseload("*")).filter_by(mobile_id=mobile_id).first()
+    mobile_schema = MobileNumbersSchema(exclude=[
+                                        "user_details.user.landline_numbers", "user_details.user.emails"]).dump(mobile_details).data
 
     return mobile_schema
 

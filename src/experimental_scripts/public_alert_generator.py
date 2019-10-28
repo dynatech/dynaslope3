@@ -6,11 +6,10 @@ For use of Dynaslope Early Warning System
 August 2019
 """
 
-# from run import APP
 import pprint
 import os
 import json
-from connection import DB, MEMORY_CLIENT
+from connection import DB, MEMORY_CLIENT, create_app
 from config import APP_CONFIG
 from sqlalchemy import and_, or_
 from datetime import datetime, timedelta, time
@@ -1378,6 +1377,8 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
 
 if __name__ == "__main__":
+    config_name = os.getenv("FLASK_CONFIG")
+    app = create_app(config_name, skip_memcache=False, skip_websocket=False)
     # main()
 
     # TEST MAIN

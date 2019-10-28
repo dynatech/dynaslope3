@@ -59,7 +59,7 @@ function UpdateDeleteModal (props) {
         });
     };
 
-    const snackBarActionFn = (key) => {
+    const snackBarActionFn = key => {
         return (<Button
             color="primary"
             onClick={() => { closeSnackbar(key); }}

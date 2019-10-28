@@ -14,6 +14,8 @@ import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
 import Typography from "@material-ui/core/Typography";
 import { makeStyles } from "@material-ui/core/styles";
 import { login } from "./auth";
+import PhivolcsDynaslopeLogo from "../../images/phivolcs-dynaslope-logo.png";
+import LoginBgImg from "../../images/login-bg-img.jpg";
 
 function Copyright () {
     return (
@@ -33,20 +35,35 @@ const useStyles = makeStyles(theme => ({
         height: "100vh",
     },
     image: {
-        backgroundImage: "url(https://source.unsplash.com/random)",
-        backgroundRepeat: "no-repeat",
+        backgroundImage: `url(${LoginBgImg})`,
+        // backgroundRepeat: "no-repeat",
         backgroundSize: "cover",
         backgroundPosition: "center",
     },
+    paperContainer: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center"
+    },
     paper: {
-        margin: theme.spacing(8, 4),
+        margin: theme.spacing(0, 4),
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
+        paddingBottom: theme.spacing(5),
+        [theme.breakpoints.up("lg")]: {
+            paddingBottom: theme.spacing(9)
+        }
     },
-    avatar: {
+    phivolcsDynaslopeLogo: {
         margin: theme.spacing(1),
-        backgroundColor: theme.palette.secondary.main,
+        height: 200,
+        [theme.breakpoints.between("sm", "md")]: {
+            height: 164
+        },
+        [theme.breakpoints.only("xs")]: {
+            height: 140
+        },
     },
     form: {
         width: "100%", // Fix IE 11 issue.
@@ -54,6 +71,21 @@ const useStyles = makeStyles(theme => ({
     },
     submit: {
         margin: theme.spacing(3, 0, 2),
+    },
+    title: {
+        margin: theme.spacing(2, 0),
+        [theme.breakpoints.down("sm")]: {
+            fontSize: "1.25rem"
+        },
+        [theme.breakpoints.only("xs")]: {
+            margin: theme.spacing(0, 0)
+        }
+    },
+    passwordField: {
+        margin: theme.spacing(0, 0, 3, 0),
+        [theme.breakpoints.only("xs")]: {
+            margin: theme.spacing(0, 0, 1, 0)
+        },
     }
 }));
 
@@ -70,7 +102,7 @@ export default function LoginComponent (props) {
     });
     const [error_message, setErrorMessage] = useState("");
 
-    const { history, setIsLogged } = props;
+    const { history, onLogin } = props;
     const onLoginClick = () => {
         Object.entries(credentials).forEach(row => {
             const [key, value] = row;
@@ -81,7 +113,7 @@ export default function LoginComponent (props) {
             setErrorMessage("Fill up all required fields");
         } else {
             login(credentials, () => {
-                setIsLogged(true);
+                onLogin();
                 history.push("/");
             }, message => {
                 setErrorMessage(message);
@@ -118,13 +150,27 @@ export default function LoginComponent (props) {
         <Grid container component="main" className={classes.root}>
             <CssBaseline />
             <Grid item xs={false} sm={4} md={7} className={classes.image} />
-            <Grid item xs={12} sm={8} md={5} component={Paper} elevation={6} square>
+            <Grid 
+                item 
+                xs={12} sm={8} md={5} 
+                component={Paper} 
+                elevation={6} 
+                square
+                className={classes.paperContainer}
+            >
                 <div className={classes.paper}>
-                    <Avatar className={classes.avatar}>
-                        <LockOutlinedIcon />
-                    </Avatar>
-                    <Typography component="h1" variant="h5">
-                            Sign in
+                    <img
+                        src={PhivolcsDynaslopeLogo}
+                        alt="PHIVOLCS-Dynaslope Logo"
+                        className={classes.phivolcsDynaslopeLogo}
+                    />
+                    <Typography 
+                        component="h1"
+                        variant="h5"
+                        align="center"
+                        className={classes.title}
+                    >
+                        <strong>MONITORING AND INFORMATION SYSTEM</strong>
                     </Typography>
                     <div className={classes.form}>
                         <TextField
@@ -157,6 +203,7 @@ export default function LoginComponent (props) {
                             onKeyPress={handleEnterPress}
                             onFocus={handleFocus("password")}
                             error={errors.password}
+                            className={classes.passwordField}
                         />
                         {
                             error_message !== "" && (

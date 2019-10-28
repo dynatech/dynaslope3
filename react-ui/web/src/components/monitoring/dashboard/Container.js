@@ -24,8 +24,7 @@ const styles = theme => {
     return {
         ...gen_style,
         tabBar: {
-            ...gen_style.pageContentMargin,
-            margin: 0
+            ...gen_style.pageContentMargin
         },
         tabBarContent: {
             marginTop: 30
@@ -110,39 +109,40 @@ function Container (props) {
                 />
             </div>
 
-            <Grid container spacing={2}>
-                <Grid item xs={12} md={9}>
-                    <div className={classes.tabBar}>
+            <div className={classes.tabBar}>
+                <Grid container spacing={3}>
+                    <Grid item xs={12} md={3}>
+                        <IssuesAndRemindersList />
+                    </Grid>
+                    
+                    <Grid item md={9}>
                         <TabBar
                             chosenTab={chosenTab}
                             onSelect={handleTabSelected}
                             tabsArray={tabs_array}
                         />
-                    </div>
 
-                    <div className={classes.tabBarContent} style={{
-                        marginLeft: 100,
-                        marginRight: 20
-                    }}>
-                        {chosenTab === 0 && (
-                            <MonitoringTables
-                                width={width}
-                                candidateAlertsData={candidateAlertsData}
-                                alertsFromDbData={alertsFromDbData}
-                                releaseFormOpenHandler={handleBoolean("is_open_release_modal", true)}
-                                chosenCandidateHandler={setChosenCandidateAlert}
-                            />
-                        )}
-                        {chosenTab === 1 && <GeneratedAlerts generatedAlertsData={generatedAlerts} />}
-                    </div>
+                        <div className={classes.tabBarContent}>
+                            {chosenTab === 0 && (
+                                <MonitoringTables
+                                    width={width}
+                                    candidateAlertsData={candidateAlertsData}
+                                    alertsFromDbData={alertsFromDbData}
+                                    releaseFormOpenHandler={handleBoolean("is_open_release_modal", true)}
+                                    chosenCandidateHandler={setChosenCandidateAlert}
+                                />
+                            )}
+                            {chosenTab === 1 && <GeneratedAlerts generatedAlertsData={generatedAlerts} />}
+                        </div>
+                    </Grid>
                 </Grid>
-                <Hidden xsDown>
+            </div>
+
+            {/* <Hidden xsDown>
                     <Grid item xs={12} md={3}>
                         <IssuesAndRemindersList style={{ marginRight: 100 }} />
                     </Grid>
-                </Hidden>
-
-            </Grid>
+                </Hidden> */}
 
 
             {!is_desktop && <CircularAddButton clickHandler={handleBoolean("is_open_release_modal", true)} />}

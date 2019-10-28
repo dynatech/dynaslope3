@@ -32,9 +32,9 @@
     "react-window": "^1.8.5",
     "recompose": "^0.30.0",
     "socket.io-client": "^2.2.0",
+    "text-mask-addons": "^3.8.0",
     "verify": "^0.1.2",
-    "vertical-timeline-component-for-react": "^1.0.6",
-    "text-mask-addons": "^3.8.0"
+    "vertical-timeline-component-for-react": "^1.0.6"
   },
   "devDependencies": {
     "eslint": "^6.3.0",

@@ -62,7 +62,7 @@ def check_session():
 
 @LOGIN_BLUEPRINT.route("/refresh_session", methods=["GET"])
 @jwt_refresh_token_required
-def refresh_token():
+def refresh_access_token():
     current_user = get_jwt_identity()
     return jsonify({
         "access_token": create_access_token(identity=current_user)

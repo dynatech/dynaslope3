@@ -44,8 +44,10 @@ class UsersRelationship(Users):
     __bind_key__ = "commons_db"
     __table_args__ = {"schema": "commons_db"}
 
-    mobile_numbers = DB.relationship(
-        "UserMobile", backref=DB.backref("user", lazy="joined", innerjoin=True), order_by="UserMobile.priority", lazy="subquery")
+    # mobile_numbers = DB.relationship(
+    #     "UserMobile", backref=DB.backref("user", lazy="joined", innerjoin=True), order_by="UserMobile.priority", lazy="subquery")
+    # mobile_numbers = DB.relationship("UserMobiles", backref=DB.backref("user", lazy="joined", innerjoin=True),
+    #                                  order_by="UserMobile.priority", lazy="subquery")
 
     organizations = DB.relationship(
         "UserOrganization", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
@@ -284,7 +286,7 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     #     "UserHierarchySchema", many=True, exclude=("user",))
 
     teams = fields.Nested(
-        "UserTeamMembersSchema", many=True, exclude=("user",))
+        "UserTeamsSchema", many=True, exclude=("user",))
 
     landline_numbers = fields.Nested(
         "UserLandlinesSchema", many=True, exclude=("user",))
@@ -295,7 +297,7 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = UsersRelationship
-        exclude = ("account",)
+        exclude = ["account"]
 
 
 class UserMobileSchema(MARSHMALLOW.ModelSchema):
@@ -363,6 +365,8 @@ class UserTeamsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
     """
+    team_members = fields.Nested(
+        "UserTeamMembersSchema", many=True, exclude=["team"])
 
     class Meta:
         """Saves table class structure as schema model"""

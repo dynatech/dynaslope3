@@ -128,8 +128,11 @@ def create_monitoring_bulletin(release_id):
     Creates monitoring bulletin
     """
     release = get_monitoring_releases(release_id=release_id)
-    event_alert = release.event_alert
-    public_alert = event_alert.public_alert
+    # public_alert_level = event_alert.event.public_alert_symbol.alert_level
+
+    schema = MonitoringReleasesSchema(
+        exclude=["event_alert.event.eos_analysis"]).dump(release).data
+    return schema
 
     alert_description = get_alert_description(
         public_alert.alert_level, release.trigger_list)
