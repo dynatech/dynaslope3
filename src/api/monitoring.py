@@ -50,7 +50,7 @@ from src.utils.extra import (
     var_checker, retrieve_data_from_memcache,
     get_process_status_log, get_system_time
 )
-
+from src.utils.bulletin import create_monitoring_bulletin
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 

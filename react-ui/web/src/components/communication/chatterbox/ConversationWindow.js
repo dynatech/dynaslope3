@@ -13,11 +13,12 @@ import ChatThread from "./ChatThread";
 import GeneralStyles from "../../../GeneralStyles";
 import MessageInputTextbox from "./MessageInputTextbox";
 import GenericAvatar from "../../../images/generic-user-icon.jpg";
-import { getUserOrganizations, simNumFormatter } from "../../../UtilityFunctions";
+import { simNumFormatter } from "../../../UtilityFunctions";
 import { 
     receiveMobileIDRoomUpdate, removeReceiveMobileIDRoomUpdateListener,
     sendMessageToDB
 } from "../../../websocket/communications_ws";
+import { mobileUserFormatter } from "./MessageList";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
@@ -107,11 +108,17 @@ const ChatLoader = props => {
 };
   
 function recipientFormatter (mobile_details, classes) {
-    const { user, sim_num } = mobile_details;
-    const { first_name, last_name } = user;
-    const sender = `${first_name} ${last_name}`;
-    const orgs = getUserOrganizations(user);
+    const { user_details, sim_num } = mobile_details;
     const sim_number = simNumFormatter(sim_num);
+    let sender = sim_number;
+    let orgs = [];
+
+    const is_unknown = user_details === null;
+    if (!is_unknown) {
+        const { sender: s, orgs: o } = mobileUserFormatter(user_details);
+        sender = s;
+        orgs = o;
+    }
 
     return (
         <div style={{ display: "flex", alignItems: "center" }}>
@@ -145,12 +152,16 @@ function recipientFormatter (mobile_details, classes) {
                         })
                     }
                 </Grid>
-                <Typography 
-                    variant="subtitle2" 
-                    color="textSecondary"
-                >
-                    {sim_number}
-                </Typography>
+                {
+                    !is_unknown && (
+                        <Typography 
+                            variant="subtitle2" 
+                            color="textSecondary"
+                        >
+                            {sim_number}
+                        </Typography>
+                    )
+                }
             </div>
         </div>
     );
@@ -214,13 +225,13 @@ function ConversationWindow (props) {
     }
 
     const on_send_message_fn = () => {
-        const { mobile_id, gsm_id } = mobile_details;
+        const { mobile_id: m_id, gsm_id } = mobile_details;
 
         const data = {
             sms_msg: composed_message,
             recipient_list: [
                 {
-                    mobile_id,
+                    mobile_id: m_id,
                     gsm_id
                 }
             ]

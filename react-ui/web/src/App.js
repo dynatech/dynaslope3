@@ -11,6 +11,7 @@ import { Header, Footer, Navigation } from "./components/layouts";
 import { isLoggedIn, refreshSession } from "./components/sessions/auth";
 import RoutesCollection from "./Routes";
 import { access_refresh_interval } from "./config";
+import BulletinTemplate from "./components/widgets/bulletin/BulletinTemplate";
 
 const styles = theme => ({
     app: {
@@ -34,24 +35,30 @@ const styles = theme => ({
 
 function App (props) {
     const { classes } = props;
-    const [drawer, setDrawer] = useState(false);
 
+    const [drawer, setDrawer] = useState(false);
     const toggleDrawer = bool => () => {
         setDrawer(bool);
     };
 
     const [is_logged, setIsLogged] = useState(null);
     const interval_ref = useRef(false);
-    
     useEffect(() => {
         isLoggedIn(bool => {
             setIsLogged(bool);
-            clearInterval(interval_ref.current);
-            interval_ref.current = setInterval(refreshSession, access_refresh_interval);
+            
+            if (bool) {
+                interval_ref.current = setInterval(refreshSession, access_refresh_interval);
+            }
         });
 
         return () => clearInterval(interval_ref.current);
     }, []);
+
+    const onLogin = () => {
+        setIsLogged(true);
+        interval_ref.current = setInterval(refreshSession, access_refresh_interval);
+    };
 
     const onLogout = () => {
         setIsLogged(false);
@@ -68,13 +75,14 @@ function App (props) {
                             <div>Loading...</div>
                         ) : (
                             !is_logged ? (
-                                <LoginComponent {...r_props} setIsLogged={setIsLogged} />
+                                <LoginComponent {...r_props} onLogin={onLogin} />
                             ) : (
                                 <Redirect to="/" />
                             )
                         )
                     );
                 }} />
+                <Route exact path="/bulletin" component={BulletinTemplate} />
                 <Route path="/" render={r_props => {
                     return (
                     // eslint-disable-next-line no-nested-ternary
@@ -109,10 +117,6 @@ function App (props) {
                 }} />
             </Switch>
         </BrowserRouter>
-
-    // <BrowserRouter>
-    //     <RC2 />
-    // </BrowserRouter>
     );
 }
 

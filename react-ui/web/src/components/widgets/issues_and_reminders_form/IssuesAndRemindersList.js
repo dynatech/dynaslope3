@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { Fragment, useState, useEffect } from "react";
 import { withStyles } from "@material-ui/core/styles";
-import moment from "moment";
+
 import {
-    withMobileDialog, Typography, GridList, 
+    Typography, GridList, 
     GridListTile, GridListTileBar, 
-    IconButton, Button, Grid
+    IconButton,
+    Tooltip
 } from "@material-ui/core";
 import InfoIcon from "@material-ui/icons/Info";
-import { compose } from "recompose";
 
 import IssuesAndReminderModal from "./IssuesAndReminderModal";
 import { receiveIssuesAndReminders } from "../../../websocket/monitoring_ws";
@@ -24,74 +24,84 @@ const styles = theme => ({
             width: "250px"
         }
     },
-    root: {
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "space-around",
-        overflow: "hidden",
-        backgroundColor: theme.palette.background.paper,
-    },
     gridList: {
-        width: "auto",
-        height: 500,
-        color: "rgba(1, 1, 1, 1)",
+        height: "75vh",
+        margin: "0 !important",
+        boxShadow: "0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12)",
+        "&::-webkit-scrollbar": {
+            width: 5
+        },
+        "&::-webkit-scrollbar-track": {
+            boxShadow: "inset 0 0 5px grey"
+        },
+        "&::-webkit-scrollbar-thumb": {
+            background: "rgba(127, 127, 127, 0.7)"
+        },
+        position: "sticky",
+        top: 148,
+        padding: 8
     },
     icon: {
         color: "rgba(255, 255, 255, 0.54)",
     },
-    preview_text: {
+    previewText: {
         padding: "12px",
         fontSize: "14px"
     },
-    tile_project_tile: {
-        backgroundColor: "#8EFF8C"
+    tile: {
+        border: "0.5px solid #b2b2b2",
+        padding: "0 !important",
+        marginBottom: 6,
+        "&:last-of-type": {
+            marginBottom: 0
+        }
     },
-    tile_site_tile: {
-        backgroundColor: "#E66060"
-    },
-    tile_event_tile: {
-        backgroundColor: "#FFCB57"
-    }    
+    tileBar: {
+        background: "#7f7f7f"
+    }
 });
-
 
 function prepareTileData (classes, processed_i_n_r, handleEdit) {
     return processed_i_n_r.map((tile, index) => {
-        const { site_events_list, site_list, detail, issue_reporter, title } = tile;
-        let item_title = "";
-        let tile_class;
-        if (site_list.length === 0) {
-            item_title = "Project-Wide";
-            tile_class = classes.tile_project_tile;
-        } else {
-            item_title = site_list.join(" | ");
-            tile_class = classes.tile_event_tile;
-            if (site_events_list.length > 0) tile_class = classes.tile_site_tile;
+        const { 
+            site_list, detail, 
+            issue_reporter, title 
+        } = tile;
+        
+        let item_title = "GENERAL";
+        if (site_list.length !== 0) {
+            item_title = site_list.join(", ");
         }
-
+        
         return (
-            <GridListTile key={`test ${index + 1}`} cols={2} className={tile_class}>
-                <Typography
-                    className={classes.preview_text}
-                >{detail}</Typography>
+            <GridListTile
+                key={`test ${index + 1}`}
+                cols={2}
+                className={classes.tile}
+            >
+                <Typography className={classes.previewText}>
+                    {detail}
+                </Typography>
                 <GridListTileBar
+                    className={classes.tileBar}
                     title={item_title}
                     subtitle={`${issue_reporter.first_name} ${issue_reporter.last_name}`}
                     actionIcon={
-                        <IconButton 
-                            aria-label={`info about ${title}`}
-                            className={classes.icon}
-                            onClick={handleEdit(tile)}
-                        >
-                            <InfoIcon />
-                        </IconButton>
+                        <Tooltip title="Expand card">
+                            <IconButton 
+                                aria-label="Expand"
+                                className={classes.icon}
+                                onClick={handleEdit(tile)}
+                            >
+                                <InfoIcon />
+                            </IconButton>
+                        </Tooltip>
                     }
                 />
             </GridListTile>
         );
     });
 }
-
 
 function includeSiteList (issues_and_reminders) {
     const processed_i_n_r = issues_and_reminders.map((iar, index) => {
@@ -119,12 +129,14 @@ function includeSiteList (issues_and_reminders) {
 
         return new_iar;
     });
+
     return processed_i_n_r;
 }
 
-
 function IssuesAndReminderList (props) {
-    const { classes } = props;
+    const {
+        classes,
+    } = props;
     const [tile_data, setTileData] = useState([]);
     const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
     const [chosenIssueReminder, setChosenIssueReminder] = useState({});
@@ -132,19 +144,17 @@ function IssuesAndReminderList (props) {
 
     useEffect(() => {
         receiveIssuesAndReminders(issues_and_reminders => {
-            console.log(issues_and_reminders);
-            setTileData(
-                (
-                    <Typography style={{ fontStyle: "italic" }}>
-                    No active issues
-                    </Typography>
-                )
+            let final_tile_data = (
+                <Typography style={{ fontStyle: "italic" }}>
+                        No active issues
+                </Typography>
             );
             if (issues_and_reminders.length !== 0) {
                 const processed_i_n_r = includeSiteList(issues_and_reminders);
-                const final_tile_data = prepareTileData(classes, processed_i_n_r, handleEdit);
-                setTileData(final_tile_data);
+                final_tile_data = prepareTileData(classes, processed_i_n_r, handleEdit);
             }
+
+            setTileData(final_tile_data);
         });
     }, []);
 
@@ -162,8 +172,8 @@ function IssuesAndReminderList (props) {
     };
 
     return (
-        <div className={classes.root}>         
-            <Grid container spacing={1}>
+        <Fragment>         
+            {/* <Grid container spacing={1}>
                 <Grid item xs={12} md={12}>
                     <Button
                         aria-label="Post Issue/Reminder"
@@ -186,7 +196,11 @@ function IssuesAndReminderList (props) {
                         {tile_data}
                     </GridList>
                 </Grid>
-            </Grid>
+            </Grid> */}
+            
+            <GridList cellHeight={180} className={classes.gridList}>
+                {tile_data}
+            </GridList>
 
             <IssuesAndReminderModal
                 isOpen={isOpenIssueReminderModal}
@@ -195,8 +209,8 @@ function IssuesAndReminderList (props) {
                 isUpdateNeeded={isUpdateNeeded}
                 chosenIssueReminder={chosenIssueReminder}
             />
-        </div>
+        </Fragment>
     );
 }
 
-export default compose(withStyles(styles), withMobileDialog())(IssuesAndReminderList);
+export default withStyles(styles)(IssuesAndReminderList);

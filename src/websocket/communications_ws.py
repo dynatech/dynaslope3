@@ -98,6 +98,9 @@ def communication_background_task():
 
                         SOCKETIO.emit("receive_mobile_id_room_update", ROOM_MOBILE_IDS[mobile_id]["details"],
                                       room=mobile_id, namespace="/communications")
+                elif update_source == "blocked_numbers":
+                    if inbox_index > -1:
+                        del MESSAGES["inbox"][inbox_index]
 
                 query_end = datetime.now()
 

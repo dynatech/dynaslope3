@@ -45,7 +45,7 @@ class UserMobiles(DB.Model):
     status = DB.Column(TINYINT, nullable=False)
 
     user = DB.relationship(UsersRelationship, backref=DB.backref(
-        "contact_numbers", lazy="raise"),
+        "mobile_numbers", lazy="raise"),
         lazy="joined", innerjoin=True)
     mobile_number = DB.relationship(MobileNumbers, backref=DB.backref(
         "user_details", lazy="joined", uselist=False),

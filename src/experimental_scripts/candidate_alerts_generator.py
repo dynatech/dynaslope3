@@ -256,8 +256,10 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
                         trigger_list_arr.append(trig_dict)
 
         # THIS IS THE BACKEND to_extend_validity.
-        has_unresolved_moms = bool(formatted_alerts_for_ewi["unresolved_moms_list"])
-        to_extend_validity = True if (alert_entry["ground_alert_level"] == -1 or has_unresolved_moms) else False
+        has_unresolved_moms = bool(
+            formatted_alerts_for_ewi["unresolved_moms_list"])
+        to_extend_validity = True if (
+            alert_entry["ground_alert_level"] == -1 or has_unresolved_moms) else False
 
         formatted_alerts_for_ewi = {
             **formatted_alerts_for_ewi,
@@ -453,10 +455,10 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
             # is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
             #                                   site_code, merged_db_alerts_list))
-            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                              site_code, no_a0_db_alerts_list))
-            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                                site_code, extended))
+            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                              == site_code, no_a0_db_alerts_list))
+            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                                == site_code, extended))
 
             is_for_release = True
             site_wo_alert["alert_level"] = 0
