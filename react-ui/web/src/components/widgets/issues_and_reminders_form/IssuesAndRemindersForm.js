@@ -7,10 +7,7 @@ import {
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 
-import FormLabel from "@material-ui/core/FormLabel";
-import FormControl from "@material-ui/core/FormControl";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Switch from "@material-ui/core/Switch";
 import Checkbox from "@material-ui/core/Checkbox";
 
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
@@ -77,8 +74,7 @@ function IssuesAndReminderForm (props) {
 
     const {
         iar_id, site_id_list, detail, ts_posted_until,
-        resolution, resolved_by, ts_posted, user_id,
-        is_event_entry, is_persistent
+        resolution, is_event_entry, is_persistent
     } = issueReminderData;
 
     useEffect(() => {

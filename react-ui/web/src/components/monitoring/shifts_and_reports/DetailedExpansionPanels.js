@@ -1,4 +1,4 @@
-import React, { Fragment, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { withStyles } from "@material-ui/core/styles";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
@@ -103,25 +103,11 @@ function DetailedExpansionPanel (props) {
         setShiftSummary(node_shift_summary);
         setDataAnalysis(data_analysis);
         setShiftNarratives(narratives);
-    }, []);
+    }, [eos_report]);
 
-    const showTextLabel = (label, width) => (
-        isWidthUp("sm", width) ? <span style={{ paddingLeft: 6 }}>{label}</span> : ""
+    const showTextLabel = (label, width2) => (
+        isWidthUp("sm", width2) ? <span style={{ paddingLeft: 6 }}>{label}</span> : ""
     );
-
-    const changeState = (key, value) => {
-        const dictionary = {
-            shift_summary: setShiftSummary,
-            data_analysis: setDataAnalysis,
-            shift_narratives: setShiftNarratives
-        };
-        dictionary[key](value);
-    };
-
-    const handleEventChange = key => event => {
-        const { value } = event.target;
-        changeState(key, value);
-    };
 
     const handleCheckboxEvent = value => event => handleCheckboxToggle(value, checkboxStatus, setCheckboxStatus);
 

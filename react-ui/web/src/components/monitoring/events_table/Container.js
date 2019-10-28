@@ -1,6 +1,5 @@
 import React, { useState, useEffect, Fragment } from "react";
 import moment from "moment";
-import axios from "axios";
 import MUIDataTable from "mui-datatables";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { CircularProgress, Typography, Paper } from "@material-ui/core";

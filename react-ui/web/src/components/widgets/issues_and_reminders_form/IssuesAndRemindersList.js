@@ -156,7 +156,7 @@ function IssuesAndReminderList (props) {
 
             setTileData(final_tile_data);
         });
-    }, []);
+    }, [classes]);
 
     const handleBoolean = data => () => {
         // NOTE: there was no need to use the bool for opening a modal or switch

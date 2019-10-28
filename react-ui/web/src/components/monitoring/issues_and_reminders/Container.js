@@ -142,7 +142,12 @@ function IssuesAndReminders (props) {
             setCount(total);
             setIsLoading(false);
         });
-    }, [page, rowsPerPage, filters, search_str, isUpdateNeeded]);
+    }, [
+        page, rowsPerPage, filters, 
+        search_str, isUpdateNeeded, 
+        isOpenDeleteModal, 
+        isOpenIssueReminderModal
+    ]);
 
     const handleBoolean = (data, bool) => () => {
         // NOTE: there was no need to use the bool for opening a modal or switch
