@@ -2,7 +2,6 @@ import React, {
     Fragment, useState,
     useEffect
 } from "react";
-import { Route, Switch } from "react-router-dom";
 
 import { withStyles } from "@material-ui/core/styles";
 import {
@@ -16,13 +15,9 @@ import {
     Toolbar, Dialog
 } from "@material-ui/core";
 import { 
-    Create, Search,
-    Folder as FolderIcon, Delete as DeleteIcon,
     Close, Call, Person, PersonAdd,
     Block, Edit, PhoneAndroid, MailOutline
 } from "@material-ui/icons";
-
-import { compose } from "recompose";
 
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
@@ -337,7 +332,7 @@ const SearchBar = ({ search_str, setSearchStr }) => (
 );
 
 function Container (props) {
-    const { classes, location, match: { url } } = props;
+    const { classes } = props;
     const [contacts, setContacts] = useState([]);
     const [contacts_array, setContactsArray] = useState([]);
     const [chosen_contact, setChosenContact] = useState({});
@@ -478,7 +473,7 @@ function Container (props) {
                             contact !== "" && (
                                 <Paper 
                                     elevation={1}
-                                    style={{ padding: 16 }}
+                                    style={{ padding: 16, zIndex: 2 }}
                                     className={`${classes.sticky} ${is_contact_form_open && classes.overflow}`}
                                 >
                                     { PaperDialogContent(is_contact_form_open) }
@@ -486,6 +481,8 @@ function Container (props) {
                             )
                         }
                     </Grid>
+
+                    <Backdrop open={is_contact_form_open} style={{ zIndex: 1 }} />
                 </Hidden>
 
                 <Hidden smDown lgUp>
@@ -506,12 +503,11 @@ function Container (props) {
                     <Dialog 
                         fullScreen
                         open={is_slide_open}
-                        onClose={() => setSlideOpen(false)}
                         TransitionComponent={SlideTransition}
                     >
                         <AppBar style={{ position: "relative" }}>
                             <Toolbar>
-                                <IconButton edge="start" color="inherit" onClick={() => setSlideOpen(false)} aria-label="close">
+                                <IconButton edge="start" color="inherit" onClick={() => setContactForm(false)} aria-label="close">
                                     <Close />
                                 </IconButton>
                             </Toolbar>

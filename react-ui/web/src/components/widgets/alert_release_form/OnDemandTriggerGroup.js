@@ -1,4 +1,4 @@
-import React, { Component, useState, Fragment } from "react";
+import React, { Fragment } from "react";
 import {
     Grid, withStyles, FormControl,
     FormLabel, Switch, TextField

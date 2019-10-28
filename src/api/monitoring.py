@@ -7,19 +7,16 @@ NAMING CONVENTION
 """
 
 import json
-import time
 from datetime import datetime, timedelta, time
 from flask import Blueprint, jsonify, request
-from connection import DB, SOCKETIO
+from connection import DB
 from sqlalchemy import and_
 from src.models.monitoring import (
-    MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
-    MonitoringReleasePublishers, MonitoringTriggers, MonitoringTriggersMisc,
-    InternalAlertSymbols, MonitoringMomsReleases, BulletinTracker)
+    MonitoringEvents, MonitoringReleases, MonitoringEventAlerts)
 from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
     InternalAlertSymbolsSchema, EndOfShiftAnalysisSchema)
-from src.models.narratives import (Narratives, NarrativesSchema)
+from src.models.narratives import (NarrativesSchema)
 from src.utils.narratives import (write_narratives_to_db, get_narratives)
 from src.utils.monitoring import (
     # GET functions
@@ -50,7 +47,7 @@ from src.utils.extra import (
     var_checker, retrieve_data_from_memcache,
     get_process_status_log, get_system_time
 )
-
+from src.utils.bulletin import create_monitoring_bulletin
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 

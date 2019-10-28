@@ -1,4 +1,4 @@
-import React, { Fragment, useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
     TextField, Grid, withStyles
 } from "@material-ui/core";
@@ -7,10 +7,8 @@ import {
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 
-import { array } from "prop-types";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
-import { prepareSiteAddress } from "../../../UtilityFunctions";
 import { sites } from "../../../store";
 
 
@@ -67,8 +65,7 @@ function NarrativeForm (props) {
     } = props;
 
     const {
-        narrative_id, site_list, narrative, event_id,
-        type_id, timestamp, user_id
+        narrative_id, site_list, narrative, timestamp, user_id
     } = narrativeData;
 
     useEffect(() => {

@@ -1,7 +1,7 @@
-import React, { Component, Fragment } from "react";
+import React, { Fragment } from "react";
 import {
     Grid, withStyles, FormControl,
-    FormLabel, Switch, TextField, Hidden
+    FormLabel, Switch, TextField
 } from "@material-ui/core";
 
 import { handleChange, handleEventChange, handleSwitchChange } from "./state_handlers";

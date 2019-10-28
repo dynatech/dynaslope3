@@ -39,6 +39,7 @@ def monitoring_background_task():
     global CANDIDATE_ALERTS
     global ALERTS_FROM_DB
     global ISSUES_AND_REMINDERS
+
     while True:
         if not GENERATED_ALERTS:
             GENERATED_ALERTS = generate_alerts()
@@ -68,12 +69,11 @@ def monitoring_background_task():
             emit_data("receive_generated_alerts")
             emit_data("receive_alerts_from_db")
             emit_data("receive_candidate_alerts")
-        
-
-        ISSUES_AND_REMINDERS = wrap_get_issue_reminder()
-        emit_data("receive_issues_and_reminders")
 
         SOCKETIO.sleep(60)  # Every 60 seconds in production stage
+
+    ISSUES_AND_REMINDERS = wrap_get_issue_reminder()
+    emit_data("receive_issues_and_reminders")
 
 
 @SOCKETIO.on('connect', namespace='/monitoring')
@@ -145,7 +145,6 @@ def update_alert_gen(site_code=None):
     global GENERATED_ALERTS
     global CANDIDATE_ALERTS
     global ALERTS_FROM_DB
-    global ISSUES_AND_REMINDERS
 
     site_gen_alert = generate_alerts(site_code)
 
@@ -161,13 +160,11 @@ def update_alert_gen(site_code=None):
     ALERTS_FROM_DB = wrap_get_ongoing_extended_overdue_events()
     CANDIDATE_ALERTS = candidate_alerts_generator.main()
     GENERATED_ALERTS = json.dumps(json_generated_alerts)
-    ISSUES_AND_REMINDERS = wrap_get_issue_reminder()
 
     print(f"{get_system_time()} | DONE! Emitting updated alert gen data...")
     emit_data("receive_generated_alerts")
     emit_data("receive_alerts_from_db")
     emit_data("receive_candidate_alerts")
-    emit_data("receive_issues_and_reminders")
 
     print(f"{get_system_time()} | DONE! EMITTED updated alert gen data.")
 

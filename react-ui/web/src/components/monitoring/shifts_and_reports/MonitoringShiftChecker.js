@@ -7,6 +7,7 @@ import { MuiPickersUtilsProvider, DateTimePicker, DatePicker } from "@material-u
 import { compose } from "recompose";
 import moment from "moment";
 import { Route, Switch, Link } from "react-router-dom";
+import converter from "number-to-words";
 
 // EXP IMPORTS
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
@@ -22,7 +23,7 @@ import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInp
 import { getShiftData } from "../ajax";
 
 // Session Stuff
-import { getCurrentUser } from "../../sessions/auth";
+// import { getCurrentUser } from "../../sessions/auth";
 
 // Linking to Event Timeline
 import EventTimeline from "../events_table/EventTimeline";
@@ -54,7 +55,7 @@ const styles = theme => {
             fontSize: 16,
             paddingLeft: 8
         },
-        paper: {
+        def_padding: {
             padding: 16
         },
         form_input: {
@@ -74,6 +75,11 @@ const styles = theme => {
         },
         valueFont: {
             color: "black"
+        },
+
+        summary: {
+            // display: "flex",
+            justifyContent: "space-evenly"
         }
     };
 };
@@ -90,6 +96,12 @@ function prepareEventTimelineLink (classes, event_id, site_code) {
 }
 
 
+function capitalize (s) {
+    if (typeof s !== "string") return "";
+    return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+
 function processShiftData (classes, select_by, raw_data) {
     let new_data = [];
 
@@ -97,11 +109,12 @@ function processShiftData (classes, select_by, raw_data) {
         new_data = raw_data.map((row, index1) => {
             const { date, data, ampm, mt, ct } = row;
 
-            const alert_summary = `${data.length} sites were monitored.`;
+            const word_temp = converter.toWords(data.length);
+            const alert_summary = `${capitalize(word_temp)} (${data.length})`;
             const new_stuff = data.map((second_row, index2) => {
                 const {
                     general_status, site_code, 
-                    public_alert_symbol, event_id
+                    public_alert_level, event_id
                 } = second_row;
 
                 const event_link = prepareEventTimelineLink(classes, event_id, site_code);
@@ -109,13 +122,13 @@ function processShiftData (classes, select_by, raw_data) {
                 return (
                     <Grid item xs={4} key={`site_alert_${ index2 + 1}`}>
                         <Typography variant="body2" color="textSecondary">
-                            Site Code: <span className={classes.valueFont}>{event_link}</span>
+                            Site code: <span className={classes.valueFont}>{event_link}</span>
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                            Alert Level: <span className={classes.valueFont}>{public_alert_symbol}</span>
+                            Alert <span className={classes.valueFont}>{public_alert_level}</span>
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                            Monitoring Status: <span className={classes.valueFont}>{general_status}</span>
+                            Monitoring status: <span className={classes.valueFont}>{capitalize(general_status)}</span>
                         </Typography>
                     </Grid>
                 );
@@ -128,41 +141,44 @@ function processShiftData (classes, select_by, raw_data) {
                         aria-controls="panel1a-content"
                         id="panel1a-header"
                     >
-                        <Typography color="textSecondary">
-                            Shift Date: <span className={classes.valueFont}>{moment(date).format("MMMM D YYYY")}</span>
-                        </Typography>
-                        &nbsp;
-                        &nbsp;
-                        &nbsp;
-                        <Typography color="textSecondary">
-                            Alert Summary: <span className={classes.valueFont}>{alert_summary}</span>
-                        </Typography>
+                        <Grid container>
+                            <Grid item xs={6} className={classes.alignCenter}>
+                                <Typography color="textSecondary">
+                                    Shift Date: <span className={classes.valueFont}>{moment(date).format("MMMM D, YYYY")}</span>
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={6} className={classes.alignCenter}>
+                                <Typography color="textSecondary">
+                                    Sites Monitored: <span className={classes.valueFont}>{alert_summary}</span>
+                                </Typography>
+                            </Grid>
+                        </Grid>
                     </ExpansionPanelSummary>
                     <Divider />
                     <ExpansionPanelDetails>
-                        <Grid container spacing={2}>
+                        <Grid container spacing={2} className={classes.def_padding}>
                             <Grid item xs={4}>
-                                <Typography variant="body1" color="textSecondary">
-                                    Shift Schedule
-                                </Typography>
-                                <Typography variant="body1" color="textPrimary">
+                                <Typography variant="body1" color="textPrimary" className={classes.alignCenter}>
                                     {ampm}
                                 </Typography>
+                                <Typography variant="body1" color="textSecondary" className={classes.alignCenter}>
+                                    Shift Schedule
+                                </Typography>
                             </Grid>
                             <Grid item xs={4}>
-                                <Typography variant="body1" color="textSecondary">
-                                    MT Personnel
-                                </Typography>
-                                <Typography variant="body1" color="textPrimary">
+                                <Typography variant="body1" color="textPrimary" className={classes.alignCenter}>
                                     {mt}
                                 </Typography>
+                                <Typography variant="body1" color="textSecondary" className={classes.alignCenter}>
+                                    MT Personnel
+                                </Typography>
                             </Grid>
                             <Grid item xs={4}>
-                                <Typography variant="body1" color="textSecondary">
-                                    CT Personnel
-                                </Typography>
-                                <Typography variant="body1" color="textPrimary">
+                                <Typography variant="body1" color="textPrimary" className={classes.alignCenter}>
                                     {ct}
+                                </Typography>
+                                <Typography variant="body1" color="textSecondary" className={classes.alignCenter}>
+                                    CT Personnel
                                 </Typography>
                             </Grid>
                             <div style={{ paddingTop: 20, paddingBottom: 20 }}>
@@ -174,26 +190,16 @@ function processShiftData (classes, select_by, raw_data) {
                         </Grid>
                     </ExpansionPanelDetails>
                     <Divider />
-                    {/* <ExpansionPanelActions>
-                        <Button size="small">
-                            <SaveAlt className={classes.icons} /> {showTextLabel("Download Charts", width)}
-                        </Button>
-                        <Button size="small">
-                            <Refresh className={classes.icons} /> {showTextLabel("Refresh", width)}
-                        </Button>
-                        <Button size="small" color="primary">
-                            <Send className={classes.icons} /> {showTextLabel("Send", width)}
-                        </Button>
-                    </ExpansionPanelActions> */}
 
                 </ExpansionPanel>                         
             );
         });
     } else if (select_by === "shift_date") {
         new_data = raw_data.map((row, index1) => {
-            const { public_alert_symbol, data } = row;
+            const { public_alert_level, data } = row;
 
-            const alert_summary = `${data.length} sites were under ${public_alert_symbol}.`;
+            const word_temp = converter.toWords(data.length);
+            const alert_summary = `${capitalize(word_temp)} (${data.length})`;
             const new_stuff = data.map((second_row, index2) => {
                 const {
                     general_status, site_code, event_id
@@ -204,10 +210,10 @@ function processShiftData (classes, select_by, raw_data) {
                 return (
                     <Grid item xs={4} key={`site_alert_${ index2 + 1}`}>
                         <Typography variant="body2" color="textSecondary">
-                            Site Code: <span className={classes.valueFont}>{event_link}</span>
+                            Site code: <span className={classes.valueFont}>{event_link}</span>
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                            Monitoring Status: <span className={classes.valueFont}>{general_status}</span>
+                            Monitoring status: <span className={classes.valueFont}>{capitalize(general_status)}</span>
                         </Typography>
                     </Grid>
                 );
@@ -220,38 +226,27 @@ function processShiftData (classes, select_by, raw_data) {
                         aria-controls="panel1a-content"
                         id="panel1a-header"
                     >
-                        <Typography color="textSecondary">
-                            Alert Level: <span className={classes.valueFont}>{public_alert_symbol}</span>
-                        </Typography>
-                        &nbsp;
-                        &nbsp;
-                        <Typography color="textSecondary">
-                            Alert Summary: <span className={classes.valueFont}>{alert_summary}</span>
-                        </Typography>
+                        <Grid container>
+                            <Grid item xs={6} className={classes.alignCenter}>
+                                <Typography color="textSecondary">
+                                    <span className={classes.valueFont}>Alert {public_alert_level}</span>
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={6} className={classes.alignCenter}>
+                                <Typography color="textSecondary">
+                                    Number of sites: <span className={classes.valueFont}>{alert_summary}</span>
+                                </Typography>
+                            </Grid>
+                        </Grid>
                     </ExpansionPanelSummary>
                     <Divider />
                     <ExpansionPanelDetails>
-                        <Grid container spacing={2}>
+                        <Grid container spacing={2} className={classes.def_padding}>
                             {
                                 new_stuff                            
                             }
                         </Grid>
                     </ExpansionPanelDetails>
-                    {/* <div style={{ paddingTop: 20, paddingBottom: 20 }}>
-                        <Divider />
-                    </div>
-                    <ExpansionPanelActions>
-                        <Button size="small">
-                            <SaveAlt className={classes.icons} /> {showTextLabel("Download Charts", width)}
-                        </Button>
-                        <Button size="small">
-                            <Refresh className={classes.icons} /> {showTextLabel("Refresh", width)}
-                        </Button>
-                        <Button size="small" color="primary">
-                            <Send className={classes.icons} /> {showTextLabel("Send", width)}
-                        </Button>
-                    </ExpansionPanelActions> */}
-
                 </ExpansionPanel>                         
             );
         });
@@ -314,8 +309,8 @@ function createDateTime ({ label, value, id }, handleDateTime) {
 function prepareDataHeader (classes, ui_data, handlers) {
     let dom_elements;
     const { select_by, setDataHeader, payload: { ts_start, ts_end } } = handlers;
-    const ui_ts_start = moment(ts_start).format("MMMM Mo, YYYY");
-    const ui_ts_end = moment(ts_end).format("MMMM Mo, YYYY");
+    const ui_ts_start = moment(ts_start).format("MMMM D, YYYY");
+    const ui_ts_end = moment(ts_end).format("MMMM D, YYYY");
     if (select_by === "shift_date") {
         const temp = ui_data[0];
         const {
@@ -323,44 +318,50 @@ function prepareDataHeader (classes, ui_data, handlers) {
         } = temp;
 
         dom_elements = (
-            <Fragment>
-                <Typography variant="h5" color="textPrimary">Alerts in this Shift</Typography>
+            <Paper className={classes.def_padding}>
                 <Grid container spacing={2}>
-                    <Grid item xs={4}>
-                        <Typography variant="body1" color="textSecondary">
+                    <Grid item xs={3}>
+                        <Typography className={classes.alignCenter} variant="body1" color="textSecondary">
+                            Shift Date
+                        </Typography>
+                        <Typography className={classes.alignCenter} variant="body1" color="textPrimary">
+                            {ui_ts_start}
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={3}>
+                        <Typography className={classes.alignCenter} variant="body1" color="textSecondary">
                             Shift Schedule
                         </Typography>
-                        <Typography variant="body1" color="textPrimary">
+                        <Typography className={classes.alignCenter} variant="body1" color="textPrimary">
                             {ampm}
                         </Typography>
                     </Grid>
-                    <Grid item xs={4}>
-                        <Typography variant="body1" color="textSecondary">
+                    <Grid item xs={3}>
+                        <Typography className={classes.alignCenter} variant="body1" color="textSecondary">
                             MT Personnel
                         </Typography>
-                        <Typography variant="body1" color="textPrimary">
+                        <Typography className={classes.alignCenter} variant="body1" color="textPrimary">
                             {mt}
                         </Typography>
                     </Grid>
-                    <Grid item xs={4}>
-                        <Typography variant="body1" color="textSecondary">
+                    <Grid item xs={3}>
+                        <Typography className={classes.alignCenter} variant="body1" color="textSecondary">
                             CT Personnel
                         </Typography>
-                        <Typography variant="body1" color="textPrimary">
+                        <Typography className={classes.alignCenter} variant="body1" color="textPrimary">
                             {ct}
                         </Typography>
                     </Grid>
                 </Grid>                
-            </Fragment>
+            </Paper>
         );
     } else {
         dom_elements = (
-            <Fragment>
-                <Typography variant="h5" color="textPrimary">Staff Shifts</Typography>
-                <Typography variant="body1" color="textSecondary">
+            <Paper className={classes.def_padding}>
+                <Typography variant="body1" color="textPrimary">
                     {ui_ts_start} to {ui_ts_end}
                 </Typography>
-            </Fragment>
+            </Paper>
         );
     }
 
@@ -372,7 +373,7 @@ function MonitoringShiftChecker (props) {
     const { classes, width, location,
         match: url
     } = props;
-    const current_user = getCurrentUser();
+    // const current_user = getCurrentUser();
 
     const [ts_start, setTSStart] = useState(null);
     const [ts_end, setTSEnd] = useState(null);
@@ -388,8 +389,8 @@ function MonitoringShiftChecker (props) {
 
     useEffect(() => {
         if (select_by === "staff_name") {
-            setDataHeader("");
-            setShiftData("Please enter filters.");
+            // setDataHeader("");
+            // setShiftData("Please enter filters.");
             setPayload({
                 ts_start: moment(ts_start).format("YYYY-MM-DD HH:mm:ss"), 
                 ts_end: moment(ts_end).format("YYYY-MM-DD HH:mm:ss"), 
@@ -397,8 +398,8 @@ function MonitoringShiftChecker (props) {
             });
             
         } else if (select_by === "shift_date") {
-            setDataHeader("");
-            setShiftData("Please enter filters.");
+            // setDataHeader("");
+            // setShiftData("Please enter filters.");
             const { shift_start, shift_end } = get_shift_timestamps(shift_date, shift_sched);
             setPayload({
                 ts_start: shift_start,
@@ -471,7 +472,7 @@ function MonitoringShiftChecker (props) {
                                 spacing={2}
                             >
                                 <Grid item sm={12} md={3}>
-                                    <Paper className={classes.paper}>
+                                    <Paper className={classes.def_padding}>
                                         <div className={classes.form_input}>
                                             <SelectInputForm
                                                 label="Select by"
@@ -539,9 +540,9 @@ function MonitoringShiftChecker (props) {
                                                     [
                                                         { label: "Start Timestamp", value: ts_start, id: "ts_start" },
                                                         { label: "End Timestamp", value: ts_end, id: "ts_end" },
-                                                    ].map(row => {
+                                                    ].map((row, index) => {
                                                         return (
-                                                            <div className={classes.form_input}>
+                                                            <div key={row.id} className={classes.form_input}>
                                                                 {createDateTime(row, handleDateTime)}
                                                             </div>
                                                         );
@@ -550,17 +551,13 @@ function MonitoringShiftChecker (props) {
                                             </Fragment>
                                         )}
 
-                                        <div style={{ paddingTop: 20, paddingBottom: 20 }}>
-                                            <Divider />
-                                        </div>
-
-                                        <div style={{ textAlign: "right" }}>
+                                        <div style={{ textAlign: "right", paddingTop: 16 }}>
                                             <Button variant="contained" 
                                                 color="secondary" 
                                                 size={isWidthDown("sm", width) ? "small" : "medium"}
                                                 onClick={handleSubmit}
                                             >
-                                        Generate <ArrowForwardIos className={classes.button} />
+                                                Generate <ArrowForwardIos className={classes.button} />
                                             </Button>                                
                                         </div>
                                     </Paper>
@@ -568,10 +565,7 @@ function MonitoringShiftChecker (props) {
 
                                 <Grid item sm={12} md={9}>
                                     <div className={classes.root}>
-                                        {data_header}
-                                        <div style={{ paddingTop: 20, paddingBottom: 20 }}>
-                                            <Divider />
-                                        </div>                                        
+                                        {data_header}                                       
                                         {shift_data}
                                     </div>
                                 </Grid>

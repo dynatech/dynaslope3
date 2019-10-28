@@ -36,6 +36,16 @@ const styles = theme => ({
     sentIcon: { fontSize: "1.10rem" }
 });
 
+export function mobileUserFormatter (user_details) {
+    const { user } = user_details;
+    const { first_name, last_name } = user;
+
+    const sender = `${first_name} ${last_name}`;
+    const orgs = getUserOrganizations(user);
+
+    return { sender, orgs };
+}
+
 function returnTS (ts_received) {
     const moment_ts = moment(ts_received);
     const is_today = moment_ts.isSame(moment(), "day");
@@ -54,16 +64,21 @@ function MessageListItem (row, props, openOptionsModal) {
     const { classes, url, width, async, is_desktop } = props;
     const ts = returnTS(msg_ts);
 
-    const { mobile_id, sim_num, user } = mobile_details;
-    const { first_name, last_name } = user;
-    const sender = `${first_name} ${last_name}`;
-
+    const { mobile_id, sim_num, user_details } = mobile_details;
     const sim_number = simNumFormatter(sim_num);
-    const orgs = getUserOrganizations(user);
+    let sender = sim_number;
+    let orgs = [];
 
+    const is_unknown = user_details === null;
+    if (!is_unknown) {
+        const { sender: s, orgs: o } = mobileUserFormatter(user_details);
+        sender = s;
+        orgs = o;
+    }
+    
     const on_option_button_click = e => {
         e.preventDefault();
-        openOptionsModal(first_name.includes("UNKNOWN"), mobile_details);
+        openOptionsModal(is_unknown, mobile_details);
     };
 
     return (
@@ -219,6 +234,7 @@ function MessageList (props) {
                 open={open_block_modal}
                 setBlockModal={setBlockModal}
                 mobileDetails={chosen_mobile}
+                setOpenOptions={setOpenOptions}
             />
         </Fragment>
     );

@@ -36,7 +36,7 @@ def get_release_publisher_names(release):
     """
     Return an object of full names for MT and CT
     """
-    publishers = release.release_publishers.all()
+    publishers = release.release_publishers
     publisher_names = {
         "mt": "",
         "ct": ""

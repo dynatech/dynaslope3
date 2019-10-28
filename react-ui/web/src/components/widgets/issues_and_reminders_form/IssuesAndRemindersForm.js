@@ -1,4 +1,4 @@
-import React, { Fragment, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
     TextField, Grid, withStyles
 } from "@material-ui/core";
@@ -7,30 +7,18 @@ import {
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 
-import FormLabel from "@material-ui/core/FormLabel";
-import FormControl from "@material-ui/core/FormControl";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Switch from "@material-ui/core/Switch";
 import Checkbox from "@material-ui/core/Checkbox";
 
-import { array } from "prop-types";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
-import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 import { sites } from "../../../store";
 
 
 function prepareSitesOption (arr) {
     return arr.map(site => {
-        const { 
-            site_code, sitio, purok,
-            barangay, municipality, province,
-            site_id
-        } = site;
-        let address = sitio !== null ? `Sitio ${sitio}, ` : "";
-        address += purok !== null ? `Purok ${purok}, ` : "";
-        address += `Brgy. ${barangay}, ${municipality}, ${province}`;
-        address = `${site_code.toUpperCase()} (${address})`;
+        const { site_id } = site;
+        const address = prepareSiteAddress(site, true, "start");
 
         return { value: site_id, label: address, data: site };
     });
@@ -83,12 +71,10 @@ function IssuesAndReminderForm (props) {
     const initial_cbx_state = false;
     const [is_event_checked, setIsEventChecked] = useState(initial_cbx_state);
     const [is_persistent_checked, setIsPersistentChecked] = useState(initial_cbx_state);
-    // const [is_ts_hidden, setTSHidden] = useState(false);
 
     const {
         iar_id, site_id_list, detail, ts_posted_until,
-        resolution, resolved_by, ts_posted, user_id,
-        is_event_entry, is_persistent
+        resolution, is_event_entry, is_persistent
     } = issueReminderData;
 
     useEffect(() => {
@@ -133,7 +119,6 @@ function IssuesAndReminderForm (props) {
 
         switch (value) {
             case "is_event_entry": 
-                // if (!checked) setIsPersistentChecked(initial_cbx_state);
                 setIsEventChecked(checked);
                 if (!checked) setIsPersistentChecked(initial_cbx_state);
                 setIssueReminderData({
@@ -207,7 +192,6 @@ function IssuesAndReminderForm (props) {
                         </Grid> 
                     )
                 }
-                {/* <Grid item xs={12} sm={12} className={classes.inputGridContainer} hidden={is_ts_hidden}> */}
                 {
                     !is_persistent_checked && (
                         <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
@@ -247,7 +231,7 @@ function IssuesAndReminderForm (props) {
                         required
                         id="standard-multiline-static"
                         label="Resolution"
-                        value={resolution}
+                        value={resolution || ""}
                         onChange={handleEventChange("resolution")}
                         placeholder="Enter resolution"
                         multiline
@@ -258,15 +242,6 @@ function IssuesAndReminderForm (props) {
                         variant="filled"
                     />
                 </Grid>
-                {/* <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
-                    <DynaslopeUserSelectInputForm
-                        variant="standard"
-                        label="Reporter"
-                        div_id="user_id"
-                        changeHandler={handleEventChange("user_id")}
-                        value={user_id}
-                    />
-                </Grid> */}
             </Grid>
         </MuiPickersUtilsProvider>           
     );
