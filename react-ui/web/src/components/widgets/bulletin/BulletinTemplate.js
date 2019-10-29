@@ -4,6 +4,8 @@ import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { Typography, Grid } from "@material-ui/core";
 import PhivolcsLetterHead from "../../../images/phivolcs-letter-head.png";
 import PhivolcsLetterFooter from "../../../images/phivolcs-letter-footer.png";
+import { getBulletinDetails } from "./ajax";
+import { prepareSiteAddress } from "../../../UtilityFunctions";
 
 const useStyle = makeStyles(theme => ({
     root: {
@@ -122,16 +124,35 @@ function BulletinTemplate (props) {
     const { width } = props;
     const [body_height, setBodyHeight] = useState(0);
     const content_body = useRef(null);
+    const [bulletin_detail, setBulletinDetails] = useState({
+        bulletin_control_code: "",
+        site_address: ""
+    });
+    const { bulletin_control_code, site_address } = bulletin_detail;
 
     const is_md = isWidthUp("md", width);
 
+    // useEffect(() => {
+    //     const header_h = getHeightWithPadding("letter-head");
+    //     const footer_h = getHeightWithPadding("letter-foot");
+    //     const root_h = getHeightWithPadding("bulletin-root");
+    //     const height = root_h - header_h - footer_h;
+    //     setBodyHeight(height);
+    //     console.log(`useEffect - root (${root_h}) - header (${header_h}) - footer (${footer_h}) = ${height}`);
+    // }, []);
+
     useEffect(() => {
-        const header_h = getHeightWithPadding("letter-head");
-        const footer_h = getHeightWithPadding("letter-foot");
-        const root_h = getHeightWithPadding("bulletin-root");
-        const height = root_h - header_h - footer_h;
-        setBodyHeight(height);
-        console.log(`useEffect - root (${root_h}) - header (${header_h}) - footer (${footer_h}) = ${height}`);
+        getBulletinDetails(19855, data => {
+            const { site } = data;
+            const site_address = prepareSiteAddress(site, false);
+
+            const details = {
+                ...data,
+                site_address
+            };
+
+            setBulletinDetails(details);
+        });
     }, []);
 
     useEffect(() => {
@@ -171,7 +192,7 @@ function BulletinTemplate (props) {
             
                 <div id="bulletin-content" className={classes.body} ref={content_body}>  {/* style={{ height: 629, maxHeight: 629, overflowY: "hidden" }} */}
                     <Typography variant="body2" align="center" className={classes.title}>
-                        <strong>DYNASLOPE LANDSLIDE ALERT LEVEL INFORMATION: TUE-2018-132</strong>
+                        <strong>DYNASLOPE LANDSLIDE ALERT LEVEL INFORMATION: {bulletin_control_code}</strong>
                     </Typography>
 
                     <Typography variant="body2" component="div" className={classes.mainInfo}>
@@ -180,7 +201,7 @@ function BulletinTemplate (props) {
                             Location:
                             </Grid>
                             <Grid item xs={8}>
-                                <strong>Brgy. Tue, Tadian, Mt. Province</strong>
+                                <strong>{site_address}</strong>
                             </Grid>
 
                             <Grid item xs={4}>

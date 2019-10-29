@@ -2,13 +2,24 @@
 Utility file for Monitoring Tables
 Contains functions for getting and accesing Sites table only
 """
+
 import re
+import itertools
+from datetime import datetime, timedelta
 from pprint import pprint
 from connection import DB
 from marshmallow import fields
-from src.models.monitoring import (MonitoringReleases, MonitoringReleasesSchema,
-                                   MonitoringTriggers, LUTResponses, LUTResponsesSchema)
-from src.utils.monitoring import get_monitoring_releases, process_trigger_list
+from src.models.monitoring import (
+    MonitoringReleases, MonitoringReleasesSchema,
+    BulletinResponses, BulletinTriggers)
+from src.utils.monitoring import (
+    get_monitoring_releases, process_trigger_list,
+    get_monitoring_triggers, compute_event_validity)
+from src.utils.extra import retrieve_data_from_memcache
+
+# Number of hours extended if no_data upon validity
+NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "NO_DATA_HOURS_EXTENSION"}, retrieve_attr="var_value")
 
 
 class AlertDescriptionProcessor:
@@ -102,19 +113,19 @@ class AlertDescriptionProcessor:
         return alert_description
 
 
-def get_alert_description(public_alert_level, trigger_list):
+def get_alert_description(public_alert_level, trigger_list_str):
     """
     Get internal alert description
     """
     alert_description = ""
 
-    trigger_str = process_trigger_list(trigger_list)
+    trigger_list_str = process_trigger_list(trigger_list_str)
 
-    if public_alert_level == "A0":
-        alert_description = "No significant ground movement***OR***Movement reduced to non-significant rates"
+    if public_alert_level == 1:
+        alert_description = "No significant ground movement/Movement reduced to non-significant rates"
         return alert_description
 
-    triggers = re.sub(r"0|[r]?x", "", trigger_str)
+    triggers = re.sub(r"0|[r]?x", "", trigger_list_str)
     triggers = list(triggers)
 
     alert_description = AlertDescriptionProcessor(
@@ -128,10 +139,45 @@ def create_monitoring_bulletin(release_id):
     Creates monitoring bulletin
     """
     release = get_monitoring_releases(release_id=release_id)
-    # public_alert_level = event_alert.event.public_alert_symbol.alert_level
+    event_alert = release.event_alert
+    event = event_alert.event
+    site = event.site
+
+    data_ts = release.data_ts + timedelta(minutes=30)
+    bulletin_control_code = f"{site.site_code.upper()}-{data_ts.year}-{release.bulletin_number}"
+
+    event_id = event_alert.event_id
+    trigger_list = get_monitoring_triggers(
+        event_id=event_id, ts_end=release.data_ts)
+    most_recent_trigger_ts = trigger_list[0].ts
+
+    grouped_triggers = {}
+    for row in trigger_list:
+        grouped_triggers.setdefault(row.internal_sym_id, []).append(row)
+
+    pprint(grouped_triggers)
+
+    trigger_list_str = release.trigger_list
+    alert_level = event_alert.public_alert_symbol.alert_level
+    computed_validity = compute_event_validity(
+        most_recent_trigger_ts, alert_level)
+    final_validity = computed_validity
+    if computed_validity == data_ts:
+        if re.search(r"ND|.0|[Rr]x", trigger_list_str):
+            final_validity = data_ts + timedelta(hours=NO_DATA_HOURS_EXTENSION)
+    final_validity = final_validity.strftime("%B %d, %Y, %I:%M %p")
+
+    alert_description_group = f"A{alert_level} (), valid until {final_validity}"
 
     schema = MonitoringReleasesSchema(
         exclude=["event_alert.event.eos_analysis"]).dump(release).data
+
+    schema = {
+        **schema,
+        "bulletin_control_code": bulletin_control_code,
+        "site": schema["event_alert"]["event"]["site"],
+        "alert_description_group": alert_description_group
+    }
     return schema
 
     alert_description = get_alert_description(
@@ -158,9 +204,9 @@ def create_monitoring_bulletin(release_id):
     # return BulletinSchema().dump(release).data
 
 
-class BulletinSchema(MonitoringReleasesSchema, LUTResponsesSchema):
-    """
-    Just a sample docstring.
-    """
-    alert_description = fields.String()
-    alert_responses = fields.Nested(LUTResponsesSchema)
+# class BulletinSchema(MonitoringReleasesSchema, LUTResponsesSchema):
+#     """
+#     Just a sample docstring.
+#     """
+#     alert_description = fields.String()
+#     alert_responses = fields.Nested(LUTResponsesSchema)
