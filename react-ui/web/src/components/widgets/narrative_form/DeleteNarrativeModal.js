@@ -1,35 +1,21 @@
-import React, { useState, useEffect } from "react";
-import moment from "moment";
+import React from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
     Button, withStyles, withMobileDialog
 } from "@material-ui/core";
 import { compose } from "recompose";
-// import AlertReleaseForm from "./AlertReleaseForm";
 import { handleDelete } from "./ajax";
 
-const styles = theme => ({
-    inputGridContainer: {
-        marginTop: 8,
-        marginBottom: 8
-    },
-    selectInput: {
-        width: "auto",
-        [theme.breakpoints.down("xs")]: {
-            width: "250px"
-        }
-    }
-});
-
+const styles = theme => ({});
 
 function DeleteNarrativeModal (props) {
     const {
-        classes, fullScreen, isOpen,
+        fullScreen, isOpen,
         closeHandler, chosenNarrative, 
         setIsUpdateNeeded, isUpdateNeeded
     } = props;
-    const { id: narrative_id, narrative } = chosenNarrative;
+    const { id: narrative_id } = chosenNarrative;
 
     const handleDeleteClick = () => {
         const payload = {

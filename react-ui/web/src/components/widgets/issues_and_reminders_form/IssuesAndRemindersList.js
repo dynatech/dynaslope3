@@ -224,7 +224,7 @@ function IssuesAndReminderList (props) {
 
             setTileData(final_tile_data);
         });
-    }, []);
+    }, [classes]);
 
     const handleInfoExpand = value => event => {
         setChosenIssueReminder(value);

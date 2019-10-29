@@ -21,7 +21,6 @@ function makeAxiosRequest (json_data, api_link, callback = null) {
 
 export function getShiftData (input, callback) {
     const api_link = `${host}/api/shift_checker/get_shift_data`;
-    console.log(api_link);
     makeAxiosRequest(input, api_link, callback);
 }
 

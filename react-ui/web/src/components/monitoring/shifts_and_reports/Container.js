@@ -1,4 +1,4 @@
-import React, { Component, Fragment, useState } from "react";
+import React, { Fragment, useState } from "react";
 import { withStyles } from "@material-ui/core/styles";
 import TabBar from "../../reusables/TabBar";
 import GeneralStyles from "../../../GeneralStyles";

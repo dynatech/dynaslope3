@@ -15,7 +15,8 @@ from sqlalchemy import and_
 from src.models.monitoring import (MonitoringReleasesSchema)
 from src.utils.monitoring import (
     # GET functions
-    get_monitoring_releases, build_internal_alert_level
+    get_monitoring_releases, build_internal_alert_level,
+    get_release_publisher_names
 )
 from src.api.end_of_shift import (get_eos_data_analysis)
 from src.utils.extra import (
@@ -63,7 +64,6 @@ def prepare_data_for_ui(release):
     public_alert_symbol = event_alert.public_alert_symbol.alert_symbol
     internal_alert = build_internal_alert_level(public_alert_level, release.trigger_list)
 
-    var_checker("event", event, True)
     end_val_data_ts = event.validity - timedelta(minutes=30)
     if end_val_data_ts < release.data_ts:
         general_status = "extended"
@@ -111,6 +111,7 @@ def group_by_date(releases_list):
     for release in releases_list:
         ts = release.data_ts
         release_date = f"{ts.year}-{ts.month}-{ts.day}"
+        publishers = get_release_publisher_names(release)
         is_am_pm = check_if_ampm(ts.hour)
 
         data_for_ui = prepare_data_for_ui(release)
@@ -123,7 +124,9 @@ def group_by_date(releases_list):
             unique_release_dates.append({
                 "date": release_date,
                 "ampm": is_am_pm,
-                "data": [data_for_ui]
+                "data": [data_for_ui],
+                "mt": publishers["mt"],
+                "ct": publishers["ct"]
             })
         else:
             date_index = unique_set[release_date]
@@ -149,8 +152,9 @@ def group_by_alert(releases_list):
     index = -1
     for release in releases_list:
         event_alert = release.event_alert
-        event = event_alert.event
+        publishers = get_release_publisher_names(release)
         public_alert_level = event_alert.public_alert_symbol.alert_level
+        public_alert_symbol = event_alert.public_alert_symbol.alert_symbol
         ts = release.data_ts
         is_am_pm = check_if_ampm(ts.hour)
 
@@ -160,9 +164,12 @@ def group_by_alert(releases_list):
             unique_set[public_alert_level] = index
 
             unique_release_alerts.append({
+                "public_alert_symbol": public_alert_symbol,
                 "public_alert_level": public_alert_level,
                 "ampm": is_am_pm,
-                "data": [data_for_ui]
+                "data": [data_for_ui],
+                "mt": publishers["mt"],
+                "ct": publishers["ct"]
             })
         else:
             date_index = unique_set[public_alert_level]
@@ -185,10 +192,9 @@ def wrap_get_shift_data():
     Gets a single release with the specificied ID
     """
     json_input = request.get_json()
-    var_checker("json_input", json_input, True)
+
     if not json_input:
         return
-
     # Search releases by
     if "ts_start" in json_input and "ts_end" in json_input:
         user_id = None
@@ -205,10 +211,8 @@ def wrap_get_shift_data():
         var_checker("NO SHIFTS", "no shifts", True)
 
     if "user_id" in json_input:
-        print("Select by ID chosen...")
         releases_data = group_by_date(releases_list)
     else:
-        print("Select by Dates chosen...")
         releases_data = group_by_alert(releases_list)
 
     return jsonify(releases_data)
