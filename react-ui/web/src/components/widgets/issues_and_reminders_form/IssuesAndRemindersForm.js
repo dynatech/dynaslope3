@@ -62,7 +62,8 @@ const styles = theme => ({
 function IssuesAndReminderForm (props) {
     const {
         classes, issueReminderData,
-        setIssueReminderData, fullScreen
+        setIssueReminderData, fullScreen,
+        toResolve
     } = props;
 
     const {
@@ -80,21 +81,21 @@ function IssuesAndReminderForm (props) {
     const [is_event_checked, setIsEventChecked] = useState(false);
     const [is_persistent_checked, setIsPersistentChecked] = useState(false);
 
-    // useEffect(() => {
-    //     setIsEventChecked(is_event_entry); 
-    //     setIsPersistentChecked(is_persistent);
+    useEffect(() => {
+        setIsEventChecked(is_event_entry); 
+        setIsPersistentChecked(is_persistent);
 
-    //     if (iar_id !== "" && typeof iar_id !== "undefined") {
-    //         const site_choices = site_id_list.map(site_id => {
-    //             return sites_option.filter(number => number.value === site_id).pop();
-    //         });
+        if (iar_id !== "" && typeof iar_id !== "undefined") {
+            const site_choices = site_id_list.map(site_id => {
+                return sites_option.filter(number => number.value === site_id).pop();
+            });
 
-    //         setIssueReminderData({
-    //             ...issueReminderData,
-    //             site_id_list: site_choices
-    //         });
-    //     }
-    // }, []);
+            setIssueReminderData({
+                ...issueReminderData,
+                site_id_list: site_choices
+            });
+        }
+    }, []);
 
     const handleRadioChange = event => {
         const { target: { value } } = event;
@@ -149,149 +150,156 @@ function IssuesAndReminderForm (props) {
 
     return (
         <MuiPickersUtilsProvider utils={MomentUtils}>
-            <Grid
-                container
-                spacing={1}
-            >
-                <Grid item xs={12}>
-                    <RadioGroup
-                        aria-label="position"
-                        name="position"
-                        value={radio_value}
-                        onChange={handleRadioChange}
-                        row
-                        className={fullScreen ? "" : classes.justify}
+            {
+                !toResolve ? (
+                    <Grid
+                        container
+                        spacing={1}
                     >
-                        <FormControlLabel
-                            value="general"
-                            control={<Radio color="primary" />}
-                            label="General issue/reminder"
-                            labelPlacement="end"
-                        />
-                        <FormControlLabel
-                            value="site"
-                            control={<Radio color="primary" />}
-                            label="Site-specific issue/reminder"
-                            labelPlacement="end"
-                        />
-                    </RadioGroup>
-                </Grid>
-
-                <Grid item xs={12}>
-                    <Divider style={{ marginBottom: 8 }} />
-                </Grid>
-
-                {
-                    !is_general_iar && (
-                        <Fragment>
-                            <Grid item xs={12}>
-                                <DynaslopeSiteSelectInputForm 
-                                    value={site_id_list}
-                                    changeHandler={update_site_value}
-                                    isMulti
-                                    includeAddressOnOptions={false}
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
+                        <Grid item xs={12}>
+                            <RadioGroup
+                                aria-label="position"
+                                name="position"
+                                value={radio_value}
+                                onChange={handleRadioChange}
+                                row
+                                className={fullScreen ? "" : classes.justify}
+                            >
                                 <FormControlLabel
-                                    key="is_event_entry"
-                                    control={
-                                        <Checkbox
-                                            checked={is_event_checked}
-                                            onChange={switchHandler}
-                                            value="is_event_entry"
-                                            className={classes.checkboxes}
-                                        />
-                                    }
-                                    label={
-                                        <div>
-                                            Related to current monitoring event <Tooltip
-                                                title="Checking this will make the issue/reminder expire at the end of site(s) current monitoring event validity"
-                                            >
-                                                <strong>[?]</strong>
-                                            </Tooltip>
-                                        </div>
-                                    }
-                                    className="primary"
+                                    value="general"
+                                    control={<Radio color="primary" />}
+                                    label="General issue/reminder"
+                                    labelPlacement="end"
                                 />
-                            </Grid>
-                        </Fragment>
-                    )
-                }
-                {
-                    (is_general_iar || !is_event_checked) && (
-                        <Fragment>
-                            <Grid item xs={12} md={6}>
                                 <FormControlLabel
-                                    key="is_persistent"
-                                    control={
-                                        <Checkbox
-                                            checked={is_persistent_checked}
-                                            onChange={switchHandler}
-                                            value="is_persistent" 
-                                            className={classes.checkboxes}
-                                        />
-                                    }
-                                    label="Persistent reminder"
-                                    className="primary"
+                                    value="site"
+                                    control={<Radio color="primary" />}
+                                    label="Site-specific issue/reminder"
+                                    labelPlacement="end"
                                 />
-                            </Grid>
-                        
-                            {
-                                !is_persistent_checked ? (
-                                    <Grid item xs={12} md={6}>
-                                        <KeyboardDateTimePicker
-                                            autoOk
-                                            label="Issue/Reminder Expiration"
-                                            value={ts_expiration}
-                                            onChange={handleDateTime("ts_expiration")}
-                                            ampm={false}
-                                            format="YYYY-MM-DD HH:mm:ss"
-                                            mask="____-__-__ __:__:__"
-                                            clearable
+                            </RadioGroup>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Divider style={{ marginBottom: 8 }} />
+                        </Grid>
+
+                        {
+                            !is_general_iar && (
+                                <Fragment>
+                                    <Grid item xs={12}>
+                                        <DynaslopeSiteSelectInputForm 
+                                            value={site_id_list}
+                                            changeHandler={update_site_value}
+                                            isMulti
+                                            includeAddressOnOptions={false}
                                         />
                                     </Grid>
-                                ) : (
-                                    <Grid item md={6} />
-                                )
-                            }
-                        </Fragment>
-                    )
-                }
-                
-                <Grid item xs={12}>
-                    <Divider style={{ margin: "8px 0" }} />
-                </Grid>
+                                    <Grid item xs={12}>
+                                        <FormControlLabel
+                                            key="is_event_entry"
+                                            control={
+                                                <Checkbox
+                                                    checked={is_event_checked}
+                                                    onChange={switchHandler}
+                                                    value="is_event_entry"
+                                                    className={classes.checkboxes}
+                                                />
+                                            }
+                                            label={
+                                                <div>
+                                                Related to current monitoring event <Tooltip
+                                                        title="Checking this will make the issue/reminder expire at the end of site(s) current monitoring event validity"
+                                                    >
+                                                    <strong>[?]</strong>
+                                                </Tooltip>
+                                                </div>
+                                            }
+                                            className="primary"
+                                        />
+                                    </Grid>
+                                </Fragment>
+                            )
+                        }
+                        {
+                            (is_general_iar || !is_event_checked) && (
+                                <Fragment>
+                                    <Grid item xs={12} md={6}>
+                                        <FormControlLabel
+                                            key="is_persistent"
+                                            control={
+                                                <Checkbox
+                                                    checked={is_persistent_checked}
+                                                    onChange={switchHandler}
+                                                    value="is_persistent" 
+                                                    className={classes.checkboxes}
+                                                />
+                                            }
+                                            label="Persistent reminder"
+                                            className="primary"
+                                        />
+                                    </Grid>
+                            
+                                    {
+                                        !is_persistent_checked ? (
+                                            <Grid item xs={12} md={6}>
+                                                <KeyboardDateTimePicker
+                                                    autoOk
+                                                    label="Issue/Reminder Expiration"
+                                                    value={ts_expiration}
+                                                    onChange={handleDateTime("ts_expiration")}
+                                                    ampm={false}
+                                                    format="YYYY-MM-DD HH:mm:ss"
+                                                    mask="____-__-__ __:__:__"
+                                                    clearable
+                                                />
+                                            </Grid>
+                                        ) : (
+                                            <Grid item md={6} />
+                                        )
+                                    }
+                                </Fragment>
+                            )
+                        }
+                    
+                        <Grid item xs={12}>
+                            <Divider style={{ margin: "8px 0" }} />
+                        </Grid>
 
-                <Grid item xs={12}>
-                    <TextField
-                        required
-                        label="Details"
-                        value={detail}
-                        onChange={handleEventChange("detail")}
-                        placeholder="Enter detail"
-                        multiline
-                        rowsMax={6}
-                        fullWidth
-                        className={classes.textField}
-                        // variant="filled"
-                    />
-                </Grid>
-                
-                <Grid item xs={12}>
-                    <TextField
-                        required
-                        label="Resolution"
-                        value={resolution || ""}
-                        onChange={handleEventChange("resolution")}
-                        placeholder="Enter resolution"
-                        multiline
-                        rowsMax={6}
-                        fullWidth
-                        className={classes.textField}
-                    />
-                </Grid>
-            </Grid>
+                        <Grid item xs={12}>
+                            <TextField
+                                required
+                                label="Details"
+                                value={detail}
+                                onChange={handleEventChange("detail")}
+                                placeholder="Enter detail"
+                                multiline
+                                rowsMax={6}
+                                fullWidth
+                                className={classes.textField}
+                            // variant="filled"
+                            />
+                        </Grid>
+                    
+                    </Grid>
+                ) : (
+                    <Grid container spacing={1}>
+                        <Grid item xs={12}>
+                            <TextField
+                                required
+                                label="Resolution"
+                                value={resolution || ""}
+                                onChange={handleEventChange("resolution")}
+                                placeholder="Enter resolution"
+                                multiline
+                                rowsMax={6}
+                                fullWidth
+                                className={classes.textField}
+                            />
+                        </Grid>                        
+                    </Grid>
+                )
+            }
         </MuiPickersUtilsProvider>           
     );
 }

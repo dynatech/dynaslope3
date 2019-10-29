@@ -42,9 +42,9 @@ def monitoring_background_task():
 
     while True:
         if not GENERATED_ALERTS:
-            GENERATED_ALERTS = generate_alerts()
-            ALERTS_FROM_DB = wrap_get_ongoing_extended_overdue_events()
-            CANDIDATE_ALERTS = candidate_alerts_generator.main()
+            # GENERATED_ALERTS = generate_alerts()
+            # ALERTS_FROM_DB = wrap_get_ongoing_extended_overdue_events()
+            # CANDIDATE_ALERTS = candidate_alerts_generator.main()
 
             emit_data("receive_generated_alerts")
             emit_data("receive_alerts_from_db")
@@ -57,9 +57,9 @@ def monitoring_background_task():
             print(f"{system_time} | Websocket running...")
 
             try:
-                GENERATED_ALERTS = generate_alerts()
-                ALERTS_FROM_DB = wrap_get_ongoing_extended_overdue_events()
-                CANDIDATE_ALERTS = candidate_alerts_generator.main()
+                # GENERATED_ALERTS = generate_alerts()
+                # ALERTS_FROM_DB = wrap_get_ongoing_extended_overdue_events()
+                # CANDIDATE_ALERTS = candidate_alerts_generator.main()
 
                 print(f"{system_time} | Done processing Candidate Alerts.")
             except Exception as err:
@@ -70,10 +70,11 @@ def monitoring_background_task():
             emit_data("receive_alerts_from_db")
             emit_data("receive_candidate_alerts")
 
+        ISSUES_AND_REMINDERS = wrap_get_issue_reminder()
+        emit_data("receive_issues_and_reminders")
+
         SOCKETIO.sleep(60)  # Every 60 seconds in production stage
 
-    ISSUES_AND_REMINDERS = wrap_get_issue_reminder()
-    emit_data("receive_issues_and_reminders")
 
 
 @SOCKETIO.on('connect', namespace='/monitoring')
@@ -175,25 +176,34 @@ def update_alert_gen(site_code=None):
 
 def execute_write_issues_reminders(issues_and_reminders_details):
     data = issues_and_reminders_details
-    var_checker("data", data, True)
     try:
-        status = write_issue_reminder_to_db(
+        try:
+            postings = data["postings"]
+        except KeyError:
+            postings = None
+        
+        result = write_issue_reminder_to_db(
             iar_id=data["iar_id"],
             detail=data["detail"],
             user_id=data["user_id"],
             ts_posted=data["ts_posted"],
-            ts_posted_until=data["ts_posted_until"],
+            ts_expiration=data["ts_expiration"],
             resolved_by=data["resolved_by"],
             resolution=data["resolution"],
+            ts_resolved=data["ts_resolved"],
             site_id_list=data["site_id_list"],
-            is_event_entry=data["is_event_entry"]
+            is_event_entry=data["is_event_entry"],
+            postings=postings
         )
-        DB.session.commit()
+        if result == "success":
+            DB.session.commit()
+        else:
+            DB.session.rollback()
     except:
         DB.session.rollback()
 
     # Prepare process status log
-    status_log = get_process_status_log("write_issue_reminder_to_db", status)
+    status_log = get_process_status_log("request_to_handle_iar", "end")
 
     return status_log
 
@@ -262,6 +272,9 @@ def handle_message(payload):
     elif key == "write_issues_and_reminders":
         print(get_process_status_log("write_issue_reminder_to_db", "request"))
         status = execute_write_issues_reminders(data)
+        global ISSUES_AND_REMINDERS
+        ISSUES_AND_REMINDERS = wrap_get_issue_reminder()
+        emit_data("receive_issues_and_reminders")
         print(status)
 
     elif key == "update_monitoring_tables":

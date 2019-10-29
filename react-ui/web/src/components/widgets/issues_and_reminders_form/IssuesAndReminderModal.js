@@ -16,7 +16,7 @@ function IssuesAndReminderModal (props) {
     const {
         fullScreen, isOpen,
         setIsOpenIssueReminderModal, setIsUpdateNeeded,
-        chosenIssueReminder, isUpdateNeeded
+        chosenIssueReminder, isUpdateNeeded, toResolve
     } = props;
 
     const default_state = {
@@ -27,8 +27,9 @@ function IssuesAndReminderModal (props) {
         postings: "",
         resolution: "",
         resolved_by: 1,
+        ts_resolved: "",
         ts_posted: moment().format("YYYY-MM-DD HH:mm:ss"),
-        ts_expiration: moment().format("YYYY-MM-DD HH:mm:ss"),
+        ts_expiration: "",
         is_event_entry: false,
         is_persistent: false
     };
@@ -48,6 +49,13 @@ function IssuesAndReminderModal (props) {
     }, [chosenIssueReminder]); 
 
     const handleSubmit = () => {
+        const { resolution } = issue_reminder_data;
+        if (resolution !== "" && resolution !== null) {
+            setIssueReminderData({
+                ...issue_reminder_data,
+                ts_resolved: moment().format("YYYY-MM-DD HH:mm:ss")
+            });
+        }
         handleIssuesAndReminders(issue_reminder_data, ret => {
             // closeHandler();
             // handleReset();
@@ -76,6 +84,7 @@ function IssuesAndReminderModal (props) {
                     issueReminderData={issue_reminder_data}
                     setIssueReminderData={setIssueReminderData}
                     fullScreen={fullScreen}
+                    toResolve={toResolve}
                 />
             </DialogContent>
             <DialogActions>

@@ -358,8 +358,9 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     for event_alert in active_event_alerts:
         validity = event_alert.event.validity
         event_id = event_alert.event.event_id
-        latest_release = event_alert.releases.order_by(
-            DB.desc(MonitoringReleases.data_ts)).first()
+        # latest_release = event_alert.releases.order_by(
+        #     DB.desc(MonitoringReleases.data_ts)).first()
+        latest_release = event_alert.releases[0]
 
         # NOTE: LOUIE This formats release time to have date instead of time only
         data_ts = latest_release.data_ts

@@ -74,7 +74,8 @@ const styles = theme => ({
 function IssuesAndReminderCard (props) {
     const { 
         isCardModalOpen, chosenIssueReminder,
-        setCardModalOpen, setIsOpenIssueReminderModal
+        setCardModalOpen, setIsOpenIssueReminderModal,
+        setToResolve
     } = props;
     const { site_list, ts_posted, detail, issue_reporter } = chosenIssueReminder;
     const { first_name, last_name } = issue_reporter;
@@ -84,6 +85,12 @@ function IssuesAndReminderCard (props) {
 
     const handleEdit = () => {
         setCardModalOpen(false);
+        setToResolve(false);
+        setIsOpenIssueReminderModal(true);
+    };
+    const handleResolve = () => {
+        setCardModalOpen(false);
+        setToResolve(true);
         setIsOpenIssueReminderModal(true);
     };
 
@@ -102,6 +109,9 @@ function IssuesAndReminderCard (props) {
             <DialogActions disableSpacing>
                 <Button onClick={handleEdit} color="primary">
                     Edit
+                </Button>
+                <Button onClick={handleResolve} color="secondary">
+                    Resolve
                 </Button>
                 <Button onClick={() => setCardModalOpen(false)} color="primary" autoFocus>
                     Close
@@ -207,6 +217,7 @@ function IssuesAndReminderList (props) {
     });
     const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
     const [is_card_modal_open, setCardModalOpen] = useState(false);
+    const [toResolve, setToResolve] = useState(false);
 
     useEffect(() => {
         receiveIssuesAndReminders(issues_and_reminders => {
@@ -266,6 +277,7 @@ function IssuesAndReminderList (props) {
                 isCardModalOpen={is_card_modal_open}
                 setCardModalOpen={setCardModalOpen}
                 chosenIssueReminder={chosenIssueReminder}
+                setToResolve={setToResolve}
                 setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
             />
             
@@ -275,6 +287,7 @@ function IssuesAndReminderList (props) {
                 setIsUpdateNeeded={setIsUpdateNeeded}
                 isUpdateNeeded={isUpdateNeeded}
                 chosenIssueReminder={chosenIssueReminder}
+                toResolve={toResolve}
             />
         </Fragment>
     );

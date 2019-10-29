@@ -36,7 +36,10 @@ export function handleIssuesAndReminders (json_data, callback) {
     temp.ts_expiration = moment(ts_expiration).format("YYYY-MM-DD HH:mm:ss");
     temp.site_id_list = temp_list;
 
+    // Make a websocket request
     sendWSMessage("write_issues_and_reminders", temp);
+
+    // Make an API request
     // const api_link = `${host}/api/issues_and_reminders/write_issue_reminder_to_db`;
     // makeAxiosRequest(temp, api_link, callback);
 }
