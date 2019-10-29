@@ -89,7 +89,7 @@ function processTableData (data, data_handlers) {
             // site_list: prepareSiteAddress(),
             reporter: `${row.issue_reporter.first_name} ${row.issue_reporter.last_name}`,
             ts_posted: moment(row.ts_posted).format("DD MMMM YYYY, HH:mm:ss"),
-            ts_posted_until: moment(row.ts_posted_until).format("DD MMMM YYYY, HH:mm:ss"),
+            ts_expiration: moment(row.ts_expiration).format("DD MMMM YYYY, HH:mm:ss"),
             resolved_by: row.resolved_by,
             resolution: row.resolution,
             actions: getManipulationButtons(row, data_handlers)
@@ -273,7 +273,7 @@ function IssuesAndReminders (props) {
             }
         },
         {
-            name: "ts_posted_until",
+            name: "ts_expiration",
             label: "Posted Until",
             options: {
                 filter: false,

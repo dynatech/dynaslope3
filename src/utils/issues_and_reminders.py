@@ -7,7 +7,7 @@ from connection import DB
 from sqlalchemy.orm import joinedload, raiseload, Load
 from datetime import datetime
 # from src.models.monitoring import IssuesAndReminders
-from src.models.issues_and_reminders import IssuesAndReminders, IssuesRemindersPostings
+from src.models.issues_and_reminders import IssuesAndReminders, IssuesRemindersSitePostings
 from src.utils.monitoring import get_current_monitoring_instance_per_site
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
@@ -24,7 +24,7 @@ def write_iar_transaction_entry(iar_id, is_event_entry, site_id=None):
         detail
         user_id
         ts_posted
-        ts_posted_until
+        ts_expiration
         resolved_by
         resolution
     """
@@ -34,7 +34,7 @@ def write_iar_transaction_entry(iar_id, is_event_entry, site_id=None):
         if event:
             event_id = event.event_id
 
-    new_issue = IssuesRemindersPostings(
+    new_issue = IssuesRemindersSitePostings(
         event_id=event_id,
         site_id=site_id,
         iar_id=iar_id
@@ -48,7 +48,7 @@ def write_iar_transaction_entry(iar_id, is_event_entry, site_id=None):
     return new_issue_id
 
 
-def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_posted_until, resolved_by, resolution, site_id_list, is_event_entry):
+def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_expiration, resolved_by, resolution, site_id_list, is_event_entry):
     """
     Insert method for issues_and_reminders table. Returns new issues_and_reminder ID.
 
@@ -56,7 +56,7 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_posted_unt
         detail
         user_id
         ts_posted
-        ts_posted_until
+        ts_expiration
         resolved_by
         resolution
         is_event_entry
@@ -67,11 +67,13 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_posted_unt
     else:
         if not isinstance(ts_posted, datetime):
             ts_posted = datetime.strptime(ts_posted, "%Y-%m-%d %H:%M:%S")
-        if not isinstance(ts_posted_until, datetime) and ts_posted_until:
-            ts_posted_until = datetime.strptime(ts_posted_until, "%Y-%m-%d %H:%M:%S")
+        if not isinstance(ts_expiration, datetime) and ts_expiration:
+            ts_expiration = datetime.strptime(
+                ts_expiration, "%Y-%m-%d %H:%M:%S")
 
     try:
-        issue_reminder_row = IssuesAndReminders.query.filter_by(iar_id=iar_id).first()
+        issue_reminder_row = IssuesAndReminders.query.filter_by(
+            iar_id=iar_id).first()
         var_checker("issue_reminder_row", issue_reminder_row, True)
 
         if issue_reminder_row:
@@ -79,7 +81,7 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_posted_unt
             issue_reminder_row.detail = detail
             issue_reminder_row.user_id = user_id
             issue_reminder_row.ts_posted = ts_posted
-            issue_reminder_row.ts_posted_until = ts_posted_until
+            issue_reminder_row.ts_expiration = ts_expiration
             issue_reminder_row.resolved_by = resolved_by
             issue_reminder_row.resolution = resolution
             issue_reminder_row.site_id_list = site_id_list
@@ -93,7 +95,7 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_posted_unt
                 detail=detail,
                 user_id=user_id,
                 ts_posted=ts_posted,
-                ts_posted_until=ts_posted_until,
+                ts_expiration=ts_expiration,
                 resolved_by=resolved_by,
                 resolution=resolution
             )
@@ -106,9 +108,11 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_posted_unt
             var_checker("site_id_list", site_id_list, True)
             if site_id_list:
                 for site_id in site_id_list:
-                    write_iar_transaction_entry(new_issue_and_reminder_id, is_event_entry=is_event_entry, site_id=site_id)
+                    write_iar_transaction_entry(
+                        new_issue_and_reminder_id, is_event_entry=is_event_entry, site_id=site_id)
             else:
-                write_iar_transaction_entry(new_issue_and_reminder_id, is_event_entry=False, site_id=None)
+                write_iar_transaction_entry(
+                    new_issue_and_reminder_id, is_event_entry=False, site_id=None)
 
             print(get_process_status_log("write_issue_reminder_to_db", "end"))
 
@@ -136,9 +140,10 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
     var_checker("include_expired", include_expired, True)
 
     iar = IssuesAndReminders
-    irp = IssuesRemindersPostings
+    irp = IssuesRemindersSitePostings
     # base = DB.session.query(iar)
-    base = DB.session.query(iar).options(joinedload(iar.postings).joinedload(irp.event)).filter(iar.resolution == None)
+    base = DB.session.query(iar).options(joinedload(
+        iar.postings).joinedload(irp.event)).filter(iar.resolution == None)
     return_data = None
 
     if start and end:
@@ -149,10 +154,10 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
             base = base.filter(iar.detail.ilike("%" + search + "%"))
 
         if not include_expired:
-            base = base.filter(iar.ts_posted_until > datetime.now())
+            base = base.filter(iar.ts_expiration > datetime.now())
 
-
-        issues_and_reminders = base.order_by(DB.desc(iar.ts_posted)).limit(limit).offset(offset).all()
+        issues_and_reminders = base.order_by(
+            DB.desc(iar.ts_posted)).limit(limit).offset(offset).all()
         DB.session.commit()
 
         if include_count:
@@ -161,7 +166,8 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
         else:
             return_data = issues_and_reminders
     else:
-        issues_and_reminders = base.order_by(DB.desc(iar.timestamp)).filter(iar.event_id == event_id).all()
+        issues_and_reminders = base.order_by(
+            DB.desc(iar.timestamp)).filter(iar.event_id == event_id).all()
         DB.session.commit()
         return_data = issues_and_reminders
 

@@ -383,23 +383,6 @@ class MomsFeatureAlerts(UserMixin, DB.Model):
                 f" Feature Type: {self.feature_id} Alert Level: {self.alert_level}")
 
 
-class BulletinTracker(UserMixin, DB.Model):
-    """
-    Class representation of bulletin_tracker table
-    """
-
-    __tablename__ = "bulletin_tracker"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
-
-    site_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    bulletin_number = DB.Column(DB.Integer, nullable=False)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
-                f" TS: {self.bulletin_number}")
-
-
 class PublicAlertSymbols(UserMixin, DB.Model):
     """
     Class representation of public_alert_symbols table
@@ -527,77 +510,6 @@ class InternalAlertSymbols(UserMixin, DB.Model):
                 f" OP Trigger Symbols: {self.trigger_symbol}")
 
 
-# class IssuesAndReminders(UserMixin, DB.Model):
-#     """
-#     Class representation of issues_and_reminders table
-#     """
-
-#     __tablename__ = "issues_and_reminders"
-#     __bind_key__ = "ewi_db"
-#     __table_args__ = {"schema": "ewi_db"}
-
-#     iar_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-#     detail = DB.Column(DB.String(360), nullable=False)
-#     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-#         "commons_db.users.user_id"), nullable=False)
-#     ts_posted = DB.Column(DB.DateTime, nullable=False)
-#     event_id = DB.Column(DB.Integer, DB.ForeignKey(
-#         "ewi_db.monitoring_events.event_id"), nullable=False)
-#     status = DB.Column(DB.String(10), nullable=False)
-#     resolved_by = DB.Column(DB.Integer)
-#     resolution = DB.Column(DB.String(360))
-
-#     # Louie - Relationship
-#     issue_reporter = DB.relationship(
-#         "Users", backref="issue_and_reminder_reporter",
-#         primaryjoin="IssuesAndReminders.user_id==Users.user_id",
-#         lazy="joined", innerjoin=True)
-
-#     def __repr__(self):
-#         return (f"Type <{self.__class__.__name__}> IAR ID: {self.iar_id}"
-#                 f" Detail: {self.detail} Analysis: {self.user_id}")
-
-
-class LUTResponses(UserMixin, DB.Model):
-    """
-    Class representation of lut_responses table
-    """
-
-    __tablename__ = "lut_responses"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
-
-    public_alert_level = DB.Column(
-        DB.String(8), primary_key=True, nullable=False)
-    recommended_response = DB.Column(DB.String(200))
-    response_llmc_lgu = DB.Column(DB.String(200), nullable=False)
-    response_community = DB.Column(DB.String(200), nullable=False)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Pub Alert Lvl: {self.public_alert_level}"
-                f" Recommended Response: {self.recommended_response}"
-                f" Response LLMC: {self.response_llmc_lgu}"
-                f" Response Comm: {self.response_community}")
-
-
-class LUTTriggers(UserMixin, DB.Model):
-    """
-    Class representation of lut_triggers table
-    """
-
-    __tablename__ = "lut_triggers"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
-
-    trigger_type = DB.Column(DB.String(1), primary_key=True, nullable=False)
-    detailed_desc = DB.Column(DB.String(100), nullable=False)
-    cause = DB.Column(DB.String(50))
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Trigger Type: {self.trigger_type}"
-                f" Detailed Desc: {self.detailed_desc}")
-
-
 class EndOfShiftAnalysis(UserMixin, DB.Model):
     """
     Class representation of end_of_shift_analysis table
@@ -650,6 +562,73 @@ class PublicAlerts(UserMixin, DB.Model):
                 f" Site_ID: {self.site_id} pub_sym_id: {self.pub_sym_id}"
                 f" TS: {self.ts} TS_UPDATED: {self.ts_updated}")
 
+
+
+class BulletinTracker(UserMixin, DB.Model):
+    """
+    Class representation of bulletin_tracker table
+    """
+
+    __tablename__ = "bulletin_tracker"
+    __bind_key__ = "ewi_db"
+    __table_args__ = {"schema": "ewi_db"}
+
+    site_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    bulletin_number = DB.Column(DB.Integer, nullable=False)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
+                f" TS: {self.bulletin_number}")
+
+
+class BulletinResponses(UserMixin, DB.Model):
+    """
+    Class representation of bulletin_responses table
+    """
+
+    __tablename__ = "bulletin_responses"
+    __bind_key__ = "ewi_db"
+    __table_args__ = {"schema": "ewi_db"}
+
+    pub_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "ewi_db.public_alert_symbols.pub_sym_id"), primary_key=True)
+    recommended = DB.Column(DB.String(200))
+    lewc_lgu = DB.Column(DB.String(200))
+    community = DB.Column(DB.String(200))
+
+    public_alert_symbol = DB.relationship(
+        "PublicAlertSymbols", backref=DB.backref("bulletin_response", lazy="dynamic"), lazy="joined", innerjoin=True)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Public Symbol ID: {self.pub_sym_id}"
+                f" Recommended Response: {self.recommended} LEWC/LGU Response: {self.lewc_lgu}"
+                f" Community Response: {self.community}")
+
+
+class BulletinTriggers(UserMixin, DB.Model):
+    """
+    Class representation of BulletinTriggers table
+    """
+
+    __tablename__ = "BulletinTriggers"
+    __bind_key__ = "ewi_db"
+    __table_args__ = {"schema": "ewi_db"}
+
+    internal_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "ewi_db.internal_alert_symbols.internal_sym_id"), primary_key=True)
+    description = DB.Column(DB.String(100))
+    cause = DB.Column(DB.String(50))
+    # community = DB.Column(DB.String(200))
+
+    internal_sym = DB.relationship(
+        "InternalAlertSymbols", backref=DB.backref("bulletin_trigger", lazy="dynamic"), lazy="joined", innerjoin=True)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Public Symbol ID: {self.intermal_sym_id}"
+                f" Recommended Response: {self.recommended} LEWC/LGU Response: {self.lewc_lgu}"
+                f" Community Response: {self.community}")
+
+
 # END OF CLASS DECLARATIONS
 
 
@@ -671,6 +650,7 @@ class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringEvents
+        exclude = ["issues_reminders_site_posting"]
 
 
 class MonitoringEventAlertsSchema(MARSHMALLOW.ModelSchema):
@@ -681,8 +661,7 @@ class MonitoringEventAlertsSchema(MARSHMALLOW.ModelSchema):
                           exclude=("event_alerts", ))
     ts_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_end = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    public_alert_symbol = fields.Nested(
-        "PublicAlertSymbolsSchema", exclude=("event_alerts", "public_alerts"))
+    public_alert_symbol = fields.Nested("PublicAlertSymbolsSchema")
     releases = fields.Nested("MonitoringReleasesSchema",
                              many=True, exclude=("event_alert", ))
 
@@ -856,6 +835,7 @@ class BulletinTrackerSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of BulletinTracker class
     """
+
     class Meta:
         """Saves table class structure as schema model"""
         model = BulletinTracker
@@ -869,7 +849,7 @@ class PublicAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = PublicAlertSymbols
-        exclude = ["public_alerts", "event_alerts"]
+        exclude = ["public_alerts", "event_alerts", "bulletin_response"]
 
 
 class OperationalTriggerSymbolsSchema(MARSHMALLOW.ModelSchema):
@@ -910,35 +890,7 @@ class InternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = InternalAlertSymbols
-        exclude = ["trigger"]
-
-
-# class IssuesAndRemindersSchema(MARSHMALLOW.ModelSchema):
-#     """
-#     Schema representation of Issues And Reminders class
-#     """
-
-#     class Meta:
-#         """Saves table class structure as schema model"""
-#         model = IssuesAndReminders
-
-
-class LUTResponsesSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Lookup Table Responses class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = LUTResponses
-
-
-class LUTTriggersSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring Lookup Table Triggers class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = LUTTriggers
+        exclude = ["trigger", "bulletin_trigger"]
 
 
 class EndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
@@ -950,3 +902,23 @@ class EndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = EndOfShiftAnalysis
+
+
+class BulletinResponsesSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of BulletinResponses class
+    """
+    
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = BulletinResponses
+
+
+class BulletinTriggersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of BulletinTriggers class
+    """
+    
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = BulletinTriggers

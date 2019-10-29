@@ -26,12 +26,13 @@ class IssuesAndReminders(UserMixin, DB.Model):
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.users.user_id"), nullable=False)
     ts_posted = DB.Column(DB.DateTime, nullable=False)
-    ts_posted_until = DB.Column(DB.DateTime, nullable=False)
+    ts_expiration = DB.Column(DB.DateTime)
     resolved_by = DB.Column(DB.Integer)
     resolution = DB.Column(DB.String(360))
+    ts_resolved = DB.Column(DB.DateTime)
 
     postings = DB.relationship(
-        "IssuesRemindersPostings", backref=DB.backref("issue_and_reminder", lazy="joined"), lazy="subquery")
+        "IssuesRemindersSitePostings", backref=DB.backref("issue_and_reminder", lazy="joined"), lazy="subquery")
 
     # Louie - Relationship
     issue_reporter = DB.relationship(
@@ -40,29 +41,30 @@ class IssuesAndReminders(UserMixin, DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> IAR ID: {self.iar_id}"
                 f" Detail: {self.detail} user_id: {self.user_id}"
-                f" ts_posted: {self.ts_posted} ts_posted_until: {self.ts_posted_until}"
+                f" ts_posted: {self.ts_posted} ts_expiration: {self.ts_expiration}"
                 f" resolved_by: {self.resolved_by} resolution: {self.resolution}")
 
 
-class IssuesRemindersPostings(UserMixin, DB.Model):
+class IssuesRemindersSitePostings(UserMixin, DB.Model):
     """
     Class representation of earthquake_events table
     """
 
-    __tablename__ = "issues_reminders_postings"
+    __tablename__ = "issues_reminders_site_postings"
     __bind_key__ = "commons_db"
     __table_args__ = {"schema": "commons_db"}
 
-    iar_p_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    iar_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.issues_and_reminders.iar_id"), primary_key=True)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"))
+        "commons_db.sites.site_id"), primary_key=True)
     event_id = DB.Column(DB.Integer, DB.ForeignKey(
         "ewi_db.monitoring_events.event_id"))
-    iar_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.issues_and_reminders.iar_id"), nullable=False)
 
-    event = DB.relationship("MonitoringEvents", backref="issues_reminders_posting", lazy="joined")
-    site = DB.relationship("Sites", backref="issues_reminders_posting", lazy="joined")
+    event = DB.relationship(
+        "MonitoringEvents", backref=DB.backref("issues_reminders_site_posting", lazy="raise"), lazy="joined")
+    site = DB.relationship(
+        "Sites", backref=DB.backref("issues_reminders_site_posting", lazy="raise"), lazy="joined")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> iar_p_id: {self.iar_p_id}"
@@ -76,18 +78,19 @@ class IssuesAndRemindersSchema(MARSHMALLOW.ModelSchema):
     """
 
     ts_posted = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    ts_posted_until = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_expiration = fields.DateTime("%Y-%m-%d %H:%M:%S")
     user_id = fields.Integer()
-    issue_reporter = fields.Nested("UsersSchema", exclude=("issue_and_reminder", ))
+    issue_reporter = fields.Nested(
+        "UsersSchema", exclude=("issue_and_reminder", ))
     postings = fields.Nested(
-        "IssuesRemindersPostingsSchema", many=True, exclude=("issue_and_reminder", ))
+        "IssuesRemindersSitePostingsSchema", many=True, exclude=("issue_and_reminder", ))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = IssuesAndReminders
 
 
-class IssuesRemindersPostingsSchema(MARSHMALLOW.ModelSchema):
+class IssuesRemindersSitePostingsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Commons IssuesAndReminders class
     """
@@ -97,6 +100,7 @@ class IssuesRemindersPostingsSchema(MARSHMALLOW.ModelSchema):
         "MonitoringEventsSchema", exclude=("issues_reminders_posting", "event_alerts", "site", "narratives"))
     site = fields.Nested(
         "SitesSchema", exclude=("issues_reminders_posting", ))
+
     class Meta:
         """Saves table class structure as schema model"""
-        model = IssuesRemindersPostings
+        model = IssuesRemindersSitePostings

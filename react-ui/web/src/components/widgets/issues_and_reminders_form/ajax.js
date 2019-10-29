@@ -24,7 +24,7 @@ export function handleDelete (json_data, callback) {
 
 export function handleIssuesAndReminders (json_data, callback) {
     const temp = json_data;
-    const { ts_posted, ts_posted_until, site_id_list } = json_data;
+    const { ts_posted, ts_expiration, site_id_list } = json_data;
     const temp_list = [];
     if (site_id_list !== null) {
         site_id_list.forEach(({ value }) => {
@@ -33,7 +33,7 @@ export function handleIssuesAndReminders (json_data, callback) {
         });
     }
     temp.ts_posted = moment(ts_posted).format("YYYY-MM-DD HH:mm:ss");
-    temp.ts_posted_until = moment(ts_posted_until).format("YYYY-MM-DD HH:mm:ss");
+    temp.ts_expiration = moment(ts_expiration).format("YYYY-MM-DD HH:mm:ss");
     temp.site_id_list = temp_list;
 
     sendWSMessage("write_issues_and_reminders", temp);

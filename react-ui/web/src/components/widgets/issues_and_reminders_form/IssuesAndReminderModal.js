@@ -1,33 +1,21 @@
 import React, { useState, useEffect } from "react";
-import moment from "moment";
+
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withStyles, withMobileDialog
+    Button, withMobileDialog
 } from "@material-ui/core";
-import { compose } from "recompose";
-// import AlertReleaseForm from "./AlertReleaseForm";
+
+import moment from "moment";
+
 import { handleIssuesAndReminders } from "./ajax";
 import IssuesAndReminderForm from "./IssuesAndRemindersForm";
-
-const styles = theme => ({
-    inputGridContainer: {
-        marginTop: 8,
-        marginBottom: 8
-    },
-    selectInput: {
-        width: "auto",
-        [theme.breakpoints.down("xs")]: {
-            width: "250px"
-        }
-    }
-});
 
 
 function IssuesAndReminderModal (props) {
     const {
-        classes, fullScreen, isOpen,
-        closeHandler, setIsUpdateNeeded,
+        fullScreen, isOpen,
+        setIsOpenIssueReminderModal, setIsUpdateNeeded,
         chosenIssueReminder, isUpdateNeeded
     } = props;
 
@@ -40,21 +28,23 @@ function IssuesAndReminderModal (props) {
         resolution: "",
         resolved_by: 1,
         ts_posted: moment().format("YYYY-MM-DD HH:mm:ss"),
-        ts_posted_until: moment().format("YYYY-MM-DD HH:mm:ss"),
+        ts_expiration: moment().format("YYYY-MM-DD HH:mm:ss"),
         is_event_entry: false,
         is_persistent: false
     };
 
-    const [issue_reminder_data, setIssueReminderData] = useState({});
+    const [issue_reminder_data, setIssueReminderData] = useState(default_state);
+    
+    const handleReset = () => setIssueReminderData(default_state);
+    const closeHandler = () => setIsOpenIssueReminderModal(false);
 
     useEffect(() => {
-        setIssueReminderData(default_state);
-
-        if (!(Object.entries(chosenIssueReminder).length === 0 && chosenIssueReminder.constructor === Object)) {
-            setIssueReminderData(chosenIssueReminder);
-        } else {
-            handleReset();
-        }
+        setIssueReminderData(chosenIssueReminder);
+        // if (!(Object.entries(chosenIssueReminder).length === 0 && chosenIssueReminder.constructor === Object)) {
+        //     setIssueReminderData(chosenIssueReminder);
+        // } else {
+        //     handleReset();
+        // }
     }, [chosenIssueReminder]); 
 
     const handleSubmit = () => {
@@ -68,43 +58,36 @@ function IssuesAndReminderModal (props) {
         setIsUpdateNeeded(!isUpdateNeeded);        
     };
 
-    const handleReset = () => {
-        setIssueReminderData(default_state);
-    };
-
     return (
-        <div>
-            <Dialog
-                fullWidth
-                fullScreen={fullScreen}
-                open={isOpen}
-                aria-labelledby="form-dialog-title"
+        <Dialog
+            fullWidth
+            fullScreen={fullScreen}
+            open={isOpen}
+            aria-labelledby="form-dialog-title"
 
-            >
-                <DialogTitle id="form-dialog-title">Issues and Reminder Form</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        ISSUES AND REMINDERS. For project-wide reminder, leave the sites field blank. For persistent reminders with no
-                        expiration, tick &quot;Is persistent?&quot;.  
-                    </DialogContentText>
+        >
+            <DialogTitle id="form-dialog-title">Issues and Reminder Form</DialogTitle>
+            <DialogContent>
+                <DialogContentText>
+                        Provide information to the following fields.
+                </DialogContentText>
 
-                    <IssuesAndReminderForm
-                        issueReminderData={issue_reminder_data} setIssueReminderData={setIssueReminderData}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <div>
-                        <Button onClick={closeHandler} color="primary">
-                                            Cancel
-                        </Button>
-                        <Button variant="contained" color="primary" onClick={handleSubmit} disabled={false}>
-                            Submit
-                        </Button>
-                    </div>
-                </DialogActions>
-            </Dialog>
-        </div>
+                <IssuesAndReminderForm
+                    issueReminderData={issue_reminder_data}
+                    setIssueReminderData={setIssueReminderData}
+                    fullScreen={fullScreen}
+                />
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={closeHandler} color="primary">
+                        Cancel
+                </Button>
+                <Button color="secondary" onClick={handleSubmit} disabled={false}>
+                        Submit
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 }
 
-export default compose(withStyles(styles), withMobileDialog())(IssuesAndReminderModal);
+export default withMobileDialog()(IssuesAndReminderModal);

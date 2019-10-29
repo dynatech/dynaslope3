@@ -99,5 +99,6 @@ class SitesSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = Sites
-        exclude = ("season_months", "moms_instance")
+        exclude = ("season_months", "moms_instance",
+                   "issues_reminders_site_posting")
         ordered = False

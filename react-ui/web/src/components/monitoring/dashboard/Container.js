@@ -43,30 +43,31 @@ function Container (props) {
     const [generatedAlerts, setGeneratedAlerts] = useState([]);
     const [candidateAlertsData, setCandidateAlertsData] = useState([]);
     const [alertsFromDbData, setAlertsFromDbData] = useState({ latest: [], extended: [], overdue: [] });
-    const [issuesAndReminders, setIssuesAndReminders] = useState([]);
     const [isOpenReleaseModal, setIsOpenReleaseModal] = useState(false);
     const [chosenCandidateAlert, setChosenCandidateAlert] = useState(null);
 
+    const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
+    
     useEffect(() => {
         const socket_fns = {
-            receive_generated_alerts (err, data) {
-                const generated_alerts_data = JSON.parse(data);
-                console.log(generated_alerts_data);
-                setGeneratedAlerts(generated_alerts_data);
-                if (err != null) console.log(err);
-            },
-            receive_candidate_alerts (err, data) {
-                const candidate_alerts_data = JSON.parse(data);
-                console.log(candidate_alerts_data);
-                setCandidateAlertsData(candidate_alerts_data);
-                if (err != null) console.log(err);
-            },
-            receive_alerts_from_db (err, data) {
-                const alerts_from_db_data = JSON.parse(data);
-                console.log(alerts_from_db_data);
-                setAlertsFromDbData(alerts_from_db_data);
-                if (err != null) console.log(err);
-            }
+            // receive_generated_alerts (err, data) {
+            //     const generated_alerts_data = JSON.parse(data);
+            //     console.log(generated_alerts_data);
+            //     setGeneratedAlerts(generated_alerts_data);
+            //     if (err != null) console.log(err);
+            // },
+            // receive_candidate_alerts (err, data) {
+            //     const candidate_alerts_data = JSON.parse(data);
+            //     console.log(candidate_alerts_data);
+            //     setCandidateAlertsData(candidate_alerts_data);
+            //     if (err != null) console.log(err);
+            // },
+            // receive_alerts_from_db (err, data) {
+            //     const alerts_from_db_data = JSON.parse(data);
+            //     console.log(alerts_from_db_data);
+            //     setAlertsFromDbData(alerts_from_db_data);
+            //     if (err != null) console.log(err);
+            // }
         };
         subscribeToWebSocket(socket_fns);
 
@@ -80,19 +81,29 @@ function Container (props) {
     };
 
     const handleBoolean = (data, bool) => () => {
-        console.log(data, bool);
-        setIsOpenReleaseModal(!isOpenReleaseModal);
+        if (data === "is_open_release_modal") setIsOpenReleaseModal(bool);
+        else if (data === "is_open_issues_modal") setIsOpenIssueReminderModal(bool);
     };
 
     const is_desktop = isWidthUp("md", width);
 
     const custom_buttons = <span>
         <Button
-            aria-label="Compose message"
+            aria-label="Add issue/reminder"
             variant="contained"
             color="primary"
             size="small"
             style={{ marginRight: 8 }}
+            onClick={handleBoolean("is_open_issues_modal", true)}
+        >
+            <AddAlert style={{ paddingRight: 4, fontSize: 20 }} />
+            Add issue/reminder
+        </Button>
+        <Button
+            aria-label="Release alert"
+            variant="contained"
+            color="primary"
+            size="small"
             onClick={handleBoolean("is_open_release_modal", true)}
         >
             <AddAlert style={{ paddingRight: 4, fontSize: 20 }} />
@@ -112,7 +123,10 @@ function Container (props) {
             <div className={classes.tabBar}>
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={3}>
-                        <IssuesAndRemindersList />
+                        <IssuesAndRemindersList 
+                            isOpenIssueReminderModal={isOpenIssueReminderModal}
+                            setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
+                        />
                     </Grid>
                     
                     <Grid item md={9}>
@@ -138,14 +152,8 @@ function Container (props) {
                 </Grid>
             </div>
 
-            {/* <Hidden xsDown>
-                    <Grid item xs={12} md={3}>
-                        <IssuesAndRemindersList style={{ marginRight: 100 }} />
-                    </Grid>
-                </Hidden> */}
 
-
-            {!is_desktop && <CircularAddButton clickHandler={handleBoolean("is_open_release_modal", true)} />}
+            { !is_desktop && <CircularAddButton clickHandler={handleBoolean("is_open_release_modal", true)} /> }
 
             <AlertReleaseFormModal
                 isOpen={isOpenReleaseModal}

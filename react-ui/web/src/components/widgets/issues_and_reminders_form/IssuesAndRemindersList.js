@@ -4,10 +4,13 @@ import { withStyles } from "@material-ui/core/styles";
 import {
     Typography, GridList, 
     GridListTile, GridListTileBar, 
-    IconButton,
-    Tooltip
+    IconButton, Tooltip,
+    Dialog, DialogContent, DialogTitle,
+    DialogActions, Button, DialogContentText
 } from "@material-ui/core";
-import InfoIcon from "@material-ui/icons/Info";
+import InfoIcon from "@material-ui/icons/InfoOutlined";
+
+import moment from "moment";
 
 import IssuesAndReminderModal from "./IssuesAndReminderModal";
 import { receiveIssuesAndReminders } from "../../../websocket/monitoring_ws";
@@ -41,6 +44,13 @@ const styles = theme => ({
         top: 148,
         padding: 8
     },
+    hasNoIssues: {
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "gainsboro",
+        border: "4px solid #CCCCCC"
+    },
     icon: {
         color: "rgba(255, 255, 255, 0.54)",
     },
@@ -61,17 +71,54 @@ const styles = theme => ({
     }
 });
 
-function prepareTileData (classes, processed_i_n_r, handleEdit) {
+function IssuesAndReminderCard (props) {
+    const { 
+        isCardModalOpen, chosenIssueReminder,
+        setCardModalOpen, setIsOpenIssueReminderModal
+    } = props;
+    const { site_list, ts_posted, detail, issue_reporter } = chosenIssueReminder;
+    const { first_name, last_name } = issue_reporter;
+
+    const item_title = prepareTileTitle(site_list, false);
+    const ts = moment(ts_posted).format("DD MMMM YYYY, HH:mm");
+
+    const handleEdit = () => {
+        setCardModalOpen(false);
+        setIsOpenIssueReminderModal(true);
+    };
+
+    return (
+        <Dialog open={isCardModalOpen} maxWidth="sm">
+            <DialogTitle style={{ paddingBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                    <InfoIcon style={{ paddingRight: 8 }} /> {item_title}
+                </div>
+            </DialogTitle>
+            <DialogContent>
+                <DialogContentText>{ts}</DialogContentText>
+                <DialogContentText style={{ textIndent: 40 }} align="justify">{detail}</DialogContentText>
+                <DialogContentText align="right" style={{ marginBottom: 0 }}>{`${first_name} ${last_name}`}</DialogContentText>
+            </DialogContent>
+            <DialogActions disableSpacing>
+                <Button onClick={handleEdit} color="primary">
+                    Edit
+                </Button>
+                <Button onClick={() => setCardModalOpen(false)} color="primary" autoFocus>
+                    Close
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+}
+
+function prepareTileData (classes, processed_i_n_r, handleInfoExpand) {
     return processed_i_n_r.map((tile, index) => {
         const { 
             site_list, detail, 
-            issue_reporter, title 
+            issue_reporter 
         } = tile;
         
-        let item_title = "GENERAL";
-        if (site_list.length !== 0) {
-            item_title = site_list.join(", ");
-        }
+        const item_title = prepareTileTitle(site_list);
         
         return (
             <GridListTile
@@ -91,7 +138,7 @@ function prepareTileData (classes, processed_i_n_r, handleEdit) {
                             <IconButton 
                                 aria-label="Expand"
                                 className={classes.icon}
-                                onClick={handleEdit(tile)}
+                                onClick={handleInfoExpand(tile)}
                             >
                                 <InfoIcon />
                             </IconButton>
@@ -103,11 +150,22 @@ function prepareTileData (classes, processed_i_n_r, handleEdit) {
     });
 }
 
+function prepareTileTitle (site_list, to_caps_general) {
+    let item_title = to_caps_general ? "GENERAL" : "General";
+    if (site_list.length !== 0) {
+        item_title = site_list.join(", ");
+    }
+    return item_title;
+}
+
 function includeSiteList (issues_and_reminders) {
     const processed_i_n_r = issues_and_reminders.map((iar, index) => {
         const site_id_list = [];
         const site_list = [];
         const site_events_list = [];
+
+        const is_persistent = iar.ts_expiration === null;
+
         iar.postings.forEach(element => {
             const { event_id, site_id, site } = element;
             if (site_id !== null) {
@@ -124,7 +182,8 @@ function includeSiteList (issues_and_reminders) {
             site_id_list,
             site_list,
             site_events_list,
-            is_event_entry
+            is_event_entry,
+            is_persistent
         };
 
         return new_iar;
@@ -135,40 +194,41 @@ function includeSiteList (issues_and_reminders) {
 
 function IssuesAndReminderList (props) {
     const {
-        classes,
+        classes, isOpenIssueReminderModal, setIsOpenIssueReminderModal
     } = props;
     const [tile_data, setTileData] = useState([]);
-    const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
-    const [chosenIssueReminder, setChosenIssueReminder] = useState({});
+    const [has_active_issues, setHasActiveIssues] = useState(false);
+    // const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
+    const [chosenIssueReminder, setChosenIssueReminder] = useState({
+        site_list: [],
+        site_id_list: null,
+        ts_posted: null,
+        detail: "", issue_reporter: { first_name: "", last_name: "" }
+    });
     const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
+    const [is_card_modal_open, setCardModalOpen] = useState(false);
 
     useEffect(() => {
         receiveIssuesAndReminders(issues_and_reminders => {
             let final_tile_data = (
-                <Typography style={{ fontStyle: "italic" }}>
-                        No active issues
+                <Typography component="div" style={{ fontStyle: "italic", width: "auto", height: 0 }}>
+                   No active issues
                 </Typography>
             );
+
             if (issues_and_reminders.length !== 0) {
                 const processed_i_n_r = includeSiteList(issues_and_reminders);
-                final_tile_data = prepareTileData(classes, processed_i_n_r, handleEdit);
+                final_tile_data = prepareTileData(classes, processed_i_n_r, handleInfoExpand);
+                setHasActiveIssues(true);
             }
 
             setTileData(final_tile_data);
         });
     }, []);
 
-    const handleBoolean = data => () => {
-        // NOTE: there was no need to use the bool for opening a modal or switch
-        if (data === "is_issue_reminder_modal_open") {
-            setIsOpenIssueReminderModal(!isOpenIssueReminderModal);
-            setChosenIssueReminder({});
-        }
-    };
-
-    const handleEdit = value => event => {
+    const handleInfoExpand = value => event => {
         setChosenIssueReminder(value);
-        setIsOpenIssueReminderModal(true);
+        setCardModalOpen(true);
     };
 
     return (
@@ -198,13 +258,20 @@ function IssuesAndReminderList (props) {
                 </Grid>
             </Grid> */}
             
-            <GridList cellHeight={180} className={classes.gridList}>
+            <GridList component="div" cellHeight="auto" className={`${classes.gridList} ${!has_active_issues && classes.hasNoIssues}`}>
                 {tile_data}
             </GridList>
-
+            
+            <IssuesAndReminderCard 
+                isCardModalOpen={is_card_modal_open}
+                setCardModalOpen={setCardModalOpen}
+                chosenIssueReminder={chosenIssueReminder}
+                setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
+            />
+            
             <IssuesAndReminderModal
                 isOpen={isOpenIssueReminderModal}
-                closeHandler={handleBoolean("is_issue_reminder_modal_open")}
+                setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
                 setIsUpdateNeeded={setIsUpdateNeeded}
                 isUpdateNeeded={isUpdateNeeded}
                 chosenIssueReminder={chosenIssueReminder}
