@@ -33,13 +33,13 @@ def wrap_write_issue_reminder_to_db():
         detail = json_data["detail"]
         user_id = int(json_data["user_id"])
         ts_posted = json_data["ts_posted"]
-        ts_posted_until = json_data["ts_posted_until"]
+        ts_expiration = json_data["ts_expiration"]
         resolved_by = int(json_data["resolved_by"])
         resolution = json_data["resolution"]
         site_id_list = json_data["site_id_list"]
         is_event_entry = json_data["is_event_entry"]
 
-        status = write_issue_reminder_to_db(json_data["iar_id"], detail, user_id, ts_posted, ts_posted_until, resolved_by, resolution, site_id_list, is_event_entry)
+        status = write_issue_reminder_to_db(json_data["iar_id"], detail, user_id, ts_posted, ts_expiration, resolved_by, resolution, site_id_list, is_event_entry)
 
         # DB.session.rollback()
         DB.session.commit()

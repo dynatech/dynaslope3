@@ -21,7 +21,7 @@ from src.utils.narratives import (write_narratives_to_db, get_narratives)
 from src.utils.monitoring import (
     # GET functions
     get_pub_sym_id, get_event_count,
-    get_moms_id_list, get_internal_alert_symbols, 
+    get_moms_id_list, get_internal_alert_symbols,
     get_monitoring_events, get_active_monitoring_events,
     get_monitoring_releases, get_monitoring_events_table,
     get_current_monitoring_instance_per_site, get_public_alert,
@@ -158,7 +158,8 @@ def wrap_get_monitoring_events(value=None):
         include_count = True if include_count.lower() == "true" else False
 
         # return_data = get_monitoring_events_table(offset, limit)
-        return_data = get_monitoring_events_table(offset, limit, site_ids, entry_types, include_count, search, status)
+        return_data = get_monitoring_events_table(
+            offset, limit, site_ids, entry_types, include_count, search, status)
     elif filter_type == "count":
         return_data = get_event_count()
     else:
@@ -619,9 +620,16 @@ def insert_ewi(internal_json=None):
     return return_data
 
 
+@MONITORING_BLUEPRINT.route("/monitoring/create_bulletin/<release_id>", methods=["GET"])
+def create_bulletin(release_id):
+    schema = create_monitoring_bulletin(release_id=release_id)
+    return jsonify(schema)
+
 ###############
 # CBEWS-L API #
 ###############
+
+
 @MONITORING_BLUEPRINT.route("/monitoring/get_latest_cbewls_release/<site_id>", methods=["GET"])
 def get_latest_cbewsl_ewi(site_id):
     """
@@ -822,7 +830,7 @@ def get_event_timeline_data(event_id):
     timeline_data = {
         "event_details": {},
         "timeline_items": []
-    }    
+    }
     me_schema = MonitoringEventsSchema()
     event_collection_obj = get_monitoring_events(event_id=event_id)
     event_collection_data = me_schema.dump(event_collection_obj).data
@@ -847,24 +855,29 @@ def get_event_timeline_data(event_id):
         timeline_entries = []
 
         # Releases
-        if event_collection_data: 
+        if event_collection_data:
             for event_alert in event_collection_data["event_alerts"]:
                 for release in event_alert["releases"]:
-                    release_time = datetime.strptime(release["release_time"], "%H:%M:%S")
-                    data_ts = datetime.strptime(release["data_ts"], "%Y-%m-%d %H:%M:%S")
-                    timestamp = datetime(year=data_ts.year, month=data_ts.month, day=data_ts.day, hour=release_time.hour, minute=release_time.minute, second=release_time.second)
-                    timestamp = datetime.strftime(timestamp, "%Y-%m-%d %H:%M:%S")
+                    release_time = datetime.strptime(
+                        release["release_time"], "%H:%M:%S")
+                    data_ts = datetime.strptime(
+                        release["data_ts"], "%Y-%m-%d %H:%M:%S")
+                    timestamp = datetime(year=data_ts.year, month=data_ts.month, day=data_ts.day,
+                                         hour=release_time.hour, minute=release_time.minute, second=release_time.second)
+                    timestamp = datetime.strftime(
+                        timestamp, "%Y-%m-%d %H:%M:%S")
                     timeline_entries.append({
                         "item_timestamp": timestamp,
                         "item_type": "release",
                         "item_data": release
                     })
-        
+
         # Narratives
         # Temporary Build - not using Schema for the relationship with events and narratives
         # have not been set up as of Oct 1 2019. Will followup tomorrow.
         narratives_list = get_narratives(event_id=event_id)
-        narratives_data_list = NarrativesSchema(many=True).dump(narratives_list).data
+        narratives_data_list = NarrativesSchema(
+            many=True).dump(narratives_list).data
         if narratives_data_list:
             for narrative in narratives_data_list:
                 timestamp = narrative["timestamp"]
@@ -878,11 +891,16 @@ def get_event_timeline_data(event_id):
         # Temporary Build - not using Schema for the relationship with events and eos_analysis
         # have not been set up as of Oct 1 2019. Will followup tomorrow.
         eos_analysis_list = get_eos_data_analysis(event_id=event_id)
-        eos_analysis_data_list = EndOfShiftAnalysisSchema(many=True).dump(eos_analysis_list).data
+        eos_analysis_data_list = EndOfShiftAnalysisSchema(
+            many=True).dump(eos_analysis_list).data
+        
         if eos_analysis_data_list:
             for eos_analysis in eos_analysis_data_list:
-                shift_end = datetime.strptime(eos_analysis["shift_start"], "%Y-%m-%d %H:%M:%S") + timedelta(hours=13)
-                shift_end_ts = datetime.strftime(shift_end, "%Y-%m-%d %H:%M:%S")
+                shift_end = datetime.strptime(
+                    eos_analysis["shift_start"], "%Y-%m-%d %H:%M:%S") + timedelta(hours=13)
+                shift_end_ts = datetime.strftime(
+                    shift_end, "%Y-%m-%d %H:%M:%S")
+
                 timeline_entries.append({
                     "item_timestamp": shift_end_ts,
                     "item_type": "eos",
@@ -890,7 +908,8 @@ def get_event_timeline_data(event_id):
                 })
 
         # Sort the timeline entries descending
-        sorted_desc_timeline_entries = sorted(timeline_entries, key=lambda x: x["item_timestamp"], reverse=True)
+        sorted_desc_timeline_entries = sorted(
+            timeline_entries, key=lambda x: x["item_timestamp"], reverse=True)
 
         timeline_data = {
             "event_details": event_details,
