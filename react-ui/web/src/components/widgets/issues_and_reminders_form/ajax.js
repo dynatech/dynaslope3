@@ -2,6 +2,8 @@ import axios from "axios";
 import moment from "moment";
 import { host } from "../../../config";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
+// Session Stuff
+import { getCurrentUser } from "../../sessions/auth";
 
 function makeAxiosRequest (json_data, api_link, callback = null) {
     axios.post(api_link, json_data)
@@ -32,8 +34,9 @@ export function handleIssuesAndReminders (json_data, callback) {
             temp_list.push(value);
         });
     }
+    temp.user_id = getCurrentUser().user_id;
     temp.ts_posted = moment(ts_posted).format("YYYY-MM-DD HH:mm:ss");
-    temp.ts_expiration = moment(ts_expiration).format("YYYY-MM-DD HH:mm:ss");
+    if (ts_expiration !== "Invalid date") temp.ts_expiration = moment(ts_expiration).format("YYYY-MM-DD HH:mm:ss");
     temp.site_id_list = temp_list;
 
     // Make a websocket request

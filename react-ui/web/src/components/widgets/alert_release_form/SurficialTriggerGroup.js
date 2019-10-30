@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from "react";
+import React, { Fragment } from "react";
 import { Grid, withStyles } from "@material-ui/core";
 
 import { handleChange, handleCheckboxChange, handleSwitchChange } from "./state_handlers";

@@ -97,6 +97,9 @@ function IssuesAndReminderForm (props) {
         }
     }, []);
 
+    useEffect(() => {
+    }, [issueReminderData]);
+
     const handleRadioChange = event => {
         const { target: { value } } = event;
         setRadioValue(value);

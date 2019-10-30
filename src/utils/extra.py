@@ -8,20 +8,28 @@ any module in this project.
 """
 
 import pprint
-import calendar
+from datetime import time, datetime, timedelta
 from connection import MEMORY_CLIENT
-from flask import jsonify
-from datetime import date, time, datetime, timedelta
-from src.utils.sites import get_sites_data
-from src.models.sites import (Sites, SitesSchema)
 from src.models.monitoring import (
     PublicAlertSymbols as pas, OperationalTriggerSymbols as ots,
     InternalAlertSymbols as ias, TriggerHierarchies as th)
 
 
+def set_data_to_memcache(name, data):
+    """
+    Memcache setter
+    """
+    final_data = data
+    if data == [] or data == {}:
+        final_data = "empty"
+
+    temp = f"D3_{name.upper()}"
+    MEMORY_CLIENT.set(temp, final_data)
+
+
 def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True, retrieve_attr=None):
     """
-
+    Memcache getter
     """
 
     return_data = []

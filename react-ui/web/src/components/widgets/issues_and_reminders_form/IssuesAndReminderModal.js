@@ -11,6 +11,23 @@ import moment from "moment";
 import { handleIssuesAndReminders } from "./ajax";
 import IssuesAndReminderForm from "./IssuesAndRemindersForm";
 
+// Session Stuff
+import { getCurrentUser } from "../../sessions/auth";
+
+const default_state = {
+    detail: "",
+    iar_id: "",
+    site_id_list: null,
+    user_id: "",
+    postings: "",
+    resolution: null,
+    resolved_by: null,
+    ts_resolved: null,
+    ts_posted: moment().format("YYYY-MM-DD HH:mm:ss"),
+    ts_expiration: null,
+    is_event_entry: false,
+    is_persistent: false
+};
 
 function IssuesAndReminderModal (props) {
     const {
@@ -18,42 +35,41 @@ function IssuesAndReminderModal (props) {
         setIsOpenIssueReminderModal, setIsUpdateNeeded,
         chosenIssueReminder, isUpdateNeeded, toResolve
     } = props;
-
-    const default_state = {
-        detail: "",
-        iar_id: "",
-        site_id_list: null,
-        user_id: 1,
-        postings: "",
-        resolution: "",
-        resolved_by: 1,
-        ts_resolved: "",
-        ts_posted: moment().format("YYYY-MM-DD HH:mm:ss"),
-        ts_expiration: "",
-        is_event_entry: false,
-        is_persistent: false
-    };
-
-    const [issue_reminder_data, setIssueReminderData] = useState(default_state);
-    
-    const handleReset = () => setIssueReminderData(default_state);
-    const closeHandler = () => setIsOpenIssueReminderModal(false);
+    const [issue_reminder_data, setIssueReminderData] = useState({});
 
     useEffect(() => {
-        setIssueReminderData(chosenIssueReminder);
-        // if (!(Object.entries(chosenIssueReminder).length === 0 && chosenIssueReminder.constructor === Object)) {
-        //     setIssueReminderData(chosenIssueReminder);
-        // } else {
-        //     handleReset();
-        // }
-    }, [chosenIssueReminder]); 
+        // if (isOpen && chosenIssueReminder.user_id === "") {
+        if (isUpdateNeeded) {
+            setIssueReminderData(chosenIssueReminder);
+        } else {
+            setIssueReminderData(default_state);
+        }
+    }, [isOpen, chosenIssueReminder]);
+
+    // useEffect(() => {
+    //     setIssueReminderData(chosenIssueReminder);
+    //     // if (!(Object.entries(chosenIssueReminder).length === 0 && chosenIssueReminder.constructor === Object)) {
+    //     //     console.log("PUMASOK KING INA");
+    //     //     setIssueReminderData({
+    //     //         ...issue_reminder_data,
+    //     //         ...chosenIssueReminder
+    //     //     });
+    //     // } else {
+    //     //     handleReset();
+    //     // }
+    // }, [chosenIssueReminder]); 
+
+    const closeHandler = () => setIsOpenIssueReminderModal(false);
 
     const handleSubmit = () => {
         const { resolution } = issue_reminder_data;
-        if (resolution !== "" && resolution !== null) {
+
+        if (resolution !== "") {
+            const resolver_user_id = getCurrentUser().user_id;
             setIssueReminderData({
                 ...issue_reminder_data,
-                ts_resolved: moment().format("YYYY-MM-DD HH:mm:ss")
+                ts_resolved: moment().format("YYYY-MM-DD HH:mm:ss"),
+                resolved_by: resolver_user_id
             });
         }
         handleIssuesAndReminders(issue_reminder_data, ret => {
@@ -62,7 +78,7 @@ function IssuesAndReminderModal (props) {
             // setIsUpdateNeeded(!isUpdateNeeded);
         });
         closeHandler();
-        handleReset();
+        // handleReset();
         setIsUpdateNeeded(!isUpdateNeeded);        
     };
 
@@ -79,7 +95,6 @@ function IssuesAndReminderModal (props) {
                 <DialogContentText>
                         Provide information to the following fields.
                 </DialogContentText>
-
                 <IssuesAndReminderForm
                     issueReminderData={issue_reminder_data}
                     setIssueReminderData={setIssueReminderData}
