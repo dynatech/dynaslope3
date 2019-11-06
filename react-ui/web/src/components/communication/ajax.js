@@ -14,3 +14,7 @@ export function getListOfMunicipalities (callback) {
         console.error(error);
     });
 }
+
+export function saveContact(input, callback){
+    let api_link = `${host}/api/contacts/save_contact`;
+}

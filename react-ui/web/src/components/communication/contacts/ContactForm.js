@@ -99,15 +99,15 @@ function ContactForm (props) {
     let initial_emails = [];
     let initial_user_details = {
         first_name: "", last_name: "",
-        middle_name: "", nickname: ""
+        middle_name: "", nickname: "", user_id: 0
     };
 
     if (isEditMode) {
         const { mobile_numbers, user: {
             landline_numbers, emails, first_name,
-            last_name, middle_name, nickname
+            last_name, middle_name, nickname, user_id
         } } = chosenContact;
-        initial_user_details = { first_name, last_name, middle_name, nickname };
+        initial_user_details = { first_name, last_name, middle_name, nickname, user_id };
         initial_mobiles = mobile_numbers;
         initial_landlines = landline_numbers;
         initial_emails = emails;
@@ -162,13 +162,24 @@ function ContactForm (props) {
         });
     }, [user_details]);
 
-    // const saveFunction = () => {
-    //     const final_obj = {
-    //         user: {
-    //             ...user_details
-    //         }
-    //     }
-    // };
+    const saveFunction = () => {
+        const final_obj = {
+            user: {
+                ...user_details,
+                emails
+            },
+            affiliation: {
+                site,
+                scope,
+                office
+            },
+            contact_numbers: {
+                mobile_nums,
+                landline_nums
+            }
+        }
+        console.log(final_obj)
+    };
  
     return (
         <Grid
@@ -575,7 +586,7 @@ function ContactForm (props) {
             </Grid>
 
             <Grid item xs={12} style={{ textAlign: "right" }}>
-                <Button color="secondary" variant="contained" style={{ marginRight: 6 }}>
+                <Button color="secondary" variant="contained" style={{ marginRight: 6 }} onClick={() => saveFunction()}>
                     Save
                 </Button>
                 <Button variant="contained" onClick={() => setContactFormForEdit(false)}>

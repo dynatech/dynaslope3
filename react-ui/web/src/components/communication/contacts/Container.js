@@ -346,6 +346,7 @@ function Container (props) {
     const [regions, setRegions] = useState([]);
 
     const onContactClickFn = React.useCallback(row => () => {
+        console.log(row)
         setChosenContact(row);
         setSlideOpen(true);
     }, []);

@@ -181,7 +181,7 @@ def get_latest_messages(mobile_id):
     ).options(raiseload("*")).join(sou).filter(sous.mobile_id == mobile_id).order_by(DB.desc(sous.outbox_id))
 
     union = sms_inbox.union(sms_outbox).order_by(
-        DB.desc("anon_1_ts")).limit(20)
+        DB.desc(text("anon_1_ts"))).limit(20)
 
     query_end = datetime.now()
 

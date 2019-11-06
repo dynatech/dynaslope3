@@ -2,10 +2,11 @@
 Contacts Functions Controller File
 """
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from connection import DB
 
 from src.utils.contacts import get_all_contacts
+from src.models.users import (UserOrganizations, UserOrganizationsSchema)
 
 
 CONTACTS_BLUEPRINT = Blueprint("contacts_blueprint", __name__)
@@ -19,6 +20,89 @@ def wrap_get_all_contacts():
     contacts = get_all_contacts(return_schema=True)
 
     return jsonify(contacts)
+
+@CONTACTS_BLUEPRINT.route("/contacts/save_contact", methods=["GET", "POST"])
+def save_contact():
+    """
+    Function that save and update contact
+    """
+    data = request.get_json()
+    if data is None:
+        data = request.form
+
+    status = None
+    message = ""
+
+    try:
+        if data["value"] is not None:
+            data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass
+
+    ###############################
+    #save and update function here#
+    ###############################
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+
+    return jsonify(feedback)
+
+# @CONTACTS_BLUEPRINT.route("/contacts/update_user_org_table", methods=["GET", "POST"])
+# def update_user_org_table():
+#     """
+#     Function that update user organization
+#     """
+#     user_organization_query = UserOrganizations.query.all()
+
+#     user_organization_result = UserOrganizationsSchema(many=True).dump(user_organization_query).data
+
+#     try:
+#         for org_row in user_organization_result:
+#             org_name = org_row["org_name"]
+#             org_name = org_name.lower()
+#             org_id = 0
+#             if org_name == "mlgu":
+#                 org_id = 4
+#             elif org_name == "lewc":
+#                 org_id = 1
+#             elif org_name == "blgu":
+#                 org_id = 2
+#             elif org_name == "plgu":
+#                 org_id = 7
+#             elif org_name == "region:8":
+#                 org_id = 11
+#             elif org_name == "region: 8":
+#                 org_id = 11
+#             elif org_name == "pdrrmc":
+#                 org_id = 7
+#             elif org_name == "phivolcs":
+#                 org_id = 12
+#             elif org_name == "pnp":
+#                 org_id = 6
+#             elif org_name == "ngo":
+#                 org_id = 10
+#             elif org_name == "dost":
+#                 org_id = 13
+#             elif org_name == "mgb":
+#                 org_id = 19
+
+#             if org_id != 0:
+#                 user_org_id = org_row["user_org_id"]
+#                 update = UserOrganizations.query.get(user_org_id)
+#                 update.org_id = org_id
+#                 update.org_name = org_name
+#                 print("user_org_id "+ str(user_org_id) + ": UPDATED")
+#                 DB.session.commit()
+
+#     except Exception as err:
+#         print(err)
+#         DB.session.rollback()
+
+#     return jsonify(user_organization_result)
 
 
 # @CONTACTS_BLUEPRINT.route("/contacts/get_all_contacts", methods=["GET"])

@@ -1,9 +1,10 @@
 import io from "socket.io-client";
+import { host } from "../config";
 
 let socket;
 
 function subscribeToWebSocket (callback, page = "chatterbox") {
-    socket = io("http://192.168.150.167:5000/communications", {
+    socket = io(`${host}/communications`, {
         reconnectionDelay: 10000,
         // transports: ["websocket"]
     });
