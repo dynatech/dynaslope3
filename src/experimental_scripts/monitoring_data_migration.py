@@ -106,8 +106,7 @@ def insert_event_alert(release, ts_start_for_next_event):
 
 
 def get_internal_symbol(trigger):
-    internal_symbol = InternalAlertSymbols.query.filter(
-        InternalAlertSymbols.alert_symbol == trigger.trigger_type).first()
+    internal_symbol = InternalAlertSymbols.query.filter_by(alert_symbol=DB.func.binary(trigger.trigger_type)).first()
     return internal_symbol
 
 
