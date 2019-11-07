@@ -1,41 +1,28 @@
 """
 """
 
-from flask import Blueprint, jsonify
-from connection import DB, SOCKETIO
-from sqlalchemy import (
-    Table, Column, Integer,
-    String, DateTime, bindparam,
-    literal, text
-)
-from sqlalchemy.orm import joinedload, raiseload, lazyload, subqueryload
+from datetime import datetime, timedelta
+from sqlalchemy import bindparam, literal, text
+from sqlalchemy.orm import joinedload, raiseload
+from connection import DB
 from src.models.inbox_outbox import (
-    SmsInboxUsers, SmsInboxUsersSchema,
-    SmsOutboxUsers, SmsOutboxUsersSchema,
-    SmsOutboxUserStatus, SmsOutboxUserStatusSchema,
+    SmsInboxUsers, SmsOutboxUsers,
+    SmsOutboxUserStatus,
     ViewLatestMessagesMobileID, TempLatestMessagesSchema,
     SmsInboxUserTags, SmsInboxUserTagsSchema,
     SmsTags, SmsOutboxUserTags, SmsOutboxUserTagsSchema,
     SmsUserUpdates, ViewLatestUnsentMessages
 )
-from src.models.gsm import (SimPrefixes)
-from src.models.users import (
-    Users, UsersRelationship, UserOrganization,
-    UserMobile, UserMobileSchema, UserTeamMembers
-)
+from src.models.users import Users
 from src.models.mobile_numbers import (
-    UserMobiles, UserMobilesSchema,
-    MobileNumbers, MobileNumbersSchema
-)
-
-from datetime import datetime, timedelta
+    UserMobiles, MobileNumbers, MobileNumbersSchema)
 from src.utils.extra import var_checker
 
 
 def get_quick_inbox():
     query_start = datetime.now()
     vlmmid = ViewLatestMessagesMobileID
-    inbox_mobile_ids = vlmmid.query.join(UserMobile, vlmmid.mobile_id == UserMobile.mobile_id).join(
+    inbox_mobile_ids = vlmmid.query.join(UserMobiles, vlmmid.mobile_id == UserMobiles.mobile_id).join(
         Users).order_by(DB.desc(vlmmid.max_ts)).limit(50).all()
     unsent_messages_arr = get_unsent_messages()
 
@@ -181,7 +168,7 @@ def get_latest_messages(mobile_id):
     ).options(raiseload("*")).join(sou).filter(sous.mobile_id == mobile_id).order_by(DB.desc(sous.outbox_id))
 
     union = sms_inbox.union(sms_outbox).order_by(
-        DB.desc("anon_1_ts")).limit(20)
+        DB.desc(text("anon_1_ts"))).limit(20)
 
     query_end = datetime.now()
 
