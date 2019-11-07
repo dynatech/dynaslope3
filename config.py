@@ -36,5 +36,6 @@ APP_CONFIG = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
     # "generated_alerts_path": "D:/Users/swat-dynaslope/Documents/DYNASLOPE-3.0/"
-    "generated_alerts_path": "/var/www/dynaslope3/outputs/"
+    "generated_alerts_path": "/var/www/dynaslope3/outputs/",
+    "url": "http://192.168.150.167:3000"
 }

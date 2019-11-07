@@ -47,7 +47,7 @@ from src.utils.extra import (
     var_checker, retrieve_data_from_memcache,
     get_process_status_log, get_system_time
 )
-from src.utils.bulletin import create_monitoring_bulletin
+from src.utils.bulletin import create_monitoring_bulletin, render_monitoring_bulletin
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
@@ -272,7 +272,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     timestamp = request_ts
 
                     od_details["narrative_id"] = write_narratives_to_db(
-                        site_id=site_id, timestamp=request_ts, narrative=narrative, 
+                        site_id=site_id, timestamp=request_ts, narrative=narrative,
                         type_id=2, user_id=publisher_details["publisher_ct_id"], event_id=event_id
                     )
 
@@ -625,6 +625,12 @@ def create_bulletin(release_id):
     schema = create_monitoring_bulletin(release_id=release_id)
     return jsonify(schema)
 
+
+@MONITORING_BLUEPRINT.route("/monitoring/render_bulletin/<release_id>", methods=["GET"])
+def render_bulletin(release_id):
+    ret_bool = render_monitoring_bulletin(release_id=release_id)
+    return ret_bool
+
 ###############
 # CBEWS-L API #
 ###############
@@ -893,7 +899,7 @@ def get_event_timeline_data(event_id):
         eos_analysis_list = get_eos_data_analysis(event_id=event_id)
         eos_analysis_data_list = EndOfShiftAnalysisSchema(
             many=True).dump(eos_analysis_list).data
-        
+
         if eos_analysis_data_list:
             for eos_analysis in eos_analysis_data_list:
                 shift_end = datetime.strptime(

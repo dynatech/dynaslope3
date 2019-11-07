@@ -547,12 +547,13 @@ def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_i
     mr = MonitoringReleases
     base = mr.query
     return_data = None
+    
     if release_id:
         return_data = base.filter(
             mr.release_id == release_id).first()
     elif ts_start and ts_end:
         base = base.order_by(DB.desc(mr.data_ts)).order_by(DB.desc(mr.release_time)).join(mea).filter(DB.and_(
-            ts_start < mr.data_ts, mr.data_ts < ts_end
+            ts_start <= mr.data_ts, mr.data_ts <= ts_end
         )).filter(me.status == 2)
 
         if event_id:
@@ -585,8 +586,6 @@ def get_unique_triggers(trigger_list, reverse=True):
     #     ascending_trigger_list = sorted(
     #     trigger_list, key=lambda x: x.trigger_symbol.alert_level, reverse=False)
 
-    print(get_process_status_log("Filter Unique Triggers", "start"))
-
     new_trigger_list = []
     unique_triggers_set = set({})
     for trigger in trigger_list:
@@ -601,8 +600,6 @@ def get_unique_triggers(trigger_list, reverse=True):
             unique_triggers_set.add(internal_sym_id)
             new_trigger_list.append(trigger)
 
-    print(get_process_status_log("Filter Unique Triggers", "end"))
-
     return new_trigger_list
 
 
@@ -616,8 +613,11 @@ def get_monitoring_triggers(event_id=None, event_alert_id=None, release_id=None,
     mr = MonitoringReleases
     base = mt.query
 
-    if ts_start and ts_end:
-        base = base.filter(DB.and_(ts_start < mt.ts, mt.ts < ts_end))
+    if ts_start:
+        base = base.filter(ts_start <= mt.ts)
+
+    if ts_end:
+        base = base.filter(mt.ts <= ts_end)
 
     if event_id:
         base = base.join(mr).join(mea).join(me).filter(me.event_id == event_id)
