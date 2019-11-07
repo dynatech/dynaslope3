@@ -8,12 +8,8 @@ any module in this project.
 """
 
 import pprint
-import calendar
+from datetime import datetime, timedelta, time
 from connection import MEMORY_CLIENT
-from flask import jsonify
-from datetime import date, time, datetime, timedelta
-from src.utils.sites import get_sites_data
-from src.models.sites import (Sites, SitesSchema)
 from src.models.monitoring import (
     PublicAlertSymbols as pas, OperationalTriggerSymbols as ots,
     InternalAlertSymbols as ias, TriggerHierarchies as th)
@@ -162,6 +158,20 @@ def round_to_nearest_release_time(data_ts, interval=4):
         date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
 
     return date_time
+
+
+def format_timestamp_to_string(ts, time_only=False):
+    time_locale = "%p"
+    if ts.hour in [0, 12]:
+        time_locale = "MN" if ts.hour == 0 else "NN"
+
+    time_format = f"%I:%M {time_locale}"
+
+    str_format = f"%B %d, %Y, {time_format}"
+    if time_only:
+        str_format = time_format
+
+    return ts.strftime(str_format)
 
 
 def get_system_time():

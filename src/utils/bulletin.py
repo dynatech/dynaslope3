@@ -23,15 +23,12 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 from config import APP_CONFIG
 
-from src.models.monitoring import (
-    MonitoringEventAlerts,
-    MonitoringReleases, MonitoringReleasesSchema)
-from src.models.ewi import BulletinResponses, BulletinTriggers
+from src.models.monitoring import MonitoringReleasesSchema
 from src.utils.monitoring import (
-    get_monitoring_releases, process_trigger_list,
-    get_monitoring_triggers, compute_event_validity,
-    round_to_nearest_release_time)
-from src.utils.extra import retrieve_data_from_memcache
+    get_monitoring_releases, get_monitoring_triggers,
+    compute_event_validity, round_to_nearest_release_time,
+    check_if_onset_release, get_next_ground_data_reporting)
+from src.utils.extra import retrieve_data_from_memcache, format_timestamp_to_string
 
 
 # Number of hours extended if no_data upon validity
@@ -160,20 +157,6 @@ class DriverContainer:
 
 
 BROWSER_DRIVER = DriverContainer()
-
-
-def format_timestamp_to_string(ts, time_only=False):
-    time_locale = "%p"
-    if ts.hour in [0, 12]:
-        time_locale = "MN" if ts.hour == 0 else "NN"
-
-    time_format = f"%I:%M {time_locale}"
-
-    str_format = f"%B %d, %Y, {time_format}"
-    if time_only:
-        str_format = time_format
-
-    return ts.strftime(str_format)
 
 
 def prepare_symbols_list(internal_sym_ids):
@@ -356,25 +339,6 @@ def process_bulletin_responses(pub_sym_id, alert_level, validity, data_ts, is_on
     return bulletin_response
 
 
-def get_next_ground_data_reporting(data_ts, is_onset):
-    hour = data_ts.hour
-    minute = data_ts.minute
-
-    if hour <= 7 and minute == 0:
-        reporting = datetime.combine(data_ts.date(), time(7, 30))
-    elif hour >= 15 and minute >= 30:
-        reporting = datetime.combine(
-            data_ts.date(), time(7, 30)) + timedelta(days=1)
-    else:
-        reporting = round_to_nearest_release_time(data_ts)
-        if is_onset:
-            reporting = reporting - timedelta(minutes=30)
-        else:
-            reporting = reporting + timedelta(hours=3, minutes=30)
-
-    return reporting
-
-
 def process_triggers_information(grouped_triggers, int_sym_objects):
     description_list = []
 
@@ -475,25 +439,15 @@ def create_monitoring_bulletin(release_id):
     release_id = int(release_id)
     release = get_monitoring_releases(release_id=release_id)
     event_alert = release.event_alert
+    event_alert_id = event_alert.event_alert_id
     event = event_alert.event
     site = event.site
     data_ts = release.data_ts
     pub_sym_id = event_alert.pub_sym_id
     alert_level = event_alert.public_alert_symbol.alert_level
 
-    mea = MonitoringEventAlerts.query.filter_by(
-        event_alert_id=event_alert.event_alert_id).first()
-    # releases are ordered by desc by default
-    first_release = mea.releases[-1].release_id
-    is_onset = True
+    is_onset = check_if_onset_release(event_alert_id, release_id, data_ts)
     updated_data_ts = data_ts
-    is_first_release_but_release_time = first_release == release_id and \
-        data_ts.hour % RELEASE_INTERVAL_HOURS == RELEASE_INTERVAL_HOURS - \
-        1 and data_ts.minute == 30
-    if first_release != release_id or (
-            is_first_release_but_release_time and alert_level > 0):
-        is_onset = False
-
     if not is_onset:
         updated_data_ts = data_ts + timedelta(minutes=30)
 

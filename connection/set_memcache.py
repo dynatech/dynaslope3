@@ -7,7 +7,7 @@ from src.models.monitoring import (
     InternalAlertSymbols as ias, TriggerHierarchies as th,
     PublicAlertSymbolsSchema as pasS, OperationalTriggerSymbolsSchema as otsS,
     InternalAlertSymbolsSchema as iasS, TriggerHierarchiesSchema as thS)
-from src.models.api import (
+from src.models.ewi import (
     BulletinResponses as br, BulletinResponsesSchema as brS,
     BulletinTriggers as bt, BulletinTriggersSchema as btS)
 from src.models.dynamic_variables import (
