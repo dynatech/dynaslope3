@@ -119,6 +119,30 @@ class UserOrganization(DB.Model):
     def __repr__(self):
         return f"{self.org_name}"
 
+class UserOrganizations(DB.Model):
+    """
+    Class representation of user_organization table
+    """
+
+    __tablename__ = "user_organizations"
+    __bind_key__ = "commons_db"
+    __table_args__ = {"schema": "commons_db"}
+
+    user_org_id = DB.Column(DB.Integer, primary_key=True)
+    user_id = DB.Column(
+        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
+    site_id = DB.Column(
+        DB.Integer, DB.ForeignKey("commons_db.sites.site_id"))
+    org_name = DB.Column(DB.String(45))
+    org_id = DB.Column(DB.Integer, nullable=True)
+
+    site = DB.relationship(
+        Sites, backref=DB.backref("user2", lazy="select"),
+        primaryjoin="UserOrganizations.site_id==Sites.site_id", lazy=True)
+
+    def __repr__(self):
+        return f"{self.org_name}"
+
 
 class UserLandlines(DB.Model):
     """
@@ -320,6 +344,16 @@ class UserOrganizationSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = UserOrganization
+
+class UserOrganizationsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of User Organizations class
+    """
+    site = fields.Nested("SitesSchema")
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UserOrganizations
 
 
 class UserLandlinesSchema(MARSHMALLOW.ModelSchema):

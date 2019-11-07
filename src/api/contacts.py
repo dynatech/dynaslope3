@@ -6,7 +6,16 @@ from flask import Blueprint, jsonify, request
 from connection import DB
 
 from src.utils.contacts import get_all_contacts
-from src.models.users import (UserOrganizations, UserOrganizationsSchema)
+from src.models.users import (
+    UserOrganizations, UserOrganizationsSchema,
+    Users, UsersSchema,
+    UserEmails, UserEmailsSchema,
+    UserOrganization, UserOrganizationSchema)
+from src.models.mobile_numbers import (
+    UserMobiles, UserMobilesSchema,
+    MobileNumbers, MobileNumbersSchema,
+    SimPrefixes, SimPrefixesSchema)
+from src.models.organizations import (Organizations, OrganizationsSchema)
 
 
 CONTACTS_BLUEPRINT = Blueprint("contacts_blueprint", __name__)
@@ -43,6 +52,20 @@ def save_contact():
     ###############################
     #save and update function here#
     ###############################
+    try:
+        user = data["user"]
+        user_id = data["user_id"]
+        # insert_user_personal_data(user)
+        print(data)
+        contact_numbers = data["contact_numbers"]
+        insert_user_contact_numbers(contact_numbers, user_id)
+
+        # affiliation = data["affiliation"]
+        # insert_user_affliation(affiliation)
+        DB.session.commit()
+    except Exception as err:
+        DB.session.rollback()
+        print(err)
 
     feedback = {
         "status": status,
@@ -50,6 +73,87 @@ def save_contact():
     }
 
     return jsonify(feedback)
+
+def insert_user_personal_data(data):
+    user_id = data["user_id"]
+    first_name = data["first_name"]
+    last_name = data["last_name"]
+    middle_name = data["middle_name"]
+    nickname = data["nickname"]
+    emails = data["emails"]
+    print(data)
+    if user_id == 0:
+        insert_user = Users(
+            first_name=first_name, last_name=last_name,
+            middle_name=middle_name, nickname=nickname)
+
+        DB.session.add(insert_user)
+        DB.session.flush()
+        last_inserted_id = insert_user.user_id
+
+        email_len = len(emails)
+        if email_len > 0:
+            for row in emails:
+                insert_user_email = UserEmails(user_id=last_inserted_id, email=row)
+                DB.session.add(insert_user_email)
+    else:
+        update = Users.query.get(user_id)
+        update.first_name = first_name
+        update.last_name = last_name
+        update.middle_name = middle_name
+        update.nickname = nickname
+
+        email_len = len(emails)
+        if email_len > 0:
+            for row in emails:
+                row_type = type(row)
+                if row_type == str:
+                    insert_email = UserEmails(user_id=user_id, email=row)
+                    DB.session.add(insert_email)
+                else:
+                    update_email = UserEmails.query.get(row["email_id"])
+                    update_email.email = row["email"]
+
+    return True
+
+def insert_user_contact_numbers(data, user_id):
+    mobile_numbers = data["mobile_numbers"]
+    landline_numbers = data["landline_numbers"]
+    mobile_numbers_len = len(mobile_numbers)
+    landline_number_len = len(landline_numbers)
+
+    #save and update mobile number
+    if mobile_numbers_len > 0:
+        for row in mobile_numbers:
+            mobile_id = row["mobile_id"]
+            sim_num = row["sim_num"]
+            status = row["status"]
+            if mobile_id == 0:
+                gsm_id = get_gsm_id_by_prefix(sim_num)
+                insert_mobile_number = MobileNumbers(sim_num=sim_num, gsm_id=gsm_id)
+                DB.session.add(insert_mobile_number)
+                DB.session.flush()
+                last_inserted_mobile_id = insert_mobile_number.mobile_id
+                # add priority logic
+                insert_user_mobile = UserMobiles(
+                    user_id=user_id, mobile_id=last_inserted_mobile_id, status=status)
+            else:
+                update_mobile = MobileNumbers.query.get(mobile_id)
+                update_mobile.sim_num = sim_num
+                update_mobile.gsm_id = get_gsm_id_by_prefix(sim_num)
+
+    #save and update landline function here
+
+    return True
+
+def insert_user_affliation(data):
+    location = data["location"]
+    site = data["site"]
+    site_id = site["data"]["site_id"]
+    scope = data["scope"]
+    office = data["office"]
+
+    return True
 
 # @CONTACTS_BLUEPRINT.route("/contacts/update_user_org_table", methods=["GET", "POST"])
 # def update_user_org_table():
@@ -705,22 +809,22 @@ def save_contact():
 #                     update_mobile.remarks = row["remarks"]
 
 
-# def get_gsm_id_by_prefix(mobile_number):
-# """
-#     Function that get prefix gsm id
-#     """
-# prefix = mobile_number[2:5]
+def get_gsm_id_by_prefix(mobile_number):
+    """
+    Function that get prefix gsm id
+    """
+    prefix = mobile_number[2:5]
 
-# sim_prefix_query = SimPrefix.query.filter(
-#     SimPrefix.prefix == prefix).first()
+    sim_prefix_query = SimPrefixes.query.filter(
+        SimPrefixes.prefix == prefix).first()
 
-# result = SimPrefixSchema().dump(sim_prefix_query).data
-#  gsm_id = 0
+    result = SimPrefixesSchema().dump(sim_prefix_query).data
+    gsm_id = 0
 
-#   result_length = len(result)
-#    if result_length == 0:
-#         gsm_id = 0
-#     else:
-#         gsm_id = result["gsm_server_id_fk"]
+    result_length = len(result)
+    if result_length == 0:
+        gsm_id = 0
+    else:
+        gsm_id = result["gsm_id"]
 
-#     return gsm_id
+    return gsm_id

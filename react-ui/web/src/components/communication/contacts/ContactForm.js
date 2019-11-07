@@ -52,12 +52,29 @@ function TextMaskCustom (props) {
     );
 }
 
+function removeNumberMask (data, type) {
+    let altered_data = [];
+    if(type == "mobile"){
+        data.map((row, index) => {
+            row.sim_num = row.sim_num.replace(/[\(\)+-\s]/g, "");
+            altered_data.push(row)
+        });
+    }else{
+        data.map((row, index) => {
+            row.landline_num = row.landline_num.replace(/[\(\)+-\s]/g, "");
+            altered_data.push(row)
+        })
+    }
+
+    return altered_data
+}
+
 function reducerFunction (state, action) {
     const { type, category, payload } = action;
     const state_copy = [...state];
 
     let addend = {
-        status: 0, has_delete: true
+        mobile_id: 0, status: 1, has_delete: true
     };
     if (category === "email") {
         addend = "";
@@ -93,7 +110,7 @@ function ContactForm (props) {
     } = props;
 
     let initial_mobiles = [{
-        sim_num: "", status: 1
+        mobile_id: 0, sim_num: "", status: 1
     }];
     let initial_landlines = [];
     let initial_emails = [];
@@ -108,6 +125,7 @@ function ContactForm (props) {
             last_name, middle_name, nickname, user_id
         } } = chosenContact;
         initial_user_details = { first_name, last_name, middle_name, nickname, user_id };
+        console.log(mobile_numbers)
         initial_mobiles = mobile_numbers;
         initial_landlines = landline_numbers;
         initial_emails = emails;
@@ -163,6 +181,8 @@ function ContactForm (props) {
     }, [user_details]);
 
     const saveFunction = () => {
+        let mobile_numbers = removeNumberMask(mobile_nums, "mobile");
+        let landline_numbers = removeNumberMask(landline_nums, "landline");
         const final_obj = {
             user: {
                 ...user_details,
@@ -170,12 +190,13 @@ function ContactForm (props) {
             },
             affiliation: {
                 site,
+                location,
                 scope,
                 office
             },
             contact_numbers: {
-                mobile_nums,
-                landline_nums
+                mobile_numbers,
+                landline_numbers
             }
         }
         console.log(final_obj)
@@ -537,7 +558,7 @@ function ContactForm (props) {
                                 <FormControl fullWidth>
                                     <TextField
                                         label="Email"
-                                        value={email}
+                                        value={email.email}
                                         onChange={event => setEmails({
                                             type: "UPDATE",
                                             payload: {
