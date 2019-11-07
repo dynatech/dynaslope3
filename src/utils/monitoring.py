@@ -1497,3 +1497,41 @@ def is_rain_surficial_subsurface_trigger(alert_symbol):
         flag = True
 
     return flag
+
+
+def check_if_onset_release(event_alert_id, release_id, data_ts):
+    """
+    """
+
+    mea = MonitoringEventAlerts.query.filter_by(
+        event_alert_id=event_alert_id).first()
+    # releases are ordered by desc by default
+    first_release = mea.releases[-1].release_id
+    is_onset = True
+    is_first_release_but_release_time = first_release == release_id and \
+        data_ts.hour % RELEASE_INTERVAL_HOURS == RELEASE_INTERVAL_HOURS - \
+        1 and data_ts.minute == 30
+    if first_release != release_id or (
+            is_first_release_but_release_time and alert_level > 0):
+        is_onset = False
+
+    return is_onset
+
+
+def get_next_ground_data_reporting(data_ts, is_onset=False):
+    hour = data_ts.hour
+    minute = data_ts.minute
+
+    if hour <= 7 and minute == 0:
+        reporting = datetime.combine(data_ts.date(), time(7, 30))
+    elif hour >= 15 and minute >= 30:
+        reporting = datetime.combine(
+            data_ts.date(), time(7, 30)) + timedelta(days=1)
+    else:
+        reporting = round_to_nearest_release_time(data_ts)
+        if is_onset:
+            reporting = reporting - timedelta(minutes=30)
+        else:
+            reporting = reporting + timedelta(hours=3, minutes=30)
+
+    return reporting

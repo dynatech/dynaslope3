@@ -5,7 +5,6 @@ Contains functions for getting and accesing Sites table only
 
 from connection import DB
 from src.models.sites import Sites
-from src.models.analysis import TSMSensors
 
 
 def get_sites_data(site_code=None, include_inactive=False):
@@ -36,13 +35,10 @@ def get_site_events(site_code):
 
 
 def get_all_geographical_selection_per_category(category, include_inactive):
+    """
+    """
+
     attr = getattr(Sites, category)
-    # query = DB.session.query(attr).distinct(attr)
-
-    # if not include_inactive:
-    #     query = query.filter_by(active=1)
-
-    # selection = query.order_by(attr).all()
 
     subquery = DB.session.query(DB.func.min(
         Sites.site_id).label("min_id"), attr)
@@ -55,12 +51,24 @@ def get_all_geographical_selection_per_category(category, include_inactive):
     selection = DB.session.query(Sites).join(
         subquery, Sites.site_id == subquery.c.min_id).order_by(attr).all()
 
-    # query = DB.session.query(Sites).order_by(
-    #     getattr(Sites, category))
-
-    # if not include_inactive:
-    #     query = query.filter_by(active=1)
-
-    # selection = [r for r in query.distinct()]
-
     return selection
+
+
+def build_site_address(site_info):
+    """
+    site_info (class):      Site class
+    """
+
+    address = ""
+    purok = site_info.purok
+    sitio = site_info.sitio
+
+    if purok:
+        address += f"Purok {purok}, "
+
+    if sitio:
+        address += f"Sitio {sitio}, "
+
+    address += f"Brgy. {site_info.barangay}, {site_info.municipality}, {site_info.province}"
+
+    return address
