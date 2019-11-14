@@ -48,8 +48,8 @@ INTERNAL_ALERT_SYMBOLS = retrieve_data_from_memcache("internal_alert_symbols")
 class DriverContainer:
     dir_name = os.path.dirname
     path = dir_name(dir_name(__file__))
-    save_path = f"{path}\\temp\\bulletin"
-    pdf_save_path = f"{path}\\temp"
+    save_path = f"{path}/temp/bulletin"
+    pdf_save_path = f"{path}/temp"
 
     def __init__(self):
         print("Initializing Selenium WebDriver...")
@@ -63,21 +63,13 @@ class DriverContainer:
         options.add_argument("--log-level=3")  # Turn of logging
 
         os_platform = platform.system()
-        print(f"{self.path}/drivers/{os_platform.lower()}/chromedriver")
+        lc_platform = os_platform.lower()
 
-        if os_platform.lower() == "linux":
-            driver = webdriver.Chrome(f"{self.path}/drivers/{os_platform.lower()}/chromedriver",
-            chrome_options=options)
-        else:
-            driver = webdriver.Chrome(
-            f"{self.path}\\drivers\\{os_platform.lower()}\\chromedriver.exe",
-            chrome_options=options)
-        self.driver = driver
-
+        extension = ".exe" if lc_platform == "windows" else ""
         # service_args=["--log-path=/../temp/chromedriver.log"]
-        # self.driver = webdriver.Chrome(
-        #     f"{self.path}\\drivers\\{os_platform.lower()}\\chromedriver.exe",
-        #     chrome_options=options)
+        self.driver = webdriver.Chrome(
+            f"{self.path}/drivers/{lc_platform}/chromedriver{extension}",
+            chrome_options=options)
 
         print("Finished initializing Selenium WebDriver...")
 
@@ -90,7 +82,7 @@ class DriverContainer:
             self.convert_screenshot()
             self.render_to_pdf()
             success = True
-            pdf_path = f"{self.pdf_save_path}\\bulletin.pdf"
+            pdf_path = f"{self.pdf_save_path}/bulletin.pdf"
         except Exception as e:
             success = False
             error = str(e)
@@ -124,14 +116,14 @@ class DriverContainer:
             print("Loading took too much time!")
 
         element = driver.find_element(By.ID, "bulletin-root")
-        element.screenshot(f"{save_path}\\bulletin-1.png")
+        element.screenshot(f"{save_path}/bulletin-1.png")
 
         try:
             element = driver.find_element(By.ID, "bulletin-root-2")
             driver.execute_script("arguments[0].scrollIntoView()", element)
             actions = ActionChains(driver)
             actions.move_to_element(element).perform()
-            element.screenshot(f"{save_path}\\bulletin-2.png")
+            element.screenshot(f"{save_path}/bulletin-2.png")
         except NoSuchElementException:
             pass
 
@@ -149,7 +141,7 @@ class DriverContainer:
             # 3 is the alpha channel
             background.paste(png, mask=png.split()[3])
             name = file.name.replace("png", "jpg")
-            background.save(f"{save_path}\\{name}", "JPEG",
+            background.save(f"{save_path}/{name}", "JPEG",
                             density=150, quality=100)
         print("Succesfully converted screenshots into JPEG...")
 
@@ -157,7 +149,7 @@ class DriverContainer:
         print("Rendering to PDF...")
         a4inpt = (img2pdf.mm_to_pt(210), img2pdf.mm_to_pt(297))
         layout_fun = img2pdf.get_layout_fun(a4inpt)
-        with open(f"{self.pdf_save_path}\\bulletin.pdf", "wb") as f:
+        with open(f"{self.pdf_save_path}/bulletin.pdf", "wb") as f:
             f.write(img2pdf.convert(
                 [i.path for i in os.scandir(
                     self.save_path) if i.name.endswith(".jpg")],
