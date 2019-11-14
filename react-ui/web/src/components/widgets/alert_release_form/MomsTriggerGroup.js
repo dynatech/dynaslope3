@@ -1,8 +1,8 @@
 import React, { Fragment } from "react";
 import { Grid, withStyles } from "@material-ui/core";
 
-import { handleChange, handleCheckboxChange, handleSwitchChange } from "./state_handlers";
 import CheckboxGroupWithSwitch from "../../reusables/CheckboxGroupWithSwitch";
+import { handleChange, handleCheckboxChange, handleSwitchChange } from "./state_handlers";
 import TriggerTimestampAndTechInfoCombo from "./TriggerTimestampAndTechInfoCombo";
 
 const styles = theme => ({
@@ -12,13 +12,13 @@ const styles = theme => ({
     }
 });
 
-function SurficialCheckboxGroup (props) {
+function SubsurfaceCheckboxGroup (props) {
     const {
         classes, triggersState, setTriggersState
     } = props;
 
-    const { surficial } = triggersState;
-    const { switchState, triggers } = surficial;
+    const { subsurface } = triggersState;
+    const { switchState, triggers } = subsurface;
 
     const triggers_value = {
         trigger_2: { status: false, disabled: false },
@@ -50,25 +50,25 @@ function SurficialCheckboxGroup (props) {
         <Fragment>
             <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
                 <CheckboxGroupWithSwitch
-                    label="Surficial"
+                    label="Subsurface"
                     switchState={switchState}
-                    switchHandler={handleSwitchChange(setTriggersState, "surficial")}
-                    switchValue="surficial_switch"
+                    switchHandler={handleSwitchChange(setTriggersState, "subsurface")}
+                    switchValue="subsurface_switch"
                     choices={[
-                        { state: trigger_2, value: 2, label: "Release trigger (g2)" },
-                        { state: trigger_3, value: 3, label: "Release trigger (G3)" },
-                        { state: trigger_0, value: 0, label: "No data ([g/G]0)" }
+                        { state: trigger_2, value: 2, label: "Release trigger (s2)" },
+                        { state: trigger_3, value: 3, label: "Release trigger (S3)" },
+                        { state: trigger_0, value: 0, label: "No data ([s/S]0)" }
                     ]}
-                    changeHandler={handleCheckboxChange(setTriggersState, "surficial")}
+                    changeHandler={handleCheckboxChange(setTriggersState, "subsurface")}
                 />
             </Grid>
             {
-                trigger_2.status ? (
+                trigger_2.status && switchState ? (
                     <TriggerTimestampAndTechInfoCombo
-                        labelFor="g2"
+                        labelFor="s2"
                         trigger_timestamp={trigger_2.timestamp}
                         tech_info={trigger_2.tech_info}
-                        changeHandler={handleChange(setTriggersState, "surficial")}
+                        changeHandler={handleChange(setTriggersState, "subsurface")}
                     />
                 ) : (
                     <div />
@@ -76,12 +76,12 @@ function SurficialCheckboxGroup (props) {
             }
 
             {
-                trigger_3.status ? (
+                trigger_3.status && switchState ? (
                     <TriggerTimestampAndTechInfoCombo
-                        labelFor="G3"
+                        labelFor="S3"
                         trigger_timestamp={trigger_3.timestamp}
                         tech_info={trigger_3.tech_info}
-                        changeHandler={handleChange(setTriggersState, "surficial")}
+                        changeHandler={handleChange(setTriggersState, "subsurface")}
                     />
                 ) : (
                     <div />
@@ -91,4 +91,4 @@ function SurficialCheckboxGroup (props) {
     );
 }
 
-export default withStyles(styles)(SurficialCheckboxGroup);
+export default withStyles(styles)(SubsurfaceCheckboxGroup);

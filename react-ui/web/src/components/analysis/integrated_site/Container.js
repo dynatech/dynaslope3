@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 
 import {
     withStyles, Button, Grid,
-    Paper, Typography
+    Paper
 } from "@material-ui/core";
 import { InsertChart } from "@material-ui/icons";
 import withWidth, { isWidthDown } from "@material-ui/core/withWidth";

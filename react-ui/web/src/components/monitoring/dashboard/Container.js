@@ -3,7 +3,6 @@ import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { withStyles } from "@material-ui/core/styles";
 import { compose } from "recompose";
 import { Button, Grid } from "@material-ui/core";
-import Hidden from "@material-ui/core/Hidden";
 import { AddAlert } from "@material-ui/icons";
 
 import PageTitle from "../../reusables/PageTitle";
@@ -15,7 +14,8 @@ import IssuesAndRemindersList from "../../widgets/issues_and_reminders_form/Issu
 import CircularAddButton from "../../reusables/CircularAddButton";
 import GeneralStyles from "../../../GeneralStyles";
 import { 
-    subscribeToWebSocket, unsubscribeToWebSocket
+    subscribeToWebSocket, unsubscribeToWebSocket,
+    receiveGeneratedAlerts, receiveCandidateAlerts, receiveAlertsFromDB
 } from "../../../websocket/monitoring_ws";
 
 const styles = theme => {
@@ -47,29 +47,26 @@ function Container (props) {
     const [chosenCandidateAlert, setChosenCandidateAlert] = useState(null);
 
     const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
+    const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
     
     useEffect(() => {
-        const socket_fns = {
-            // receive_generated_alerts (err, data) {
-            //     const generated_alerts_data = JSON.parse(data);
-            //     console.log(generated_alerts_data);
-            //     setGeneratedAlerts(generated_alerts_data);
-            //     if (err != null) console.log(err);
-            // },
-            // receive_candidate_alerts (err, data) {
-            //     const candidate_alerts_data = JSON.parse(data);
-            //     console.log(candidate_alerts_data);
-            //     setCandidateAlertsData(candidate_alerts_data);
-            //     if (err != null) console.log(err);
-            // },
-            // receive_alerts_from_db (err, data) {
-            //     const alerts_from_db_data = JSON.parse(data);
-            //     console.log(alerts_from_db_data);
-            //     setAlertsFromDbData(alerts_from_db_data);
-            //     if (err != null) console.log(err);
-            // }
-        };
-        subscribeToWebSocket(socket_fns);
+        subscribeToWebSocket("socket_fns");
+
+        receiveGeneratedAlerts(generated_alerts => {
+            const temp = JSON.parse(generated_alerts);
+            // console.log("generated_alerts from wss", temp);
+            setGeneratedAlerts(temp);
+        });
+        receiveCandidateAlerts(candidate_alerts => {
+            const temp = JSON.parse(candidate_alerts);
+            // console.log("candidate_alerts from wss", temp);
+            setCandidateAlertsData(temp);
+        });
+        receiveAlertsFromDB(alerts_from_db => {
+            const temp = JSON.parse(alerts_from_db);
+            // console.log("alerts_from_db from wss", temp);
+            setAlertsFromDbData(temp);
+        });
 
         return function cleanup () {
             unsubscribeToWebSocket();
@@ -82,7 +79,10 @@ function Container (props) {
 
     const handleBoolean = (data, bool) => () => {
         if (data === "is_open_release_modal") setIsOpenReleaseModal(bool);
-        else if (data === "is_open_issues_modal") setIsOpenIssueReminderModal(bool);
+        else if (data === "is_open_issues_modal") {
+            setIsUpdateNeeded(!bool);
+            setIsOpenIssueReminderModal(bool);
+        }
     };
 
     const is_desktop = isWidthUp("md", width);
@@ -126,6 +126,8 @@ function Container (props) {
                         <IssuesAndRemindersList 
                             isOpenIssueReminderModal={isOpenIssueReminderModal}
                             setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
+                            isUpdateNeeded={isUpdateNeeded}
+                            setIsUpdateNeeded={setIsUpdateNeeded}
                         />
                     </Grid>
                     

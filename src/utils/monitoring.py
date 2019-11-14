@@ -358,8 +358,9 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     for event_alert in active_event_alerts:
         validity = event_alert.event.validity
         event_id = event_alert.event.event_id
-        latest_release = event_alert.releases.order_by(
-            DB.desc(MonitoringReleases.data_ts)).first()
+        # latest_release = event_alert.releases.order_by(
+        #     DB.desc(MonitoringReleases.data_ts)).first()
+        latest_release = event_alert.releases[0]
 
         # NOTE: LOUIE This formats release time to have date instead of time only
         data_ts = latest_release.data_ts
@@ -653,6 +654,17 @@ def get_public_alert(site_id):
     return result
 
 
+def get_latest_release_per_site(site_id):
+    """
+    """
+    mr = MonitoringReleases
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    latest_release = mr.query.order_by(DB.desc(mr.release_id)).join(mea).join(me).filter(me.site_id == site_id).first()
+
+    return latest_release
+
+
 def get_event_count(filters=None):
     if filters:
         return_data = filters.count()
@@ -674,8 +686,8 @@ def format_events_table_data(events):
         else:
             entry_type = "ROUTINE"
 
-        latest_event_alert = event.event_alerts.order_by(
-            DB.desc(mea.event_alert_id)).first()
+        # With the assumption that the event alerts are sorted DESC
+        latest_event_alert = event.event_alerts[0]
 
         event_dict = {
             "event_id": event.event_id,
@@ -1291,6 +1303,48 @@ def start_new_monitoring_instance(new_instance_details):
         raise
 
     return return_ids
+
+
+def update_monitoring_release_on_db(release_to_update, release_details):
+    """
+    """
+    # Update Release Details.
+    release_to_update.release_time = release_details["release_time"]
+    release_to_update.data_ts = release_details["data_ts"]
+    release_to_update.trigger_list = release_details["trigger_list"]
+    release_to_update.bulletin_number = release_details["bulletin_number"]
+    release_to_update.event_alert_id = release_details["event_alert_id"]
+    release_to_update.comments = release_details["comments"]
+
+    # Delete child tables
+    release_id = release_to_update.release_id
+    triggers = release_to_update.triggers
+    release_publishers = release_to_update.release_publishers
+
+    for publisher in release_publishers:
+        DB.session.delete(publisher)
+
+    for trigger in triggers:
+        trig_misc = trigger.trigger_misc
+        if trig_misc:
+            if trig_misc.on_demand:
+                DB.session.delete(trig_misc.on_demand)
+            if trig_misc.has_moms:
+                mmr = MonitoringMomsReleases
+                moms_release = MonitoringMomsReleases.query.filter(mmr.trig_misc_id == trig_misc.trig_misc_id)
+                if moms_release:
+                    if moms_release.moms_details:
+                        DB.session.delete(moms_release.moms_details)
+                    DB.session.delete(moms_release)
+
+            if trig_misc.eq:
+                DB.session.delete(trig_misc.eq)
+
+            DB.session.delete(trigger.trigger_misc)
+
+        DB.session.delete(trigger)
+
+    return release_id
 
 
 def write_monitoring_release_to_db(release_details):

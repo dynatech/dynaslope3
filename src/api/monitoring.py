@@ -26,6 +26,7 @@ from src.utils.monitoring import (
     get_monitoring_releases, get_monitoring_events_table,
     get_current_monitoring_instance_per_site, get_public_alert,
     get_ongoing_extended_overdue_events, get_max_possible_alert_level,
+    get_latest_release_per_site,
 
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
@@ -36,7 +37,7 @@ from src.utils.monitoring import (
     end_current_monitoring_event_alert, update_bulletin_number,
 
     # Write functions
-    write_monitoring_event_alert_to_db,
+    write_monitoring_event_alert_to_db, update_monitoring_release_on_db,
     write_monitoring_release_to_db, write_monitoring_release_publishers_to_db,
     write_monitoring_release_triggers_to_db, write_monitoring_triggers_misc_to_db,
     write_monitoring_moms_releases_to_db,
@@ -119,6 +120,26 @@ def wrap_get_internal_alert_symbols():
         return_data.append(ias_data)
 
     return jsonify(return_data)
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_site_internal_alert", methods=["GET"])
+def wrap_get_site_internal_alert():
+    site_id = request.args.get('site_id', default=1, type=int)
+    public_alert_level = get_public_alert(site_id)
+    latest_release = get_latest_release_per_site(site_id)
+    trigger_list = latest_release.trigger_list
+
+    internal_alert_level = public_alert_level
+    if public_alert_level != "A0":
+        internal_alert_level = f"{public_alert_level}-{trigger_list}"
+
+    var_checker("internal_alert_level", internal_alert_level, True)
+
+    return jsonify({
+        "internal_alert_level": internal_alert_level,
+        "public_alert_level": public_alert_level,
+        "trigger_list_str": trigger_list
+    })
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_site_public_alert", methods=["GET"])
@@ -232,16 +253,80 @@ def wrap_get_pub_sym_id(alert_level):
     return str(pub_sym)
 
 
+@MONITORING_BLUEPRINT.route("/monitoring/build_internal_alert_level", methods=["POST"])
+def build_internal_alert_level():
+    """
+    build internal alert level
+    """
+    json_data = request.get_json()
+    internal_alert_level = ""
+    public_alert_level = ""
+
+    counted_triggers_list = []
+    # current is string
+    current = json_data["current_trigger_list"]
+    # latest is array
+    latest = json_data["latest_trigger_list"]
+
+    sorted_latest = list(sorted(latest, key=lambda x: x["alert_level"], reverse=True))
+    public_alert_level = sorted_latest[0]["alert_level"]
+
+    # Return highest unique triggers
+    trigger_source_list = []
+    for trigger_source in sorted_latest:
+        alert_level = trigger_source["alert_level"]
+        trigger_type = trigger_source["trigger_type"]
+        trigger_hierarchy = retrieve_data_from_memcache("trigger_hierarchies", {"trigger_source": trigger_type})
+        source_id = trigger_hierarchy["source_id"]
+        hierarchy_id = trigger_hierarchy["hierarchy_id"]
+        trigger_sym_id = retrieve_data_from_memcache("operational_trigger_symbols", {"alert_level": alert_level, "source_id": source_id}, retrieve_attr="trigger_sym_id")
+        var_checker("trigger_sym_id", trigger_sym_id, True)
+        internal_sym = retrieve_data_from_memcache("internal_alert_symbols", {"trigger_sym_id": trigger_sym_id}, retrieve_attr="alert_symbol")
+
+        temp = {
+            "alert_level": alert_level,
+            "source": trigger_type,
+            "symbol": internal_sym,
+            "hierarchy_id": hierarchy_id
+        }
+        if source_id not in trigger_source_list:
+            trigger_source_list.append(source_id)
+            counted_triggers_list.append(temp)
+
+    sorted_by_hierarchy = list(sorted(counted_triggers_list, key=lambda x: x["hierarchy_id"]))
+
+    trigger_list_final = ""
+    for unique_trigger in sorted_by_hierarchy:
+        trigger_list_final = trigger_list_final + unique_trigger["symbol"]
+
+    internal_alert_level = f"A{public_alert_level}-{trigger_list_final}"
+    var_checker("internal_alert_level", internal_alert_level, True)
+
+    return jsonify({"internal_alert_level": internal_alert_level, "public_alert_level": public_alert_level, "trigger_list_str": trigger_list_final})
+
+
 # # def insert_ewi_release(release_details, publisher_details, trigger_details):
 def insert_ewi_release(monitoring_instance_details, release_details, publisher_details, trigger_list_arr=None, non_triggering_moms=None):
     """
     Initiates the monitoring_release write to db plus it's corresponding details.
     """
     try:
-        new_release = write_monitoring_release_to_db(release_details)
-        release_id = new_release
         site_id = monitoring_instance_details["site_id"]
         event_id = monitoring_instance_details["event_id"]
+
+        ## Get the latest release timestamp
+        latest_release = get_latest_release_per_site(site_id)
+        latest_release_data_ts = latest_release.data_ts
+
+        if ((datetime.now() - latest_release_data_ts).seconds / 3600) <= 2:
+            # UPDATE STUFF
+            var_checker("", "UPDATE", True)
+            new_release = update_monitoring_release_on_db(latest_release, release_details)
+            release_id = new_release
+        else:
+            new_release = write_monitoring_release_to_db(release_details)
+            release_id = new_release
+
         public_alert_level = monitoring_instance_details["public_alert_level"]
 
         write_monitoring_release_publishers_to_db(
@@ -846,10 +931,12 @@ def get_event_timeline_data(event_id):
     # Include here the other details you might need for the front end.
 
     if event_collection_data:
+        validity = event_collection_data["validity"]
+
         event_details = {
             "event_start": event_collection_data["event_start"],
             "event_id": event_collection_data["event_id"],
-            "validity": event_collection_data["validity"],
+            "validity": validity,
             "site_id": event_collection_data["site"]["site_id"],
             "site_code": event_collection_data["site"]["site_code"],
             "site_address": "<WIP>",
@@ -872,10 +959,25 @@ def get_event_timeline_data(event_id):
                                          hour=release_time.hour, minute=release_time.minute, second=release_time.second)
                     timestamp = datetime.strftime(
                         timestamp, "%Y-%m-%d %H:%M:%S")
+
+                    release_type = ""
+                    release_ts = data_ts + timedelta(minutes=30)
+                    validity_ts = datetime.strptime(validity, "%Y-%m-%d %H:%M:%S")
+                    if release_ts < validity_ts:
+                        release_type = "latest"
+                    elif release_ts == validity_ts:
+                        release_type = "end_of_validity"
+                    elif validity_ts < release_ts:
+                        if event_alert["public_alert_symbol"]["alert_level"] > 0:
+                            release_type = "overdue"
+                        else:
+                            release_type = "extended"
+
                     timeline_entries.append({
                         "item_timestamp": timestamp,
                         "item_type": "release",
-                        "item_data": release
+                        "item_data": release,
+                        "release_type": release_type
                     })
 
         # Narratives

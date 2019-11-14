@@ -15,9 +15,21 @@ from src.models.monitoring import (
     InternalAlertSymbols as ias, TriggerHierarchies as th)
 
 
+def set_data_to_memcache(name, data):
+    """
+    Memcache setter
+    """
+    final_data = data
+    if data == [] or data == {}:
+        final_data = "empty"
+
+    temp = f"D3_{name.upper()}"
+    MEMORY_CLIENT.set(temp, final_data)
+
+
 def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True, retrieve_attr=None):
     """
-
+    Memcache getter
     """
 
     return_data = []

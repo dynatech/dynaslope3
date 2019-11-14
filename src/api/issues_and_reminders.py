@@ -16,10 +16,11 @@ ISSUES_AND_REMINDERS_BLUEPRINT = Blueprint("issues_and_reminders_blueprint", __n
 
 @ISSUES_AND_REMINDERS_BLUEPRINT.route("/issues_and_reminders/get_issues_reminders", methods=["GET"])
 def wrap_get_issue_reminder():
-    issues = get_issues_and_reminders(include_expired=False)
+    issues = get_issues_and_reminders(include_count=False, include_expired=False)
     data = IssuesAndRemindersSchema(many=True).dump(issues).data
 
     return data
+    # return jsonify(data)
 
 
 @ISSUES_AND_REMINDERS_BLUEPRINT.route("/issues_and_reminders/write_issue_reminder_to_db", methods=["POST"])
@@ -36,10 +37,16 @@ def wrap_write_issue_reminder_to_db():
         ts_expiration = json_data["ts_expiration"]
         resolved_by = int(json_data["resolved_by"])
         resolution = json_data["resolution"]
+        ts_resolved = json_data["ts_resolved"]
         site_id_list = json_data["site_id_list"]
         is_event_entry = json_data["is_event_entry"]
 
-        status = write_issue_reminder_to_db(json_data["iar_id"], detail, user_id, ts_posted, ts_expiration, resolved_by, resolution, site_id_list, is_event_entry)
+        try:
+            postings = json_data["postings"]
+        except KeyError:
+            postings = None
+
+        status = write_issue_reminder_to_db(json_data["iar_id"], detail, user_id, ts_posted, ts_expiration, resolved_by, resolution, ts_resolved, site_id_list, is_event_entry)
 
         # DB.session.rollback()
         DB.session.commit()

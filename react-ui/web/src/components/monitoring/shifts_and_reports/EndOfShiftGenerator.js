@@ -1,4 +1,4 @@
-import React, { Component, Fragment, useState, useEffect } from "react";
+import React, { Fragment, useState } from "react";
 import moment from "moment";
 import { Grid, withStyles, Button, withWidth, Paper, Typography, CircularProgress } from "@material-ui/core";
 import { isWidthDown } from "@material-ui/core/withWidth";

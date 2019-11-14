@@ -41,7 +41,6 @@ function OnDemandTriggerGroup (props) {
 
     let timestamp, tech_info, reason, reporterId, contact_person;
     if (triggers.length !== 0) {
-        console.log("PASOK SA LENGTHY");
         const { timestamp, tech_info, reason, reporterId } = triggers[0]; // There is always only ONE on demand trigger
         if (reporterId !== null) contact_person = community_contacts.find(x => x.user_id === reporterId).name;
         console.log(contact_person);
