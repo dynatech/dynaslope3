@@ -65,10 +65,19 @@ class DriverContainer:
         os_platform = platform.system()
         print(f"{self.path}/drivers/{os_platform.lower()}/chromedriver")
 
-        # service_args=["--log-path=/../temp/chromedriver.log"]
-        self.driver = webdriver.Chrome(
+        if os_platform.lower() == "linux":
+            driver = webdriver.Chrome(f"{self.path}/drivers/{os_platform.lower()}/chromedriver",
+            chrome_options=options)
+        else:
+            driver = webdriver.Chrome(
             f"{self.path}\\drivers\\{os_platform.lower()}\\chromedriver.exe",
             chrome_options=options)
+        self.driver = driver
+
+        # service_args=["--log-path=/../temp/chromedriver.log"]
+        # self.driver = webdriver.Chrome(
+        #     f"{self.path}\\drivers\\{os_platform.lower()}\\chromedriver.exe",
+        #     chrome_options=options)
 
         print("Finished initializing Selenium WebDriver...")
 
