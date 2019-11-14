@@ -15,7 +15,8 @@ function SelectInputForm (props) {
         classes, list, mapping,
         label, div_id,
         changeHandler, value, css,
-        error, required
+        error, required,
+        disabled
     } = props;
 
     const is_required = typeof required !== "undefined" ? required : false;
@@ -37,6 +38,7 @@ function SelectInputForm (props) {
                     inputProps={{
                         id: div_id,
                     }}
+                    disabled={disabled}
                 >
                     <MenuItem value="">
                         <em>---</em>

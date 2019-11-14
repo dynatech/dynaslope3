@@ -548,12 +548,13 @@ def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_i
     mr = MonitoringReleases
     base = mr.query
     return_data = None
+    
     if release_id:
         return_data = base.filter(
             mr.release_id == release_id).first()
     elif ts_start and ts_end:
         base = base.order_by(DB.desc(mr.data_ts)).order_by(DB.desc(mr.release_time)).join(mea).filter(DB.and_(
-            ts_start < mr.data_ts, mr.data_ts < ts_end
+            ts_start <= mr.data_ts, mr.data_ts <= ts_end
         )).filter(me.status == 2)
 
         if event_id:
@@ -586,8 +587,6 @@ def get_unique_triggers(trigger_list, reverse=True):
     #     ascending_trigger_list = sorted(
     #     trigger_list, key=lambda x: x.trigger_symbol.alert_level, reverse=False)
 
-    print(get_process_status_log("Filter Unique Triggers", "start"))
-
     new_trigger_list = []
     unique_triggers_set = set({})
     for trigger in trigger_list:
@@ -602,8 +601,6 @@ def get_unique_triggers(trigger_list, reverse=True):
             unique_triggers_set.add(internal_sym_id)
             new_trigger_list.append(trigger)
 
-    print(get_process_status_log("Filter Unique Triggers", "end"))
-
     return new_trigger_list
 
 
@@ -617,8 +614,11 @@ def get_monitoring_triggers(event_id=None, event_alert_id=None, release_id=None,
     mr = MonitoringReleases
     base = mt.query
 
-    if ts_start and ts_end:
-        base = base.filter(DB.and_(ts_start < mt.ts, mt.ts < ts_end))
+    if ts_start:
+        base = base.filter(ts_start <= mt.ts)
+
+    if ts_end:
+        base = base.filter(mt.ts <= ts_end)
 
     if event_id:
         base = base.join(mr).join(mea).join(me).filter(me.event_id == event_id)
@@ -654,6 +654,17 @@ def get_public_alert(site_id):
     return result
 
 
+def get_latest_release_per_site(site_id):
+    """
+    """
+    mr = MonitoringReleases
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    latest_release = mr.query.order_by(DB.desc(mr.release_id)).join(mea).join(me).filter(me.site_id == site_id).first()
+
+    return latest_release
+
+
 def get_event_count(filters=None):
     if filters:
         return_data = filters.count()
@@ -675,8 +686,8 @@ def format_events_table_data(events):
         else:
             entry_type = "ROUTINE"
 
-        latest_event_alert = event.event_alerts.order_by(
-            DB.desc(mea.event_alert_id)).first()
+        # With the assumption that the event alerts are sorted DESC
+        latest_event_alert = event.event_alerts[0]
 
         event_dict = {
             "event_id": event.event_id,
@@ -1294,6 +1305,48 @@ def start_new_monitoring_instance(new_instance_details):
     return return_ids
 
 
+def update_monitoring_release_on_db(release_to_update, release_details):
+    """
+    """
+    # Update Release Details.
+    release_to_update.release_time = release_details["release_time"]
+    release_to_update.data_ts = release_details["data_ts"]
+    release_to_update.trigger_list = release_details["trigger_list"]
+    release_to_update.bulletin_number = release_details["bulletin_number"]
+    release_to_update.event_alert_id = release_details["event_alert_id"]
+    release_to_update.comments = release_details["comments"]
+
+    # Delete child tables
+    release_id = release_to_update.release_id
+    triggers = release_to_update.triggers
+    release_publishers = release_to_update.release_publishers
+
+    for publisher in release_publishers:
+        DB.session.delete(publisher)
+
+    for trigger in triggers:
+        trig_misc = trigger.trigger_misc
+        if trig_misc:
+            if trig_misc.on_demand:
+                DB.session.delete(trig_misc.on_demand)
+            if trig_misc.has_moms:
+                mmr = MonitoringMomsReleases
+                moms_release = MonitoringMomsReleases.query.filter(mmr.trig_misc_id == trig_misc.trig_misc_id)
+                if moms_release:
+                    if moms_release.moms_details:
+                        DB.session.delete(moms_release.moms_details)
+                    DB.session.delete(moms_release)
+
+            if trig_misc.eq:
+                DB.session.delete(trig_misc.eq)
+
+            DB.session.delete(trigger.trigger_misc)
+
+        DB.session.delete(trigger)
+
+    return release_id
+
+
 def write_monitoring_release_to_db(release_details):
     """
     Returns release_id
@@ -1498,3 +1551,41 @@ def is_rain_surficial_subsurface_trigger(alert_symbol):
         flag = True
 
     return flag
+
+
+def check_if_onset_release(event_alert_id, release_id, data_ts):
+    """
+    """
+
+    mea = MonitoringEventAlerts.query.filter_by(
+        event_alert_id=event_alert_id).first()
+    # releases are ordered by desc by default
+    first_release = mea.releases[-1].release_id
+    is_onset = True
+    is_first_release_but_release_time = first_release == release_id and \
+        data_ts.hour % RELEASE_INTERVAL_HOURS == RELEASE_INTERVAL_HOURS - \
+        1 and data_ts.minute == 30
+    if first_release != release_id or (
+            is_first_release_but_release_time and alert_level > 0):
+        is_onset = False
+
+    return is_onset
+
+
+def get_next_ground_data_reporting(data_ts, is_onset=False):
+    hour = data_ts.hour
+    minute = data_ts.minute
+
+    if hour <= 7 and minute == 0:
+        reporting = datetime.combine(data_ts.date(), time(7, 30))
+    elif hour >= 15 and minute >= 30:
+        reporting = datetime.combine(
+            data_ts.date(), time(7, 30)) + timedelta(days=1)
+    else:
+        reporting = round_to_nearest_release_time(data_ts)
+        if is_onset:
+            reporting = reporting - timedelta(minutes=30)
+        else:
+            reporting = reporting + timedelta(hours=3, minutes=30)
+
+    return reporting

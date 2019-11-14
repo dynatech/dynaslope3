@@ -82,7 +82,7 @@ function App (props) {
                         )
                     );
                 }} />
-                <Route exact path="/bulletin" component={BulletinTemplate} />
+                <Route path="/bulletin/:release_id" component={BulletinTemplate} />
                 <Route path="/" render={r_props => {
                     return (
                     // eslint-disable-next-line no-nested-ternary

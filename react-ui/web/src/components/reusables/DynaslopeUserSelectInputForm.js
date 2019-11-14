@@ -28,9 +28,18 @@ class DynaslopeUserSelectInputForm extends Component {
     render () {
         const {
             variant, label, div_id,
-            changeHandler, value, css
+            changeHandler, value, css,
+            disabled, returnFullNameCallback
         } = this.props;
+        
+        const callback = typeof returnFullNameCallback === "undefined" ? false : returnFullNameCallback;
+
         const { users } = this.state;
+
+        if (callback) {
+            const user = users.find(o => o.user_id === value);
+            if (typeof user !== "undefined") returnFullNameCallback(user.name);
+        }
 
         return (
             <Fragment>
@@ -44,6 +53,7 @@ class DynaslopeUserSelectInputForm extends Component {
                             list={users}
                             mapping={mapping}
                             css={css}
+                            disabled={disabled}
                         />
                     )
                 }
