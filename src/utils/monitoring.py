@@ -419,8 +419,10 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                     event_alert_data["day"] = day
                     extended.append(event_alert_data)
                 else:
-                    # NOTE: Make an API call to end an event when extended is finished? based on old code
-                    print("FINISH EVENT")
+                    # TODO: Make an API call to end an event when extended is finished? based on old code
+                    # NOTE: HOWEVER -> Meron ng update sa insert_ewi part ng last extended release. No need to put this here.
+                    # print("FINISH EVENT")
+                    print("EVENT FINISHED")
 
     db_alerts = {
         "latest": latest,

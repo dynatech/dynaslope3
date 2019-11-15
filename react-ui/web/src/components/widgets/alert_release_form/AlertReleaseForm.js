@@ -1,8 +1,9 @@
-import React, { Fragment, useEffect } from "react";
+import React, { Fragment, useEffect, useState } from "react";
 import axios from "axios";
 import moment from "moment";
 import {
-    TextField, Grid, withStyles
+    TextField, Grid, withStyles,
+    FormControl, FormLabel, Switch
 } from "@material-ui/core";
 
 // Stepper Related Imports
@@ -18,6 +19,7 @@ import SelectInputForm from "../../reusables/SelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import SubsurfaceTriggerGroup from "./SubsurfaceTriggerGroup";
 import SurficialTriggerGroup from "./SurficialTriggerGroup";
+import MomsTriggerGroup from "./MomsTriggerGroup";
 import RainfallTriggerGroup from "./RainfallTriggerGroup";
 import EarthquakeTriggerGroup from "./EarthquakeTriggerGroup";
 import OnDemandTriggerGroup from "./OnDemandTriggerGroup";
@@ -146,7 +148,17 @@ function GeneralInputForm (props) {
 }
 
 function TriggersInputForm (props) {
-    const { triggersState, setTriggersState, setModalTitle } = props;
+    const { 
+        classes, triggersState, setTriggersState,
+        setModalTitle, hasNoGroundData, setHasNoGroundData
+    } = props;
+    const [switch_value, setSwitchValue] = useState("");
+    const {
+        subsurface: { switchState: subs_switch_state },
+        surficial: { switchState: surf_switch_state } 
+    } = triggersState;
+
+    console.log(subs_switch_state, surf_switch_state);
 
     useEffect(() => {
         setModalTitle((<Typography variant="h6" color="primary">Release triggers</Typography>));
@@ -154,6 +166,28 @@ function TriggersInputForm (props) {
 
     return (
         <Fragment>
+            {
+                !subs_switch_state && !surf_switch_state && (
+                    <Grid item xs={12} className={hasNoGroundData ? classes.groupGridContainer : ""}>
+                        <FormControl component="fieldset" className={classes.formControl}>
+                            <FormLabel component="legend" className={classes.formLabel}>
+                                <span>No Ground Data (ND)</span>
+
+                                <Switch
+                                    checked={hasNoGroundData}
+                                    onChange={event => setHasNoGroundData(event.target.checked)}
+                                    value={hasNoGroundData}
+                                />
+                            </FormLabel>
+                        </FormControl>
+                    </Grid>
+                )
+            }
+
+            <Grid item xs={12}>
+                <Typography variant="h7" color="secondary">Ground-Related Triggers</Typography>
+            </Grid>
+
             <SubsurfaceTriggerGroup
                 triggersState={triggersState}
                 setTriggersState={setTriggersState}
@@ -168,6 +202,10 @@ function TriggersInputForm (props) {
                 triggersState={triggersState}
                 setTriggersState={setTriggersState}
             />
+
+            <Grid item xs={12}>
+                <Typography variant="h7" color="secondary">Secondary Triggers</Typography>
+            </Grid>
 
             <RainfallTriggerGroup
                 triggersState={triggersState}
@@ -349,6 +387,7 @@ function AlertReleaseForm (props) {
                 alignItems="center"
                 spacing={1}
             >
+
                 {getStepContent(activeStep)}
                 <div className={classes.root}>
                     <Typography className={classes.instructions} />

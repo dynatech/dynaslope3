@@ -12,13 +12,13 @@ const styles = theme => ({
     }
 });
 
-function SubsurfaceCheckboxGroup (props) {
+function MomsTriggerGroup (props) {
     const {
         classes, triggersState, setTriggersState
     } = props;
 
-    const { subsurface } = triggersState;
-    const { switchState, triggers } = subsurface;
+    const { moms } = triggersState;
+    const { switchState, triggers } = moms;
 
     const triggers_value = {
         trigger_2: { status: false, disabled: false },
@@ -50,25 +50,25 @@ function SubsurfaceCheckboxGroup (props) {
         <Fragment>
             <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
                 <CheckboxGroupWithSwitch
-                    label="Subsurface"
+                    label="Moms"
                     switchState={switchState}
-                    switchHandler={handleSwitchChange(setTriggersState, "subsurface")}
-                    switchValue="subsurface_switch"
+                    switchHandler={handleSwitchChange(setTriggersState, "moms")}
+                    switchValue="moms_switch"
                     choices={[
-                        { state: trigger_2, value: 2, label: "Release trigger (s2)" },
-                        { state: trigger_3, value: 3, label: "Release trigger (S3)" },
-                        { state: trigger_0, value: 0, label: "No data ([s/S]0)" }
+                        { state: trigger_2, value: 2, label: "Release trigger (m2)" },
+                        { state: trigger_3, value: 3, label: "Release trigger (M3)" },
+                        { state: trigger_0, value: 0, label: "No data ([m/M]0)" }
                     ]}
-                    changeHandler={handleCheckboxChange(setTriggersState, "subsurface")}
+                    changeHandler={handleCheckboxChange(setTriggersState, "moms")}
                 />
             </Grid>
             {
                 trigger_2.status && switchState ? (
                     <TriggerTimestampAndTechInfoCombo
-                        labelFor="s2"
+                        labelFor="m2"
                         trigger_timestamp={trigger_2.timestamp}
                         tech_info={trigger_2.tech_info}
-                        changeHandler={handleChange(setTriggersState, "subsurface")}
+                        changeHandler={handleChange(setTriggersState, "moms")}
                     />
                 ) : (
                     <div />
@@ -78,10 +78,10 @@ function SubsurfaceCheckboxGroup (props) {
             {
                 trigger_3.status && switchState ? (
                     <TriggerTimestampAndTechInfoCombo
-                        labelFor="S3"
+                        labelFor="M3"
                         trigger_timestamp={trigger_3.timestamp}
                         tech_info={trigger_3.tech_info}
-                        changeHandler={handleChange(setTriggersState, "subsurface")}
+                        changeHandler={handleChange(setTriggersState, "moms")}
                     />
                 ) : (
                     <div />
@@ -91,4 +91,4 @@ function SubsurfaceCheckboxGroup (props) {
     );
 }
 
-export default withStyles(styles)(SubsurfaceCheckboxGroup);
+export default withStyles(styles)(MomsTriggerGroup);
