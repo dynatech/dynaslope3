@@ -150,7 +150,8 @@ function GeneralInputForm (props) {
 function TriggersInputForm (props) {
     const { 
         classes, triggersState, setTriggersState,
-        setModalTitle, hasNoGroundData, setHasNoGroundData
+        setModalTitle, hasNoGroundData, setHasNoGroundData,
+        triggersReleased
     } = props;
     const [switch_value, setSwitchValue] = useState("");
     const {
@@ -184,18 +185,20 @@ function TriggersInputForm (props) {
                 )
             }
 
-            <Grid item xs={12}>
+            <Grid item xs={12} style={{ paddingTop: "20px" }}>
                 <Typography variant="h7" color="secondary">Ground-Related Triggers</Typography>
             </Grid>
 
             <SubsurfaceTriggerGroup
                 triggersState={triggersState}
                 setTriggersState={setTriggersState}
+                triggersReleased={triggersReleased}
             />
 
             <SurficialTriggerGroup
                 triggersState={triggersState}
                 setTriggersState={setTriggersState}
+                triggersReleased={triggersReleased}
             />
 
             <MomsTriggerGroup
@@ -203,7 +206,7 @@ function TriggersInputForm (props) {
                 setTriggersState={setTriggersState}
             />
 
-            <Grid item xs={12}>
+            <Grid item xs={12} style={{ paddingTop: "20px" }}>
                 <Typography variant="h7" color="secondary">Secondary Triggers</Typography>
             </Grid>
 
@@ -319,6 +322,7 @@ function AlertReleaseForm (props) {
         internalAlertLevel, setTriggerList,
         setPublicAlertLevel
     } = props;
+    const [triggersReleased, setTriggersReleased] = useState([]);
 
     const changeState = (key, value) => {
         if (key === "siteId") {
@@ -332,7 +336,11 @@ function AlertReleaseForm (props) {
                     ...generalData,
                     site_code
                 });
-                const { internal_alert_level, public_alert_level, trigger_list_str } = ret;
+                const {
+                    internal_alert_level, public_alert_level, trigger_list_str,
+                    trigger_sources
+                } = ret;
+                setTriggersReleased(trigger_sources);
                 setTriggerList(trigger_list_str);
                 setPublicAlertLevel(public_alert_level);
                 // set the status on form
@@ -365,7 +373,7 @@ function AlertReleaseForm (props) {
                     handleEventChange={handleEventChange}
                 />);
             case 1:
-                return <TriggersInputForm {...props}/>;
+                return <TriggersInputForm {...props} triggersReleased={triggersReleased} />;
             case 2:
                 return <CommentsInputForm {...props} handleEventChange={handleEventChange}/>;
             case 3:

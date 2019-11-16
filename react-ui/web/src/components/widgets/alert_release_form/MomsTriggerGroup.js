@@ -1,5 +1,7 @@
-import React, { Fragment } from "react";
-import { Grid, withStyles } from "@material-ui/core";
+import React, { Fragment, useState } from "react";
+import moment from "moment";
+import { Grid, withStyles, FormControl,
+    FormLabel, Typography, TextField } from "@material-ui/core";
 
 import CheckboxGroupWithSwitch from "../../reusables/CheckboxGroupWithSwitch";
 import { handleChange, handleCheckboxChange, handleSwitchChange } from "./state_handlers";
@@ -14,11 +16,17 @@ const styles = theme => ({
 
 function MomsTriggerGroup (props) {
     const {
-        classes, triggersState, setTriggersState
+        classes, triggersState
     } = props;
+
+    const [trigger_type, setTriggerType] = useState("");
+    const [last_trigger_ts, setLastTriggerTs] = useState("");
+    const [tech_info, setTechInfo] = useState("");
 
     const { moms } = triggersState;
     const { switchState, triggers } = moms;
+
+    console.log("TRIGGERS MOMS", moms);
 
     const triggers_value = {
         trigger_2: { status: false, disabled: false },
@@ -27,6 +35,9 @@ function MomsTriggerGroup (props) {
     };
 
     if (triggers.length !== 0) {
+        setTriggerType("m2");
+        setLastTriggerTs(moment().format("YYYY-MM-DD HH:mm:00"));
+        setTechInfo("Significant crack found in site.");
         triggers.forEach(trigger => {
             const { alert_level, status, disabled } = trigger;
             triggers_value[`trigger_${alert_level}`] = {
@@ -44,49 +55,50 @@ function MomsTriggerGroup (props) {
         });
     }
 
-    const { trigger_2, trigger_3, trigger_0 } = triggers_value;
+    const techInfoHandler = () => {
+        // TO DO:
+        console.log("change has been made");
+    };
 
     return (
         <Fragment>
             <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
-                <CheckboxGroupWithSwitch
-                    label="Moms"
-                    switchState={switchState}
-                    switchHandler={handleSwitchChange(setTriggersState, "moms")}
-                    switchValue="moms_switch"
-                    choices={[
-                        { state: trigger_2, value: 2, label: "Release trigger (m2)" },
-                        { state: trigger_3, value: 3, label: "Release trigger (M3)" },
-                        { state: trigger_0, value: 0, label: "No data ([m/M]0)" }
-                    ]}
-                    changeHandler={handleCheckboxChange(setTriggersState, "moms")}
-                />
+                <FormControl component="fieldset" className={classes.formControl}>
+                    <FormLabel component="legend" className={classes.formLabel}>
+                        <span>MOMs</span>
+                    </FormLabel>
+                </FormControl>
+                <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                        <Typography variant="body2">Note: If you want to add/include MOMS in the release, insert MOMS using its MOMS Insert Form</Typography>
+                    </Grid>
+                    {
+                        triggers.length === 0 && (
+                            <Fragment>
+                                <Grid item xs={12} sm={6}>
+                                    <Typography variant="body2">Trigger: {trigger_type}</Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <Typography variant="body2">Last trigger timestamp: {last_trigger_ts}</Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
+                                    <TextField
+                                        required
+                                        label="Technical Info"
+                                        multiline
+                                        rowsMax="2"
+                                        placeholder="Enter technical info for 'MOMs' trigger"
+                                        value={tech_info}
+                                        onChange={techInfoHandler}
+                                        fullWidth
+                                    />
+                                </Grid>
+                            </Fragment>                            
+                        )
+                    }
+                </Grid>
+                
             </Grid>
-            {
-                trigger_2.status && switchState ? (
-                    <TriggerTimestampAndTechInfoCombo
-                        labelFor="m2"
-                        trigger_timestamp={trigger_2.timestamp}
-                        tech_info={trigger_2.tech_info}
-                        changeHandler={handleChange(setTriggersState, "moms")}
-                    />
-                ) : (
-                    <div />
-                )
-            }
-
-            {
-                trigger_3.status && switchState ? (
-                    <TriggerTimestampAndTechInfoCombo
-                        labelFor="M3"
-                        trigger_timestamp={trigger_3.timestamp}
-                        tech_info={trigger_3.tech_info}
-                        changeHandler={handleChange(setTriggersState, "moms")}
-                    />
-                ) : (
-                    <div />
-                )
-            }
         </Fragment>
     );
 }
