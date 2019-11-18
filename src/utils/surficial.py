@@ -2,16 +2,33 @@
     Utility file for Surficial tables.
     Contains functions essential in accessing and saving into surficial table.
 """
-import pprint
-from connection import DB
+
 from datetime import datetime
+from connection import DB
 from src.models.analysis import (
     SiteMarkers, MarkerData as md,
     MarkerObservations as mo)
-from src.models.sites import (
-    Sites, SitesSchema)
-
+from src.models.sites import Sites
 from src.utils.extra import var_checker
+
+
+def check_if_site_has_active_surficial_markers(site_code=None, site_id=None):
+    """
+    Returns boolean: True if has active surficial markers, False if none
+    """
+    # TODO: change querying by accessing SiteMarkers on memcache
+    sm = SiteMarkers
+    query = DB.session.query(sm.site_id, sm.site_code, DB.func.max(
+        sm.in_use).label("has_surficial_markers")).group_by(sm.site_id)
+
+    if site_code:
+        query = query.filter_by(site_code=site_code)
+
+    if site_id:
+        query = query.filter_by(site_id=site_id)
+
+    result = query.first()
+    return bool(result.has_surficial_markers)
 
 
 def get_surficial_data(

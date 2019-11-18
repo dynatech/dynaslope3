@@ -7,10 +7,9 @@ NAMING CONVENTION
 """
 
 import json
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request
 from connection import DB
-from sqlalchemy import and_
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts)
 from src.models.monitoring import (
@@ -183,7 +182,6 @@ def wrap_get_monitoring_events(value=None):
 
         include_count = True if include_count.lower() == "true" else False
 
-        # return_data = get_monitoring_events_table(offset, limit)
         return_data = get_monitoring_events_table(
             offset, limit, site_ids, entry_types, include_count, search, status)
     elif filter_type == "count":
@@ -273,7 +271,8 @@ def build_internal_alert_level():
     # latest is array
     latest = json_data["latest_trigger_list"]
 
-    sorted_latest = list(sorted(latest, key=lambda x: x["alert_level"], reverse=True))
+    sorted_latest = list(
+        sorted(latest, key=lambda x: x["alert_level"], reverse=True))
     public_alert_level = sorted_latest[0]["alert_level"]
 
     # Return highest unique triggers
@@ -281,12 +280,15 @@ def build_internal_alert_level():
     for trigger_source in sorted_latest:
         alert_level = trigger_source["alert_level"]
         trigger_type = trigger_source["trigger_type"]
-        trigger_hierarchy = retrieve_data_from_memcache("trigger_hierarchies", {"trigger_source": trigger_type})
+        trigger_hierarchy = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": trigger_type})
         source_id = trigger_hierarchy["source_id"]
         hierarchy_id = trigger_hierarchy["hierarchy_id"]
-        trigger_sym_id = retrieve_data_from_memcache("operational_trigger_symbols", {"alert_level": alert_level, "source_id": source_id}, retrieve_attr="trigger_sym_id")
+        trigger_sym_id = retrieve_data_from_memcache("operational_trigger_symbols", {
+                                                     "alert_level": alert_level, "source_id": source_id}, retrieve_attr="trigger_sym_id")
         var_checker("trigger_sym_id", trigger_sym_id, True)
-        internal_sym = retrieve_data_from_memcache("internal_alert_symbols", {"trigger_sym_id": trigger_sym_id}, retrieve_attr="alert_symbol")
+        internal_sym = retrieve_data_from_memcache("internal_alert_symbols", {
+                                                   "trigger_sym_id": trigger_sym_id}, retrieve_attr="alert_symbol")
 
         temp = {
             "alert_level": alert_level,
@@ -298,7 +300,8 @@ def build_internal_alert_level():
             trigger_source_list.append(source_id)
             counted_triggers_list.append(temp)
 
-    sorted_by_hierarchy = list(sorted(counted_triggers_list, key=lambda x: x["hierarchy_id"]))
+    sorted_by_hierarchy = list(
+        sorted(counted_triggers_list, key=lambda x: x["hierarchy_id"]))
 
     trigger_list_final = ""
     for unique_trigger in sorted_by_hierarchy:
@@ -319,14 +322,15 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
         site_id = monitoring_instance_details["site_id"]
         event_id = monitoring_instance_details["event_id"]
 
-        ## Get the latest release timestamp
+        # Get the latest release timestamp
         latest_release = get_latest_release_per_site(site_id)
         latest_release_data_ts = latest_release.data_ts
 
         if ((datetime.now() - latest_release_data_ts).seconds / 3600) <= 2:
             # UPDATE STUFF
             var_checker("", "UPDATE", True)
-            new_release = update_monitoring_release_on_db(latest_release, release_details)
+            new_release = update_monitoring_release_on_db(
+                latest_release, release_details)
             release_id = new_release
         else:
             new_release = write_monitoring_release_to_db(release_details)
@@ -967,7 +971,8 @@ def get_event_timeline_data(event_id):
 
                     release_type = ""
                     release_ts = data_ts + timedelta(minutes=30)
-                    validity_ts = datetime.strptime(validity, "%Y-%m-%d %H:%M:%S")
+                    validity_ts = datetime.strptime(
+                        validity, "%Y-%m-%d %H:%M:%S")
                     if release_ts < validity_ts:
                         release_type = "latest"
                     elif release_ts == validity_ts:

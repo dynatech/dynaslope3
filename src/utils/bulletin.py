@@ -7,7 +7,7 @@ import os
 import platform
 import re
 import copy
-from datetime import datetime, timedelta, time
+from datetime import timedelta
 from flask import send_file
 
 import img2pdf
@@ -26,8 +26,8 @@ from config import APP_CONFIG
 from src.models.monitoring import MonitoringReleasesSchema
 from src.utils.monitoring import (
     get_monitoring_releases, get_monitoring_triggers,
-    compute_event_validity, round_to_nearest_release_time,
-    check_if_onset_release, get_next_ground_data_reporting)
+    compute_event_validity, check_if_onset_release,
+    get_next_ground_data_reporting, get_next_ewi_release_ts)
 from src.utils.extra import retrieve_data_from_memcache, format_timestamp_to_string
 
 
@@ -40,16 +40,13 @@ RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
 
 BULLETIN_RESPONSES = retrieve_data_from_memcache("bulletin_responses")
 
-BULLETIN_TRIGGERS = retrieve_data_from_memcache("bulletin_triggers")
-
 INTERNAL_ALERT_SYMBOLS = retrieve_data_from_memcache("internal_alert_symbols")
 
 
 class DriverContainer:
-    dir_name = os.path.dirname
-    path = dir_name(dir_name(__file__))
-    save_path = f"{path}/temp/bulletin"
-    pdf_save_path = f"{path}/temp"
+    root_path = APP_CONFIG["root_path"]
+    path = f"{root_path}/src/drivers"
+    save_path = APP_CONFIG["bulletin_save_path"]
 
     def __init__(self):
         print("Initializing Selenium WebDriver...")
@@ -60,15 +57,14 @@ class DriverContainer:
         options.add_argument("--disable-extensions")
         options.add_argument('--ignore-certificate-errors')
         options.add_argument('--no-sandbox')
-        options.add_argument("--log-level=3")  # Turn of logging
+        options.add_argument("--log-level=3")  # Turn off logging
 
         os_platform = platform.system()
         lc_platform = os_platform.lower()
 
         extension = ".exe" if lc_platform == "windows" else ""
-        # service_args=["--log-path=/../temp/chromedriver.log"]
         self.driver = webdriver.Chrome(
-            f"{self.path}/drivers/{lc_platform}/chromedriver{extension}",
+            f"{self.path}/{lc_platform}/chromedriver{extension}",
             chrome_options=options)
 
         print("Finished initializing Selenium WebDriver...")
@@ -82,7 +78,7 @@ class DriverContainer:
             self.convert_screenshot()
             self.render_to_pdf()
             success = True
-            pdf_path = f"{self.pdf_save_path}/bulletin.pdf"
+            pdf_path = f"{self.save_path}/bulletin.pdf"
         except Exception as e:
             success = False
             error = str(e)
@@ -149,7 +145,7 @@ class DriverContainer:
         print("Rendering to PDF...")
         a4inpt = (img2pdf.mm_to_pt(210), img2pdf.mm_to_pt(297))
         layout_fun = img2pdf.get_layout_fun(a4inpt)
-        with open(f"{self.pdf_save_path}/bulletin.pdf", "wb") as f:
+        with open(f"{self.save_path}/bulletin.pdf", "wb") as f:
             f.write(img2pdf.convert(
                 [i.path for i in os.scandir(
                     self.save_path) if i.name.endswith(".jpg")],
@@ -331,7 +327,7 @@ def process_bulletin_responses(pub_sym_id, alert_level, validity, data_ts, is_on
         # TODO: isinsin pa ang returning of bulletin recommendations
         recommended = bulletin_response["recommended"].split("/")
         res = recommended[2]
-        if is_onset:
+        if is_onset:  # TODO: don't use onset in checking, compare validity and data_ts
             res = recommended[0]
 
         bulletin_response["lewc_lgu"] = res
@@ -497,10 +493,7 @@ def create_monitoring_bulletin(release_id):
 
     publishers = get_release_publishers_initial(release.release_publishers)
 
-    next_ewi_release_ts = round_to_nearest_release_time(data_ts)
-    if not is_onset:
-        next_ewi_release_ts = next_ewi_release_ts + \
-            timedelta(hours=RELEASE_INTERVAL_HOURS)
+    next_ewi_release_ts = get_next_ewi_release_ts(data_ts, is_onset)
 
     schema = MonitoringReleasesSchema(
         exclude=["event_alert.event.eos_analysis"]).dump(release).data

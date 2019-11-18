@@ -56,16 +56,20 @@ docs/_build/
 # PyBuilder
 target/
 
-Node Modules
+# Node Modules
 node_modules/
 
 # Project-related Folders
 instance/
+temp/
+tmp/
 .env
 .pytest_cache
 .vscode
 
-
+# Analysis scripts credentials
+*.tmp
+*.cnf
 
 #Run.py
 run.py

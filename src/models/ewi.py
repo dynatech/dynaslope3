@@ -40,6 +40,7 @@ class BulletinTriggers(DB.Model):
     description = DB.Column(DB.String(100))
     cause = DB.Column(DB.String(50))
     template = DB.Column(DB.String(100))
+    sms = DB.Column(DB.String(200))
 
     internal_sym = DB.relationship(
         "InternalAlertSymbols", backref=DB.backref("bulletin_trigger", lazy="dynamic"), lazy="joined", innerjoin=True)

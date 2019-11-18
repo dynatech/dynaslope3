@@ -40,9 +40,9 @@ const tabs_array = [
 function Container (props) {
     const { classes, width } = props;
     const [chosenTab, setChosenTab] = useState(0);
-    const [generatedAlerts, setGeneratedAlerts] = useState([]);
-    const [candidateAlertsData, setCandidateAlertsData] = useState([]);
-    const [alertsFromDbData, setAlertsFromDbData] = useState({ latest: [], extended: [], overdue: [] });
+    const [generatedAlerts, setGeneratedAlerts] = useState(null);
+    const [candidateAlertsData, setCandidateAlertsData] = useState(null);
+    const [alertsFromDbData, setAlertsFromDbData] = useState(null);
     const [isOpenReleaseModal, setIsOpenReleaseModal] = useState(false);
     const [chosenCandidateAlert, setChosenCandidateAlert] = useState(null);
 
@@ -52,21 +52,9 @@ function Container (props) {
     useEffect(() => {
         subscribeToWebSocket("socket_fns");
 
-        receiveGeneratedAlerts(generated_alerts => {
-            const temp = JSON.parse(generated_alerts);
-            // console.log("generated_alerts from wss", temp);
-            setGeneratedAlerts(temp);
-        });
-        receiveCandidateAlerts(candidate_alerts => {
-            const temp = JSON.parse(candidate_alerts);
-            // console.log("candidate_alerts from wss", temp);
-            setCandidateAlertsData(temp);
-        });
-        receiveAlertsFromDB(alerts_from_db => {
-            const temp = JSON.parse(alerts_from_db);
-            // console.log("alerts_from_db from wss", temp);
-            setAlertsFromDbData(temp);
-        });
+        receiveGeneratedAlerts(generated_alerts => setGeneratedAlerts(generated_alerts));
+        receiveCandidateAlerts(candidate_alerts => setCandidateAlertsData(candidate_alerts));
+        receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
 
         return function cleanup () {
             unsubscribeToWebSocket();

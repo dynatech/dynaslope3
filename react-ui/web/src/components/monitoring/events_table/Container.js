@@ -18,7 +18,6 @@ import { getMonitoringEvents } from "../ajax";
 const filter_sites_option = [];
 const sites_dict = {};
 
-
 sites.forEach(site => {
     const address = prepareSiteAddress(site, true, "start");
     const site_code = site.site_code.toUpperCase();
@@ -32,7 +31,6 @@ const styles = theme => ({
     }
 });
 
-
 function prepareEventTimelineLink (url, event_id) {
     return (
         <Link
@@ -43,7 +41,6 @@ function prepareEventTimelineLink (url, event_id) {
     );
 }
 
-
 function prepareEventsArray (url, arr) {
     return arr.map(
         ({
@@ -51,10 +48,8 @@ function prepareEventsArray (url, arr) {
             sitio, barangay, municipality,
             province, entry_type, 
             event_start, validity,
-            ts_start, ts_end
+            ts_start, ts_end, public_alert
         }) => {
-            // let final_ts_end = "ON-GOING";
-            // if (ts_end !== "" && ts_end !== null) final_ts_end = moment(ts_end).format("D MMMM YYYY, h:mm");
             let final_event_start = null;
             let final_ts_end = "ROUTINE";
             
@@ -66,11 +61,11 @@ function prepareEventsArray (url, arr) {
                 event_link,
                 sites_dict[site_code.toUpperCase()].address,
                 entry_type,
+                public_alert,
                 final_event_start,
                 final_ts_end
-                // moment(ts_start).format("D MMMM YYYY, h:mm"),
-                // final_ts_end
             ];
+
             return event_entry;
         });
 }
@@ -108,8 +103,7 @@ function MonitoringEventsTable (props) {
         setIsLoading(true);
 
         const offset = page * rowsPerPage;
-        const limit = page * rowsPerPage + rowsPerPage;
-        // const limit = rowsPerPage;
+        const limit = (page * rowsPerPage) + rowsPerPage;
 
         const input = {
             include_count: true,
@@ -248,7 +242,6 @@ function MonitoringEventsTable (props) {
         }
     };
 
-
     const columns = [
         {
             name: "event_id",
@@ -278,6 +271,14 @@ function MonitoringEventsTable (props) {
                     names: ["ROUTINE", "EVENT"]
                 },
                 sort: false
+            }
+        },
+        {
+            name: "public_alert",
+            label: "Last Alert Level",
+            options: {
+                filter: true,
+                sort: true
             }
         },
         {
@@ -311,7 +312,7 @@ function MonitoringEventsTable (props) {
                                 <MuiThemeProvider theme={getMuiTheme}>
                                     <MUIDataTable
                                         title={
-                                            <Typography>
+                                            <Typography variant="h5" component="div">
                                                 Monitoring Events Table
                                                 {
                                                     isLoading &&

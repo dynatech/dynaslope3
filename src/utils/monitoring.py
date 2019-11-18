@@ -4,6 +4,7 @@ Contains functions for getting and accesing monitoring-related tables only
 """
 import re
 from datetime import datetime, timedelta, time, date
+from sqlalchemy.orm import joinedload, raiseload
 from connection import DB
 from src.models.analysis import AlertStatus
 from src.models.monitoring import (
@@ -17,7 +18,8 @@ from src.models.monitoring import (
     BulletinTracker, MonitoringReleasePublishers, MonitoringTriggersMisc)
 from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.utils.extra import (
-    var_checker, retrieve_data_from_memcache, get_process_status_log)
+    var_checker, retrieve_data_from_memcache, get_process_status_log,
+    round_to_nearest_release_time)
 from src.utils.narratives import write_narratives_to_db
 
 
@@ -160,8 +162,13 @@ def get_site_moms_alerts(site_id, ts_start, ts_end):
     """
     moms = MonitoringMoms
     mi = MomsInstances
-    site_moms_alerts_list = moms.query.order_by(DB.desc(moms.observance_ts)).filter(
-        DB.and_(ts_start <= moms.observance_ts, moms.observance_ts <= ts_end)).join(mi).filter(mi.site_id == site_id).all()
+    site_moms_alerts_list = moms.query.join(mi).options(
+        joinedload("moms_instance", innerjoin=True) \
+        .joinedload("feature", innerjoin=True).raiseload("*"),
+        joinedload("moms_release").raiseload("*")) \
+        .order_by(DB.desc(moms.observance_ts)) \
+        .filter(DB.and_(ts_start <= moms.observance_ts, moms.observance_ts <= ts_end)) \
+        .filter(mi.site_id == site_id).all()
 
     sorted_list = sorted(site_moms_alerts_list,
                          key=lambda x: x.op_trigger, reverse=True)
@@ -170,31 +177,6 @@ def get_site_moms_alerts(site_id, ts_start, ts_end):
         highest_moms_alert = sorted_list[0].op_trigger
 
     return site_moms_alerts_list, highest_moms_alert
-
-
-def round_to_nearest_release_time(data_ts, interval=4):
-    """
-    Round time to nearest 4/8/12 AM/PM (default)
-    Or any other interval
-
-    Args:
-        data_ts (datetime)
-        interval (Integer)
-
-    Returns datetime
-    """
-    hour = data_ts.hour
-
-    quotient = int(hour / interval)
-    hour_of_release = (quotient + 1) * interval
-
-    if hour_of_release < 24:
-        date_time = datetime.combine(
-            data_ts.date(), time((quotient + 1) * interval, 0))
-    else:
-        date_time = datetime.combine(data_ts.date() + timedelta(1), time(0, 0))
-
-    return date_time
 
 
 def round_down_data_ts(date_time):
@@ -358,8 +340,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     for event_alert in active_event_alerts:
         validity = event_alert.event.validity
         event_id = event_alert.event.event_id
-        # latest_release = event_alert.releases.order_by(
-        #     DB.desc(MonitoringReleases.data_ts)).first()
         latest_release = event_alert.releases[0]
 
         # NOTE: LOUIE This formats release time to have date instead of time only
@@ -496,8 +476,9 @@ def process_trigger_list(trigger_list, include_ND=False):
     """
     Sample docstring
     """
+
     if "-" in trigger_list:
-        nd_alert, trigger_str = trigger_list
+        nd_alert, trigger_str = trigger_list.split("-")
     else:
         trigger_str = trigger_list
 
@@ -749,9 +730,11 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
     """
     me = MonitoringEvents
     mea = MonitoringEventAlerts
-    
-    # base = me.query.order_by(DB.desc(me.event_id))
-    base = me.query.join(Sites).join(mea)
+
+    base = me.query.join(Sites).join(mea).options(
+        DB.joinedload("site", innerjoin=True).raiseload("*"),
+        DB.subqueryload("event_alerts").raiseload("releases")
+    )
 
     if site_ids:
         base = base.filter(me.site_id.in_(site_ids))
@@ -777,52 +760,6 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
         return_data = formatted_events
 
     return return_data
-
-
-
-# def get_monitoring_events_table(offset, limit):
-#     me = MonitoringEvents
-#     mea = MonitoringEventAlerts
-#     #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
-#     # DB.session.query(
-#     #     me, mea.pub_sym_id,
-#     #     mea.ts_start, mea.ts_end).join(mea).order_by(
-#     #         DB.desc(me.event_id),
-#     #         DB.desc(mea.event_alert_id)
-#     #         ).all()[offset:limit]
-
-#     #### Version 1 Query: Issues - only need latest entry of MEA but returns everything when joined ####
-#     temp = me.query.order_by(DB.desc(me.event_id)).all()[offset:limit]
-
-#     event_data = []
-#     for event in temp:
-#         if event.status == 2:
-#             entry_type = "EVENT"
-#         else:
-#             entry_type = "ROUTINE"
-
-#         latest_event_alert = event.event_alerts.order_by(
-#             DB.desc(mea.event_alert_id)).first()
-
-#         event_dict = {
-#             "event_id": event.event_id,
-#             "site_id": event.site.site_id,
-#             "site_code": event.site.site_code,
-#             "purok": event.site.purok,
-#             "sitio": event.site.sitio,
-#             "barangay": event.site.barangay,
-#             "municipality": event.site.municipality,
-#             "province": event.site.province,
-#             "event_start": event.event_start,
-#             "validity": event.validity,
-#             "entry_type": entry_type,
-#             "public_alert": latest_event_alert.public_alert_symbol.alert_symbol,
-#             "ts_start": latest_event_alert.ts_start,
-#             "ts_end": latest_event_alert.ts_end
-#         }
-#         event_data.append(event_dict)
-
-#     return event_data
 
 
 def get_monitoring_events(event_id=None):
@@ -1592,21 +1529,33 @@ def check_if_onset_release(event_alert_id, release_id, data_ts):
         data_ts.hour % RELEASE_INTERVAL_HOURS == RELEASE_INTERVAL_HOURS - \
         1 and data_ts.minute == 30
     if first_release != release_id or (
-            is_first_release_but_release_time and alert_level > 0):
+            is_first_release_but_release_time):
         is_onset = False
 
     return is_onset
 
 
-def get_next_ground_data_reporting(data_ts, is_onset=False):
+def get_next_ground_data_reporting(data_ts, is_onset=False, is_alert_0=False, include_modifier=False):
+    """
+    data_ts (datetime)      untouched data_ts from monitoring_releases
+    """
+
     hour = data_ts.hour
     minute = data_ts.minute
 
-    if hour <= 7 and minute == 0:
-        reporting = datetime.combine(data_ts.date(), time(7, 30))
+    time_comp = time(11, 30) if is_alert_0 else time(7, 30)
+    modifier = "mamaya"
+
+    if is_alert_0:
+        release_ts = round_to_nearest_release_time(data_ts)
+        reporting = datetime.combine(
+            release_ts.date(), time_comp) + timedelta(days=1)
+    elif hour <= 7 and minute == 0:
+        reporting = datetime.combine(data_ts.date(), time_comp)
     elif hour >= 15 and minute >= 30:
         reporting = datetime.combine(
-            data_ts.date(), time(7, 30)) + timedelta(days=1)
+            data_ts.date(), time_comp) + timedelta(days=1)
+        modifier = "bukas"
     else:
         reporting = round_to_nearest_release_time(data_ts)
         if is_onset:
@@ -1614,4 +1563,15 @@ def get_next_ground_data_reporting(data_ts, is_onset=False):
         else:
             reporting = reporting + timedelta(hours=3, minutes=30)
 
+    if include_modifier:
+        return reporting, modifier
     return reporting
+
+
+def get_next_ewi_release_ts(data_ts, is_onset=False):
+    next_ewi_release_ts = round_to_nearest_release_time(data_ts)
+    if not is_onset:
+        next_ewi_release_ts = next_ewi_release_ts + \
+            timedelta(hours=RELEASE_INTERVAL_HOURS)
+
+    return next_ewi_release_ts

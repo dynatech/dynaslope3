@@ -172,7 +172,7 @@ def round_to_nearest_release_time(data_ts, interval=4):
     return date_time
 
 
-def format_timestamp_to_string(ts, time_only=False):
+def format_timestamp_to_string(ts, time_only=False, date_only=False):
     time_locale = "%p"
     if ts.hour in [0, 12]:
         time_locale = "MN" if ts.hour == 0 else "NN"
@@ -182,6 +182,9 @@ def format_timestamp_to_string(ts, time_only=False):
     str_format = f"%B %d, %Y, {time_format}"
     if time_only:
         str_format = time_format
+
+    if date_only:
+        str_format = f"%B %d, %Y"
 
     return ts.strftime(str_format)
 
@@ -199,7 +202,7 @@ def get_system_time():
 
 def get_process_status_log(key, status):
     """
-    Just a function used to 
+    Just a function used to
     """
     sys_time = get_system_time()
     status_log = f"[{sys_time}] | "

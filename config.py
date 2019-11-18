@@ -3,6 +3,8 @@
 Contains server run configurations
 """
 
+import os
+
 
 class Config(object):
     """
@@ -32,10 +34,22 @@ class ProductionConfig(Config):
     SQLALCHEMY_ECHO = False
 
 
+def get_root_directory():
+    """
+    returns root directory
+    """
+
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    return root_dir
+
+
+ROOT_PATH = get_root_directory()
 APP_CONFIG = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
-    # "generated_alerts_path": "D:/Users/swat-dynaslope/Documents/DYNASLOPE-3.0/"
-    "generated_alerts_path": "/var/www/dynaslope3/outputs/",
+    "root_path": ROOT_PATH,
+    "generated_alerts_path": f"{ROOT_PATH}/temp/alerts",
+    "bulletin_save_path": f"{ROOT_PATH}/temp/bulletin",
+    "charts_render_path": f"{ROOT_PATH}/temp/charts",
     "url": "http://192.168.150.167:3000"
 }

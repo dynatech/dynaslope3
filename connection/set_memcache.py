@@ -12,6 +12,8 @@ from src.models.ewi import (
     BulletinTriggers as bt, BulletinTriggersSchema as btS)
 from src.models.dynamic_variables import (
     DynamicVariables as dv, DynamicVariablesSchema as dvS)
+from src.models.analysis import (
+    SiteMarkers as sm, SiteMarkersSchema as smS)
 
 
 def main(memory_client):
@@ -22,7 +24,8 @@ def main(memory_client):
         "trigger_hierarchies": (th, thS(many=True)),
         "dynamic_variables": (dv, dvS(many=True)),
         "bulletin_responses": (br, brS(many=True)),
-        "bulletin_triggers": (bt, btS(many=True))
+        "bulletin_triggers": (bt, btS(many=True)),
+        "site_markers": (sm, smS(many=True))
     }
 
     for key in table_list:
