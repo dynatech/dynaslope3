@@ -15,6 +15,16 @@ export function getListOfMunicipalities (callback) {
     });
 }
 
-export function saveContact(input, callback){
-    let api_link = `${host}/api/contacts/save_contact`;
+export function saveContact (input, callback) {
+    const api_link = `${host}/api/contacts/save_contact`;
+    console.log(input);
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save contact data reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
 }

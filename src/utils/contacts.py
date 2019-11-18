@@ -15,7 +15,7 @@ def get_all_contacts(return_schema=False):
     """
     """
     mobile_numbers = UserMobiles.query.join(Users).options(
-        joinedload("user").subqueryload("organizations").joinedload("site").raiseload("*")).order_by(Users.last_name, UserMobiles.priority).all()
+        joinedload("user", innerjoin=True).subqueryload("organizations").joinedload("site", innerjoin=True).raiseload("*")).order_by(Users.last_name, UserMobiles.priority).all()
 
     if return_schema:
         numbers_schema = UserMobilesSchema(many=True).dump(mobile_numbers).data

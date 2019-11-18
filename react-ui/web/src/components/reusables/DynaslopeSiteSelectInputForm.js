@@ -27,12 +27,21 @@ function DynaslopeSiteSelectInputForm (props) {
     const is_multi = (typeof isMulti === "undefined") ? false : isMulti;
     const placeholder = is_multi ? "Select site(s)" : "Select site";
     const to_render_dropdown = (typeof renderDropdownIndicator === "undefined") ? false : renderDropdownIndicator;
-    
+
+    let pass_value = value;
+    if (value !== "") {
+        const { label, value: site_id } = value;
+
+        if (typeof label === "undefined") {
+            pass_value = options[site_id - 1];
+        }
+    }
+
     return (
         <SelectMultipleWithSuggest
             label={isMulti ? "Site(s)" : "Site"}
             options={options}
-            value={value}
+            value={pass_value}
             changeHandler={changeHandler}
             placeholder={placeholder}
             renderDropdownIndicator={to_render_dropdown}
