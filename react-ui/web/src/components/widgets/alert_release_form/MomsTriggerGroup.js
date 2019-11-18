@@ -26,8 +26,6 @@ function MomsTriggerGroup (props) {
     const { moms } = triggersState;
     const { switchState, triggers } = moms;
 
-    console.log("TRIGGERS MOMS", moms);
-
     const triggers_value = {
         trigger_2: { status: false, disabled: false },
         trigger_3: { status: false, disabled: false },
