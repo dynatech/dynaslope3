@@ -66,7 +66,7 @@ function removeNumberMask (data, type) {
         data.map((row, index) => {
             console.log(row)
             delete row.mobile_id;
-            const landline_id = row.landline_id;
+            const { landline_id } = row;
 
             if (landline_id == undefined) {
                 row.landline_id = 0;
