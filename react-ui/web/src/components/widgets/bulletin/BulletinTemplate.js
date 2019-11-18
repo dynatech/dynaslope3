@@ -189,7 +189,9 @@ function TitleAndMainInfo (props) {
 
 function BulletinTemplate (props) {
     const classes = useStyle();
-    const { width, match: { params: { release_id } } } = props;
+    // const { releaseId, width, match: { params: { release_id } } } = props;
+    const { releaseId, width } = props;
+
     const [excess_divs, setExcessDivs] = useState([]);
     const [is_loaded, setIsLoaded] = useState(false);
     const content_body = useRef(null);
@@ -221,7 +223,12 @@ function BulletinTemplate (props) {
     const is_md = isWidthUp("md", width);
 
     useEffect(() => {
-        getBulletinDetails(release_id, data => {
+        let temp = releaseId;
+        if (typeof releaseId === "undefined") {
+            const { match: { params: { release_id } } } = props;
+            temp = release_id;
+        }
+        getBulletinDetails(temp, data => {
             const { site } = data;
             const site_address = prepareSiteAddress(site, false);
 

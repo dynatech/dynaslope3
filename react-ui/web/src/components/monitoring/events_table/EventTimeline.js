@@ -8,6 +8,7 @@ import { compose } from "recompose";
 
 import GeneralStyles from "../../../GeneralStyles";
 import { getEventTimelineEntries } from "../ajax";
+import BulletinModal from "../../widgets/bulletin/BulletinModal";
 
 
 function getReleaseHeader (release_type) {
@@ -30,7 +31,7 @@ function getColorBasedOnReleaseType (release_type) {
 }
 
 
-function buildTimelineElements (timelineItems, bulletinHandler) {
+function buildTimelineElements (timelineItems, bulletinHandler, site_code) {
     const temp = [];
     let key = 0;
     timelineItems.forEach(item => {
@@ -69,8 +70,9 @@ function buildTimelineElements (timelineItems, bulletinHandler) {
         } else if (item_type === "release") {
             const {
                 release_time, data_ts, release_publishers,
-                triggers
+                triggers, release_id
             } = item_data;
+            console.log(item_data);
             const { release_type } = item;
             const card_color = getColorBasedOnReleaseType(release_type);
             const header = getReleaseHeader(release_type);
@@ -133,7 +135,7 @@ function buildTimelineElements (timelineItems, bulletinHandler) {
                                     color="primary"
                                     size="small"
                                     // style={{ marginRight: 8 }}
-                                    onClick={bulletinHandler}
+                                    onClick={bulletinHandler({ release_id, site_code, is_onset: false })}
                                 >
                                     Bulletin
                                 </Button>
@@ -173,7 +175,8 @@ function buildTimelineElements (timelineItems, bulletinHandler) {
 
 
 function MonitoringEventTimeline (props) {
-    const { match: { params: { event_id } } 
+    const { 
+        classes, match: { params: { event_id } } 
     } = props;
     const [eventDetails, setEventDetails] = useState({
         event_id,
@@ -183,6 +186,8 @@ function MonitoringEventTimeline (props) {
         event_start: ""
     });
     const [timelineItems, setTimelineItems] = useState([]);
+    const [chosenReleaseDetail, setChosenReleaseDetail] = useState({});
+    const [isOpenBulletinModal, setIsOpenBulletinModal] = useState(false);
 
     useEffect(() => {
         const input = {
@@ -200,8 +205,10 @@ function MonitoringEventTimeline (props) {
         });
     }, []);
 
-    const bulletinHandler = key => event => {
-        console.log("Clicked"); 
+    const bulletinHandler = release => event => {
+        console.log(release);
+        setChosenReleaseDetail(release);
+        setIsOpenBulletinModal(true);
     };
 
     return (
@@ -229,8 +236,15 @@ function MonitoringEventTimeline (props) {
                 {moment(eventDetails.event_start).format("D MMMM YYYY, h:mm A")} to {moment(eventDetails.validity).format("D MMMM YYYY, h:mm A")}
             </Typography>
             <Timeline lineColor="#ddd">
-                {buildTimelineElements(timelineItems, bulletinHandler)}
-            </Timeline>            
+                {buildTimelineElements(timelineItems, bulletinHandler, eventDetails.site_code)}
+            </Timeline>
+
+            <BulletinModal 
+                classes={classes}
+                isOpenBulletinModal={isOpenBulletinModal}
+                setIsOpenBulletinModal={setIsOpenBulletinModal}
+                releaseDetail={chosenReleaseDetail}
+            />
         </Fragment>
     );
 }
