@@ -2,9 +2,8 @@ import React, { useState, useEffect, useReducer } from "react";
 import moment from "moment";
 import {
     Dialog, DialogTitle, DialogContent,
-    DialogContentText, DialogActions,
+    DialogContentText, DialogActions, Typography,
     Button, withStyles, withMobileDialog,
-    Typography
 } from "@material-ui/core";
 import { compose } from "recompose";
 import AlertReleaseForm from "./AlertReleaseForm";
@@ -29,7 +28,6 @@ const styles = theme => ({
 function prepareTriggers (triggers) {
     const trigger_list = [];
     Object.keys(triggers).forEach((key) => {
-        console.log(key, triggers[key]);
         if (triggers[key].switchState) {
             const temp = triggers[key].triggers;
             temp.forEach(trigger => {
@@ -42,12 +40,10 @@ function prepareTriggers (triggers) {
                     internal_sym_id,
                     tech_info,
                     trigger_type: key,
-                    ts_updated: timestamp.format("YYYY-MM-DD HH:mm:ss")
+                    ts_updated: timestamp.format("YYYY-MM-DD HH:mm:00")
                 };
                 trigger_list.push(formatted);
             });
-            console.log(key, temp);
-            // trigger_list.push();
         }
     });
     return trigger_list;
@@ -55,7 +51,6 @@ function prepareTriggers (triggers) {
 
 function alertTriggersReducer (triggs, { action, trigger_type, value }) {
     const trigger = triggs[trigger_type];
-    console.log("triggs", triggs);
     const { triggers: triggers_array } = trigger;
 
     switch (action) {
@@ -122,13 +117,14 @@ function AlertReleaseFormModal (props) {
     const [internalAlertLevel, setInternalAlertLevel] = useState("");
     const [publicAlertLevel, setPublicAlertLevel] = useState("");
     const [currentTriggerList, setCurrentTriggerList] = useState("");
-    const [modal_title, setModalTitle] = useState("Provide accurate details to manually release an alert.");
+    const [modal_title, setModalTitle] = useState("");
     
     const [generalData, setGeneralData] = useState({
         dataTimestamp: null,
         releaseTime: moment(),
         siteId: "",
         siteCode: "",
+        address: "",
         reporterIdCt: "",
         reporterIdMt: mt_personnel.user_id,
         comments: "",
@@ -136,12 +132,12 @@ function AlertReleaseFormModal (props) {
         publicAlertLevel: ""
     });
 
-    const [MTFullName, setMTFullName] = useState("");
-    const [CTFullName, setCTFullName] = useState("");
+    const [hasNoGroundData, setHasNoGroundData] = useState(false);
 
     const [triggers, setTriggers] = useReducer(alertTriggersReducer, {
         subsurface: { switchState: false, triggers: [] },
         surficial: { switchState: false, triggers: [] },
+        moms: { switchState: false, triggers: [] },
         rainfall: { switchState: false, triggers: [] },
         earthquake: { switchState: false, triggers: [] },
         on_demand: { switchState: false, triggers: [] }
@@ -151,18 +147,23 @@ function AlertReleaseFormModal (props) {
         if (chosenCandidateAlert != null) {
             const {
                 site_id, site_code, public_alert_level,
-                public_alert_symbol, release_details, trigger_list_arr
+                public_alert_symbol, release_details, trigger_list_arr,
+                ground_alert_level
             } = chosenCandidateAlert;
 
             const { data_ts, trigger_list_str } = release_details;
 
             setInternalAlertLevel(`A${public_alert_level}-${trigger_list_str}`);
 
+            const no_ground_data = ground_alert_level === -1;
+            setHasNoGroundData(no_ground_data);
+
             const initial_general_data = {
                 dataTimestamp: moment(data_ts),
                 releaseTime: moment(),
                 siteId: site_id,
                 siteCode: site_code,
+                address: "",
                 reporterIdCt: "",
                 reporterIdMt: "",
                 comments: "",
@@ -288,6 +289,11 @@ function AlertReleaseFormModal (props) {
         }
     }, [generalData, triggers]);
 
+    useEffect(() => {
+        const { subsurface, surficial } = triggers;
+        if (subsurface.switchState || surficial.switchState) setHasNoGroundData(false);
+    }, [triggers.subsurface, triggers.surficial]);
+
     const handleSubmit = () => {
         console.log("PAYLOAD", ewiPayload);
         // sendWSMessage("insert_ewi", ewiPayload);
@@ -301,14 +307,14 @@ function AlertReleaseFormModal (props) {
             dataTimestamp, releaseTime, reporterIdMt,
             reporterIdCt, comments, triggerListStr
         } = generalData;
-        let latest_trigger_list = {};
+        let latest_trigger_list = [];
         let temp = {};
 
         if (activeStep === 0) {
             console.log(generalData);
             setEwiPayload({
                 ...ewiPayload,
-                site_id: siteId,
+                site_id: siteId.value,
                 site_code: siteCode,
                 public_alert_level: publicAlertLevel,
                 public_alert_symbol: publicAlertSymbol,
@@ -344,7 +350,12 @@ function AlertReleaseFormModal (props) {
                             trigger_list_str
                         },
                         trigger_list_arr: latest_trigger_list
-                    });                
+                    });
+                });
+            } else {
+                setEwiPayload({
+                    ...ewiPayload,
+                    trigger_list_arr: []
                 });
             }
             console.log("latest_trigger_list", latest_trigger_list);
@@ -357,7 +368,6 @@ function AlertReleaseFormModal (props) {
             console.log("Submitting data...");
             handleSubmit();
         }
-
     };
 
     const handleBack = () => {
@@ -379,18 +389,17 @@ function AlertReleaseFormModal (props) {
             >
                 <DialogTitle id="form-dialog-title">Alert Release Form</DialogTitle>
                 <DialogContent>
-                    <DialogContentText>
+                    <DialogContentText>                    
                         {modal_title}
                     </DialogContentText>
-
                     <AlertReleaseForm
                         activeStep={activeStep}
                         triggersState={triggers} setTriggersState={setTriggers}
                         generalData={generalData} setGeneralData={setGeneralData}
                         internalAlertLevel={internalAlertLevel} setInternalAlertLevel={setInternalAlertLevel}
                         setTriggerList={setCurrentTriggerList} setPublicAlertLevel={setPublicAlertLevel}
-                        setModalTitle={setModalTitle} setMTFullName={setMTFullName} setCTFullName={setCTFullName}
-                        MTFullName={MTFullName} CTFullName={CTFullName}
+                        setModalTitle={setModalTitle} ewiPayload={ewiPayload}
+                        hasNoGroundData={hasNoGroundData} setHasNoGroundData={setHasNoGroundData}
                     />
                 </DialogContent>
                 <DialogActions>
