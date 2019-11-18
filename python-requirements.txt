@@ -36,3 +36,4 @@ pandas
 python-memcached
 serial
 python-gsmmodem
+pyfinance

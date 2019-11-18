@@ -163,12 +163,7 @@ function TriggersInputForm (props) {
                 triggersState={triggersState}
                 setTriggersState={setTriggersState}
             />
-
-            <MomsTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-            />
-
+            
             <RainfallTriggerGroup
                 triggersState={triggersState}
                 setTriggersState={setTriggersState}

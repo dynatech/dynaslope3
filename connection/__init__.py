@@ -92,11 +92,10 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
         communication_background_task
     )
 
-    # comms_ws_main()  # outside from skip_websocket for now
-    # start_ws_bg_task("communication", communication_background_task)
-
-    # if not skip_websocket:
-    #     start_ws_bg_task("monitoring", monitoring_background_task)
+    if not skip_websocket:
+        start_ws_bg_task("monitoring", monitoring_background_task)
+        # comms_ws_main()  # outside from skip_websocket for now
+        # start_ws_bg_task("communication", communication_background_task)
 
     #####################################################
     # Import all created blueprint from each controller

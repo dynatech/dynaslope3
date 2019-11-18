@@ -2,9 +2,7 @@
 Contacts Functions Utility File
 """
 
-from sqlalchemy.orm import joinedload, subqueryload, raiseload, Load
-from connection import DB
-
+from sqlalchemy.orm import joinedload
 from src.models.mobile_numbers import (
     UserMobiles, UserMobilesSchema
 )
@@ -14,8 +12,11 @@ from src.models.users import Users
 def get_all_contacts(return_schema=False):
     """
     """
+
     mobile_numbers = UserMobiles.query.join(Users).options(
-        joinedload("user").subqueryload("organizations").joinedload("site").raiseload("*")).order_by(Users.last_name, UserMobiles.priority).all()
+        joinedload("user").subqueryload("organizations")
+        .joinedload("site").raiseload("*")
+    ).order_by(Users.last_name, UserMobiles.priority).all()
 
     if return_schema:
         numbers_schema = UserMobilesSchema(many=True).dump(mobile_numbers).data

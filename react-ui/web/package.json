@@ -12,6 +12,7 @@
     "axios": "^0.19.0",
     "ckeditor": "^4.12.1",
     "highcharts": "^7.2.0",
+    "highcharts-export-server": "^2.0.24",
     "highcharts-react-official": "^2.2.2",
     "leaflet": "^1.5.1",
     "moment": "^2.24.0",

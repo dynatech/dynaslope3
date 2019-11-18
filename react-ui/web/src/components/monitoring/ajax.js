@@ -97,7 +97,7 @@ export function getMonitoringEvents (input, callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
-        // console.log("Events", data);
+        console.log("Events", data);
         // setIsLoading(false);
         // final_data = prepareEventsArray(response.data);
         // setData(final_data);

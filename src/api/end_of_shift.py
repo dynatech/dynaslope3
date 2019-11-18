@@ -43,7 +43,7 @@ def extract_unique_release_events(releases_list):
     for release in releases_list:
         event = release.event_alert.event
 
-        #NOTE: This function rejects all ROUTINE events
+        # NOTE: This function rejects all ROUTINE events
         if event.status != 2:
             continue
 
@@ -74,9 +74,11 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
             raise
 
     if event_id:
-        releases_list = get_monitoring_releases(ts_start=shift_start, ts_end=shift_end, event_id=event_id)
+        releases_list = get_monitoring_releases(
+            ts_start=shift_start, ts_end=shift_end, event_id=event_id)
     else:
-        releases_list = get_monitoring_releases(ts_start=shift_start, ts_end=shift_end)
+        releases_list = get_monitoring_releases(
+            ts_start=shift_start, ts_end=shift_end)
 
     # Get unique releases and segregate by site_code
     unique_release_dict_list = extract_unique_release_events(releases_list)
@@ -89,9 +91,10 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
 
         event_alert = unique_release_dict["temp"].event_alert
         event = event_alert.event
-        shift_triggers_list = get_monitoring_triggers(event_id=event.event_id, ts_start=shift_start, ts_end=shift_end)
-        most_recent = get_monitoring_triggers(event_id=event.event_id, ts_start=shift_start - timedelta(hours=12), ts_end=shift_start)
-
+        shift_triggers_list = get_monitoring_triggers(
+            event_id=event.event_id, ts_start=shift_start, ts_end=shift_end)
+        most_recent = get_monitoring_triggers(
+            event_id=event.event_id, ts_start=shift_start - timedelta(hours=12), ts_end=shift_start)
 
         eos_data = {
             "event_id": event.event_id,
@@ -110,7 +113,8 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
             )
         }
 
-        first_trigger = get_monitoring_triggers(event_id=event.event_id, return_one=True, order_by_desc=False)
+        first_trigger = get_monitoring_triggers(
+            event_id=event.event_id, return_one=True, order_by_desc=False)
         if first_trigger:
             eos_data = {
                 **eos_data,
@@ -227,20 +231,16 @@ def get_eos_data_analysis(shift_start=None, event_id=None):
         Args:
             --
     """
-    return_data = None
+
+    return_data = ""
     eosa = EndOfShiftAnalysis
     base_query = eosa.query
+
     if shift_start and event_id:
         filter_value = eosa.shift_start == shift_start and eosa.event_id == event_id
         eos_data_analysis = base_query.filter(filter_value).first()
-        return_data = eos_data_analysis.analysis
-    elif event_id:
-        filter_value = eosa.event_id == event_id
-        eos_data_analysis = base_query.filter(filter_value).all()
-        return_data = eos_data_analysis
-    else:
-        eos_data_analysis = base_query.all()
-        return_data = eos_data_analysis
+        if eos_data_analysis:
+            return_data = eos_data_analysis.analysis
 
     return return_data
 
@@ -298,7 +298,8 @@ def process_eos_list(start_ts, end_ts, eos_data_list):
             pub_firstname = user_details.first_name
             pub_lastname = user_details.last_name
 
-            initials = get_release_publishers_initials(pub_firstname, pub_lastname)
+            initials = get_release_publishers_initials(
+                pub_firstname, pub_lastname)
 
             if publisher.role == "mt":
                 mt_initials = initials
@@ -343,6 +344,7 @@ def get_end_of_shift_reports(shift_start, event_id=None):
 
     Returns a dictionary.
     """
+
     start_ts = datetime.strptime(shift_start, "%Y-%m-%d %H:%M:%S")
     end_ts = start_ts + timedelta(hours=13)
 

@@ -4,7 +4,8 @@ Subsurface functions API File
 from flask import Blueprint, jsonify
 from src.models.analysis import (TSMSensorsSchema)
 from src.utils.subsurface import (
-    get_site_subsurface_columns, get_subsurface_column_versions)
+    get_site_subsurface_columns, get_subsurface_column_versions,
+    get_subsurface_plot_data)
 
 
 SUBSURFACE_BLUEPRINT = Blueprint("subsurface_blueprint", __name__)
@@ -45,3 +46,14 @@ def wrap_get_subsurface_column_versions(site_column=None):
         site_column_version).data
 
     return jsonify(site_column_version_data)
+
+
+@SUBSURFACE_BLUEPRINT.route("/subsurface/get_subsurface_plot_data", methods=["GET"])
+def wrap_get_subsurface_plot_data():
+    """
+
+    """
+
+    data = get_subsurface_plot_data()
+
+    return jsonify(data)

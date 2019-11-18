@@ -22,8 +22,8 @@ from src.utils.extra import var_checker
 def get_quick_inbox():
     query_start = datetime.now()
     vlmmid = ViewLatestMessagesMobileID
-    inbox_mobile_ids = vlmmid.query.join(UserMobiles, vlmmid.mobile_id == UserMobiles.mobile_id).join(
-        Users).order_by(DB.desc(vlmmid.max_ts)).limit(50).all()
+    inbox_mobile_ids = vlmmid.query.join(UserMobiles, vlmmid.mobile_id == UserMobiles.mobile_id) \
+        .join(Users).order_by(DB.desc(vlmmid.max_ts)).limit(50).all()
     unsent_messages_arr = get_unsent_messages()
 
     latest_inbox_messages = get_messages_for_mobile_group(inbox_mobile_ids)
@@ -115,10 +115,13 @@ def get_user_mobile_details(mobile_id):
 
     user = joinedload("user_details").joinedload(
         "user", innerjoin=True)
-    mobile_details = MobileNumbers.query.options(user.subqueryload("organizations").joinedload(
-        "site", innerjoin=True).raiseload("*"), user.subqueryload("teams"), raiseload("*")).filter_by(mobile_id=mobile_id).first()
+    mobile_details = MobileNumbers.query.options(
+        user.subqueryload("organizations").joinedload(
+            "site", innerjoin=True).raiseload("*"),
+        user.subqueryload("teams"), raiseload("*")
+    ).filter_by(mobile_id=mobile_id).first()
     mobile_schema = MobileNumbersSchema(exclude=[
-                                        "user_details.user.landline_numbers", "user_details.user.emails"]).dump(mobile_details).data
+        "user_details.user.landline_numbers", "user_details.user.emails"]).dump(mobile_details).data
 
     return mobile_schema
 
@@ -165,7 +168,8 @@ def get_latest_messages(mobile_id):
         sous.ts_sent,
         literal("outbox").label("source"),
         sous.send_status
-    ).options(raiseload("*")).join(sou).filter(sous.mobile_id == mobile_id).order_by(DB.desc(sous.outbox_id))
+    ).options(raiseload("*")).join(sou).filter(sous.mobile_id == mobile_id) \
+        .order_by(DB.desc(sous.outbox_id))
 
     union = sms_inbox.union(sms_outbox).order_by(
         DB.desc(text("anon_1_ts"))).limit(20)
@@ -189,12 +193,16 @@ def get_message_tags(message):
     tags_list = []
     if message.source == "inbox":
         sms_tags = DB.session.query(SmsInboxUserTags).options(
-            joinedload(SmsInboxUserTags.tag, innerjoin=True), raiseload("*")).filter_by(inbox_id=message.inbox_id).all()
+            joinedload(SmsInboxUserTags.tag, innerjoin=True),
+            raiseload("*")
+        ).filter_by(inbox_id=message.inbox_id).all()
         tags_list = SmsInboxUserTagsSchema(
             many=True, exclude=["inbox_message"]).dump(sms_tags).data
     elif message.source == "outbox":
         sms_tags = DB.session.query(SmsOutboxUserTags).options(
-            joinedload(SmsOutboxUserTags.tag, innerjoin=True), raiseload("*")).filter_by(outbox_id=message.outbox_id).all()
+            joinedload(SmsOutboxUserTags.tag, innerjoin=True),
+            raiseload("*")
+        ).filter_by(outbox_id=message.outbox_id).all()
         tags_list = SmsOutboxUserTagsSchema(
             many=True, exclude=["outbox_message"]).dump(sms_tags).data
 
