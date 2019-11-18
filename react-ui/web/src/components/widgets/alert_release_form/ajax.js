@@ -40,7 +40,7 @@ export function getInternalAlertLevel (input, callback) {
         site_id
     } = input;
 
-    let api_link = `${host}/api/monitoring/get_site_internal_alert`;
+    let api_link = `${host}/api/monitoring/get_site_alert_details`;
     api_link += `?site_id=${site_id}`;
 
     axios.get(api_link)

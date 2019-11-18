@@ -26,7 +26,7 @@ from src.utils.monitoring import (
     get_monitoring_releases, get_monitoring_events_table,
     get_current_monitoring_instance_per_site, get_public_alert,
     get_ongoing_extended_overdue_events, get_max_possible_alert_level,
-    get_latest_release_per_site,
+    get_latest_release_per_site, get_saved_event_triggers,
 
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
@@ -122,12 +122,16 @@ def wrap_get_internal_alert_symbols():
     return jsonify(return_data)
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/get_site_internal_alert", methods=["GET"])
-def wrap_get_site_internal_alert():
+@MONITORING_BLUEPRINT.route("/monitoring/get_site_alert_details", methods=["GET"])
+def wrap_get_site_alert_details():
     site_id = request.args.get('site_id', default=1, type=int)
     public_alert_level = get_public_alert(site_id)
+    
     latest_release = get_latest_release_per_site(site_id)
     trigger_list = latest_release.trigger_list
+    event_id = latest_release.event_alert.event.event_id
+    event_triggers = get_saved_event_triggers(event_id)
+    trigger_sources = [temp.internal_sym.trigger_symbol.trigger_hierarchy.trigger_source for temp in event_triggers]
 
     internal_alert_level = public_alert_level
     if public_alert_level != "A0":
@@ -138,7 +142,8 @@ def wrap_get_site_internal_alert():
     return jsonify({
         "internal_alert_level": internal_alert_level,
         "public_alert_level": public_alert_level,
-        "trigger_list_str": trigger_list
+        "trigger_list_str": trigger_list,
+        "trigger_sources": trigger_sources
     })
 
 

@@ -14,7 +14,8 @@ const styles = theme => ({
 
 function SubsurfaceCheckboxGroup (props) {
     const {
-        classes, triggersState, setTriggersState
+        classes, triggersState, setTriggersState,
+        triggersReleased
     } = props;
 
     const { subsurface } = triggersState;
@@ -46,6 +47,22 @@ function SubsurfaceCheckboxGroup (props) {
 
     const { trigger_2, trigger_3, trigger_0 } = triggers_value;
 
+    const checkbox_choices = [
+        { state: trigger_2, value: 2, label: "Release trigger (s2)" },
+        { state: trigger_3, value: 3, label: "Release trigger (S3)" }
+    ];
+
+    // let hide_subsurface_0 = true;
+    // if ("subsurface" in triggersReleased) {
+    //     hide_subsurface_0 = false;
+    // }
+
+    if (triggersReleased.includes("subsurface")) {
+        checkbox_choices.push({
+            state: trigger_0, value: 0, label: "No data ([s/S]0)"
+        });
+    }
+
     return (
         <Fragment>
             <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
@@ -54,11 +71,7 @@ function SubsurfaceCheckboxGroup (props) {
                     switchState={switchState}
                     switchHandler={handleSwitchChange(setTriggersState, "subsurface")}
                     switchValue="subsurface_switch"
-                    choices={[
-                        { state: trigger_2, value: 2, label: "Release trigger (s2)" },
-                        { state: trigger_3, value: 3, label: "Release trigger (S3)" },
-                        { state: trigger_0, value: 0, label: "No data ([s/S]0)" }
-                    ]}
+                    choices={checkbox_choices}
                     changeHandler={handleCheckboxChange(setTriggersState, "subsurface")}
                 />
             </Grid>
