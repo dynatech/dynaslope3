@@ -69,7 +69,7 @@ const ValidationModal = ({ isShowing, hide, classes, data }) => {
                 <DialogTitle id="form-dialog-title">Validate Trigger</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Please tell us if the server is valid or invalid. Also, provide remarks.
+                        Select whether trigger is valid or invalid. Also, provide remarks.
                     </DialogContentText>
                     <FormControl component="fieldset" className={classes.formControl}>
                         <FormLabel component="legend">Is trigger valid?</FormLabel>

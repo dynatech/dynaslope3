@@ -1,4 +1,4 @@
-import React, { Component, Fragment } from "react";
+import React, { Fragment } from "react";
 import { Grid, withStyles } from "@material-ui/core";
 
 import { handleChange, handleCheckboxChange, handleSwitchChange } from "./state_handlers";
@@ -14,7 +14,8 @@ const styles = theme => ({
 
 function SurficialCheckboxGroup (props) {
     const {
-        classes, triggersState, setTriggersState
+        classes, triggersState, setTriggersState,
+        triggersReleased
     } = props;
 
     const { surficial } = triggersState;
@@ -46,6 +47,17 @@ function SurficialCheckboxGroup (props) {
 
     const { trigger_2, trigger_3, trigger_0 } = triggers_value;
 
+    const checkbox_choices = [
+        { state: trigger_2, value: 2, label: "Release trigger (g2)" },
+        { state: trigger_3, value: 3, label: "Release trigger (G3)" }
+    ];
+
+    if (triggersReleased.includes("surficial")) {
+        checkbox_choices.push({
+            state: trigger_0, value: 0, label: "No data ([g/G]0)"
+        });
+    }
+
     return (
         <Fragment>
             <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
@@ -54,11 +66,7 @@ function SurficialCheckboxGroup (props) {
                     switchState={switchState}
                     switchHandler={handleSwitchChange(setTriggersState, "surficial")}
                     switchValue="surficial_switch"
-                    choices={[
-                        { state: trigger_2, value: 2, label: "Release trigger (g2)" },
-                        { state: trigger_3, value: 3, label: "Release trigger (G3)" },
-                        { state: trigger_0, value: 0, label: "No data ([g/G]0)" }
-                    ]}
+                    choices={checkbox_choices}
                     changeHandler={handleCheckboxChange(setTriggersState, "surficial")}
                 />
             </Grid>

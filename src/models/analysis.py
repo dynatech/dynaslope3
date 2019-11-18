@@ -4,19 +4,17 @@ Analysis tables
 """
 
 import datetime
-from flask_login import UserMixin
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
-from src.models.monitoring import (MonitoringEvents, MonitoringEventsSchema)
-from src.models.sites import (Sites, SitesSchema)
-from src.models.users import (Users, UsersSchema)
+from src.models.monitoring import OperationalTriggers
+from src.models.users import UsersSchema
 
 
 ###############################
 # Start of Class Declarations #
 ###############################
 
-class SiteMarkers(UserMixin, DB.Model):
+class SiteMarkers(DB.Model):
     """
     Class representation of site_markers table
     """
@@ -38,7 +36,7 @@ class SiteMarkers(UserMixin, DB.Model):
                 f" Marker Name: {self.marker_name} InUse: {self.in_use}")
 
 
-class EarthquakeEvents(UserMixin, DB.Model):
+class EarthquakeEvents(DB.Model):
     """
     Class representation of earthquake_events table
     """
@@ -63,7 +61,7 @@ class EarthquakeEvents(UserMixin, DB.Model):
                 f" Critical Distance: {self.critical_distance} issuer: {self.issuer}")
 
 
-class EarthquakeAlerts(UserMixin, DB.Model):
+class EarthquakeAlerts(DB.Model):
     """
     Class representation of earthquake_alerts table
     """
@@ -89,7 +87,7 @@ class EarthquakeAlerts(UserMixin, DB.Model):
                 f" Site ID: {self.site_id} Distance: {self.distance}")
 
 
-class Markers(UserMixin, DB.Model):
+class Markers(DB.Model):
     """
     Class representation of markers table
     """
@@ -115,7 +113,7 @@ class Markers(UserMixin, DB.Model):
                 f" In Use: {self.in_use}")
 
 
-class MarkerHistory(UserMixin, DB.Model):
+class MarkerHistory(DB.Model):
     """
     Class representation of marker_history table
     """
@@ -139,7 +137,7 @@ class MarkerHistory(UserMixin, DB.Model):
                 f" Event: {self.event}")
 
 
-class MarkerNames(UserMixin, DB.Model):
+class MarkerNames(DB.Model):
     """
     Class representation of marker_names table
     """
@@ -161,7 +159,7 @@ class MarkerNames(UserMixin, DB.Model):
                 f" History ID: {self.history_id} Marker Name: {self.marker_name}")
 
 
-class MarkerObservations(UserMixin, DB.Model):
+class MarkerObservations(DB.Model):
     """
     Class representation of marker_observations table
     """
@@ -192,7 +190,7 @@ class MarkerObservations(UserMixin, DB.Model):
                 f" Observer Name: {self.observer_name} Data Source: {self.data_source}")
 
 
-class MarkerData(UserMixin, DB.Model):
+class MarkerData(DB.Model):
     """
     Class representation of marker_data table
     """
@@ -220,7 +218,7 @@ class MarkerData(UserMixin, DB.Model):
 
 
 # NOTES: According to Meryll, MarkerAlerts will only relate to MarkerData
-class MarkerAlerts(UserMixin, DB.Model):
+class MarkerAlerts(DB.Model):
     """
     Class representation of marker_alerts table
     """
@@ -247,7 +245,7 @@ class MarkerAlerts(UserMixin, DB.Model):
                 f" Alert Level: {self.alert_level} Time Delta: {self.time_delta}")
 
 
-class RainfallAlerts(UserMixin, DB.Model):
+class RainfallAlerts(DB.Model):
     """
     Class representation of rainfall_alerts table
     """
@@ -278,7 +276,7 @@ class RainfallAlerts(UserMixin, DB.Model):
                 f" Rain Alert: {self.rain_alert} Cumulative: {self.cumulative}")
 
 
-class RainfallThresholds(UserMixin, DB.Model):
+class RainfallThresholds(DB.Model):
     """
     Class representation of rainfall_thresholds table
     """
@@ -302,7 +300,7 @@ class RainfallThresholds(UserMixin, DB.Model):
                 f" Threshold Value: {self.threshold_value}")
 
 
-class RainfallGauges(UserMixin, DB.Model):
+class RainfallGauges(DB.Model):
     """
     Class representation of rainfall_gauges table
     """
@@ -324,7 +322,7 @@ class RainfallGauges(UserMixin, DB.Model):
                 f" Gauge Name: {self.gauge_name} Date Activated: {self.date_activated}")
 
 
-class RainfallPriorities(UserMixin, DB.Model):
+class RainfallPriorities(DB.Model):
     """
     Class representation of rainfall_priorities table
     """
@@ -351,7 +349,7 @@ class RainfallPriorities(UserMixin, DB.Model):
                 f" Rain ID: {self.rain_id} Distance: {self.distance}")
 
 
-class TSMAlerts(UserMixin, DB.Model):
+class TSMAlerts(DB.Model):
     """
     Class representation of tsm_alerts table
     """
@@ -374,7 +372,7 @@ class TSMAlerts(UserMixin, DB.Model):
                 f" TSM_SENSOR_CLASS: {self.tsm_sensor}")
 
 
-class TSMSensors(UserMixin, DB.Model):
+class TSMSensors(DB.Model):
     """
     Class representation of tsm_sensors table
     """
@@ -410,7 +408,7 @@ class TSMSensors(UserMixin, DB.Model):
                 f"Date Activated: {self.date_activated} | LOGGER: {self.logger}")
 
 
-class NodeAlerts(UserMixin, DB.Model):
+class NodeAlerts(DB.Model):
     """
     Class representation of node_alerts table
     """
@@ -440,7 +438,7 @@ class NodeAlerts(UserMixin, DB.Model):
                 f" || tsm_sensor: {self.tsm_sensor}")
 
 
-class Loggers(UserMixin, DB.Model):
+class Loggers(DB.Model):
     """
     Class representation of loggers table
     """
@@ -469,7 +467,7 @@ class Loggers(UserMixin, DB.Model):
                 f" Date Activated: {self.date_activated} Latitude: {self.latitude}")
 
 
-class LoggerModels(UserMixin, DB.Model):
+class LoggerModels(DB.Model):
     """
     Class representation of logger_models table
     """
@@ -494,7 +492,7 @@ class LoggerModels(UserMixin, DB.Model):
                 f"Date Activated: {self.date_activated}")
 
 
-class AlertStatus(UserMixin, DB.Model):
+class AlertStatus(DB.Model):
     """
     Class representation of alert_status table
     """
@@ -514,7 +512,7 @@ class AlertStatus(UserMixin, DB.Model):
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.users.user_id"), nullable=False)
 
-    trigger = DB.relationship("OperationalTriggers",
+    trigger = DB.relationship(OperationalTriggers,
                               backref=DB.backref(
                                   "alert_status", lazy="select", uselist=False),
                               primaryjoin="AlertStatus.trigger_id==OperationalTriggers.trigger_id",

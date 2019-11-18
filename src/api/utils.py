@@ -8,6 +8,7 @@ from src.api.narratives import wrap_get_narratives
 from src.api.subsurface import wrap_get_site_subsurface_columns
 from src.utils.surficial import get_surficial_markers
 from src.api.monitoring import wrap_get_pub_sym_id
+from connection import MEMORY_CLIENT, set_memcache
 
 UTILITIES_BLUEPRINT = Blueprint("utilities_blueprint", __name__)
 
@@ -42,3 +43,13 @@ UTILITIES_BLUEPRINT.add_url_rule(
 UTILITIES_BLUEPRINT.add_url_rule(
     "/monitoring/get_pub_sym_id/<alert_level>",
     "wrap_get_pub_sym_id", wrap_get_pub_sym_id)
+
+
+@UTILITIES_BLUEPRINT.route(
+    "/update_memcache", methods=["GET"])
+def update_memcache():
+    print("Updating memcache...")
+    set_memcache.main(MEMORY_CLIENT)
+    print("Successfully updated memcache...")
+
+    return "Successfully updated memcache..."

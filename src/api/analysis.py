@@ -1,13 +1,18 @@
+"""
+"""
 
+import os
+import requests
+import json
+import subprocess
 from flask import Blueprint, jsonify, request
-from connection import DB, SOCKETIO
+from connection import DB
 from src.models.analysis import (
     DataPresenceRainGauges, DataPresenceRainGaugesSchema,
     RainfallGauges, TSMSensors, Loggers,
     DataPresenceTSM, DataPresenceTSMSchema,
     DataPresenceLoggers, DataPresenceLoggersSchema,
-    EarthquakeEvents, EarthquakeEventsSchema,
-    EarthquakeAlerts, EarthquakeAlertsSchema)
+    EarthquakeEvents, EarthquakeEventsSchema)
 
 ANALYSIS_BLUEPRINT = Blueprint("analysis_blueprint", __name__)
 
@@ -101,3 +106,28 @@ def get_earthquake_alerts():
     # result = EarthquakeAlertsSchema(many=True).dump(query).data
 
     return jsonify(result)
+
+
+@ANALYSIS_BLUEPRINT.route("/try_chart_rendering", methods=["GET"])
+def try_chart_rendering():
+    dir_name = os.path.dirname
+    path = dir_name(dir_name(__file__))
+    save_path = f"{path}\\temp\\charts\\"
+    svg = open(f"{save_path}rain.svg", "r")
+
+    options = {
+        "svg": svg.read(),
+        "outfile": f"{save_path}rain.pdf",
+        "type": "pdf",
+        "logLevel": 4,
+        "fromFile": f"{save_path}rain.svg"
+    }
+    json_object = json.dumps(options)
+    headers = {"Content-type": "application/json"}
+    r = requests.post("http://127.0.0.1:7801",
+                      data=json_object, headers=headers)
+    print(r)
+    with open(f"{save_path}rain.pdf", 'wb') as f:
+        f.write(r.content)
+        f.close()
+    return jsonify("Success")

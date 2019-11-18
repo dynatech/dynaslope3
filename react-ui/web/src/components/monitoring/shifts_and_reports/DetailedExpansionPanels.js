@@ -111,6 +111,10 @@ function DetailedExpansionPanel (props) {
 
     const handleCheckboxEvent = value => event => handleCheckboxToggle(value, checkboxStatus, setCheckboxStatus);
 
+    const config = {
+        toolbar: ["heading", "|", "bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "|", "undo", "redo"]
+    };
+
     return (
         <ExpansionPanel>
             <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
@@ -143,28 +147,21 @@ function DetailedExpansionPanel (props) {
                                     {label}
                                 </Typography>
                                 <CKEditor
-                                    editor={ ClassicEditor }
-                                    // data="<strong>END-OF-SHIFT REPORT (AJ,             KG)</strong> <br /><br /><b>SHIFT START:<br/>            January 12, 2019, 07:30 AM</b> <br />- Monitoring continued with the following recent trigger/s: <ul><li> Rainfall - alerted on                     January 12, 2019, 03:30 AM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (60.00 mm) exceeded threshold (58.10 mm))</li><li> Rainfall - alerted on                     January 11, 2019, 11:30 PM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (60.50 mm) exceeded threshold (58.10 mm))</li><li> Rainfall - alerted on                     January 11, 2019, 08:00 PM due to accumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (58.50 mm) exceeded threshold (58.10 mm))</li></ul>- Event monitoring started on January 11, 2019, 08:00 PM due toaccumulated rainfall value exceeding threshold level (RAIN NOAH 1457: 1-day cumulative rainfall (58.50 mm) exceeded threshold (58.10 mm)).<br /><b>SHIFT END:<br/>January 12, 2019, 08:30 PM</b><br />- Alert <b>lowered to A0</b>; monitoring ended at <b>             2019-01-13 12:00:00</b>.<br/>"
-                                    data="<p>Hi! Starting entering data</p>"
-                                    onInit={ editor => {
+                                    editor={ClassicEditor}
+                                    // data="<p>Hi! Starting entering data</p>"
+                                    config={config}
+                                    onInit={editor => {
                                         // You can store the "editor" and use when it is needed.
                                         editor.setData(value);
-                                    } }
-                                    onChange={ ( event, editor ) => {
+                                        console.log(Array.from(editor.ui.componentFactory.names()));
+                                    }}
+                                    onChange={(event, editor) => {
                                         const data = editor.getData();
-
-                                        console.log( { event, editor, data } );
-                                    } }
-                                    onBlur={ ( event, editor ) => {
-                                        console.log( "Blur.", editor );
-                                    } }
-                                    onFocus={ ( event, editor ) => {
-                                        console.log( "Focus.", editor );
-                                    } }
+                                        console.log({ event, editor, data });
+                                    }}
                                 />                                    
                             </Grid>
-                        )
-                        )
+                        ))
                     }
                 </Grid>
             </ExpansionPanelDetails>

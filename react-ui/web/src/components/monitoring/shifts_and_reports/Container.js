@@ -26,7 +26,6 @@ const tabs_array = [
     { label: "Monitoring Shift Checker", href: "shift-checker" }
 ];
 
-
 function Container (props) {
     const { classes } = props;
     const [chosenTab, setChosenTab] = useState(0);

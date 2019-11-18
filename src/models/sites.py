@@ -27,8 +27,8 @@ class Sites(UserMixin, DB.Model):
     province = DB.Column(DB.String(45), nullable=False)
     region = DB.Column(DB.String(45), nullable=False)
     active = DB.Column(DB.Boolean, nullable=False, default=True)
-    barangay = DB.Column(DB.String(255), nullable=False)
     psgc = DB.Column(DB.Integer, nullable=False)
+    households = DB.Column(DB.String(255), nullable=False)
     season = DB.Column(
         DB.Integer, DB.ForeignKey("commons_db.seasons.season_group_id"))
 

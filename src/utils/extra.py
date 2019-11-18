@@ -8,20 +8,28 @@ any module in this project.
 """
 
 import pprint
-import calendar
+from datetime import datetime, timedelta, time
 from connection import MEMORY_CLIENT
-from flask import jsonify
-from datetime import date, time, datetime, timedelta
-from src.utils.sites import get_sites_data
-from src.models.sites import (Sites, SitesSchema)
 from src.models.monitoring import (
     PublicAlertSymbols as pas, OperationalTriggerSymbols as ots,
     InternalAlertSymbols as ias, TriggerHierarchies as th)
 
 
+def set_data_to_memcache(name, data):
+    """
+    Memcache setter
+    """
+    final_data = data
+    if data == [] or data == {}:
+        final_data = "empty"
+
+    temp = f"D3_{name.upper()}"
+    MEMORY_CLIENT.set(temp, final_data)
+
+
 def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True, retrieve_attr=None):
     """
-
+    Memcache getter
     """
 
     return_data = []
@@ -164,6 +172,23 @@ def round_to_nearest_release_time(data_ts, interval=4):
     return date_time
 
 
+def format_timestamp_to_string(ts, time_only=False, date_only=False):
+    time_locale = "%p"
+    if ts.hour in [0, 12]:
+        time_locale = "MN" if ts.hour == 0 else "NN"
+
+    time_format = f"%I:%M {time_locale}"
+
+    str_format = f"%B %d, %Y, {time_format}"
+    if time_only:
+        str_format = time_format
+
+    if date_only:
+        str_format = f"%B %d, %Y"
+
+    return ts.strftime(str_format)
+
+
 def get_system_time():
     """
     Just a function that returns system time for
@@ -177,7 +202,7 @@ def get_system_time():
 
 def get_process_status_log(key, status):
     """
-    Just a function used to 
+    Just a function used to
     """
     sys_time = get_system_time()
     status_log = f"[{sys_time}] | "

@@ -1,42 +1,29 @@
 """
 """
 
-from flask import Blueprint, jsonify
-from connection import DB, SOCKETIO
-from sqlalchemy import (
-    Table, Column, Integer,
-    String, DateTime, bindparam,
-    literal, text
-)
-from sqlalchemy.orm import joinedload, raiseload, lazyload, subqueryload
+from datetime import datetime, timedelta
+from sqlalchemy import bindparam, literal, text
+from sqlalchemy.orm import joinedload, raiseload
+from connection import DB
 from src.models.inbox_outbox import (
-    SmsInboxUsers, SmsInboxUsersSchema,
-    SmsOutboxUsers, SmsOutboxUsersSchema,
-    SmsOutboxUserStatus, SmsOutboxUserStatusSchema,
+    SmsInboxUsers, SmsOutboxUsers,
+    SmsOutboxUserStatus,
     ViewLatestMessagesMobileID, TempLatestMessagesSchema,
     SmsInboxUserTags, SmsInboxUserTagsSchema,
     SmsTags, SmsOutboxUserTags, SmsOutboxUserTagsSchema,
     SmsUserUpdates, ViewLatestUnsentMessages
 )
-from src.models.gsm import (SimPrefixes)
-from src.models.users import (
-    Users, UsersRelationship, UserOrganization,
-    UserMobile, UserMobileSchema, UserTeamMembers
-)
+from src.models.users import Users
 from src.models.mobile_numbers import (
-    UserMobiles, UserMobilesSchema,
-    MobileNumbers, MobileNumbersSchema
-)
-
-from datetime import datetime, timedelta
+    UserMobiles, MobileNumbers, MobileNumbersSchema)
 from src.utils.extra import var_checker
 
 
 def get_quick_inbox():
     query_start = datetime.now()
     vlmmid = ViewLatestMessagesMobileID
-    inbox_mobile_ids = vlmmid.query.join(UserMobile, vlmmid.mobile_id == UserMobile.mobile_id).join(
-        Users).order_by(DB.desc(vlmmid.max_ts)).limit(50).all()
+    inbox_mobile_ids = vlmmid.query.join(UserMobiles, vlmmid.mobile_id == UserMobiles.mobile_id) \
+        .join(Users).order_by(DB.desc(vlmmid.max_ts)).limit(50).all()
     unsent_messages_arr = get_unsent_messages()
 
     latest_inbox_messages = get_messages_for_mobile_group(inbox_mobile_ids)
@@ -128,10 +115,13 @@ def get_user_mobile_details(mobile_id):
 
     user = joinedload("user_details").joinedload(
         "user", innerjoin=True)
-    mobile_details = MobileNumbers.query.options(user.subqueryload("organizations").joinedload(
-        "site", innerjoin=True).raiseload("*"), user.subqueryload("teams"), raiseload("*")).filter_by(mobile_id=mobile_id).first()
+    mobile_details = MobileNumbers.query.options(
+        user.subqueryload("organizations").joinedload(
+            "site", innerjoin=True).raiseload("*"),
+        user.subqueryload("teams"), raiseload("*")
+    ).filter_by(mobile_id=mobile_id).first()
     mobile_schema = MobileNumbersSchema(exclude=[
-                                        "user_details.user.landline_numbers", "user_details.user.emails"]).dump(mobile_details).data
+        "user_details.user.landline_numbers", "user_details.user.emails"]).dump(mobile_details).data
 
     return mobile_schema
 
@@ -178,7 +168,8 @@ def get_latest_messages(mobile_id):
         sous.ts_sent,
         literal("outbox").label("source"),
         sous.send_status
-    ).options(raiseload("*")).join(sou).filter(sous.mobile_id == mobile_id).order_by(DB.desc(sous.outbox_id))
+    ).options(raiseload("*")).join(sou).filter(sous.mobile_id == mobile_id) \
+        .order_by(DB.desc(sous.outbox_id))
 
     union = sms_inbox.union(sms_outbox).order_by(
         DB.desc(text("anon_1_ts"))).limit(20)
@@ -202,12 +193,16 @@ def get_message_tags(message):
     tags_list = []
     if message.source == "inbox":
         sms_tags = DB.session.query(SmsInboxUserTags).options(
-            joinedload(SmsInboxUserTags.tag, innerjoin=True), raiseload("*")).filter_by(inbox_id=message.inbox_id).all()
+            joinedload(SmsInboxUserTags.tag, innerjoin=True),
+            raiseload("*")
+        ).filter_by(inbox_id=message.inbox_id).all()
         tags_list = SmsInboxUserTagsSchema(
             many=True, exclude=["inbox_message"]).dump(sms_tags).data
     elif message.source == "outbox":
         sms_tags = DB.session.query(SmsOutboxUserTags).options(
-            joinedload(SmsOutboxUserTags.tag, innerjoin=True), raiseload("*")).filter_by(outbox_id=message.outbox_id).all()
+            joinedload(SmsOutboxUserTags.tag, innerjoin=True),
+            raiseload("*")
+        ).filter_by(outbox_id=message.outbox_id).all()
         tags_list = SmsOutboxUserTagsSchema(
             many=True, exclude=["outbox_message"]).dump(sms_tags).data
 

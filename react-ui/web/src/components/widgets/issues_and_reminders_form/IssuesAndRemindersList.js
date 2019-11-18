@@ -74,7 +74,8 @@ const styles = theme => ({
 function IssuesAndReminderCard (props) {
     const { 
         isCardModalOpen, chosenIssueReminder,
-        setCardModalOpen, setIsOpenIssueReminderModal
+        setCardModalOpen, setIsOpenIssueReminderModal,
+        setToResolve, setIsUpdateNeeded
     } = props;
     const { site_list, ts_posted, detail, issue_reporter } = chosenIssueReminder;
     const { first_name, last_name } = issue_reporter;
@@ -84,7 +85,15 @@ function IssuesAndReminderCard (props) {
 
     const handleEdit = () => {
         setCardModalOpen(false);
+        setToResolve(false);
         setIsOpenIssueReminderModal(true);
+        setIsUpdateNeeded(true);
+    };
+    const handleResolve = () => {
+        setCardModalOpen(false);
+        setToResolve(true);
+        setIsOpenIssueReminderModal(true);
+        setIsUpdateNeeded(true);
     };
 
     return (
@@ -102,6 +111,9 @@ function IssuesAndReminderCard (props) {
             <DialogActions disableSpacing>
                 <Button onClick={handleEdit} color="primary">
                     Edit
+                </Button>
+                <Button onClick={handleResolve} color="secondary">
+                    Resolve
                 </Button>
                 <Button onClick={() => setCardModalOpen(false)} color="primary" autoFocus>
                     Close
@@ -194,19 +206,19 @@ function includeSiteList (issues_and_reminders) {
 
 function IssuesAndReminderList (props) {
     const {
-        classes, isOpenIssueReminderModal, setIsOpenIssueReminderModal
+        classes, isOpenIssueReminderModal, setIsOpenIssueReminderModal,
+        isUpdateNeeded, setIsUpdateNeeded
     } = props;
     const [tile_data, setTileData] = useState([]);
     const [has_active_issues, setHasActiveIssues] = useState(false);
-    // const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
     const [chosenIssueReminder, setChosenIssueReminder] = useState({
         site_list: [],
         site_id_list: null,
         ts_posted: null,
         detail: "", issue_reporter: { first_name: "", last_name: "" }
     });
-    const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
     const [is_card_modal_open, setCardModalOpen] = useState(false);
+    const [toResolve, setToResolve] = useState(false);
 
     useEffect(() => {
         receiveIssuesAndReminders(issues_and_reminders => {
@@ -266,7 +278,9 @@ function IssuesAndReminderList (props) {
                 isCardModalOpen={is_card_modal_open}
                 setCardModalOpen={setCardModalOpen}
                 chosenIssueReminder={chosenIssueReminder}
+                setToResolve={setToResolve}
                 setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
+                setIsUpdateNeeded={setIsUpdateNeeded}
             />
             
             <IssuesAndReminderModal
@@ -275,6 +289,7 @@ function IssuesAndReminderList (props) {
                 setIsUpdateNeeded={setIsUpdateNeeded}
                 isUpdateNeeded={isUpdateNeeded}
                 chosenIssueReminder={chosenIssueReminder}
+                toResolve={toResolve}
             />
         </Fragment>
     );

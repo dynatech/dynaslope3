@@ -1,21 +1,14 @@
-import React, { PureComponent, Fragment } from "react";
+import React, { useState, Fragment } from "react";
 import moment from "moment";
+import ContentLoader from "react-content-loader";
 import {
     Card, CardContent, Typography,
     Grid, CardActionArea,
     Button, Dialog, DialogContent,
     DialogTitle, DialogActions, Divider
 } from "@material-ui/core";
-import { elementType } from "prop-types";
-// import GenAlertsData from "../../../temp/generated_alerts.json";
 import { sites } from "../../../store";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
-
-let id = 0;
-function createData (trigger_type, trigger_ts) {
-    id += 1;
-    return { id, trigger_type, trigger_ts };
-}
 
 function searchSites (site_code) {
     let site_details = null;
@@ -48,7 +41,6 @@ function getAlertDialog (chosen_site, open, handleClose) {
                 <Grid item xs={12} sm={4} key={type}>
                     <Typography variant="body1" color="textSecondary">{type.charAt(0).toUpperCase() + type.slice(1)} Alert</Typography>
                     <Typography variant="body1" color="textPrimary">
-                        {/* {alert_level} */}
                         {alert_symbol}
                     </Typography>
                     {
@@ -77,10 +69,8 @@ function getAlertDialog (chosen_site, open, handleClose) {
                 aria-describedby="alert-dialog-description"
             >
                 <DialogTitle id="alert-dialog-title">
-                    {/* Brgy. Gamut, Tago, Surigao Del Sur (GAM) */}
                     <div>{address}</div>
                     <Typography variant="overline">
-                        {/* 10 April 2019, 16:30 */}
                         {timestamp}
                     </Typography>
                 </DialogTitle>
@@ -89,7 +79,6 @@ function getAlertDialog (chosen_site, open, handleClose) {
                         <Grid item sm={6}>
                             <Typography variant="body1" color="textSecondary">Internal Alert Level</Typography>
                             <Typography variant="body1" color="textPrimary">
-                                {/* A3-sG0R */}
                                 {internal_alert}
                             </Typography>
                         </Grid>
@@ -98,7 +87,6 @@ function getAlertDialog (chosen_site, open, handleClose) {
                                 validity !== "" && <Typography variant="body1" color="textSecondary">Validity</Typography>
                             }
                             <Typography variant="body1" color="textPrimary">
-                                {/* 12 April 2019, 20:00 */}
                                 {validity}
                             </Typography>
                         </Grid>
@@ -161,31 +149,6 @@ function getAlertDialog (chosen_site, open, handleClose) {
                             })
                         }
                     </Grid>
-
-                    {/* <Divider />
-                                
-                                <Table style={{ minWidth: 400 }}>
-                                    <TableHead>
-                                        <TableRow>
-                                            <TableCell>Trigger Type</TableCell>
-                                            <TableCell align="right">Trigger Timestamp</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {rows.map(row => (
-                                            <TableRow key={row.id}>
-                                                <TableCell component="th" scope="row">
-                                                    {row.trigger_type}
-                                                </TableCell>
-                                                <TableCell align="right">{row.trigger_ts}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table> */}
-
-                    {/* <DialogContentText id="alert-dialog-description">
-                                    Internal Alert: A1-R
-                                </DialogContentText> */}
                 </DialogContent>
 
                 <DialogActions>
@@ -198,13 +161,13 @@ function getAlertDialog (chosen_site, open, handleClose) {
     );
 }
 
-
+// eslint-disable-next-line max-params
 function createCard (alert_detail, index, handleClickOpen, handleClickClose) {
     const { ts, site_code, internal_alert } = alert_detail;
     const timestamp = moment(ts).format("D MMMM YYYY, h:mm");
 
     return (
-        <Grid item xs={6} sm={3} lg={2} key={index}>
+        <Grid item xs={6} sm={4} lg={3} key={index}>
             <Card className="alert-card">
                 <CardActionArea onClick={handleClickOpen(index)}>
                     <CardContent style={{ paddingBottom: 16 }}>
@@ -226,45 +189,64 @@ function createCard (alert_detail, index, handleClickOpen, handleClickClose) {
     );
 }
 
+const MyLoader = () => (
+    <ContentLoader 
+        height={300}
+        width={684}
+        speed={1}
+        primaryColor="#f3f3f3"
+        secondaryColor="#ecebeb"
+        style={{ width: "100%" }}
+    >
+        <rect x="8" y="1" rx="0" ry="0" width="206" height="116" /> 
+        <rect x="238" y="1" rx="0" ry="0" width="206" height="116" /> 
+        <rect x="469" y="0" rx="0" ry="0" width="206" height="116" /> 
+        <rect x="8" y="140" rx="0" ry="0" width="206" height="116" /> 
+        <rect x="238" y="140" rx="0" ry="0" width="206" height="116" /> 
+        <rect x="469" y="140" rx="0" ry="0" width="206" height="116" />
+    </ContentLoader>
+);
+  
 
-class GeneratedAlerts extends PureComponent {
-    state = {
-        open: false,
-        key: 0
+function GeneratedAlerts (props) {
+    const [open, setOpen] = useState(false);
+    const [key, setKey] = useState(0);
+
+    const handleClickOpen = i => event => {
+        setOpen(true);
+        setKey(i);
+    };
+    const handleClose = () => {
+        setOpen(false);
     };
 
-    handleClickOpen = i => event => {
-        this.setState({ open: true, key: i });
-    };
+    let dialog = "";
+    const { generatedAlertsData } = props;
 
-    handleClose = () => {
-        this.setState({ open: false });
-    };
-
-    render () {
-        const { open, key } = this.state;
-        let dialog = "";
-        const { generatedAlertsData } = this.props;
-
-
+    if (generatedAlertsData !== null) {
         if (generatedAlertsData.length > 0) {
             const chosen_site = generatedAlertsData[key];
-            dialog = getAlertDialog(chosen_site, open, this.handleClose);
+            dialog = getAlertDialog(chosen_site, open, handleClose);
         }
-
-        return (
-            <Fragment>
-                <Grid container spacing={2}>
-                    {
-                        generatedAlertsData.map((alert_detail, index) => createCard(alert_detail, index, this.handleClickOpen, this.handleClickClose))
-                    }
-                    {dialog}
-                    {/* {cards} */}
-                </Grid>
-            </Fragment>
-        );
     }
-}
 
+    return (
+        <Fragment>
+            <Grid container spacing={2}>
+                {
+                    generatedAlertsData === null ? (
+                        <MyLoader />
+                    ) : (
+                        generatedAlertsData.map((alert_detail, index) => (
+                            createCard(alert_detail, index, handleClickOpen, handleClose)
+                        ))
+                    )
+                   
+                }
+                {dialog}
+            </Grid>
+        </Fragment>
+    );
+}
 
 export default GeneratedAlerts;

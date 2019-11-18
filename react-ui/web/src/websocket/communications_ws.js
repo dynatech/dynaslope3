@@ -2,7 +2,6 @@ import io from "socket.io-client";
 import { host } from "../config";
 
 let socket;
-
 function subscribeToWebSocket (callback, page = "chatterbox") {
     socket = io(`${host}/communications`, {
         reconnectionDelay: 10000,
@@ -38,13 +37,6 @@ function sendMessageToDB (data, callback) {
             callback(ret);
     });
 }
-
-// function receiveAllContacts (callback) {
-//     socket.on("receive_all_contacts", data => {
-//         console.log("All Contacts", data);
-//         callback(data);
-//     });
-// }
 
 function unsubscribeToWebSocket () {
     socket.close();

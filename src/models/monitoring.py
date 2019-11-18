@@ -29,9 +29,11 @@ class MonitoringEvents(UserMixin, DB.Model):
     status = DB.Column(DB.String(20), nullable=False)
 
     event_alerts = DB.relationship(
-        "MonitoringEventAlerts", order_by="desc(MonitoringEventAlerts.ts_start)", backref=DB.backref("event", lazy="joined", innerjoin=True), lazy="subquery")
+        "MonitoringEventAlerts", order_by="desc(MonitoringEventAlerts.ts_start)",
+        backref=DB.backref("event", lazy="joined", innerjoin=True), lazy="subquery")
     site = DB.relationship(
-        Sites, backref=DB.backref("monitoring_events", lazy="dynamic"), lazy="joined", innerjoin=True)
+        Sites, backref=DB.backref("monitoring_events", lazy="dynamic"),
+        lazy="joined", innerjoin=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event ID: {self.event_id}"
@@ -58,9 +60,11 @@ class MonitoringEventAlerts(UserMixin, DB.Model):
     ts_end = DB.Column(DB.DateTime)
 
     public_alert_symbol = DB.relationship(
-        "PublicAlertSymbols", backref=DB.backref("event_alerts", lazy="dynamic"), lazy="joined", innerjoin=True)
+        "PublicAlertSymbols", backref=DB.backref("event_alerts", lazy="dynamic"),
+        lazy="joined", innerjoin=True)
     releases = DB.relationship(
-        "MonitoringReleases", order_by="desc(MonitoringReleases.data_ts)", backref=DB.backref("event_alert", lazy="joined", innerjoin=True), lazy="subquery")
+        "MonitoringReleases", order_by="desc(MonitoringReleases.data_ts)",
+        backref=DB.backref("event_alert", lazy="joined", innerjoin=True), lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Event Alert ID: {self.event_alert_id}"
@@ -143,7 +147,7 @@ class MonitoringTriggers(UserMixin, DB.Model):
     info = DB.Column(DB.String(360))
 
     internal_sym = DB.relationship(
-        "InternalAlertSymbols", backref=DB.backref("triggers", lazy="dynamic"), lazy="joined", innerjoin=True)
+        "InternalAlertSymbols", backref=DB.backref("monitoring_triggers", lazy="dynamic"), lazy="joined", innerjoin=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger ID: {self.trigger_id}"
@@ -259,14 +263,14 @@ class MonitoringMomsReleases(UserMixin, DB.Model):
         "MonitoringTriggersMisc", backref=DB.backref("moms_releases", lazy="dynamic"), lazy="joined", innerjoin=True)
 
     moms_details = DB.relationship(
-        "MonitoringMoms", backref=DB.backref("moms_releases", lazy="subquery"), lazy="joined", innerjoin=True)
+        "MonitoringMoms", backref=DB.backref("moms_release", lazy="raise"), lazy="joined", innerjoin=True)
 
     release = DB.relationship(
         "MonitoringReleases", backref=DB.backref("moms_releases", lazy="subquery"), lazy="joined")
 
     def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Moms Release ID: {self.moms_rel_id}"
-                f"Trigger Misc ID: {self.trig_misc_id} MOMS ID: {self.moms_id}")
+        return (f"Type <{self.__class__.__name__}> Moms Release ID: {self.moms_rel_id} "
+                f" MOMS ID: {self.moms_id} Trigger Misc ID: {self.trig_misc_id} Release ID: {self.release_id}")
 
 
 class MonitoringMoms(UserMixin, DB.Model):
@@ -306,7 +310,7 @@ class MonitoringMoms(UserMixin, DB.Model):
 
     # Louie - New Relationship
     moms_instance = DB.relationship(
-        "MomsInstances", backref=DB.backref("moms", lazy="dynamic", order_by="desc(MonitoringMoms.observance_ts)"), lazy="subquery")
+        "MomsInstances", backref=DB.backref("moms", lazy="dynamic", order_by="desc(MonitoringMoms.observance_ts)"), lazy="joined", innerjoin=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> MOMS ID: {self.moms_id}"
@@ -333,7 +337,7 @@ class MomsInstances(UserMixin, DB.Model):
     site = DB.relationship("Sites", backref=DB.backref(
         "moms_instance", lazy="raise"))
     feature = DB.relationship(
-        "MomsFeatures", backref=DB.backref("instances", lazy="dynamic"), lazy="select")
+        "MomsFeatures", backref=DB.backref("instances", lazy="dynamic"), lazy="joined", innerjoin=True)
 
     # site = DB.relationship("Sites", backref="moms_instance", lazy=True)
 
@@ -581,54 +585,6 @@ class BulletinTracker(UserMixin, DB.Model):
                 f" TS: {self.bulletin_number}")
 
 
-class BulletinResponses(UserMixin, DB.Model):
-    """
-    Class representation of bulletin_responses table
-    """
-
-    __tablename__ = "bulletin_responses"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
-
-    pub_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.public_alert_symbols.pub_sym_id"), primary_key=True)
-    recommended = DB.Column(DB.String(200))
-    lewc_lgu = DB.Column(DB.String(200))
-    community = DB.Column(DB.String(200))
-
-    public_alert_symbol = DB.relationship(
-        "PublicAlertSymbols", backref=DB.backref("bulletin_response", lazy="dynamic"), lazy="joined", innerjoin=True)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Public Symbol ID: {self.pub_sym_id}"
-                f" Recommended Response: {self.recommended} LEWC/LGU Response: {self.lewc_lgu}"
-                f" Community Response: {self.community}")
-
-
-class BulletinTriggers(UserMixin, DB.Model):
-    """
-    Class representation of BulletinTriggers table
-    """
-
-    __tablename__ = "BulletinTriggers"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
-
-    internal_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.internal_alert_symbols.internal_sym_id"), primary_key=True)
-    description = DB.Column(DB.String(100))
-    cause = DB.Column(DB.String(50))
-    # community = DB.Column(DB.String(200))
-
-    internal_sym = DB.relationship(
-        "InternalAlertSymbols", backref=DB.backref("bulletin_trigger", lazy="dynamic"), lazy="joined", innerjoin=True)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Public Symbol ID: {self.intermal_sym_id}"
-                f" Recommended Response: {self.recommended} LEWC/LGU Response: {self.lewc_lgu}"
-                f" Community Response: {self.community}")
-
-
 # END OF CLASS DECLARATIONS
 
 
@@ -791,6 +747,7 @@ class MonitoringMomsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringMoms
+        exclude = ["moms_release"]
 
 
 class MomsInstancesSchema(MARSHMALLOW.ModelSchema):
@@ -890,7 +847,7 @@ class InternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = InternalAlertSymbols
-        exclude = ["trigger", "bulletin_trigger"]
+        exclude = ["monitoring_triggers", "bulletin_trigger"]
 
 
 class EndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
@@ -902,23 +859,3 @@ class EndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = EndOfShiftAnalysis
-
-
-class BulletinResponsesSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of BulletinResponses class
-    """
-    
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = BulletinResponses
-
-
-class BulletinTriggersSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of BulletinTriggers class
-    """
-    
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = BulletinTriggers

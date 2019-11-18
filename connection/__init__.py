@@ -92,11 +92,10 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
         communication_background_task
     )
 
-    comms_ws_main()  # outside from skip_websocket for now
-    # start_ws_bg_task("communication", communication_background_task)
-
     if not skip_websocket:
         start_ws_bg_task("monitoring", monitoring_background_task)
+        # comms_ws_main()  # outside from skip_websocket for now
+        # start_ws_bg_task("communication", communication_background_task)
 
     #####################################################
     # Import all created blueprint from each controller
@@ -157,9 +156,6 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
 
     from src.api.routine import ROUTINE_BLUEPRINT
     app.register_blueprint(ROUTINE_BLUEPRINT, url_prefix="/api")
-
-    from src.api.ewi_templates import EWI_TEMPLATE_BLUEPRINT
-    app.register_blueprint(EWI_TEMPLATE_BLUEPRINT, url_prefix="/api")
 
     from src.api.login import LOGIN_BLUEPRINT
     app.register_blueprint(LOGIN_BLUEPRINT, url_prefix="/api")

@@ -1,7 +1,6 @@
 
 const handleChange = (setTriggersState, trigger_type) => (key, element_id) => x => {
     const data = key === "timestamp" ? x : x.target.value;
-    console.log(key, data, element_id);
     const alert_level = parseInt(element_id.charAt(1), 10);
 
     setTriggersState({

@@ -1,9 +1,13 @@
-import React, { Fragment } from "react";
+import React, { Fragment, useEffect, useState } from "react";
 import axios from "axios";
 import moment from "moment";
+import MomentUtils from "@date-io/moment";
 import {
-    TextField, Grid, withStyles
+    TextField, Grid, withStyles,
+    FormControl, FormLabel, Switch,
+    Divider
 } from "@material-ui/core";
+import { MuiPickersUtilsProvider, KeyboardDateTimePicker, KeyboardTimePicker } from "@material-ui/pickers";
 
 // Stepper Related Imports
 import Stepper from "@material-ui/core/Stepper";
@@ -12,19 +16,20 @@ import StepLabel from "@material-ui/core/StepLabel";
 import Typography from "@material-ui/core/Typography";
 
 // Form Related Imports
-import MomentUtils from "@date-io/moment";
-import { MuiPickersUtilsProvider, KeyboardDateTimePicker, KeyboardTimePicker } from "@material-ui/pickers";
-import SelectInputForm from "../../reusables/SelectInputForm";
-import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import SubsurfaceTriggerGroup from "./SubsurfaceTriggerGroup";
 import SurficialTriggerGroup from "./SurficialTriggerGroup";
+import MomsTriggerGroup from "./MomsTriggerGroup";
 import RainfallTriggerGroup from "./RainfallTriggerGroup";
 import EarthquakeTriggerGroup from "./EarthquakeTriggerGroup";
 import OnDemandTriggerGroup from "./OnDemandTriggerGroup";
 
-// NOTE: sites should be replaced with DynaslopeSiteSelectInputForm. Note to self.
-const sites = [{ site_id: "1", site_name: "AGB (Agbatuan, Dumarao, Capiz)" }, { site_id: "2", site_name: "BAK (Poblacion, Bakun, Benguet)" }, { site_id: "3", site_name: "BAN (Banlasan, Calape, Bohol)" }, { site_id: "4", site_name: "BAR (Baras, Tarangnan, Samar)" }, { site_id: "5", site_name: "BAY (Bayabas, Labo, Camarines Norte)" }, { site_id: "6", site_name: "BLC (Boloc, Tubungan, Iloilo)" }, { site_id: "7", site_name: "BOL (Bolodbolod, St. Bernard, Southern Leyte)" }, { site_id: "8", site_name: "BTO (Bato, Sibonga, Cebu)" }, { site_id: "9", site_name: "CAR (San Carlos, Dapa, Surigao del Norte)" }, { site_id: "10", site_name: "CUD (Natuwolan at Wadwad, Cudog, Lagawe, Ifugao)" }, { site_id: "11", site_name: "DAD (Sagasa, Dadong, Tarragona, Davao Oriental)" }, { site_id: "12", site_name: "GAA (Gaas, Balamban, Cebu)" }, { site_id: "13", site_name: "GAM (Gamut, Tago, Surigao del Sur)" }, { site_id: "14", site_name: "HIN (1 & 2, Hinabangan, Samar)" }, { site_id: "15", site_name: "HUM (Humayhumay, Guihulngan City, Negros Oriental)" }, { site_id: "16", site_name: "IME (Imelda, Tarangnan, Samar)" }, { site_id: "17", site_name: "IMU (Immuli, Pidigan, Abra)" }, { site_id: "18", site_name: "INA (Sambag, Inabasan, Maasin, Iloilo)" }, { site_id: "19", site_name: "JOR (Poblacion 1, San Jorge, Samar)" }, { site_id: "20", site_name: "LAB (Labey, Ambuklao, Bokod, Benguet)" }, { site_id: "21", site_name: "LAY (Laygayon, Pinabacdao, Samar)" }, { site_id: "22", site_name: "LIP (Lipanto, St. Bernard, Southern Leyte)" }, { site_id: "23", site_name: "LOO (Looc, Villanueva, Misamis Oriental)" }, { site_id: "24", site_name: "LPA (Lipata, Paranas, Samar)" }, { site_id: "25", site_name: "LTE (Literon, Calbiga, Samar)" }, { site_id: "26", site_name: "LUN (Caianuhan, Lunas, Maasin City, Southern Leyte)" }, { site_id: "27", site_name: "MAG (Magsaysay, Kibawe, Bukidnon)" }, { site_id: "28", site_name: "MAM (Mamuyod, Ambassador, Tublay, Benguet)" }, { site_id: "29", site_name: "MAR (Marirong, Leon, Iloilo)" }, { site_id: "30", site_name: "MCA (Mac-Arthur, Esperanza, Agusan del Sur)" }, { site_id: "31", site_name: "MNG (Dao, Manghulyawon, La Libertad, Negros Oriental)" }, { site_id: "32", site_name: "MSL (Lower Mesolong, Sto. Nino, Talaingod, Davao del Norte)" }, { site_id: "33", site_name: "MSU (Upper Mesolong, Sto. Nino, Talaingod, Davao del Norte)" }, { site_id: "34", site_name: "NAG (Nagyubuyuban, San Fernando City, La Union)" }, { site_id: "35", site_name: "NUR (Nurcia, Lanuza, Surigao del Sur)" }, { site_id: "36", site_name: "OSL (Oslao, San Francisco, Surigao del Norte)" }, { site_id: "37", site_name: "PAR (Parasanon, Pinabacdao, Samar)" }, { site_id: "38", site_name: "PEP (Bangi, Pepe, Leon, Iloilo)" }, { site_id: "39", site_name: "PIN (Pinagkamaligan, Calauag, Quezon)" }, { site_id: "40", site_name: "PLA (Mambog, Planas, Guihulngan City, Negros Oriental)" }, { site_id: "41", site_name: "PNG (Pange, Matnog, Sorsogon)" }, { site_id: "42", site_name: "PUG (Longlong, Puguis, La Trinidad, Benguet)" }, { site_id: "43", site_name: "SAG (Antadao, Sagada, Mt. Province)" }, { site_id: "44", site_name: "SIB (Sibajay, Boston, Davao Oriental)" }, { site_id: "45", site_name: "SIN (Sinipsip, Amgaleyguey, Buguias, Benguet)" }, { site_id: "46", site_name: "SUM (Sumalsag, Malitbog, Bukidnon)" }, { site_id: "47", site_name: "TAL (Talahid, Almeria, Biliran)" }, { site_id: "48", site_name: "TGA (Taga, Pinukpuk, Kalinga)" }, { site_id: "49", site_name: "TUE (Tue, Tadian, Mt. Province)" }, { site_id: "50", site_name: "UMI (Umingan, Alimodian, Iloilo)" }];
-const users = [];
+// Widgets
+import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
+import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
+
+import { sites } from "../../../store";
+
+import { getInternalAlertLevel } from "./ajax";
 
 const styles = theme => ({
     inputGridContainer: {
@@ -53,43 +58,48 @@ const styles = theme => ({
     }
 });
 
-function getSitePublicAlert (site_id, generalData, setGeneralData) {
-    axios.get(`http://127.0.0.1:5000/api/monitoring/get_site_public_alert?site_id=${site_id}`)
-    .then(response => {
-        const public_alert = response.data;
-        setGeneralData({ ...generalData, siteId: site_id, publicAlert: public_alert });
-    })
-    .catch(error => {
-        console.log(error);
-    });
-}
 
 function GeneralInputForm (props) {
-    const { generalData, classes, handleEventChange, handleDateTime } = props;
+    const {
+        setModalTitle, generalData, classes,
+        handleEventChange, handleDateTime,
+        setGeneralData, setCTFullName, setMTFullName
+    } = props;
+
     const {
         siteId, dataTimestamp, releaseTime,
         reporterIdMt, reporterIdCt
     } = generalData;
 
+    useEffect(() => {
+        setModalTitle("Provide information to the following fields.");
+    }, []);
+
+    const setSite = ret => {
+        const { label, data } = ret;
+        setGeneralData({
+            ...generalData,
+            siteId: ret,
+            address: label,
+            siteCode: data.site_code
+        });
+    };
+
     return (
         <Fragment>
             <Grid item xs={12} className={classes.inputGridContainer}>
-                <SelectInputForm
-                    label="Site"
-                    div_id="site_id"
-                    changeHandler={handleEventChange("siteId")}
+                <DynaslopeSiteSelectInputForm
                     value={siteId}
-                    list={sites}
-                    mapping={{ id: "site_id", label: "site_name" }}
-                    css={classes.selectInput}
-                />
+                    changeHandler={value => setSite(value)}
+                    // renderDropdownIndicator={false}
+                />                
             </Grid>
 
             <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
                 <KeyboardDateTimePicker
                     required
                     autoOk
-                    label="Data Timestamp"
+                    label="Data timestamp"
                     value={dataTimestamp}
                     onChange={handleDateTime("dataTimestamp")}
                     ampm={false}
@@ -106,7 +116,7 @@ function GeneralInputForm (props) {
                     required
                     autoOk
                     ampm={false}
-                    label="Time of Release"
+                    label="Time of release"
                     mask="__:__"
                     placeholder="00:00"
                     value={releaseTime}
@@ -118,20 +128,23 @@ function GeneralInputForm (props) {
             <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
                 <DynaslopeUserSelectInputForm
                     variant="standard"
-                    label="IOMP-MT"
+                    label="MT Personnel"
                     div_id="reporter_id_mt"
                     changeHandler={handleEventChange("reporterIdMt")}
                     value={reporterIdMt}
+                    disabled="true"
+                    returnFullNameCallback={ret => setMTFullName(ret)}
                 />
             </Grid>
 
             <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
                 <DynaslopeUserSelectInputForm
                     variant="standard"
-                    label="IOMP-CT"
+                    label="CT Personnel"
                     div_id="reporter_id_ct"
                     changeHandler={handleEventChange("reporterIdCt")}
                     value={reporterIdCt}
+                    returnFullNameCallback={ret => setCTFullName(ret)}
                 />
             </Grid>
         </Fragment>
@@ -139,19 +152,58 @@ function GeneralInputForm (props) {
 }
 
 function TriggersInputForm (props) {
-    const { triggersState, setTriggersState } = props;
+    const { 
+        classes, triggersState, setTriggersState,
+        setModalTitle, hasNoGroundData, setHasNoGroundData,
+        triggersReleased
+    } = props;
+    const {
+        subsurface: { switchState: subs_switch_state },
+        surficial: { switchState: surf_switch_state } 
+    } = triggersState;
+
+    useEffect(() => {
+        setModalTitle("Add triggers if not yet included in this release.");
+    }, []);
 
     return (
         <Fragment>
+            {
+                !subs_switch_state && !surf_switch_state && (
+                    <Grid item xs={12} className={hasNoGroundData ? classes.groupGridContainer : ""}>
+                        <FormControl component="fieldset" className={classes.formControl}>
+                            <FormLabel component="legend" className={classes.formLabel}>
+                                <span style={{ color: "#f50057" }}>No Ground Data (ND)</span>
+                                <Switch
+                                    checked={hasNoGroundData}
+                                    onChange={event => setHasNoGroundData(event.target.checked)}
+                                    value={hasNoGroundData}
+                                />
+                            </FormLabel>
+                        </FormControl>
+                    </Grid>
+                )
+            }
+
+            <Grid item xs={12} style={{ paddingTop: "20px" }}>
+                <Typography variant="h6" color="secondary">Ground-Related Triggers</Typography>
+            </Grid>
+
             <SubsurfaceTriggerGroup
                 triggersState={triggersState}
                 setTriggersState={setTriggersState}
+                triggersReleased={triggersReleased}
             />
 
             <SurficialTriggerGroup
                 triggersState={triggersState}
                 setTriggersState={setTriggersState}
+                triggersReleased={triggersReleased}
             />
+            
+            <Grid item xs={12} style={{ paddingTop: "20px" }}>
+                <Typography variant="h6" color="secondary">Secondary Triggers</Typography>
+            </Grid>
 
             <RainfallTriggerGroup
                 triggersState={triggersState}
@@ -172,7 +224,12 @@ function TriggersInputForm (props) {
 }
 
 function CommentsInputForm (props) {
-    const { generalData: { comments }, handleEventChange, classes } = props;
+    const { generalData: { comments }, handleEventChange, classes, setModalTitle } = props;
+
+    useEffect(() => {
+        setModalTitle("Write your release comments.");
+    }, []);
+
     return (
         <Fragment>
             <Grid item xs={12} className={classes.inputGridContainer}>
@@ -191,32 +248,71 @@ function CommentsInputForm (props) {
 }
 
 function SummaryForm (props) {
-    const { generalData } = props;
     const {
-        siteId, publicAlert, dataTimestamp,
-        releaseTime, reporterIdMt,
-        reporterIdCt
+        classes,
+        generalData, internalAlertLevel, setModalTitle,
+        mtFullName, ctFullName, ewiPayload: { trigger_list_arr }
+    } = props;
+    const {
+        siteId, dataTimestamp, releaseTime, comments
     } = generalData;
-    console.log(generalData);
-    console.log("siteId", siteId);
-    const site = sites.find(obj => obj.site_id === "50");
-    const mt = users.find(obj => obj.user_id === reporterIdMt);
-    const ct = users.find(obj => obj.user_id === reporterIdCt);
-    const data_ts = moment(dataTimestamp).format("YYYY-MM-DD HH:mm:ss");
+
+    const [triggers_display, setTriggersDisplay] = useState(null);
+
+    useEffect(() => {
+        setModalTitle("Review release summary.");
+
+        let temp_list = (<Typography variant="body2" color="textPrimary">No triggers included in this release.</Typography>);
+        if (trigger_list_arr.length > 0) {
+            temp_list = trigger_list_arr.map((element, index) => {
+                console.log(element, index);
+                const {
+                    ts_updated, alert_level, trigger_type,
+                    tech_info
+                } = element;
+    
+                const trig_source = trigger_type.charAt(0).toUpperCase() + trigger_type.slice(1);
+                const timestamp = moment(ts_updated).format("DD MMMM YYYY, HH:mm");
+                return (
+                    <Fragment key={`${index + 1}`}>
+                        <Grid item xs={6} align="center">
+                            <Typography variant="body2" color="textSecondary">Trigger</Typography>
+                            <Typography variant="body2" color="textPrimary">{`${trig_source} Alert ${alert_level}`}</Typography>
+                        </Grid>
+    
+                        <Grid item xs={6} align="center">
+                            <Typography variant="body2" color="textSecondary">Trigger timestamp</Typography>
+                            <Typography variant="body2" color="textPrimary">{timestamp}</Typography>
+                        </Grid>
+    
+                        <Grid item xs={12} align="center" style={{ paddingBottom: 20 }}>
+                            <Typography variant="body2" color="textSecondary">Tech info</Typography>
+                            <Typography variant="caption" color="textPrimary">{tech_info}</Typography>
+                        </Grid>
+                    </Fragment>
+                );
+            });
+        }
+        setTriggersDisplay(temp_list);
+    }, []);
+
+    const data_ts = moment(dataTimestamp).format("DD MMMM YYYY, HH:mm");
+    // const data_ts = moment(dataTimestamp).format("MMMM Mo YYYY HH:mm");
     const release_time = moment(releaseTime).format("HH:mm");
 
     return (
         <Fragment>
-            <Grid item xs={9} >
-                <Typography variant="body1" color="textSecondary">Site ID</Typography>
+            <Grid item xs={6} >
+                <Typography variant="body1" color="textSecondary">Site</Typography>
                 <Typography variant="body1" color="textPrimary">
-                    {site.site_name.toUpperCase()}
+                    {/* {site.site_name} */}
+                    {siteId.label}
                 </Typography>
             </Grid>
-            <Grid item xs={3} >
+            <Grid item xs={6} >
                 <Typography variant="body1" color="textSecondary">Alert Level</Typography>
                 <Typography variant="body1" color="textPrimary">
-                    {publicAlert}
+                    {internalAlertLevel}
                 </Typography>
             </Grid>
 
@@ -234,17 +330,46 @@ function SummaryForm (props) {
             </Grid>
 
             <Grid item xs={6} >
-                <Typography variant="body1" color="textSecondary">MT</Typography>
+                <Typography variant="body1" color="textSecondary">MT Personnel</Typography>
                 <Typography variant="body1" color="textPrimary">
-                    {reporterIdMt}
-                    {/* {mt.name} */}
+                    {mtFullName}
                 </Typography>
             </Grid>
+
             <Grid item xs={6} >
-                <Typography variant="body1" color="textSecondary">CT</Typography>
+                <Typography variant="body1" color="textSecondary">CT Personnel</Typography>
                 <Typography variant="body1" color="textPrimary">
-                    {reporterIdCt}
-                    {/* {ct.name} */}
+                    {ctFullName}
+                </Typography>
+            </Grid>
+
+            <Grid item xs={12}>
+                <Divider className={classes.divider} /> 
+            </Grid>
+            
+            <Grid item xs={12} container spacing={1}>
+                <Grid item xs={12}>
+                    <Typography variant="button" color="textSecondary">Triggers</Typography>
+                </Grid>
+                <Grid item xs={12} container spacing={1}>
+                    {triggers_display}
+                </Grid>
+            </Grid>
+
+            <Grid item xs={12}>
+                <Divider className={classes.divider} /> 
+            </Grid>
+
+            <Grid item xs={12} >
+                <Typography variant="button" color="textSecondary">Comments</Typography>
+                <Typography variant="body2" color="textPrimary">
+                    {
+                        comments !== "" ? (
+                            comments 
+                        ) : (
+                            "No comment provided"
+                        )
+                    }
                 </Typography>
             </Grid>
         </Fragment>
@@ -252,13 +377,40 @@ function SummaryForm (props) {
 }
 
 function AlertReleaseForm (props) {
-    console.log(props);
     const {
         classes, activeStep, generalData,
-        setGeneralData
+        setGeneralData, setInternalAlertLevel,
+        internalAlertLevel, setTriggerList,
+        setPublicAlertLevel
     } = props;
 
+    const [mtFullName, setMTFullName] = useState("");
+    const [ctFullName, setCTFullName] = useState("");
+
+    const [triggersReleased, setTriggersReleased] = useState([]);
+
     const changeState = (key, value) => {
+        if (key === "siteId") {
+            // get the current Internal alert level of site
+            const input = { site_id: value };
+            getInternalAlertLevel(input, ret => {
+                const site = sites.find(o => o.site_id === value);
+                const { site_code } = site;
+                setGeneralData({
+                    ...generalData,
+                    site_code
+                });
+                const {
+                    internal_alert_level, public_alert_level, trigger_list_str,
+                    trigger_sources
+                } = ret;
+                setTriggersReleased(trigger_sources);
+                setTriggerList(trigger_list_str);
+                setPublicAlertLevel(public_alert_level);
+                // set the status on form
+                setInternalAlertLevel(internal_alert_level);
+            });
+        }
         setGeneralData({ ...generalData, [key]: value });
     };
 
@@ -283,13 +435,23 @@ function AlertReleaseForm (props) {
                     {...props}
                     handleDateTime={handleDateTime}
                     handleEventChange={handleEventChange}
+                    setMTFullName={setMTFullName}
+                    setCTFullName={setCTFullName}
                 />);
             case 1:
-                return <TriggersInputForm {...props} />;
+                return <TriggersInputForm {...props} triggersReleased={triggersReleased} />;
             case 2:
-                return <CommentsInputForm {...props} handleEventChange={handleEventChange} />;
+                return <CommentsInputForm {...props} handleEventChange={handleEventChange}/>;
             case 3:
-                return <SummaryForm {...props} />;
+                return <SummaryForm {...props} 
+                    mtFullName={mtFullName}
+                    ctFullName={ctFullName}
+                    internalAlertLevel={internalAlertLevel}
+                />;
+            case 4:
+                return (
+                    <Typography variant="body1">EWI Released!</Typography>
+                );
             default:
                 return "Uknown stepIndex";
         }
@@ -303,6 +465,7 @@ function AlertReleaseForm (props) {
                 alignItems="center"
                 spacing={1}
             >
+
                 {getStepContent(activeStep)}
                 <div className={classes.root}>
                     <Typography className={classes.instructions} />

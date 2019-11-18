@@ -365,7 +365,7 @@ function Container (props) {
     useEffect(() => {
         subscribeToWebSocket((data) => {
             setContacts(data);
-            setChosenContact(data[0]);
+            if (data.length > 0) setChosenContact(data[0]);
             setContactsArray(data);
         }, "contacts");
     }, []);
@@ -389,7 +389,8 @@ function Container (props) {
     }, [search_str]);
     
     let contact = "";
-    if (typeof chosen_contact.user !== "undefined") {
+    // eslint-disable-next-line no-prototype-builtins
+    if (chosen_contact.hasOwnProperty("user")) {
         const { user } = chosen_contact;
         const { first_name, last_name } = user;
         contact = `${first_name} ${last_name}`;

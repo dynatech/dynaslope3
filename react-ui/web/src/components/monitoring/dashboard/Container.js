@@ -3,7 +3,6 @@ import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { withStyles } from "@material-ui/core/styles";
 import { compose } from "recompose";
 import { Button, Grid } from "@material-ui/core";
-import Hidden from "@material-ui/core/Hidden";
 import { AddAlert } from "@material-ui/icons";
 
 import PageTitle from "../../reusables/PageTitle";
@@ -15,7 +14,8 @@ import IssuesAndRemindersList from "../../widgets/issues_and_reminders_form/Issu
 import CircularAddButton from "../../reusables/CircularAddButton";
 import GeneralStyles from "../../../GeneralStyles";
 import { 
-    subscribeToWebSocket, unsubscribeToWebSocket
+    subscribeToWebSocket, unsubscribeToWebSocket,
+    receiveGeneratedAlerts, receiveCandidateAlerts, receiveAlertsFromDB
 } from "../../../websocket/monitoring_ws";
 
 const styles = theme => {
@@ -40,36 +40,21 @@ const tabs_array = [
 function Container (props) {
     const { classes, width } = props;
     const [chosenTab, setChosenTab] = useState(0);
-    const [generatedAlerts, setGeneratedAlerts] = useState([]);
-    const [candidateAlertsData, setCandidateAlertsData] = useState([]);
-    const [alertsFromDbData, setAlertsFromDbData] = useState({ latest: [], extended: [], overdue: [] });
+    const [generatedAlerts, setGeneratedAlerts] = useState(null);
+    const [candidateAlertsData, setCandidateAlertsData] = useState(null);
+    const [alertsFromDbData, setAlertsFromDbData] = useState(null);
     const [isOpenReleaseModal, setIsOpenReleaseModal] = useState(false);
     const [chosenCandidateAlert, setChosenCandidateAlert] = useState(null);
 
     const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
+    const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
     
     useEffect(() => {
-        const socket_fns = {
-            // receive_generated_alerts (err, data) {
-            //     const generated_alerts_data = JSON.parse(data);
-            //     console.log(generated_alerts_data);
-            //     setGeneratedAlerts(generated_alerts_data);
-            //     if (err != null) console.log(err);
-            // },
-            // receive_candidate_alerts (err, data) {
-            //     const candidate_alerts_data = JSON.parse(data);
-            //     console.log(candidate_alerts_data);
-            //     setCandidateAlertsData(candidate_alerts_data);
-            //     if (err != null) console.log(err);
-            // },
-            // receive_alerts_from_db (err, data) {
-            //     const alerts_from_db_data = JSON.parse(data);
-            //     console.log(alerts_from_db_data);
-            //     setAlertsFromDbData(alerts_from_db_data);
-            //     if (err != null) console.log(err);
-            // }
-        };
-        subscribeToWebSocket(socket_fns);
+        subscribeToWebSocket("socket_fns");
+
+        receiveGeneratedAlerts(generated_alerts => setGeneratedAlerts(generated_alerts));
+        receiveCandidateAlerts(candidate_alerts => setCandidateAlertsData(candidate_alerts));
+        receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
 
         return function cleanup () {
             unsubscribeToWebSocket();
@@ -82,7 +67,10 @@ function Container (props) {
 
     const handleBoolean = (data, bool) => () => {
         if (data === "is_open_release_modal") setIsOpenReleaseModal(bool);
-        else if (data === "is_open_issues_modal") setIsOpenIssueReminderModal(bool);
+        else if (data === "is_open_issues_modal") {
+            setIsUpdateNeeded(!bool);
+            setIsOpenIssueReminderModal(bool);
+        }
     };
 
     const is_desktop = isWidthUp("md", width);
@@ -126,6 +114,8 @@ function Container (props) {
                         <IssuesAndRemindersList 
                             isOpenIssueReminderModal={isOpenIssueReminderModal}
                             setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
+                            isUpdateNeeded={isUpdateNeeded}
+                            setIsUpdateNeeded={setIsUpdateNeeded}
                         />
                     </Grid>
                     

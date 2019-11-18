@@ -1,11 +1,13 @@
 import React, { Fragment, useState } from "react";
 import {
-    Grid, Paper, Table, TableHead,
-    TableBody, TableRow, TableCell, Typography,
+    Grid, Typography,
     Divider, Button, ButtonGroup
 } from "@material-ui/core";
-import { withStyles, makeStyles } from "@material-ui/core/styles";
+import { makeStyles } from "@material-ui/core/styles";
 import { isWidthUp } from "@material-ui/core/withWidth";
+import ContentLoader from "react-content-loader";
+
+import moment from "moment";
 
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
 import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
@@ -15,45 +17,33 @@ import GeneralStyles from "../../../GeneralStyles";
 import ValidationModal from "./ValidationModal";
 import useModal from "../../reusables/useModal";
 
-const styles = theme => ({
-    monitoringTable: {
-        minWidth: "700px"
-    }
+const useStyles = makeStyles(theme => {
+    const general_styles = GeneralStyles(theme);
+    return {
+        ...general_styles,
+        root: {
+            width: "100%",
+        },
+        sectionHead: {
+            ...general_styles.sectionHead,
+            marginBottom: 24
+        },
+        expansionPanelSummaryContent: { justifyContent: "space-between" },
+        invalidCandidate: {
+            background: "linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)"
+        },
+        validCandidate: {
+            background: "linear-gradient(315deg, #00b712 0%, #5aff15 74%)"
+        },
+        partialInvalidCandidate: {
+            background: "linear-gradient(315deg, #bbf0f3 0%, #f6d285 74%)"
+        }
+    };
 });
 
-const useStyles = makeStyles(theme => ({
-    root: {
-        width: "100%",
-    },
-    heading: {
-        fontSize: theme.typography.pxToRem(15),
-        flexBasis: "33.33%",
-        flexShrink: 0,
-    },
-    secondaryHeading: {
-        fontSize: theme.typography.pxToRem(15),
-        color: theme.palette.text.secondary,
-    },
-    candidateAlertsHeading: {
-        fontSize: theme.typography.pxToRem(15),
-        flexBasis: "25.0%",
-        flexShrink: 0,
-    },
-    latestAlertsHeading: {
-        fontSize: theme.typography.pxToRem(15),
-        flexBasis: "25.0%",
-        flexShrink: 0,
-    },
-    invalidCandidate: {
-        background: "linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)"
-    },
-    validCandidate: {
-        background: "linear-gradient(315deg, #00b712 0%, #5aff15 74%)"
-    },
-    partialInvalidCandidate: {
-        background: "linear-gradient(315deg, #bbf0f3 0%, #f6d285 74%)"
-    }
-}));
+function format_ts (ts) {
+    return moment(ts).format("DD MMMM YYYY, HH:mm");
+}
 
 function release_candidate (site_code, candidate_data) {
     console.log(`Releasing candidate for site ${site_code}`);
@@ -71,23 +61,310 @@ function open_validation_modal (site, trigger_id, ts_updated) {
     );
 }
 
+const MyLoader = () => (
+    <ContentLoader 
+        height={60}
+        width={700}
+        speed={0.5}
+        primaryColor="#f3f3f3"
+        secondaryColor="#ecebeb"
+        style={{ width: "100%" }}
+    >
+        <rect x="-4" y="5" rx="4" ry="4" width="700" height="111" /> 
+        <rect x="0" y="120" rx="3" ry="3" width="201" height="6" />
+    </ContentLoader>
+);
+
+function CandidateAlertsExpansionPanel (props) {
+    const { 
+        alertData, classes, expanded,
+        handleChange, index
+    } = props;
+
+    let site = "";
+    let ts = "";
+    let ia_level = "";
+    let trigger_arr = [];
+    let has_new_triggers = false;
+    const { general_status } = alertData;
+    
+    if (general_status === "routine") {
+        const { data_ts, public_alert_symbol } = alertData;
+        site = "ROUTINE RELEASE";
+        ts = format_ts(data_ts);
+        ia_level = public_alert_symbol;
+    } else {
+        const { site_code, release_details, internal_alert_level, trigger_list_arr } = alertData;
+        const { data_ts } = release_details;
+        site = site_code;
+        ts = format_ts(data_ts);
+        ia_level = internal_alert_level;
+        trigger_arr = trigger_list_arr;
+        has_new_triggers = trigger_arr !== "No new triggers" && trigger_arr.length > 0;
+    }
+    site = site.toUpperCase();
+    const gen_status = general_status.toUpperCase();
+
+    return (
+        <ExpansionPanel
+            key={`panel${index + 1}`}
+            expanded={expanded === `panel${index}`}
+            onChange={handleChange(`panel${index}`)}
+        >
+            <ExpansionPanelSummary
+                // expandIcon={<ExpandMoreIcon />}
+                aria-controls={`panel${index}bh-content`}
+                id={`panel${index}bh-header`}
+                classes={{ content: classes.expansionPanelSummaryContent }}
+            >
+                {
+                    [site, ia_level, ts, gen_status].map((elem, i) => (
+                        <Typography
+                            key={i}
+                            color="textSecondary"
+                            variant="body2"
+                        >
+                            {elem}
+                        </Typography>
+                    ))
+                }
+            </ExpansionPanelSummary>
+            <ExpansionPanelDetails>
+                <Grid container spacing={1}>
+                    <Grid item xs={12} container spacing={1}>
+                        <Grid item xs={12} sm align="center">
+                            <Typography component="span" variant="body1" color="textSecondary" style={{ paddingRight: 8 }}>Data Timestamp:</Typography>
+                            <Typography component="span" variant="body1" color="textPrimary">{ts}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm align="center">
+                            <Typography component="span" variant="body1" color="textSecondary" style={{ paddingRight: 8 }}>Internal Alert:</Typography>
+                            <Typography component="span" variant="body1" color="textPrimary">{ia_level}</Typography>
+                        </Grid>
+                    </Grid>
+
+                    <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
+
+                    <Grid item xs={12} container spacing={1}>
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle2" color="textPrimary">TRIGGERS</Typography>
+                        </Grid>
+                        
+                        <Grid item xs={12} container spacing={2} alignItems="center">
+                            {
+                                has_new_triggers ? (
+                                    trigger_arr.map((trigger, key) => {
+                                        const { 
+                                            ts_updated, alert, tech_info,
+                                            trigger_id, trigger_type
+                                        } = trigger;
+                                        const formatted_ts = format_ts(ts_updated);
+                                        let trigger_validity = "Valid";
+                                        let to_validate = false;
+
+                                        try {
+                                            const { validating_status } = trigger;
+                                            if (validating_status === 0) {
+                                                trigger_validity = "---";
+                                                to_validate = true;
+                                            }
+                                        } catch (err) { /* pass */ }
+
+                                        try {
+                                            const { invalid } = trigger;
+                                            if (invalid) {
+                                                trigger_validity = "Invalid";
+                                            }
+                                        } catch (err) { /* pass */ }
+
+                                        const as_details = {
+                                            site, trigger_id, ts_updated
+                                        };
+
+                                        const to_show_validate_button = ["surficial", "rainfall", "subsurface"].includes(trigger_type) && to_validate;
+
+                                        return (
+                                            <Fragment key={key}>
+                                                <Grid item xs align="center">
+                                                    <Typography variant="body1" color="textSecondary">Trigger</Typography>
+                                                    <Typography variant="body1" color="textPrimary">{alert}</Typography>
+                                                </Grid>
+
+                                                <Grid item xs={4} align="center">
+                                                    <Typography variant="body1" color="textSecondary">Trigger timestamp</Typography>
+                                                    <Typography variant="body1" color="textPrimary">{formatted_ts}</Typography>
+                                                </Grid>
+
+                                                {/* 
+                                                    NOTE: Pwedeng ipakita, pwedeng hindi, commented out just in case need
+                                                    <Grid item xs={6} align="center">
+                                                        <Typography variant="body1" color="textSecondary">Tech Info</Typography>
+                                                        <Typography variant="body1" color="textPrimary">{tech_info}</Typography>
+                                                    </Grid> 
+                                                */}
+
+                                                <Grid item xs align={to_show_validate_button ? "flex-start" : "center"}>
+                                                    <Typography component="span" variant="body1" color="textSecondary" style={{ paddingRight: 8 }}>Status:</Typography>
+                                                    <Typography component="span" variant="body1" color="textPrimary">{trigger_validity}</Typography>
+                                                </Grid>
+
+                                                {
+                                                    to_show_validate_button && (
+                                                        <Grid item xs justify="flex-end" container>
+                                                            <Button
+                                                                // onClick={toggle}
+                                                                variant="contained" color="secondary"
+                                                                size="small" aria-label="Validate trigger"
+                                                            >
+                                                                Validate
+                                                            </Button>
+                                                        </Grid>
+                                                    )
+                                                }
+
+                                                {/* <ValidationModal
+                                                            isShowing={isShowing}
+                                                            data={as_details}
+                                                            hide={toggle}
+                                                        /> */}
+                                                {
+                                                    trigger_arr.length > key + 1 && (
+                                                        <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
+                                                    )
+                                                }
+                                            </Fragment>
+                                        );
+                                    })
+                                ) : (
+                                    <Fragment>
+                                        <Grid item xs={12}>
+                                            <Typography variant="body1" color="textSecondary">No new triggers</Typography>
+                                        </Grid>
+                                    </Fragment>
+                                )
+                            }
+                        </Grid>
+                    </Grid>
+
+                    <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
+
+                    <Grid item xs={12} align="right">
+                        <Button
+                            variant="contained" color="primary" aria-label="Release candidate alert"
+                            // onClick={handleOnClick(row)}
+                        >
+                            Release Candidate Alert
+                        </Button>
+                    </Grid>
+                </Grid>
+            </ExpansionPanelDetails>
+        </ExpansionPanel>
+    );
+}
+
+function LatestSiteAlertsExpansionPanel (props) {
+    const { 
+        siteAlert, classes, expanded,
+        handleChange, index
+    } = props;
+    const {
+        event, internal_alert_level, releases
+    } = siteAlert;
+    const { validity, site, event_start } = event;
+    const site_name = site.site_code.toUpperCase();
+    
+    const start_ts = format_ts(event_start);
+    const validity_ts = format_ts(validity);
+
+    const { data_ts, release_time } = releases[0];
+
+    const is_onset = releases.length === 1;
+    let adjusted_data_ts = data_ts;
+    if (!is_onset) adjusted_data_ts = moment(data_ts).add(30, "minutes");
+    adjusted_data_ts = format_ts(adjusted_data_ts);
+
+    return (
+        <ExpansionPanel expanded={expanded === `lsa-panel${index}`} onChange={handleChange(`lsa-panel${index}`)}>
+            <ExpansionPanelSummary
+                // expandIcon={<ExpandMoreIcon />}
+                aria-controls={`lsa-panel${index}bh-content`}
+                id={`lsa-panel${index}bh-header`}
+                classes={{ content: classes.expansionPanelSummaryContent }}
+            >
+                {
+                    [site_name, internal_alert_level, adjusted_data_ts, release_time].map((elem, i) => (
+                        <Typography
+                            key={i}
+                            color="textSecondary"
+                            variant="body2"
+                        >
+                            {elem}
+                        </Typography>
+                    ))
+                }
+            </ExpansionPanelSummary>
+            <ExpansionPanelDetails>
+                <Grid container spacing={1}>
+                    <Grid item xs={12} container spacing={1}>
+                        <Grid item xs={12} sm align="center">
+                            <Typography component="span" variant="body1" color="textSecondary" style={{ paddingRight: 8 }}>Event Start:</Typography>
+                            <Typography component="span" variant="body1" color="textPrimary">{start_ts}</Typography>
+                        </Grid>
+                        <Grid item xs={12} sm align="center">
+                            <Typography component="span" variant="body1" color="textSecondary" style={{ paddingRight: 8 }}>Event Validity:</Typography>
+                            <Typography component="span" variant="body1" color="textPrimary">{validity_ts}</Typography>
+                        </Grid>
+                    </Grid>
+
+                    <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
+
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="textPrimary">LASEST RELEASE</Typography>
+                    </Grid>
+                        
+                    <Grid item xs={12} container spacing={1}>
+                        {
+                            [
+                                ["Internal Alert", internal_alert_level],
+                                ["Data Timestamp", format_ts(data_ts)],
+                                ["Release Time", release_time]
+                            ].map((row, key) => (
+                                <Grid key={row[0]} item xs align="center">
+                                    <Typography variant="body1" color="textSecondary">{row[0]}</Typography>
+                                    <Typography variant="body1" color="textPrimary">{row[1]}</Typography>
+                                </Grid>
+                            ))
+                        }
+                    </Grid>
+
+                    <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
+
+                    <Grid item xs={12} align="right">
+                        <ButtonGroup variant="contained" color="primary">
+                            <Button>EWI SMS</Button>
+                            <Button>Bulletin</Button>
+                        </ButtonGroup>
+                    </Grid>
+                </Grid>
+            </ExpansionPanelDetails>
+        </ExpansionPanel>
+    );
+}
+
 function MonitoringTables (props) {
     const {
         candidateAlertsData, alertsFromDbData, width,
         releaseFormOpenHandler, chosenCandidateHandler
     } = props;
-    // console.log("candidateAlertsData", candidateAlertsData);
-    // console.log("alertsFromDbData", alertsFromDbData);
+
     const classes = useStyles();
     const [expanded, setExpanded] = useState(false);
-    const { isShowing, toggle } = useModal();
-    // const { isShowing: isAlertFormShowing, toggle: alertFromToggle } = useModal();
+    const { isShowing: isModalShowing, toggle: toggleModal } = useModal();
 
     const handleChange = panel => (event, isExpanded) => {
         setExpanded(isExpanded ? panel : false);
     };
 
-    const handleOnClick = (chosen_candidate) => () => {
+    const handleOnClick = chosen_candidate => () => {
         console.log(chosen_candidate);
         chosenCandidateHandler(chosen_candidate);
         releaseFormOpenHandler();
@@ -95,11 +372,18 @@ function MonitoringTables (props) {
 
     const is_desktop = isWidthUp("md", width);
 
-    const latest_db_alerts = [];
-    const { latest, extended, overdue } = alertsFromDbData;
-    let as_details = {};
-
-    // latest_db_alerts = latest;
+    let latest_db_alerts = [];
+    let extended_db_alerts = [];
+    let overdue_db_alerts = [];
+    if (alertsFromDbData !== null) {
+        const { latest, extended, overdue } = alertsFromDbData;
+        latest_db_alerts = latest;
+        extended_db_alerts = extended;
+        overdue_db_alerts = overdue;
+    }
+    
+    const as_details = {};
+    
     return (
         <div className={classes.root}>
             <Grid container className={classes.sectionHeadContainer}>
@@ -107,239 +391,124 @@ function MonitoringTables (props) {
                     <Typography className={classes.sectionHead} variant="h5">Candidate Alerts</Typography>
                 </Grid>
 
-                <Grid item sm={12}>
+                <Grid item sm={12} style={{ marginBottom: 22 }}>
                     {
-                        candidateAlertsData !== [] ?
-                            candidateAlertsData.map((row, index) => {
-                                let site = "";
-                                let ts = "";
-                                let ia_level = "";
-                                let trigger_arr = [];
-                                let has_new_triggers = false;
-                                const { general_status } = row;
-                                if (general_status === "routine") {
-                                    const { data_ts, public_alert_symbol } = row;
-                                    site = "ROUTINE RELEASE";
-                                    ts = data_ts;
-                                    ia_level = public_alert_symbol;
-                                } else {
-                                    const { site_code, release_details, internal_alert_level, trigger_list_arr } = row;
-                                    const { data_ts } = release_details;
-                                    site = site_code;
-                                    ts = data_ts;
-                                    ia_level = internal_alert_level;
-                                    trigger_arr = trigger_list_arr;
-                                    has_new_triggers = trigger_arr !== "No new triggers" && trigger_arr.length > 0;
-                                }
-                                site = site.toUpperCase();
-                                const gen_status = general_status.toUpperCase();
-
-
-                                return (
-                                    <ExpansionPanel expanded={expanded === `panel${index}`} onChange={handleChange(`panel${index}`)}>
-                                        <ExpansionPanelSummary
-                                            expandIcon={<ExpandMoreIcon />}
-                                            aria-controls={`panel${index}bh-content`}
-                                            id={`panel${index}bh-header`}
-                                        >
-                                            <Typography className={classes.candidateAlertsHeading}>{site}</Typography>
-                                            <Typography className={classes.candidateAlertsHeading}>{ia_level}</Typography>
-                                            <Typography className={classes.candidateAlertsHeading}>{ts}</Typography>
-                                            <Typography className={classes.candidateAlertsHeading}>{gen_status}</Typography>
-                                        </ExpansionPanelSummary>
-                                        <ExpansionPanelDetails>
-                                            <Grid container spacing={4}>
-                                                <Grid item xs={12}>
-                                                    <Typography variant="subtitle1" color="textSecondary">{gen_status} CANDIDATE RELEASE DETAILS</Typography>
-                                                    <Grid container spacing={4}>
-                                                        <Grid item xs={12} sm={4}>
-                                                            <Typography variant="subtitle2" color="textPrimary">Internal Alert</Typography>
-                                                            <Typography variant="bod1" color="textPrimary">{ia_level}</Typography>
-                                                        </Grid>
-                                                        <Grid item xs={12} sm={4}>
-                                                            <Typography variant="subtitle2" color="textPrimary">Data Timestamp</Typography>
-                                                            <Typography variant="bod1" color="textPrimary">{ts}</Typography>
-                                                        </Grid>
-                                                    </Grid>
-                                                </Grid>
-
-                                                <Grid item xs={12} sm={12}><Divider /></Grid>
-
-                                                <Grid item xs={12} sm={12}>
-                                                    <Typography variant="body1" color="textSecondary">Triggers</Typography>
-                                                    <Grid container spacing={2}>
-                                                        {
-                                                            has_new_triggers
-                                                                ?
-                                                                trigger_arr.map((trigger, key) => {
-                                                                    const { ts_updated, alert, tech_info, trigger_id } = trigger;
-                                                                    let trigger_validity = "VALID";
-                                                                    try {
-                                                                        const { invalid } = trigger;
-                                                                        if (invalid) {
-                                                                            trigger_validity = "INVALID";
-                                                                        }
-                                                                    }
-                                                                    catch (err) {
-                                                                        // PASS
-                                                                    }
-
-                                                                    as_details = {
-                                                                        site, trigger_id, ts_updated
-                                                                    };
-                                                                    // const formatted_ts = moment(ts_updated).format("D MMMM YYYY, h:mm");
-                                                                    return (
-                                                                        <Fragment>
-                                                                            <Grid item xs={12} sm={3}>
-                                                                                <Typography variant="body1" color="textPrimary">{trigger_validity} | {alert} | {ts_updated}</Typography>
-                                                                                <Typography variant="caption" color="textSecondary">{tech_info}</Typography>
-                                                                            </Grid>
-                                                                            <Grid item xs={12} sm={3} style={{ textAlign: is_desktop ? "center" : "right" }}>
-                                                                                <ButtonGroup variant="contained" color="secondary" size="small" aria-label="Alert Actions">
-                                                                                    <Button
-                                                                                        onClick={toggle}
-                                                                                    >
-                                                                                        Validate
-                                                                                    </Button>
-                                                                                    <ValidationModal
-                                                                                        isShowing={isShowing}
-                                                                                        data={as_details}
-                                                                                        hide={toggle}
-                                                                                    />
-                                                                                </ButtonGroup>
-                                                                            </Grid>
-                                                                        </Fragment>
-                                                                    );
-                                                                })
-                                                                : <Grid item xs={12}>
-                                                                    <Typography variant="body1" color="textSecondary">No re/triggers</Typography>
-                                                                </Grid>
-                                                        }
-
-                                                    </Grid>
-                                                </Grid>
-                                                <Grid item xs={12} align="right">
-                                                    <ButtonGroup variant="contained" color="primary" size="small" aria-label="Alert Actions">
-                                                        {/* <Button onClick={(e) => release_candidate(site, row)}>Release Candidate Alert</Button> */}
-                                                        <Button
-                                                            onClick={handleOnClick(row)}
-                                                        >
-                                                            Release Candidate Alert
-                                                        </Button>
-                                                    </ButtonGroup>
-                                                </Grid>
-                                            </Grid>
-                                        </ExpansionPanelDetails>
-                                    </ExpansionPanel>
-                                );
-                            })
-                            : (
-                                <Grid container>
-                                    <Grid item xs={12}>
-                                        No Candidate Alerts
-                                    </Grid>
-                                </Grid>
+                        // eslint-disable-next-line no-nested-ternary
+                        candidateAlertsData === null ? (
+                            <MyLoader />
+                        ) : (
+                            candidateAlertsData.length !== 0 ? (
+                                candidateAlertsData.map((row, index) => (
+                                    <CandidateAlertsExpansionPanel
+                                        key={index}
+                                        classes={classes}
+                                        alertData={row}
+                                        expanded={expanded}
+                                        handleChange={handleChange}
+                                        index={index}
+                                    />
+                                ))
+                            ) : (
+                                <Typography variant="body1" align="center">
+                                    No candidate alerts
+                                </Typography>
                             )
+                        )
                     }
                 </Grid>
+
                 <Grid item sm={12}>
-                    <br />
-                    <br />
                     <Typography className={classes.sectionHead} variant="h5">Latest Site Alerts</Typography>
                 </Grid>
-                <Grid item sm={12}>
+
+                <Grid item sm={12} style={{ marginBottom: 22 }}>
                     {
-                        latest !== [] ?
-                            latest.map((row, index) => {
-                                const {
-                                    event, event_alert_id, internal_alert_level,
-                                    public_alert_symbol, releases, ts_end,
-                                    ts_start
-                                } = row;
-                                const { validity, site, event_start } = event;
-                                const site_name = site.site_code.toUpperCase();
-                                const validity_ts = validity;
-
-                                const { data_ts, release_publishers, triggers } = releases[0];
-                                const mt_personnel = `${release_publishers[0].user_details.first_name} ${release_publishers[0].user_details.last_name}`;
-                                const ct_personnel = `${release_publishers[1].user_details.first_name} ${release_publishers[1].user_details.last_name}`;
-                                const internal_alert = internal_alert_level;
-
-                                return (
-                                    <ExpansionPanel expanded={expanded === `lsa-panel${index}`} onChange={handleChange(`lsa-panel${index}`)}>
-                                        <ExpansionPanelSummary
-                                            expandIcon={<ExpandMoreIcon />}
-                                            aria-controls={`lsa-panel${index}bh-content`}
-                                            id={`lsa-panel${index}bh-header`}
-                                        >
-                                            <Typography className={classes.latestAlertsHeading}>{site_name}</Typography>
-                                            <Typography className={classes.latestAlertsHeading}>{internal_alert}</Typography>
-                                            <Typography className={classes.latestAlertsHeading}>{validity_ts}</Typography>
-                                            <Typography className={classes.latestAlertsHeading}>{data_ts}</Typography>
-                                        </ExpansionPanelSummary>
-                                        <ExpansionPanelDetails>
-                                            <Grid container spacing={4}>
-                                                <Grid item xs={12}>
-                                                    <Typography variant="subtitle1" color="textSecondary">LATEST RELEASE DETAILS</Typography>
-                                                    <Grid container spacing={4}>
-                                                        <Grid item xs={3}>
-                                                            <Typography variant="subtitle2" color="textPrimary">Internal Alert Released</Typography>
-                                                            <Typography variant="bod1" color="textPrimary">{internal_alert}</Typography>
-                                                        </Grid>
-                                                        <Grid item xs={3}>
-                                                            <Typography variant="subtitle2" color="textPrimary">Last Data Timestamp</Typography>
-                                                            <Typography variant="bod1" color="textPrimary">{data_ts}</Typography>
-                                                        </Grid>
-                                                        <Grid item xs={3}>
-                                                            <Typography variant="subtitle2" color="textPrimary">MT Reporter</Typography>
-                                                            <Typography variant="bod1" color="textPrimary">{mt_personnel}</Typography>
-                                                        </Grid>
-                                                        <Grid item xs={3}>
-                                                            <Typography variant="subtitle2" color="textPrimary">CT Reporter</Typography>
-                                                            <Typography variant="bod1" color="textPrimary">{ct_personnel}</Typography>
-                                                        </Grid>
-                                                    </Grid>
-                                                </Grid>
-
-                                                <Grid item xs={8}>
-                                                    <Typography variant="body1" color="textSecondary">Triggers</Typography>
-                                                    <Typography variant="body1" color="textPrimary">
-                                                        Triggered
-                                                    </Typography>
-                                                </Grid>
-                                                <Grid item xs={4} align="right">
-                                                    <Button variant="contained" color="primary" className={classes.button}>
-                                                        Send EWI
-                                                    </Button>
-                                                    <Button variant="contained" color="secondary" className={classes.backButton}>
-                                                        Send Bulletin
-                                                    </Button>
-                                                </Grid>
-                                            </Grid>
-                                        </ExpansionPanelDetails>
-                                    </ExpansionPanel>
-                                );
-                            })
-                            : (
-                                <Grid container>
-                                    <Grid item xs={12}>
-                                        No Alerts from Database
-                                    </Grid>
-                                </Grid>
+                        // eslint-disable-next-line no-nested-ternary
+                        alertsFromDbData === null ? (
+                            <MyLoader />
+                        ) : (
+                            latest_db_alerts.length > 0 ? (
+                                latest_db_alerts.map((row, index) => (
+                                    <LatestSiteAlertsExpansionPanel
+                                        key={index}
+                                        classes={classes}
+                                        siteAlert={row}
+                                        expanded={expanded}
+                                        handleChange={handleChange}
+                                        index={index}
+                                    />
+                                ))
+                            ) : (
+                                <Typography variant="body1" align="center">
+                                    No active alerts on database
+                                </Typography>
                             )
+                        )
+                    }
+                </Grid>
+
+                <Grid item sm={12}>
+                    <Typography className={classes.sectionHead} variant="h5">Sites under Extended Monitoring</Typography>
+                </Grid>
+
+                <Grid item sm={12} style={{ marginBottom: 22 }}>
+                    {
+                        // eslint-disable-next-line no-nested-ternary
+                        alertsFromDbData === null ? (
+                            <MyLoader />
+                        ) : (
+                            extended_db_alerts.length > 0 ? (
+                                extended_db_alerts.map((row, index) => (
+                                    <LatestSiteAlertsExpansionPanel
+                                        key={index}
+                                        classes={classes}
+                                        siteAlert={row}
+                                        expanded={expanded}
+                                        handleChange={handleChange}
+                                        index={index}
+                                    />
+                                ))
+                            ) : (
+                                <Typography variant="body1" align="center">
+                                    No sites under extended monitoring
+                                </Typography>
+                            )
+                        )
+                    }
+                </Grid>
+
+                <Grid item sm={12}>
+                    <Typography className={classes.sectionHead} variant="h5">Sites with Due Alerts</Typography>
+                </Grid>
+
+                <Grid item sm={12} style={{ marginBottom: 22 }}>
+                    {
+                        // eslint-disable-next-line no-nested-ternary
+                        alertsFromDbData === null ? (
+                            <MyLoader />
+                        ) : (
+                            overdue_db_alerts.length > 0 ? (
+                                overdue_db_alerts.map((row, index) => (
+                                    <LatestSiteAlertsExpansionPanel
+                                        key={index}
+                                        classes={classes}
+                                        siteAlert={row}
+                                        expanded={expanded}
+                                        handleChange={handleChange}
+                                        index={index}
+                                    />
+                                ))
+                            ) : (
+                                <Typography variant="body1" align="center">
+                                    No sites under overdue alerts
+                                </Typography>
+                            )
+                        )
                     }
                 </Grid>
             </Grid>
-
         </div>
     );
 }
 
-// export default (MonitoringTables)
-export default withStyles(
-    (theme) => ({
-        ...GeneralStyles(theme),
-        ...styles(theme),
-    }),
-    { withTheme: true },
-)(MonitoringTables);
+export default MonitoringTables;
