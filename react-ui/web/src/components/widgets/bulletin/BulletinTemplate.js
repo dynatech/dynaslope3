@@ -7,117 +7,235 @@ import PhivolcsLetterFooter from "../../../images/phivolcs-letter-footer.png";
 import { getBulletinDetails } from "./ajax";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 
-const useStyle = makeStyles(theme => ({
-    root: {
-        // width: 1240, // 1240, // 2480 // 595,
-        // height: 1753, // 150dpi - 1753, // 300dpi - 3508, // 72dpi - 842,
-        // backgroundColor: "antiquewhite",
-        // border: "0.5px solid black"
-    },
-    letterHeadContainer: {
-        width: "inherit",
-        height: "auto",
-        boxSizing: "border-box",
-        padding: "28px 44px",
-        [theme.breakpoints.only("md")]: {
-            padding: "58.3324px 91.6652px",
-        },
-        [theme.breakpoints.up("lg")]: {
-            padding: "116.6648px 183.3304px",
-        }
-    },
-    letterFooterContainer: {
-        paddingTop: 0,
-        marginTop: 16,
-        [theme.breakpoints.only("md")]: {
-            marginTop: "33.3328px",
-        },
-        [theme.breakpoints.up("lg")]: {
-            marginTop: "66.6656px",
-        }
-        // position: "absolute", 
-        // bottom: 0
-    },
-    phivolcsLetterHead: {
-        maxWidth: "100%",
-        maxHeight: "100%",
-        height: "auto"
-    },
-    body: {
-        padding: "0 44px",
-        height: 629, maxHeight: 629,
-        overflowY: "hidden",
-        [theme.breakpoints.only("md")]: {
-            padding: "0 91.6652px",
-            height: 1310.3957, maxHeight: 1310.3957
-        },
-        [theme.breakpoints.up("lg")]: {
-            padding: "0 183.3304px",
-            height: 2620.7914, maxHeight: 2620.7914
-        }
-    },
-    title: {
-        marginBottom: 16,
-        fontSize: "0.875rem",
-        [theme.breakpoints.only("md")]: {
-            marginBottom: 33.3328,
-            fontSize: "1.82288750rem"
-        },
-        [theme.breakpoints.up("lg")]: {
-            marginBottom: 66.6656,
-            fontSize: "3.64576800rem"
-        }
-    },
-    mainInfo: {
-        border: "0.5px solid black",
-        padding: "8px 12px",
-        fontSize: "0.65rem",
-        letterSpacing: 0,
-        marginBottom: 12,
-        [theme.breakpoints.only("md")]: {
-            padding: "16.6664px 24.9996px",
-            fontSize: "1.354145rem",
-            marginBottom: 24.9996
-        },
-        [theme.breakpoints.up("lg")]: {
-            padding: "33.3328px 49.9992px",
-            fontSize: "2.70829rem",
-            marginBottom: 49.9992
-        }
-    },
-    sectionHeader: {
-        fontSize: "0.7rem",
-        [theme.breakpoints.only("md")]: {
-            fontSize: "1.45831rem"
-        },
-        [theme.breakpoints.up("lg")]: {
-            fontSize: "2.91662rem"
-        }
-    },
-    sectionDetails: {
-        fontSize: "0.65rem",
-        [theme.breakpoints.only("md")]: {
-            fontSize: "1.354145rem"
-        },
-        [theme.breakpoints.up("lg")]: {
-            fontSize: "2.70829rem"
-        }
-    },
-    indent: {
-        marginLeft: 24,
-        [theme.breakpoints.only("md")]: {
-            marginLeft: 49.9992
-        },
-        [theme.breakpoints.up("lg")]: {
-            marginLeft: 99.9984
-        }
-    },
-    divider: { margin: "12px 0px 2px" },
-    releaseDetailsArea: {
-        display: "flex",
-        justifyContent: "space-between"
+const useStyle = (releaseId) => makeStyles(theme => {
+    let temp;
+    if (typeof releaseId === "undefined") {
+        temp = {
+            root: {
+                // width: 1240, // 1240, // 2480 // 595,
+                // height: 1753, // 150dpi - 1753, // 300dpi - 3508, // 72dpi - 842,
+                // backgroundColor: "antiquewhite",
+                // border: "0.5px solid black"
+            },
+            letterHeadContainer: {
+                width: "inherit",
+                height: "auto",
+                boxSizing: "border-box",
+                padding: "28px 44px",
+                [theme.breakpoints.only("md")]: {
+                    padding: "58.3324px 91.6652px",
+                },
+                [theme.breakpoints.up("lg")]: {
+                    padding: "116.6648px 183.3304px",
+                }
+            },
+            letterFooterContainer: {
+                paddingTop: 0,
+                marginTop: 16,
+                [theme.breakpoints.only("md")]: {
+                    marginTop: "33.3328px",
+                },
+                [theme.breakpoints.up("lg")]: {
+                    marginTop: "66.6656px",
+                }
+                // position: "absolute", 
+                // bottom: 0
+            },
+            phivolcsLetterHead: {
+                maxWidth: "100%",
+                maxHeight: "100%",
+                height: "auto"
+            },
+            body: {
+                padding: "0 44px",
+                height: 629, maxHeight: 629,
+                overflowY: "hidden",
+                [theme.breakpoints.only("md")]: {
+                    padding: "0 91.6652px",
+                    height: 1310.3957, maxHeight: 1310.3957
+                },
+                [theme.breakpoints.up("lg")]: {
+                    padding: "0 183.3304px",
+                    height: 2620.7914, maxHeight: 2620.7914
+                }
+            },
+            title: {
+                marginBottom: 16,
+                fontSize: "0.875rem",
+                [theme.breakpoints.only("md")]: {
+                    marginBottom: 33.3328,
+                    fontSize: "1.82288750rem"
+                },
+                [theme.breakpoints.up("lg")]: {
+                    marginBottom: 66.6656,
+                    fontSize: "3.64576800rem"
+                }
+            },
+            mainInfo: {
+                border: "0.5px solid black",
+                padding: "8px 12px",
+                fontSize: "0.65rem",
+                letterSpacing: 0,
+                marginBottom: 12,
+                [theme.breakpoints.only("md")]: {
+                    padding: "16.6664px 24.9996px",
+                    fontSize: "1.354145rem",
+                    marginBottom: 24.9996
+                },
+                [theme.breakpoints.up("lg")]: {
+                    padding: "33.3328px 49.9992px",
+                    fontSize: "2.70829rem",
+                    marginBottom: 49.9992
+                }
+            },
+            sectionHeader: {
+                fontSize: "0.7rem",
+                [theme.breakpoints.only("md")]: {
+                    fontSize: "1.45831rem"
+                },
+                [theme.breakpoints.up("lg")]: {
+                    fontSize: "2.91662rem"
+                }
+            },
+            sectionDetails: {
+                fontSize: "0.65rem",
+                [theme.breakpoints.only("md")]: {
+                    fontSize: "1.354145rem"
+                },
+                [theme.breakpoints.up("lg")]: {
+                    fontSize: "2.70829rem"
+                }
+            },
+            indent: {
+                marginLeft: 24,
+                [theme.breakpoints.only("md")]: {
+                    marginLeft: 49.9992
+                },
+                [theme.breakpoints.up("lg")]: {
+                    marginLeft: 99.9984
+                }
+            },
+            divider: { margin: "12px 0px 2px" },
+            releaseDetailsArea: {
+                display: "flex",
+                justifyContent: "space-between"
+            }
+        };
+    } else {
+        temp = {
+            root: {
+                // width: 1240, // 1240, // 2480 // 595,
+                // height: 1753, // 150dpi - 1753, // 300dpi - 3508, // 72dpi - 842,
+                // backgroundColor: "antiquewhite",
+                // border: "0.5px solid black"
+            },
+            letterHeadContainer: {
+                width: "inherit",
+                height: "auto",
+                boxSizing: "border-box",
+                padding: "7px 11px",
+                [theme.breakpoints.only("md")]: {
+                    padding: "14.5831px 22.9163px",
+                },
+                [theme.breakpoints.up("lg")]: {
+                    padding: "29.1662px 45.8326px",
+                }
+            },
+            letterFooterContainer: {
+                paddingTop: 0,
+                marginTop: 16,
+                [theme.breakpoints.only("md")]: {
+                    marginTop: "8.3332px",
+                },
+                [theme.breakpoints.up("lg")]: {
+                    marginTop: "16.6664px",
+                }
+                // position: "absolute", 
+                // bottom: 0
+            },
+            phivolcsLetterHead: {
+                maxWidth: "100%",
+                maxHeight: "100%",
+                height: "auto"
+            },
+            body: {
+                overflowY: "hidden",
+                padding: "0 11px",
+                height: "100%", maxHeight: "100%",
+                [theme.breakpoints.only("md")]: {
+                    padding: "0 22.9163px",
+                    height: "100%", maxHeight: "100%"
+                },
+                [theme.breakpoints.up("lg")]: {
+                    padding: "0 45.8326px",
+                    height: "100%", maxHeight: "100%"
+                }
+            },
+            title: {
+                marginBottom: 4,
+                fontSize: "0.65625rem",
+                [theme.breakpoints.only("md")]: {
+                    marginBottom: 8.3332,
+                    fontSize: "0.91144375rem"
+                },
+                [theme.breakpoints.up("lg")]: {
+                    marginBottom: 33.3328,
+                    fontSize: "1.367163rem"
+                }
+            },
+            mainInfo: {
+                border: "0.5px solid black",
+                letterSpacing: 0,
+                padding: "2px 3px",
+                fontSize: "0.4875rem",
+                marginBottom: 3,
+                [theme.breakpoints.only("md")]: {
+                    padding: "4.1666px 6.2499px",
+                    fontSize: "0.6770725rem",
+                    marginBottom: 6.2499
+                },
+                [theme.breakpoints.up("lg")]: {
+                    padding: "8.3332px 12.4998px",
+                    fontSize: "1.01560875rem",
+                    marginBottom: 12.4998
+                }
+            },
+            sectionHeader: {
+                fontSize: "0.525rem",
+                [theme.breakpoints.only("md")]: {
+                    fontSize: "0.729155rem"
+                },
+                [theme.breakpoints.up("lg")]: {
+                    fontSize: "1.0937325rem"
+                }
+            },
+            sectionDetails: {
+                fontSize: "0.4875rem",
+                [theme.breakpoints.only("md")]: {
+                    fontSize: "0.6770725rem"
+                },
+                [theme.breakpoints.up("lg")]: {
+                    fontSize: "1.01560875rem"
+                }
+            },
+            indent: {
+                marginLeft: 6,
+                [theme.breakpoints.only("md")]: {
+                    marginLeft: 12.4998
+                },
+                [theme.breakpoints.up("lg")]: {
+                    marginLeft: 24.9996
+                }
+            },
+            divider: { margin: "12px 0px 2px" },
+            releaseDetailsArea: {
+                display: "flex",
+                justifyContent: "space-between"
+            }
+        };
     }
-}));
+    return (temp);
+});
 
 
 function getHeightWithMargin (element, margin_only = false) {
@@ -188,11 +306,14 @@ function TitleAndMainInfo (props) {
 }
 
 function BulletinTemplate (props) {
-    const classes = useStyle();
     // const { releaseId, width, match: { params: { release_id } } } = props;
     const { releaseId, width } = props;
-
+    const classes = useStyle(releaseId)();
     const [excess_divs, setExcessDivs] = useState([]);
+    // const [classes, setClasses] = useState(useStyle());
+    // if (typeof releaseId !== "undefined") {
+    //     setClasses(useStyleForModal());
+    // }
     const [is_loaded, setIsLoaded] = useState(false);
     const content_body = useRef(null);
     const [bulletin_detail, setBulletinDetails] = useState({
@@ -227,7 +348,7 @@ function BulletinTemplate (props) {
         if (typeof releaseId === "undefined") {
             const { match: { params: { release_id } } } = props;
             temp = release_id;
-        }
+        } 
         getBulletinDetails(temp, data => {
             const { site } = data;
             const site_address = prepareSiteAddress(site, false);
@@ -351,7 +472,7 @@ function BulletinTemplate (props) {
                                 }
 
                                 return (
-                                    <Fragment key={i}>
+                                    <Fragment key={`key-${i + 1}`}>
                                         { GroundMovementHeaderComponent }
                                         { HeaderComponent }
                                         <Grid item xs={12}>
@@ -463,7 +584,7 @@ function BulletinTemplate (props) {
                                 {
                                     excess_divs.map((row, i) => (
                                         <Grid
-                                            key={i}
+                                            key={`key-${i + 1}`}
                                             item xs={12} 
                                             dangerouslySetInnerHTML={{ __html: row.innerHTML }}
                                         />

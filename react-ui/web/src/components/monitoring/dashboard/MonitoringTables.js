@@ -16,6 +16,7 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import GeneralStyles from "../../../GeneralStyles";
 import ValidationModal from "./ValidationModal";
 import useModal from "../../reusables/useModal";
+import BulletinModal from "../../widgets/bulletin/BulletinModal";
 
 const useStyles = makeStyles(theme => {
     const general_styles = GeneralStyles(theme);
@@ -107,7 +108,7 @@ function CandidateAlertsExpansionPanel (props) {
 
     return (
         <ExpansionPanel
-            key={`panel${index + 1}`}
+            key={`panel-${index + 1}`}
             expanded={expanded === `panel${index}`}
             onChange={handleChange(`panel${index}`)}
         >
@@ -120,7 +121,7 @@ function CandidateAlertsExpansionPanel (props) {
                 {
                     [site, ia_level, ts, gen_status].map((elem, i) => (
                         <Typography
-                            key={i}
+                            key={`candidate-column-${i + 1}`}
                             color="textSecondary"
                             variant="body2"
                         >
@@ -183,7 +184,7 @@ function CandidateAlertsExpansionPanel (props) {
                                         const to_show_validate_button = ["surficial", "rainfall", "subsurface"].includes(trigger_type) && to_validate;
 
                                         return (
-                                            <Fragment key={key}>
+                                            <Fragment key={`trigger-${index + 1}`}>
                                                 <Grid item xs align="center">
                                                     <Typography variant="body1" color="textSecondary">Trigger</Typography>
                                                     <Typography variant="body1" color="textPrimary">{alert}</Typography>
@@ -264,18 +265,20 @@ function CandidateAlertsExpansionPanel (props) {
 function LatestSiteAlertsExpansionPanel (props) {
     const { 
         siteAlert, classes, expanded,
-        handleChange, index
+        handleChange, index, bulletinHandler
     } = props;
     const {
         event, internal_alert_level, releases
     } = siteAlert;
+
     const { validity, site, event_start } = event;
-    const site_name = site.site_code.toUpperCase();
+    const { site_code } = site;
+    const site_name = site_code.toUpperCase();
     
     const start_ts = format_ts(event_start);
     const validity_ts = format_ts(validity);
 
-    const { data_ts, release_time } = releases[0];
+    const { data_ts, release_time, release_id } = releases[0];
 
     const is_onset = releases.length === 1;
     let adjusted_data_ts = data_ts;
@@ -293,7 +296,7 @@ function LatestSiteAlertsExpansionPanel (props) {
                 {
                     [site_name, internal_alert_level, adjusted_data_ts, release_time].map((elem, i) => (
                         <Typography
-                            key={i}
+                            key={`exp-columns-${i + 1}`}
                             color="textSecondary"
                             variant="body2"
                         >
@@ -318,7 +321,7 @@ function LatestSiteAlertsExpansionPanel (props) {
                     <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
 
                     <Grid item xs={12}>
-                        <Typography variant="subtitle2" color="textPrimary">LASEST RELEASE</Typography>
+                        <Typography variant="subtitle2" color="textPrimary">LATEST RELEASE</Typography>
                     </Grid>
                         
                     <Grid item xs={12} container spacing={1}>
@@ -341,7 +344,11 @@ function LatestSiteAlertsExpansionPanel (props) {
                     <Grid item xs={12} align="right">
                         <ButtonGroup variant="contained" color="primary">
                             <Button>EWI SMS</Button>
-                            <Button>Bulletin</Button>
+                            <Button
+                                onClick={bulletinHandler({ release_id, site_code, is_onset: false })}
+                            >
+                                Bulletin
+                            </Button>
                         </ButtonGroup>
                     </Grid>
                 </Grid>
@@ -359,6 +366,8 @@ function MonitoringTables (props) {
     const classes = useStyles();
     const [expanded, setExpanded] = useState(false);
     const { isShowing: isModalShowing, toggle: toggleModal } = useModal();
+    const [chosenReleaseDetail, setChosenReleaseDetail] = useState({});
+    const [isOpenBulletinModal, setIsOpenBulletinModal] = useState(false);
 
     const handleChange = panel => (event, isExpanded) => {
         setExpanded(isExpanded ? panel : false);
@@ -370,7 +379,13 @@ function MonitoringTables (props) {
         releaseFormOpenHandler();
     };
 
-    const is_desktop = isWidthUp("md", width);
+    const bulletinHandler = release => event => {
+        console.log(release);
+        setChosenReleaseDetail(release);
+        setIsOpenBulletinModal(true);
+    };
+
+    // const is_desktop = isWidthUp("md", width);
 
     let latest_db_alerts = [];
     let extended_db_alerts = [];
@@ -383,7 +398,7 @@ function MonitoringTables (props) {
     }
     
     const as_details = {};
-    
+
     return (
         <div className={classes.root}>
             <Grid container className={classes.sectionHeadContainer}>
@@ -400,7 +415,7 @@ function MonitoringTables (props) {
                             candidateAlertsData.length !== 0 ? (
                                 candidateAlertsData.map((row, index) => (
                                     <CandidateAlertsExpansionPanel
-                                        key={index}
+                                        key={`exp-${index + 1}`}
                                         classes={classes}
                                         alertData={row}
                                         expanded={expanded}
@@ -430,12 +445,13 @@ function MonitoringTables (props) {
                             latest_db_alerts.length > 0 ? (
                                 latest_db_alerts.map((row, index) => (
                                     <LatestSiteAlertsExpansionPanel
-                                        key={index}
+                                        key={`latest-${index + 1}`}
                                         classes={classes}
                                         siteAlert={row}
                                         expanded={expanded}
                                         handleChange={handleChange}
                                         index={index}
+                                        bulletinHandler={bulletinHandler}
                                     />
                                 ))
                             ) : (
@@ -460,12 +476,13 @@ function MonitoringTables (props) {
                             extended_db_alerts.length > 0 ? (
                                 extended_db_alerts.map((row, index) => (
                                     <LatestSiteAlertsExpansionPanel
-                                        key={index}
+                                        key={`db-alert-${index + 1}`}
                                         classes={classes}
                                         siteAlert={row}
                                         expanded={expanded}
                                         handleChange={handleChange}
                                         index={index}
+                                        bulletinHandler={bulletinHandler}
                                     />
                                 ))
                             ) : (
@@ -490,12 +507,13 @@ function MonitoringTables (props) {
                             overdue_db_alerts.length > 0 ? (
                                 overdue_db_alerts.map((row, index) => (
                                     <LatestSiteAlertsExpansionPanel
-                                        key={index}
+                                        key={`overdue-alert-${index + 1}`}
                                         classes={classes}
                                         siteAlert={row}
                                         expanded={expanded}
                                         handleChange={handleChange}
                                         index={index}
+                                        bulletinHandler={bulletinHandler}
                                     />
                                 ))
                             ) : (
@@ -506,6 +524,14 @@ function MonitoringTables (props) {
                         )
                     }
                 </Grid>
+
+
+                <BulletinModal 
+                    classes={classes}
+                    isOpenBulletinModal={isOpenBulletinModal}
+                    setIsOpenBulletinModal={setIsOpenBulletinModal}
+                    releaseDetail={chosenReleaseDetail}
+                />                
             </Grid>
         </div>
     );

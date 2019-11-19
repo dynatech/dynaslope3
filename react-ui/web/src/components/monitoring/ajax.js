@@ -97,7 +97,6 @@ export function getMonitoringEvents (input, callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
-        console.log("Events", data);
         // setIsLoading(false);
         // final_data = prepareEventsArray(response.data);
         // setData(final_data);
@@ -126,6 +125,15 @@ export function getEventTimelineEntries (input, callback) {
     });    
 }
 
+export function getSites (input, callback) {
+    const api_link = `${host}/api/sites/get_sites_data`;
 
-
-
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });    
+}

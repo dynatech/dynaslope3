@@ -39,8 +39,6 @@ function BulletinModal (props) {
             ...bulletin_modal_data,
             recipients: temp
         });
-
-        console.log("RELEASE ID", release_id);
     }, [releaseDetail]);
 
     const downloadHandler = () => {
@@ -67,7 +65,6 @@ function BulletinModal (props) {
 
     let f_site_code = "";
     if (typeof site_code !== "undefined") {
-        console.log(site_code);
         f_site_code = site_code.toUpperCase();
     }
 
@@ -77,7 +74,7 @@ function BulletinModal (props) {
             fullScreen={fullScreen}
             open={isOpenBulletinModal}
             aria-labelledby="form-dialog-title"
-
+            maxWidth="md"
         >
             <DialogTitle id="form-dialog-title">Early Warning Bulletin for {f_site_code}</DialogTitle>
             <DialogContent>
@@ -86,7 +83,7 @@ function BulletinModal (props) {
                 </DialogContentText> */}
 
                 <Grid container spacing={2}>
-                    <Grid item sm={12}>
+                    <Grid item xs={12}>
                         <TextField
                             required
                             label="Mail Content"
@@ -99,12 +96,8 @@ function BulletinModal (props) {
                             className={classes.textField}
                         />                        
                     </Grid>
-                    
-                    <Grid item sm={12}>
-                        <Divider className={classes.divider} />
-                    </Grid>
 
-                    <Grid item sm={12}>
+                    <Grid item xs={12}>
                         <TextField
                             required
                             label="Recipients"
@@ -118,22 +111,14 @@ function BulletinModal (props) {
                         />
                     </Grid>
                     
-                    <Grid item sm={12}>
+                    <Grid item xs={12}>
                         <Divider className={classes.divider} />
                     </Grid>
 
-                    <Grid item sm={12}>
+                    <Grid item xs={12}>
                         <BulletinTemplate
                             releaseId={release_id}
                         />
-                    </Grid>
-                    
-                    <Grid item sm={12}>
-                        <Divider className={classes.divider} />
-                    </Grid>
-
-                    <Grid item sm={12}>
-                        Next Bulletin
                     </Grid>
 
                 </Grid>
