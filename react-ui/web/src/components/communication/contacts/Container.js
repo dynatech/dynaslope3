@@ -26,7 +26,7 @@ import { getUserOrganizations, prepareSiteAddress } from "../../../UtilityFuncti
 import ContactList from "./ContactList";
 import { SlideTransition } from "../../reusables/TransitionList";
 import ContactForm from "./ContactForm";
-import { getListOfMunicipalities, saveContact } from "../ajax";
+import { getListOfMunicipalities } from "../ajax";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
