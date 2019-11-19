@@ -26,7 +26,7 @@ import { getUserOrganizations, prepareSiteAddress } from "../../../UtilityFuncti
 import ContactList from "./ContactList";
 import { SlideTransition } from "../../reusables/TransitionList";
 import ContactForm from "./ContactForm";
-import { getListOfMunicipalities } from "../ajax";
+import { getListOfMunicipalities, saveContact } from "../ajax";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
@@ -208,7 +208,7 @@ function IndividualContact (props) {
                                         <DeleteIcon />
                                     </IconButton> */}
                                     <ListItemText
-                                        secondary={`Priority: ${num.priority}`}
+                                        secondary={`Status: ${num.status === 0 ? "Inactive" : "Active"}`}
                                     />
                                 </ListItemSecondaryAction>
                             </ListItem>
@@ -346,6 +346,7 @@ function Container (props) {
     const [regions, setRegions] = useState([]);
 
     const onContactClickFn = React.useCallback(row => () => {
+        console.log(row)
         setChosenContact(row);
         setSlideOpen(true);
     }, []);
@@ -481,7 +482,8 @@ function Container (props) {
                                 </Paper>
                             )
                         }
-                    </Grid>
+                    </Grid>+(+639) 27-830-8327
+Stat
 
                     <Backdrop open={is_contact_form_open} style={{ zIndex: 1 }} />
                 </Hidden>

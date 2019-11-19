@@ -27,7 +27,6 @@ class MobileNumbers(DB.Model):
         return (f"Type <{self.__class__.__name__}> Mobile ID: {self.mobile_id}"
                 f" SIM Number: {self.sim_num} GSM ID: {self.gsm_id}")
 
-
 class UserMobiles(DB.Model):
     """
     Class representation of user_mobiles table
@@ -78,6 +77,23 @@ class BlockedMobileNumbers(DB.Model):
                 f" Reason: {self.reason} Reporter ID: {self.user_id}"
                 f" TS: {self.ts}")
 
+# class SimPrefixes(DB.Model):
+#     """
+#     Class representation of sim_prefixes table
+#     """
+
+#     __tablename__ = "sim_prefixes"
+#     __bind_key__ = "comms_db"
+#     __table_args__ = {"schema": "comms_db"}
+
+#     prefix_id = DB.Column(SMALLINT, primary_key=True)
+#     prefix = DB.Column(DB.Integer, nullable=True)
+#     network_id = DB.Column(DB.Integer, nullable=True)
+#     gsm_id = DB.Column(DB.Integer, nullable=True)
+
+#     def __repr__(self):
+#         return (f"Type <{self.__class__.__name__}> Prefix ID: {self.prefix_id}"
+#                 f" Prefix: {self.prefix}")
 
 class MobileNumbersSchema(MARSHMALLOW.ModelSchema):
     """
@@ -104,3 +120,15 @@ class UserMobilesSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = UserMobiles
+
+# class SimPrefixesSchema(MARSHMALLOW.ModelSchema):
+#     """
+#     Schema representation of SimPrefixes class
+#     """
+
+#     user_details = fields.Nested(
+#         "UserMobilesSchema", exclude=["mobile_number"])
+
+#     class Meta:
+#         """Saves table class structure as schema model"""
+#         model = SimPrefixes

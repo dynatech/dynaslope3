@@ -14,3 +14,17 @@ export function getListOfMunicipalities (callback) {
         console.error(error);
     });
 }
+
+export function saveContact (input, callback) {
+    const api_link = `${host}/api/contacts/save_contact`;
+    console.log(input);
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save contact data reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
