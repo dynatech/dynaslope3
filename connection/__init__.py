@@ -80,7 +80,7 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     JWT.init_app(app)
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=30)
     CORS(app)
-    SOCKETIO.init_app(app)
+    SOCKETIO.init_app(app, cors_allowed_origins="*")
 
     if not skip_memcache:
         from connection import set_memcache

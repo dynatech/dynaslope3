@@ -4,27 +4,21 @@ import React, {
 
 import {
     Button, Grid, Typography,
-    List, ListItem, ListItemAvatar,
-    ListItemText, ListItemSecondaryAction, IconButton,
-    Avatar, TextField, Hidden,
-    ListItemIcon, Chip,
-    Paper, Divider, Slide,
-    Backdrop, Tooltip, AppBar,
-    Toolbar, Dialog, FormControlLabel, Checkbox,
-    FormControl, FormLabel, RadioGroup,
-    Radio
+    IconButton, Avatar, TextField,
+    Hidden, Divider, FormControlLabel, 
+    Checkbox, FormControl
 } from "@material-ui/core";
 import { 
-    Create, Search,
-    Folder as FolderIcon, Delete as DeleteIcon,
-    Close, Call, Person, PersonAdd,
-    Block, AddCircle
+    Delete as DeleteIcon,
+    Close, Person, AddCircle
 } from "@material-ui/icons";
+import { useSnackbar } from "notistack";
 
-import MaskedInput from "react-text-mask";
+import MaskedInput, { conformToMask } from "react-text-mask";
 
 import SelectInputForm from "../../reusables/SelectInputForm";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
+import { saveContact } from "../ajax";
 
 const offices_obj = {
     "0": ["LEWC"],
@@ -34,6 +28,9 @@ const offices_obj = {
     "4": ["NGO", "OCD", "PHIVOLCS", "DOST"],
     "5": ["NGO", "OCD", "PHIVOLCS", "DOST", "MGB"]
 };
+
+const mobile_number_mask = ["(", "+", "6", "3", "9", ")", " ", /\d/, /\d/, "-", /\d/, /\d/, /\d/, "-", /\d/, /\d/, /\d/, /\d/];
+const conforming_mobile_mask = ["(", "+", /\d/, /\d/, /\d/, ")", " ", /\d/, /\d/, "-", /\d/, /\d/, /\d/, "-", /\d/, /\d/, /\d/, /\d/];
 
 function TextMaskCustom (props) {
     const { inputRef, mask, ...other } = props;
@@ -52,12 +49,67 @@ function TextMaskCustom (props) {
     );
 }
 
+function conformTextMask (mobile_number) {
+    const { conformedValue } = conformToMask(mobile_number, conforming_mobile_mask);
+
+    return conformedValue;
+}
+
+function removeNumberMask (data, type) {
+    const altered_data = [];
+    if (type === "mobile") {
+        data.map((row, index) => {
+            row.sim_num = row.sim_num.replace(/[\(\)+-\s]/g, "");
+            altered_data.push(row);
+        });
+    } else {
+        data.map((row, index) => {
+            console.log(row)
+            delete row.mobile_id;
+            const { landline_id } = row;
+
+            if (landline_id == undefined) {
+                row.landline_id = 0;
+            }
+            row.landline_num = row.landline_num.replace(/[\(\)+-\s]/g, "");
+            altered_data.push(row);
+        });
+    }
+
+    return altered_data;
+}
+
+function userAffiliation (scope, site_details) {
+    const { municipality, province, region, site_id } = site_details;
+    let site = "";
+    let location = "";
+
+    if (scope === 0 || scope === 1) {
+        site = { value: site_id };
+        location = "";
+    } else if (scope === 2) {
+        site = "";
+        location = municipality;
+    } else if (scope === 3) {
+        site = "";
+        location = province;
+    } else if (scope === 4) {
+        site = "";
+        location = region;
+    }
+
+    return {
+        site,
+        location
+    };
+}
+
 function reducerFunction (state, action) {
     const { type, category, payload } = action;
     const state_copy = [...state];
 
     let addend = {
-        status: 0, has_delete: true
+        mobile_id: 0, status: 1, has_delete: true
     };
     if (category === "email") {
         addend = "";
@@ -93,24 +145,47 @@ function ContactForm (props) {
     } = props;
 
     let initial_mobiles = [{
-        sim_num: "", status: 1
+        mobile_id: 0, sim_num: "", status: 1
     }];
     let initial_landlines = [];
     let initial_emails = [];
+    let initial_scope = 0;
+    let initial_office = "";
+    let initial_site = "";
+    let initial_location = "";
+    let initial_ewi_recipient = true;
     let initial_user_details = {
         first_name: "", last_name: "",
-        middle_name: "", nickname: ""
+        middle_name: "", nickname: "", user_id: 0
     };
 
     if (isEditMode) {
         const { mobile_numbers, user: {
-            landline_numbers, emails, first_name,
-            last_name, middle_name, nickname
+            ewi_recipient, landline_numbers, emails, first_name,
+            last_name, middle_name, nickname, user_id, organizations
         } } = chosenContact;
-        initial_user_details = { first_name, last_name, middle_name, nickname };
-        initial_mobiles = mobile_numbers;
+        initial_user_details = { first_name, last_name, middle_name, nickname, user_id };
+        console.log(chosenContact);
+
+        if (organizations.length !== 0) {
+            const { scope, name } = organizations[0].organization;
+            const site_details = organizations[0].site;
+            initial_scope = scope;
+            initial_office = name;
+            const { site, location } = userAffiliation(scope, site_details);
+            initial_site = site;
+            initial_location = location;
+    
+        }
+        const updated_mobile_numbers = mobile_numbers.map((row, index) => {
+            const new_data = JSON.parse(JSON.stringify(row));
+            new_data.sim_num = conformTextMask(new_data.sim_num);
+            return new_data;
+        });
+        initial_mobiles = updated_mobile_numbers;
         initial_landlines = landline_numbers;
         initial_emails = emails;
+        initial_ewi_recipient = ewi_recipient === 1;
     }
 
     const scope_list = [
@@ -122,14 +197,16 @@ function ContactForm (props) {
         { id: 5, label: "National" }
     ];
     const [user_details, setUserDetails] = useState(initial_user_details);
-    const [scope, setScope] = useState(0);
-    const [site, setSite] = useState("");
-    const [location, setLocation] = useState("");
+    const [scope, setScope] = useState(initial_scope);
+    const [site, setSite] = useState(initial_site);
+    const [location, setLocation] = useState(initial_location);
     const [offices, setOffices] = useState([]);
-    const [office, setOffice] = useState("");
+    const [office, setOffice] = useState(initial_office);
     const [mobile_nums, setMobileNums] = useReducer(reducerFunction, initial_mobiles);
     const [landline_nums, setLandlineNums] = useReducer(reducerFunction, initial_landlines);
     const [emails, setEmails] = useReducer(reducerFunction, initial_emails);
+    const [is_ewi_recipient, setEwiRecipient] = useState(initial_ewi_recipient);
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
     const closeButtonFn = () => {
         if (isEditMode) return setContactFormForEdit(false);
@@ -140,8 +217,18 @@ function ContactForm (props) {
         setUserDetails({ ...user_details, [attr]: event.target.value });
     };
 
+    const ewiRecipientHandler = event => setEwiRecipient(event.target.checked);
+
+    const snackBarActionFn = key => {
+        return (<Button
+            color="primary"
+            onClick={() => { closeSnackbar(key); }}
+        >
+            Dismiss
+        </Button>);
+    };
+
     useEffect(() => {
-        setLocation("");
 
         let office_list = [];
         if (scope !== "") {
@@ -149,7 +236,6 @@ function ContactForm (props) {
             const o = office_list.map(x => ({ id: x.toLowerCase(), label: x }));
             setOffices(o);
         }
-        setOffice("");
     }, [scope]);
 
     const [final_obj, setFinalObj] = useState({});
@@ -162,13 +248,52 @@ function ContactForm (props) {
         });
     }, [user_details]);
 
-    // const saveFunction = () => {
-    //     const final_obj = {
-    //         user: {
-    //             ...user_details
-    //         }
-    //     }
-    // };
+    const saveFunction = () => {
+        const mobile_numbers = removeNumberMask(mobile_nums, "mobile");
+        const landline_numbers = removeNumberMask(landline_nums, "landline");
+        const ewi_recipient = is_ewi_recipient === true ? 1 : 0;
+        const final_obj = {
+            user: {
+                ...user_details,
+                emails,
+                ewi_recipient
+            },
+            affiliation: {
+                site,
+                location,
+                scope,
+                office
+            },
+            contact_numbers: {
+                mobile_numbers,
+                landline_numbers
+            }
+        };
+        console.log(final_obj);
+        saveContact(final_obj, data => {
+            const { status, message } = data;
+            if (status === true) {
+                closeButtonFn();
+                enqueueSnackbar(
+                    message,
+                    {
+                        variant: "success",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            } else {
+                enqueueSnackbar(
+                    message,
+                    {
+                        variant: "error",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            }
+        });
+    };
  
     return (
         <Grid
@@ -313,8 +438,8 @@ function ContactForm (props) {
                     <FormControlLabel
                         control={
                             <Checkbox
-                                // checked={state.checkedB}
-                                // onChange={handleChange("checkedB")}
+                                checked={is_ewi_recipient}
+                                onChange={ewiRecipientHandler}
                                 value="checkedB"
                                 color="primary"
                             />
@@ -360,7 +485,7 @@ function ContactForm (props) {
                                         id="formatted-numberformat-input"
                                         InputProps={{
                                             inputComponent: TextMaskCustom,
-                                            inputProps: { mask: ["(", "+", "6", "3", "9", ")", " ", /\d/, /\d/, "-", /\d/, /\d/, /\d/, "-", /\d/, /\d/, /\d/, /\d/] }
+                                            inputProps: { mask: mobile_number_mask }
                                         }}
                                     />
                                 </FormControl>
@@ -526,7 +651,7 @@ function ContactForm (props) {
                                 <FormControl fullWidth>
                                     <TextField
                                         label="Email"
-                                        value={email}
+                                        value={email.email}
                                         onChange={event => setEmails({
                                             type: "UPDATE",
                                             payload: {
@@ -575,7 +700,7 @@ function ContactForm (props) {
             </Grid>
 
             <Grid item xs={12} style={{ textAlign: "right" }}>
-                <Button color="secondary" variant="contained" style={{ marginRight: 6 }}>
+                <Button color="secondary" variant="contained" style={{ marginRight: 6 }} onClick={() => saveFunction()}>
                     Save
                 </Button>
                 <Button variant="contained" onClick={() => setContactFormForEdit(false)}>

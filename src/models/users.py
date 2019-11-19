@@ -7,6 +7,7 @@ from flask_login import UserMixin
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
 from src.models.sites import Sites
+from src.models.organizations import UserOrganizations, UserOrganizationsSchema
 
 
 class Users(DB.Model, UserMixin):
@@ -25,7 +26,8 @@ class Users(DB.Model, UserMixin):
     nickname = DB.Column(DB.String(45))
     sex = DB.Column(DB.String(1))
     status = DB.Column(DB.Integer, nullable=True)
-    birthday = DB.Column(DB.Integer, nullable=True)
+    birthday = DB.Column(DB.DateTime)
+    ewi_recipient = DB.Column(DB.Integer, nullable=True)
 
     def get_id(self):
         return self.user_id
@@ -35,6 +37,24 @@ class Users(DB.Model, UserMixin):
                 f" First Name: {self.first_name} Last Name: {self.last_name}"
                 f" Status: {self.status}")
 
+class UserEwiStatus(DB.Model, UserMixin):
+    """
+    Class representation of users table
+    """
+    __tablename__ = "user_ewi_status"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db"}
+
+    mobile_id = DB.Column(DB.Integer, primary_key=True)
+    status = DB.Column(DB.Integer, nullable=True)
+    remarks = DB.Column(DB.String(45))
+    users_id = DB.Column(DB.Integer, nullable=True)
+
+    def get_id(self):
+        return self.mobile_id
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Mobile ID: {self.mobile_id}")
 
 class UsersRelationship(Users):
     """
@@ -50,7 +70,7 @@ class UsersRelationship(Users):
     #                                  order_by="UserMobile.priority", lazy="subquery")
 
     organizations = DB.relationship(
-        "UserOrganization", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
+        UserOrganizations, backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
 
     # user_hierarchy = DB.relationship(
     #     "UserHierarchy", backref=DB.backref("user", lazy=True), lazy="subquery")
@@ -113,11 +133,12 @@ class UserOrganization(DB.Model):
     scope = DB.Column(DB.Integer, nullable=True)
 
     site = DB.relationship(
-        Sites, backref=DB.backref("user", lazy="select"),
+        Sites, backref=DB.backref("user2", lazy="select"),
         primaryjoin="UserOrganization.fk_site_id==Sites.site_id", lazy=True)
 
     def __repr__(self):
         return f"{self.org_name}"
+
 
 
 class UserLandlines(DB.Model):
@@ -271,6 +292,14 @@ class UsersSchema(MARSHMALLOW.ModelSchema):
         model = Users
         exclude = ["mobile_numbers", "landline_numbers", "account"]
 
+class UserEwiStatusSchema(MARSHMALLOW.ModelSchema):
+    """
+    """
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UserEwiStatus
+
 
 class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     """
@@ -280,7 +309,7 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
         "UserMobileSchema", many=True, exclude=("user",))
 
     organizations = fields.Nested(
-        "UserOrganizationSchema", many=True, exclude=("user",))
+        UserOrganizationsSchema, many=True, exclude=("user",))
 
     # user_hierarchy = fields.Nested(
     #     "UserHierarchySchema", many=True, exclude=("user",))
