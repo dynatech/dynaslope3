@@ -61,17 +61,22 @@ def get_all_contacts(return_schema=False):
 
 def get_ewi_recipients(return_schema=False, site_ids=[1]):
     user_per_site_query = UsersRelationship.query.join(
-        UserOrganizations).join(Sites).filter(
+        UserOrganizations).join(Sites).options(
+            DB.subqueryload("mobile_numbers").joinedload("mobile_number", innerjoin=True),
+            DB.subqueryload("organizations").joinedload("site", innerjoin=True),
+            DB.subqueryload("organizations").joinedload("organization", innerjoin=True),
+            DB.raiseload("*")
+        ).filter(
             Users.ewi_recipient == 1, Sites.site_id.in_(site_ids)).all()
+    schema_test = UsersRelationshipSchema(many=True, exclude=["emails", "teams", "landline_numbers"]).dump(user_per_site_query).data
+    # ewi_recipients_user_ids = []
+    # for row in user_per_site_query:
+    #     ewi_recipients_user_ids.append(row.user_id)
 
-    ewi_recipients_user_ids = []
-    for row in user_per_site_query:
-        ewi_recipients_user_ids.append(row.user_id)
+    # user_mobile_query = UserMobiles.query.filter(UserMobiles.user_id.in_(ewi_recipients_user_ids)).all()
+    # user_mobile_schema = UserMobilesSchema(many=True).dump(user_mobile_query).data
 
-    user_mobile_query = UserMobiles.query.filter(UserMobiles.user_id.in_(ewi_recipients_user_ids)).all()
-    user_mobile_schema = UserMobilesSchema(many=True).dump(user_mobile_query).data
-
-    return user_mobile_schema
+    return schema_test
     # return True
 
 

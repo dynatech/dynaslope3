@@ -37,6 +37,7 @@ class Users(DB.Model, UserMixin):
                 f" First Name: {self.first_name} Last Name: {self.last_name}"
                 f" Status: {self.status}")
 
+#ilipat
 class UserEwiStatus(DB.Model, UserMixin):
     """
     Class representation of users table
@@ -306,7 +307,7 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Users Relationships
     """
     mobile_numbers = fields.Nested(
-        "UserMobileSchema", many=True, exclude=("user",))
+        "UserMobilesSchema", many=True, exclude=("user",))
 
     organizations = fields.Nested(
         UserOrganizationsSchema, many=True, exclude=("user",))
