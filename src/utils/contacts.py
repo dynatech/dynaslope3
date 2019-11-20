@@ -8,7 +8,6 @@ from src.models.users import (
     Users, UsersSchema,
     UserEmails, UserEmailsSchema,
     UserLandlines, UserLandlinesSchema,
-    UserEwiStatus, UserEwiStatusSchema,
     UsersRelationship, UsersRelationshipSchema
     )
 from src.models.mobile_numbers import (
@@ -21,6 +20,7 @@ from src.models.organizations import (
 )
 from src.models.gsm import (SimPrefixes, SimPrefixesSchema)
 from src.models.sites import (Sites, SitesSchema)
+from src.models.user_ewi_status import (UserEwiStatus, UserEwiStatusSchema)
 
 
 def get_all_contacts(return_schema=False):
