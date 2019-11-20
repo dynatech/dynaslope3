@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { moms_entry } from "./state_handlers";
-import getMOMsFeatures from "./ajax";
+import { getMOMsFeatures } from "./ajax";
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 
 export default function MomsInitialState (site_code) {
