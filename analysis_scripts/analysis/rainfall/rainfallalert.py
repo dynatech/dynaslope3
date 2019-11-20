@@ -53,7 +53,7 @@ def get_resampled_data(gauge_name, offsetstart, start, end, check_nd=True, is_re
     
     #data resampled to 30mins
     rainfall = rainfall.set_index('ts')
-    rainfall = rainfall.resample('30min', closed='right').sum()
+    rainfall = rainfall.resample('30min', closed='right').sum(min_count=1)
     rainfall = rainfall[(rainfall.index >= offsetstart)]
     rainfall = rainfall[(rainfall.index <= end)]    
     
@@ -214,7 +214,7 @@ def main(rain_props, end, sc, trigger_symbol, write_to_db=True):
                    rain gauge used in analysis of rainfall.
     
     """
-    
+
     #rainfall properties
     site_id = rain_props['site_id'].values[0]
     site_code = rain_props['site_code'].values[0]

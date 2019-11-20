@@ -404,28 +404,39 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                     # print("FINISH EVENT")
                     print("EVENT FINISHED")
 
-                    routine_ts = round_down_data_ts(run_ts)
-                    site_id = event_alert.event.site_id
+                    monitoring_status = event_alert.event.status
+                    if monitoring_status == 2:
+                        routine_ts = round_down_data_ts(run_ts)
+                        site_id = event_alert.event.site_id
 
-                    pub_sym_id = retrieve_data_from_memcache("public_alert_symbols", {"alert_level": 0}, retrieve_attr="pub_sym_id")
+                        pub_sym_id = retrieve_data_from_memcache("public_alert_symbols", {"alert_level": 0}, retrieve_attr="pub_sym_id")
+                        try:
+                            end_current_monitoring_event_alert(
+                                event_alert.event_alert_id, routine_ts)
+                            new_instance_details = {
+                                "event_details": {
+                                    "site_id": site_id,
+                                    "event_start": routine_ts,
+                                    "validity": None,
+                                    "status": 1
+                                },
+                                "event_alert_details": {
+                                    "pub_sym_id": pub_sym_id,
+                                    "ts_start": routine_ts
+                                }
+                            }
+                            instance_details = start_new_monitoring_instance(
+                                new_instance_details)
 
-                    end_current_monitoring_event_alert(
-                        event_alert.event_alert_id, routine_ts)
-                    new_instance_details = {
-                        "event_details": {
-                            "site_id": site_id,
-                            "event_start": routine_ts,
-                            "validity": None,
-                            "status": 1
-                        },
-                        "event_alert_details": {
-                            "pub_sym_id": pub_sym_id,
-                            "ts_start": routine_ts
-                        }
-                    }
-                    instance_details = start_new_monitoring_instance(
-                        new_instance_details)
-                    var_checker("PRINTING instance_details for log only", instance_details, True)
+                            # If no problem,
+                            DB.session.commit()
+                        except Exception as err:
+                            print(err)
+                            DB.session.rollback()
+
+                        var_checker("PRINTING for log only: instance_details", instance_details, True)
+                    else:
+                        var_checker("PRINTING for log only", "ALREADY IN ROUTINE", True)
 
     db_alerts = {
         "latest": latest,
@@ -795,7 +806,7 @@ def get_active_monitoring_events():
     # Ignore the pylinter error on using "== None" vs "is None",
     # since SQLAlchemy interprets "is None" differently.
     active_events = mea.query.join(me).order_by(
-        DB.desc(mea.ts_start)).filter(DB.and_(me.status == 2, mea.ts_end == None)).all()
+        DB.desc(mea.event_alert_id)).filter(DB.and_(me.status == 2, mea.ts_end == None)).all()
 
     return active_events
 

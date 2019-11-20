@@ -271,7 +271,7 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
             **formatted_alerts_for_ewi,
             "to_extend_validity": to_extend_validity,
             "trigger_list_arr": trigger_list_arr,
-            "ground_alert_level": alert_entry["ground_alert_level"]
+            "has_ground_data": alert_entry["has_ground_data"]
         }
 
     return formatted_alerts_for_ewi
