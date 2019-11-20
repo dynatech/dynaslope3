@@ -74,7 +74,7 @@ def get_distance(site_coord, rg_coord):
     rg_coord['a'] = rg_coord['a1'] + (np.cos(np.radians(site_lat)) * \
                                       rg_coord['a3'] * rg_coord['a4'])
     rg_coord['c']= 2 * np.arctan2(np.sqrt(rg_coord.a),np.sqrt(1-rg_coord.a))
-    rg_coord['distance']= np.round(6371 * rg_coord.c, 2)
+    rg_coord['distance']= 6371 * rg_coord.c
     rg_coord = rg_coord.sort_values('distance', ascending = True)
     
     nearest_rg = rg_coord[0:4]
