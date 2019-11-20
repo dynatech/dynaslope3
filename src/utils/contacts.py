@@ -59,7 +59,7 @@ def get_all_contacts(return_schema=False):
 
     return mobile_numbers
 
-def get_ewi_recipients(return_schema=False, site_ids=[1]):
+def get_ewi_recipients(site_ids=[]):
     user_per_site_query = UsersRelationship.query.join(
         UserOrganizations).join(Sites).options(
             DB.subqueryload("mobile_numbers").joinedload("mobile_number", innerjoin=True),
@@ -68,16 +68,10 @@ def get_ewi_recipients(return_schema=False, site_ids=[1]):
             DB.raiseload("*")
         ).filter(
             Users.ewi_recipient == 1, Sites.site_id.in_(site_ids)).all()
-    schema_test = UsersRelationshipSchema(many=True, exclude=["emails", "teams", "landline_numbers"]).dump(user_per_site_query).data
-    # ewi_recipients_user_ids = []
-    # for row in user_per_site_query:
-    #     ewi_recipients_user_ids.append(row.user_id)
+    user_per_site_result = UsersRelationshipSchema(many=True, exclude=["emails", "teams", "landline_numbers"]).dump(user_per_site_query).data
 
-    # user_mobile_query = UserMobiles.query.filter(UserMobiles.user_id.in_(ewi_recipients_user_ids)).all()
-    # user_mobile_schema = UserMobilesSchema(many=True).dump(user_mobile_query).data
 
-    return schema_test
-    # return True
+    return user_per_site_result
 
 
 def save_user_information(data):

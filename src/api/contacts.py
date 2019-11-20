@@ -76,8 +76,22 @@ def ewi_recipient_migration():
 
     return jsonify(True)
 
-@CONTACTS_BLUEPRINT.route("/contacts/test", methods=["GET", "POST"])
-def test_lang():
-    data = get_ewi_recipients(True)
+@CONTACTS_BLUEPRINT.route("/contacts/ewi_recipients", methods=["GET", "POST"])
+def ewi_recipients():
+
+    data = request.get_json()
+    if data is None:
+        data = request.form
+
+    try:
+        if data["value"] is not None:
+            data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass
+
+    site_ids = data["site_ids"]
+
+    data = get_ewi_recipients(site_ids)
 
     return jsonify(data)
