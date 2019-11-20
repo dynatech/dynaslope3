@@ -37,24 +37,6 @@ class Users(DB.Model, UserMixin):
                 f" First Name: {self.first_name} Last Name: {self.last_name}"
                 f" Status: {self.status}")
 
-class UserEwiStatus(DB.Model, UserMixin):
-    """
-    Class representation of users table
-    """
-    __tablename__ = "user_ewi_status"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
-
-    mobile_id = DB.Column(DB.Integer, primary_key=True)
-    status = DB.Column(DB.Integer, nullable=True)
-    remarks = DB.Column(DB.String(45))
-    users_id = DB.Column(DB.Integer, nullable=True)
-
-    def get_id(self):
-        return self.mobile_id
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Mobile ID: {self.mobile_id}")
 
 class UsersRelationship(Users):
     """
@@ -72,8 +54,9 @@ class UsersRelationship(Users):
     organizations = DB.relationship(
         UserOrganizations, backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
 
-    # user_hierarchy = DB.relationship(
-    #     "UserHierarchy", backref=DB.backref("user", lazy=True), lazy="subquery")
+    ewi_restrictions = DB.relationship(
+        "UserEwiRestrictions", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        lazy="subquery")
 
     teams = DB.relationship(
         "UserTeamMembers", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
@@ -157,27 +140,6 @@ class UserLandlines(DB.Model):
 
     def __repr__(self):
         return f"Type <{self.landline_num}"
-
-
-# class UserHierarchy(DB.Model):
-#     """
-#     Class representation of user_hierarchy table
-#     """
-#     __tablename__ = "user_hierarchy"
-#     __bind_key__ = "comms_db"
-#     __table_args__ = {"schema": "comms_db"}
-
-#     contact_hierarchy_id = DB.Column(DB.Integer, primary_key=True)
-#     fk_user_id = DB.Column(
-#         DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
-#     fk_user_organization_id = DB.Column(
-#         DB.Integer, DB.ForeignKey("commons_db.user_organization.org_id"))
-#     fk_site_id = DB.Column(
-#         DB.Integer, DB.ForeignKey("sites.site_id"))
-#     priority = DB.Column(DB.Integer, nullable=False)
-
-#     def __repr__(self):
-#         return f"Type <{self.priority}>"
 
 
 class UserTeams(DB.Model):
@@ -283,6 +245,24 @@ class PendingAccounts(DB.Model):
         return f"{self.email}"
 
 
+class UserEwiRestrictions(DB.Model):
+    """
+    Class representation of user_ewi_restrictions table
+    """
+
+    __tablename__ = "user_ewi_restrictions"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db"}
+
+    user_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.users.user_id"), primary_key=True)
+    alert_level = DB.Column(DB.Integer, nullable=False)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> User ID: {self.user_id}"
+                f" Alert Level: {self.alert_level}")
+
+
 class UsersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
@@ -292,13 +272,6 @@ class UsersSchema(MARSHMALLOW.ModelSchema):
         model = Users
         exclude = ["mobile_numbers", "landline_numbers", "account"]
 
-class UserEwiStatusSchema(MARSHMALLOW.ModelSchema):
-    """
-    """
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = UserEwiStatus
 
 
 class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
@@ -306,13 +279,13 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Users Relationships
     """
     mobile_numbers = fields.Nested(
-        "UserMobileSchema", many=True, exclude=("user",))
+        "UserMobilesSchema", many=True, exclude=("user",))
 
     organizations = fields.Nested(
         UserOrganizationsSchema, many=True, exclude=("user",))
 
-    # user_hierarchy = fields.Nested(
-    #     "UserHierarchySchema", many=True, exclude=("user",))
+    ewi_restrictions = fields.Nested(
+        "UserEwiRestrictionsSchema", many=True, exclude=("user",))
 
     teams = fields.Nested(
         "UserTeamsSchema", many=True, exclude=("user",))
@@ -378,17 +351,6 @@ class UserEmailsSchema(MARSHMALLOW.ModelSchema):
         model = UserEmails
 
 
-# class UserHierarchySchema(MARSHMALLOW.ModelSchema):
-#     """
-#     Schema representation of Users class
-#     """
-
-#     user = fields.Nested(UsersSchema)
-
-#     class Meta:
-#         """Saves table class structure as schema model"""
-#         model = UserHierarchy
-
 
 class UserTeamsSchema(MARSHMALLOW.ModelSchema):
     """
@@ -433,3 +395,13 @@ class PendingAccountsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = PendingAccounts
+
+class UserEwiRestrictionsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of UserEwiRestrictions class
+    """
+    user = fields.Nested(UsersRelationshipSchema)
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UserEwiRestrictions
