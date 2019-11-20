@@ -51,6 +51,7 @@ class BulletinTriggers(DB.Model):
                 f" Community Response: {self.community}")
 
 
+
 class BulletinResponsesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of BulletinResponses class
@@ -75,31 +76,3 @@ class BulletinTriggersSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = BulletinTriggers
-
-# class EwiTemplates(DB.Model):
-#     """
-#     Class representation of ewi_templates table
-#     """
-#     __tablename__ = "ewi_templates"
-#     __bind_key__ = "ewi_db"
-#     __table_args__ = {"schema": "ewi_db"}
-
-#     template_id = DB.Column(DB.Integer, primary_key=True)
-#     pub_sym_id = DB.Column(DB.String(45))
-#     alert_type = DB.Column(DB.String(45))
-#     ewi_type = DB.Column(DB.String(45))
-#     ewi_notice = DB.Column(DB.String(455))
-#     modified_log = DB.Column(DB.String(45))
-
-#     def __repr__(self):
-#         return f"Class Representation"
-
-
-# class EwiTemplatesSchema(MARSHMALLOW.ModelSchema):
-#     """
-#     Schema representation of EwiTemplates class
-#     """
-
-#     class Meta:
-#         """Saves table class structure as schema model"""
-#         model = EwiTemplates

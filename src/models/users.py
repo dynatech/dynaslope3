@@ -54,8 +54,9 @@ class UsersRelationship(Users):
     organizations = DB.relationship(
         UserOrganizations, backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
 
-    # user_hierarchy = DB.relationship(
-    #     "UserHierarchy", backref=DB.backref("user", lazy=True), lazy="subquery")
+    ewi_restrictions = DB.relationship(
+        "UserEwiRestrictions", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        lazy="subquery")
 
     teams = DB.relationship(
         "UserTeamMembers", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
@@ -244,6 +245,24 @@ class PendingAccounts(DB.Model):
         return f"{self.email}"
 
 
+class UserEwiRestrictions(DB.Model):
+    """
+    Class representation of user_ewi_restrictions table
+    """
+
+    __tablename__ = "user_ewi_restrictions"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db"}
+
+    user_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.users.user_id"), primary_key=True)
+    alert_level = DB.Column(DB.Integer, nullable=False)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> User ID: {self.user_id}"
+                f" Alert Level: {self.alert_level}")
+
+
 class UsersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
@@ -265,8 +284,8 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     organizations = fields.Nested(
         UserOrganizationsSchema, many=True, exclude=("user",))
 
-    # user_hierarchy = fields.Nested(
-    #     "UserHierarchySchema", many=True, exclude=("user",))
+    ewi_restrictions = fields.Nested(
+        "UserEwiRestrictionsSchema", many=True, exclude=("user",))
 
     teams = fields.Nested(
         "UserTeamsSchema", many=True, exclude=("user",))
@@ -376,3 +395,13 @@ class PendingAccountsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = PendingAccounts
+
+class UserEwiRestrictionsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of UserEwiRestrictions class
+    """
+    user = fields.Nested(UsersRelationshipSchema)
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = UserEwiRestrictions

@@ -482,8 +482,7 @@ function Container (props) {
                                 </Paper>
                             )
                         }
-                    </Grid>+(+639) 27-830-8327
-Stat
+                    </Grid>
 
                     <Backdrop open={is_contact_form_open} style={{ zIndex: 1 }} />
                 </Hidden>

@@ -21,6 +21,7 @@ from src.models.organizations import (
 from src.models.gsm import (SimPrefixes, SimPrefixesSchema)
 from src.models.sites import (Sites, SitesSchema)
 from src.models.user_ewi_status import (UserEwiStatus, UserEwiStatusSchema)
+# from src.models.ewi import (UserEwiRestrictions, UserEwiRestrictionsSchema)
 
 
 def get_all_contacts(return_schema=False):
@@ -59,22 +60,28 @@ def get_all_contacts(return_schema=False):
 
     return mobile_numbers
 
+
 def get_ewi_recipients(site_ids=[]):
+    """
+    """
+
     user_per_site_query = UsersRelationship.query.join(
         UserOrganizations).join(Sites).options(
             DB.subqueryload("mobile_numbers").joinedload("mobile_number", innerjoin=True),
             DB.subqueryload("organizations").joinedload("site", innerjoin=True),
             DB.subqueryload("organizations").joinedload("organization", innerjoin=True),
+            DB.subqueryload("ewi_restrictions"),
             DB.raiseload("*")
         ).filter(
             Users.ewi_recipient == 1, Sites.site_id.in_(site_ids)).all()
     user_per_site_result = UsersRelationshipSchema(many=True, exclude=["emails", "teams", "landline_numbers"]).dump(user_per_site_query).data
 
-
     return user_per_site_result
 
 
 def save_user_information(data):
+    """
+    """
     user_id = data["user_id"]
     first_name = data["first_name"]
     last_name = data["last_name"]
@@ -107,6 +114,8 @@ def save_user_information(data):
 
 
 def save_user_email(emails, user_id):
+    """
+    """
     email_len = len(emails)
     if email_len > 0:
         for row in emails:
@@ -121,6 +130,8 @@ def save_user_email(emails, user_id):
     return True
 
 def save_user_contact_numbers(data, user_id):
+    """
+    """
     mobile_numbers = data["mobile_numbers"]
     landline_numbers = data["landline_numbers"]
     mobile_numbers_len = len(mobile_numbers)
@@ -160,6 +171,8 @@ def save_user_contact_numbers(data, user_id):
     return True
 
 def save_user_affiliation(data, user_id):
+    """
+    """
     location = data["location"]
     site = data["site"]
     scope = data["scope"]
@@ -242,8 +255,11 @@ def get_gsm_id_by_prefix(mobile_number):
         gsm_id = result["gsm_id"]
         
     return gsm_id
+    
 
 def ewi_recipient_migration():
+    """
+    """
     query = UserEwiStatus.query.filter(UserEwiStatus.status == 1).with_entities(UserEwiStatus.users_id).distinct().all()
     result = UserEwiStatusSchema(many=True).dump(query).data
     for row in result:
