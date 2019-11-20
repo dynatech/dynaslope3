@@ -13,17 +13,10 @@ import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 import { sites } from "../../../store";
-import { getMonitoringEvents } from "../ajax";
+import { getMonitoringEvents, getSites } from "../ajax";
+import { prepareSitesOption } from "../../reusables/DynaslopeSiteSelectInputForm";
 
 const filter_sites_option = [];
-const sites_dict = {};
-
-sites.forEach(site => {
-    const address = prepareSiteAddress(site, true, "start");
-    const site_code = site.site_code.toUpperCase();
-    filter_sites_option.push(site_code);
-    sites_dict[site_code] = { site_id: site.site_id, address };
-});
 
 const styles = theme => ({
     eventTable: {
@@ -41,15 +34,14 @@ function prepareEventTimelineLink (url, event_id) {
     );
 }
 
-function prepareEventsArray (url, arr) {
+function prepareEventsArray (url, arr, sites_dict) {
     return arr.map(
-        ({
-            event_id, site_code, purok,
-            sitio, barangay, municipality,
-            province, entry_type, 
-            event_start, validity,
-            ts_start, ts_end, public_alert
-        }) => {
+        (element, index) => {
+            const {
+                event_id, site_code, entry_type, 
+                event_start, validity, public_alert
+            } = element;
+
             let final_event_start = null;
             let final_ts_end = "ROUTINE";
             
@@ -91,12 +83,17 @@ function MonitoringEventsTable (props) {
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [count, setCount] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
+    const [sites_dict, setSitesDict] = useState({});
 
     // SEARCH AND FILTERS
     const [filters, setFilters] = useState([]);
     const [filter_list, setFilterList] = useState([]);
     const [search_str, setSearchString] = useState("");
     const [on_search_open, setOnSearchOpen] = useState(false);
+
+    // useEffect(() => {
+
+    // }, []);
 
     useEffect(() => {
         // setTotalEventCount(setCount);
@@ -109,14 +106,25 @@ function MonitoringEventsTable (props) {
             include_count: true,
             limit, offset, filters, search_str
         };
+        getSites([], ret1 => {
+            const temp = {};
+            ret1.forEach(site => {
+                const address = prepareSiteAddress(site, true, "start");
+                const site_code = site.site_code.toUpperCase();
+                filter_sites_option.push(site_code);
+                temp[site_code] = { site_id: site.site_id, address };
+            });
+            setSitesDict(temp);
 
-        getMonitoringEvents(input, ret => {
-            const { events, count: total } = ret;
-            const final_data = prepareEventsArray(url, events);
-            setData(final_data);
-            setCount(total);
-            setIsLoading(false);
-        });        
+            getMonitoringEvents(input, ret2 => {            
+                const { events, count: total } = ret2;
+                const final_data = prepareEventsArray(url, events, temp);
+                setData(final_data);
+                setCount(total);
+                setIsLoading(false);
+            });     
+        });
+   
 
     }, [page, rowsPerPage, filters, search_str]);
 

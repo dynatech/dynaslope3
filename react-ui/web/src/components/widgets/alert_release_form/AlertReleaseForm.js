@@ -1,5 +1,4 @@
 import React, { Fragment, useEffect, useState } from "react";
-import axios from "axios";
 import moment from "moment";
 import MomentUtils from "@date-io/moment";
 import {
@@ -185,7 +184,7 @@ function TriggersInputForm (props) {
                 )
             }
 
-            <Grid item xs={12} style={{ paddingTop: "20px" }}>
+            <Grid item xs={12} style={{ paddingTop: 20 }}>
                 <Typography variant="h6" color="secondary">Ground-Related Triggers</Typography>
             </Grid>
 
@@ -200,8 +199,13 @@ function TriggersInputForm (props) {
                 setTriggersState={setTriggersState}
                 triggersReleased={triggersReleased}
             />
-            
-            <Grid item xs={12} style={{ paddingTop: "20px" }}>
+
+            <MomsTriggerGroup
+                triggersState={triggersState}
+                setTriggersState={setTriggersState}
+            />
+
+            <Grid item xs={12} style={{ paddingTop: 20 }}>
                 <Typography variant="h6" color="secondary">Secondary Triggers</Typography>
             </Grid>
 
@@ -297,7 +301,6 @@ function SummaryForm (props) {
     }, []);
 
     const data_ts = moment(dataTimestamp).format("DD MMMM YYYY, HH:mm");
-    // const data_ts = moment(dataTimestamp).format("MMMM Mo YYYY HH:mm");
     const release_time = moment(releaseTime).format("HH:mm");
 
     return (
@@ -305,7 +308,6 @@ function SummaryForm (props) {
             <Grid item xs={6} >
                 <Typography variant="body1" color="textSecondary">Site</Typography>
                 <Typography variant="body1" color="textPrimary">
-                    {/* {site.site_name} */}
                     {siteId.label}
                 </Typography>
             </Grid>

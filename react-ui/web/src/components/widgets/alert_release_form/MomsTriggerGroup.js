@@ -71,7 +71,7 @@ function MomsTriggerGroup (props) {
                         <Typography variant="body2">Note: If you want to add/include MOMS in the release, insert MOMS using its MOMS Insert Form</Typography>
                     </Grid>
                     {
-                        triggers.length === 0 && (
+                        triggers.length > 0 && (
                             <Fragment>
                                 <Grid item xs={12} sm={6}>
                                     <Typography variant="body2">Trigger: {trigger_type}</Typography>
