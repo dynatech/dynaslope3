@@ -12,6 +12,7 @@ from src.models.users import (
     UserOrganization, UserMobile,
     UsersSchema, UsersRelationshipSchema
 )
+from src.utils.extra import var_checker
 
 PROP_DICT = {
     "mob": "mobile_numbers",
@@ -156,14 +157,14 @@ def get_dynaslope_users(
 
 
 def get_community_users(
-    include_relationships=False,
-    include_mobile_nums=False,
-    include_orgs=False,
-    include_hierarchy=False,
-    include_team=False,
-    return_schema_format=False,
-    filter_by_site=None,
-    filter_by_org=None,
+        include_relationships=False,
+        include_mobile_nums=False,
+        include_orgs=False,
+        include_hierarchy=False,
+        include_team=False,
+        return_schema_format=False,
+        filter_by_site=None,
+        filter_by_org=None,
         filter_by_mobile_id=None):
     """
     Function that gets all commmunity users and related data
@@ -174,6 +175,7 @@ def get_community_users(
                         filter (i.e. LEWC, BLGU, etc).
                         Default value is empty list
     """
+    var_checker("filter_by_site", filter_by_site, True)
     filter_by_site = filter_by_site or []
     filter_by_org = filter_by_org or []
     filter_by_mobile_id = filter_by_mobile_id or []

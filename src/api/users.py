@@ -3,9 +3,26 @@ Users Functions Controller File
 """
 
 from flask import Blueprint, jsonify
+from src.models.users import UsersSchema
 from src.utils.users import get_dynaslope_users, get_community_users
+from src.utils.extra import var_checker
 
 USERS_BLUEPRINT = Blueprint("users_blueprint", __name__)
+
+
+@USERS_BLUEPRINT.route("/users/get_community_users_by_site/<site_code>", methods=["GET"])
+def wrap_get_community_users_by_site(site_code):
+    """
+    Route function that get all Dynaslope users by group
+    """
+    community_users_data = []
+    if site_code:
+        temp = [site_code]
+        var_checker("temp", temp, True)
+        community_users = get_community_users(filter_by_site=temp)
+        community_users_data = UsersSchema(many=True).dump(community_users).data
+
+    return jsonify(community_users_data)
 
 
 @USERS_BLUEPRINT.route("/users/get_dynaslope_users", methods=["GET"])

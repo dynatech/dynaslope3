@@ -1,26 +1,47 @@
-import React, { Fragment } from "react";
+import React, { Fragment, useState, useEffect } from "react";
+import { makeStyles } from "@material-ui/core/styles";
 import {
     Grid, TextField, Button,
-    Divider, IconButton, Typography
+    Divider, IconButton, Typography,
+    Fab
 } from "@material-ui/core";
 import { DeleteForever as DeleteIcon } from "@material-ui/icons";
+import Tooltip from "@material-ui/core/Tooltip";
 
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 
+// Widgets
+import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import SelectMultipleWithSuggest from "../../reusables/SelectMultipleWithSuggest";
 
+// const useStyles = makeStyles(theme => ({
+//     fab: {
+//         margin: theme.spacing(2),
+//     },
+//     absolute: {
+//         position: "absolute",
+//         bottom: theme.spacing(2),
+//         right: theme.spacing(3),
+//     },
+// }));
+
 function MomsInputFields (props) {
+    // const classes = useStyles();
     const {
         momsEntry: moms_entry,
-        updateField: update_field
+        updateField: update_field,
+        isAddingNewInstance: is_adding_new_instance,
+        location, site_code
     } = props;
 
     const { moms, options } = moms_entry;
 
+    console.log(is_adding_new_instance);
+
     return (
         <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={6}>
                 <SelectMultipleWithSuggest
                     label="Feature Type"
                     options={options.feature_type}
@@ -30,22 +51,48 @@ function MomsInputFields (props) {
                     renderDropdownIndicator
                     openMenuOnClick
                 />
+            </Grid> 
+            <Grid item xs={12} container spacing={1}>
+                <Tooltip 
+                    title="Feature names are auto-generated. To add new MOMs feature name, choose (Add new instance)"
+                    placement="top"
+                    interactive
+                >
+                    <Grid item xs={12} sm={6} md={6}>
+                        <SelectMultipleWithSuggest
+                            label="Feature Name"
+                            options={options.feature_name.options}
+                            isDisabled={options.feature_name.disabled}
+                            value={moms.feature_name}
+                            changeHandler={update_field("feature_name")}
+                            placeholder={options.feature_name.disabled ? "Disabled" : "Select feature name"}
+                            renderDropdownIndicator
+                            openMenuOnClick
+                        />
+                    </Grid>
+                </Tooltip>
+                {
+                    is_adding_new_instance && (
+                        <Grid item xs={12} sm={6} md={6}>
+                            <TextField
+                                label="Location"
+                                multiline
+                                rowsMax="2"
+                                placeholder="Enter location of new instance"
+                                value={location}
+                                onChange={update_field("location")}
+                                fullWidth
+                                InputLabelProps={{
+                                    shrink: true,
+                                }}
+                            />
+                        </Grid>
+                    )
+                }
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
-                <SelectMultipleWithSuggest
-                    label="Feature Name"
-                    options={options.feature_name.options}
-                    isDisabled={options.feature_name.disabled}
-                    value={moms.feature_name}
-                    changeHandler={update_field("feature_name")}
-                    placeholder={options.feature_name.disabled ? "Disabled" : "Select feature name"}
-                    renderDropdownIndicator
-                    openMenuOnClick
-                />
-            </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={6}>
                 <SelectMultipleWithSuggest
                     label="Alert Level"
                     options={options.alert_level.options}
@@ -58,7 +105,7 @@ function MomsInputFields (props) {
                 />
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={6}>
                 <KeyboardDateTimePicker
                     required
                     autoOk
@@ -75,7 +122,7 @@ function MomsInputFields (props) {
                 />
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={6}>
                 <TextField
                     label="Narrative"
                     multiline
@@ -90,8 +137,8 @@ function MomsInputFields (props) {
                 />
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
-                <SelectMultipleWithSuggest
+            <Grid item xs={12} sm={6} md={6}>
+                {/* <SelectMultipleWithSuggest
                     label="Reporter"
                     options={options.reporter}
                     value={moms.reporter}
@@ -99,10 +146,19 @@ function MomsInputFields (props) {
                     placeholder="Select reporter"
                     renderDropdownIndicator
                     openMenuOnClick
+                /> */}
+                <DynaslopeUserSelectInputForm
+                    variant="standard"
+                    label="Reporter"
+                    div_id="reporter"
+                    changeHandler={update_field("reporter")}
+                    value={moms.reporter}
+                    isCommunityStaff="true"
+                    site_code={site_code}
                 />
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={6}>
                 <TextField
                     label="Remarks"
                     multiline
@@ -117,15 +173,13 @@ function MomsInputFields (props) {
                 />
             </Grid>
 
-            <Grid item xs={12} sm={6} md={3}>
-                <SelectMultipleWithSuggest
+            <Grid item xs={12} sm={6} md={6}>
+                <DynaslopeUserSelectInputForm
+                    variant="standard"
                     label="Validator"
-                    options={options.validator}
-                    value={moms.validator}
+                    div_id="validator"
                     changeHandler={update_field("validator")}
-                    placeholder="Select validator"
-                    renderDropdownIndicator
-                    openMenuOnClick
+                    value={moms.validator}
                 />
             </Grid>
         </Grid>
@@ -134,15 +188,22 @@ function MomsInputFields (props) {
 
 function MomsForm (props) {
     const {
-        momsEntries, setMomsEntries
+        momsEntries, setMomsEntries,
+        site_code
     } = props;
+
+    const [isAddingNewInstance, setIsAddingNewInstance] = useState(false);
 
     const addInstanceFn = () => setMomsEntries({ action: "ADD_INSTANCE" });
     const updateField = key => attribute => event => {
-        const group_1 = ["feature_type", "feature_name", "alert_level", "observance_ts", "reporter", "validator"];
-        const group_2 = ["narrative", "remarks"];
+        const group_1 = ["feature_type", "feature_name", "alert_level", "observance_ts"];
+        const group_2 = ["narrative", "remarks", "reporter", "validator", "location"];
         let value = null;
 
+        if (attribute === "feature_name") {
+            if (event.label === "(Add new instance)") setIsAddingNewInstance(true);
+            else setIsAddingNewInstance(false);
+        }
         if (group_1.includes(attribute)) {
             value = event;
         } else if (group_2.includes(attribute)) {
@@ -157,6 +218,10 @@ function MomsForm (props) {
         });
     };
     const deleteInstanceFn = key => () => setMomsEntries({ action: "DELETE_INSTANCE", key });
+
+    useEffect(() => {
+        console.log("momsEntries", momsEntries);
+    }, [momsEntries]);
 
     return (
     // <DynaslopeSiteSelectInputForm />
@@ -193,6 +258,8 @@ function MomsForm (props) {
                                 <MomsInputFields 
                                     momsEntry={entry}
                                     updateField={updateField(key)}
+                                    isAddingNewInstance={isAddingNewInstance}
+                                    site_code={site_code}
                                 />
 
                                 {
@@ -216,7 +283,7 @@ function MomsForm (props) {
                     size="small"
                     onClick={addInstanceFn}
                 >
-                    Add MOMs instance
+                    Add MOMs Observation Report
                 </Button>
             </div>
         </Fragment>

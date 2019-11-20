@@ -929,29 +929,49 @@ def search_if_feature_exists(feature_type):
 
 def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
     """
-    Insert a moms report to db regardless of attached to release or prior to release.
+    Insert a moms report to db regardless of attached to release
+    or prior to release.
+
+    Args:
+        moms_details (Dict) - all the required details for moms
+                        includes Feature Type and Feature Name
+        site_id (Int) - which site your want to write the moms
+        event_id (Int) - which event will you attach the moms
     """
     try:
         try:
             op_trigger = moms_details["op_trigger"]
-        except:
+        except KeyError:
             # Note: Make sure you always include op_trigger via front end
             print("No op_trigger given.")
-            raise
+            try:
+                op_trigger = moms_details["alert_level"]
+            except KeyError:
+                print("Neither op_trigger nor alert_level given.")
+                raise
 
         observance_ts = moms_details["observance_ts"]
         narrative = moms_details["report_narrative"]
-        moms_instance_id = moms_details["instance_id"]
 
+        iomp = 1
+        try:
+            iomp = moms_details["iomp"]
+        except KeyError:
+            pass
         moms_narrative_id = write_narratives_to_db(
             site_id=site_id,
             timestamp=observance_ts,
             narrative=narrative,
             type_id=2, # NOTE: STATIC VALUE SET Event Narrative Type
             event_id=event_id,
-            user_id=1 # NOTE: STATIC VALUE SET Event Narrative Type
+            user_id=iomp
         )
 
+        moms_instance_id = None
+        try:
+            moms_instance_id = moms_details["instance_id"]
+        except KeyError:
+            pass
         if not moms_instance_id:
             # Create new instance of moms
             feature_type = moms_details["feature_type"]

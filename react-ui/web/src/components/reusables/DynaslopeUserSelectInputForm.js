@@ -14,13 +14,21 @@ function DynaslopeUserSelectInputForm (props) {
     const {
         variant, label, div_id,
         changeHandler, value, css,
-        disabled, returnFullNameCallback        
+        disabled, returnFullNameCallback,
+        isCommunityStaff
     } = props;
+
     const [users, setUsers] = useState([]);
 
     useEffect(() => {
-        axios.get(`${host}/api/users/get_dynaslope_users`)
+        let api_link = `${host}/api/users/get_dynaslope_users`;
+        if (isCommunityStaff) {
+            const { site_code } = props;
+            api_link = `${host}/api/users/get_community_users_by_site/${site_code}`;
+        }
+        axios.get(api_link)
         .then(response => {
+            console.log(response);
             const arr = prepareUsersArray(response.data);
             setUsers(arr);
         })
