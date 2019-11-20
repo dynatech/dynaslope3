@@ -68,7 +68,7 @@ def rainfall_gauges(end=datetime.now()):
     """
 
     gauges = mem.get('df_rain_props')
-    
+
     gauges['gauge_name'] = np.array(','.join(gauges.data_source).replace('noah',
                                  'rain_noah_').replace('senslope',
                                  'rain_').split(','))+gauges.gauge_name
