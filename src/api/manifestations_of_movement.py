@@ -32,14 +32,16 @@ def wrap_write_monitoring_moms_to_db(internal_json=None):
 
         var_checker("json_data", json_data, True)
         site_code = json_data["site_code"]
-        site_id = DB.session.query(Sites).options(raiseload("*")).filter_by(site_code=site_code).first().site_id
+        site_id = DB.session.query(Sites).options(
+            raiseload("*")).filter_by(site_code=site_code).first().site_id
         var_checker("site_id", site_id, True)
         moms_list = json_data["moms_list"]
-        
+
         for moms_obs in moms_list:
             write_monitoring_moms_to_db(moms_details=moms_obs, site_id=site_id)
 
-        DB.session.commit()
+        # DB.session.commit()
+        DB.session.rollback()
     except Exception as err:
         DB.session.rollback()
         raise err

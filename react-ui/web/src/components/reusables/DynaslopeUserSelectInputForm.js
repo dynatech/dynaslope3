@@ -28,7 +28,6 @@ function DynaslopeUserSelectInputForm (props) {
         }
         axios.get(api_link)
         .then(response => {
-            console.log(response);
             const arr = prepareUsersArray(response.data);
             setUsers(arr);
         })

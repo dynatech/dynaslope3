@@ -17,7 +17,8 @@ function MomsInsertModal (props) {
     const {
         fullScreen, isOpen,
         closeHandler, width,
-        match: { params: { site_code } }
+        match: { params: { site_code } },
+        snackbarHandler
     } = props;
 
     const initial_state = MomsInitialState(site_code);
@@ -59,8 +60,11 @@ function MomsInsertModal (props) {
 
         // Write data to DB
         // sendWSMessage("write_monitoring_moms_to_db", payload);
+        // closeHandler();
         insertMomsToDB(payload, ret => {
             console.log(ret);
+            snackbarHandler();
+            closeHandler();
         });
     };
 

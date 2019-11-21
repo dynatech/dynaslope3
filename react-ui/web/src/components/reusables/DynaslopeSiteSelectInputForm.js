@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import SelectMultipleWithSuggest from "./SelectMultipleWithSuggest";
-import { sites } from "../../store";
+// import { sites } from "../../store";
 import { prepareSiteAddress } from "../../UtilityFunctions";
+import { host } from "../../config";
 
 export function prepareSitesOption (arr, to_include_address) {
     return arr.map(site => {
@@ -18,8 +20,23 @@ export function prepareSitesOption (arr, to_include_address) {
 function DynaslopeSiteSelectInputForm (props) {
     const { 
         value, changeHandler, isMulti,
-        renderDropdownIndicator, includeAddressOnOptions
+        renderDropdownIndicator, includeAddressOnOptions,
+        returnSiteDataCallback
     } = props;
+
+    const [sites, setSites] = useState([]);
+
+    useEffect(() => {
+        console.log("value", value);
+        axios.get(`${host}/api/sites/get_sites_data`)
+        .then(response => {
+            const { data } = response;
+            setSites(data);
+        })
+        .catch(error => {
+            console.log(error);
+        });
+    }, []);
 
     const to_include_address = typeof includeAddressOnOptions === "undefined" ? true : includeAddressOnOptions;
     const options = prepareSitesOption(sites, to_include_address);
@@ -31,6 +48,12 @@ function DynaslopeSiteSelectInputForm (props) {
     let pass_value = value;
     if (value !== "") {
         const { label, value: site_id } = value;
+        
+        const callback = typeof returnSiteDataCallback === "undefined" ? false : returnSiteDataCallback;
+        if (callback) {
+            const site = sites.find(o => o.site_id === site_id);
+            if (typeof site !== "undefined") returnSiteDataCallback(site);
+        }
 
         if (typeof label === "undefined") {
             pass_value = options[site_id - 1];

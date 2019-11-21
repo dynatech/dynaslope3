@@ -198,7 +198,7 @@ function MomsForm (props) {
     const updateField = key => attribute => event => {
         const group_1 = ["feature_type", "feature_name", "alert_level", "observance_ts"];
         const group_2 = ["narrative", "remarks", "reporter", "validator", "location"];
-        let value = null;
+        let value = "";
 
         if (attribute === "feature_name") {
             if (event.label === "(Add new instance)") setIsAddingNewInstance(true);
@@ -218,10 +218,6 @@ function MomsForm (props) {
         });
     };
     const deleteInstanceFn = key => () => setMomsEntries({ action: "DELETE_INSTANCE", key });
-
-    useEffect(() => {
-        console.log("momsEntries", momsEntries);
-    }, [momsEntries]);
 
     return (
     // <DynaslopeSiteSelectInputForm />

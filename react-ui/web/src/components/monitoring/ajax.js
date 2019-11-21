@@ -126,7 +126,11 @@ export function getEventTimelineEntries (input, callback) {
 }
 
 export function getSites (input, callback) {
-    const api_link = `${host}/api/sites/get_sites_data`;
+    let api_link = `${host}/api/sites/get_sites_data`;
+
+    if (typeof input !== "undefined" && input !== "" && input !== null) {
+        api_link += `/${input}`;
+    }
 
     axios.get(api_link)
     .then(response => {
