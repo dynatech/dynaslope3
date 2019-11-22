@@ -17,6 +17,7 @@ CONTACTS_BLUEPRINT = Blueprint("contacts_blueprint", __name__)
 @CONTACTS_BLUEPRINT.route("/contacts/get_all_contacts", methods=["GET"])
 def wrap_get_all_contacts():
     """
+    Function that get all contacts
     """
 
     contacts = get_all_contacts(return_schema=True)
@@ -41,11 +42,10 @@ def save_contact():
     except KeyError:
         print("Value is defined.")
         pass
-    
+
     try:
         print(data)
         user = data["user"]
-        user_id = user["user_id"]
         contact_numbers = data["contact_numbers"]
         affiliation = data["affiliation"]
 
@@ -71,7 +71,10 @@ def save_contact():
 
 
 @CONTACTS_BLUEPRINT.route("/contacts/migrate_ewi_recipient", methods=["GET", "POST"])
-def ewi_recipient_migration():
+def migrate_ewi_recipient():
+    """
+    Function that migrate ewi recipient from old implem to new
+    """
     ewi_recipient_migration()
 
     return jsonify(True)
