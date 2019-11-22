@@ -64,7 +64,6 @@ function removeNumberMask (data, type) {
         });
     } else {
         data.map((row, index) => {
-            console.log(row)
             delete row.mobile_id;
             const { landline_id } = row;
 
@@ -154,6 +153,7 @@ function ContactForm (props) {
     let initial_site = "";
     let initial_location = "";
     let initial_ewi_recipient = true;
+    let initial_ewi_restriction = 0;
     let initial_user_details = {
         first_name: "", last_name: "",
         middle_name: "", nickname: "", user_id: 0
@@ -161,11 +161,10 @@ function ContactForm (props) {
 
     if (isEditMode) {
         const { mobile_numbers, user: {
-            ewi_recipient, landline_numbers, emails, first_name,
+            ewi_recipient, ewi_restrictions, landline_numbers, emails, first_name,
             last_name, middle_name, nickname, user_id, organizations
         } } = chosenContact;
         initial_user_details = { first_name, last_name, middle_name, nickname, user_id };
-        console.log(chosenContact);
 
         if (organizations.length !== 0) {
             const { scope, name } = organizations[0].organization;
@@ -176,6 +175,10 @@ function ContactForm (props) {
             initial_site = site;
             initial_location = location;
     
+        }
+        if (ewi_restrictions.length !== 0) {
+            const { alert_level } = ewi_restrictions[0];
+            initial_ewi_restriction = alert_level;
         }
         const updated_mobile_numbers = mobile_numbers.map((row, index) => {
             const new_data = JSON.parse(JSON.stringify(row));
@@ -196,6 +199,12 @@ function ContactForm (props) {
         { id: 4, label: "Regional", select_label: "Region", list: regions },
         { id: 5, label: "National" }
     ];
+
+    const restriction_list = [
+        { id: 0, label: "No restrictions" },
+        { id: 1, label: "Do not send on Alert 1" },
+        { id: 2, label: "Do not send on Alert 2 and below" }
+    ];
     const [user_details, setUserDetails] = useState(initial_user_details);
     const [scope, setScope] = useState(initial_scope);
     const [site, setSite] = useState(initial_site);
@@ -207,6 +216,7 @@ function ContactForm (props) {
     const [emails, setEmails] = useReducer(reducerFunction, initial_emails);
     const [is_ewi_recipient, setEwiRecipient] = useState(initial_ewi_recipient);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+    const [restriction, setRestriction] = useState(initial_ewi_restriction);
 
     const closeButtonFn = () => {
         if (isEditMode) return setContactFormForEdit(false);
@@ -252,11 +262,12 @@ function ContactForm (props) {
         const mobile_numbers = removeNumberMask(mobile_nums, "mobile");
         const landline_numbers = removeNumberMask(landline_nums, "landline");
         const ewi_recipient = is_ewi_recipient === true ? 1 : 0;
-        const final_obj = {
+        const final_data = {
             user: {
                 ...user_details,
                 emails,
-                ewi_recipient
+                ewi_recipient,
+                restriction
             },
             affiliation: {
                 site,
@@ -269,8 +280,8 @@ function ContactForm (props) {
                 landline_numbers
             }
         };
-        console.log(final_obj);
-        saveContact(final_obj, data => {
+        console.log(final_data);
+        saveContact(final_data, data => {
             const { status, message } = data;
             if (status === true) {
                 closeButtonFn();
@@ -447,6 +458,19 @@ function ContactForm (props) {
                         label="EWI Recipient"
                     />
                 </FormControl>
+            </Grid>
+
+            <Grid item xs={12}>
+                <SelectInputForm
+                    div_id="ewi_restriction"
+                    label="Ewi Restriction"
+                    changeHandler={event => setRestriction(event.target.value)}
+                    value={restriction}
+                    list={restriction_list}
+                    mapping={{ id: "id", label: "label" }}
+                    error
+                    required
+                />
             </Grid>
 
             <Grid item xs={12}>
