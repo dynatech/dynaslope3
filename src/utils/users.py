@@ -21,6 +21,17 @@ PROP_DICT = {
     "tea": "team"
 }
 
+def get_community_users_simple(site_code):
+    """
+    NOTE: Just a workaround to fasttrack the development of Site Info page.
+    Args:
+        site_code
+    """
+    user_r = UsersRelationship
+    community_users = user_r.query.join(UserOrganization).join(Sites).filter(Sites.site_code == site_code).all()
+
+    return community_users
+
 
 def get_users(
         include_relationships=False,

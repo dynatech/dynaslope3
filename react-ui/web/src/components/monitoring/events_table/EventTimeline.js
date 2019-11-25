@@ -16,6 +16,7 @@ function getReleaseHeader (release_type) {
     if (release_type === "end_of_validity") headers = "END OF MONITORING";
     else if (release_type === "overdue") headers = "EWI OVERDUE";
     else if (release_type === "extended") headers = "EXTENDED MONITORING";
+    else if (release_type === "routine") headers = "ROUTINE MONITORING";
 
     return headers;
 }
@@ -26,6 +27,7 @@ function getColorBasedOnReleaseType (release_type) {
     if (release_type === "end_of_validity") color = "#00B200";
     else if (release_type === "overdue") color = "#FA4413";
     else if (release_type === "extended") color = "#00B200";
+    else if (release_type === "routine") color = "#59081E";
 
     return color;
 }
@@ -194,7 +196,7 @@ function MonitoringEventTimeline (props) {
             event_id
         };
         getEventTimelineEntries(input, ret => {
-            console.log(ret);
+            console.log("timeline_entries", ret);
             const {
                 event_details, timeline_items
             } = ret;

@@ -237,6 +237,8 @@ def get_eos_data_analysis(shift_start=None, event_id=None):
     base_query = eosa.query
 
     if shift_start and event_id:
+        var_checker("shift_start", shift_start, True)
+        var_checker("event_id", event_id, True)
         filter_value = eosa.shift_start == shift_start and eosa.event_id == event_id
         eos_data_analysis = base_query.filter(filter_value).first()
         if eos_data_analysis:

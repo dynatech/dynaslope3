@@ -52,7 +52,7 @@ class UsersRelationship(Users):
     #                                  order_by="UserMobile.priority", lazy="subquery")
 
     organizations = DB.relationship(
-        UserOrganizations, backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
+        UserOrganizations, backref=DB.backref("users", lazy="subquery"), lazy="subquery")
 
     ewi_restrictions = DB.relationship(
         "UserEwiRestrictions", backref=DB.backref("user", lazy="joined", innerjoin=True),

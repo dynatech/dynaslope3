@@ -652,7 +652,7 @@ def get_monitoring_triggers(event_id=None, event_alert_id=None, release_id=None,
     if return_one:
         return_data = base.first()
     else:
-         return_data = base.all()
+        return_data = base.all()
 
     return return_data
 
