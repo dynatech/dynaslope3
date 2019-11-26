@@ -30,6 +30,7 @@ class Users(DB.Model, UserMixin):
     ewi_recipient = DB.Column(DB.Integer, nullable=True)
 
     def get_id(self):
+        """Filler docstring"""
         return self.user_id
 
     def __repr__(self):

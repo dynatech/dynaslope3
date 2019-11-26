@@ -7,8 +7,8 @@ import { isWidthDown } from "@material-ui/core/withWidth";
 
 const goBack = history => e => {
     e.preventDefault();
-    history.push("/analysis/sites");
-    history.replace("/analysis/sites");
+    history.push("/community/site_info");
+    history.replace("/community/site_info");
 };
 
 function BackToMainButton (props) {
@@ -21,7 +21,7 @@ function BackToMainButton (props) {
             size="small" 
             onClick={goBack(history)}
         >
-            <ArrowBackIos style={{ fontSize: 16 }}/> Back to site list
+            <ArrowBackIos style={{ fontSize: 16 }}/> Back
         </Button>) : (<IconButton
             variant="contained"
             color="primary"

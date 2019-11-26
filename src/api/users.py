@@ -3,9 +3,60 @@ Users Functions Controller File
 """
 
 from flask import Blueprint, jsonify
-from src.utils.users import get_dynaslope_users, get_community_users
+from src.models.users import UsersSchema
+from src.utils.users import (
+    get_dynaslope_users, get_community_users,
+    get_community_users_simple, get_users_categorized_by_org
+)
+from src.utils.extra import var_checker
 
 USERS_BLUEPRINT = Blueprint("users_blueprint", __name__)
+
+
+@USERS_BLUEPRINT.route("/users/get_community_orgs_by_site/<site_code>", methods=["GET"])
+def wrap_get_community_orgs_by_site(site_code):
+    """
+    Route function that get all Dynaslope users by group
+    """
+    community_users = get_users_categorized_by_org(site_code)
+
+    temp = {}
+    for user_org in community_users:
+        scope = user_org.organization.scope
+        name = user_org.organization.name
+
+        key = name
+        if name == "lgu":
+            if scope == 1:
+                key = "b" + name
+            elif scope == 2:
+                key = "m" + name
+            elif scope == 3:
+                key = "p" + name
+
+        user_data = UsersSchema().dump(user_org.user).data
+        if key not in temp:
+            temp[key] = [user_data]
+        else:
+            temp[key].append(user_data)
+
+    return jsonify(temp)
+
+
+@USERS_BLUEPRINT.route("/users/get_community_users_by_site/<site_code>", methods=["GET"])
+def wrap_get_community_users_by_site(site_code):
+    """
+    Route function that get all Dynaslope users by group
+    """
+    community_users_data = []
+    if site_code:
+        temp = [site_code]
+        var_checker("temp", temp, True)
+        community_users = get_community_users_simple(site_code=site_code)
+
+        community_users_data = UsersSchema(many=True).dump(community_users).data
+
+    return jsonify(community_users_data)
 
 
 @USERS_BLUEPRINT.route("/users/get_dynaslope_users", methods=["GET"])

@@ -83,7 +83,7 @@ export function getMonitoringEvents (input, callback) {
     
     if (include_count) api_link += "&include_count=true";
 
-    if (filters.length !== 0) {
+    if (filters.length > 0) {
         const filter_str = filters.map(row => {
             const { name, data } = row;
             return data.map(x => `&${name}=${x}`).join("");
@@ -126,7 +126,11 @@ export function getEventTimelineEntries (input, callback) {
 }
 
 export function getSites (input, callback) {
-    const api_link = `${host}/api/sites/get_sites_data`;
+    let api_link = `${host}/api/sites/get_sites_data`;
+    if (typeof input !== "undefined" && input !== "" && input !== null && input.length !== 0) {
+        
+        api_link += `/${input}`;
+    }
 
     axios.get(api_link)
     .then(response => {

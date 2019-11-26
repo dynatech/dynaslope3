@@ -2,15 +2,17 @@ import React from "react";
 import { Route, Switch } from "react-router-dom";
 
 import DashboardContainer from "./components/monitoring/dashboard/Container";
-import EventsTableContainer from "./components/monitoring/events_table/Container";
+import MonitoringEventsTable from "./components/monitoring/events_table/MonitoringEventsTable";
 import ShiftsAndReportsContainer from "./components/monitoring/shifts_and_reports/Container";
 import SiteLogsContainer from "./components/monitoring/site_logs/Container";
 import IssuesAndReminders from "./components/monitoring/issues_and_reminders/Container";
+import SiteInformationPage from "./components/community/site_information/SiteInformationPage";
 
 import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_site/Container";
 
 import ChatterboxContainer from "./components/communication/chatterbox/Container";
 import ContactsContainer from "./components/communication/contacts/Container";
+import SitesInformationContainer from "./components/community/site_information/SitesInformationContainer";
 
 
 function RoutesCollection (props) {
@@ -22,7 +24,7 @@ function RoutesCollection (props) {
 
         <Switch location={location}>
             <Route exact path={url} component={DashboardContainer} />
-            <Route path={`${url}monitoring/events`} component={EventsTableContainer} />
+            <Route path={`${url}monitoring/events`} component={MonitoringEventsTable} />
             <Route path={`${url}monitoring/shifts_and_reports`} component={ShiftsAndReportsContainer} />
             <Route path={`${url}monitoring/issues_and_reminders`} component={IssuesAndReminders} />
             <Route path={`${url}monitoring/logs`} component={SiteLogsContainer} />
@@ -34,6 +36,9 @@ function RoutesCollection (props) {
             <Route path={`${url}communication/chatterbox`} component={ChatterboxContainer} />
             <Route path={`${url}communication/contacts`} component={ContactsContainer} />
             <Route path={`${url}communication`} render={() => <h3> Not yet created</h3>} />
+
+            {/* <Route path={`${url}community/site_info`} component={SiteInformationPage} /> */}
+            <Route path={`${url}community/site_info`} component={SitesInformationContainer} />
 
             <Route render={() => <h3> Not found</h3>} />
         </Switch>

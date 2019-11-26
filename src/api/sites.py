@@ -6,6 +6,9 @@ from flask import Blueprint, jsonify, request
 from src.utils.sites import get_sites_data, get_site_events, get_all_geographical_selection_per_category
 from src.models.sites import SitesSchema
 from src.models.monitoring import MonitoringEventsSchema
+from src.utils.loggers import get_loggers
+from src.utils.extra import var_checker
+
 
 SITES_BLUEPRINT = Blueprint("sites_blueprint", __name__)
 
@@ -21,11 +24,21 @@ def wrap_get_sites_data(site_code=None):
     include_inactive = True if include_inactive == "true" else False
     site = get_sites_data(site_code=site_code,
                           include_inactive=include_inactive)
+    # site_schema = SitesSchema(include=("season_months",))
+
     site_schema = SitesSchema()
     if site_code is None:
         site_schema = SitesSchema(many=True)
 
     output = site_schema.dump(site).data
+
+    # NOTE: Add the Lat and Long
+    if isinstance(output, list):
+        for site in output:
+            site_logger_sample = get_loggers(site_code=site["site_code"], many=False)
+            site["latitude"] = site_logger_sample.latitude
+            site["longitude"] = site_logger_sample.longitude
+
     return jsonify(output)
 
 

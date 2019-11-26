@@ -49,6 +49,8 @@ function reducerFunction (state, payload) {
                     const cap = capitalizeFirstLetter(feature_name);
                     return { value: instance_id, label: cap }; 
                 });
+                // LOUIE ADDS Add new instance option
+                instances_opt.push({ value: 0, label: "(Add new instance)" });
 
                 const alerts_opt = alerts.map(al => {
                     const { feature_alert_id, alert_level, description } = al;

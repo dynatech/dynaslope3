@@ -7,6 +7,7 @@ from src.api.monitoring import wrap_get_ongoing_extended_overdue_events, insert_
 from src.utils.monitoring import update_alert_status
 from src.utils.issues_and_reminders import write_issue_reminder_to_db
 from src.api.issues_and_reminders import wrap_get_issue_reminder
+from src.api.manifestations_of_movement import wrap_write_monitoring_moms_to_db
 from src.utils.extra import (
     var_checker, get_system_time, get_process_status_log,
     set_data_to_memcache, retrieve_data_from_memcache
@@ -199,6 +200,16 @@ def update_alert_gen(site_code=None):
 # - - - API-RELATED FUNCTIONS - - - #
 #####################################
 
+
+def execute_write_monitoring_moms_to_db(moms_details):
+    data = moms_details
+    try:
+        data = wrap_write_monitoring_moms_to_db(data)
+        var_checker("data", data, True)
+    except Exception as err:
+        raise err    
+
+
 def execute_write_issues_reminders(issues_and_reminders_details):
     data = issues_and_reminders_details
     try:
@@ -300,6 +311,11 @@ def handle_message(payload):
         status = execute_write_issues_reminders(data)
         set_data_to_memcache("ISSUES_AND_REMINDERS", wrap_get_issue_reminder())
         emit_data("receive_issues_and_reminders")
+        print(status)
+
+    elif key == "write_monitoring_moms_to_db":
+        print(get_process_status_log("write_monitoring_moms_to_db", "request"))
+        status = execute_write_monitoring_moms_to_db(data)
         print(status)
 
     elif key == "update_monitoring_tables":

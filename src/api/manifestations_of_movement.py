@@ -1,16 +1,52 @@
-from flask import Blueprint, jsonify
+"""
+API/Controller file for moms
+"""
+
+from flask import Blueprint, jsonify, request
 from connection import DB
 from sqlalchemy import func
+from sqlalchemy.orm import raiseload
 from src.models.sites import Sites, SitesSchema
 from src.models.monitoring import (
     MonitoringMoms, MomsInstances, MomsFeatures,
     MonitoringMomsSchema, MomsInstancesSchema,
     MomsFeaturesSchema
 )
-
 from src.utils.sites import get_sites_data
+from src.utils.monitoring import write_monitoring_moms_to_db
+from src.utils.extra import var_checker
 
 MOMS_BLUEPRINT = Blueprint("moms_blueprint", __name__)
+
+
+@MOMS_BLUEPRINT.route("/manifestations_of_movement/write_monitoring_moms_to_db", methods=["POST"])
+def wrap_write_monitoring_moms_to_db(internal_json=None):
+    """
+    Handles moms. Make sure you pass lists to this function
+    """
+    try:
+        if internal_json:
+            json_data = internal_json
+        else:
+            json_data = request.get_json()
+
+        var_checker("json_data", json_data, True)
+        site_code = json_data["site_code"]
+        site_id = DB.session.query(Sites).options(
+            raiseload("*")).filter_by(site_code=site_code).first().site_id
+        var_checker("site_id", site_id, True)
+        moms_list = json_data["moms_list"]
+
+        for moms_obs in moms_list:
+            write_monitoring_moms_to_db(moms_details=moms_obs, site_id=site_id)
+
+        # DB.session.commit()
+        DB.session.rollback()
+    except Exception as err:
+        DB.session.rollback()
+        raise err
+
+    return "success"
 
 
 @MOMS_BLUEPRINT.route("/manifestations_of_movement/get_latest_alerts", methods=["GET"])

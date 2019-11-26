@@ -7,6 +7,11 @@ import {
 } from "@material-ui/core";
 import MUIDataTable from "mui-datatables";
 import moment from "moment";
+import { green } from "@material-ui/core/colors";
+
+import Snackbar from "@material-ui/core/Snackbar";
+import IconButton from "@material-ui/core/IconButton";
+import CloseIcon from "@material-ui/icons/Close";
 
 import { getMOMsInstances } from "../ajax";
 
@@ -67,7 +72,8 @@ function MomsInstancesPage (props) {
                 viewColumns: false,
                 filter: false
             }
-        }];
+        }
+    ];
 
     useEffect(() => {
         getMOMsInstances(site_code, data => {
@@ -79,13 +85,23 @@ function MomsInstancesPage (props) {
 
                 const type = feature_type.charAt(0).toUpperCase() + feature_type.slice(1);
                 const last_mom = moms[0];
-                const { observance_ts, op_trigger } = last_mom;
-                const ts = formatTimestamp(observance_ts);
 
-                return [type, feature_name, ts, op_trigger, instance];    
+                let return_data = [];
+                if (typeof last_mom !== "undefined") {
+                    const { observance_ts, op_trigger } = last_mom;
+                    const ts = formatTimestamp(observance_ts);
+                    return_data = [type, feature_name, ts, op_trigger, instance];
+                } 
+                // const { observance_ts, op_trigger } = last_mom;
+                // const ts = formatTimestamp(observance_ts);
+
+                return return_data;    
+            });
+            const final_tbl_data = tbl_data.filter( item => {
+                return item.length > 0;
             });
 
-            const sorted_data = tbl_data.sort((a, b) => b[3] - a[3]);
+            const sorted_data = final_tbl_data.sort((a, b) => b[3] - a[3]);
             setMOMsFeatures(sorted_data);
             setMOMsData(data);
         });
@@ -93,6 +109,8 @@ function MomsInstancesPage (props) {
 
     const [is_moms_modal_open, setMomsModal] = useState(false);
     const set_moms_modal_fn = bool => () => setMomsModal(bool);
+    const [is_snackbar_notif_open, setSnackbarNotif] = useState(false);
+    const set_snackbar_notif_fn = bool => () => setSnackbarNotif(bool);
 
     return (
         <Fragment>
@@ -130,7 +148,34 @@ function MomsInstancesPage (props) {
                 {...props}
                 isOpen={is_moms_modal_open}
                 closeHandler={set_moms_modal_fn(false)}
+                snackbarHandler={set_snackbar_notif_fn(true)}
                 width={width}
+            />
+
+            <Snackbar
+                anchorOrigin={{
+                    vertical: "top",
+                    horizontal: "right",
+                }}
+                open={is_snackbar_notif_open}
+                autoHideDuration={6000}
+                onClose={set_snackbar_notif_fn(false)}
+                ContentProps={{
+                    "aria-describedby": "message-id",
+                }}
+                message={<span id="message-id">MOMs saved to database</span>}
+                action={[
+                    <IconButton
+                        key="close"
+                        aria-label="close"
+                        color="inherit"
+                        className={classes.close}
+                        onClick={set_snackbar_notif_fn(false)}
+                    >
+                        <CloseIcon />
+                    </IconButton>,
+                ]}
+                style={{ backgroundColor: green[600] }}
             />
             
             <Route path={`${url}/:instance_id`} render={
