@@ -1,6 +1,6 @@
 import React from "react";
 import {
-    Grid, Paper, Typography
+    Grid, Paper, Typography, Divider
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 
@@ -36,9 +36,10 @@ function SiteInformationSheet (props) {
     return (
         <Paper className={classes.customPaper}>
             <Typography variant="h6" color="primary">Site Details</Typography>
+            <Divider className={classes.Divider} />
 
             <Grid container spacing={2} style={{ paddingTop: 5 }}>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={6} sm={4}>
                     <Typography variant="body2" color="textSecondary">
                             Site ID
                     </Typography>
@@ -49,7 +50,7 @@ function SiteInformationSheet (props) {
 
                 {
                     purok !== null && (
-                        <Grid item xs={12} sm={4}>
+                        <Grid item xs={6} sm={4}>
                             <Typography variant="body2" color="textSecondary">
                                 Purok
                             </Typography>
@@ -62,7 +63,7 @@ function SiteInformationSheet (props) {
 
                 {
                     sitio !== null && (
-                        <Grid item xs={12} sm={4}>
+                        <Grid item xs={6} sm={4}>
                             <Typography variant="body2" color="textSecondary">
                                 Sitio
                             </Typography>
@@ -73,7 +74,7 @@ function SiteInformationSheet (props) {
                     )
                 }
 
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={6} sm={4}>
                     <Typography variant="body2" color="textSecondary">
                             Barangay
                     </Typography>
@@ -82,7 +83,7 @@ function SiteInformationSheet (props) {
                     </Typography>
                 </Grid>
 
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={6} sm={4}>
                     <Typography variant="body2" color="textSecondary">
                         Municipality
                     </Typography>
@@ -91,7 +92,7 @@ function SiteInformationSheet (props) {
                     </Typography>
                 </Grid>
 
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={6} sm={4}>
                     <Typography variant="body2" color="textSecondary">
                         Province
                     </Typography>
@@ -100,7 +101,7 @@ function SiteInformationSheet (props) {
                     </Typography>
                 </Grid>
 
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={6} sm={4}>
                     <Typography variant="body2" color="textSecondary">
                         Region
                     </Typography>
@@ -111,7 +112,7 @@ function SiteInformationSheet (props) {
 
                 {
                     active !== null && (
-                        <Grid item xs={12} sm={4}>
+                        <Grid item xs={6} sm={4}>
                             <Typography variant="body2" color="textSecondary">
                                 Active Status
                             </Typography>
@@ -122,7 +123,7 @@ function SiteInformationSheet (props) {
                     )
                 }
 
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={6} sm={4}>
                     <Typography variant="body2" color="textSecondary">
                         PSGC
                     </Typography>
@@ -131,7 +132,7 @@ function SiteInformationSheet (props) {
                     </Typography>
                 </Grid>
 
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={6} sm={4}>
                     <Typography variant="body2" color="textSecondary">
                         Season
                     </Typography>

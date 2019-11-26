@@ -30,6 +30,7 @@ class Users(DB.Model, UserMixin):
     ewi_recipient = DB.Column(DB.Integer, nullable=True)
 
     def get_id(self):
+        """Filler docstring"""
         return self.user_id
 
     def __repr__(self):
@@ -52,7 +53,7 @@ class UsersRelationship(Users):
     #                                  order_by="UserMobile.priority", lazy="subquery")
 
     organizations = DB.relationship(
-        UserOrganizations, backref=DB.backref("users", lazy="subquery"), lazy="subquery")
+        UserOrganizations, backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
 
     ewi_restrictions = DB.relationship(
         "UserEwiRestrictions", backref=DB.backref("user", lazy="joined", innerjoin=True),

@@ -1,6 +1,8 @@
-
-from connection import DB, MARSHMALLOW
+"""
+Organizations Model
+"""
 from marshmallow import fields
+from connection import DB, MARSHMALLOW
 from src.models.sites import Sites
 
 
@@ -18,7 +20,9 @@ class Organizations(DB.Model):
     name = DB.Column(DB.String(45))
 
     def __repr__(self):
-        return f"{self.org_name}\n"
+        return (f"Type <{self.__class__.__name__}>: "
+                f"org_id: {self.org_id} | scope: {self.scope} | name: {self.name}\n")
+
 
 class UserOrganizations(DB.Model):
     """
@@ -57,6 +61,7 @@ class OrganizationsSchema(MARSHMALLOW.ModelSchema):
     users = fields.Nested("UserOrganizationsSchema", many=True, exclude=["organization"])
 
     class Meta:
+        """Saves table class structure as schema model"""
         model = Organizations
 
 

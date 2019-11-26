@@ -79,59 +79,67 @@ def get_current_monitoring_summary_per_site(site_id):
     else:
         validity = "None"
     site_code = current_site_event.site.site_code
+    event_type = "event" if current_site_event.status == 2 else "routine"
 
     current_event_alert = current_site_event.event_alerts[0]
     public_alert_level = current_event_alert.public_alert_symbol.alert_level
     start_of_alert_level = current_event_alert.ts_start
     end_of_alert_level = current_event_alert.ts_end
 
-    current_release = current_event_alert.releases[0]
-    data_ts = datetime.strftime(current_release.data_ts, "%Y-%m-%d %H:%M:%S")
-    release_time = time.strftime(current_release.release_time, "%H:%M:%S")
-    internal_alert = build_internal_alert_level(
-        public_alert_level=public_alert_level,
-        trigger_list=current_release.trigger_list
-    )
-
-    mt_publisher = None
-    ct_publisher = None
-    for publisher in current_release.release_publishers:
-        user = publisher.user_details
-        var_checker("user_details", user, True)
-        temp = {
-            "user_id": user.user_id,
-            "last_name": user.last_name,
-            "first_name": user.first_name,
-            "middle_name": user.middle_name
-        }
-        if publisher.role == "mt":
-            mt_publisher = temp
-        elif publisher.role == "ct":
-            ct_publisher = temp
-        
-
     return_data = {
         "event_start": event_start,
         "validity": validity,
+        "event_type": event_type,
         "site_code": site_code,
         "public_alert_level": public_alert_level,
         "start_of_alert_level": start_of_alert_level,
         "end_of_alert_level": end_of_alert_level,
-        "data_ts": data_ts,
-        "release_time": release_time,
-        "internal_alert": internal_alert,
-        "mt_publisher": mt_publisher,
-        "ct_publisher": ct_publisher,
-        "latest_trigger": None
+        "has_release": False
     }
 
-    event_triggers = get_monitoring_triggers(event_id=current_site_event.event_id)
-    if event_triggers:
-        trig_symbol = event_triggers[0].internal_sym.trigger_symbol
-        trig_alert_sym = trig_symbol.alert_symbol
-        source = trig_symbol.trigger_hierarchy.trigger_source
-        latest_trigger = f"{trig_alert_sym} - {event_triggers[0].info}"
-        return_data["latest_trigger"] = latest_trigger
+    if current_event_alert.releases:
+        current_release = current_event_alert.releases[0]
+        data_ts = datetime.strftime(current_release.data_ts, "%Y-%m-%d %H:%M:%S")
+        release_time = time.strftime(current_release.release_time, "%H:%M:%S")
+        internal_alert = build_internal_alert_level(
+            public_alert_level=public_alert_level,
+            trigger_list=current_release.trigger_list
+        )
+
+        mt_publisher = None
+        ct_publisher = None
+        for publisher in current_release.release_publishers:
+            user = publisher.user_details
+            var_checker("user_details", user, True)
+            temp = {
+                "user_id": user.user_id,
+                "last_name": user.last_name,
+                "first_name": user.first_name,
+                "middle_name": user.middle_name
+            }
+            if publisher.role == "mt":
+                mt_publisher = temp
+            elif publisher.role == "ct":
+                ct_publisher = temp
+
+        return_data = {
+            **return_data,
+            "has_release": True,
+            "data_ts": data_ts,
+            "release_time": release_time,
+            "internal_alert": internal_alert,
+            "mt_publisher": mt_publisher,
+            "ct_publisher": ct_publisher,
+            "latest_trigger": None
+        }
+
+        event_triggers = get_monitoring_triggers(event_id=current_site_event.event_id)
+        if event_triggers:
+            trig_symbol = event_triggers[0].internal_sym.trigger_symbol
+            trig_alert_sym = trig_symbol.alert_symbol
+            source = trig_symbol.trigger_hierarchy.trigger_source
+            latest_trigger = f"{trig_alert_sym} - {event_triggers[0].info}"
+            return_data["latest_trigger"] = latest_trigger
 
     return jsonify(return_data)
 

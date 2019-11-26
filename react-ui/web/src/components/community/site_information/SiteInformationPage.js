@@ -1,10 +1,9 @@
 import React, { Fragment, useState, useEffect } from "react";
 
 import {
-    withStyles, Grid, Paper, Typography,
+    withStyles, Grid, Typography,
     Divider
 } from "@material-ui/core";
-import moment from "moment";
 
 import GeneralStyles from "../../../GeneralStyles";
 import SiteInformationSheet from "./SiteInformationSheet";
@@ -18,7 +17,7 @@ import { getSites } from "../../monitoring/ajax";
 
 function SiteInformationPage (props) {
     const { 
-        classes, history, width, match: { params: { site_code } },
+        classes, width, match: { params: { site_code } },
         siteInformation
     } = props;
 

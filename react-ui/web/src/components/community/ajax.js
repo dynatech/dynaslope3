@@ -3,7 +3,7 @@ import { host } from "../../config";
 
 
 export function getCommunityStaff (site_code, callback) {
-    axios.get(`${host}/api/users/get_community_users_by_site/${site_code}`)
+    axios.get(`${host}/api/users/get_community_orgs_by_site/${site_code}`)
     .then(response => {
         const { data } = response;
         callback(data);

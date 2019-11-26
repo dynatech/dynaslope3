@@ -21,6 +21,7 @@ import GeneralStyles from "../../../GeneralStyles";
 import SelectInputForm from "../../reusables/SelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { getShiftData } from "../ajax";
+import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 
 // Session Stuff
 // import { getCurrentUser } from "../../sessions/auth";
@@ -96,10 +97,10 @@ function prepareEventTimelineLink (classes, event_id, site_code) {
 }
 
 
-function capitalize (s) {
-    if (typeof s !== "string") return "";
-    return s.charAt(0).toUpperCase() + s.slice(1);
-}
+// function capitalizeFirstLetter (s) {
+//     if (typeof s !== "string") return "";
+//     return s.charAt(0).toUpperCase() + s.slice(1);
+// }
 
 
 function processShiftData (classes, select_by, raw_data) {
@@ -110,7 +111,7 @@ function processShiftData (classes, select_by, raw_data) {
             const { date, data, ampm, mt, ct } = row;
 
             const word_temp = converter.toWords(data.length);
-            const alert_summary = `${capitalize(word_temp)} (${data.length})`;
+            const alert_summary = `${capitalizeFirstLetter(word_temp)} (${data.length})`;
             const new_stuff = data.map((second_row, index2) => {
                 const {
                     general_status, site_code, 
@@ -128,7 +129,7 @@ function processShiftData (classes, select_by, raw_data) {
                             Alert <span className={classes.valueFont}>{public_alert_level}</span>
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                            Monitoring status: <span className={classes.valueFont}>{capitalize(general_status)}</span>
+                            Monitoring status: <span className={classes.valueFont}>{capitalizeFirstLetter(general_status)}</span>
                         </Typography>
                     </Grid>
                 );
@@ -199,7 +200,7 @@ function processShiftData (classes, select_by, raw_data) {
             const { public_alert_level, data } = row;
 
             const word_temp = converter.toWords(data.length);
-            const alert_summary = `${capitalize(word_temp)} (${data.length})`;
+            const alert_summary = `${capitalizeFirstLetter(word_temp)} (${data.length})`;
             const new_stuff = data.map((second_row, index2) => {
                 const {
                     general_status, site_code, event_id
@@ -213,7 +214,7 @@ function processShiftData (classes, select_by, raw_data) {
                             Site code: <span className={classes.valueFont}>{event_link}</span>
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                            Monitoring status: <span className={classes.valueFont}>{capitalize(general_status)}</span>
+                            Monitoring status: <span className={classes.valueFont}>{capitalizeFirstLetter(general_status)}</span>
                         </Typography>
                     </Grid>
                 );

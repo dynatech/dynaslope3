@@ -8,10 +8,10 @@ from flask import jsonify
 from connection import DB
 from src.models.sites import Sites
 from src.models.users import (
-    Users, UsersRelationship,
-    UserOrganization, UserMobile,
+    Users, UsersRelationship, UserMobile,
     UsersSchema, UsersRelationshipSchema
 )
+from src.models.organizations import UserOrganizations, Organizations
 from src.utils.extra import var_checker
 
 PROP_DICT = {
@@ -21,6 +21,23 @@ PROP_DICT = {
     "tea": "team"
 }
 
+
+def get_users_categorized_by_org(site_code=None):
+    """
+    """
+    u_org = UserOrganizations
+    org = Organizations
+
+    base = u_org.query.join(org).order_by(DB.asc(org.scope))
+
+    if site_code:
+        base = base.join(Sites).filter(Sites.site_code == site_code)
+    
+    users_by_org = base.all()
+
+    return users_by_org
+
+
 def get_community_users_simple(site_code):
     """
     NOTE: Just a workaround to fasttrack the development of Site Info page.
@@ -28,7 +45,7 @@ def get_community_users_simple(site_code):
         site_code
     """
     user_r = UsersRelationship
-    community_users = user_r.query.join(UserOrganization).join(Sites).filter(Sites.site_code == site_code).all()
+    community_users = user_r.query.join(UserOrganizations).join(Sites).filter(Sites.site_code == site_code).all()
 
     return community_users
 
@@ -89,12 +106,12 @@ def get_users(
         filter_list.append(filter_var)
     else:
         users_model = Users
-        users_query = users_model.query.outerjoin(UserOrganization)
+        users_query = users_model.query.outerjoin(UserOrganizations)
 
-        filter_var = UserOrganization.org_id.is_(None)
+        filter_var = UserOrganizations.org_id.is_(None)
         if user_group != "dynaslope":
-            users_query = users_model.query.join(UserOrganization)
-            filter_var = UserOrganization.org_id.isnot(None)
+            users_query = users_model.query.join(UserOrganizations)
+            filter_var = UserOrganizations.org_id.isnot(None)
 
         filter_list.append(filter_var)
 
@@ -102,8 +119,8 @@ def get_users(
         if filter_by_org:
             if include_relationships or has_includes:
                 users_query = users_query.join(
-                    UserOrganization)
-            filter_list.append(UserOrganization.org_name.in_(filter_by_org))
+                    UserOrganizations)
+            filter_list.append(UserOrganizations.org_name.in_(filter_by_org))
 
         if filter_by_mobile_id:
             if include_relationships or has_includes:

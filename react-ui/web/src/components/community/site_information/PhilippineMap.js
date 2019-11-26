@@ -1,16 +1,20 @@
-import React, { useState } from "react";
+// import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Map as LeafletMap, TileLayer, Popup, CircleMarker } from "react-leaflet";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 
 function PhilippineMap (props) {
-    const { zoomIn, siteMapData } = props;
-    const [latitude, setLatitude] = useState(12.8797);
-    const [longitude, setLongitude] = useState(121.7740);
-    const [position, setPosition] = useState([latitude, longitude]);
-    const [zoom, setZoom] = useState(6);
+    const { siteMapData } = props;
+    // const [latitude, setLatitude] = useState(12.8797);
+    // const [longitude, setLongitude] = useState(121.7740);
+    // const [position, setPosition] = useState([latitude, longitude]);
+    // const [zoom, setZoom] = useState(6);
+    const latitude = 12.8797;
+    const longitude = 121.7740;
+    const position = [latitude, longitude];
+    const zoom = 6;    
 
     return (
         <LeafletMap style={{ height: 700 }} center={position} zoom={zoom}>

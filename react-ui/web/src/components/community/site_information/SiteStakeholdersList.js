@@ -1,11 +1,11 @@
-import React, { Fragment, useState, useEffect } from "react";
-import { Route, Link } from "react-router-dom";
+import React, { useState, useEffect, Fragment } from "react";
 import {
-    Grid, Paper, Typography
+    Paper, Typography, Grid, Divider
 } from "@material-ui/core";
+import Avatar from "@material-ui/core/Avatar";
 import { makeStyles } from "@material-ui/core/styles";
-import moment from "moment";
 import GeneralStyles from "../../../GeneralStyles";
+import GenericAvatar from "../../../images/generic-user-icon.jpg";
 import { getCommunityStaff } from "../ajax";
 
 const useStyle = makeStyles(theme => {
@@ -16,16 +16,53 @@ const useStyle = makeStyles(theme => {
             padding: 8,
             marginTop: 20,
             textAlign: "center"
+        },
+        bigAvatar: {
+            margin: 10,
+            width: 60,
+            height: 60
         }
     };
 });
 
 
-function prepareOrgList (community_staff_list) {
-    return community_staff_list.map((user, index) => {
-        const { last_name, first_name, salutation } = user;
+function prepareOrgList (classes, community_orgs) {
+    const community_org_list = Object.keys(community_orgs);
+
+    return community_org_list.map((org, org_index) => {
+        const user_list_for_ui = community_orgs[org].map((user, user_index) => {
+            const {
+                last_name, first_name, salutation
+            } = user;
+            return (
+                <Grid item xs={12} sm={3} justify="center" 
+                    alignItems="center" container spacing={1}
+                    key={`staff_${user_index + 1}`}
+                >
+                    <Avatar alt="User" src={GenericAvatar} className={classes.bigAvatar} />
+                    <Typography variant="subtitle1" >
+                        {`${salutation} ${first_name} ${last_name}`}
+                    </Typography>
+                </Grid>
+            );
+        });
         return (
-            <Typography>{`${salutation} ${first_name} ${last_name}`}</Typography>
+            <Fragment key={`fragment_${org_index + 1}`}>
+                <Grid item xs={12} key={`org_label_${org_index + 1}`} 
+                    style={{ paddingTop: 15 }}
+                >
+                    <Typography variant="h6" >
+                        {org.toUpperCase()}
+                    </Typography>
+                </Grid>
+                <Grid item xs={12} justify="space-evenly"
+                    alignItems="center" container spacing={1}
+                    key={`staff_list_${org_index + 1}`}
+                >
+                    {user_list_for_ui}
+                </Grid>
+                <Divider className={classes.Divider} />
+            </Fragment>            
         );
     });
 }
@@ -41,15 +78,15 @@ function SiteStakeholdersList (props) {
 
     useEffect(() => {
         getCommunityStaff(siteCode, ret => {
-            const comm_contacts_ui = prepareOrgList(ret);
+            const comm_contacts_ui = prepareOrgList(classes, ret);
             setCommunityContacts(comm_contacts_ui);
-            console.log(ret);
         });
     }, []);
 
     return (
         <Paper className={classes.customPaper}>
-            Site Stakeholders
+            <Typography variant="h6" color="primary">Site Stakeholders</Typography>
+            <Divider className={classes.Divider} />
             {community_contacts}
         </Paper>
     );
