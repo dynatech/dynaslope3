@@ -74,7 +74,7 @@ function buildTimelineElements (timelineItems, bulletinHandler, site_code) {
                 release_time, data_ts, release_publishers,
                 triggers, release_id
             } = item_data;
-            console.log(item_data);
+
             const { release_type } = item;
             const card_color = getColorBasedOnReleaseType(release_type);
             const header = getReleaseHeader(release_type);
@@ -95,11 +95,10 @@ function buildTimelineElements (timelineItems, bulletinHandler, site_code) {
             if (triggers.length !== 0) {
                 triggers.forEach(trigger => {
                     const { info } = trigger;
-                    console.log(info);
                     trigger_info.push(info);
                 });
             } else {
-                console.log("walang trigger");
+                console.log("no triggers");
                 trigger_info.push("No triggers");
             }
 

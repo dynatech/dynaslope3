@@ -2,10 +2,10 @@ import React, { useState, useEffect, Fragment } from "react";
 import moment from "moment";
 import MUIDataTable from "mui-datatables";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
-import { CircularProgress, Typography, Paper } from "@material-ui/core";
+import { CircularProgress, Typography, Paper, Button } from "@material-ui/core";
 import { withStyles, createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 import { compose } from "recompose";
-import { Route, Switch, Link } from "react-router-dom";
+import { Route, Switch, Link, Redirect } from "react-router-dom";
 
 import CustomSearchRender from "./CustomSearchRender";
 import EventTimeline from "../../monitoring/events_table/EventTimeline";
@@ -19,17 +19,18 @@ const styles = theme => ({
     }
 });
 
-function prepareEventTimelineLink (url, event_id) {
+function prepareEventTimelineLink (url, event_id, setRedirect) {
     return (
-        <Link
-            to={`${url}/${event_id}`}
+        <Button
+            // to={`${url}/${event_id}`}
+            onClick={ret => setRedirect(`/monitoring/events/${event_id}`)}
         >
             {event_id}
-        </Link>
+        </Button>
     );
 }
 
-function prepareEventsArray (url, arr) {
+function prepareEventsArray (url, arr, setRedirect) {
     return arr.map(
         (element, index) => {
             const {
@@ -43,7 +44,7 @@ function prepareEventsArray (url, arr) {
             if (event_start !== "" && event_start !== null) final_event_start = moment(event_start).format("D MMMM YYYY, h:mm");
             if (validity !== "" && validity !== null) final_ts_end = moment(validity).format("D MMMM YYYY, h:mm");
 
-            const event_link = prepareEventTimelineLink(url, event_id);
+            const event_link = prepareEventTimelineLink(url, event_id, setRedirect);
             const event_entry = [
                 event_link,
                 entry_type,
@@ -86,6 +87,8 @@ function SiteEventsTable (props) {
     const [search_str, setSearchString] = useState("");
     const [on_search_open, setOnSearchOpen] = useState(false);
 
+    const [redirect, setRedirect] = useState(0);
+
     // useEffect(() => {
     //     setFilters([{ name: "site_ids", data: [siteId] }]);
     // }, []);
@@ -104,7 +107,7 @@ function SiteEventsTable (props) {
 
         getMonitoringEvents(input, ret => {
             const { events, count: total } = ret;
-            const final_data = prepareEventsArray(url, events);
+            const final_data = prepareEventsArray(url, events, setRedirect);
             setData(final_data);
             setCount(total);
             setIsLoading(false);
@@ -266,46 +269,53 @@ function SiteEventsTable (props) {
 
     return (
         <Fragment>
-            <Switch location={location}>
-                <Route exact path={url} render={
-                    props => (
-                        <Paper className={classes.paperContainer}>
-                            <MuiThemeProvider theme={getMuiTheme}>
-                                <MUIDataTable
-                                    title={
-                                        <Typography variant="h5" component="div">
-                                                Monitoring Events Table
-                                            {
-                                                isLoading &&
-                                                <CircularProgress
-                                                    size={24}
-                                                    style={{
-                                                        marginLeft: 15,
-                                                        position: "relative",
-                                                        top: 4
-                                                    }}
-                                                />
+            {
+                redirect === 0 ? (
+                    <Switch location={location}>
+                        <Route exact path={url} render={
+                            props => (
+                                <Paper className={classes.paperContainer}>
+                                    <MuiThemeProvider theme={getMuiTheme}>
+                                        <MUIDataTable
+                                            title={
+                                                <Typography variant="h5" component="div">
+                                                        Monitoring Events Table
+                                                    {
+                                                        isLoading &&
+                                                        <CircularProgress
+                                                            size={24}
+                                                            style={{
+                                                                marginLeft: 15,
+                                                                position: "relative",
+                                                                top: 4
+                                                            }}
+                                                        />
+                                                    }
+                                                </Typography>
                                             }
-                                        </Typography>
-                                    }
-                                    data={table_data}
-                                    columns={columns}
-                                    options={options}
-                                />
-                            </MuiThemeProvider>                    
-                        </Paper>
-                    )
-                }/>
+                                            data={table_data}
+                                            columns={columns}
+                                            options={options}
+                                        />
+                                    </MuiThemeProvider>                    
+                                </Paper>
+                            )
+                        }/>
 
-                <Route path={`${url}/:event_id`} render={
-                    props => (
-                        <EventTimeline
-                            {...props}
-                            width={width}
-                        />
-                    )
-                }/>
-            </Switch>
+                        <Route path={`${url}/:event_id`} render={
+                            props => (
+                                <EventTimeline
+                                    {...props}
+                                    width={width}
+                                />
+                            )
+                        }/>
+                    </Switch>
+                ) : (
+                    <Redirect to={redirect} />
+                )
+            }
+
         </Fragment>
     );
 }
