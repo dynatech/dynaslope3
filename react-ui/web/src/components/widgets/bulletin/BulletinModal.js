@@ -141,7 +141,7 @@ function BulletinModal (props) {
                         <Divider className={classes.divider} />
                     </Grid>
 
-                    <Grid item xs={12}>
+                    <Grid item xs={12} style={{ textAlign: "center", paddingTop: 20 }}>
                         <BulletinTemplate
                             releaseId={release_id}
                         />

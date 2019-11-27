@@ -49,9 +49,13 @@ def send_mail(recipients, subject, message):
 
     try:
         server = setup_connection()
+    except Exception as connection_err:
+        raise connection_err
+
+    try:
         server.sendmail(SENDER_EMAIL, recipients, text)
-    except Exception as e:
-        print(e)
+    except Exception as send_error:
+        raise send_error
     finally:
         server.quit()
 

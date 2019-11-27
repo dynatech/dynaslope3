@@ -8,12 +8,19 @@ import {
 } from "@material-ui/core";
 import ChipInput from "material-ui-chip-input";
 
+import { green, red } from "@material-ui/core/colors";
+import Snackbar from "@material-ui/core/Snackbar";
+import IconButton from "@material-ui/core/IconButton";
+import CloseIcon from "@material-ui/icons/Close";
+
 import CKEditor from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 // import DecoupledEditor from "@ckeditor/ckeditor5-build-decoupled-document";
 
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
+
+import sendEmail from "./ajax";
 
 const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
@@ -47,10 +54,13 @@ const recip_default = {
     to: [], cc: [], bcc: []
 };
 
+
 function MailBoxContainer (props) {
     const classes = useStyles();
     const { siteId } = props;
-    const [recipients, setRecipients] = useState(recip_default);
+    const [recipients_dict, setRecipientsDict] = useState(recip_default);
+    const [is_snackbar_notif_open, set_snackbar_notif_fn] = useState(false);
+    const [snack_bar_data, set_snack_bar_data] = useState({});    
     // const [sender, setSender] = useState("");
     const [subject, setSubject] = useState("");
     const [mail_body, setMailBody] = useState("");
@@ -58,37 +68,48 @@ function MailBoxContainer (props) {
     // const [toggled_bcc, setToggledBCC] = useState(false);
 
     const handleAddChip = (key, chip) => {
-        console.log(key, chip);
-        const temp = recipients[key].push(chip);
-        console.log("temp in add", temp);
-        setRecipients({
-            ...recipients,
+        const temp = recipients_dict[key].push(chip);
+        setRecipientsDict({
+            ...recipients_dict,
             ...temp
         });
     };
 
     const handleDeleteChip = (key, chip, index) => {
-        console.log(key, chip, index);
-        const temp = recipients[key].splice( recipients[key].indexOf(chip), 1 );
-        console.log("temp in del", temp);
-        setRecipients({
-            ...recipients,
+        const temp = recipients_dict[key].splice( recipients_dict[key].indexOf(chip), 1 );
+        setRecipientsDict({
+            ...recipients_dict,
             ...temp
         });
     };
 
     const handleSend = () => {
-        console.log("Send Clicked");
-        const tmp_payload = {
-            recipients, subject, mail_body
-        };
+        const { to, cc, bcc } = recipients_dict;
 
-        console.log("PAYLOAD", tmp_payload);
+        const payload = {
+            recipients: [ ...to, ...cc, ...bcc ],
+            subject,
+            mail_body
+        };
+        console.log("payload", payload);
+        
+        sendEmail(payload, ret => {
+            console.log("AXIOS Response", ret);
+            if (ret === "Email sent!") {
+                set_snack_bar_data({ text: "Email sent!", color: green[600] });
+            } else {
+                set_snack_bar_data({ text: "Email sent!", color: red[600] });
+            }
+            set_snackbar_notif_fn(true);
+        });
     };
 
     const handleDiscard = () => {
-        console.log("Discard Clicked");
-        setRecipients(recip_default);
+        setRecipientsDict({
+            to: [],
+            cc: [],
+            bcc: []
+        });
         setSubject("");
         setMailBody("");
     };
@@ -115,12 +136,12 @@ function MailBoxContainer (props) {
                 //     )
                 // }
             />
-            <Grid container spacing={4}>
+            <Grid container spacing={4} alignItems="center">
                 <Grid item xs={12} container spacing={1} key="sending_options">
                     <Grid item xs={12} sm={6} >
                         <ChipInput 
                             label="To"
-                            value={recipients.to}
+                            value={recipients_dict.to}
                             onAdd={(chip) => handleAddChip("to", chip)}
                             onDelete={(chip, index) => handleDeleteChip("to", chip, index)}
                             fullWidth
@@ -141,7 +162,7 @@ function MailBoxContainer (props) {
                     <Grid item xs={12} sm={6} >
                         <ChipInput 
                             label="Cc"
-                            value={recipients.cc}
+                            value={recipients_dict.cc}
                             onAdd={(chip) => handleAddChip("cc", chip)}
                             onDelete={(chip, index) => handleDeleteChip("cc", chip, index)}
                             fullWidth
@@ -151,7 +172,7 @@ function MailBoxContainer (props) {
                     <Grid item xs={12} sm={6} >
                         <ChipInput 
                             label="Bcc"
-                            value={recipients.bcc}
+                            value={recipients_dict.bcc}
                             onAdd={(chip) => handleAddChip("bcc", chip)}
                             onDelete={(chip, index) => handleDeleteChip("bcc", chip, index)}
                             fullWidth
@@ -161,7 +182,7 @@ function MailBoxContainer (props) {
                 <Grid item xs={12} key="message_body">
                     <CKEditor
                         editor={ClassicEditor}
-                        // data="<p>Hi! Starting entering data</p>"
+                        data={mail_body}
                         config={config}
                         onInit={editor => {
                             // You can store the "editor" and use when it is needed.
@@ -181,6 +202,32 @@ function MailBoxContainer (props) {
                     <Button color="primary" onClick={handleDiscard}>Discard/Reset</Button>
                 </Grid>
             </Grid>
+
+            <Snackbar
+                anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "right",
+                }}
+                open={is_snackbar_notif_open}
+                autoHideDuration={6000}
+                onClose={ret => set_snackbar_notif_fn(false)}
+                ContentProps={{
+                    "aria-describedby": "message-id",
+                }}
+                message={<span id="message-id">{snack_bar_data.text}</span>}
+                action={[
+                    <IconButton
+                        key="close"
+                        aria-label="close"
+                        color="inherit"
+                        className={classes.close}
+                        onClick={ret => set_snackbar_notif_fn(false)}
+                    >
+                        <CloseIcon />
+                    </IconButton>,
+                ]}
+                style={{ backgroundColor: snack_bar_data.color }}
+            />
         </div>
     );
 }
@@ -197,11 +244,11 @@ export default (MailBoxContainer);
 //         <Grid item xs={6} >
 //             <TextField
 //                 label="Cc"
-//                 value={recipients.cc}
+//                 value={recipients_dict.cc}
 //                 onChange={recipientChangeHandler("cc")}
 //                 margin="dense"
 //                 required
-//                 error={recipients.cc === ""}
+//                 error={recipients_dict.cc === ""}
 //                 fullWidth
 //             />
 //         </Grid>
@@ -212,11 +259,11 @@ export default (MailBoxContainer);
 //         <Grid item xs={6} >
 //             <TextField
 //                 label="Bcc"
-//                 value={recipients.bcc}
+//                 value={recipients_dict.bcc}
 //                 onChange={recipientChangeHandler("bcc")}
 //                 margin="dense"
 //                 required
-//                 error={recipients.bcc === ""}
+//                 error={recipients_dict.bcc === ""}
 //                 fullWidth
 //             />
 //         </Grid>
