@@ -1,23 +1,16 @@
 import React, {
-    Fragment, useState,
-    useEffect
+    useState
 } from "react";
 
 import { makeStyles } from "@material-ui/core/styles";
 import {
-    Button, Grid, Typography,
-    List, ListItem, ListItemAvatar,
-    ListItemText, ListItemSecondaryAction, IconButton,
-    Avatar, TextField, Hidden,
-    ListItemIcon, Chip,
-    Paper, Divider, Slide,
-    Backdrop, Tooltip, AppBar,
-    Toolbar, Dialog, TextareaAutosize
+    Button, Grid, TextField
 } from "@material-ui/core";
+import ChipInput from "material-ui-chip-input";
 
-import { Refresh, SaveAlt, Send } from "@material-ui/icons";
 import CKEditor from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+// import DecoupledEditor from "@ckeditor/ckeditor5-build-decoupled-document";
 
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
@@ -27,13 +20,6 @@ const useStyles = makeStyles(theme => {
     
     return {
         ...gen_style,
-        tabBar: {
-            ...gen_style.pageContentMargin,
-            margin: 0
-        },
-        tabBarContent: {
-            marginTop: 16
-        },
         sticky: {
             position: "sticky",
             top: 146,
@@ -52,36 +38,39 @@ const useStyles = makeStyles(theme => {
             height: "100%",
             width: 400
         },
-        overflow: {
-            overflowY: "auto",
-            height: 760,
-            [theme.breakpoints.down("md")]: {
-                height: 570
-            }
-        },
         insetDivider: { padding: "8px 70px !important" }
     }; 
 });
 
 
+const recip_default = {
+    to: [], cc: [], bcc: []
+};
+
 function MailBoxContainer (props) {
     const classes = useStyles();
     const { siteId } = props;
-    const [recipients, setRecipients] = useState({
-        to: [], cc: [], bcc: []
-    });
-    const [sender, setSender] = useState("");
+    const [recipients, setRecipients] = useState(recip_default);
+    // const [sender, setSender] = useState("");
     const [subject, setSubject] = useState("");
     const [mail_body, setMailBody] = useState("");
-    const [toggled_cc, setToggledCC] = useState(false);
-    const [toggled_bcc, setToggledBCC] = useState(false);
+    // const [toggled_cc, setToggledCC] = useState(false);
+    // const [toggled_bcc, setToggledBCC] = useState(false);
 
-    const recipientChangeHandler = key => event => {
-        console.log("event", event);
-        const { data } = event.target;
+    const handleAddChip = (key, chip) => {
+        console.log(key, chip);
+        const temp = recipients[key].push(chip);
+        console.log("temp in add", temp);
+        setRecipients({
+            ...recipients,
+            ...temp
+        });
+    };
 
-        const temp = recipients[key].push(data);
-        
+    const handleDeleteChip = (key, chip, index) => {
+        console.log(key, chip, index);
+        const temp = recipients[key].splice( recipients[key].indexOf(chip), 1 );
+        console.log("temp in del", temp);
         setRecipients({
             ...recipients,
             ...temp
@@ -90,10 +79,18 @@ function MailBoxContainer (props) {
 
     const handleSend = () => {
         console.log("Send Clicked");
+        const tmp_payload = {
+            recipients, subject, mail_body
+        };
+
+        console.log("PAYLOAD", tmp_payload);
     };
 
     const handleDiscard = () => {
         console.log("Discard Clicked");
+        setRecipients(recip_default);
+        setSubject("");
+        setMailBody("");
     };
 
     // const handleToggles = key => event => {
@@ -101,7 +98,8 @@ function MailBoxContainer (props) {
     //     else if (key === "bcc") setToggledBCC(!toggled_bcc);
     // };
     const config = {
-        toolbar: ["heading", "|", "bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "|", "undo", "redo"]
+        // toolbar: ["heading", "|", "bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "|", "undo", "redo"]
+        height: 500
     };
 
     return (
@@ -119,50 +117,43 @@ function MailBoxContainer (props) {
             />
             <Grid container spacing={4}>
                 <Grid item xs={12} container spacing={1} key="sending_options">
-                    <Grid item xs={6} >
-                        <TextField
+                    <Grid item xs={12} sm={6} >
+                        <ChipInput 
                             label="To"
                             value={recipients.to}
-                            onChange={recipientChangeHandler("to")}
-                            margin="dense"
-                            required
-                            error={recipients.to === ""}
+                            onAdd={(chip) => handleAddChip("to", chip)}
+                            onDelete={(chip, index) => handleDeleteChip("to", chip, index)}
                             fullWidth
+                            required
                         />
                     </Grid>
 
-                    <Grid item xs={6} >
+                    <Grid item xs={12} sm={6} >
                         <TextField
                             label="Subject"
                             value={subject}
-                            onChange={ret => setSubject(ret)}
+                            onChange={ret => setSubject(ret.target.value)}
                             margin="dense"
-                            required
-                            error={subject === ""}
                             fullWidth
                         />
                     </Grid>
 
-                    <Grid item xs={6} >
-                        <TextField
+                    <Grid item xs={12} sm={6} >
+                        <ChipInput 
                             label="Cc"
                             value={recipients.cc}
-                            onChange={recipientChangeHandler("cc")}
-                            margin="dense"
-                            required
-                            error={recipients.cc === ""}
+                            onAdd={(chip) => handleAddChip("cc", chip)}
+                            onDelete={(chip, index) => handleDeleteChip("cc", chip, index)}
                             fullWidth
                         />
                     </Grid>
 
-                    <Grid item xs={6} >
-                        <TextField
+                    <Grid item xs={12} sm={6} >
+                        <ChipInput 
                             label="Bcc"
                             value={recipients.bcc}
-                            onChange={recipientChangeHandler("bcc")}
-                            margin="dense"
-                            required
-                            error={recipients.bcc === ""}
+                            onAdd={(chip) => handleAddChip("bcc", chip)}
+                            onDelete={(chip, index) => handleDeleteChip("bcc", chip, index)}
                             fullWidth
                         />
                     </Grid>
@@ -175,18 +166,19 @@ function MailBoxContainer (props) {
                         onInit={editor => {
                             // You can store the "editor" and use when it is needed.
                             editor.setData(mail_body);
-                            console.log(Array.from(editor.ui.componentFactory.names()));
+                            // console.log(Array.from(editor.ui.componentFactory.names()));
+                            // console.log("PLUGINS: ", ClassicEditor.builtinPlugins.map( plugin => plugin.pluginName ));
                         }}
                         onChange={(event, editor) => {
                             const data = editor.getData();
-                            console.log({ event, editor, data });
                             setMailBody(data);
                         }}
                     />
                 </Grid>
+
                 <Grid item xs={12} key="buttons">
-                    <Button onClick={handleSend}>SEND</Button>
-                    <Button onClick={handleDiscard}>Discard/Reset</Button>
+                    <Button color="secondary" onClick={handleSend}>SEND</Button>
+                    <Button color="primary" onClick={handleDiscard}>Discard/Reset</Button>
                 </Grid>
             </Grid>
         </div>

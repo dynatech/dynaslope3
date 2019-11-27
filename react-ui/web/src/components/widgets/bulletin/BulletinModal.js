@@ -6,6 +6,7 @@ import {
     Button, withMobileDialog, Divider,
     Grid, TextField
 } from "@material-ui/core";
+import ChipInput from "material-ui-chip-input";
 
 import BulletinTemplate from "./BulletinTemplate";
 
@@ -59,6 +60,23 @@ function BulletinModal (props) {
         });
     };
 
+    
+    const handleAddChip = (chip) => {
+        const temp = bulletin_modal_data.recipients.push(chip);
+        setBulletinModalData({
+            ...bulletin_modal_data,
+            ...temp
+        });
+    };
+
+    const handleDeleteChip = (chip, index) => {
+        const temp = bulletin_modal_data.recipients.splice( bulletin_modal_data.recipients.indexOf(chip), 1 );
+        setBulletinModalData({
+            ...bulletin_modal_data,
+            ...temp
+        });
+    };
+
     const {
         mail_content, sent_status, recipients
     } = bulletin_modal_data;
@@ -98,7 +116,15 @@ function BulletinModal (props) {
                     </Grid>
 
                     <Grid item xs={12}>
-                        <TextField
+                        <ChipInput 
+                            label="To"
+                            value={recipients}
+                            onAdd={(chip) => handleAddChip(chip)}
+                            onDelete={(chip, index) => handleDeleteChip(chip, index)}
+                            fullWidth
+                            required
+                        />
+                        {/* <TextField
                             required
                             label="Recipients"
                             value={recipients}
@@ -108,7 +134,7 @@ function BulletinModal (props) {
                             rowsMax={6}
                             fullWidth
                             className={classes.textField}
-                        />
+                        /> */}
                     </Grid>
                     
                     <Grid item xs={12}>
