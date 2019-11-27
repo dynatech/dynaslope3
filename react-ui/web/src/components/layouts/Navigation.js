@@ -17,6 +17,7 @@ const styles = theme => ({
             display: "block",
         }
     },
+    appBar: { top: 70 },
     popper: {
         zIndex: 500,
         marginTop: 2
@@ -147,7 +148,6 @@ class Navigation extends PureComponent {
         };
     }
    
-
     handleTabChange = (event, value) => {
         this.setState({ value });
     };
@@ -192,7 +192,7 @@ class Navigation extends PureComponent {
         return (
             <Fragment>
                 <div className={classes.navBar}>
-                    <AppBar position="fixed" color="default" style={{ top: 70 }}>
+                    <AppBar position="fixed" color="default" className={classes.appBar}>
                         <Tabs
                             value={value}
                             onChange={this.handleTabChange}

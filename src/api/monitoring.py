@@ -31,10 +31,12 @@ from src.utils.monitoring import (
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
     compute_event_validity, round_to_nearest_release_time,
+    build_internal_alert_level,
 
     # Logic: Insert EWI specific
     is_new_monitoring_instance, start_new_monitoring_instance,
     end_current_monitoring_event_alert, update_bulletin_number,
+    check_if_onset_release,
 
     # Write functions
     write_monitoring_event_alert_to_db, update_monitoring_release_on_db,
@@ -49,6 +51,7 @@ from src.utils.extra import (
     get_process_status_log, get_system_time
 )
 from src.utils.bulletin import create_monitoring_bulletin, render_monitoring_bulletin
+from src.utils.sites import build_site_address
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
@@ -203,12 +206,14 @@ def wrap_get_internal_alert_symbols():
 def wrap_get_site_alert_details():
     site_id = request.args.get('site_id', default=1, type=int)
     public_alert_level = get_public_alert(site_id)
-    
+
     latest_release = get_latest_release_per_site(site_id)
     trigger_list = latest_release.trigger_list
     event_id = latest_release.event_alert.event.event_id
     event_triggers = get_saved_event_triggers(event_id)
-    trigger_sources = [temp.internal_sym.trigger_symbol.trigger_hierarchy.trigger_source for temp in event_triggers]
+    trigger_sources = [
+        temp.internal_sym.trigger_symbol.trigger_hierarchy.trigger_source
+        for temp in event_triggers]
 
     internal_alert_level = public_alert_level
     if public_alert_level != "A0":
@@ -1012,77 +1017,89 @@ def get_event_timeline_data(event_id):
     Args:
         event_id (Integer) - variable name speaks for itself.
     """
+
+    event_id = int(event_id)
+
     timeline_data = {
         "event_details": {},
         "timeline_items": []
     }
-    me_schema = MonitoringEventsSchema()
-    event_collection_obj = get_monitoring_events(event_id=event_id)
-    event_collection_data = me_schema.dump(event_collection_obj).data
+    start_ts = datetime.now()
+    # me_schema = MonitoringEventsSchema()
+    event_collection_data = get_monitoring_events(event_id=event_id)
+    end_ts = datetime.now()
+    print("RUNTIME: ", end_ts - start_ts)
+    # event_collection_data = me_schema.dump(event_collection_obj).data
 
     # CORE VALUES
     # event_details: this contains the values needed mostly for the UI
     # Include here the other details you might need for the front end.
 
     if event_collection_data:
-        validity = event_collection_data["validity"]
+        validity = event_collection_data.validity
+        site = event_collection_data.site
+        public_alert_symbol = event_collection_data.event_alerts[0] \
+            .public_alert_symbol
 
         event_details = {
-            "event_start": event_collection_data["event_start"],
-            "event_id": event_collection_data["event_id"],
+            "event_start": datetime.strftime(
+                event_collection_data.event_start, "%Y-%m-%d %H:%M:%S"),
+            "event_id": event_collection_data.event_id,
             "validity": validity,
-            "site_id": event_collection_data["site"]["site_id"],
-            "site_code": event_collection_data["site"]["site_code"],
-            "site_address": "<WIP>",
+            "site_id": site.site_id,
+            "site_code": site.site_code,
+            "site_address": build_site_address(site),
 
             # EXTRA
-            "status": event_collection_data["status"],
-            "latest_public_alert_symbol": event_collection_data["event_alerts"][0]["public_alert_symbol"]["alert_symbol"]
+            "status": event_collection_data.status,
+            "latest_public_alert_symbol": public_alert_symbol.alert_symbol
         }
         timeline_entries = []
 
-        # Releases
-        if event_collection_data:
-            for event_alert in event_collection_data["event_alerts"]:
-                for release in event_alert["releases"]:
-                    release_time = datetime.strptime(
-                        release["release_time"], "%H:%M:%S")
-                    data_ts = datetime.strptime(
-                        release["data_ts"], "%Y-%m-%d %H:%M:%S")
-                    timestamp = datetime(year=data_ts.year, month=data_ts.month, day=data_ts.day,
-                                         hour=release_time.hour, minute=release_time.minute, second=release_time.second)
-                    timestamp = datetime.strftime(
-                        timestamp, "%Y-%m-%d %H:%M:%S")
+        for event_alert in event_collection_data.event_alerts:
+            for release in event_alert.releases:
+                data_ts = release.data_ts
+                timestamp = datetime.strftime(
+                    data_ts, "%Y-%m-%d %H:%M:%S")
 
-                    release_type = "routine"
-                    release_ts = data_ts + timedelta(minutes=30)
-                    validity_ts = None
-                    var_checker("validity", validity, True);
-                    if validity and isinstance(validity, str):
-                        validity_ts = datetime.strptime(
-                            validity, "%Y-%m-%d %H:%M:%S")
+                release_ts = data_ts + timedelta(minutes=30)
+                release_type = "routine"
+                if validity:
+                    if release_ts < validity:
+                        release_type = "latest"
+                    elif release_ts == validity:
+                        release_type = "end_of_validity"
+                    elif validity <= release_ts:
+                        if event_alert.public_alert_symbol.alert_level > 0:
+                            release_type = "overdue"
+                        else:
+                            release_type = "extended"
+                trig_moms = "triggers.trigger_misc.moms_releases.moms_details"
+                rel_moms = "moms_releases.moms_details"
+                inst_site = "moms_instance.site"
+                nar_site = "narrative.site"
+                release_data = MonitoringReleasesSchema(
+                    exclude=["event_alert.event", f"{trig_moms}.{inst_site}",
+                             f"{trig_moms}.{nar_site}", f"{rel_moms}.{inst_site}",
+                             f"{rel_moms}.{nar_site}"]).dump(release).data
+                alert_level = event_alert.public_alert_symbol.alert_level
+                ial = build_internal_alert_level(
+                    alert_level, release.trigger_list)
+                release_data.update({
+                    "internal_alert_level": ial,
+                    "is_onset": check_if_onset_release(event_alert=event_alert,
+                                                       release_id=release.release_id,
+                                                       data_ts=data_ts)
+                })
 
-                    if validity_ts:
-                        if release_ts < validity_ts:
-                            release_type = "latest"
-                        elif release_ts == validity_ts:
-                            release_type = "end_of_validity"
-                        elif validity_ts < release_ts:
-                            if event_alert["public_alert_symbol"]["alert_level"] > 0:
-                                release_type = "overdue"
-                            else:
-                                release_type = "extended"
-
-                    timeline_entries.append({
-                        "item_timestamp": timestamp,
-                        "item_type": "release",
-                        "item_data": release,
-                        "release_type": release_type
-                    })
+                timeline_entries.append({
+                    "item_timestamp": timestamp,
+                    "item_type": "release",
+                    "item_data": release_data,
+                    "release_type": release_type
+                })
 
         # Narratives
-        # Temporary Build - not using Schema for the relationship with events and narratives
-        # have not been set up as of Oct 1 2019. Will followup tomorrow.
         narratives_list = get_narratives(event_id=event_id)
         narratives_data_list = NarrativesSchema(
             many=True).dump(narratives_list).data
@@ -1096,9 +1113,8 @@ def get_event_timeline_data(event_id):
                 })
 
         # EOS Analysis
-        # Temporary Build - not using Schema for the relationship with events and eos_analysis
-        # have not been set up as of Oct 1 2019. Will followup tomorrow.
-        eos_analysis_list = get_eos_data_analysis(event_id=event_id)
+        eos_analysis_list = get_eos_data_analysis(
+            event_id=event_id, analysis_only=False)
         eos_analysis_data_list = EndOfShiftAnalysisSchema(
             many=True).dump(eos_analysis_list).data
 

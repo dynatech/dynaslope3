@@ -2,9 +2,12 @@
     Utility file for Rainfall tables.
     Contains functions essential in accessing and saving into Rainfall table.
 """
+
+import json
 from connection import DB
-from src.models.analysis import (
-    RainfallAlerts as ra, RainfallGauges, RainfallPriorities, RainfallThresholds)
+from src.models.analysis import RainfallAlerts as ra
+from src.utils.extra import get_unix_ts_value
+from analysis.rainfall.rainfall import web_plotter
 
 
 def get_rainfall_alerts(site_id=None, latest_trigger_ts=None):
@@ -26,6 +29,7 @@ def get_rainfall_gauge_name(rainfall_alert):
     """
     Just check rainfall
     """
+
     rain_gauge_name = ""
     try:
         rain_gauge_name = rainfall_alert.rainfall_gauge.gauge_name
@@ -38,3 +42,85 @@ def get_rainfall_gauge_name(rainfall_alert):
         pass
 
     return rain_gauge_name
+
+
+def get_rainfall_plot_data(site_code, ts, days):
+    """
+    """
+
+    json_rainfall_data = web_plotter(site_code, ts, days)
+    temp = json.loads(json_rainfall_data)
+    rainfall_data = temp[0]  # return behavior by pandas
+    plot_data = process_rainfall_plot_data(rainfall_data)
+
+    return plot_data
+
+
+def process_rainfall_plot_data(rainfall_data):
+    """
+    """
+
+    raw_plot = rainfall_data["plot"]
+    plot_data = []
+
+    for gauge_data in raw_plot:
+        temp = {
+            "24h": [],
+            "72h": [],
+            "rain": [],
+            "null_ranges": [],
+            "max_rval": 0,
+            "max_72h": 0
+        }
+
+        data = gauge_data["data"]
+        push_null_flag = False
+        start = None
+        end = None
+        instance_count = len(data)
+
+        if data:
+            for index, row in enumerate(data):
+                rain_val = row["rain"]
+                ts = row["ts"] + ":00"  # take note that seconds is missing
+                int_ts = get_unix_ts_value(ts)
+
+                seventytwo_hr_cumulative = row["72hr cumulative rainfall"]
+                if seventytwo_hr_cumulative and seventytwo_hr_cumulative > temp["max_72h"]:
+                    temp["max_72h"] = seventytwo_hr_cumulative
+
+                if rain_val is None:
+                    if start is None:
+                        start = int_ts
+                    end = int_ts
+
+                    if index == instance_count - 1:
+                        push_null_flag = True
+                else:
+                    if rain_val > temp["max_rval"]:
+                        temp["max_rval"] = rain_val
+
+                    if start:
+                        push_null_flag = True
+
+                if push_null_flag:
+                    arr_range = {"from": start, "to": end}
+                    temp["null_ranges"].append(arr_range)
+                    start = None
+                    end = None
+                    push_null_flag = False
+
+                temp_arr = [
+                    (rain_val, "rain"),
+                    (seventytwo_hr_cumulative, "72h"),
+                    (row["24hr cumulative rainfall"], "24h")
+                ]
+
+                for val, key in temp_arr:
+                    temp[key].append([int_ts, val])
+
+        temp.update(gauge_data)
+        del temp["data"]
+        plot_data.append(temp)
+
+    return plot_data

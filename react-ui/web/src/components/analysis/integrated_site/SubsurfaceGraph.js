@@ -2,14 +2,46 @@ import React, { Fragment, useState, useEffect } from "react";
 
 import Highcharts from "highcharts";
 import HighchartsReact from "highcharts-react-official";
-import { Button, withStyles, Grid, Paper } from "@material-ui/core";
+import { Grid, Paper } from "@material-ui/core";
 import moment from "moment";
 
 import { isWidthDown } from "@material-ui/core/withWidth";
-import GeneralStyles from "../../../GeneralStyles";
 import { getSubsurfacePlotData } from "../ajax";
 import BackToMainButton from "./BackToMainButton";
+import { computeForStartTs } from "../../../UtilityFunctions";
 
+function assignColorToEachSeries (data_array) {
+    const size = data_array.length;
+    const rainbow_colors = makeRainbowColors(size);
+    for (let i = 0; i < size; i += 1) {
+        if (data_array[i].name !== "Cumulative") data_array[i].color = rainbow_colors[i];
+    }
+    return data_array;
+}
+
+let rainbow_colors = [];
+
+function makeRainbowColors (size) {
+    const rainbow = [...rainbow_colors];
+    if (rainbow.length !== size) {
+        for (let i = 0; i < size; i += 1) {
+            const obj = { index: i, size };
+            const red = sinToHex(obj, 2 * Math.PI * 2 / 3);
+            const blue = sinToHex(obj, 1 * Math.PI * 2 / 3);
+            const green = sinToHex(obj, 0 * Math.PI * 2 / 3);
+            rainbow[i] = `#${red}${green}${blue}`;
+        }
+        rainbow_colors = [...rainbow];
+    }
+    return rainbow;
+}
+
+function sinToHex ({ index, size }, phase) {
+    const sin = Math.sin(Math.PI / size * 2 * index + phase);
+    const int = Math.floor(sin * 127) + 128;
+    const hex = int.toString(16);
+    return hex.length === 1 ? `0${hex}` : hex;
+}
 
 function plotColumnPosition (column_data, type) {
     const { data: data_list } = column_data;
@@ -58,7 +90,9 @@ function plotVelocityAlerts (column_data, type) {
     const { velocity_alerts, timestamps_per_node } = column_data;
     const velocity_data = [];
     const processed_data = assignColorToEachSeries(timestamps_per_node);
-    velocity_alerts.forEach(({ orientation, data: series_list }) => {
+    velocity_alerts.forEach(row => {
+        console.log(row);
+        const { orientation, data: series_list } = row;
         const alerts = series_list;
         const colored_data = [...processed_data];
         Object.keys(alerts).forEach((alert) => {
@@ -314,8 +348,29 @@ function prepareVelocityAlertsOption (set_data, form) {
 }
 
 function SubsurfaceGraph (props) {
-    const { classes, history, match: { params: { tsm_sensor } }, width } = props;
-    const [timestamps, setTimestamps] = useState({ start: "2019-06-24 01:00:00", end: "2019-06-17 01:00:00" });
+    const {
+        match: { params: { tsm_sensor: sensor } },
+        width, input: consolidated_input, disableBack
+    } = props;
+
+    let ts_end = "";
+    let dt_ts_end;
+    let tsm_sensor = sensor;
+    if (typeof consolidated_input !== "undefined") {
+        const { ts_end: te, tsm_sensor: tsm } = consolidated_input;
+        ts_end = te;
+        dt_ts_end = moment(te);
+        tsm_sensor = tsm;
+    } else {
+        const ts_now = moment();
+        ts_end = ts_now.format("YYYY-MM-DD HH:mm:ss");
+        dt_ts_end = ts_now;
+    }
+    const ts_start = computeForStartTs(dt_ts_end, 7, "days");
+
+    const disable_back = typeof disableBack === "undefined" ? false : disableBack;
+
+    const [timestamps, setTimestamps] = useState({ start: ts_start, end: ts_end });
     const [processed_data, setProcessedData] = useState([]);
     const input = { ts_end: timestamps.end, ts_start: timestamps.start, subsurface_column: tsm_sensor };
     const is_desktop = isWidthDown(width, "sm");
@@ -349,7 +404,7 @@ function SubsurfaceGraph (props) {
 
     return (
         <Fragment>
-            <BackToMainButton {...props} />
+            { !disable_back && <BackToMainButton {...props} /> }
 
             <div style={{ marginTop: 16 }}>
                 <Grid container spacing={4}>
@@ -373,36 +428,4 @@ function SubsurfaceGraph (props) {
     );
 }
 
-export default withStyles(GeneralStyles)(SubsurfaceGraph);
-
-function assignColorToEachSeries (data_array) {
-    const size = data_array.length;
-    const rainbow_colors = makeRainbowColors(size);
-    for (let i = 0; i < size; i += 1) {
-        if (data_array[i].name !== "Cumulative") data_array[i].color = rainbow_colors[i];
-    }
-    return data_array;
-}
-
-let rainbow_colors = [];
-function makeRainbowColors (size) {
-    const rainbow = [...rainbow_colors];
-    if (rainbow.length !== size) {
-        for (let i = 0; i < size; i += 1) {
-            const obj = { index: i, size };
-            const red = sinToHex(obj, 2 * Math.PI * 2 / 3);
-            const blue = sinToHex(obj, 1 * Math.PI * 2 / 3);
-            const green = sinToHex(obj, 0 * Math.PI * 2 / 3);
-            rainbow[i] = `#${red}${green}${blue}`;
-        }
-        rainbow_colors = [...rainbow];
-    }
-    return rainbow;
-}
-
-function sinToHex ({ index, size }, phase) {
-    const sin = Math.sin(Math.PI / size * 2 * index + phase);
-    const int = Math.floor(sin * 127) + 128;
-    const hex = int.toString(16);
-    return hex.length === 1 ? `0${hex}` : hex;
-}
+export default SubsurfaceGraph;

@@ -260,7 +260,7 @@ class MonitoringMomsReleases(UserMixin, DB.Model):
         "ewi_db.monitoring_moms.moms_id"), nullable=False)
 
     trigger_misc = DB.relationship(
-        "MonitoringTriggersMisc", backref=DB.backref("moms_releases", lazy="dynamic"), lazy="joined", innerjoin=True)
+        "MonitoringTriggersMisc", backref=DB.backref("moms_releases", lazy="dynamic"), lazy="joined")
 
     moms_details = DB.relationship(
         "MonitoringMoms", backref=DB.backref("moms_release", lazy="raise"), lazy="joined", innerjoin=True)
@@ -631,12 +631,13 @@ class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Monitoring Releases class
     """
     event_alert = fields.Nested(MonitoringEventAlertsSchema,
-                          exclude=("releases",))
+                            exclude=("releases",))
     data_ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     triggers = fields.Nested("MonitoringTriggersSchema",
                              many=True, exclude=("release", "event"))
     release_publishers = fields.Nested(
         "MonitoringReleasePublishersSchema", many=True, exclude=("releases",))
+    moms_releases = fields.Nested("MonitoringMomsReleasesSchema", many=True, exclude=["release"])
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -652,7 +653,7 @@ class MonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
                             exclude=("triggers", ))
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     internal_sym = fields.Nested(
-        "InternalAlertSymbolsSchema", only=("alert_symbol",))
+        "InternalAlertSymbolsSchema") # only=("alert_symbol",)
     trigger_misc = fields.Nested(
         "MonitoringTriggersMiscSchema", exclude=("trigger_parent",))
 
@@ -755,7 +756,7 @@ class MomsInstancesSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Moms Instance class
     """
     moms = fields.Nested("MonitoringMomsSchema", many=True, exclude=("moms_instance", ))
-    feature = fields.Nested("MomsFeaturesSchema", exclude=("instances", ))
+    feature = fields.Nested("MomsFeaturesSchema", exclude=("instances", "alerts"))
     site_id = fields.Integer()
     site = fields.Nested("SitesSchema")
 
@@ -842,7 +843,8 @@ class InternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Internal Alert Symbols class
     """
     trigger_sym_id = fields.Integer()
-    trigger_symbol = fields.Nested("OperationalTriggerSymbolsSchema", exclude=("internal_alert_symbol",))
+    trigger_symbol = fields.Nested("OperationalTriggerSymbolsSchema",
+                                   exclude=("internal_alert_symbol",))
 
     class Meta:
         """Saves table class structure as schema model"""

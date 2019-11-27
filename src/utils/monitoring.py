@@ -565,7 +565,7 @@ def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_i
     mr = MonitoringReleases
     base = mr.query
     return_data = None
-    
+
     if release_id:
         return_data = base.filter(
             mr.release_id == release_id).first()
@@ -1547,12 +1547,16 @@ def is_rain_surficial_subsurface_trigger(alert_symbol):
     return flag
 
 
-def check_if_onset_release(event_alert_id, release_id, data_ts):
+def check_if_onset_release(event_alert_id=None, release_id=None, data_ts=None, event_alert=None):
     """
     """
 
-    mea = MonitoringEventAlerts.query.filter_by(
-        event_alert_id=event_alert_id).first()
+    if not event_alert:
+        mea = MonitoringEventAlerts.query.filter_by(
+            event_alert_id=event_alert_id).first()
+    else:
+        mea = event_alert
+
     # releases are ordered by desc by default
     first_release = mea.releases[-1].release_id
     is_onset = True

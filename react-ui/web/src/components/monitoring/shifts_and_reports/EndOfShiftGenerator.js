@@ -1,4 +1,5 @@
 import React, { Fragment, useState } from "react";
+import ContentLoader from "react-content-loader";
 import moment from "moment";
 import { Grid, withStyles, Button, withWidth, Paper, Typography, CircularProgress } from "@material-ui/core";
 import { isWidthDown } from "@material-ui/core/withWidth";
@@ -22,7 +23,8 @@ const styles = theme => ({
         margin: "12px 0",
         [theme.breakpoints.down("sm")]: {
             margin: "24px 0"
-        }
+        },
+        marginTop: 16
     },
     buttonGrid: {
         textAlign: "right",
@@ -35,6 +37,19 @@ const styles = theme => ({
         paddingLeft: 8
     }
 });
+
+const MyLoader = () => (
+    <ContentLoader 
+        height={150}
+        width={700}
+        speed={0.5}
+        primaryColor="#f3f3f3"
+        secondaryColor="#ecebeb"
+        style={{ width: "100%" }}
+    >
+        <rect x="-4" y="5" rx="4" ry="4" width="700" height="111" /> 
+    </ContentLoader>
+);
 
 function createDateTime ({ label, value, id }, handleDateTime) {
     return (
@@ -58,6 +73,7 @@ function createDateTime ({ label, value, id }, handleDateTime) {
         />
     );
 }
+
 // eslint-disable-next-line max-params
 function prepareEOSRequest (start_ts, shift_time, setEosData, setIsLoading) {
     const time = shift_time === "am" ? "07:30:00" : "19:30:00"; 
@@ -148,24 +164,28 @@ function EndOfShiftGenerator (props) {
 
             <div className={classes.expansionPanelsGroup}>
                 {
-                    isLoading ? (
-                        <CircularProgress
-                            size={24}
+                    eosData === null && !isLoading && (
+                        <Paper
                             style={{
-                                marginLeft: 15,
-                                position: "relative",
-                                top: 4
+                                height: "20vh", padding: 60, display: "flex",
+                                justifyContent: "center", alignItems: "center",
+                                background: "gainsboro", border: "4px solid #CCCCCC"
                             }}
-                        />
+                        >
+                            <div>Generate end-of-shift reports here</div>
+                        </Paper>
+                    )
+                }
+
+                {
+                    isLoading ? (
+                        <MyLoader />
                     ) : (
                         <Paper>
                             {
-                                eosData !== null && eosData.map(row => {
-                                    const eos_report = row;
-                                    return (
-                                        <DetailedExpansionPanels data={eos_report} />
-                                    );
-                                })
+                                eosData !== null && eosData.map((row, index) => (
+                                    <DetailedExpansionPanels data={row} key={index} />
+                                ))
                             }
                         </Paper>
                     )

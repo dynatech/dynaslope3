@@ -7,8 +7,9 @@ import json
 import time
 from datetime import datetime
 from connection import DB
-from src.models.analysis import TSMSensors
+from src.models.analysis import TSMSensors, Loggers
 from analysis_scripts.analysis.subsurface.vcdgen import vcdgen
+from src.utils.extra import get_unix_ts_value
 
 
 def get_site_subsurface_columns(site_code):
@@ -20,10 +21,12 @@ def get_site_subsurface_columns(site_code):
             site_id
     """
     sub_col = TSMSensors
-    filter_var = sub_col.tsm_name.like("%" + str(site_code) + "%")
+    filter_var = Loggers.logger_name.like("%" + str(site_code) + "%")
 
-    sub_column = sub_col.query.order_by(
-        DB.asc(sub_col.tsm_name), DB.desc(sub_col.date_activated)).filter(filter_var).all()
+    sub_column = sub_col.query.join(Loggers).options(
+        DB.joinedload("logger").joinedload("logger_model").raiseload("*")
+    ).order_by(
+        DB.asc(Loggers.logger_name), DB.desc(sub_col.date_activated)).filter(filter_var).all()
 
     return sub_column
 
@@ -192,7 +195,7 @@ def process_displacement_data(disp_group):
                     temp_2.append([o_ts, index])
 
                 temp_3 = {"name": index, "data": temp_2}
-                ts_per_node.setdefault(index, []).append(temp_3)
+                ts_per_node.setdefault(index, temp_3)
 
         series.append(temp)
 
@@ -206,7 +209,7 @@ def process_displacement_data(disp_group):
 
         displacement.append(temp)
 
-    return displacement, ts_per_node
+    return displacement, list(ts_per_node.values())
 
 
 def get_point_cml_base(point, cml_base):
@@ -244,18 +247,12 @@ def process_velocity_alerts_data(vel_alerts, ts_per_node):
     return ret_dict
 
 
-def get_unix_ts_value(str_ts):
-    dt_ts = datetime.strptime(str_ts, "%Y-%m-%d %H:%M:%S")
-    int_ts = time.mktime(dt_ts.timetuple()) * 1000
-    return int_ts
-
-
-def get_subsurface_plot_data(column="", start_date="", end_date=""):
+def get_subsurface_plot_data(column_name, end_ts, start_date=None):
     """
 
     """
 
-    json_data = vcdgen("magta", endTS="2017-06-09 19:30")
+    json_data = vcdgen(column_name, endTS=end_ts)
     data = json.loads(json_data)[0]  # return value pag dict
 
     column_position = process_column_position_data(data["c"])

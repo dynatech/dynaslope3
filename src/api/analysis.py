@@ -2,9 +2,8 @@
 """
 
 import os
-import requests
 import json
-import subprocess
+import requests
 from flask import Blueprint, jsonify, request
 from connection import DB
 from src.models.analysis import (
@@ -13,6 +12,7 @@ from src.models.analysis import (
     DataPresenceTSM, DataPresenceTSMSchema,
     DataPresenceLoggers, DataPresenceLoggersSchema,
     EarthquakeEvents, EarthquakeEventsSchema)
+from src.utils.surficial import get_surficial_data_presence
 
 ANALYSIS_BLUEPRINT = Blueprint("analysis_blueprint", __name__)
 
@@ -38,45 +38,53 @@ def get_latest_data_presence(group, item_name="all"):
         schema = DataPresenceRainGaugesSchema(
             many=is_many, exclude=("rain_gauge.rainfall_alerts", "rain_gauge.rainfall_priorities"))
         join_table = [RainfallGauges]
+        order = RainfallGauges.gauge_name
         filter_attr = RainfallGauges.gauge_name
     elif group == "tsm":
         table = DataPresenceTSM
         options = DB.joinedload("tsm_sensor")
         schema = DataPresenceTSMSchema(many=is_many)
         join_table = [TSMSensors, Loggers]
+        order = Loggers.logger_name
         filter_attr = Loggers.logger_name
     elif group == "loggers":
         table = DataPresenceLoggers
         schema = DataPresenceLoggersSchema(many=is_many)
         join_table = [Loggers]
+        order = Loggers.logger_name
         filter_attr = Loggers.logger_name
+    elif group == "surficial":
+        pass
     else:
-        return "Data group inputs for querying data presence can only be 'rain_gauges', 'tsm' or 'loggers'"
+        return "Data group inputs for querying data presence can only be 'rain_gauges', 'surficial', 'tsm' or 'loggers'"
 
-    query = DB.session.query(table)
+    if group != "surficial":
+        query = DB.session.query(table)
 
-    if options:
-        query = query.options(options)
+        if options:
+            query = query.options(options)
 
-    if item_name != "all":
         for jt in join_table:
             query = query.join(jt)
 
-        query = query.filter(filter_attr == item_name).first()
-    else:
-        query = query.all()
+        if item_name != "all":
+            query = query.filter(filter_attr == item_name).first()
+        else:
+            query = query.order_by(order).all()
 
-    result = schema.dump(query).data
+        result = schema.dump(query).data
+    else:
+        result = get_surficial_data_presence()
 
     return jsonify(result)
 
 
 @ANALYSIS_BLUEPRINT.route("/analysis/get_earthquake_events", methods=["GET"])
 def get_earthquake_events():
-    filter = request.args.get("filter", default=10, type=int)
+    _filter = request.args.get("filter", default=10, type=int)
     # .filter(EarthquakeEvents.eq_id == 13385)
     query = EarthquakeEvents.query.order_by(
-        EarthquakeEvents.eq_id.desc()).limit(filter).all()
+        EarthquakeEvents.eq_id.desc()).limit(_filter).all()
     result = EarthquakeEventsSchema(many=True).dump(query).data
 
     return jsonify(result)

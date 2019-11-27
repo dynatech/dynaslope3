@@ -187,8 +187,8 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     from src.api.situation_report import SITUATION_REPORT_BLUEPRINT
     app.register_blueprint(SITUATION_REPORT_BLUEPRINT, url_prefix="/api")
 
-    # from src.api.rainfall import RAINFALL_BLUEPRINT
-    # app.register_blueprint(RAINFALL_BLUEPRINT, url_prefix="/api")
+    from src.api.rainfall import RAINFALL_BLUEPRINT
+    app.register_blueprint(RAINFALL_BLUEPRINT, url_prefix="/api")
 
     from src.api.analysis import ANALYSIS_BLUEPRINT
     app.register_blueprint(ANALYSIS_BLUEPRINT, url_prefix="/api")

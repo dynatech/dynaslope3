@@ -62,14 +62,14 @@ alertgenscript = /home/ubuntu/centralserver/analysis/subsurface/alertgen.py
 gndalert1 = /home/ubuntu/centralserver/analysis/surficial/markeralerts.py
 surficialscript = /home/ubuntu/centralserver/analysis/surficial/markeralerts.py
 surfscriptlogs = /home/ubuntu/logs/marker_alerts.txt
-output_path = /Documents/monitoringoutput/
-realtime_path = /Documents/monitoringoutput/realtime/
-rainfall_path = /Documents/monitoringoutput/rainfall/
-surficial_path = /Documents/monitoringoutput/surficial/
-surficial_trending_path = /Documents/monitoringoutput/surficial/trending/
-surficial_meas_path = /Documents/monitoringoutput/surficial/meas/
-subsurface_path = /Documents/monitoringoutput/subsurface/
-eq_path = /Documents/monitoringoutput/eq/
+output_path = /temp/analysis/
+realtime_path = /temp/analysis/realtime/
+rainfall_path = /temp/analysis/rainfall/
+surficial_path = /temp/analysis/surficial/
+surficial_trending_path = /temp/analysis/surficial/trending/
+surficial_meas_path = /temp/analysis/surficial/meas/
+subsurface_path = /temp/analysis/subsurface/
+eq_path = /temp/analysis/eq/
 
 [simprefix]
 smart = 00,07,08,09,10,11,12,14,18,19,20,21,22,23,24,25,28,29,30,31,32,33,34,38,39,40,42,43,44,46,47,48,49,50,89,98,99

@@ -13,6 +13,7 @@ import {
 import { withStyles } from "@material-ui/core/styles";
 import DynaLogo from "../../images/dynaslope-logo.png";
 import DostPhivolcsLogo from "../../images/dost-phivolcs-logo.png";
+import PhivolcsDynaslopeLogo from "../../images/phivolcs-dynaslope-logo.png";
 import GeneralStyles from "../../GeneralStyles";
 import { logout, getCurrentUser } from "../sessions/auth";
 
@@ -33,11 +34,7 @@ const styles = theme => ({
     },
     projectTitle: {
         display: "block",
-        fontWeight: 900,
-        marginLeft: "1rem",
-        [theme.breakpoints.up("md")]: {
-            marginLeft: 0,
-        }
+        fontWeight: 900
     },
     titleBlock: {
         display: "block",
@@ -54,19 +51,18 @@ const styles = theme => ({
             display: "block",
         }
     },
-    dynaLogo: {
-        padding: "8px 0px",
-        marginLeft: 0,
-        [theme.breakpoints.up("md")]: {
-            padding: "12px 0px",
-            marginLeft: 12,
-        },
+    logo: {
+        marginRight: 12,
+        [theme.breakpoints.down("sm")]: {
+            marginRight: 0
+        }
     },
     sectionDesktop: {
         display: "none",
         [theme.breakpoints.up("md")]: {
             display: "flex",
-        },
+            padding: "4px 0"
+        }
     },
     list: {
         width: 250,
@@ -111,23 +107,19 @@ function Header (props) {
                     </IconButton>
 
                     <img
-                        src={DynaLogo}
-                        alt="Dynaslope Logo"
-                        className={`${classes.dynaLogo} ${classes.dynaslopeLogo} ${classes.sectionDesktop}`}
+                        src={PhivolcsDynaslopeLogo}
+                        alt="PHIVOLCS-Dynaslope Logo"
+                        className={`${classes.phivolcsDynaslopeLogo} ${classes.logo} ${classes.sectionDesktop}`}
                     />
+
                     <div className={classes.titleBlock}>
-                        <Typography className={classes.projectTitle} variant="h6" color="inherit" noWrap>
-                            PROJECT DYNASLOPE
+                        <Typography className={classes.projectTitle} variant="h4" color="inherit" noWrap>
+                            MIA 3.0
                         </Typography>
                         <Typography variant="caption" className={classes.projectSubtitle} color="inherit">
-                            IMPLEMENTED AND FUNDED BY
+                            Monitoring and Information Application
                         </Typography>
                     </div>
-                    <img
-                        src={DostPhivolcsLogo}
-                        alt="PHIVOLCS Logo"
-                        className={`${classes.sectionDesktop} ${classes.phivolcsLogo}`}
-                    />
 
                     <div className={classes.grow} />
                     <div className={classes.sectionDesktop}>
