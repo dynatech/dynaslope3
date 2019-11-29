@@ -7,7 +7,8 @@ from connection import DB
 from src.utils.contacts import (
     get_all_contacts, save_user_information,
     save_user_contact_numbers, save_user_affiliation,
-    ewi_recipient_migration, get_ewi_recipients
+    ewi_recipient_migration, get_ewi_recipients,
+    get_ground_measurement_reminder_recipients
 )
 
 
@@ -97,4 +98,9 @@ def ewi_recipients():
 
     data = get_ewi_recipients(site_ids)
 
+    return jsonify(data)
+
+@CONTACTS_BLUEPRINT.route("/contacts/testing_gnd_meas", methods=["GET", "POST"])
+def testing_gnd_meas():
+    data = get_ground_measurement_reminder_recipients()
     return jsonify(data)

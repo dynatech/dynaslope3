@@ -165,7 +165,7 @@ function ContactForm (props) {
             last_name, middle_name, nickname, user_id, organizations
         } } = chosenContact;
         initial_user_details = { first_name, last_name, middle_name, nickname, user_id };
-
+        console.log(chosenContact)
         if (organizations.length !== 0) {
             const { scope, name } = organizations[0].organization;
             const site_details = organizations[0].site;
