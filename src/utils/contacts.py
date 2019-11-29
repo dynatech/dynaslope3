@@ -336,14 +336,13 @@ def get_ground_measurement_reminder_recipients():
                 DB.subqueryload("mobile_numbers").joinedload("mobile_number", innerjoin=True),
                 DB.subqueryload("organizations").joinedload("site", innerjoin=True),
                 DB.subqueryload("organizations").joinedload("organization", innerjoin=True),
-                DB.subqueryload("ewi_restrictions"),
                 DB.raiseload("*")
             ).filter(
                 Users.ewi_recipient == 1, Sites.site_id.in_(site_ids),
                 UserOrganizations.org_id == 1
                 ).all()
         user_per_site_result = UsersRelationshipSchema(
-            many=True, exclude=["emails", "teams", "landline_numbers"]).dump(user_per_site_query).data
+            many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restrictions"]).dump(user_per_site_query).data
         feedback.append({"type": row["type"], "recipients": user_per_site_result})
 
 

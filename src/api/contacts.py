@@ -100,7 +100,7 @@ def ewi_recipients():
 
     return jsonify(data)
 
-@CONTACTS_BLUEPRINT.route("/contacts/testing_gnd_meas", methods=["GET", "POST"])
-def testing_gnd_meas():
+@CONTACTS_BLUEPRINT.route("/contacts/get_ground_meas_reminder_recipients", methods=["GET", "POST"])
+def get_ground_meas_reminder_recipients():
     data = get_ground_measurement_reminder_recipients()
     return jsonify(data)
