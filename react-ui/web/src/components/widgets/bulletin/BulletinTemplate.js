@@ -306,14 +306,9 @@ function TitleAndMainInfo (props) {
 }
 
 function BulletinTemplate (props) {
-    // const { releaseId, width, match: { params: { release_id } } } = props;
     const { releaseId, width } = props;
     const classes = useStyle(releaseId)();
     const [excess_divs, setExcessDivs] = useState([]);
-    // const [classes, setClasses] = useState(useStyle());
-    // if (typeof releaseId !== "undefined") {
-    //     setClasses(useStyleForModal());
-    // }
     const [is_loaded, setIsLoaded] = useState(false);
     const content_body = useRef(null);
     const [bulletin_detail, setBulletinDetails] = useState({
@@ -333,6 +328,7 @@ function BulletinTemplate (props) {
         publishers: "",
         next_ewi_release_ts: ""
     });
+
     const {
         alert_level,
         community_response, households_at_risk,
@@ -349,6 +345,7 @@ function BulletinTemplate (props) {
             const { match: { params: { release_id } } } = props;
             temp = release_id;
         } 
+        
         getBulletinDetails(temp, data => {
             const { site } = data;
             const site_address = prepareSiteAddress(site, false);

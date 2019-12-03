@@ -175,3 +175,17 @@ export function getSiteSubsurfaceColumns (site_code, callback) {
         console.error(error);
     });
 }
+
+export function saveChartSVG (input, callback) {
+    const api_link = `${host}/api/analysis/save_chart_svg`;
+    
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save SVG", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}

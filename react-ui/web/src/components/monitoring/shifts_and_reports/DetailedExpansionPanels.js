@@ -10,12 +10,11 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
 import { Grid } from "@material-ui/core";
-import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
-import { compose } from "recompose";
 import { Refresh, SaveAlt, Send } from "@material-ui/icons";
 import CKEditor from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
+import { react_host } from "../../../config";
 
 const styles = theme => ({
     root: {
@@ -63,7 +62,7 @@ function handleCheckboxToggle (value, checkboxStatus, setCheckboxStatus) {
 }
 
 function DetailedExpansionPanel (props) {
-    const { data: eos_report, classes, width } = props;
+    const { data: eos_report, classes } = props;
     const [siteCode, setSiteCode] = useState("");
     const [shiftSummary, setShiftSummary] = useState("");
     const [dataAnalysis, setDataAnalysis] = useState("");
@@ -94,7 +93,7 @@ function DetailedExpansionPanel (props) {
 
     useEffect(() => {
         if (checkboxStatus.rainfall) {
-            console.log("Rainfall");
+            window.open(`${react_host}/chart_rendering/${siteCode}/rainfall`, "_blank");
         }
     }, [checkboxStatus.rainfall]);
 
@@ -190,4 +189,4 @@ DetailedExpansionPanel.propTypes = {
     classes: PropTypes.object.isRequired,
 };
 
-export default compose(withWidth(), withStyles(styles))(DetailedExpansionPanel);
+export default withStyles(styles)(DetailedExpansionPanel);

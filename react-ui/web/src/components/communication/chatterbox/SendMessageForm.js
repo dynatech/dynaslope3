@@ -8,12 +8,14 @@ import QuickSelectModal from "./QuickSelectModal";
 function SendMessageForm (props) {
     const [recipients, setRecipients] = useState(null);
     const [quick_select, setQuickSelect] = useState(false);
-    const { isMobile, textboxValue } = props;
+    const { isMobile, textboxValue, disableQuickSelect } = props;
+
+    const disable_select = typeof disableQuickSelect === "undefined" ? false : disableQuickSelect;
 
     return (
         <Fragment>
             <Grid container justify="space-around" alignItems="flex-end">
-                <Grid item xs={10} sm={11}>
+                <Grid item xs>
                     <SelectMultipleWithSuggest
                         label="Recipients"
                         options={[]}
@@ -26,16 +28,20 @@ function SendMessageForm (props) {
                     />
                 </Grid>
 
-                <Grid item xs={2} sm={1} style={{ textAlign: "right" }}>
-                    <IconButton
-                        aria-label="Quick select option"
-                        onClick={value => setQuickSelect(true)}
-                    >
-                        <AddBox />
-                    </IconButton>
-                </Grid>
+                {
+                    !disable_select && (
+                        <Grid item style={{ textAlign: "right" }}>
+                            <IconButton
+                                aria-label="Quick select option"
+                                onClick={value => setQuickSelect(true)}
+                            >
+                                <AddBox />
+                            </IconButton>
+                        </Grid>
+                    )
+                }
             </Grid>
-
+            
             <QuickSelectModal value={quick_select} closeHandler={value => setQuickSelect(false)} />
 
             {

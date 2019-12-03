@@ -551,7 +551,11 @@ def get_internal_alert_symbols(internal_sym_id=None):
 #############################################
 
 
-def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_id=None, user_id=None, exclude_routine=False):
+def get_monitoring_releases(
+        release_id=None, ts_start=None, ts_end=None,
+        event_id=None, user_id=None, exclude_routine=False,
+        load_options=None
+        ):
     """
     Returns monitoring_releases based on given parameters.
 
@@ -563,31 +567,43 @@ def get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, event_i
     me = MonitoringEvents
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
-    base = mr.query
+    base = mr.query.order_by(DB.desc(mr.data_ts)) \
+        .order_by(DB.desc(mr.release_time))
     return_data = None
+
+    if load_options == "end_of_shift":
+        ea_load = DB.joinedload("event_alert", innerjoin=True)
+        base = base.options(
+            ea_load.joinedload("event", innerjoin=True)
+            .joinedload("site", innerjoin=True)
+            .raiseload("*"),
+            ea_load.joinedload("public_alert_symbol", innerjoin=True),
+            DB.raiseload("*")
+        )
 
     if release_id:
         return_data = base.filter(
             mr.release_id == release_id).first()
-    elif ts_start and ts_end:
-        base = base.order_by(DB.desc(mr.data_ts)).order_by(DB.desc(mr.release_time)).join(mea).filter(DB.and_(
-            ts_start <= mr.data_ts, mr.data_ts <= ts_end
-        )).filter(me.status == 2)
+    else:
+        if ts_start and ts_end:
+            base = base.filter(DB.and_(
+                ts_start <= mr.data_ts,
+                mr.data_ts <= ts_end
+            ))
 
-        if event_id:
-            base = base.join(mea).join(me).filter(me.event_id)
+        if event_id or exclude_routine:
+            base = base.join(mea)
+
+            if event_id:
+                base = base.filter(mea.event_id)
+            if exclude_routine:
+                base = base.join(me).filter(me.status == 2)
 
         if user_id:
             mrp = MonitoringReleasePublishers
             base = base.join(mrp).filter(mrp.user_id == user_id)
 
-        if exclude_routine:
-            base = base.join(me).filter(me.status == 2)
-            
         return_data = base.all()
-    else:
-        return_data = base.order_by(
-            DB.desc(mr.release_time)).all()
 
     return return_data
 

@@ -12,7 +12,7 @@ from analysis_scripts.analysis.subsurface.vcdgen import vcdgen
 from src.utils.extra import get_unix_ts_value
 
 
-def get_site_subsurface_columns(site_code):
+def get_site_subsurface_columns(site_code, include_deactivated=False):
     """
         Returns one or more row/s of subsurface_columns.
         Edit: [190320] - no provisions for None site_code parameter.
@@ -23,10 +23,15 @@ def get_site_subsurface_columns(site_code):
     sub_col = TSMSensors
     filter_var = Loggers.logger_name.like("%" + str(site_code) + "%")
 
-    sub_column = sub_col.query.join(Loggers).options(
+    query = sub_col.query.join(Loggers).options(
         DB.joinedload("logger").joinedload("logger_model").raiseload("*")
     ).order_by(
-        DB.asc(Loggers.logger_name), DB.desc(sub_col.date_activated)).filter(filter_var).all()
+        DB.asc(Loggers.logger_name), DB.desc(sub_col.date_activated)).filter(filter_var)
+
+    if not include_deactivated:
+        query = query.filter(sub_col.date_deactivated.is_(None))
+
+    sub_column = query.all()
 
     return sub_column
 

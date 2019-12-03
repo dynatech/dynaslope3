@@ -9,9 +9,12 @@ import { withStyles } from "@material-ui/core";
 import LoginComponent from "./components/sessions/Login";
 import { Header, Footer, Navigation } from "./components/layouts";
 import { isLoggedIn, refreshSession } from "./components/sessions/auth";
+
 import RoutesCollection from "./Routes";
 import { access_refresh_interval } from "./config";
+
 import BulletinTemplate from "./components/widgets/bulletin/BulletinTemplate";
+import ChartRenderingContainer from "./components/chart_rendering/Container";
 
 const styles = theme => ({
     app: {
@@ -83,6 +86,7 @@ function App (props) {
                     );
                 }} />
                 <Route path="/bulletin/:release_id" component={BulletinTemplate} />
+                <Route path="/chart_rendering/:site_code/:chart_type/:tsm_sensor?" component={ChartRenderingContainer} />
                 <Route path="/" render={r_props => {
                     return (
                     // eslint-disable-next-line no-nested-ternary

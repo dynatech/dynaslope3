@@ -19,7 +19,7 @@ import ValidationModal from "./ValidationModal";
 import useModal from "../../reusables/useModal";
 import BulletinModal from "../../widgets/bulletin/BulletinModal";
 import { getEWIMessage } from "../ajax";
-import SendMessageModal from "../../communication/chatterbox/SendMessageModal";
+import SendEwiSmsModal from "./SendEwiSmsModal";
 
 const useStyles = makeStyles(theme => {
     const general_styles = GeneralStyles(theme);
@@ -372,6 +372,7 @@ function MonitoringTables (props) {
     const { isShowing: isShowingSendEWI, toggle: toggleSendEWI } = useModal();
     const [chosenReleaseDetail, setChosenReleaseDetail] = useState({});
     const [isOpenBulletinModal, setIsOpenBulletinModal] = useState(false);
+    
     const handleExpansion = panel => (event, isExpanded) => {
         setExpanded(isExpanded ? panel : false);
     };
@@ -382,32 +383,20 @@ function MonitoringTables (props) {
         releaseFormOpenHandler();
     };
 
-    const [selected_release, setSelectedRelease] = useState(null);
     const [ewi_message, setEWIMessage] = useState("");
     const handleSMSRelease = release_id => {
-        console.log(release_id);
-        // setSelectedRelease(release_id);
         getEWIMessage(release_id, data => {
             setEWIMessage(data);
             toggleSendEWI();
         });
     };
 
-    // useEffect(() => {
-    //     if (selected_release !== null) {
-    //         getEWIMessage(selected_release, data => {
-    //             toggleSendEWI();
-    //         });
-    //     }
-    // }, [selected_release]);
-
-    const is_desktop = isWidthUp("md", width);
-
     const bulletinHandler = release => event => {
-        console.log(release);
         setChosenReleaseDetail(release);
         setIsOpenBulletinModal(true);
     };
+
+    const is_desktop = isWidthUp("md", width);
 
     let latest_db_alerts = [];
     let extended_db_alerts = [];
@@ -559,7 +548,7 @@ function MonitoringTables (props) {
                 />                
             </Grid>
 
-            <SendMessageModal
+            <SendEwiSmsModal
                 modalStateHandler={toggleSendEWI} 
                 modalState={isShowingSendEWI}
                 textboxValue={ewi_message}

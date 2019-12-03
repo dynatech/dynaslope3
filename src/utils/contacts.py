@@ -6,11 +6,10 @@ from sqlalchemy.orm import joinedload
 from connection import DB
 from src.models.users import (
     Users, UsersSchema,
-    UserEmails, UserEmailsSchema,
-    UserLandlines, UserLandlinesSchema,
+    UserEmails, UserLandlines,
     UsersRelationship, UsersRelationshipSchema,
-    UserEwiRestrictions, UserEwiRestrictionsSchema
-    )
+    UserEwiRestrictions
+)
 from src.models.mobile_numbers import (
     UserMobiles, UserMobilesSchema,
     MobileNumbers, MobileNumbersSchema
@@ -62,20 +61,73 @@ def get_all_contacts(return_schema=False):
     return mobile_numbers
 
 
-def get_ewi_recipients(site_ids=[]):
+def get_contacts_per_site(site_ids=None, site_codes=None, only_ewi_recipients=True, alert_level=0):
+    """
+    Function that get contacts per site
+    """
+
+    query = UsersRelationship.query.join(
+        UserOrganizations).join(Sites).options(
+            DB.subqueryload("mobile_numbers").joinedload(
+                "mobile_number", innerjoin=True),
+            DB.subqueryload("organizations").joinedload(
+                "site", innerjoin=True),
+            DB.subqueryload("organizations").joinedload(
+                "organization", innerjoin=True),
+            DB.raiseload("*"))
+
+    if site_ids:
+        query = query.filter(Sites.site_id.in_(site_ids))
+
+    if site_codes:
+        query = query.filter(Sites.site_code.in_(site_codes))
+
+    if only_ewi_recipients:
+        query = query.filter(Users.ewi_recipient == 1)
+
+    if alert_level != 0:
+        uer = UserEwiRestrictions
+        query = query.join(uer).filter(DB.or_(
+            uer.user_id.is_(None), uer.alert_level < alert_level
+        ))
+
+    user_per_site_query = query.all()
+    user_per_site_result = UsersRelationshipSchema(
+        many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]) \
+        .dump(user_per_site_query).data
+
+    return user_per_site_result
+
+
+def get_ewi_recipients(site_ids=None, site_codes=None, alert_level=0):
     """
     Function that get ewi recipients per site
     """
 
-    user_per_site_query = UsersRelationship.query.join(
+    query = UsersRelationship.query.join(
         UserOrganizations).join(Sites).options(
-            DB.subqueryload("mobile_numbers").joinedload("mobile_number", innerjoin=True),
-            DB.subqueryload("organizations").joinedload("site", innerjoin=True),
-            DB.subqueryload("organizations").joinedload("organization", innerjoin=True),
-            DB.subqueryload("ewi_restrictions"),
+            DB.subqueryload("mobile_numbers").joinedload(
+                "mobile_number", innerjoin=True),
+            DB.subqueryload("organizations").joinedload(
+                "site", innerjoin=True),
+            DB.subqueryload("organizations").joinedload(
+                "organization", innerjoin=True),
             DB.raiseload("*")
-        ).filter(
-            Users.ewi_recipient == 1, Sites.site_id.in_(site_ids)).all()
+    ).filter(Users.ewi_recipient == 1)
+
+    if site_ids:
+        query = query.filter(Sites.site_id.in_(site_ids))
+
+    if site_codes:
+        query = query.filter(Sites.site_code.in_(site_codes))
+
+    if alert_level != 0:
+        uer = UserEwiRestrictions
+        query = query.join(uer).filter(DB.or_(
+            uer.user_id.is_(None), uer.alert_level < alert_level
+        ))
+
+    user_per_site_query = query.all()
     user_per_site_result = UsersRelationshipSchema(
         many=True, exclude=["emails", "teams", "landline_numbers"]).dump(user_per_site_query).data
 
@@ -137,6 +189,7 @@ def save_user_email(emails, user_id):
 
     return True
 
+
 def save_user_contact_numbers(data, user_id):
     """
     Function that save user contact numbers
@@ -153,7 +206,8 @@ def save_user_contact_numbers(data, user_id):
             status = row["status"]
             if mobile_id == 0:
                 gsm_id = get_gsm_id_by_prefix(sim_num)
-                insert_mobile_number = MobileNumbers(sim_num=sim_num, gsm_id=gsm_id)
+                insert_mobile_number = MobileNumbers(
+                    sim_num=sim_num, gsm_id=gsm_id)
                 DB.session.add(insert_mobile_number)
                 DB.session.flush()
                 last_inserted_mobile_id = insert_mobile_number.mobile_id
@@ -171,13 +225,15 @@ def save_user_contact_numbers(data, user_id):
             landline_num = row["landline_num"]
 
             if landline_id == 0:
-                insert_landline_number = UserLandlines(user_id=user_id, landline_num=landline_num)
+                insert_landline_number = UserLandlines(
+                    user_id=user_id, landline_num=landline_num)
                 DB.session.add(insert_landline_number)
             else:
                 update_landline = UserLandlines.query.get(landline_id)
                 update_landline.landline_num = landline_num
 
     return True
+
 
 def save_user_affiliation(data, user_id):
     """
@@ -197,7 +253,8 @@ def save_user_affiliation(data, user_id):
     org_name = office
     modifier = ""
 
-    UserOrganizations.query.filter(UserOrganizations.user_id == user_id).delete()
+    UserOrganizations.query.filter(
+        UserOrganizations.user_id == user_id).delete()
 
     if scope in (0, 1):
         site_ids.append(site["value"])
@@ -220,7 +277,8 @@ def save_user_affiliation(data, user_id):
             site_ids.append(site.site_id)
 
     for site_id in site_ids:
-        user_organizations.append({"site_id": site_id, "org_id": org_id, "org_name": org_name})
+        user_organizations.append(
+            {"site_id": site_id, "org_id": org_id, "org_name": org_name})
 
     if scope == 5:
         insert_org = UserOrganizations(
@@ -238,7 +296,6 @@ def save_user_affiliation(data, user_id):
                 user_id=user_id, site_id=site_id, org_name=org_name, org_id=org_id)
             DB.session.add(insert_org)
 
-
     return True
 
 
@@ -247,9 +304,11 @@ def save_user_ewi_restriction(restriction, user_id):
     Function that save user ewi restriction
     """
 
-    UserEwiRestrictions.query.filter(UserEwiRestrictions.user_id == user_id).delete()
+    UserEwiRestrictions.query.filter(
+        UserEwiRestrictions.user_id == user_id).delete()
 
-    save_restriction_query = UserEwiRestrictions(user_id=user_id, alert_level=restriction)
+    save_restriction_query = UserEwiRestrictions(
+        user_id=user_id, alert_level=restriction)
     DB.session.add(save_restriction_query)
 
     return True
@@ -272,7 +331,7 @@ def get_gsm_id_by_prefix(mobile_number):
         gsm_id = 0
     else:
         gsm_id = result["gsm_id"]
-    
+
     return gsm_id
 
 

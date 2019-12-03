@@ -21,7 +21,8 @@ def wrap_get_site_subsurface_columns(site_code=None):
             site_code -> Can be None if you want to get all columns regardless of site
     """
     tsm_sensors_schema = TSMSensorsSchema(many=True)
-    tsm_sensors = get_site_subsurface_columns(site_code)
+    tsm_sensors = get_site_subsurface_columns(
+        site_code, include_deactivated=True)
 
     tsm_sensors_data = tsm_sensors_schema.dump(tsm_sensors).data
 

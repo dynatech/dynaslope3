@@ -7,7 +7,7 @@ from connection import DB
 from src.utils.contacts import (
     get_all_contacts, save_user_information,
     save_user_contact_numbers, save_user_affiliation,
-    ewi_recipient_migration, get_ewi_recipients
+    ewi_recipient_migration, get_contacts_per_site
 )
 
 
@@ -23,6 +23,7 @@ def wrap_get_all_contacts():
     contacts = get_all_contacts(return_schema=True)
 
     return jsonify(contacts)
+
 
 @CONTACTS_BLUEPRINT.route("/contacts/save_contact", methods=["GET", "POST"])
 def save_contact():
@@ -79,22 +80,28 @@ def migrate_ewi_recipient():
 
     return jsonify(True)
 
-@CONTACTS_BLUEPRINT.route("/contacts/ewi_recipients", methods=["GET", "POST"])
-def ewi_recipients():
 
-    data = request.get_json()
-    if data is None:
-        data = request.form
+@CONTACTS_BLUEPRINT.route("/contacts/get_contacts_per_site", methods=["GET", "POST"])
+@CONTACTS_BLUEPRINT.route("/contacts/get_contacts_per_site/<site_code>", methods=["GET", "POST"])
+def wrap_get_contacts_per_site(site_code=None):
+    temp = {
+        "site_ids": [],
+        "site_codes": [],
+        "alert_level": 0,
+        "only_ewi_recipients": True
+    }
 
-    try:
-        if data["value"] is not None:
-            data = data["value"]
-    except KeyError:
-        print("Value is defined.")
-        pass
+    if site_code:
+        temp["site_codes"].append(site_code)
+    else:
+        data = request.get_json()
 
-    site_ids = data["site_ids"]
+        for key in ["site_ids", "site_codes", "alert_level", "only_ewi_recipients"]:
+            if key in data:
+                temp[key] = data[key]
 
-    data = get_ewi_recipients(site_ids)
-
+    data = get_contacts_per_site(site_ids=temp["site_ids"],
+                                 site_codes=temp["site_codes"],
+                                 only_ewi_recipients=temp["only_ewi_recipients"],
+                                 alert_level=temp["alert_level"])
     return jsonify(data)

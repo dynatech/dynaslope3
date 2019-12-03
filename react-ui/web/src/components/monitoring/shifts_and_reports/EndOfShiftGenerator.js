@@ -88,6 +88,26 @@ function prepareEOSRequest (start_ts, shift_time, setEosData, setIsLoading) {
     });   
 }
 
+function EoSRNoData (props) {
+    const { isStart } = props;
+    const is_start = isStart === "undefined" ? false : isStart;
+    let message = "No event report to generate";
+    if (is_start) {
+        message = "Generate end-of-shift reports here";
+    }
+    return (
+        <Paper
+            style={{
+                height: "20vh", padding: 60, display: "flex",
+                justifyContent: "center", alignItems: "center",
+                background: "gainsboro", border: "4px solid #CCCCCC"
+            }}
+        >
+            <div>{message}</div>
+        </Paper>
+    );
+}
+
 function EndOfShiftGenerator (props) {
     const { classes, width } = props;
     const datetime_now = moment();
@@ -165,15 +185,7 @@ function EndOfShiftGenerator (props) {
             <div className={classes.expansionPanelsGroup}>
                 {
                     eosData === null && !isLoading && (
-                        <Paper
-                            style={{
-                                height: "20vh", padding: 60, display: "flex",
-                                justifyContent: "center", alignItems: "center",
-                                background: "gainsboro", border: "4px solid #CCCCCC"
-                            }}
-                        >
-                            <div>Generate end-of-shift reports here</div>
-                        </Paper>
+                        <EoSRNoData isStart />
                     )
                 }
 
@@ -183,9 +195,15 @@ function EndOfShiftGenerator (props) {
                     ) : (
                         <Paper>
                             {
-                                eosData !== null && eosData.map((row, index) => (
-                                    <DetailedExpansionPanels data={row} key={index} />
-                                ))
+                                eosData !== null && (
+                                    eosData.length > 0 ? (
+                                        eosData.map((row, index) => (
+                                            <DetailedExpansionPanels data={row} key={index} />
+                                        ))
+                                    ) : (
+                                        <EoSRNoData />
+                                    ) 
+                                )
                             }
                         </Paper>
                     )

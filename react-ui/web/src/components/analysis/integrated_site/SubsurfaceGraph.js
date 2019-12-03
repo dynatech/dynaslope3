@@ -1,22 +1,30 @@
-import React, { Fragment, useState, useEffect } from "react";
+import React, {
+    Fragment, useState, useEffect,
+    useRef, createRef
+} from "react";
 
 import Highcharts from "highcharts";
+import HC_exporting from "highcharts/modules/exporting";
 import HighchartsReact from "highcharts-react-official";
-import { Grid, Paper } from "@material-ui/core";
-import moment from "moment";
+import { Grid, Paper, Hidden } from "@material-ui/core";
+import * as moment from "moment";
 
 import { isWidthDown } from "@material-ui/core/withWidth";
-import { getSubsurfacePlotData } from "../ajax";
+import { getSubsurfacePlotData, saveChartSVG } from "../ajax";
 import BackToMainButton from "./BackToMainButton";
 import { computeForStartTs } from "../../../UtilityFunctions";
+
+window.moment = moment;
+HC_exporting(Highcharts);
 
 function assignColorToEachSeries (data_array) {
     const size = data_array.length;
     const rainbow_colors = makeRainbowColors(size);
+    const data = [...data_array];
     for (let i = 0; i < size; i += 1) {
-        if (data_array[i].name !== "Cumulative") data_array[i].color = rainbow_colors[i];
+        if (data_array[i].name !== "Cumulative") data[i].color = rainbow_colors[i];
     }
-    return data_array;
+    return data;
 }
 
 let rainbow_colors = [];
@@ -65,8 +73,8 @@ function plotDisplacement (column_data, type) {
     column_data.forEach((data_list, index) => {
         const { data: series_list, annotations } = data_list;
 
-        const colored_data = assignColorToEachSeries(series_list);
         series_list[0].type = "area";
+        const colored_data = assignColorToEachSeries(series_list);
 
         annotations.forEach((line) => {
             line.width = 0;
@@ -91,7 +99,6 @@ function plotVelocityAlerts (column_data, type) {
     const velocity_data = [];
     const processed_data = assignColorToEachSeries(timestamps_per_node);
     velocity_alerts.forEach(row => {
-        console.log(row);
         const { orientation, data: series_list } = row;
         const alerts = series_list;
         const colored_data = [...processed_data];
@@ -196,7 +203,11 @@ function prepareColumnPositionChartOption (set_data, input, is_desktop) {
                 return `${moment(this.name).format("MM/DD, HH:mm")}`;
             }
         },
-        time: { timezoneOffset: -8 * 60 }
+        time: { timezoneOffset: -8 * 60 },
+        exporting: {
+            sourceHeight: 800,
+            sourceWidth: 600
+        }
     };
 }
 
@@ -235,8 +246,8 @@ function prepareDisplacementChartOption (set_data, form) {
         xAxis: {
             type: "datetime",
             dateTimeLabelFormats: {
-                month: "%e. %b %Y",
-                year: "%b"
+                month: "%e %b %Y",
+                year: "%Y"
             },
             title: {
                 text: "<b>Date</b>"
@@ -264,7 +275,11 @@ function prepareDisplacementChartOption (set_data, form) {
         legend: {
             enabled: false
         },
-        time: { timezoneOffset: -8 * 60 }
+        time: { timezoneOffset: -8 * 60 },
+        exporting: {
+            sourceHeight: 800,
+            sourceWidth: 600
+        }
     };
 }
 
@@ -308,8 +323,8 @@ function prepareVelocityAlertsOption (set_data, form) {
         xAxis: {
             type: "datetime",
             dateTimeLabelFormats: {
-                month: "%e. %b %Y",
-                year: "%b"
+                month: "%e %b %Y",
+                year: "%Y"
             },
             title: {
                 text: "<b>Time</b>"
@@ -343,14 +358,19 @@ function prepareVelocityAlertsOption (set_data, form) {
                 }
             }
         },
-        time: { timezoneOffset: -8 * 60 }
+        time: { timezoneOffset: -8 * 60 },
+        exporting: {
+            sourceHeight: 800,
+            sourceWidth: 600
+        }
     };
 }
 
 function SubsurfaceGraph (props) {
     const {
         match: { params: { tsm_sensor: sensor } },
-        width, input: consolidated_input, disableBack
+        width, input: consolidated_input, disableBack,
+        saveSVG, currentUser
     } = props;
 
     let ts_end = "";
@@ -369,21 +389,29 @@ function SubsurfaceGraph (props) {
     const ts_start = computeForStartTs(dt_ts_end, 7, "days");
 
     const disable_back = typeof disableBack === "undefined" ? false : disableBack;
+    const save_svg = typeof saveSVG === "undefined" ? false : saveSVG;
 
     const [timestamps, setTimestamps] = useState({ start: ts_start, end: ts_end });
     const [processed_data, setProcessedData] = useState([]);
+    const chartRefs = useRef([...Array(6)].map(() => createRef()));
+    const [get_svg, setGetSVGNow] = useState(false);
+    const [svg_list, setSVGList] = useState([]);
+
     const input = { ts_end: timestamps.end, ts_start: timestamps.start, subsurface_column: tsm_sensor };
     const is_desktop = isWidthDown(width, "sm");
 
     useEffect(() => {
         getSubsurfacePlotData(input, subsurface_data => {
+            const processed = [];
             subsurface_data.forEach(({ type, data }) => {
+                const sub = JSON.parse(JSON.stringify(data));
                 let temp = [];
-                if (type === "column_position") temp = plotColumnPosition(data, type);
-                else if (type === "displacement") temp = plotDisplacement(data, type);
-                else if (type === "velocity_alerts") temp = plotVelocityAlerts(data, type);
-                setProcessedData(prev => [...prev, ...temp]);
+                if (type === "column_position") temp = plotColumnPosition(sub, type);
+                else if (type === "displacement") temp = plotDisplacement(sub, type);
+                else if (type === "velocity_alerts") temp = plotVelocityAlerts(sub, type);
+                processed.push(...temp);
             });
+            setProcessedData(processed);
         });
     }, [timestamps]);
 
@@ -398,9 +426,39 @@ function SubsurfaceGraph (props) {
             else if (type === "velocity_alerts") option = prepareVelocityAlertsOption(data, input);
             temp.push(option);
         });
-
         setOptions(temp);
+        if (temp.length > 0 && save_svg) setGetSVGNow(true);
     }, [processed_data]);
+
+    useEffect(() => {
+        if (get_svg) {
+            const temp = [];
+            chartRefs.current.forEach(ref => {
+                const { current: { chart } } = ref;
+                const svg = chart.getSVGForExport();
+                temp.push(svg);
+            });
+            setSVGList(temp);
+        }
+    }, [get_svg, chartRefs]);
+
+    const svgRef = useRef(null);
+    useEffect(() => {
+        if (svg_list.length > 0) {
+            const svg = svgRef.current.outerHTML;
+            const temp = {
+                user_id: currentUser.user_id,
+                tsm_sensor,
+                site_code: consolidated_input.site_code,
+                chart_type: "subsurface",
+                svg
+            };
+
+            saveChartSVG(temp, data => {});
+        }
+    }, [svg_list]);
+
+    const default_options = { title: { text: "Loading" } };
 
     return (
         <Fragment>
@@ -409,13 +467,30 @@ function SubsurfaceGraph (props) {
             <div style={{ marginTop: 16 }}>
                 <Grid container spacing={4}>
                     {
-                        options.map((option, i) => {
+                        // options.map((option, i) => {
+                        //     return (
+                        //         <Grid item xs={12} md={6} key={i}>
+                        //             <Paper>
+                        //                 <HighchartsReact
+                        //                     highcharts={Highcharts}
+                        //                     options={option}
+                        //                 />
+                        //             </Paper>
+                        //         </Grid>
+                        //     );
+                        // })
+
+                        chartRefs.current.map((ref, i) => {
+                            let opt = { ...default_options };
+                            if (options.length > 0) opt = options[i];
+
                             return (
                                 <Grid item xs={12} md={6} key={i}>
                                     <Paper>
                                         <HighchartsReact
                                             highcharts={Highcharts}
-                                            options={option}
+                                            options={opt}
+                                            ref={ref}
                                         />
                                     </Paper>
                                 </Grid>
@@ -424,6 +499,33 @@ function SubsurfaceGraph (props) {
                     }
                 </Grid>
             </div>
+
+            {
+                save_svg && (
+                    <Hidden xsUp implementation="css">
+                        <svg 
+                            width={1200} height={2400}
+                            viewBox="0 0 1200 2400"
+                            ref={svgRef}
+                        >
+                            {
+                                svg_list.map((c, index) => {
+                                    const is_odd = index % 2 === 1;
+                                    const x = is_odd ? 0 : 600;
+                                    const y = (800 * (Math.floor(index / 2)));
+
+                                    return (
+                                        <Fragment key={index}>
+                                            { /* eslint-disable-next-line react/no-danger */ }
+                                            <svg x={x} y={y} dangerouslySetInnerHTML={{ __html: c }} />
+                                        </Fragment>
+                                    );
+                                })
+                            }
+                        </svg>
+                    </Hidden>
+                )
+            }
         </Fragment>
     );
 }

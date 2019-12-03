@@ -34,6 +34,7 @@ export function getEndOfShiftReports (input, callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
+        console.log("EOS Data", data);
         callback(data);
     })
     .catch(error => {
