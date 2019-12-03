@@ -19,6 +19,7 @@ import GenericAvatar from "../../../images/generic-user-icon.jpg";
 import { getUserOrganizations, simNumFormatter } from "../../../UtilityFunctions";
 import OptionsModal from "./OptionsModal";
 import BlockNumberModal from "./BlockNumberModal";
+import SaveContactModal from "./SaveContactModal";
 
 const styles = theme => ({
     inline: {
@@ -198,6 +199,7 @@ function MessageList (props) {
     const [open_options, setOpenOptions] = React.useState(false);
     const [is_unregistered, setIfUnregistered] = React.useState(false);
     const [open_block_modal, setBlockModal] = React.useState(false);
+    const [open_save_contact_modal, setSaveContactModal] = React.useState(false);
     const [chosen_mobile, setChosenMobile] = React.useState({});
 
     const openOptionsModal = (is_unregistered, mobile_details) => {
@@ -214,6 +216,11 @@ function MessageList (props) {
         setChosenMobile(mobile_details);
         setBlockModal(true);
     };
+
+    const openSaveContactModal = mobile_details => {
+        setChosenMobile(mobile_details);
+        setSaveContactModal(true);
+    };
     
     return (
         <Fragment>
@@ -228,11 +235,19 @@ function MessageList (props) {
                 onClose={handleOptionsClose}
                 isUnregistered={is_unregistered}
                 setBlockModal={setBlockModal}
+                setSaveContactModal={setSaveContactModal}
             />
 
             <BlockNumberModal
                 open={open_block_modal}
                 setBlockModal={setBlockModal}
+                mobileDetails={chosen_mobile}
+                setOpenOptions={setOpenOptions}
+            />
+
+            <SaveContactModal
+                open={open_save_contact_modal}
+                setSaveContactModal={setSaveContactModal}
                 mobileDetails={chosen_mobile}
                 setOpenOptions={setOpenOptions}
             />

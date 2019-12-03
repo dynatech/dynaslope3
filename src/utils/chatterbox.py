@@ -115,13 +115,17 @@ def get_user_mobile_details(mobile_id):
 
     user = joinedload("user_details").joinedload(
         "user", innerjoin=True)
+    org = user.subqueryload("organizations")
     mobile_details = MobileNumbers.query.options(
-        user.subqueryload("organizations").joinedload(
-            "site", innerjoin=True).raiseload("*"),
+        org.joinedload("site", innerjoin=True).raiseload("*"),
+        org.joinedload("organization", innerjoin=True),
         user.subqueryload("teams"), raiseload("*")
     ).filter_by(mobile_id=mobile_id).first()
     mobile_schema = MobileNumbersSchema(exclude=[
-        "user_details.user.landline_numbers", "user_details.user.emails"]).dump(mobile_details).data
+        "user_details.user.landline_numbers",
+        "user_details.user.emails",
+        "user_details.user.ewi_restrictions"
+    ]).dump(mobile_details).data
 
     return mobile_schema
 

@@ -165,7 +165,7 @@ function ContactForm (props) {
             last_name, middle_name, nickname, user_id, organizations
         } } = chosenContact;
         initial_user_details = { first_name, last_name, middle_name, nickname, user_id };
-
+        
         if (organizations.length !== 0) {
             const { scope, name } = organizations[0].organization;
             const site_details = organizations[0].site;
@@ -281,29 +281,29 @@ function ContactForm (props) {
             }
         };
         console.log(final_data);
-        saveContact(final_data, data => {
-            const { status, message } = data;
-            if (status === true) {
-                closeButtonFn();
-                enqueueSnackbar(
-                    message,
-                    {
-                        variant: "success",
-                        autoHideDuration: 7000,
-                        action: snackBarActionFn
-                    }
-                );
-            } else {
-                enqueueSnackbar(
-                    message,
-                    {
-                        variant: "error",
-                        autoHideDuration: 7000,
-                        action: snackBarActionFn
-                    }
-                );
-            }
-        });
+        // saveContact(final_data, data => {
+        //     const { status, message } = data;
+        //     if (status === true) {
+        //         closeButtonFn();
+        //         enqueueSnackbar(
+        //             message,
+        //             {
+        //                 variant: "success",
+        //                 autoHideDuration: 7000,
+        //                 action: snackBarActionFn
+        //             }
+        //         );
+        //     } else {
+        //         enqueueSnackbar(
+        //             message,
+        //             {
+        //                 variant: "error",
+        //                 autoHideDuration: 7000,
+        //                 action: snackBarActionFn
+        //             }
+        //         );
+        //     }
+        // });
     };
  
     return (
