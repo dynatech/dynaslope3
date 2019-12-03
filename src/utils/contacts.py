@@ -1,7 +1,7 @@
 """
 Contacts Functions Utility File
 """
-
+from datetime import datetime
 from sqlalchemy.orm import joinedload
 from connection import DB
 from src.models.users import (
@@ -22,6 +22,9 @@ from src.models.organizations import (
 from src.models.gsm import (SimPrefixes, SimPrefixesSchema)
 from src.models.sites import (Sites, SitesSchema)
 from src.models.user_ewi_status import (UserEwiStatus, UserEwiStatusSchema)
+from src.models.monitoring import (MonitoringEvents, MonitoringEventsSchema)
+from src.utils.sites import get_sites_data
+from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 
 
 def get_all_contacts(return_schema=False):
@@ -183,60 +186,62 @@ def save_user_affiliation(data, user_id):
     """
     Function that save user affiliation
     """
-    location = data["location"]
-    site = data["site"]
-    scope = data["scope"]
-    office = data["office"]
-    org_query = Organizations.query.filter(
-        Organizations.scope == scope, Organizations.name == office).first()
-    result = OrganizationsSchema(exclude=("users",)).dump(org_query).data
-    org_id = result["org_id"]
+    if data:
+        location = data["location"]
+        site = data["site"]
+        scope = data["scope"]
+        office = data["office"]
+        org_query = Organizations.query.filter(
+            Organizations.scope == scope, Organizations.name == office).first()
+        result = OrganizationsSchema(exclude=("users",)).dump(org_query).data
+        org_id = result["org_id"]
 
-    user_organizations = []
-    site_ids = []
-    org_name = office
-    modifier = ""
+        user_organizations = []
+        site_ids = []
+        org_name = office
+        modifier = ""
 
-    UserOrganizations.query.filter(UserOrganizations.user_id == user_id).delete()
+        UserOrganizations.query.filter(UserOrganizations.user_id == user_id).delete()
 
-    if scope in (0, 1):
-        site_ids.append(site["value"])
-        modifier = "b" if org_name == "lgu" else ""
-    elif scope == 2:
-        modifier = "m"
-        filter_var = Sites.municipality == location
-    elif scope == 3:
-        modifier = "p"
-        filter_var = Sites.province == location
-    elif scope == 4:
-        filter_var = Sites.region == location
+        if scope in (0, 1):
+            site_ids.append(site["value"])
+            modifier = "b" if org_name == "lgu" else ""
+        elif scope == 2:
+            modifier = "m"
+            filter_var = Sites.municipality == location
+        elif scope == 3:
+            modifier = "p"
+            filter_var = Sites.province == location
+        elif scope == 4:
+            filter_var = Sites.region == location
 
-    if office == "lgu":
-        org_name = str(modifier + office)
+        if office == "lgu":
+            org_name = str(modifier + office)
 
-    if scope not in (0, 1):
-        result = Sites.query.filter(filter_var).all()
-        for site in result:
-            site_ids.append(site.site_id)
+        if scope not in (0, 1, 5):
+            result = Sites.query.filter(filter_var).all()
+            for site in result:
+                site_ids.append(site.site_id)
 
-    for site_id in site_ids:
-        user_organizations.append({"site_id": site_id, "org_id": org_id, "org_name": org_name})
+        for site_id in site_ids:
+            user_organizations.append({"site_id": site_id, "org_id": org_id, "org_name": org_name})
 
-    if scope == 5:
-        insert_org = UserOrganizations(
-            user_id=user_id,
-            site_id=site["value"],
-            org_name=org_name,
-            org_id=org_id
-        )
-    else:
-        for row in user_organizations:
-            site_id = row["site_id"]
-            org_id = row["org_id"]
-            org_name = row["org_name"]
+        if scope == 5:
             insert_org = UserOrganizations(
-                user_id=user_id, site_id=site_id, org_name=org_name, org_id=org_id)
+                user_id=user_id,
+                site_id=0,
+                org_name=org_name,
+                org_id=org_id
+            )
             DB.session.add(insert_org)
+        else:
+            for row in user_organizations:
+                site_id = row["site_id"]
+                org_id = row["org_id"]
+                org_name = row["org_name"]
+                insert_org = UserOrganizations(
+                    user_id=user_id, site_id=site_id, org_name=org_name, org_id=org_id)
+                DB.session.add(insert_org)
 
 
     return True
@@ -295,3 +300,62 @@ def ewi_recipient_migration():
     DB.session.commit()
 
     return True
+
+def get_ground_measurement_reminder_recipients():
+
+    current_datetime = datetime.now()
+    leo = get_ongoing_extended_overdue_events(current_datetime)
+    routine_site_codes = get_routine_sites(current_datetime)
+    data = leo["overdue"]#change to latest
+    data_len = len(data)
+    routine_site_codes = []
+    event_site_ids = []
+
+    for row in routine_site_codes:
+        routine_site_codes.append(row)
+
+    if data_len != 0:
+        for row in data:
+            site_id = row["event"]["site"]["site_id"]
+            site_code = row["event"]["site"]["site_code"]
+            if site_id not in event_site_ids:
+                event_site_ids.append(site_id)
+
+            if site_code in routine_site_codes:
+                routine_site_codes.remove(site_code)
+
+    routine_site_ids = get_site_ids(routine_site_codes)
+    site_recipients = [
+        {"site_ids": routine_site_ids, "type": "routine"},
+        {"site_ids": event_site_ids, "type": "event"}
+    ]
+    feedback = []
+    for row in site_recipients:
+        site_ids = row["site_ids"]
+        user_per_site_query = UsersRelationship.query.join(
+            UserOrganizations).join(Sites).options(
+                DB.subqueryload("mobile_numbers").joinedload("mobile_number", innerjoin=True),
+                DB.subqueryload("organizations").joinedload("site", innerjoin=True),
+                DB.subqueryload("organizations").joinedload("organization", innerjoin=True),
+                DB.raiseload("*")
+            ).filter(
+                Users.ewi_recipient == 1, Sites.site_id.in_(site_ids),
+                UserOrganizations.org_id == 1
+                ).all()
+        user_per_site_result = UsersRelationshipSchema(
+            many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restrictions"]).dump(user_per_site_query).data
+        feedback.append({"type": row["type"], "recipients": user_per_site_result})
+
+
+    print(routine_site_ids)
+    return feedback
+
+def get_site_ids(site_codes):
+    site_query = Sites.query.filter(Sites.site_code.in_(site_codes)).all()
+    site_query_result = SitesSchema(many=True).dump(site_query).data
+    site_ids = []
+    for row in site_query_result:
+        site_id = row["site_id"]
+        if site_id not in site_ids:
+            site_ids.append(site_id)
+    return site_ids
