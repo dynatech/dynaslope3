@@ -186,61 +186,62 @@ def save_user_affiliation(data, user_id):
     """
     Function that save user affiliation
     """
-    location = data["location"]
-    site = data["site"]
-    scope = data["scope"]
-    office = data["office"]
-    org_query = Organizations.query.filter(
-        Organizations.scope == scope, Organizations.name == office).first()
-    result = OrganizationsSchema(exclude=("users",)).dump(org_query).data
-    org_id = result["org_id"]
+    if data:
+        location = data["location"]
+        site = data["site"]
+        scope = data["scope"]
+        office = data["office"]
+        org_query = Organizations.query.filter(
+            Organizations.scope == scope, Organizations.name == office).first()
+        result = OrganizationsSchema(exclude=("users",)).dump(org_query).data
+        org_id = result["org_id"]
 
-    user_organizations = []
-    site_ids = []
-    org_name = office
-    modifier = ""
+        user_organizations = []
+        site_ids = []
+        org_name = office
+        modifier = ""
 
-    UserOrganizations.query.filter(UserOrganizations.user_id == user_id).delete()
+        UserOrganizations.query.filter(UserOrganizations.user_id == user_id).delete()
 
-    if scope in (0, 1):
-        site_ids.append(site["value"])
-        modifier = "b" if org_name == "lgu" else ""
-    elif scope == 2:
-        modifier = "m"
-        filter_var = Sites.municipality == location
-    elif scope == 3:
-        modifier = "p"
-        filter_var = Sites.province == location
-    elif scope == 4:
-        filter_var = Sites.region == location
+        if scope in (0, 1):
+            site_ids.append(site["value"])
+            modifier = "b" if org_name == "lgu" else ""
+        elif scope == 2:
+            modifier = "m"
+            filter_var = Sites.municipality == location
+        elif scope == 3:
+            modifier = "p"
+            filter_var = Sites.province == location
+        elif scope == 4:
+            filter_var = Sites.region == location
 
-    if office == "lgu":
-        org_name = str(modifier + office)
+        if office == "lgu":
+            org_name = str(modifier + office)
 
-    if scope not in (0, 1, 5):
-        result = Sites.query.filter(filter_var).all()
-        for site in result:
-            site_ids.append(site.site_id)
+        if scope not in (0, 1, 5):
+            result = Sites.query.filter(filter_var).all()
+            for site in result:
+                site_ids.append(site.site_id)
 
-    for site_id in site_ids:
-        user_organizations.append({"site_id": site_id, "org_id": org_id, "org_name": org_name})
+        for site_id in site_ids:
+            user_organizations.append({"site_id": site_id, "org_id": org_id, "org_name": org_name})
 
-    if scope == 5:
-        insert_org = UserOrganizations(
-            user_id=user_id,
-            site_id=0,
-            org_name=org_name,
-            org_id=org_id
-        )
-        DB.session.add(insert_org)
-    else:
-        for row in user_organizations:
-            site_id = row["site_id"]
-            org_id = row["org_id"]
-            org_name = row["org_name"]
+        if scope == 5:
             insert_org = UserOrganizations(
-                user_id=user_id, site_id=site_id, org_name=org_name, org_id=org_id)
+                user_id=user_id,
+                site_id=0,
+                org_name=org_name,
+                org_id=org_id
+            )
             DB.session.add(insert_org)
+        else:
+            for row in user_organizations:
+                site_id = row["site_id"]
+                org_id = row["org_id"]
+                org_name = row["org_name"]
+                insert_org = UserOrganizations(
+                    user_id=user_id, site_id=site_id, org_name=org_name, org_id=org_id)
+                DB.session.add(insert_org)
 
 
     return True
