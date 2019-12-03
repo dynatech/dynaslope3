@@ -60,7 +60,14 @@ function simNumFormatter (sim_num) {
     return sim_num[0] === "0" ? sim_num : `+${sim_num}`;
 }
 
+function computeForStartTs (ts, duration = 7, unit = "days") {
+    const ts_format = "YYYY-MM-DD HH:mm:ss";
+    const ts_start = ts.subtract(duration, unit).format(ts_format);
+    return ts_start;
+}
+
 export {
     prepareSiteAddress, capitalizeFirstLetter,
-    getUserOrganizations, simNumFormatter
+    getUserOrganizations, simNumFormatter,
+    computeForStartTs
 };

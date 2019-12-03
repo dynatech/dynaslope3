@@ -2,14 +2,14 @@ import React, { useState, useEffect, Fragment } from "react";
 import { Route, Link } from "react-router-dom";
 
 import Highcharts from "highcharts";
+import HC_exporting from "highcharts/modules/exporting";
 import HighchartsReact from "highcharts-react-official";
 import MomentUtils from "@date-io/moment";
 import moment from "moment";
-import { compose } from "recompose";
 import { useSnackbar } from "notistack";
 
 import { 
-    Button, ButtonGroup, withStyles,
+    Button, ButtonGroup,
     Paper, withMobileDialog, Dialog,
     DialogTitle, DialogContent,
     DialogContentText, DialogActions, Grid,
@@ -20,12 +20,15 @@ import { ArrowDropDown } from "@material-ui/icons";
 import { isWidthDown } from "@material-ui/core/withWidth";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 
-import GeneralStyles from "../../../GeneralStyles";
 import SurficialTrendingGraphs from "./SurficialTrendingGraphs";
 import BackToMainButton from "./BackToMainButton";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 
-import { getSurficialPlotData, deleteSurficialData, updateSurficialData } from "../ajax";
+import { getSurficialPlotData, deleteSurficialData, updateSurficialData, saveChartSVG } from "../ajax";
+import { computeForStartTs } from "../../../UtilityFunctions";
+
+// init the module
+HC_exporting(Highcharts);
 
 const hideTrending = history => e => {
     e.preventDefault();
@@ -412,25 +415,43 @@ function prepareOptions (input, data, width, setEditModal, setChosenPointCopy) {
     };
 }
 
-// eslint-disable-next-line max-params
-function createSurficialGraph (input, surficial_data, chartRef, width = "md", setEditModal, setChosenPointCopy) {
-    const options = prepareOptions(input, surficial_data, width, setEditModal, setChosenPointCopy);
-
-    return <HighchartsReact
+function createSurficialGraph (options, chartRef) {
+    const temp = <HighchartsReact
         highcharts={Highcharts}
         options={options}
         ref={chartRef}
     />;
+
+    return temp;
 }
 
 function SurficialGraph (props) {
     const { 
-        classes, history, width,
-        match: { url, params: { site_code } },
-        fullScreen
+        width, match: { url, params: { site_code } },
+        fullScreen, disableBack, disableMarkerList,
+        saveSVG, input, currentUser
     } = props;
+
+    let ts_end = "";
+    let dt_ts_end;
+    if (typeof input !== "undefined") {
+        const { ts_end: te } = input;
+        ts_end = te;
+        dt_ts_end = moment(te);
+    } else {
+        const ts_now = moment();
+        ts_end = ts_now.format("YYYY-MM-DD HH:mm:ss");
+        dt_ts_end = ts_now;
+    }
+    const ts_start = computeForStartTs(dt_ts_end, 3, "months");
+
+    const disable_back = typeof disableBack === "undefined" ? false : disableBack;
+    const disable_marker_list = typeof disableMarkerList === "undefined" ? false : disableMarkerList;
+    const save_svg = typeof saveSVG === "undefined" ? false : saveSVG;
+
     const chartRef = React.useRef(null);
-    const [timestamps, setTimestamps] = useState({ start: "2018-11-08 00:00:00", end: "2019-01-09 00:00:00" });
+    const [timestamps, setTimestamps] = useState({ start: ts_start, end: ts_end });
+    const [save_svg_now, setSaveSVGNow] = useState(false);
     const [to_redraw_chart, setRedrawChart] = useState(true);
     const [surficial_data, setSurficialData] = useState([]);
     const [trending_data, setTrendingData] = useState([]);
@@ -452,6 +473,15 @@ function SurficialGraph (props) {
         is_open: false
     });
 
+    // useEffect(() => {
+    //     if (typeof input !== "undefined") {
+    //         console.log("input", input);
+    //         const { ts_end: te } = input;
+    //         setTimestamps({ end: te, start: computeForStartTs(moment(te)) });
+    //         // setRedrawChart(true);
+    //     }
+    // }, [input]);
+
     useEffect(() => {
         const { current } = chartRef;
         if (current !== null || to_redraw_chart)
@@ -464,6 +494,8 @@ function SurficialGraph (props) {
                 if (current !== null) {
                     const { chart } = current;
                     chart.hideLoading();
+
+                    if (save_svg) setSaveSVGNow(true);
                     
                     const legend = chart.legend.group;
                     const items = chart.legend.allItems;
@@ -488,17 +520,33 @@ function SurficialGraph (props) {
 
             setRedrawChart(false);
         }
-    }, [timestamps, to_redraw_chart]);
+    }, [to_redraw_chart]);
 
-    const input = { site_code, timestamps };
-    const graph_component = createSurficialGraph(input, surficial_data, chartRef, width, setEditModal, setChosenPointCopy);
+    useEffect(() => {
+        const { current: { chart } } = chartRef;
+        const svg = chart.getSVGForExport();
+        if (save_svg_now) {
+            const temp = {
+                user_id: currentUser.user_id,
+                site_code,
+                chart_type: "surficial",
+                svg
+            };
+
+            saveChartSVG(temp, data => {});
+        }
+    }, [save_svg_now]);
+
+    const input_obj = { site_code, timestamps };
+    const options = prepareOptions(input_obj, surficial_data, width, setEditModal, setChosenPointCopy);
+    const graph_component = createSurficialGraph(options, chartRef);
 
     return (
         <Fragment>
             <div style={{ display: "flex", justifyContent: "space-between" }}>                
-                <BackToMainButton {...props} />
+                { !disable_back && <BackToMainButton {...props} /> }
 
-                { surficial_data.length > 0 && (
+                { surficial_data.length > 0 && !disable_marker_list && (
                     <ButtonGroup
                         variant="contained"
                         color="primary"
@@ -561,4 +609,4 @@ function SurficialGraph (props) {
     );
 }
 
-export default compose(withMobileDialog(), withStyles(GeneralStyles))(SurficialGraph);
+export default withMobileDialog()(SurficialGraph);

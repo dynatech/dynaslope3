@@ -1,10 +1,9 @@
 import React, { Fragment, useState } from "react";
-import { IconButton, TextField } from "@material-ui/core";
-import { withStyles } from "@material-ui/core/styles";
+import { IconButton, TextField, makeStyles } from "@material-ui/core";
 import { SendRounded, MoreVert } from "@material-ui/icons";
 import LoadTemplateModal from "./LoadTemplateModal";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     container: {
         display: "flex",
         alignItems: "center",
@@ -19,13 +18,14 @@ const styles = theme => ({
         textAlign: "right",
         flexShrink: 2
     }
-});
+}));
 
 function MessageInputTextbox (props) {
     const {
-        classes, limitRows, value,
+        limitRows, value,
         messageChangeHandler, sendButtonClickHandler
     } = props;
+    const classes = useStyles();
     const limit = limitRows === undefined ? true : limitRows;
     const [is_modal_open, set_is_modal_open] = useState(false);
 
@@ -67,4 +67,4 @@ function MessageInputTextbox (props) {
     );
 }
 
-export default withStyles(styles)(MessageInputTextbox);
+export default MessageInputTextbox;

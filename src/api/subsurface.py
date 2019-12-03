@@ -21,7 +21,8 @@ def wrap_get_site_subsurface_columns(site_code=None):
             site_code -> Can be None if you want to get all columns regardless of site
     """
     tsm_sensors_schema = TSMSensorsSchema(many=True)
-    tsm_sensors = get_site_subsurface_columns(site_code)
+    tsm_sensors = get_site_subsurface_columns(
+        site_code, include_deactivated=True)
 
     tsm_sensors_data = tsm_sensors_schema.dump(tsm_sensors).data
 
@@ -48,12 +49,11 @@ def wrap_get_subsurface_column_versions(site_column=None):
     return jsonify(site_column_version_data)
 
 
-@SUBSURFACE_BLUEPRINT.route("/subsurface/get_subsurface_plot_data", methods=["GET"])
-def wrap_get_subsurface_plot_data():
+@SUBSURFACE_BLUEPRINT.route("/subsurface/get_subsurface_plot_data/<column_name>/<end_ts>", methods=["GET"])
+def wrap_get_subsurface_plot_data(column_name, end_ts):
+    """
     """
 
-    """
-
-    data = get_subsurface_plot_data()
-
+    data = get_subsurface_plot_data(
+        column_name=column_name, end_ts=end_ts)  # magta, 2017-06-09 19:30
     return jsonify(data)

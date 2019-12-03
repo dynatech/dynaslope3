@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import PropTypes from "prop-types";
 import { withStyles } from "@material-ui/core/styles";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
@@ -10,23 +10,15 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
 import { Grid } from "@material-ui/core";
-import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
-import { compose } from "recompose";
 import { Refresh, SaveAlt, Send } from "@material-ui/icons";
 import CKEditor from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
+import { react_host } from "../../../config";
 
 const styles = theme => ({
     root: {
         width: "100%",
-    },
-    heading: {
-        fontSize: theme.typography.pxToRem(15),
-    },
-    secondaryHeading: {
-        fontSize: theme.typography.pxToRem(15),
-        color: theme.palette.text.secondary,
     },
     icons: {
         fontSize: "1.15rem",
@@ -53,30 +45,24 @@ const styles = theme => ({
     },
 });
 
-
 function handleCheckboxToggle (value, checkboxStatus, setCheckboxStatus) {
     switch (value) {
         case "rainfall":
             setCheckboxStatus({ ...checkboxStatus, rainfall: !checkboxStatus.rainfall });
-            console.log("BOOM! Opens rainfall chart...");
             break;
         case "surficial":
             setCheckboxStatus({ ...checkboxStatus, surficial: !checkboxStatus.surficial });
-            console.log("BOOM! Opens surficial chart...");
             break;
         case "subsurface":
             setCheckboxStatus({ ...checkboxStatus, subsurface: !checkboxStatus.subsurface });
-            console.log("BOOM! Opens a multiselect...");
             break;
         default:
-            console.log("DEF!");
             break;
     }
 }
 
-
 function DetailedExpansionPanel (props) {
-    const { data: eos_report, classes, width } = props;
+    const { data: eos_report, classes } = props;
     const [siteCode, setSiteCode] = useState("");
     const [shiftSummary, setShiftSummary] = useState("");
     const [dataAnalysis, setDataAnalysis] = useState("");
@@ -105,9 +91,11 @@ function DetailedExpansionPanel (props) {
         setShiftNarratives(narratives);
     }, [eos_report]);
 
-    const showTextLabel = (label, width2) => (
-        isWidthUp("sm", width2) ? <span style={{ paddingLeft: 6 }}>{label}</span> : ""
-    );
+    useEffect(() => {
+        if (checkboxStatus.rainfall) {
+            window.open(`${react_host}/chart_rendering/${siteCode}/rainfall`, "_blank");
+        }
+    }, [checkboxStatus.rainfall]);
 
     const handleCheckboxEvent = value => event => handleCheckboxToggle(value, checkboxStatus, setCheckboxStatus);
 
@@ -119,16 +107,24 @@ function DetailedExpansionPanel (props) {
         <ExpansionPanel>
             <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
                 <div className={classes.column}>
-                    <Typography className={classes.heading}>{siteCode.toUpperCase()}</Typography>
+                    <Typography variant="body1">{siteCode.toUpperCase()}</Typography>
                 </div>
                 <div className={classes.column}>
-                    <Typography className={classes.secondaryHeading}>Shift Report</Typography>
+                    <Typography variant="body1">Shift Report</Typography>
                 </div>
             </ExpansionPanelSummary>
             <Divider />
             <ExpansionPanelDetails className={classes.details}>
-                <Grid container>
-                    <Grid item xs={12}>
+                <Grid container spacing={2}>
+                    <Grid item xs={12} style={{ marginTop: 12 }}>
+                        <Typography variant="body1">
+                            <strong>Charts</strong>
+                        </Typography>
+                    </Grid>
+                    <Grid 
+                        item xs={12} container
+                        spacing={1} justify="space-around"
+                    >
                         <CheckboxesGroup 
                             label="Data Sources"
                             changeHandler={handleCheckboxEvent}
@@ -142,39 +138,46 @@ function DetailedExpansionPanel (props) {
                             { label: "Data Analysis", value: dataAnalysis, key: "data_analysis" },
                             { label: "Shift Narratives", value: shiftNarratives, key: "shift_narratives" }
                         ].map(({ label, value, key }) => (
-                            <Grid item xs={12} key={key}>
-                                <Typography variant="h6" className={classes.heading}>
-                                    {label}
-                                </Typography>
-                                <CKEditor
-                                    editor={ClassicEditor}
-                                    // data="<p>Hi! Starting entering data</p>"
-                                    config={config}
-                                    onInit={editor => {
+                            <Fragment key={key}>
+                                <Grid item xs={12}>
+                                    <Typography variant="body1">
+                                        <strong>{label}</strong>
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    { /* 
+                                        NOTE: To change textarea height of CKEditor, change .ck-editor__editable 
+                                        value on index.css on react-ui/web
+                                    */ }
+                                    <CKEditor
+                                        editor={ClassicEditor}
+                                        config={config}
+                                        onInit={editor => {
                                         // You can store the "editor" and use when it is needed.
-                                        editor.setData(value);
-                                        console.log(Array.from(editor.ui.componentFactory.names()));
-                                    }}
-                                    onChange={(event, editor) => {
-                                        const data = editor.getData();
-                                        console.log({ event, editor, data });
-                                    }}
-                                />                                    
-                            </Grid>
+                                            editor.setData(value);
+                                        // console.log(Array.from(editor.ui.componentFactory.names()));
+                                        }}
+                                    // onChange={(event, editor) => {
+                                    //     const data = editor.getData();
+                                    //     console.log({ event, editor, data });
+                                    // }}
+                                    />                                    
+                                </Grid>
+                            </Fragment>
                         ))
                     }
                 </Grid>
             </ExpansionPanelDetails>
             <Divider />
             <ExpansionPanelActions>
-                <Button size="small">
-                    <SaveAlt className={classes.icons} /> {showTextLabel("Download Charts", width)}
+                <Button size="small" startIcon={<SaveAlt />}>
+                    Download Charts
                 </Button>
-                <Button size="small">
-                    <Refresh className={classes.icons} /> {showTextLabel("Refresh", width)}
+                <Button size="small" startIcon={<Refresh />}>
+                    Refresh
                 </Button>
-                <Button size="small" color="primary">
-                    <Send className={classes.icons} /> {showTextLabel("Send", width)}
+                <Button size="small" color="primary" startIcon={<Send />}>
+                    Send
                 </Button>
             </ExpansionPanelActions>
         </ExpansionPanel>
@@ -186,4 +189,4 @@ DetailedExpansionPanel.propTypes = {
     classes: PropTypes.object.isRequired,
 };
 
-export default compose(withWidth(), withStyles(styles))(DetailedExpansionPanel);
+export default withStyles(styles)(DetailedExpansionPanel);

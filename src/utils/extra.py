@@ -8,6 +8,7 @@ any module in this project.
 """
 
 import pprint
+import time as time_t
 from datetime import datetime, timedelta, time
 from connection import MEMORY_CLIENT
 from src.models.monitoring import (
@@ -187,6 +188,19 @@ def format_timestamp_to_string(ts, time_only=False, date_only=False):
         str_format = f"%B %d, %Y"
 
     return ts.strftime(str_format)
+
+
+def get_unix_ts_value(str_ts):
+    """
+    Args:
+        ts (str)
+
+    return integer
+    """
+
+    dt_ts = datetime.strptime(str_ts, "%Y-%m-%d %H:%M:%S")
+    int_ts = time_t.mktime(dt_ts.timetuple()) * 1000
+    return int_ts
 
 
 def get_system_time():

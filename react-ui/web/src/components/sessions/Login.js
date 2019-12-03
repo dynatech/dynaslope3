@@ -170,7 +170,7 @@ export default function LoginComponent (props) {
                         align="center"
                         className={classes.title}
                     >
-                        <strong>MONITORING AND INFORMATION SYSTEM</strong>
+                        <strong>MONITORING AND INFORMATION APPLICATION (MIA 3.0)</strong>
                     </Typography>
                     <div className={classes.form}>
                         <TextField

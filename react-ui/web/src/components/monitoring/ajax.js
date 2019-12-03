@@ -34,6 +34,7 @@ export function getEndOfShiftReports (input, callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
+        console.log("EOS Data", data);
         callback(data);
     })
     .catch(error => {
@@ -117,6 +118,7 @@ export function getEventTimelineEntries (input, callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
+        console.log("Event details", data);
         callback(data);
     })
     .catch(error => {
@@ -125,12 +127,29 @@ export function getEventTimelineEntries (input, callback) {
     });    
 }
 
+export function getEWIMessage (release_id, callback) {
+    const api_link = `${host}/api/chatterbox/get_ewi_message/${release_id}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("EWI Message", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function getSites (input, callback) {
     let api_link = `${host}/api/sites/get_sites_data`;
     if (typeof input !== "undefined" && input !== "" && input !== null && input.length !== 0) {
         
         api_link += `/${input}`;
     }
+
+
+
 
     axios.get(api_link)
     .then(response => {

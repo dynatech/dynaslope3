@@ -396,7 +396,8 @@ class TSMSensors(DB.Model):
         "tsm_sensors", lazy="dynamic"))
 
     tsm_alert = DB.relationship(
-        "TSMAlerts", backref=DB.backref("tsm_sensor", lazy="joined", innerjoin=True), lazy="dynamic")
+        "TSMAlerts", backref=DB.backref("tsm_sensor", lazy="joined", innerjoin=True),
+        lazy="dynamic")
 
     logger = DB.relationship(
         "Loggers", backref="tsm_sensor", lazy="joined", innerjoin=True)
@@ -788,6 +789,7 @@ class LoggersSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = Loggers
+        exclude = ["data_presence"]
 
 
 class LoggerModelsSchema(MARSHMALLOW.ModelSchema):
@@ -810,6 +812,7 @@ class TSMSensorsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = TSMSensors
+        exclude = ["tsm_alert", "node_alerts", "data_presence"]
 
 
 class TSMAlertsSchema(MARSHMALLOW.ModelSchema):

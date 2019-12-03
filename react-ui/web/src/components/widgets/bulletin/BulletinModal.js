@@ -35,6 +35,7 @@ function BulletinModal (props) {
         if (is_onset) {
             temp.push(...["dynapips", "senslopepips"]);
         }
+        
         setBulletinModalData({
             ...bulletin_modal_data,
             recipients: temp

@@ -1,7 +1,7 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useState, useEffect } from "react";
 import {
     Grid, Typography,
-    Divider, Button, ButtonGroup
+    Divider, Button
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import { isWidthUp } from "@material-ui/core/withWidth";
@@ -12,11 +12,14 @@ import moment from "moment";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
 import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
 import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
-import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+import { Publish, Description, PhoneAndroid } from "@material-ui/icons";
+import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
 import GeneralStyles from "../../../GeneralStyles";
 import ValidationModal from "./ValidationModal";
 import useModal from "../../reusables/useModal";
 import BulletinModal from "../../widgets/bulletin/BulletinModal";
+import { getEWIMessage } from "../ajax";
+import SendEwiSmsModal from "./SendEwiSmsModal";
 
 const useStyles = makeStyles(theme => {
     const general_styles = GeneralStyles(theme);
@@ -72,14 +75,13 @@ const MyLoader = () => (
         style={{ width: "100%" }}
     >
         <rect x="-4" y="5" rx="4" ry="4" width="700" height="111" /> 
-        <rect x="0" y="120" rx="3" ry="3" width="201" height="6" />
     </ContentLoader>
 );
 
 function CandidateAlertsExpansionPanel (props) {
     const { 
         alertData, classes, expanded,
-        handleChange, index
+        handleExpansion, index
     } = props;
 
     let site = "";
@@ -110,7 +112,7 @@ function CandidateAlertsExpansionPanel (props) {
         <ExpansionPanel
             key={`panel-${index + 1}`}
             expanded={expanded === `panel${index}`}
-            onChange={handleChange(`panel${index}`)}
+            onChange={handleExpansion(`panel${index}`)}
         >
             <ExpansionPanelSummary
                 // expandIcon={<ExpandMoreIcon />}
@@ -130,6 +132,7 @@ function CandidateAlertsExpansionPanel (props) {
                     ))
                 }
             </ExpansionPanelSummary>
+            <Divider style={{ marginBottom: 12 }} />
             <ExpansionPanelDetails>
                 <Grid container spacing={1}>
                     <Grid item xs={12} container spacing={1}>
@@ -245,19 +248,19 @@ function CandidateAlertsExpansionPanel (props) {
                             }
                         </Grid>
                     </Grid>
-
-                    <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
-
-                    <Grid item xs={12} align="right">
-                        <Button
-                            variant="contained" color="primary" aria-label="Release candidate alert"
-                            // onClick={handleOnClick(row)}
-                        >
-                            Release Candidate Alert
-                        </Button>
-                    </Grid>
                 </Grid>
             </ExpansionPanelDetails>
+            <Divider />
+            <ExpansionPanelActions>
+                <Button
+                    color="secondary" size="small"
+                    aria-label="Release candidate alert"
+                    startIcon={<Publish />}
+                    // onClick={handleOnClick(row)}
+                >
+                            Release
+                </Button>
+            </ExpansionPanelActions>
         </ExpansionPanel>
     );
 }
@@ -265,7 +268,8 @@ function CandidateAlertsExpansionPanel (props) {
 function LatestSiteAlertsExpansionPanel (props) {
     const { 
         siteAlert, classes, expanded,
-        handleChange, index, bulletinHandler
+        handleExpansion, index, handleSMSRelease,
+        bulletinHandler
     } = props;
     const {
         event, internal_alert_level, releases
@@ -278,7 +282,7 @@ function LatestSiteAlertsExpansionPanel (props) {
     const start_ts = format_ts(event_start);
     const validity_ts = format_ts(validity);
 
-    const { data_ts, release_time, release_id } = releases[0];
+    const { release_id, data_ts, release_time } = releases[0];
 
     const is_onset = releases.length === 1;
     let adjusted_data_ts = data_ts;
@@ -286,7 +290,7 @@ function LatestSiteAlertsExpansionPanel (props) {
     adjusted_data_ts = format_ts(adjusted_data_ts);
 
     return (
-        <ExpansionPanel expanded={expanded === `lsa-panel${index}`} onChange={handleChange(`lsa-panel${index}`)}>
+        <ExpansionPanel expanded={expanded === `lsa-panel${index}`} onChange={handleExpansion(`lsa-panel${index}`)}>
             <ExpansionPanelSummary
                 // expandIcon={<ExpandMoreIcon />}
                 aria-controls={`lsa-panel${index}bh-content`}
@@ -305,6 +309,7 @@ function LatestSiteAlertsExpansionPanel (props) {
                     ))
                 }
             </ExpansionPanelSummary>
+            <Divider style={{ marginBottom: 12 }} />
             <ExpansionPanelDetails>
                 <Grid container spacing={1}>
                     <Grid item xs={12} container spacing={1}>
@@ -338,21 +343,19 @@ function LatestSiteAlertsExpansionPanel (props) {
                             ))
                         }
                     </Grid>
-
-                    <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
-
-                    <Grid item xs={12} align="right">
-                        <ButtonGroup variant="contained" color="primary">
-                            <Button>EWI SMS</Button>
-                            <Button
-                                onClick={bulletinHandler({ release_id, site_code, is_onset: false })}
-                            >
-                                Bulletin
-                            </Button>
-                        </ButtonGroup>
-                    </Grid>
                 </Grid>
             </ExpansionPanelDetails>
+            <Divider />
+            <ExpansionPanelActions>
+                <Button
+                    size="small" color="primary" 
+                    startIcon={<PhoneAndroid />}
+                    onClick={() => handleSMSRelease(release_id)}
+                >
+                    EWI SMS
+                </Button>
+                <Button size="small" color="primary" startIcon={<Description />} onClick={bulletinHandler({ release_id, site_code, is_onset: false })}>Bulletin</Button>
+            </ExpansionPanelActions>
         </ExpansionPanel>
     );
 }
@@ -366,10 +369,11 @@ function MonitoringTables (props) {
     const classes = useStyles();
     const [expanded, setExpanded] = useState(false);
     const { isShowing: isModalShowing, toggle: toggleModal } = useModal();
+    const { isShowing: isShowingSendEWI, toggle: toggleSendEWI } = useModal();
     const [chosenReleaseDetail, setChosenReleaseDetail] = useState({});
     const [isOpenBulletinModal, setIsOpenBulletinModal] = useState(false);
-
-    const handleChange = panel => (event, isExpanded) => {
+    
+    const handleExpansion = panel => (event, isExpanded) => {
         setExpanded(isExpanded ? panel : false);
     };
 
@@ -379,13 +383,20 @@ function MonitoringTables (props) {
         releaseFormOpenHandler();
     };
 
+    const [ewi_message, setEWIMessage] = useState("");
+    const handleSMSRelease = release_id => {
+        getEWIMessage(release_id, data => {
+            setEWIMessage(data);
+            toggleSendEWI();
+        });
+    };
+
     const bulletinHandler = release => event => {
-        console.log(release);
         setChosenReleaseDetail(release);
         setIsOpenBulletinModal(true);
     };
 
-    // const is_desktop = isWidthUp("md", width);
+    const is_desktop = isWidthUp("md", width);
 
     let latest_db_alerts = [];
     let extended_db_alerts = [];
@@ -419,7 +430,7 @@ function MonitoringTables (props) {
                                         classes={classes}
                                         alertData={row}
                                         expanded={expanded}
-                                        handleChange={handleChange}
+                                        handleExpansion={handleExpansion}
                                         index={index}
                                     />
                                 ))
@@ -449,7 +460,8 @@ function MonitoringTables (props) {
                                         classes={classes}
                                         siteAlert={row}
                                         expanded={expanded}
-                                        handleChange={handleChange}
+                                        handleExpansion={handleExpansion}
+                                        handleSMSRelease={handleSMSRelease}
                                         index={index}
                                         bulletinHandler={bulletinHandler}
                                     />
@@ -480,7 +492,8 @@ function MonitoringTables (props) {
                                         classes={classes}
                                         siteAlert={row}
                                         expanded={expanded}
-                                        handleChange={handleChange}
+                                        handleExpansion={handleExpansion}
+                                        handleSMSRelease={handleSMSRelease}
                                         index={index}
                                         bulletinHandler={bulletinHandler}
                                     />
@@ -511,7 +524,8 @@ function MonitoringTables (props) {
                                         classes={classes}
                                         siteAlert={row}
                                         expanded={expanded}
-                                        handleChange={handleChange}
+                                        handleExpansion={handleExpansion}
+                                        handleSMSRelease={handleSMSRelease}
                                         index={index}
                                         bulletinHandler={bulletinHandler}
                                     />
@@ -533,6 +547,12 @@ function MonitoringTables (props) {
                     releaseDetail={chosenReleaseDetail}
                 />                
             </Grid>
+
+            <SendEwiSmsModal
+                modalStateHandler={toggleSendEWI} 
+                modalState={isShowingSendEWI}
+                textboxValue={ewi_message}
+            />
         </div>
     );
 }
