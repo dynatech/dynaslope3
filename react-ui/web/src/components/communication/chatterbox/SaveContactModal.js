@@ -34,22 +34,31 @@ function SaveContactModal (props) {
         setOpenOptions
     } = props;
     const { sim_num, mobile_id } = mobileDetails;
-    console.log("contact", props)
-    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-    const snackBarActionFn = key => {
-        return (<Button
-            color="primary"
-            onClick={() => { closeSnackbar(key); }}
-        >
-            Dismiss
-        </Button>);
+    
+    const mobile_numbers = [{
+        sim_num,
+        mobile_id,
+        priority: 0,
+        status: 1
+    }];
+
+    const user = {
+        emails: [],
+        ewi_recipient: [],
+        ewi_restriction: [],
+        landline_numbers: [],
+        first_name: "",
+        last_name: "",
+        middle_name: "",
+        nickname: "",
+        user_id: 0,
+        organizations: []
     };
-    const initial_user_data = [];
+    const is_edit_mode = true;
+    const initial_user_data = { mobile_numbers, user };
     const [reason, setReason] = useState("");
     const [error_text, setErrorText] = useState(null);
     const { user_id } = getCurrentUser();
-    const [is_edit_mode, setEditMode] = useState(true);
-    const [user_data, setUserData] = useState([]);
 
     const [municipalities, setMunicipalities] = useState([]);
     const [provinces, setProvinces] = useState([]);
@@ -67,33 +76,6 @@ function SaveContactModal (props) {
     const handleClose = () => setSaveContactModal(false);
     const handleExited = () => setReason("");
 
-    const handleBlock = () => {
-        if (reason === "") {
-            setErrorText("This is a required field");
-        } else {
-            setSaveContactModal(false);
-            
-            const payload = {
-                mobile_id,
-                reporter_id: user_id,
-                reason
-            };
-
-            console.log(payload);
-
-            setOpenOptions(false);
-
-            enqueueSnackbar(
-                "Mobile number blocked!",
-                {
-                    variant: "success",
-                    autoHideDuration: 7000,
-                    action: snackBarActionFn
-                }
-            );
-        }
-    };
-
     useEffect(() => {
         getListOfMunicipalities(data => {
             setMunicipalities(prepareGeographicalList(data, "municipality"));
@@ -101,6 +83,7 @@ function SaveContactModal (props) {
             setRegions(prepareGeographicalList(data, "region"));
         });
     }, []);
+
 
     return (
         <Dialog
@@ -114,10 +97,15 @@ function SaveContactModal (props) {
                     municipalities={municipalities}
                     provinces={provinces}
                     regions={regions}
-                    chosenContact={[]}
+                    chosenContact={initial_user_data}
                     isEditMode={is_edit_mode}
                 /> 
             </DialogContent>
+            <DialogActions>
+                <Button onClick={handleClose} color="primary">
+                    Close
+                </Button>
+            </DialogActions>
         </Dialog>
     );
 }
