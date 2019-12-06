@@ -283,7 +283,7 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     organizations = fields.Nested(
         UserOrganizationsSchema, many=True, exclude=("user",))
 
-    ewi_restrictions = fields.Nested(
+    ewi_restriction = fields.Nested(
         "UserEwiRestrictionsSchema", many=True, exclude=("user",))
 
     teams = fields.Nested(

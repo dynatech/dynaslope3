@@ -249,5 +249,5 @@ def get_contacts():
 def main():
     global MESSAGES
     global CONTACTS
-    # MESSAGES = get_inbox()
+    MESSAGES = get_inbox()
     CONTACTS = get_contacts()

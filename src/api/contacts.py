@@ -2,14 +2,17 @@
 Contacts Functions Controller File
 """
 
+from datetime import datetime
 from flask import Blueprint, jsonify, request
 from connection import DB
 from src.utils.contacts import (
     get_all_contacts, save_user_information,
     save_user_contact_numbers, save_user_affiliation,
-    ewi_recipient_migration, get_contacts_per_site
+    ewi_recipient_migration, get_contacts_per_site,
     get_ground_measurement_reminder_recipients
 )
+
+from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 
 
 CONTACTS_BLUEPRINT = Blueprint("contacts_blueprint", __name__)
@@ -111,3 +114,14 @@ def wrap_get_contacts_per_site(site_code=None):
 def get_ground_meas_reminder_recipients():
     data = get_ground_measurement_reminder_recipients()
     return jsonify(data)
+
+@CONTACTS_BLUEPRINT.route("/contacts/get_leo", methods=["GET", "POST"])
+def get_leo():
+    current_datetime = datetime.now()
+    leo = get_ongoing_extended_overdue_events(current_datetime)
+    # data = []
+    # data.append(leo["latest"])
+    # data.append(leo["overdue"])
+    # data.append(leo["extended"])
+    # data = get_ground_measurement_reminder_recipients()
+    return jsonify(leo)
