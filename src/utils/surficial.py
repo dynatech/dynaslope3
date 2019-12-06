@@ -75,13 +75,18 @@ def get_surficial_data_presence():
 
 
 def get_surficial_data(
-        site_code=None, marker_id=None,
-        data_id=None, mo_id=None,
-        ts_order="asc", end_ts=None,
-        start_ts=None, limit=None):
+    site_code=None, marker_id=None,
+    data_id=None, mo_id=None,
+    ts_order="asc", end_ts=None,
+    start_ts=None, limit=None,
+    anchor="marker_data"
+):
     """
     Returns surficial data of a site or marker specified.
     You can filter data more using start, end timestamps and a limit.
+
+    anchor (string):    choose whether to return 'marker_observation'
+                        or 'marker_data'
     """
 
     if data_id:
@@ -89,7 +94,10 @@ def get_surficial_data(
     elif mo_id:
         filtered_query = mo.query.filter(mo.mo_id == mo_id)
     else:
-        base_query = md.query.join(mo)
+        if anchor == "marker_observations":
+            base_query = mo.query
+        else:
+            base_query = md.query.join(mo)
 
         if ts_order == "asc":
             base_query = base_query.order_by(DB.asc(mo.ts))
@@ -196,7 +204,7 @@ def delete_surficial_data(mo_id=None, site_id=None, ts=None, data_id=None):
     if data_id:
         row = md.query.filter_by(data_id=data_id).first()
         obs = row.marker_observation
-        obs_data = obs.marker_data.all()
+        obs_data = obs.marker_data
         DB.session.delete(row)
 
         if (len(obs_data) == 1):

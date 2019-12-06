@@ -124,7 +124,7 @@ def get_user_mobile_details(mobile_id):
     mobile_schema = MobileNumbersSchema(exclude=[
         "user_details.user.landline_numbers",
         "user_details.user.emails",
-        "user_details.user.ewi_restrictions"
+        "user_details.user.ewi_restriction"
     ]).dump(mobile_details).data
 
     return mobile_schema

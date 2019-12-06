@@ -86,7 +86,7 @@ function App (props) {
                     );
                 }} />
                 <Route path="/bulletin/:release_id" component={BulletinTemplate} />
-                <Route path="/chart_rendering/:site_code/:chart_type/:tsm_sensor?" component={ChartRenderingContainer} />
+                <Route path="/chart_rendering/:site_code/:ts_end/:chart_type/:tsm_sensor?" component={ChartRenderingContainer} />
                 <Route path="/" render={r_props => {
                     return (
                     // eslint-disable-next-line no-nested-ternary

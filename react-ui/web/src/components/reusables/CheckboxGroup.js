@@ -20,14 +20,18 @@ function CheckboxesGroup (props) {
     return (
         <Fragment>
             {
-                choices.map(({ state, value, label: clabel }, i) => (
+                choices.map(({ state, value, label: clabel, is_disabled }, i) => (
                     <FormControlLabel
                         key={i}
                         control={
                             <Checkbox
                                 checked={state}
                                 onChange={changeHandler(value)}
-                                value={value} 
+                                value={value}
+                                disabled={
+                                    typeof is_disabled === "undefined" ?
+                                        false : is_disabled
+                                }
                                 className={classes.checkboxes}
                             />
                         }

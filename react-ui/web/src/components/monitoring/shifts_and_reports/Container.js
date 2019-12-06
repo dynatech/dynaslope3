@@ -1,12 +1,12 @@
 import React, { Fragment, useState } from "react";
-import { withStyles } from "@material-ui/core/styles";
+import { makeStyles } from "@material-ui/core";
 import TabBar from "../../reusables/TabBar";
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 import EndOfShiftGenerator from "./EndOfShiftGenerator";
 import MonitoringShiftChecker from "./MonitoringShiftChecker";
 
-const styles = theme => {
+const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
     
     return {
@@ -19,7 +19,7 @@ const styles = theme => {
             marginTop: 30
         }
     }; 
-};
+});
 
 const tabs_array = [
     { label: "End-of-Shift Report Generator", href: "report-generator" },
@@ -27,8 +27,8 @@ const tabs_array = [
 ];
 
 function Container (props) {
-    const { classes } = props;
     const [chosenTab, setChosenTab] = useState(0);
+    const classes = useStyles();
 
     const handleTabSelected = chosen_tab => {
         setChosenTab(chosen_tab);
@@ -58,4 +58,4 @@ function Container (props) {
 }
 
 
-export default withStyles(styles)(Container);
+export default Container;

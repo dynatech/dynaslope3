@@ -307,7 +307,7 @@ function UpdateDeleteModal (props) {
 }
 
 // eslint-disable-next-line max-params
-function prepareOptions (input, data, width, setEditModal, setChosenPointCopy) {
+function prepareOptions (input, data, width, setEditModal, setChosenPointCopy, is_end_of_shift) {
     const subtext = "";
     const { site_code, timestamps } = input;
     const { start, end } = timestamps;
@@ -315,6 +315,12 @@ function prepareOptions (input, data, width, setEditModal, setChosenPointCopy) {
     const end_date = moment(end, "YYYY-MM-DD HH:mm:ss");
 
     const font_size = isWidthDown(width, "sm") ? "1rem" : "0.90rem";
+
+    let min_x = start_date;
+    if (is_end_of_shift && data.length > 0) {
+        const { data: meas_row } = data[0];
+        min_x = moment(meas_row[0].x);
+    }
 
     return {
         title: {
@@ -350,7 +356,7 @@ function prepareOptions (input, data, width, setEditModal, setChosenPointCopy) {
             }
         },
         xAxis: {
-            min: Date.parse(start_date),
+            min: Date.parse(min_x),
             max: Date.parse(end_date),
             type: "datetime",
             dateTimeLabelFormats: {
@@ -429,7 +435,8 @@ function SurficialGraph (props) {
     const { 
         width, match: { url, params: { site_code } },
         fullScreen, disableBack, disableMarkerList,
-        saveSVG, input, currentUser
+        saveSVG, input, currentUser,
+        isEndOfShift
     } = props;
 
     let ts_end = "";
@@ -443,12 +450,14 @@ function SurficialGraph (props) {
         ts_end = ts_now.format("YYYY-MM-DD HH:mm:ss");
         dt_ts_end = ts_now;
     }
-    const ts_start = computeForStartTs(dt_ts_end, 3, "months");
 
     const disable_back = typeof disableBack === "undefined" ? false : disableBack;
     const disable_marker_list = typeof disableMarkerList === "undefined" ? false : disableMarkerList;
     const save_svg = typeof saveSVG === "undefined" ? false : saveSVG;
+    const is_end_of_shift = typeof isEndOfShift === "undefined" ? false : isEndOfShift;
 
+    const ts_start = computeForStartTs(dt_ts_end, 3, "months");
+    
     const chartRef = React.useRef(null);
     const [timestamps, setTimestamps] = useState({ start: ts_start, end: ts_end });
     const [save_svg_now, setSaveSVGNow] = useState(false);
@@ -488,7 +497,8 @@ function SurficialGraph (props) {
             current.chart.showLoading();
 
         if (to_redraw_chart) {
-            getSurficialPlotData(site_code, timestamps, data => {
+            const f_input = { site_code, ...timestamps };
+            getSurficialPlotData(f_input, data => {
                 setSurficialData(data);
 
                 if (current !== null) {
@@ -516,7 +526,7 @@ function SurficialGraph (props) {
                     chart.renderer.button("Hide All", x + 75, y, () => fn(false))
                     .add();
                 }
-            });
+            }, is_end_of_shift);
 
             setRedrawChart(false);
         }
@@ -538,7 +548,7 @@ function SurficialGraph (props) {
     }, [save_svg_now]);
 
     const input_obj = { site_code, timestamps };
-    const options = prepareOptions(input_obj, surficial_data, width, setEditModal, setChosenPointCopy);
+    const options = prepareOptions(input_obj, surficial_data, width, setEditModal, setChosenPointCopy, is_end_of_shift);
     const graph_component = createSurficialGraph(options, chartRef);
 
     return (

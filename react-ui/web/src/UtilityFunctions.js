@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 function prepareSiteAddress (site_details, include_site_code = true, position = "end") {
     const { purok, sitio, barangay, municipality, province, site_code } = site_details;
     let address = "";
@@ -66,8 +68,27 @@ function computeForStartTs (ts, duration = 7, unit = "days") {
     return ts_start;
 }
 
+function useInterval (callback, delay, clear_interval = false) {
+    const savedCallback = useRef();
+  
+    useEffect(() => {
+        savedCallback.current = callback;
+    });
+  
+    useEffect(() => {
+        function tick () {
+            savedCallback.current();
+        }
+  
+        const id = setInterval(tick, delay);
+
+        if (clear_interval) clearInterval(id);
+        return () => clearInterval(id);
+    }, [delay, clear_interval]);
+}
+
 export {
     prepareSiteAddress, capitalizeFirstLetter,
     getUserOrganizations, simNumFormatter,
-    computeForStartTs
+    computeForStartTs, useInterval
 };

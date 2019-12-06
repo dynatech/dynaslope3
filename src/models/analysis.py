@@ -209,7 +209,7 @@ class MarkerData(DB.Model):
     marker = DB.relationship("Markers", backref=DB.backref(
         "marker_data", lazy="dynamic"), lazy="select")
     marker_observation = DB.relationship(
-        "MarkerObservations", backref=DB.backref("marker_data", lazy="dynamic"), lazy="select")
+        "MarkerObservations", backref=DB.backref("marker_data", lazy="subquery"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Data ID: {self.data_id}"
@@ -607,6 +607,29 @@ class DataPresenceLoggers(DB.Model):
                 f" presence: {self.presence} last_data: {self.last_data}"
                 f" ts_updated: {self.ts_updated} diff_days: {self.diff_days}")
 
+
+def get_tilt_table(table_name):
+    """
+    """
+
+    class GenericTiltTable(DB.Model):
+        """
+        """
+
+        __tablename__ = table_name
+        __bind_key__ = "senslopedb"
+        __table_args__ = {"schema": "senslopedb", "extend_existing": True}
+
+        data_id = DB.Column(DB.Integer, primary_key=True)
+        ts = DB.Column(DB.DateTime, nullable=False)
+
+        def __repr__(self):
+            return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
+                    f" ts: {self.ts}")
+
+    model = GenericTiltTable
+
+    return model
 
 #############################
 # End of Class Declarations #
