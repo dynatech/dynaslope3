@@ -147,7 +147,8 @@ class MonitoringTriggers(UserMixin, DB.Model):
     info = DB.Column(DB.String(360))
 
     internal_sym = DB.relationship(
-        "InternalAlertSymbols", backref=DB.backref("monitoring_triggers", lazy="dynamic"), lazy="joined", innerjoin=True)
+        "InternalAlertSymbols", backref=DB.backref("monitoring_triggers", \
+        lazy="dynamic"), lazy="joined", innerjoin=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger ID: {self.trigger_id}"

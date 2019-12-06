@@ -11,6 +11,8 @@ import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_si
 
 import ChatterboxContainer from "./components/communication/chatterbox/Container";
 import ContactsContainer from "./components/communication/contacts/Container";
+import MailBoxContainer from "./components/communication/mailbox/MailBoxContainer";
+
 import SitesInformationContainer from "./components/community/site_information/SitesInformationContainer";
 
 
@@ -34,7 +36,8 @@ function RoutesCollection (props) {
 
             <Route path={`${url}communication/chatterbox`} component={ChatterboxContainer} />
             <Route path={`${url}communication/contacts`} component={ContactsContainer} />
-            <Route path={`${url}communication`} render={() => <h3> Not yet created</h3>} />
+            <Route path={`${url}communication/mailbox`} component={MailBoxContainer} />
+            <Route path={`${url}communication`} render={() => <h3>Sorry. We could not find what you are looking for.</h3>} />
 
             <Route path={`${url}community/site_info`} component={SitesInformationContainer} />
 

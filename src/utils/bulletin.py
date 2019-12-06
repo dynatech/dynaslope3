@@ -28,7 +28,7 @@ from src.utils.monitoring import (
     get_monitoring_releases, get_monitoring_triggers,
     compute_event_validity, check_if_onset_release,
     get_next_ground_data_reporting, get_next_ewi_release_ts)
-from src.utils.extra import retrieve_data_from_memcache, format_timestamp_to_string
+from src.utils.extra import retrieve_data_from_memcache, format_timestamp_to_string, var_checker
 
 
 # Number of hours extended if no_data upon validity
@@ -276,6 +276,10 @@ class AlertDescriptionProcessor:
         return alert_description
 
 
+########################################
+# BULLETIN RENDERING-RELATED FUNCTIONS #
+########################################
+
 def get_alert_description(public_alert_level, internal_sym_id_list):
     """
     Get internal alert description
@@ -411,7 +415,6 @@ def process_no_data_triggers(trigger_list_str):
 def get_release_publishers_initial(release_publishers):
     """
     """
-
     sorted(release_publishers, key=lambda i: i.role, reverse=True)
 
     publishers = []
@@ -520,10 +523,29 @@ def create_monitoring_bulletin(release_id):
     return schema
 
 
+def download_monitoring_bulletin(release_id):
+    """
+    Handles the download of bulletin. 
+    """
+    ret = BROWSER_DRIVER.render_bulletin(release_id)
+
+    var_checker("ret", ret, True)
+
+    if ret["success"]:
+        return send_file(ret["pdf_path"], as_attachment=True, attachment_filename=APP_CONFIG["bulletin_save_path"])
+
+    return ret["error"]
+
+
 def render_monitoring_bulletin(release_id):
+    """
+    Handles the rendering of bulletin.
+    NOTE: Still dont know if this works
+    """
     ret = BROWSER_DRIVER.render_bulletin(release_id)
 
     if ret["success"]:
-        return send_file(ret["pdf_path"], as_attachment=True, attachment_filename="bulletin.pdf")
+        var_checker("RET IN RENDER", ret["pdf_path"], True)
+        return ret["pdf_path"]
 
     return ret["error"]
