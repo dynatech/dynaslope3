@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useEffect, useRef } from "react";
 
 function prepareSiteAddress (site_details, include_site_code = true, position = "end") {
     const { purok, sitio, barangay, municipality, province, site_code } = site_details;
@@ -94,9 +95,27 @@ function makeGETAxiosRequest (api_link, callback = null) {
     });
 }
 
+function useInterval (callback, delay, clear_interval = false) {
+    const savedCallback = useRef();
+  
+    useEffect(() => {
+        savedCallback.current = callback;
+    });
+  
+    useEffect(() => {
+        function tick () {
+            savedCallback.current();
+        }
+  
+        const id = setInterval(tick, delay);
+
+        if (clear_interval) clearInterval(id);
+        return () => clearInterval(id);
+    }, [delay, clear_interval]);
+}
 export {
     prepareSiteAddress, capitalizeFirstLetter,
     getUserOrganizations, simNumFormatter,
     computeForStartTs, makePOSTAxiosRequest,
-    makeGETAxiosRequest
+    makeGETAxiosRequest, useInterval
 };

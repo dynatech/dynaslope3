@@ -185,10 +185,14 @@ def save_svg():
         os.makedirs(path)
 
     connection_path = f"{path}/{user_id}/{site_code}"
+    if not os.path.exists(connection_path):
+        os.makedirs(connection_path)
+
     file_name = f"{connection_path}/{chart_type}"
     if chart_type == "subsurface":
         file_name += f"_{data['tsm_sensor']}"
-    f = open(f"{file_name}.svg", "w")
+    file_name += ".svg"
+    f = open(file_name, "w")
     f.write(svg)
     f.close()
 

@@ -15,9 +15,12 @@ from src.models.monitoring import (
 )
 from src.utils.monitoring import (
     get_monitoring_events, get_internal_alert_symbols, build_internal_alert_level,
-    get_monitoring_releases, get_monitoring_triggers)
+    get_monitoring_releases, get_monitoring_triggers, check_if_has_moms_or_earthquake_trigger)
 from src.utils.narratives import get_narratives
-from src.utils.subsurface import get_site_subsurface_columns
+from src.utils.subsurface import get_site_subsurface_columns, check_if_subsurface_columns_has_data
+from src.utils.surficial import (
+    check_if_site_has_active_surficial_markers, get_surficial_data,
+    get_surficial_markers)
 from src.models.analysis import TSMSensorsSchema
 from src.utils.extra import var_checker
 
@@ -102,11 +105,12 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
         event = event_alert.event
         alert_level = event_alert.public_alert_symbol.alert_level
         shift_triggers_list = get_monitoring_triggers(
-            event_id=event.event_id, ts_start=ts_start, ts_end=ts_end)
+            event_id=event.event_id, ts_start=ts_start,
+            ts_end=ts_end, load_options="end_of_shift")
         most_recent = get_monitoring_triggers(
             event_id=event.event_id, ts_start=shift_start -
             timedelta(hours=11, minutes=30),
-            ts_end=shift_start)
+            ts_end=shift_start, load_options="end_of_shift")
 
         eos_data = {
             "event_id": event.event_id,
@@ -125,7 +129,8 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
         }
 
         first_trigger = get_monitoring_triggers(
-            event_id=event.event_id, return_one=True, order_by_desc=False)
+            event_id=event.event_id, return_one=True,
+            order_by_desc=False, load_options="end_of_shift")
         if first_trigger:
             trig_id = first_trigger.trigger_id
             shift_triggers_list = filter(
@@ -207,6 +212,7 @@ def get_shift_end_info(end_ts, eos_dict):
     eos_data = eos_dict["eos_data"]
     shift_triggers = eos_data["shift_triggers"]
     validity = eos_data["validity"]
+    validity = datetime.strftime(validity, '%B %d, %Y, %I:%M %p')
     internal_alert_level = eos_data["internal_alert_level"]
 
     if eos_data["alert_level"] == 1:
@@ -234,8 +240,7 @@ def get_shift_end_info(end_ts, eos_dict):
             part_a += "No new alert triggers encountered.<br/>"
             part_a += "</ul>"
 
-        con = (f"Monitoring will continue until <b> "
-               f"{datetime.strftime(validity, '%B %d, %Y, %I:%M %p')}</b>.<br/>")
+        con = (f"Monitoring will continue until <b>{validity}</b>.<br/>")
 
         end_info = f"{part_a}- {con}"
 
@@ -245,16 +250,87 @@ def get_shift_end_info(end_ts, eos_dict):
     return end_info
 
 
-def process_eos_data_analysis(start_ts, event_id):
+def process_eos_data_analysis(
+        start_ts, event_id, site_code, subsurface_columns,
+        has_markers, has_surficial_data):
     data_analysis = get_eos_data_analysis(start_ts, event_id)
 
     if not data_analysis:
-        pass
-        # check if has moms or earthquake
-        # check if has surficial markers
-        #   - if none replace it with moms (automate this in the future)
-        #   - if yes, check if has data
-        # check if subsurface sensors has data, or inactive
+        string = "<strong>DATA ANALYSIS:</strong><br />"
+
+        subs = "No active subsurface sensors on site"
+        if subsurface_columns:
+            subs = ""
+            has_data = []
+            no_data = []
+            for sc in subsurface_columns:
+                if sc["has_data"]:
+                    has_data.append(sc)
+                else:
+                    no_data.append(sc)
+
+            if no_data:
+                cols = list(
+                    map(lambda x: x["logger"]["logger_name"].upper(), no_data))
+                joiner = "" if len(cols) < 2 else " and "
+                cols = joiner.join([", ".join(cols[0:-1]), cols[-1]])
+                subs += f"No available data from <b>{cols}</b>. "
+
+            for hd in has_data:
+                subs += f'<b>{hd["logger"]["logger_name"].upper()} - [write analysis here]. </b>'
+
+        string += f"- Subsurface data: {subs}"
+
+        surf = "No active ground markers on site"
+        if has_markers:
+            surf = "No surficial data received from LEWC"
+            if has_surficial_data:
+                data = get_surficial_data(
+                    site_code=site_code, ts_order="desc", limit=2, anchor="marker_observations")
+                markers = get_surficial_markers(site_code=site_code)
+
+                row_1 = data[0].marker_data
+                row_2 = data[1].marker_data
+                data_list = []
+                for md in row_1:
+                    md_row = next(
+                        (x for x in row_2 if x.marker_id == md.marker_id), None)
+                    name_row = next(
+                        x for x in markers if x.marker_id == md.marker_id)
+
+                    if md_row:
+                        change = str(md.measurement - md_row.measurement)
+                        change += "cm"
+                    else:
+                        change = (f"No value on last data sending "
+                                  f"(current value - {md_row.measurement}cm")
+
+                    temp = {
+                        "marker_name": name_row.marker_name,
+                        "change": change
+                    }
+                    data_list.append(temp)
+
+                surf = (f"Latest data received last <b>"
+                        f"{datetime.strftime(data[0].ts, '%B %d, %Y, %I:%M %p')}</b>. ")
+                surf += (f"Displacement of marker(s) from last data sending <b>"
+                         f"({datetime.strftime(data[1].ts, '%B %d, %Y, %I:%M %p')}):</b> ")
+                surf += ", ".join(str("<b>" + x["marker_name"]
+                                      + " -> " + x["change"] + "</b>") for x in data_list)
+
+        string += f"<br/>- Surficial data: {surf}"
+
+        moms_trig, eq_trig = check_if_has_moms_or_earthquake_trigger(event_id)
+
+        if moms_trig or not has_markers:
+            string += "<br/>- Manifestation of movement data: "
+        if eq_trig:
+            string += "<br/>- Earthquake data: "
+
+        string += "<br/>- Rainfall data:"
+        data_analysis = string
+
+    return data_analysis
 
 
 def get_eos_data_analysis(shift_start=None, event_id=None, analysis_only=True):
@@ -334,7 +410,9 @@ def process_eos_list(start_ts, end_ts, eos_data_list):
     eos_list = []
     # GET THE INITIALS FOR THE END OF SHIFT REPORTERS
     for eos_dict in eos_data_list:
-        event_id = eos_dict["eos_data"]["event_id"]
+        eos_data = eos_dict["eos_data"]
+        event_id = eos_data["event_id"]
+        validity = eos_data["validity"]
         site_code = eos_dict["site_code"]
         # Get the EOS publishers
         for publisher in eos_dict["temp"].release_publishers:
@@ -356,25 +434,41 @@ def process_eos_list(start_ts, end_ts, eos_data_list):
             "ct": ct_initials
         }
 
-        eos_head = f"<strong>END-OF-SHIFT REPORT ({publishers['mt']}, \
-            {publishers['ct']})</strong> <br />"
+        subsurface_columns = check_if_subsurface_columns_has_data(
+            site_code, start_ts, end_ts)
+        has_markers = check_if_site_has_active_surficial_markers(
+            site_code=site_code)
+
+        has_surficial_data = False
+        if has_markers:
+            surficial_data = get_surficial_data(site_code=site_code, ts_order="desc",
+                                                start_ts=start_ts, end_ts=end_ts,
+                                                anchor="marker_observations")
+            if surficial_data:
+                has_surficial_data = True
+
+        eos_head = f"<strong>END-OF-SHIFT REPORT FOR {site_code.upper()} <br/>({publishers['mt']}, \
+            {publishers['ct']})</strong><br/>"
         shift_start_info = get_shift_start_info(start_ts, end_ts, eos_dict)
         shift_end_info = get_shift_end_info(end_ts, eos_dict)
-        data_analysis = get_eos_data_analysis(start_ts, event_id)
+        data_analysis = process_eos_data_analysis(
+            start_ts, event_id, site_code, subsurface_columns,
+            has_markers, has_surficial_data)
         raw_narratives = get_eos_narratives(start_ts, end_ts, event_id)
         narratives = get_formatted_shift_narratives(raw_narratives)
 
-        tsm_sensors = get_site_subsurface_columns(site_code)
-        subsurface_columns = TSMSensorsSchema(many=True).dump(tsm_sensors).data
-
         eos_report_dict = {
             "site_code": site_code,
+            "event_id": event_id,
+            "validity": datetime.strftime(validity, "%Y-%m-%d %H:%M:%S"),
             "eos_head": eos_head,
             "shift_start_info": shift_start_info,
             "shift_end_info": shift_end_info,
             "data_analysis": data_analysis,
             "narratives": narratives,
-            "subsurface_columns": subsurface_columns
+            "subsurface_columns": subsurface_columns,
+            "has_markers": has_markers,
+            "has_surficial_data": has_surficial_data
         }
         eos_list.append(eos_report_dict)
 

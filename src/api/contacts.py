@@ -110,6 +110,7 @@ def wrap_get_contacts_per_site(site_code=None):
                                  alert_level=temp["alert_level"])
     return jsonify(data)
 
+
 @CONTACTS_BLUEPRINT.route("/contacts/get_ground_meas_reminder_recipients", methods=["GET", "POST"])
 def get_ground_meas_reminder_recipients():
     data = get_ground_measurement_reminder_recipients()

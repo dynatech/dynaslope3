@@ -1,6 +1,6 @@
 import React, { Fragment, useEffect, useState } from "react";
 import { makeStyles } from "@material-ui/core";
-import moment from "moment";
+import { useSnackbar } from "notistack";
 
 import RainfallGraph from "../analysis/integrated_site/RainfallGraph";
 import SurficialGraph from "../analysis/integrated_site/SurficialGraph";
@@ -11,16 +11,37 @@ import GeneralStyles from "../../GeneralStyles";
 import { capitalizeFirstLetter } from "../../UtilityFunctions";
 
 function Container (props) {
-    const { match: { params: { site_code, chart_type, tsm_sensor } } } = props;
+    const { match: { params: {
+        site_code, ts_end,
+        chart_type, tsm_sensor
+    } } } = props;
     const [rainfall_comp, setRainfallComp] = useState("");
     const [surficial_comp, setSurficialComp] = useState("");
     const [subsurface_comp, setSubsurfaceComp] = useState("");
+
+    const { enqueueSnackbar } = useSnackbar();
 
     const current_user = getCurrentUser();
     const classes = makeStyles(theme => GeneralStyles(theme))();
 
     useEffect(() => {
-        const input = { site_code, ts_end: "2017-06-09 04:30:00" }; // moment().format("YYYY-MM-DD HH:mm:ss")
+        enqueueSnackbar(
+            "Please wait for the charts to load before closing the page. " +
+            "If loading took long enough, please wait for about a minute and check " +
+            "your connection before trying again. " +
+            "If loading problem persist, contact the developers.",
+            {
+                variant: "warning",
+                autoHideDuration: 10000,
+                style: { whiteSpace: "pre-line" },
+                anchorOrigin: {
+                    vertical: "top",
+                    horizontal: "center",
+                }
+            }
+        );
+
+        const input = { site_code, ts_end }; // "2017-06-09 04:30:00"
         let temp;
 
         if (chart_type === "rainfall") {
@@ -39,6 +60,7 @@ function Container (props) {
                 currentUser={current_user}
                 disableBack
                 disableMarkerList
+                isEndOfShift
                 saveSVG
             />;
             setSurficialComp(temp);

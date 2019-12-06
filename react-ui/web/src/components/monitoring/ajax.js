@@ -1,7 +1,6 @@
 import axios from "axios";
 import { host } from "../../config";
 
-
 //
 // TEMPLATE
 //
@@ -98,9 +97,6 @@ export function getMonitoringEvents (input, callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
-        // setIsLoading(false);
-        // final_data = prepareEventsArray(response.data);
-        // setData(final_data);
         callback(data);
     })
     .catch(error => {
@@ -144,12 +140,8 @@ export function getEWIMessage (release_id, callback) {
 export function getSites (input, callback) {
     let api_link = `${host}/api/sites/get_sites_data`;
     if (typeof input !== "undefined" && input !== "" && input !== null && input.length !== 0) {
-        
         api_link += `/${input}`;
     }
-
-
-
 
     axios.get(api_link)
     .then(response => {
@@ -159,4 +151,17 @@ export function getSites (input, callback) {
     .catch(error => {
         console.error(error);
     });    
+}
+
+export function saveEOSDataAnalysis (input, callback) {
+    const api_link = `${host}/api/end_of_shift/save_eos_data_analysis`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });  
 }

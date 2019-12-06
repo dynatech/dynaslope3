@@ -7,7 +7,9 @@ import json
 import time
 from datetime import datetime
 from connection import DB
-from src.models.analysis import TSMSensors, Loggers
+from src.models.analysis import (
+    TSMSensors, TSMSensorsSchema,
+    Loggers, get_tilt_table)
 from analysis_scripts.analysis.subsurface.vcdgen import vcdgen
 from src.utils.extra import get_unix_ts_value
 
@@ -24,7 +26,9 @@ def get_site_subsurface_columns(site_code, include_deactivated=False):
     filter_var = Loggers.logger_name.like("%" + str(site_code) + "%")
 
     query = sub_col.query.join(Loggers).options(
-        DB.joinedload("logger").joinedload("logger_model").raiseload("*")
+        DB.joinedload("logger").joinedload("logger_model").raiseload("*"),
+        DB.joinedload("logger").joinedload(
+            "site", innerjoin=True).raiseload("*")
     ).order_by(
         DB.asc(Loggers.logger_name), DB.desc(sub_col.date_activated)).filter(filter_var)
 
@@ -271,3 +275,22 @@ def get_subsurface_plot_data(column_name, end_ts, start_date=None):
         {"type": "displacement", "data": displacement},
         {"type": "velocity_alerts", "data": velocity_alerts}
     ]
+
+
+def check_if_subsurface_columns_has_data(site_code, start_ts, end_ts):
+    tsm_sensors = get_site_subsurface_columns(site_code)
+    subsurface_columns = TSMSensorsSchema(many=True).dump(tsm_sensors).data
+
+    for tsm in subsurface_columns:
+        name = tsm["logger"]["logger_name"]
+        tilt = f"tilt_{name}"
+
+        Table = get_tilt_table(tilt)
+        result = Table.query.filter(start_ts <= Table.ts).filter(
+            Table.ts <= end_ts).all()
+
+        tsm["has_data"] = False
+        if result:
+            tsm["has_data"] = True
+
+    return subsurface_columns

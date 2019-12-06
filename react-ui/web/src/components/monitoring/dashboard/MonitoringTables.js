@@ -343,19 +343,6 @@ function LatestSiteAlertsExpansionPanel (props) {
                             ))
                         }
                     </Grid>
-
-                    <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
-
-                    <Grid item xs={12} align="right">
-                        <ButtonGroup variant="contained" color="primary">
-                            <Button>EWI SMS</Button>
-                            <Button
-                                onClick={bulletinHandler({ release_id, site_code, site_id })}
-                            >
-                                Bulletin
-                            </Button>
-                        </ButtonGroup>
-                    </Grid>
                 </Grid>
             </ExpansionPanelDetails>
             <Divider />
@@ -367,7 +354,13 @@ function LatestSiteAlertsExpansionPanel (props) {
                 >
                     EWI SMS
                 </Button>
-                <Button size="small" color="primary" startIcon={<Description />} onClick={bulletinHandler({ release_id, site_code, is_onset: false })}>Bulletin</Button>
+                <Button 
+                    size="small" color="primary"
+                    startIcon={<Description />}
+                    onClick={bulletinHandler({ release_id, site_code, site_id })}
+                >
+                        Bulletin
+                </Button>
             </ExpansionPanelActions>
         </ExpansionPanel>
     );

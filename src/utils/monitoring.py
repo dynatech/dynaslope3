@@ -578,6 +578,8 @@ def get_monitoring_releases(
             .joinedload("site", innerjoin=True)
             .raiseload("*"),
             ea_load.joinedload("public_alert_symbol", innerjoin=True),
+            DB.subqueryload("release_publishers").joinedload("user_details", innerjoin=True) \
+                .raiseload("*"),
             DB.raiseload("*")
         )
 
@@ -637,7 +639,10 @@ def get_unique_triggers(trigger_list, reverse=True):
     return new_trigger_list
 
 
-def get_monitoring_triggers(event_id=None, event_alert_id=None, release_id=None, ts_start=None, ts_end=None, return_one=False, order_by_desc=True):
+def get_monitoring_triggers(
+        event_id=None, event_alert_id=None, release_id=None,
+        ts_start=None, ts_end=None, return_one=False,
+        order_by_desc=True, load_options=None):
     """
     NOTE: To fill
     """
@@ -646,6 +651,12 @@ def get_monitoring_triggers(event_id=None, event_alert_id=None, release_id=None,
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
     base = mt.query
+
+    if load_options == "end_of_shift":
+        base = base.options(
+            DB.joinedload("internal_sym"),
+            DB.raiseload("*")
+        )
 
     if ts_start:
         base = base.filter(ts_start <= mt.ts)
@@ -671,6 +682,47 @@ def get_monitoring_triggers(event_id=None, event_alert_id=None, release_id=None,
         return_data = base.all()
 
     return return_data
+
+
+def check_if_has_moms_or_earthquake_trigger(event_id):
+    mt = MonitoringTriggers
+    ias = InternalAlertSymbols
+    ots = OperationalTriggerSymbols
+    th = TriggerHierarchies
+    mea = MonitoringEventAlerts
+    mr = MonitoringReleases
+
+    eq_trig = None
+    moms_trig = None
+    sq = DB.session.query(DB.func.max(mt.ts).label("max_ts"), mt.internal_sym_id) \
+        .join(ias).join(ots).join(th).join(mr).join(mea) \
+        .filter(th.trigger_source.in_(["moms", "earthquake"])) \
+            .filter(mea.event_id == event_id) \
+            .group_by(mt.internal_sym_id).subquery()
+    result = mt.query.options(DB.raiseload("*")).join(sq, DB.and_(
+        mt.ts == sq.c.max_ts,
+        mt.internal_sym_id == sq.c.internal_sym_id
+        )).all()
+
+    for row in result:
+        symbol = retrieve_data_from_memcache(
+            "internal_alert_symbols",
+            filters_dict={"internal_sym_id": row.internal_sym_id},
+            retrieve_one=True
+        )
+
+        source = symbol["trigger_symbol"]["trigger_hierarchy"]["trigger_source"]
+        if source == "earthquake" and not eq_trig:
+            eq_trig = row
+
+        if source == "moms" and not moms_trig:
+            moms_trig = row
+
+        if eq_trig and moms_trig:
+            break
+
+    return moms_trig, eq_trig
+
 
 ##########################################
 #   MONITORING_EVENT RELATED FUNCTIONS   #

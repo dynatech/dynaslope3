@@ -52,25 +52,45 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
     """
     ts_order = request.args.get("order", default="asc", type=str)
     limit = request.args.get("limit", default=None, type=int)
+    is_end_of_shift = request.args.get(
+        "is_end_of_shift", default="false", type=str)
+
+    ieos = is_end_of_shift == "true"
+    anchor = "marker_data"
+    if ieos:
+        start_ts = None
+        anchor = "marker_observations"
+        limit = 10
+        ts_order = "desc"
 
     if isinstance(filter_val, str):
         site_code = filter_val
         surficial_data = get_surficial_data(
-            site_code=site_code, ts_order=ts_order, start_ts=start_ts, end_ts=end_ts, limit=limit)
+            site_code=site_code, ts_order=ts_order,
+            start_ts=start_ts, end_ts=end_ts, limit=limit,
+            anchor=anchor)
     else:
         marker_id = filter_val
         surficial_data = get_surficial_data(
-            marker_id=marker_id, ts_order=ts_order, start_ts=start_ts, end_ts=end_ts, limit=limit)
+            marker_id=marker_id, ts_order=ts_order,
+            start_ts=start_ts, end_ts=end_ts,
+            limit=limit, anchor=anchor)
 
     markers = get_surficial_markers(site_code=filter_val)
+
+    if ieos:
+        temp = []
+        for row in surficial_data:
+            temp += row.marker_data
+        surficial_data = temp
 
     formatted_list = []
     for marker_row in markers:
         marker_id = marker_row.marker_id
         marker_name = marker_row.marker_name
 
-        data_set = list(filter(lambda x: x.marker_id ==
-                               marker_id, surficial_data))
+        data_set = list(filter(lambda x: x.marker_id
+                               == marker_id, surficial_data))
         marker_string_dict = {
             "marker_id": marker_id,
             "marker_name": marker_name,
@@ -85,6 +105,7 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
             new_list.append({
                 "x": final_ts, "y": item.measurement, "data_id": item.data_id, "mo_id": item.mo_id})
 
+        new_list = sorted(new_list, key=lambda i: i["x"])
         marker_string_dict["data"] = new_list
         formatted_list.append(marker_string_dict)
 
@@ -147,7 +168,7 @@ def wrap_update_surficial_data():
 
         if data_id:
             marker_data = get_surficial_data(data_id=data_id, limit=1)
-            marker_data.measurement = measurement = json["measurement"]
+            marker_data.measurement = json["measurement"]
 
         return_val = {
             "message": "Update successful",
@@ -190,7 +211,6 @@ def wrap_delete_surficial_data():
 def get_surficial_marker_trending_data(site_code, marker_name, end_ts):
     """
     """
-
     # run trending data script from analysis
     # temporary data
     import os

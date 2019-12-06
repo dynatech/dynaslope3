@@ -15,9 +15,13 @@ export function getDataPresenceData (group, callback) {
     });
 }
 
-export function getSurficialPlotData (site_code, timestamps, callback) {
-    const api_link = `${host}/api/surficial/get_surficial_plot_data/` +
-        `${site_code}/${timestamps.start}/${timestamps.end}`;
+export function getSurficialPlotData (input, callback, is_end_of_shift = false) {
+    const { site_code, start, end } = input;
+    let api_link = `${host}/api/surficial/get_surficial_plot_data/` +
+        `${site_code}/${start}/${end}`;
+
+    if (is_end_of_shift)
+        api_link += "?is_end_of_shift=true";
 
     axios.get(api_link)
     .then(response => {

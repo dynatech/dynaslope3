@@ -1,18 +1,17 @@
 import React, { Fragment, useState } from "react";
 import ContentLoader from "react-content-loader";
 import moment from "moment";
-import { Grid, withStyles, Button, withWidth, Paper, Typography, CircularProgress } from "@material-ui/core";
+import { Grid, makeStyles, Button, withWidth, Paper } from "@material-ui/core";
 import { isWidthDown } from "@material-ui/core/withWidth";
 import { ArrowForwardIos } from "@material-ui/icons";
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDatePicker } from "@material-ui/pickers";
-import { compose } from "recompose";
 import DetailedExpansionPanels from "./DetailedExpansionPanels";
 import SelectInputForm from "../../reusables/SelectInputForm";
 
 import { getEndOfShiftReports } from "../ajax";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     inputGridContainer: {
         margin: "12px 0",
         [theme.breakpoints.down("sm")]: {
@@ -36,7 +35,7 @@ const styles = theme => ({
         fontSize: 16,
         paddingLeft: 8
     }
-});
+}));
 
 const MyLoader = () => (
     <ContentLoader 
@@ -85,7 +84,9 @@ function prepareEOSRequest (start_ts, shift_time, setEosData, setIsLoading) {
     getEndOfShiftReports(input, ret => {
         setEosData(ret);
         setIsLoading(false);
-    });   
+    });
+
+    return moment_start_ts;
 }
 
 function EoSRNoData (props) {
@@ -109,13 +110,15 @@ function EoSRNoData (props) {
 }
 
 function EndOfShiftGenerator (props) {
-    const { classes, width } = props;
+    const { width } = props;
+    const classes = useStyles();
     const datetime_now = moment();
     const dt_hr = datetime_now.hour();
     const [start_ts, setStartTs] = useState(datetime_now.format("YYYY-MM-DD"));
     const [shift_time, setShiftTime] = useState(dt_hr >= 10 && dt_hr <= 22 ? "am" : "pm");
     const [isLoading, setIsLoading] = useState(false);
     const [eosData, setEosData] = useState(null);
+    const [shift_start_ts, setShiftStartTs] = useState(null);
 
     const handleDateTime = value => {
         setStartTs(value);
@@ -124,7 +127,8 @@ function EndOfShiftGenerator (props) {
     const handleClick = key => event => {
         setIsLoading(true);
         if (key === "generate_report") {
-            prepareEOSRequest(start_ts, shift_time, setEosData, setIsLoading);
+            const ts = prepareEOSRequest(start_ts, shift_time, setEosData, setIsLoading);
+            setShiftStartTs(ts);
         }
     };
 
@@ -198,7 +202,11 @@ function EndOfShiftGenerator (props) {
                                 eosData !== null && (
                                     eosData.length > 0 ? (
                                         eosData.map((row, index) => (
-                                            <DetailedExpansionPanels data={row} key={index} />
+                                            <DetailedExpansionPanels 
+                                                data={row}
+                                                key={index}
+                                                shiftStartTs={shift_start_ts}
+                                            />
                                         ))
                                     ) : (
                                         <EoSRNoData />
@@ -215,4 +223,4 @@ function EndOfShiftGenerator (props) {
     );
 }
 
-export default compose(withWidth(), withStyles(styles))(EndOfShiftGenerator);
+export default withWidth()(EndOfShiftGenerator);
