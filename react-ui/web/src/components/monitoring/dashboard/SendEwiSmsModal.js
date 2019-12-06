@@ -5,7 +5,7 @@ import {
     Button, withMobileDialog, IconButton
 } from "@material-ui/core";
 import { Close } from "@material-ui/icons";
-import SendMessageForm from "./SendMessageForm";
+import SendMessageForm from "../../communication/chatterbox/SendMessageForm";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 
 function SendMessageModal (props) {
@@ -25,7 +25,7 @@ function SendMessageModal (props) {
         >
             <DialogTitle id="form-dialog-title">
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span>Send a Message</span>
+                    <span>Send Early Warning Information</span>
                     <IconButton 
                         color="inherit" 
                         onClick={modalStateHandler}
@@ -38,11 +38,16 @@ function SendMessageModal (props) {
             </DialogTitle>
             <DialogContent style={{ overflowY: "hidden" }}>
                 <DialogContentText>
-                    Choose your recipients and compose a message, then send it.
+                    Early warning information recipients for this site is already pre-loaded. Add additional site-related contacts
+                    if necessary. Use Chatterbox for non-site-related contacts.
                 </DialogContentText>
                         
                 <div style={{ marginTop: 20 }}>
-                    <SendMessageForm isMobile={fullScreen} textboxValue={textboxValue} />
+                    <SendMessageForm
+                        isMobile={fullScreen}
+                        textboxValue={textboxValue}
+                        disableQuickSelect
+                    />
                 </div>
             </DialogContent>
             <DialogActions>

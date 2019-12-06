@@ -154,6 +154,9 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     from src.api.mailbox import MAILBOX_BLUEPRINT
     app.register_blueprint(MAILBOX_BLUEPRINT, url_prefix="/api")
 
+    from src.api.bulletin_email import BULLETIN_EMAIL
+    app.register_blueprint(BULLETIN_EMAIL, url_prefix="/api")
+
     from src.api.general_data_tag import GENERAL_DATA_TAG_BLUEPRINT
     app.register_blueprint(GENERAL_DATA_TAG_BLUEPRINT, url_prefix="/api")
 
@@ -190,8 +193,8 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     from src.api.situation_report import SITUATION_REPORT_BLUEPRINT
     app.register_blueprint(SITUATION_REPORT_BLUEPRINT, url_prefix="/api")
 
-    # from src.api.rainfall import RAINFALL_BLUEPRINT
-    # app.register_blueprint(RAINFALL_BLUEPRINT, url_prefix="/api")
+    from src.api.rainfall import RAINFALL_BLUEPRINT
+    app.register_blueprint(RAINFALL_BLUEPRINT, url_prefix="/api")
 
     from src.api.analysis import ANALYSIS_BLUEPRINT
     app.register_blueprint(ANALYSIS_BLUEPRINT, url_prefix="/api")

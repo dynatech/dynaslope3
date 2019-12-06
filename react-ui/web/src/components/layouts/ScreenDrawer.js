@@ -13,8 +13,7 @@ import {
     ExpandLess, ExpandMore
 } from "@material-ui/icons";
 import { withStyles } from "@material-ui/core/styles";
-import DynaLogo from "../../images/dynaslope-logo.png";
-import DostPhivolcsLogo from "../../images/dost-phivolcs-logo.png";
+import PhivolcsDynaslopeLogo from "../../images/phivolcs-dynaslope-logo.png";
 import GeneralStyles from "../../GeneralStyles";
 
 const styles = theme => ({
@@ -29,19 +28,22 @@ const styles = theme => ({
         fontSize: "0.9rem"
     },
     drawerHeader: {
-        height: 90,
-        display: "flex",
-        alignItems: "center", 
+        height: 160,
+        display: "block",
+        alignItems: "center",
         textAlign: "center",
-        justifyContent: "center",
-        padding: "0 16px"
+        // justifyContent: "center",
+        padding: 16
+    },
+    logo: {
+        height: 105
     },
     titleBlock: {
         display: "block",
         margin: "0 4px"
     },
-    projectTitle: { fontWeight: 600, fontSize: "1rem" },
-    projectSubtitle: { fontSize: "0.65rem" },
+    projectTitle: { fontWeight: 600 },
+    // projectSubtitle: { fontSize: "0.65rem" },
     link: { textDecoration: "none" }
 });
 
@@ -82,7 +84,7 @@ class ScreenDrawer extends Component {
                 >
                     <div className={classes.list}>
                         <Toolbar className={classes.drawerHeader}>
-                            <img className={classes.dynaslopeLogo} src={DynaLogo} alt="Dynaslope Logo" />
+                            {/* <img className={classes.dynaslopeLogo} src={DynaLogo} alt="Dynaslope Logo" />
                             <div className={classes.titleBlock}>
                                 <Typography variant="subtitle1" className={classes.projectTitle}>
                                 Project Dynaslope
@@ -92,7 +94,20 @@ class ScreenDrawer extends Component {
                                 </Typography>
                             </div>
                             
-                            <img className={classes.phivolcsLogo} src={DostPhivolcsLogo} alt="PHIVOLCS Logo" />
+                            <img className={classes.phivolcsLogo} src={DostPhivolcsLogo} alt="PHIVOLCS Logo" /> */}
+                            <img
+                                src={PhivolcsDynaslopeLogo}
+                                alt="PHIVOLCS-Dynaslope Logo"
+                                className={`${classes.phivolcsDynaslopeLogo} ${classes.logo}`}
+                            />
+
+                            <Typography variant="h5" className={classes.projectTitle}>
+                                MIA 3.0
+                            </Typography>
+                            <Typography variant="subtitle2" className={classes.projectSubtitle}>
+                                Monitoring and Information Application
+                            </Typography>
+
                         </Toolbar>
 
                         <Divider />

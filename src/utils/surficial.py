@@ -3,13 +3,15 @@
     Contains functions essential in accessing and saving into surficial table.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from connection import DB
 from src.models.analysis import (
     SiteMarkers, MarkerData as md,
     MarkerObservations as mo)
 from src.models.sites import Sites
-from src.utils.extra import var_checker
+from src.utils.extra import (
+    var_checker, round_to_nearest_release_time,
+    retrieve_data_from_memcache)
 
 
 def check_if_site_has_active_surficial_markers(site_code=None, site_id=None):
@@ -29,6 +31,47 @@ def check_if_site_has_active_surficial_markers(site_code=None, site_id=None):
 
     result = query.first()
     return bool(result.has_surficial_markers)
+
+
+def get_surficial_data_presence():
+    """
+    """
+
+    now = datetime.now()
+    release_interval_hours = retrieve_data_from_memcache(
+        "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
+    next_release_time = round_to_nearest_release_time(
+        now, release_interval_hours)
+    prev_release_time = next_release_time - \
+        timedelta(hours=release_interval_hours)
+
+    sm = SiteMarkers
+    subquery_1 = DB.session.query(sm.site_id, sm.site_code, DB.func.max(
+        sm.in_use).label("has_surficial_markers")).group_by(sm.site_id).subquery()
+    subquery_2 = DB.session.query(mo.site_id, DB.func.max(
+        mo.ts).label("last_ts")).group_by(mo.site_id).subquery()
+
+    result = DB.session.query(subquery_1, subquery_2.c.last_ts) \
+        .join(Sites, subquery_1.c.site_id == Sites.site_id).filter(Sites.active == 1) \
+        .join(subquery_2, subquery_1.c.site_id == subquery_2.c.site_id).all()
+
+    data_presence = []
+    for row in result:
+        presence = False
+        if prev_release_time <= row.last_ts and row.last_ts <= next_release_time:
+            presence = True
+
+        temp = {
+            "site_id": row.site_id,
+            "site_code": row.site_code,
+            "has_surficial_markers": row.has_surficial_markers,
+            "last_data": row.last_ts.strftime("%Y-%m-%d %H:%M:%S"),
+            "presence": presence
+        }
+
+        data_presence.append(temp)
+
+    return data_presence
 
 
 def get_surficial_data(

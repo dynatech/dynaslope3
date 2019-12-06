@@ -56,8 +56,12 @@ def wrap_write_narratives_to_db():
             timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
 
 
+        try:
+            narrative_id = json_data["narrative_id"]
+        except KeyError:
+            narrative_id = None
+
         # UPDATING OF NARRATIVE
-        narrative_id = json_data["narrative_id"]
         if narrative_id:
             for site_id in site_list:
                 has_event_id = bool(json_data["event_id"])

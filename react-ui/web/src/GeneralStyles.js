@@ -1,12 +1,15 @@
 const styles = theme => ({
     dynaslopeLogo: {
-        width: "60px",
-        height: "47.28px"
+        // width: 60,
+        // height: 47.28
+        height: 60
     },
     phivolcsLogo: {
-        width: "42.72px",
-        height: "53px",
-        marginLeft: "7px"
+        height: 70,
+        marginTop: 8
+    },
+    phivolcsDynaslopeLogo: {
+        height: 62
     },
     pageContentMargin: {
         margin: "0 16px",

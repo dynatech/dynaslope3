@@ -142,7 +142,8 @@ function ContactForm (props) {
         setContactForm, chosenContact, isEditMode,
         setContactFormForEdit
     } = props;
-
+    console.log(setContactFormForEdit);
+    console.log(setContactForm);
     let initial_mobiles = [{
         mobile_id: 0, sim_num: "", status: 1
     }];
@@ -161,11 +162,11 @@ function ContactForm (props) {
 
     if (isEditMode) {
         const { mobile_numbers, user: {
-            ewi_recipient, ewi_restrictions, landline_numbers, emails, first_name,
+            ewi_recipient, ewi_restriction, landline_numbers, emails, first_name,
             last_name, middle_name, nickname, user_id, organizations
         } } = chosenContact;
         initial_user_details = { first_name, last_name, middle_name, nickname, user_id };
-
+        
         if (organizations.length !== 0) {
             const { scope, name } = organizations[0].organization;
             const site_details = organizations[0].site;
@@ -176,8 +177,8 @@ function ContactForm (props) {
             initial_location = location;
     
         }
-        if (ewi_restrictions.length !== 0) {
-            const { alert_level } = ewi_restrictions[0];
+        if (ewi_restriction.length !== 0) {
+            const { alert_level } = ewi_restriction[0];
             initial_ewi_restriction = alert_level;
         }
         const updated_mobile_numbers = mobile_numbers.map((row, index) => {

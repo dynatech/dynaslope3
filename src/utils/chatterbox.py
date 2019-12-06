@@ -22,8 +22,8 @@ from src.utils.extra import var_checker
 def get_quick_inbox():
     query_start = datetime.now()
     vlmmid = ViewLatestMessagesMobileID
-    inbox_mobile_ids = vlmmid.query.join(UserMobiles, vlmmid.mobile_id == UserMobiles.mobile_id) \
-        .join(Users).order_by(DB.desc(vlmmid.max_ts)).limit(50).all()
+    inbox_mobile_ids = vlmmid.query.outerjoin(UserMobiles, vlmmid.mobile_id == UserMobiles.mobile_id) \
+        .outerjoin(Users).order_by(DB.desc(vlmmid.max_ts)).limit(50).all()
     unsent_messages_arr = get_unsent_messages()
 
     latest_inbox_messages = get_messages_for_mobile_group(inbox_mobile_ids)
@@ -115,13 +115,17 @@ def get_user_mobile_details(mobile_id):
 
     user = joinedload("user_details").joinedload(
         "user", innerjoin=True)
+    org = user.subqueryload("organizations")
     mobile_details = MobileNumbers.query.options(
-        user.subqueryload("organizations").joinedload(
-            "site", innerjoin=True).raiseload("*"),
+        org.joinedload("site", innerjoin=True).raiseload("*"),
+        org.joinedload("organization", innerjoin=True),
         user.subqueryload("teams"), raiseload("*")
     ).filter_by(mobile_id=mobile_id).first()
     mobile_schema = MobileNumbersSchema(exclude=[
-        "user_details.user.landline_numbers", "user_details.user.emails"]).dump(mobile_details).data
+        "user_details.user.landline_numbers",
+        "user_details.user.emails",
+        "user_details.user.ewi_restriction"
+    ]).dump(mobile_details).data
 
     return mobile_schema
 

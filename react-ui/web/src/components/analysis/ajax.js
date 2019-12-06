@@ -1,6 +1,19 @@
 import axios from "axios";
-import { sample_subsurface_data } from "./integrated_site/sample_subsurface_data_not_final";
 import { host } from "../../config";
+
+export function getDataPresenceData (group, callback) {
+    const api_link = `${host}/api/analysis/get_latest_data_presence/${group}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log(`Data Presence: ${group}`, data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
 
 export function getSurficialPlotData (site_code, timestamps, callback) {
     const api_link = `${host}/api/surficial/get_surficial_plot_data/` +
@@ -9,7 +22,7 @@ export function getSurficialPlotData (site_code, timestamps, callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
-        console.log(data);
+        console.log("Surficial Plot Data", data);
         callback(data);
     })
     .catch(error => {
@@ -61,13 +74,34 @@ export function getSurficialMarkerTrendingData (input, callback) {
     });
 }
 
-export function getRainfallPlotData (filter, timestamps, callback) {
-    // Do something
+export function getRainfallPlotData (input, callback) {
+    const { site_code, ts_end } = input;
+    const api_link = `${host}/api/rainfall/get_rainfall_plot_data/${site_code}/${ts_end}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("Rainfall Plot Data", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
 }
 
 export function getSubsurfacePlotData (input, callback) {
-    const subsurface_data = [...sample_subsurface_data];
-    callback(subsurface_data);
+    const { subsurface_column, ts_end } = input;
+    const api_link = `${host}/api/subsurface/get_subsurface_plot_data/${subsurface_column}/${ts_end}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("Subsurface Plot Data", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
 }
 
 export function getEarthquakeEvents (callback) {
@@ -121,6 +155,34 @@ export function getMOMsInstances (site_code, callback) {
     .then(response => {
         const { data } = response;
         console.log(`MOMs Instances of ${site_code.toUpperCase()}`, data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function getSiteSubsurfaceColumns (site_code, callback) {
+    const api_link = `${host}/api/subsurface/get_site_subsurface_columns/${site_code}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log(`Subsurface Columns of ${site_code.toUpperCase()}`, data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function saveChartSVG (input, callback) {
+    const api_link = `${host}/api/analysis/save_chart_svg`;
+    
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save SVG", data);
         callback(data);
     })
     .catch(error => {

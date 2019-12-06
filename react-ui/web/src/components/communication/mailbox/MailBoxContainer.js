@@ -20,7 +20,7 @@ import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 
-import sendEmail from "./ajax";
+import { sendEmail } from "./ajax";
 
 const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);

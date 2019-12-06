@@ -1,16 +1,38 @@
-import React, { Fragment, useState, useEffect } from "react";
+import React, {
+    Fragment, useState, useEffect,
+    useRef, createRef
+} from "react";
 
 import Highcharts from "highcharts";
+import HC_exporting from "highcharts/modules/exporting";
 import HighchartsReact from "highcharts-react-official";
 import * as moment from "moment";
 
-import { withStyles, Grid, Paper } from "@material-ui/core";
-
-import GeneralStyles from "../../../GeneralStyles";
-import { sample_rain_data } from "./sample_rain_data._not_final";
+import { Grid, Paper, Hidden } from "@material-ui/core";
 import BackToMainButton from "./BackToMainButton";
 
+import { getRainfallPlotData, saveChartSVG } from "../ajax";
+import { computeForStartTs } from "../../../UtilityFunctions";
+
 window.moment = moment;
+HC_exporting(Highcharts);
+
+const default_data = {
+    set: {
+        "24h": [],
+        "72h": [],
+        rain: [],
+        null_ranges: [],
+        max_rval: 0,
+        max_72h: 0,
+        gauge_name: "loading",
+        distance: 0,
+        data_source: "loading",
+        threshold_value: 0
+    },
+    series_data: [],
+    max_rval_data: []
+};
 
 const rainfall_colors = {
     "24h": "rgba(73, 105, 252, 0.9)",
@@ -137,7 +159,7 @@ function prepareCumulativeRainfallChartOption (row, input) {
             zoomType: "x",
             panning: true,
             panKey: "shift",
-            // height: 400,
+            height: 400,
             resetZoomButton: {
                 position: {
                     x: 0,
@@ -222,15 +244,65 @@ function prepareCumulativeRainfallChartOption (row, input) {
 }
 
 function RainfallGraph (props) {
-    const { classes, history, match: { params: { rain_gauge } }, width } = props;
-    const rainfall_data = sample_rain_data;
-    const input = { ts_end: "2019-06-24 01:00:00", ts_start: "2019-06-17 01:00:00", site_code: "AGB" };
+    const { 
+        match: { params: { rain_gauge, site_code } },
+        input: conso_input, disableBack, currentUser,
+        saveSVG
+    } = props;
 
-    const processed_data = [];
-    rainfall_data.forEach(set => {
-        const data = prepareRainfallData(set);
-        processed_data.push(data);
-    });
+    const [rainfall_data, setRainfallData] = useState([]);
+    const [processed_data, setProcessedData] = useState([]);
+    const chartRefs = useRef([...Array(4)].map(() => ({
+        instantaneous: createRef(),
+        cumulative: createRef()
+    })));
+    const [get_svg, setGetSVGNow] = useState(false);
+    const [svg_list, setSVGList] = useState([]);
+
+    const disable_back = typeof disableBack === "undefined" ? false : disableBack;
+    const save_svg = typeof saveSVG === "undefined" ? false : saveSVG;
+
+    let ts_end = "";
+    let sc = "";
+    let dt_ts_end;
+    if (typeof conso_input !== "undefined") {
+        const { ts_end: te } = conso_input;
+        ts_end = te;
+        dt_ts_end = moment(te);
+        sc = site_code;
+    } else {
+        const ts_now = moment();
+        ts_end = ts_now.format("YYYY-MM-DD HH:mm:ss");
+        dt_ts_end = ts_now;
+        sc = rain_gauge.substr(0, 3);
+    }
+
+    const ts_start = computeForStartTs(dt_ts_end, 3, "days");
+    const input = { ts_start, ts_end, site_code: sc };
+
+    const default_options = {
+        cumulative: prepareCumulativeRainfallChartOption(default_data, input),
+        instantaneous: prepareInstantaneousRainfallChartOption(default_data, input)
+    };
+
+    useEffect(() => {
+        getRainfallPlotData(input, data => {
+            let arr = data;
+            if (typeof rain_gauge !== "undefined") {
+                arr = data.filter(row => row.gauge_name === `rain_${rain_gauge}`);
+            }
+            setRainfallData(arr);
+        });
+    }, []);
+
+    useEffect(() => {
+        const temp = [];
+        rainfall_data.forEach(set => {
+            const data = prepareRainfallData(set);
+            temp.push(data);
+        });
+        if (temp.length > 0) setProcessedData(temp);
+    }, [rainfall_data]);
 
     const [options, setOptions] = useState([]);
 
@@ -241,26 +313,62 @@ function RainfallGraph (props) {
             const cumulative = prepareCumulativeRainfallChartOption(data, input);
             temp.push({ instantaneous, cumulative });
         });
-
         setOptions(temp);
-    }, []);
+        if (temp.length > 0 && save_svg) setGetSVGNow(true);
+    }, [processed_data]);
 
+    useEffect(() => {
+        if (get_svg) {
+            const temp = [];
+            chartRefs.current.forEach(a => {
+                const { instantaneous, cumulative } = a;
+                const { current: { chart: chart_i } } = instantaneous;
+                const { current: { chart: chart_c } } = cumulative;
+                const c = chart_c.getSVGForExport();
+                const i = chart_i.getSVGForExport();
+
+                temp.push({ c, i });
+            });
+            setSVGList(temp);
+        }
+    }, [get_svg]);
+
+    const svgRef = useRef(null);
+    useEffect(() => {
+        if (svg_list.length > 0) {
+            const svg = svgRef.current.outerHTML;
+            const temp = {
+                user_id: currentUser.user_id,
+                site_code,
+                chart_type: "rainfall",
+                svg
+            };
+
+            saveChartSVG(temp, data => {});
+        }
+    }, [svg_list]);
+    
     return (
         <Fragment>
-            <BackToMainButton {...props} />
+            {
+                !disable_back && <BackToMainButton {...props} />
+            }
 
             <div style={{ marginTop: 16 }}>
                 <Grid container spacing={4}>
                     {
-                        options.map((option, i) => {
-                            const { instantaneous, cumulative } = option;
+                        chartRefs.current.map((ref, i) => {
+                            let opt = { ...default_options };
+                            if (options.length > 0) opt = options[i];
+
                             return (
                                 <Fragment key={i}>
                                     <Grid item xs={12} md={6}>
                                         <Paper>
                                             <HighchartsReact
                                                 highcharts={Highcharts}
-                                                options={instantaneous}
+                                                options={opt.instantaneous}
+                                                ref={ref.instantaneous}
                                             />
                                         </Paper>
                                     </Grid>
@@ -269,7 +377,8 @@ function RainfallGraph (props) {
                                         <Paper>
                                             <HighchartsReact
                                                 highcharts={Highcharts}
-                                                options={cumulative}
+                                                options={opt.cumulative}
+                                                ref={ref.cumulative}
                                             />
                                         </Paper>
                                     </Grid>
@@ -279,11 +388,37 @@ function RainfallGraph (props) {
                     }
                 </Grid>
             </div>
+
+            {
+                save_svg && (
+                    <Hidden xsUp implementation="css">
+                        <svg 
+                            width={1200} height={1600}
+                            viewBox="0 0 1200 1600"
+                            ref={svgRef}
+                        >
+                            {
+                                svg_list.map((x, index) => {
+                                    const { i, c } = x;
+                                    return (
+                                        <Fragment key={index}>
+                                            { /* eslint-disable-next-line react/no-danger */ }
+                                            <svg x={0} y={400 * index} dangerouslySetInnerHTML={{ __html: i }} />
+                                            { /* eslint-disable-next-line react/no-danger */ }
+                                            <svg x={600} y={400 * index} dangerouslySetInnerHTML={{ __html: c }} />
+                                        </Fragment>
+                                    );
+                                })
+                            }
+                        </svg>
+                    </Hidden>
+                )
+            }
         </Fragment>
     );
 }
 
-export default withStyles(GeneralStyles)(RainfallGraph);
+export default RainfallGraph;
 
 function createRainPlotSubtitle (distance, gauge_name) {
     const source = gauge_name.toUpperCase();

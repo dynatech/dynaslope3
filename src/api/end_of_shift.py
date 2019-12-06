@@ -9,11 +9,16 @@ NAMING CONVENTION
 import json
 from datetime import datetime, timedelta
 from flask import Blueprint, jsonify
-from src.models.monitoring import (MonitoringEventsSchema, EndOfShiftAnalysis)
+from connection import DB
+from src.models.monitoring import (
+    MonitoringEventsSchema, EndOfShiftAnalysis
+)
 from src.utils.monitoring import (
     get_monitoring_events, get_internal_alert_symbols, build_internal_alert_level,
     get_monitoring_releases, get_monitoring_triggers)
-from src.utils.narratives import (get_narratives)
+from src.utils.narratives import get_narratives
+from src.utils.subsurface import get_site_subsurface_columns
+from src.models.analysis import TSMSensorsSchema
 from src.utils.extra import var_checker
 
 
@@ -48,9 +53,7 @@ def extract_unique_release_events(releases_list):
             continue
 
         event_id = event.event_id
-
-        # if not (tuple_entry in unique_set):
-        if not (event_id in unique_set):
+        if not event_id in unique_set:
             unique_set.add(event_id)
             unique_release_events.append({
                 "site_code": event.site.site_code,
@@ -73,12 +76,18 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
             print(t_e)
             raise
 
+    ts_start = shift_start + timedelta(minutes=30)
+    ts_end = shift_end - timedelta(hours=1)
+
     if event_id:
         releases_list = get_monitoring_releases(
-            ts_start=shift_start, ts_end=shift_end, event_id=event_id)
+            ts_start=ts_start, ts_end=ts_end,
+            event_id=event_id, exclude_routine=True,
+            load_options="end_of_shift")
     else:
         releases_list = get_monitoring_releases(
-            ts_start=shift_start, ts_end=shift_end)
+            ts_start=ts_start, ts_end=ts_end,
+            exclude_routine=True, load_options="end_of_shift")
 
     # Get unique releases and segregate by site_code
     unique_release_dict_list = extract_unique_release_events(releases_list)
@@ -91,24 +100,26 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
 
         event_alert = unique_release_dict["temp"].event_alert
         event = event_alert.event
+        alert_level = event_alert.public_alert_symbol.alert_level
         shift_triggers_list = get_monitoring_triggers(
-            event_id=event.event_id, ts_start=shift_start, ts_end=shift_end)
+            event_id=event.event_id, ts_start=ts_start, ts_end=ts_end)
         most_recent = get_monitoring_triggers(
-            event_id=event.event_id, ts_start=shift_start - timedelta(hours=12), ts_end=shift_start)
+            event_id=event.event_id, ts_start=shift_start -
+            timedelta(hours=11, minutes=30),
+            ts_end=shift_start)
 
         eos_data = {
             "event_id": event.event_id,
             "event_start": event.event_start,
             "validity": event.validity,
-            "alert_level": event_alert.public_alert_symbol.alert_level,
-            # "releases": releases_list,
-            # "triggers": triggers_list,
+            "alert_level": alert_level,
+            "first_trigger_id": None,
             "first_trigger_info": "",
             "first_trigger_type": "",
             "most_recent": most_recent,
             "shift_triggers": shift_triggers_list,
             "internal_alert_level": build_internal_alert_level(
-                event_alert.public_alert_symbol.alert_level,
+                alert_level,
                 unique_release_dict["temp"].trigger_list
             )
         }
@@ -116,8 +127,13 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
         first_trigger = get_monitoring_triggers(
             event_id=event.event_id, return_one=True, order_by_desc=False)
         if first_trigger:
+            trig_id = first_trigger.trigger_id
+            shift_triggers_list = filter(
+                lambda x: x.trigger_id != trig_id, shift_triggers_list)
             eos_data = {
                 **eos_data,
+                "shift_triggers": list(shift_triggers_list),
+                "first_trigger_id": trig_id,
                 "first_trigger_info": first_trigger.info,
                 "first_trigger_type": get_internal_alert_symbols(first_trigger.internal_sym_id)
             }
@@ -141,21 +157,26 @@ def get_shift_start_info(shift_start_ts, shift_end_ts, eos_dict):
     Prepare the start info of end-of-shift report.
     """
     # event_start, shift_start, shift_end, first_trigger_type, first_trigger_info, most_recent
-    event_start_ts = eos_dict["eos_data"]["event_start"]
+    eos_data = eos_dict["eos_data"]
+    event_start_ts = eos_data["event_start"]
     report_start_ts = datetime.strftime(event_start_ts, "%B %d, %Y, %I:%M %p")
 
-    first_trigger_type = eos_dict["eos_data"]["first_trigger_type"]
-    first_trigger_info = eos_dict["eos_data"]["first_trigger_info"]
+    first_trigger_type = eos_data["first_trigger_type"]
+    first_trigger_info = eos_data["first_trigger_info"]
+
+    start_header = f"<b>SHIFT START:<br/>\
+            {datetime.strftime(shift_start_ts, '%B %d, %Y, %I:%M %p')}</b>"
 
     if event_start_ts >= (shift_start_ts + timedelta(minutes=30)) and \
             event_start_ts <= (shift_end_ts - timedelta(minutes=30)):
-        start_info = f"Monitoring initiated on {report_start_ts} due to" \
+        start_info = f"{start_header} <br />- Monitoring initiated on {report_start_ts} due to " \
             f"{BASIS_TO_RAISE[str(first_trigger_type)][0]} ({first_trigger_info})."
     else:
-        part_a = f"Event monitoring started on {report_start_ts} due to" \
+        part_a = f"- Event monitoring started on {report_start_ts} due to" \
             f"{BASIS_TO_RAISE[str(first_trigger_type)][0]} ({first_trigger_info})."
         part_b = ""
-        most_recent_triggers = eos_dict["eos_data"]["most_recent"]
+        most_recent_triggers = eos_data["most_recent"]
+
         if most_recent_triggers:
             part_b = "the following recent trigger/s: "
             part_b += "<ul>"
@@ -174,8 +195,6 @@ def get_shift_start_info(shift_start_ts, shift_end_ts, eos_dict):
         else:
             part_b = "no new alert triggers from previous shift.<br/>"
 
-        start_header = f"<b>SHIFT START:<br/>\
-            {datetime.strftime(shift_start_ts, '%B %d, %Y, %I:%M %p')}</b>"
         start_info = f"{start_header} <br />- Monitoring continued with {part_b}- {part_a}"
 
     return start_info
@@ -185,16 +204,16 @@ def get_shift_end_info(end_ts, eos_dict):
     """
     Prepare the end info of end-of-shift report.
     """
-    shift_triggers = eos_dict["eos_data"]["shift_triggers"]
-    validity = eos_dict["eos_data"]["validity"]
-    internal_alert_level = eos_dict["eos_data"]["internal_alert_level"]
+    eos_data = eos_dict["eos_data"]
+    shift_triggers = eos_data["shift_triggers"]
+    validity = eos_data["validity"]
+    internal_alert_level = eos_data["internal_alert_level"]
 
-    if eos_dict["eos_data"]["alert_level"] == 1:
+    if eos_data["alert_level"] == 1:
         end_info = f"- Alert <b>lowered to A0</b>; monitoring ended at <b> \
             {validity}</b>.<br/>"
-
     else:
-        part_a = f"The current internal alert level is <b> \
+        part_a = f"- The current internal alert level is <b> \
             {internal_alert_level}</b>.<br/>- "
 
         if shift_triggers:
@@ -206,8 +225,8 @@ def get_shift_end_info(end_ts, eos_dict):
                 timestamp = shift_trigger.ts
                 info = shift_trigger.info
 
-                part_a += f"{part_a}<li> <b>{BASIS_TO_RAISE[trigger_type][1]} \
-                    </b> - alerted on <b>{timestamp}</b> due to \
+                part_a += f"<li> <b>{BASIS_TO_RAISE[trigger_type][1]} \
+                    </b> - alerted on <b>{datetime.strftime(timestamp, '%B %d, %Y, %I:%M %p')}</b> due to \
                         {BASIS_TO_RAISE[trigger_type][0]} ({info})</li>"
             part_a += "</ul>"
 
@@ -215,7 +234,8 @@ def get_shift_end_info(end_ts, eos_dict):
             part_a += "No new alert triggers encountered.<br/>"
             part_a += "</ul>"
 
-        con = f"Monitoring will continue until <b>{validity}</b>.<br/>"
+        con = (f"Monitoring will continue until <b> "
+               f"{datetime.strftime(validity, '%B %d, %Y, %I:%M %p')}</b>.<br/>")
 
         end_info = f"{part_a}- {con}"
 
@@ -225,7 +245,19 @@ def get_shift_end_info(end_ts, eos_dict):
     return end_info
 
 
-def get_eos_data_analysis(shift_start=None, event_id=None):
+def process_eos_data_analysis(start_ts, event_id):
+    data_analysis = get_eos_data_analysis(start_ts, event_id)
+
+    if not data_analysis:
+        pass
+        # check if has moms or earthquake
+        # check if has surficial markers
+        #   - if none replace it with moms (automate this in the future)
+        #   - if yes, check if has data
+        # check if subsurface sensors has data, or inactive
+
+
+def get_eos_data_analysis(shift_start=None, event_id=None, analysis_only=True):
     """
         Returns all data analysis based on a specified filter.
         Args:
@@ -234,15 +266,24 @@ def get_eos_data_analysis(shift_start=None, event_id=None):
 
     return_data = ""
     eosa = EndOfShiftAnalysis
-    base_query = eosa.query
+    base_query = eosa.query.options(DB.raiseload("*"))
+    first_only = False
 
-    if shift_start and event_id:
-        var_checker("shift_start", shift_start, True)
-        var_checker("event_id", event_id, True)
-        filter_value = eosa.shift_start == shift_start and eosa.event_id == event_id
-        eos_data_analysis = base_query.filter(filter_value).first()
-        if eos_data_analysis:
-            return_data = eos_data_analysis.analysis
+    if shift_start:
+        base_query = base_query.filter(eosa.shift_start == shift_start)
+        first_only = True
+
+    if event_id:
+        base_query = base_query.filter(eosa.event_id == event_id)
+
+    if first_only:
+        eos_data_analysis = base_query.first()
+    else:
+        eos_data_analysis = base_query.all()
+
+    return_data = eos_data_analysis
+    if eos_data_analysis and analysis_only:
+        return_data = eos_data_analysis.analysis
 
     return return_data
 
@@ -294,6 +335,7 @@ def process_eos_list(start_ts, end_ts, eos_data_list):
     # GET THE INITIALS FOR THE END OF SHIFT REPORTERS
     for eos_dict in eos_data_list:
         event_id = eos_dict["eos_data"]["event_id"]
+        site_code = eos_dict["site_code"]
         # Get the EOS publishers
         for publisher in eos_dict["temp"].release_publishers:
             user_details = publisher.user_details
@@ -322,13 +364,17 @@ def process_eos_list(start_ts, end_ts, eos_data_list):
         raw_narratives = get_eos_narratives(start_ts, end_ts, event_id)
         narratives = get_formatted_shift_narratives(raw_narratives)
 
+        tsm_sensors = get_site_subsurface_columns(site_code)
+        subsurface_columns = TSMSensorsSchema(many=True).dump(tsm_sensors).data
+
         eos_report_dict = {
-            "site_code": eos_dict["site_code"],
+            "site_code": site_code,
             "eos_head": eos_head,
             "shift_start_info": shift_start_info,
             "shift_end_info": shift_end_info,
             "data_analysis": data_analysis,
-            "narratives": narratives
+            "narratives": narratives,
+            "subsurface_columns": subsurface_columns
         }
         eos_list.append(eos_report_dict)
 

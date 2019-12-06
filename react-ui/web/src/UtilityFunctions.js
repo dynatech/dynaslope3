@@ -1,3 +1,5 @@
+import axios from "axios";
+
 function prepareSiteAddress (site_details, include_site_code = true, position = "end") {
     const { purok, sitio, barangay, municipality, province, site_code } = site_details;
     let address = "";
@@ -60,7 +62,41 @@ function simNumFormatter (sim_num) {
     return sim_num[0] === "0" ? sim_num : `+${sim_num}`;
 }
 
+function computeForStartTs (ts, duration = 7, unit = "days") {
+    const ts_format = "YYYY-MM-DD HH:mm:ss";
+    const ts_start = ts.subtract(duration, unit).format(ts_format);
+    return ts_start;
+}
+
+function makePOSTAxiosRequest (api_link, callback = null, payload) {
+    axios.post(api_link, payload)
+    .then((response) => {
+        const { data } = response; 
+        if (callback !== null) {
+            callback(data);
+        } 
+    })
+    .catch((error) => {
+        console.log(error);
+    });
+}
+
+function makeGETAxiosRequest (api_link, callback = null) {
+    axios.get(api_link)
+    .then((response) => {
+        const { data } = response; 
+        if (callback !== null) {
+            callback(data);
+        } 
+    })
+    .catch((error) => {
+        console.log(error);
+    });
+}
+
 export {
     prepareSiteAddress, capitalizeFirstLetter,
-    getUserOrganizations, simNumFormatter
+    getUserOrganizations, simNumFormatter,
+    computeForStartTs, makePOSTAxiosRequest,
+    makeGETAxiosRequest
 };

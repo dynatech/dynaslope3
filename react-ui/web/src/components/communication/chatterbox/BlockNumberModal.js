@@ -16,7 +16,6 @@ function BlockNumberModal (props) {
         setOpenOptions
     } = props;
     const { sim_num, mobile_id } = mobileDetails;
-
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const snackBarActionFn = key => {
         return (<Button

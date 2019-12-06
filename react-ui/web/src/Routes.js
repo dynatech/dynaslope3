@@ -6,7 +6,6 @@ import MonitoringEventsTable from "./components/monitoring/events_table/Monitori
 import ShiftsAndReportsContainer from "./components/monitoring/shifts_and_reports/Container";
 import SiteLogsContainer from "./components/monitoring/site_logs/Container";
 import IssuesAndReminders from "./components/monitoring/issues_and_reminders/Container";
-import SiteInformationPage from "./components/community/site_information/SiteInformationPage";
 
 import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_site/Container";
 
@@ -40,7 +39,6 @@ function RoutesCollection (props) {
             <Route path={`${url}communication/mailbox`} component={MailBoxContainer} />
             <Route path={`${url}communication`} render={() => <h3>Sorry. We could not find what you are looking for.</h3>} />
 
-            {/* <Route path={`${url}community/site_info`} component={SiteInformationPage} /> */}
             <Route path={`${url}community/site_info`} component={SitesInformationContainer} />
 
             <Route render={() => <h3> Not found</h3>} />

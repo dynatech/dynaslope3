@@ -8,7 +8,10 @@ import {
 } from "@material-ui/core";
 import ChipInput from "material-ui-chip-input";
 
+import moment from "moment";
 import BulletinTemplate from "./BulletinTemplate";
+import { downloadBulletin, getBulletinEmailDetails, write_bulletin_narrative } from "./ajax";
+import { sendBulletinEmail } from "../../communication/mailbox/ajax";
 
 const default_data = {
     mail_content: "",
@@ -24,62 +27,96 @@ function BulletinModal (props) {
         releaseDetail
     } = props;
     const {
-        release_id, site_code, is_onset
+        release_id, site_code, site_id
     } = releaseDetail;
+    console.log("release detail", releaseDetail);
 
-    const [bulletin_modal_data, setBulletinModalData] = useState({});
+    // const [bulletin_modal_data, setBulletinModalData] = useState({});
+    const [mail_subject, setMailSubject] = useState("");
+    const [mail_recipients, setMailRecipients] = useState([]);
+    const [mail_content, setMailContent] = useState("");
+    const [file_name, setFileName] = useState("");
+    const [sent_status, setSentStatus] = useState(false);
+    const [narrative_details, setNarrativeDetails] = useState({});
+
 
     useEffect(() => {
-        setBulletinModalData(default_data);
+        if (typeof release_id !== "undefined") {
+            getBulletinEmailDetails(release_id, ret => {
+                const {
+                    subject, recipients, mail_body, file_name: filename, narrative_details: tmp_nar
+                } = ret;
 
-        const temp = ["rusolidum@phivolcs.dost.gov.ph", "asdaag@phivolcs.dost.gov.ph"];
-        if (is_onset) {
-            temp.push(...["dynapips", "senslopepips"]);
+                setNarrativeDetails(tmp_nar);
+    
+                typeof recipients === "object" ? 
+                    setMailRecipients([recipients[0].TEST_SERVER_EMAIL]) 
+                    : 
+                    setMailRecipients(recipients);
+    
+                setMailSubject(subject);
+                setMailContent(mail_body);
+                setFileName(filename);
+            });
         }
-        setBulletinModalData({
-            ...bulletin_modal_data,
-            recipients: temp
-        });
     }, [releaseDetail]);
 
-    const downloadHandler = () => {
+    const downloadHandler = release_id_input => () => {
         console.log("Requested download however this feature is still a work in progress.");
+        downloadBulletin(release_id_input, ret => {
+            console.log("LOG bulletin_download", ret);
+        });
     };
 
     const closeHandler = () => setIsOpenBulletinModal(false);
 
     const handleSend = () => {
-        console.log("Clicked submit!");
-        closeHandler();
-    };
+        // const { subject, recipients, mail_body } = bulletin_modal_data;
 
-    const changeHandler = key => value => {
-        setBulletinModalData({
-            ...bulletin_modal_data,
-            key: value
+        const input = {
+            subject: mail_subject,
+            recipients: mail_recipients,
+            mail_body: mail_content,
+            release_id,
+            file_name 
+        };
+        console.log("input", input);
+
+        sendBulletinEmail(input, ret => {
+            console.log("ret", ret, true);
+
+            if (typeof narrative_details === "object") {
+                const temp_nar = {
+                    ...narrative_details,
+                    timestamp: moment().format("YYYY-MM-DD HH:mm:ss")
+                };
+                write_bulletin_narrative(temp_nar, narrative_ret => {
+                    closeHandler();
+                });
+            } else console.log("NO NARRATIVE WRITTEN: TEST ONLY");
+
         });
     };
 
-    
+    const mailContentHandler = value => {
+        setMailContent(value);
+    };
+
     const handleAddChip = (chip) => {
-        const temp = bulletin_modal_data.recipients.push(chip);
-        setBulletinModalData({
-            ...bulletin_modal_data,
-            ...temp
-        });
+        const temp = mail_recipients;
+        temp.push(chip);
+        console.log("temp", temp);
+        setMailRecipients(temp);
     };
 
     const handleDeleteChip = (chip, index) => {
-        const temp = bulletin_modal_data.recipients.splice( bulletin_modal_data.recipients.indexOf(chip), 1 );
-        setBulletinModalData({
-            ...bulletin_modal_data,
-            ...temp
-        });
-    };
+        console.log("chip", chip);
+        console.log("mail_recipients", mail_recipients);
+        mail_recipients.splice( mail_recipients.indexOf(chip), 1 );
 
-    const {
-        mail_content, sent_status, recipients
-    } = bulletin_modal_data;
+        console.log("handleDel", mail_recipients);
+        setMailRecipients(mail_recipients);
+    };
 
     let f_site_code = "";
     if (typeof site_code !== "undefined") {
@@ -106,7 +143,7 @@ function BulletinModal (props) {
                             required
                             label="Mail Content"
                             value={mail_content}
-                            onChange={changeHandler("mail_content")}
+                            onChange={mailContentHandler}
                             placeholder="Add mail content"
                             multiline
                             rowsMax={6}
@@ -118,30 +155,19 @@ function BulletinModal (props) {
                     <Grid item xs={12}>
                         <ChipInput 
                             label="To"
-                            value={recipients}
+                            value={mail_recipients}
                             onAdd={(chip) => handleAddChip(chip)}
                             onDelete={(chip, index) => handleDeleteChip(chip, index)}
                             fullWidth
                             required
                         />
-                        {/* <TextField
-                            required
-                            label="Recipients"
-                            value={recipients}
-                            onChange={changeHandler("recipients")}
-                            placeholder="Add mail recipients"
-                            multiline
-                            rowsMax={6}
-                            fullWidth
-                            className={classes.textField}
-                        /> */}
                     </Grid>
                     
                     <Grid item xs={12}>
                         <Divider className={classes.divider} />
                     </Grid>
 
-                    <Grid item xs={12} style={{ textAlign: "center", paddingTop: 20 }}>
+                    <Grid item xs={12} style={{ paddingTop: 20 }}>
                         <BulletinTemplate
                             releaseId={release_id}
                         />
@@ -150,7 +176,7 @@ function BulletinModal (props) {
                 </Grid>
             </DialogContent>
             <DialogActions>
-                <Button onClick={downloadHandler} color="primary">
+                <Button onClick={downloadHandler(release_id)} color="primary">
                     Download
                 </Button>
                 <Button color="secondary" onClick={handleSend} disabled={false}>

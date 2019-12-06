@@ -55,9 +55,9 @@ class UsersRelationship(Users):
     organizations = DB.relationship(
         UserOrganizations, backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
 
-    ewi_restrictions = DB.relationship(
+    ewi_restriction = DB.relationship(
         "UserEwiRestrictions", backref=DB.backref("user", lazy="joined", innerjoin=True),
-        lazy="subquery")
+        lazy="joined")
 
     teams = DB.relationship(
         "UserTeamMembers", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
@@ -122,7 +122,6 @@ class UserOrganization(DB.Model):
 
     def __repr__(self):
         return f"{self.org_name}"
-
 
 
 class UserLandlines(DB.Model):
@@ -274,7 +273,6 @@ class UsersSchema(MARSHMALLOW.ModelSchema):
         exclude = ["mobile_numbers", "landline_numbers", "account"]
 
 
-
 class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users Relationships
@@ -285,7 +283,7 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     organizations = fields.Nested(
         UserOrganizationsSchema, many=True, exclude=("user",))
 
-    ewi_restrictions = fields.Nested(
+    ewi_restriction = fields.Nested(
         "UserEwiRestrictionsSchema", many=True, exclude=("user",))
 
     teams = fields.Nested(
@@ -352,7 +350,6 @@ class UserEmailsSchema(MARSHMALLOW.ModelSchema):
         model = UserEmails
 
 
-
 class UserTeamsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
@@ -396,6 +393,7 @@ class PendingAccountsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = PendingAccounts
+
 
 class UserEwiRestrictionsSchema(MARSHMALLOW.ModelSchema):
     """

@@ -24,7 +24,7 @@ function MessageOptionsModal (props) {
     const classes = useStyles();
     const {
         onClose, open, isUnregistered,
-        setBlockModal
+        setBlockModal, setSaveContactModal
     } = props;
 
     const handleClose = () => {
@@ -38,7 +38,7 @@ function MessageOptionsModal (props) {
             <List>
                 {
                     isUnregistered && (
-                        <ListItem button onClick={() => {}}>
+                        <ListItem button onClick={() => setSaveContactModal(true)}>
                             <ListItemIcon>
                                 <SaveAlt />
                             </ListItemIcon>

@@ -46,9 +46,9 @@ class BulletinTriggers(DB.Model):
         "InternalAlertSymbols", backref=DB.backref("bulletin_trigger", lazy="dynamic"), lazy="joined", innerjoin=True)
 
     def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Public Symbol ID: {self.intermal_sym_id}"
-                f" Recommended Response: {self.recommended} LEWC/LGU Response: {self.lewc_lgu}"
-                f" Community Response: {self.community}")
+        return (f"Type <{self.__class__.__name__}> internal_sym_id: {self.internal_sym_id}"
+                f" description: {self.description} cause: {self.cause}"
+                f" template: {self.template} sms: {self.sms}")
 
 
 

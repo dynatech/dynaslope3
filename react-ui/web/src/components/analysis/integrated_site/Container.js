@@ -5,7 +5,7 @@ import React, {
 import { createPortal } from "react-dom";
 
 import {
-    withStyles, Button, Grid,
+    makeStyles, Button, Grid,
     Paper
 } from "@material-ui/core";
 import { InsertChart } from "@material-ui/icons";
@@ -15,9 +15,9 @@ import { Route, Switch, Link } from "react-router-dom";
 import Highcharts from "highcharts/highcharts.src";
 import heatmap from "highcharts/modules/heatmap.src";
 import HighchartsReact from "highcharts-react-official";
-import { compose } from "recompose";
 import moment from "moment";
 import MUIDataTable from "mui-datatables";
+import ContentLoader from "react-content-loader";
 
 import SurficialGraph from "./SurficialGraph";
 import RainfallGraph from "./RainfallGraph";
@@ -27,20 +27,20 @@ import ConsolidateSiteChartsModal from "./ConsolidateSiteChartsModal";
 import EarthquakeContainer from "./EarthquakeContainer";
 import MomsInstancesPage from "./MomsInstancesPage";
 
-import { getMOMsAlertSummary, getEarthquakeEvents, getEarthquakeAlerts } from "../ajax";
-// sample data
 import { 
-    sites, data_presence_rain_gauges, 
-    data_presence_tsm, data_presence_loggers 
-} from "../../../store";
-
+    getMOMsAlertSummary, getEarthquakeEvents, getEarthquakeAlerts,
+    getDataPresenceData
+} from "../ajax";
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 
 heatmap(Highcharts);
 
-const styles = theme => {
+let ts_now;
+const format_str = "D MMM YYYY, HH:mm";
+
+const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
     
     return {
@@ -53,7 +53,19 @@ const styles = theme => {
             marginTop: 30
         }
     }; 
-};
+});
+
+const MyLoader = () => (
+    <ContentLoader 
+        height={600}
+        width={400}
+        speed={1}
+        primaryColor="#f3f3f3"
+        secondaryColor="#ecebeb"
+    >
+        <rect x="0" y="0" rx="0" ry="0" width="400" height="600" />
+    </ContentLoader>
+);
 
 function CustomButtons (change_consolidate_modal_fn) {
     return <span>
@@ -71,28 +83,102 @@ function CustomButtons (change_consolidate_modal_fn) {
     </span>;
 }
 
-function prepareOptions (is_mobile, type) {
+function createCustomLabels (chart, url) {
+    const custom_labels = [];
+    if (chart && Object.keys(chart).length !== 0 && chart.xAxis[0]) {
+        chart.series[0].points.forEach(p => {
+            custom_labels.push(LabelComponent(url, p));
+        });
+    }
+    return custom_labels;
+}
+
+function LabelComponent (url, p) {
+    const { data, type, dataLabel } = p;
+
+    return (
+        <div key={data}>
+            {createPortal(
+                <Link 
+                    to={`${url}/${type}/${data}`}
+                    style={{ 
+                        // textDecoration: "none",
+                        fontSize: dataLabel.options.style.fontSize, 
+                        // fontWeight: 800,
+                        position: "absolute",
+                        fontFamily: "Lucida Grande, Lucida Sans Unicode, Arial Helvetica, sans-serif",
+                        color: "#000000"
+                    }}
+                >
+                    {data.toUpperCase()}
+                </Link>, dataLabel.div
+            )}
+        </div>
+    );
+}
+
+function generateData (data_list, type, is_mobile) {
+    const data = [];
+    let x = 0;
+
+    data_list.forEach((row, i) => {
+        const { last_data, ts_updated, diff_days } = row;
+
+        let label;
+        const value = row.presence;
+        if (type === "surficial") {
+            label = row.site_code;
+            if (!row.has_surficial_markers) label += "*";
+        } else if (type === "rainfall") {
+            label = row.rain_gauge.gauge_name;
+        } else if (type === "subsurface") {
+            label = row.tsm_sensor.logger.logger_name;
+        } else {
+            label = row.logger.logger_name;
+        }
+
+        // const y = is_mobile ? i % 5 : i % 10;
+        const y = i % 5;
+        const a = {
+            // x: y, // x : y,
+            // y: 5 - x, // 10 - y : 5 - x,
+            x: y,
+            y: 5 - x,
+            value,
+            label: label.toUpperCase(),
+            data: label,
+            type,
+            ts_last_data: last_data,
+            ts_updated,
+            diff_days
+        };
+        data.push(a);
+        
+        // const cond = is_mobile ? i % 5 === 4 : i % 10 === 9;
+        const cond = i % 5 === 4;
+        if (cond) x += 1;
+    });
+
+    return data;
+}
+
+function prepareOptions (is_mobile, type, data_list) {
     const uc_type = type.charAt(0).toUpperCase() + type.slice(1);
     const title = `<b>${uc_type} Data Availability</b>`;
 
-    let data_list;
     let height = 50;
     let additional_height = 60;
-    
+    let subtitle_text = `Timestamp: <b>${ts_now.format(format_str)}</b>`;
     switch (type) {
         case "surficial":
-            data_list = sites;
-            break;
-        case "rainfall":
-            data_list = data_presence_rain_gauges;
+            subtitle_text += "<br/>Note: Data presence within four hours until next release" +
+            "<br/><b>*Sites without markers</b>";
             break;
         case "subsurface":
-            data_list = data_presence_tsm;
             height = 85;
             additional_height = 100;
             break;
         case "loggers":
-            data_list = data_presence_loggers;
             height = 95;
             additional_height = 100;
             // fallthrough
@@ -119,7 +205,7 @@ function prepareOptions (is_mobile, type) {
             y: 20
         },
         subtitle: {
-            text: "Timestamp: <b>29 December 2019, 11:30:00</b>",
+            text: subtitle_text,
             style: { fontSize: "0.70rem" }
         },
         xAxis: {
@@ -147,7 +233,6 @@ function prepareOptions (is_mobile, type) {
                     ts_last_data, ts_updated, diff_days
                 } = this.point;
                 const presence = value ? "With" : "No";
-                const format_str = "D MMM YYYY, HH:mm";
                 
                 let type_label;
                 switch (type) {
@@ -167,11 +252,16 @@ function prepareOptions (is_mobile, type) {
                         break;
                 }
 
-                return `${type_label}: <b>${label}</b><br/>` + 
-                   `Presence: <b>${presence} data</b><br/>` + 
-                   `Last data timestamp: <b>${moment(ts_last_data).format(format_str)}</b><br/>` +
-                   `Last update timestamp: <b>${moment(ts_updated).format(format_str)}</b><br/>` +
-                   `Days since last data: <b>${diff_days}</b><br/>`;
+                let str = `${type_label}: <b>${label}</b><br/>` + 
+                `Presence: <b>${presence} data</b><br/>` + 
+                `Last data timestamp: <b>${moment(ts_last_data).format(format_str)}</b>`;
+
+                if (type !== "surficial") {
+                    str += `<br/>Last update timestamp: <b>${moment(ts_updated).format(format_str)}</b><br/>` +
+                    `Days since last data: <b>${diff_days}</b><br/>`;
+                }
+
+                return str;
             }
         },
         credits: {
@@ -202,116 +292,100 @@ function prepareOptions (is_mobile, type) {
     return options;
 }
 
-function generateData (data_list, type, is_mobile) {
-    const data = [];
-    let x = 0;
-
-    data_list.forEach((row, i) => {
-        const { last_data, ts_updated, diff_days } = row;
-
-        let label;
-        let value;
-        if (type === "surficial") {
-            label = row.site_code;
-            value = Math.round(Math.random());
-        } else if (type === "rainfall") {
-            label = row.rain_gauge.gauge_name;
-            value = row.presence;
-        } else if (type === "subsurface") {
-            label = row.tsm_sensor.logger.logger_name;
-            value = row.presence;
-        } else {
-            label = row.logger.logger_name;
-            value = row.presence;
-        }
-
-        // const y = is_mobile ? i % 5 : i % 10;
-        const y = i % 5;
-        const a = {
-            // x: y, // x : y,
-            // y: 5 - x, // 10 - y : 5 - x,
-            x: y,
-            y: 5 - x,
-            value,
-            label: label.toUpperCase(),
-            data: label,
-            type,
-            ts_last_data: last_data,
-            ts_updated,
-            diff_days: diff_days !== undefined ? diff_days : Math.round(Math.random() * 10)
-        };
-        data.push(a);
-        
-        // const cond = is_mobile ? i % 5 === 4 : i % 10 === 9;
-        const cond = i % 5 === 4;
-        if (cond) x += 1;
-    });
-
-    return data;
-}
-
-function createCustomLabels (chart, url) {
-    const custom_labels = [];
-    if (chart && Object.keys(chart).length !== 0 && chart.xAxis[0]) {
-        chart.series[0].points.forEach(p => {
-            custom_labels.push(LabelComponent(url, p));
-        });
-    }
-    return custom_labels;
-}
-
-function LabelComponent (url, p) {
-    const { data, type, dataLabel } = p;
-
-    return (
-        <div key={data}>
-            {createPortal(
-                <Link 
-                    to={`${url}/${type}/${data}`}
-                    style={{ 
-                        textDecoration: "none", 
-                        fontSize: dataLabel.options.style.fontSize, 
-                        fontWeight: 800,
-                        position: "absolute",
-                        fontFamily: "Lucida Grande, Lucida Sans Unicode, Arial Helvetica, sans-serif",
-                        color: "#000000"
-                    }}
-                >
-                    {data.toUpperCase()}
-                </Link>, dataLabel.div
-            )}
-        </div>
-    );
-}
-
 function Container (props) {
     const {
-        classes, width, location,
+        width, location,
         match: { path, url }
     } = props;
+    const classes = useStyles();
     const is_desktop = isWidthDown(width, "sm");
+
+    ts_now = moment();
 
     const [is_consolidate_modal_open, setIsConsolidateModalOpen] = useState(false);
     const change_consolidate_modal_fn = bool => () => setIsConsolidateModalOpen(bool);
 
+    const [subsurface_data_presence, setSubsurfaceDataPresence] = useState([]);
+    const [subsurface_dp_option, setSubsurfaceDpOption] = useState(null);
+    const [subsurface_custom_label, setSubsurfaceCustomLabel] = useState(null);
+
+    const [surficial_data_presence, setSurficialDataPresence] = useState([]);
+    const [surficial_dp_option, setSurficialDpOption] = useState(null);
+    const [surficial_custom_label, setSurficialCustomLabel] = useState(null);
+
+    const [rainfall_data_presence, setRainfallDataPresence] = useState([]);
+    const [rainfall_dp_option, setRainfallDpOption] = useState(null);
+    const [rainfall_custom_label, setRainfallCustomLabel] = useState(null);
+
+    const [loggers_data_presence, setLoggersDataPresence] = useState([]);
+    const [loggers_dp_option, setLoggersDpOption] = useState(null);
+    
     const [chart_instances, setChartInstances] = useState({});
-    const [options, setOptions] = useState({
-        surficial: prepareOptions(!is_desktop, "surficial"),
-        rainfall: prepareOptions(!is_desktop, "rainfall"),
-        subsurface: prepareOptions(!is_desktop, "subsurface"),
-        loggers: prepareOptions(!is_desktop, "loggers")
-    });
-    const [custom_labels, setCustomLabels] = useState({});
 
     const save_chart_instances_fn = name => chart => {
         setChartInstances(prev => ({ ...prev, [name]: chart }));
     };
 
-    // useEffect(() => {
-    //     Object.keys(chart_instances).forEach(key => {
-    //         setCustomLabels({ ...custom_labels, [key]: createCustomLabels(chart_instances[key], url) });
-    //     });
-    // });
+    useEffect(() => {
+        getDataPresenceData("surficial", data => {
+            setSurficialDataPresence(data);
+        });
+
+        getDataPresenceData("tsm", data => {
+            setSubsurfaceDataPresence(data);
+        });
+
+        getDataPresenceData("rain_gauges", data => {
+            setRainfallDataPresence(data);
+        });
+
+        getDataPresenceData("loggers", data => {
+            setLoggersDataPresence(data);
+        });
+    }, []);
+
+    useEffect(() => {
+        if (surficial_data_presence.length > 0) {
+            const option = prepareOptions(!is_desktop, "surficial", surficial_data_presence);
+            setSurficialDpOption(option);
+        }
+    }, [surficial_data_presence]);
+
+    useEffect(() => {
+        if (subsurface_data_presence.length > 0) {
+            const option = prepareOptions(!is_desktop, "subsurface", subsurface_data_presence);
+            setSubsurfaceDpOption(option);
+        }
+    }, [subsurface_data_presence]);
+
+    useEffect(() => {
+        if (rainfall_data_presence.length > 0) {
+            const option = prepareOptions(!is_desktop, "rainfall", rainfall_data_presence);
+            setRainfallDpOption(option);
+        }
+    }, [rainfall_data_presence]);
+
+    useEffect(() => {
+        if (loggers_data_presence.length > 0) {
+            const option = prepareOptions(!is_desktop, "loggers", loggers_data_presence);
+            setLoggersDpOption(option);
+        }
+    }, [loggers_data_presence]);
+
+    useEffect(() => {
+        const temp = createCustomLabels(chart_instances.rainfall, url);
+        setRainfallCustomLabel(temp);
+    }, [chart_instances.rainfall]);
+
+    useEffect(() => {
+        const temp = createCustomLabels(chart_instances.surficial, url);
+        setSurficialCustomLabel(temp);
+    }, [chart_instances.surficial]);
+
+    useEffect(() => {
+        const temp = createCustomLabels(chart_instances.subsurface, url);
+        setSubsurfaceCustomLabel(temp);
+    }, [chart_instances.subsurface]);
 
     const [moms_alerts, setMOMsAlerts] = useState([]);
     useEffect(() => {
@@ -328,11 +402,6 @@ function Container (props) {
             setMOMsAlerts(table_data);
         });  
     }, []);
-
-    const temp = {};
-    Object.keys(chart_instances).forEach(key => {
-        temp[key] = createCustomLabels(chart_instances[key], url);
-    });
 
     const [eq_events, setEqEvents] = useState([]);
     useEffect(() => {
@@ -373,53 +442,77 @@ function Container (props) {
                         props => (
                             <Grid container spacing={2}>
                                 <Grid item xs={12} md={6} lg={3}>
-                                    <Paper elevation={2}>
-                                        <HighchartsReact
-                                            highcharts={Highcharts}
-                                            options={options.surficial}
-                                            callback={save_chart_instances_fn("surficial")}
-                                            allowChartUpdate={false}
-                                        />
-                                        {temp.surficial}
-                                    </Paper>
+                                    {
+                                        surficial_dp_option !== null ? (
+                                            <Paper elevation={2}>
+                                                <HighchartsReact
+                                                    highcharts={Highcharts}
+                                                    options={surficial_dp_option}
+                                                    callback={save_chart_instances_fn("surficial")}
+                                                    allowChartUpdate={false}
+                                                />
+                                                {surficial_custom_label}
+                                            </Paper>
+                                        ) : (
+                                            <MyLoader style={{ height: "100%" }}/>
+                                        )
+                                    }
                                 </Grid>
 
                                 <Grid item xs={12} md={6} lg={3}>
-                                    <Paper elevation={2}>
-                                        <HighchartsReact
-                                            highcharts={Highcharts}
-                                            options={options.rainfall}
-                                            callback={save_chart_instances_fn("rainfall")}
-                                            allowChartUpdate={false}
-                                        />
-                                        {temp.rainfall}
-                                    </Paper>
+                                    {
+                                        rainfall_dp_option !== null ? (
+                                            <Paper elevation={2}>
+                                                <HighchartsReact
+                                                    highcharts={Highcharts}
+                                                    options={rainfall_dp_option}
+                                                    callback={save_chart_instances_fn("rainfall")}
+                                                    allowChartUpdate={false}
+                                                />
+                                                {rainfall_custom_label}
+                                            </Paper>
+                                        ) : (
+                                            <MyLoader style={{ height: "100%" }}/>
+                                        )
+                                    }
                                 </Grid>
 
                                 <Grid item xs={12} md={6} lg={3}>
-                                    <Paper elevation={2}>
-                                        <HighchartsReact
-                                            highcharts={Highcharts}
-                                            options={options.subsurface}
-                                            callback={save_chart_instances_fn("subsurface")}
-                                            allowChartUpdate={false}
-                                        />
-                                        {temp.subsurface}
-                                    </Paper>
+                                    {
+                                        subsurface_dp_option !== null ? (
+                                            <Paper elevation={2}>
+                                                <HighchartsReact
+                                                    highcharts={Highcharts}
+                                                    options={subsurface_dp_option}
+                                                    callback={save_chart_instances_fn("subsurface")}
+                                                    allowChartUpdate={false}
+                                                />
+                                                {subsurface_custom_label}
+                                            </Paper>
+                                        ) : (
+                                            <MyLoader style={{ height: "100%" }}/>
+                                        )
+                                    }
                                 </Grid>
 
                                 <Grid item xs={12} md={6} lg={3}>
-                                    <Paper elevation={2}>
-                                        <HighchartsReact
-                                            highcharts={Highcharts}
-                                            options={options.loggers}
-                                            callback={save_chart_instances_fn("loggers")}
-                                            allowChartUpdate={false}
-                                        />
-                                    </Paper>
+                                    {
+                                        loggers_dp_option !== null ? (
+                                            <Paper elevation={2}>
+                                                <HighchartsReact
+                                                    highcharts={Highcharts}
+                                                    options={loggers_dp_option}
+                                                    callback={save_chart_instances_fn("loggers")}
+                                                    allowChartUpdate={false}
+                                                />
+                                            </Paper>
+                                        ) : (
+                                            <MyLoader style={{ height: "100%" }}/>
+                                        )
+                                    }
                                 </Grid>
 
-                                <Grid item xs={12} md={12} lg={6}>
+                                <Grid item xs={12} md={12} lg={7}>
                                     <Paper elevation={2}>
                                         <EarthquakeContainer
                                             eqEvents={eq_events}
@@ -430,7 +523,7 @@ function Container (props) {
                                     </Paper>
                                 </Grid>
 
-                                <Grid item xs={12} md={12} lg={6}>
+                                <Grid item xs={12} md={12} lg={5}>
                                     <Paper elevation={2}>
                                         <MUIDataTable
                                             title="Latest MOMs Alert"
@@ -505,4 +598,4 @@ function Container (props) {
     );
 }
 
-export default compose(withWidth(), withStyles(styles))(Container);
+export default withWidth()(Container);

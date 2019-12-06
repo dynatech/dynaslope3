@@ -306,7 +306,6 @@ function TitleAndMainInfo (props) {
 }
 
 function BulletinTemplate (props) {
-    // const { releaseId, width, match: { params: { release_id } } } = props;
     const { releaseId, width } = props;
     const classes = useStyle(releaseId)();
     const [excess_divs, setExcessDivs] = useState([]);
@@ -334,6 +333,7 @@ function BulletinTemplate (props) {
         publishers: "",
         next_ewi_release_ts: ""
     });
+
     const {
         alert_level,
         community_response, households_at_risk,
@@ -350,6 +350,7 @@ function BulletinTemplate (props) {
             const { match: { params: { release_id } } } = props;
             temp = release_id;
         } 
+        
         getBulletinDetails(temp, data => {
             const { site } = data;
             const site_address = prepareSiteAddress(site, false);
@@ -364,8 +365,6 @@ function BulletinTemplate (props) {
     }, []);
 
     useEffect(() => {
-        console.log("content_body", content_body);
-        console.log("bulletin_detail", bulletin_detail);
         if (content_body.current !== null) {
             const { current: parent } = content_body;
             const children = Array.from(parent.children);
@@ -611,12 +610,12 @@ function BulletinTemplate (props) {
                         }
                     </Fragment>
                 ) : (
-                    <Fragment>
+                    <Grid item style={{ textAlign: "center" }}>
                         <CircularProgress
                             size={50}
                         />
                         <Typography>Loading Bulletin</Typography>
-                    </Fragment>
+                    </Grid>
                 )
             }
         </Fragment>
