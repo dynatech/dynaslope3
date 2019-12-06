@@ -35,15 +35,25 @@ def setup_connection():
 def get_email_subject(mail_type, details=None):
     """
     Returns subject for MailBox and Bulletin emails
-    """
-    subject = ""
-    if mail_type == "bulletin":
-        print(details)
-        subject = f"[BULLETIN] {details['site_code'].upper()} {details['date']}"
-    elif mail_type == "eos":
-        subject = f"[END-OF-SHIFT] {details['site_code'].upper()} {details['date']}"
 
-    return subject
+    Args:
+        mail_type (string) - to be used if you want custom subject based on 
+                            provided type
+        details (dictionary) - required details for the subject e.g. site_code, date
+
+    NOTE: Commented code if we want changes on format of subject
+    """
+    # subject = ""
+    # if mail_type == "bulletin":
+    #     print(details)
+    #     subject = f"[BULLETIN]"
+    # elif mail_type == "eos":
+    #     subject = f"[END-OF-SHIFT]"
+    # subject = f"{subject} {details['site_code'].upper()} {details['date']}"
+
+    # return subject
+
+    return f"{details['site_code'].upper()} {details['date']}"
 
 
 def prepare_body(sender, recipients, subject, message, file_name=None, attachments=None):
