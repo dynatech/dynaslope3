@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useEffect, useRef } from "react";
 
 function prepareSiteAddress (site_details, include_site_code = true, position = "end") {
@@ -68,6 +69,32 @@ function computeForStartTs (ts, duration = 7, unit = "days") {
     return ts_start;
 }
 
+function makePOSTAxiosRequest (api_link, callback = null, payload) {
+    axios.post(api_link, payload)
+    .then((response) => {
+        const { data } = response; 
+        if (callback !== null) {
+            callback(data);
+        } 
+    })
+    .catch((error) => {
+        console.log(error);
+    });
+}
+
+function makeGETAxiosRequest (api_link, callback = null) {
+    axios.get(api_link)
+    .then((response) => {
+        const { data } = response; 
+        if (callback !== null) {
+            callback(data);
+        } 
+    })
+    .catch((error) => {
+        console.log(error);
+    });
+}
+
 function useInterval (callback, delay, clear_interval = false) {
     const savedCallback = useRef();
   
@@ -86,9 +113,9 @@ function useInterval (callback, delay, clear_interval = false) {
         return () => clearInterval(id);
     }, [delay, clear_interval]);
 }
-
 export {
     prepareSiteAddress, capitalizeFirstLetter,
     getUserOrganizations, simNumFormatter,
-    computeForStartTs, useInterval
+    computeForStartTs, makePOSTAxiosRequest,
+    makeGETAxiosRequest, useInterval
 };

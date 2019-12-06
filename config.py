@@ -51,5 +51,10 @@ APP_CONFIG = {
     "generated_alerts_path": f"{ROOT_PATH}/temp/alerts",
     "bulletin_save_path": f"{ROOT_PATH}/temp/bulletin",
     "charts_render_path": f"{ROOT_PATH}/temp/charts",
-    "url": "http://192.168.150.167:3000"
+    "url": "http://127.0.0.1:3000",
+    "is_live_mode": False,
+
+    "director_and_head_emails": ["rusolidum@phivolcs.dost.gov.ph", "asdaag48@gmail.com"],
+    "dynaslope_groups": ["phivolcs-dynaslope@googlegroups.com", "phivolcs-senslope@googlegroups.com"],
+    "dev_email": "dynaslopeswat@gmail.com"
 }

@@ -114,7 +114,8 @@ function getColorBasedOnReleaseType (release_type) {
     return color;
 }
 
-function buildTimelineElements (timelineItems, bulletinHandler, site_code) {
+
+function buildTimelineElements (timelineItems, bulletinHandler, site_code, site_id) {
     const temp = [];
     let key = 0;
     timelineItems.forEach(item => {
@@ -266,10 +267,10 @@ function buildTimelineElements (timelineItems, bulletinHandler, site_code) {
                                 variant="text"
                                 color="primary"
                                 size="small"
-                                onClick={bulletinHandler({ release_id, site_code, is_onset: false })}
+                                onClick={bulletinHandler({ release_id, site_code, site_id })}
                             >
                                 Bulletin
-                            </Button>                         
+                            </Button>
                         </Grid>
                     </Grid>
                 </TimelineItem>
@@ -400,7 +401,7 @@ function MonitoringEventTimeline (props) {
 
             <Timeline className={classes.timeline} lineColor="#DDDDDD">
                 {
-                    buildTimelineElements(timelineItems, bulletinHandler, eventDetails.site_code)
+                    buildTimelineElements(timelineItems, bulletinHandler, eventDetails.site_code, eventDetails.site_id)
                 }
             </Timeline>            
         </Grid>

@@ -22,8 +22,8 @@ from src.utils.extra import var_checker
 def get_quick_inbox():
     query_start = datetime.now()
     vlmmid = ViewLatestMessagesMobileID
-    inbox_mobile_ids = vlmmid.query.join(UserMobiles, vlmmid.mobile_id == UserMobiles.mobile_id) \
-        .join(Users).order_by(DB.desc(vlmmid.max_ts)).limit(50).all()
+    inbox_mobile_ids = vlmmid.query.outerjoin(UserMobiles, vlmmid.mobile_id == UserMobiles.mobile_id) \
+        .outerjoin(Users).order_by(DB.desc(vlmmid.max_ts)).limit(50).all()
     unsent_messages_arr = get_unsent_messages()
 
     latest_inbox_messages = get_messages_for_mobile_group(inbox_mobile_ids)

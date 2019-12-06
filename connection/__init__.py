@@ -151,6 +151,12 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     from src.api.chatterbox import CHATTERBOX_BLUEPRINT
     app.register_blueprint(CHATTERBOX_BLUEPRINT, url_prefix="/api")
 
+    from src.api.mailbox import MAILBOX_BLUEPRINT
+    app.register_blueprint(MAILBOX_BLUEPRINT, url_prefix="/api")
+
+    from src.api.bulletin_email import BULLETIN_EMAIL
+    app.register_blueprint(BULLETIN_EMAIL, url_prefix="/api")
+
     from src.api.general_data_tag import GENERAL_DATA_TAG_BLUEPRINT
     app.register_blueprint(GENERAL_DATA_TAG_BLUEPRINT, url_prefix="/api")
 

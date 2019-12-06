@@ -1,7 +1,7 @@
 import React, { Fragment, useState, useEffect } from "react";
 import {
     Grid, Typography,
-    Divider, Button
+    Divider, Button, ButtonGroup
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import { isWidthUp } from "@material-ui/core/withWidth";
@@ -276,7 +276,7 @@ function LatestSiteAlertsExpansionPanel (props) {
     } = siteAlert;
 
     const { validity, site, event_start } = event;
-    const { site_code } = site;
+    const { site_code, site_id } = site;
     const site_name = site_code.toUpperCase();
     
     const start_ts = format_ts(event_start);
@@ -354,7 +354,13 @@ function LatestSiteAlertsExpansionPanel (props) {
                 >
                     EWI SMS
                 </Button>
-                <Button size="small" color="primary" startIcon={<Description />} onClick={bulletinHandler({ release_id, site_code, is_onset: false })}>Bulletin</Button>
+                <Button 
+                    size="small" color="primary"
+                    startIcon={<Description />}
+                    onClick={bulletinHandler({ release_id, site_code, site_id })}
+                >
+                        Bulletin
+                </Button>
             </ExpansionPanelActions>
         </ExpansionPanel>
     );
