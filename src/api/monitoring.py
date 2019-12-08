@@ -27,6 +27,7 @@ from src.utils.monitoring import (
     get_ongoing_extended_overdue_events, get_max_possible_alert_level,
     get_latest_release_per_site, get_saved_event_triggers,
     get_monitoring_triggers, build_internal_alert_level,
+    get_monitoring_releases_by_data_ts,
 
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
@@ -273,6 +274,19 @@ def wrap_get_monitoring_events(value=None):
         raise Exception(KeyError)
 
     return jsonify(return_data)
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases_by_data_ts/<site_code>/<data_ts>", methods=["GET"])
+def wrap_get_monitoring_releases_by_data_ts(site_code, data_ts):
+    """
+    Gets a single release with the specificied site_code and data_ts
+    """
+    release = get_monitoring_releases_by_data_ts(site_code, data_ts)
+    release_schema = MonitoringReleasesSchema()
+
+    releases_data = release_schema.dump(release).data
+
+    return jsonify(releases_data)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases", methods=["GET"])

@@ -10,6 +10,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.utils import COMMASPACE, formatdate
 from src.utils.bulletin import render_monitoring_bulletin
+from src.utils.chart_rendering import render_charts
 from src.utils.extra import var_checker
 
 
@@ -37,7 +38,7 @@ def get_email_subject(mail_type, details=None):
     Returns subject for MailBox and Bulletin emails
 
     Args:
-        mail_type (string) - to be used if you want custom subject based on 
+        mail_type (string) - to be used if you want custom subject based on
                             provided type
         details (dictionary) - required details for the subject e.g. site_code, date
 
@@ -74,9 +75,6 @@ def prepare_body(sender, recipients, subject, message, file_name=None, attachmen
                 fil.read(),
                 Name=file_name
             )
-            var_checker("filename 2", file_name, True)
-            var_checker("basename", basename, True)
-            var_checker("basename", basename(f), True)
 
         # After the file is closed
         # part['Content-Disposition'] = 'attachment; filename="%s"' % basename(f)
@@ -86,16 +84,29 @@ def prepare_body(sender, recipients, subject, message, file_name=None, attachmen
     return body
 
 
-def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=None):
+def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=None, eos_data=None):
     """
-    Something
+    Util used to send email. Can be used for generic emails or for 
+    bulletins, eos. You just need to specify the right parameters
+
+    Args:
+        recipients
+        subject
+        message
+        file_name
+        bulletin_release_id
+        eos_data (dictionary) - user_id, site_code, charts []
     """
-    var_checker("filename 1", file_name, True)
 
     attachments = []
     if bulletin_release_id:
         attachments.append(render_monitoring_bulletin(release_id=bulletin_release_id))
-
+    elif eos_data:
+        user_id = eos_data["user_id"]
+        site_code = eos_data["site_code"]
+        charts = eos_data["charts"]
+        render_charts_response = render_charts(user_id, site_code, charts, file_name)
+        attachments.append(render_charts_response["file_path"])
 
     body = prepare_body(SENDER_EMAIL, recipients, subject, message, file_name, attachments)
     text = body.as_string()

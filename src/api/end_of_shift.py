@@ -8,20 +8,24 @@ NAMING CONVENTION
 
 import json
 from datetime import datetime, timedelta
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from connection import DB
+from config import APP_CONFIG
 from src.models.monitoring import (
     MonitoringEventsSchema, EndOfShiftAnalysis
 )
 from src.utils.monitoring import (
     get_monitoring_events, get_internal_alert_symbols, build_internal_alert_level,
-    get_monitoring_releases, get_monitoring_triggers, check_if_has_moms_or_earthquake_trigger)
+    get_monitoring_releases, get_monitoring_triggers, check_if_has_moms_or_earthquake_trigger,
+    write_eos_data_analysis_to_db)
+from src.utils.emails import get_email_subject
 from src.utils.narratives import get_narratives
 from src.utils.subsurface import get_site_subsurface_columns, check_if_subsurface_columns_has_data
 from src.utils.surficial import (
     check_if_site_has_active_surficial_markers, get_surficial_data,
     get_surficial_markers)
 from src.models.analysis import TSMSensorsSchema
+from src.utils.chart_rendering import render_charts
 from src.utils.extra import var_checker
 
 
@@ -38,6 +42,67 @@ BASIS_TO_RAISE = {
     "m": ["significant movement observed as manifestation", "Manifestation"],
     "M": ["critical movement observed as manifestation", "Manifestation"]
 }
+
+
+@END_OF_SHIFT_BLUEPRINT.route("/end_of_shift/download_eos_charts", methods=["POST"])
+def download_eos_charts():
+    """
+    """
+    json_data = request.get_json()
+
+    response = render_charts(
+        user_id=json_data["user_id"],
+        site_code=json_data["site_code"],
+        charts=json_data["charts"],
+        file_name=json_data["file_name"]
+    )
+
+    return jsonify({
+        "message": "success",
+        "file_response": response,
+        "status": True
+    })
+
+
+@END_OF_SHIFT_BLUEPRINT.route(
+    "/end_of_shift/get_eos_email_details/<event_id>/<shift_ts_end>", methods=["GET"])
+def get_eos_email_details(event_id, shift_ts_end):
+    """
+    Returns the filename, recipients, and subject
+    """
+    event = get_monitoring_events(event_id=event_id)
+    event_start = event.event_start
+    site_code = event.site.site_code
+
+    # GET SUBJECT
+    subject = get_email_subject(mail_type="eos", details={
+        "site_code": site_code,
+        "date": datetime.strftime(event_start, "%e %b %Y %I%p").upper()
+    })
+
+    # GET RECIPIENTS
+    recipients = []
+    if not recipients:
+        if APP_CONFIG["is_live_mode"]:
+            # PRODUCTION
+            recipients = APP_CONFIG["director_and_head_emails"]
+            recipients.append(APP_CONFIG["dynaslope_groups"])
+        else:
+            # DEVELOPMENT
+            recipients = [APP_CONFIG["dev_email"]]
+
+    # GET FILENAME
+    datetime_ts = datetime.strptime(shift_ts_end, "%Y-%m-%d %H:%M:%S")
+    formatted_ts_end = datetime.strftime(datetime_ts, "%d%b%y_%I%p")
+
+    file_name = f"{site_code.upper()}_{formatted_ts_end}".upper() + ".pdf"
+
+    return jsonify({
+        "file_name": file_name,
+        "recipients": recipients,
+        "subject": subject
+    })
+
 
 
 def extract_unique_release_events(releases_list):
@@ -499,3 +564,18 @@ def get_end_of_shift_reports(shift_start, event_id=None):
     return_json = json.dumps(processed_eos_list)
 
     return return_json
+
+
+@END_OF_SHIFT_BLUEPRINT.route("/end_of_shift/save_eos_data_analysis", methods=["POST"])
+def save_eos_data_analysis():
+    """
+    Saves the given data analysis
+    """
+    json_data = request.get_json()
+    shift_ts = json_data["shift_ts"]
+    event_id = json_data["event_id"]
+    analysis = json_data["dataAnalysis"]
+
+    response = write_eos_data_analysis_to_db(event_id, shift_ts, analysis)
+
+    return response["message"]

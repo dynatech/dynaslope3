@@ -18,7 +18,7 @@ export function getBulletinEmailDetails (release_id, callback) {
 
 
 export function downloadBulletin (release_id, callback) {
-    const api_link = `${host}/api/emails/download_bulletin/${release_id}`;
+    const api_link = `${host}/api/bulletin/download_bulletin/${release_id}`;
 
     makeGETAxiosRequest(api_link, callback);
 }

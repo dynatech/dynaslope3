@@ -1,12 +1,9 @@
 """
+Sample docstring
 """
 
 import os
-import glob
-import json
-import requests
 from flask import Blueprint, jsonify, request
-import img2pdf
 from connection import DB
 from config import APP_CONFIG
 from src.models.analysis import (
@@ -16,6 +13,7 @@ from src.models.analysis import (
     DataPresenceLoggers, DataPresenceLoggersSchema,
     EarthquakeEvents, EarthquakeEventsSchema)
 from src.utils.surficial import get_surficial_data_presence
+from src.utils.chart_rendering import render_charts
 
 ANALYSIS_BLUEPRINT = Blueprint("analysis_blueprint", __name__)
 
@@ -119,59 +117,6 @@ def get_earthquake_alerts():
     return jsonify(result)
 
 
-@ANALYSIS_BLUEPRINT.route("/render_charts", methods=["POST"])
-def render_charts():
-    path = APP_CONFIG["charts_render_path"]
-    data = request.get_json()
-    user_id = data["user_id"]
-    site_code = data["site_code"]
-    charts = data["charts"]
-
-    save_path = f"{path}/{user_id}/{site_code}"
-    for f in glob.glob(f"{save_path}/chart_*.jpg"):
-        os.remove(f)
-
-    for index, chart_type in enumerate(charts):
-        svg = open(f"{save_path}/{chart_type}.svg", "r")
-
-        options = {
-            "svg": svg.read(),
-            "type": "jpg",
-            "logLevel": 4
-        }
-
-        json_object = json.dumps(options)
-        headers = {"Content-type": "application/json"}
-        r = requests.post("http://127.0.0.1:7801",
-                          data=json_object, headers=headers)
-
-        if r.status_code != 200:
-            m = "Error chart rendering..."
-            print(m)
-            print(r.text)
-            return jsonify({"status": False, "message": m})
-
-        with open(f"{save_path}/chart_{index + 1}.jpg", "wb") as f:
-            f.write(r.content)
-            f.close()
-
-    render_to_pdf(save_path)
-
-    print("Chart rendering successful...")
-    return jsonify({"status": True, "message": "Chart rendering successful..."})
-
-
-def render_to_pdf(save_path):
-    print("Rendering to PDF...")
-    a4inpt = (img2pdf.mm_to_pt(210), img2pdf.mm_to_pt(297))
-    layout_fun = img2pdf.get_layout_fun(a4inpt)
-    with open(f"{save_path}/charts.pdf", "wb") as f:
-        f.write(img2pdf.convert(
-            [i.path for i in os.scandir(save_path) if i.name.endswith(".jpg")],
-            dpi=150, layout_fun=layout_fun))
-    print("Succesfully rendered PDF...")
-
-
 @ANALYSIS_BLUEPRINT.route("/analysis/save_chart_svg", methods=["POST"])
 def save_svg():
     data = request.get_json()
@@ -197,3 +142,13 @@ def save_svg():
     f.close()
 
     return jsonify("Success")
+
+
+# @ANALYSIS_BLUEPRINT.route("/analysis/test_render", methods=["GET"])
+# def test_render():
+#     """
+#     Just a tester of chart renderer
+#     """
+#     response = render_charts(77, "umi", ["rainfall"])
+
+#     return jsonify(response)

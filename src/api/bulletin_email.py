@@ -8,9 +8,26 @@ from config import APP_CONFIG
 from src.utils.emails import get_email_subject
 from src.utils.monitoring import get_monitoring_releases
 from src.utils.sites import build_site_address
+from src.utils.bulletin import download_monitoring_bulletin
 from src.utils.extra import var_checker, round_to_nearest_release_time
 
 BULLETIN_EMAIL = Blueprint("bulletin_email", __name__)
+
+
+@BULLETIN_EMAIL.route("/bulletin/download_bulletin/<release_id>", methods=["GET"])
+def wrap_download_bulletin(release_id):
+    """
+    Function that lets users download bulletin by release id
+    """
+
+    try:
+        ret = download_monitoring_bulletin(release_id=release_id)
+        return "Success"
+    except KeyError:
+        return "Bulletin download FAILED."
+    except Exception as err:
+        raise err
+
 
 def prepare_onset_message(release_data, address, site_alert_level):
     """
@@ -96,6 +113,7 @@ def get_bulletin_email_details(release_id):
     })
 
     # GET THE FILENAME NOW
+    # NOTE: Static interval
     file_time = round_to_nearest_release_time(data_ts, 4).strftime("%l%p")
     file_date = data_ts.strftime("%d%b%y")
     filename = f"{site.site_code.upper()}_{file_date}_{file_time}".upper() + ".pdf"
@@ -108,9 +126,6 @@ def get_bulletin_email_details(release_id):
     else:
         # NOTE to front-end. CHECK if TEST SERVER by using typeof object.
         recipients.append({ "TEST_SERVER_EMAIL": APP_CONFIG["dev_email"] })
-
-    # PERPARE THE NARRATIVE
-
 
     # Get MT Publisher
     release_publishers = bulletin_release_data.release_publishers

@@ -4,23 +4,12 @@ import { host } from "../../../config";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
 // Session Stuff
 import { getCurrentUser } from "../../sessions/auth";
+import { makePOSTAxiosRequest, makeGETAxiosRequest } from "../../../UtilityFunctions";
 
-function makeAxiosRequest (json_data, api_link, callback = null) {
-    axios.post(api_link, json_data)
-    .then((response) => {
-        const { data } = response; 
-        if (callback !== null) {
-            callback(data);
-        } 
-    })
-    .catch((error) => {
-        console.log(error);
-    });
-}
 
 export function handleDelete (json_data, callback) {
     const api_link = `${host}/api/issues_and_reminders/delete_narratives_from_db`;
-    makeAxiosRequest(json_data, api_link, callback);
+    makePOSTAxiosRequest(json_data, api_link, callback);
 }
 
 
@@ -30,7 +19,13 @@ export function buildInternalAlertLevel (json_data, callback) {
 
     // Make an API request
     const api_link = `${host}/api/monitoring/build_internal_alert_level`;
-    makeAxiosRequest(json_data, api_link, callback);
+    makePOSTAxiosRequest(json_data, api_link, callback);
+}
+
+
+export function getMonitoringReleaseByDataTS (site_code, data_ts, callback) {
+    const api_link = `${host}/api/monitoring/get_monitoring_releases_by_data_ts/${site_code}/${data_ts}`;
+    makeGETAxiosRequest(api_link, callback);
 }
 
 
@@ -43,13 +38,6 @@ export function getInternalAlertLevel (input, callback) {
     let api_link = `${host}/api/monitoring/get_site_alert_details`;
     api_link += `?site_id=${site_id}`;
 
-    axios.get(api_link)
-    .then(response => {
-        const { data } = response;
-        callback(data);
-    })
-    .catch(error => {
-        console.error(error);
-    });
+    makeGETAxiosRequest(api_link, callback);
 
 }

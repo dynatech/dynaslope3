@@ -1,26 +1,17 @@
 import axios from "axios";
+import { func } from "prop-types";
 import { host } from "../../config";
+import { makeGETAxiosRequest, makePOSTAxiosRequest } from "../../UtilityFunctions";
 
-//
-// TEMPLATE
-//
-function makeAxiosRequest (json_data, api_link, callback = null) {
-    axios.post(api_link, json_data)
-    .then((response) => {
-        const { data } = response; 
-        if (callback !== null) {
-            callback(data);
-        } 
-    })
-    .catch((error) => {
-        console.log(error);
-    });
+
+export function getEOSDetails (event_id, shift_ts_end, callback) {
+    const api_link = `${host}/api/end_of_shift/get_eos_email_details/${event_id}/${shift_ts_end}`;
+    makeGETAxiosRequest(api_link, callback);
 }
-
 
 export function getShiftData (input, callback) {
     const api_link = `${host}/api/shift_checker/get_shift_data`;
-    makeAxiosRequest(input, api_link, callback);
+    makePOSTAxiosRequest(input, api_link, callback);
 }
 
 export function getEndOfShiftReports (input, callback) {
@@ -129,7 +120,6 @@ export function getEWIMessage (release_id, callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
-        console.log("EWI Message", data);
         callback(data);
     })
     .catch(error => {
@@ -142,26 +132,21 @@ export function getSites (input, callback) {
     if (typeof input !== "undefined" && input !== "" && input !== null && input.length !== 0) {
         api_link += `/${input}`;
     }
-
-    axios.get(api_link)
-    .then(response => {
-        const { data } = response;
-        callback(data);
-    })
-    .catch(error => {
-        console.error(error);
-    });    
+    makeGETAxiosRequest(api_link, callback);
 }
 
-export function saveEOSDataAnalysis (input, callback) {
+export function saveEOSDataAnalysis (json_data, callback) {
     const api_link = `${host}/api/end_of_shift/save_eos_data_analysis`;
+    makePOSTAxiosRequest(api_link, callback, json_data);
+}
 
-    axios.get(api_link)
-    .then(response => {
-        const { data } = response;
-        callback(data);
-    })
-    .catch(error => {
-        console.error(error);
-    });  
+export function downloadEosCharts (json_data, callback) {
+    const api_link = `${host}/api/end_of_shift/download_eos_charts`;
+    makePOSTAxiosRequest(api_link, callback, json_data);
+}
+
+export function getBulletinEmailDetails (release_id, callback) {
+    const api_link = `${host}/api/monitoring/get_eos_subject/${release_id}`;
+
+    makeGETAxiosRequest(api_link, callback);
 }
