@@ -71,7 +71,7 @@ def get_bulletin_email_details(release_id):
     subject = ""
     filename = ""
 
-    bulletin_release_data = get_monitoring_releases(release_id=release_id)
+    bulletin_release_data = get_monitoring_releases(release_id=release_id, load_options="ewi_narrative")
     event_alert = bulletin_release_data.event_alert
     first_release = list(sorted(event_alert.releases, key=lambda x: x.data_ts))[0]
     var_checker("first_release", first_release, True)
@@ -154,8 +154,8 @@ def get_bulletin_email_details(release_id):
         "site_list": [site_id],
         "event_id": event_id,
         "timestamp": datetime.now(),
-        "narrative": f"Sent {file_time} EWI Bulletin to {str_recipients}",
-        "type_id": 2,
+        "narrative": f"Sent {file_time} EWI BULLETIN to {str_recipients}",
+        "type_id": 1,
         "user_id": ct_reporter.user_id
     }
 

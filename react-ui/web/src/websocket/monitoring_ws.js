@@ -49,7 +49,6 @@ export function receiveGeneratedAlerts (callback) {
 
     socket.on("receive_generated_alerts", data => {
         const temp = JSON.parse(data);
-        console.log("Generated alerts", temp);
         callback(temp);
     });
 }
@@ -59,7 +58,6 @@ export function receiveCandidateAlerts (callback) {
 
     socket.on("receive_candidate_alerts", data => {
         const temp = JSON.parse(data);
-        console.log("Candidate alerts", temp);
         callback(temp);
     });
 }
@@ -69,7 +67,6 @@ export function receiveAlertsFromDB (callback) {
 
     socket.on("receive_alerts_from_db", data => {
         const temp = JSON.parse(data);
-        console.log("Alerts from database", temp);    
         callback(temp);
     });
 }

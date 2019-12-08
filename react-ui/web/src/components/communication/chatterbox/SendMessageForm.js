@@ -1,16 +1,102 @@
-import React, { useState, Fragment } from "react";
+import React, { useState, Fragment, useEffect } from "react";
+import moment from "moment";
 import { IconButton, Grid } from "@material-ui/core";
 import { AddBox } from "@material-ui/icons";
 import MessageInputTextbox from "./MessageInputTextbox";
 import SelectMultipleWithSuggest from "../../reusables/SelectMultipleWithSuggest";
 import QuickSelectModal from "./QuickSelectModal";
+import { getEWISMSRecipients, writeEwiNarrativeToDB, getEwiSMSNarrative } from "../ajax";
+import { sendMessageToDB } from "../../../websocket/communications_ws";
+import { getCurrentUser } from "../../sessions/auth";
+
+const currentUser = getCurrentUser();
 
 function SendMessageForm (props) {
-    const [recipients, setRecipients] = useState(null);
+    const { isMobile, textboxValue, disableQuickSelect, releaseId, siteCode } = props;
+    const [recipients, setRecipients] = useState([]);
+    const [options, setOptions] = useState([]);
     const [quick_select, setQuickSelect] = useState(false);
-    const { isMobile, textboxValue, disableQuickSelect } = props;
+    const [composed_message, setComposedMessage] = useState(textboxValue);
+    const [str_recipients, setStrRecipients] = useState("");
 
     const disable_select = typeof disableQuickSelect === "undefined" ? false : disableQuickSelect;
+
+    useEffect(() => {
+        getEWISMSRecipients(siteCode, ewi_recipients_list => {
+            const temp_ewi_recipients = [];
+            const default_recipients = [];
+            const org_recipients = [];
+            let tmp_str_recipients = "";
+
+            ewi_recipients_list.forEach(item => {
+                if (item.mobile_numbers.length > 0) {
+                    const { user_id, last_name, first_name, organizations, ewi_recipient } = item;
+                    const org_name = organizations[0].org_name.toUpperCase();
+
+                    if (!org_recipients.includes(org_name)) {
+                        org_recipients.push(org_name);
+                        tmp_str_recipients = `${tmp_str_recipients}, ${org_name}`;
+                    }
+                    
+                    const temp = {
+                        label: `${last_name}, ${first_name} (${org_name})`,
+                        value: user_id,
+                        data: item
+                    };
+                    temp_ewi_recipients.push(temp);
+                    if (ewi_recipient === 1) default_recipients.push(temp);
+                }
+            });
+            setOptions(temp_ewi_recipients);
+            setRecipients(default_recipients);
+            
+            setStrRecipients(str_recipients);
+        });
+    }, []);
+
+
+    const handle_message_fn = event => setComposedMessage(event.target.value);
+
+    const on_send_message_fn = () => {
+        const recipient_list = [];
+        recipients.forEach(({ data: { mobile_numbers } }) => {
+            mobile_numbers.forEach(item => recipient_list.push({
+                mobile_id: item.mobile_number.mobile_id,
+                gsm_id: item.mobile_number.gsm_id
+            }));
+        });
+
+        const payload = {
+            sms_msg: composed_message,
+            recipient_list
+        };
+
+        console.log("payload", payload);
+        sendMessageToDB(payload, response => {
+            console.log("response", response);
+            
+            getEwiSMSNarrative(releaseId, ewi_sms_response => {
+                const { narrative, site_list, event_id, type_id } = ewi_sms_response;
+
+                const f_narrative = `${narrative} ${setRecipients}`;
+
+                const temp_nar = {
+                    type_id,
+                    site_list,
+                    event_id,
+                    narrative: f_narrative,
+                    user_id: currentUser.user_id,
+                    timestamp: moment().format("YYYY-MM-DD HH:mm:ss")
+                };
+
+                writeEwiNarrativeToDB (temp_nar, narrative_ret => {
+                    // closeHandler();
+                    console.log("CLOSE THE MODAL AND SHOW SNACKBAR");
+                });
+            });
+
+        });
+    };
 
     return (
         <Fragment>
@@ -18,12 +104,12 @@ function SendMessageForm (props) {
                 <Grid item xs>
                     <SelectMultipleWithSuggest
                         label="Recipients"
-                        options={[]}
+                        options={options}
                         value={recipients}
                         changeHandler={value => setRecipients(value)}
                         placeholder="Select recipients"
-                        renderDropdownIndicator={false}
-                        openMenuOnClick={false}
+                        renderDropdownIndicator
+                        openMenuOnClick
                         isMulti
                     />
                 </Grid>
@@ -49,7 +135,12 @@ function SendMessageForm (props) {
             }
                 
             <div style={{ marginTop: 16 }}>
-                <MessageInputTextbox limitRows={false} value={textboxValue} />
+                <MessageInputTextbox
+                    limitRows={false}
+                    value={composed_message}
+                    sendButtonClickHandler={on_send_message_fn}
+                    messageChangeHandler={handle_message_fn}
+                />
             </div>
                 
         </Fragment>

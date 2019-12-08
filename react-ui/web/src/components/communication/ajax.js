@@ -28,3 +28,45 @@ export function saveContact (input, callback) {
         console.error(error);
     });
 }
+
+export function getEWISMSRecipients (site_code, callback) {
+    const api_link = `${host}/api/contacts/get_contacts_per_site/${site_code}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log(data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function writeEwiNarrativeToDB (payload, callback) {
+    const api_link = `${host}/api/narratives/write_narratives_to_db`;
+
+    axios.post(api_link, payload)
+    .then(response => {
+        const { data } = response;
+        console.log("EWI SMS reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function getEwiSMSNarrative (release_id, callback) {
+    const api_link = `${host}/api/chatterbox/get_ewi_sms_narrative/${release_id}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log(data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}

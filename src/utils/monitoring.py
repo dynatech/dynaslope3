@@ -21,7 +21,7 @@ from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
     round_to_nearest_release_time)
-from src.utils.narratives import write_narratives_to_db
+from src.utils.narratives import write_narratives_to_db, get_narratives
 
 
 #####################################################
@@ -356,6 +356,30 @@ def update_alert_status(as_details):
     return return_data
 
 
+def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
+    """
+    Check sms range by 4-hour interval
+    """
+    global RELEASE_INTERVAL_HOURS
+    release_interval_hours = RELEASE_INTERVAL_HOURS
+    is_sms_sent = False
+    is_bulletin_sent = False
+
+    end_ts = round_to_nearest_release_time(start_ts, interval=release_interval_hours)
+    if not is_onset_release:
+        end_ts = end_ts + timedelta(minutes=30)
+    
+    narrative_list = get_narratives(event_id=event_id, start=start_ts, end=end_ts)
+
+    for item in narrative_list:
+        is_sms_sent = "EWI SMS" in item.narrative
+        is_bulletin_sent = "EWI BULLETIN" in item.narrative
+
+    return {
+        "is_sms_sent": is_sms_sent, "is_bulletin_sent": is_bulletin_sent
+    }
+
+
 def get_ongoing_extended_overdue_events(run_ts=None):
     """
     Gets active events and organizes them into the following categories:
@@ -391,6 +415,12 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             data_ts, release_interval_hours)
         release_time = latest_release.release_time
 
+        # CHECK IF ONSET RELEASE (only one release)
+        is_onset_release = len(event_alert.releases) == 1
+        # NOTE: CHECK NARRATIVE IF ALREADY SENT EWI SMS. if onset, do not add 30mins.
+        sent_statuses = check_ewi_narrative_sent_status(is_onset_release, event_id, data_ts)
+
+
         if data_ts.hour == 23 and release_time.hour < release_interval_hours:
         # if data_ts.hour == 23 and release_time.hour < 4:
             # rounded_data_ts = round_to_nearest_release_time(data_ts)
@@ -407,7 +437,10 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             public_alert_level, trigger_list)
         event_alert_data["event"]["validity"] = str(datetime.strptime(
             event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
-        
+
+        # NOTE: ADDING sent statuses
+        event_alert_data["sent_statuses"] = sent_statuses
+
         # NOTE: LOUIE SPECIAL intervention to add all triggers of the whole event.
         # Bypassing the use of MonitoringEvent instead
         all_event_triggers = get_monitoring_triggers(event_id=event_id)
@@ -635,6 +668,14 @@ def get_monitoring_releases(
             ea_load.joinedload("public_alert_symbol", innerjoin=True),
             DB.subqueryload("release_publishers").joinedload("user_details", innerjoin=True) \
                 .raiseload("*"),
+            DB.raiseload("*")
+        )
+    elif load_options == "ewi_narrative":
+        ea_load = DB.joinedload("event_alert", innerjoin=True)
+        base = base.options(
+            ea_load.joinedload("event", innerjoin=True)
+            .raiseload("*"),
+            ea_load.joinedload("public_alert_symbol", innerjoin=True),
             DB.raiseload("*")
         )
 
