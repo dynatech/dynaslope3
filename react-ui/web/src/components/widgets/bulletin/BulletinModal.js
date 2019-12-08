@@ -29,7 +29,6 @@ function BulletinModal (props) {
     const {
         release_id, site_code, site_id
     } = releaseDetail;
-    console.log("release detail", releaseDetail);
 
     // const [bulletin_modal_data, setBulletinModalData] = useState({});
     const [mail_subject, setMailSubject] = useState("");
@@ -62,7 +61,6 @@ function BulletinModal (props) {
     }, [releaseDetail]);
 
     const downloadHandler = release_id_input => () => {
-        console.log("Requested download however this feature is still a work in progress.");
         downloadBulletin(release_id_input, ret => {
             console.log("LOG bulletin_download", ret);
         });
@@ -71,8 +69,6 @@ function BulletinModal (props) {
     const closeHandler = () => setIsOpenBulletinModal(false);
 
     const handleSend = () => {
-        // const { subject, recipients, mail_body } = bulletin_modal_data;
-
         const input = {
             subject: mail_subject,
             recipients: mail_recipients,
@@ -80,11 +76,8 @@ function BulletinModal (props) {
             release_id,
             file_name 
         };
-        console.log("input", input);
 
         sendBulletinEmail(input, ret => {
-            console.log("ret", ret, true);
-
             if (typeof narrative_details === "object") {
                 const temp_nar = {
                     ...narrative_details,
@@ -105,16 +98,11 @@ function BulletinModal (props) {
     const handleAddChip = (chip) => {
         const temp = mail_recipients;
         temp.push(chip);
-        console.log("temp", temp);
         setMailRecipients(temp);
     };
 
     const handleDeleteChip = (chip, index) => {
-        console.log("chip", chip);
-        console.log("mail_recipients", mail_recipients);
         mail_recipients.splice( mail_recipients.indexOf(chip), 1 );
-
-        console.log("handleDel", mail_recipients);
         setMailRecipients(mail_recipients);
     };
 

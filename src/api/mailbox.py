@@ -3,16 +3,24 @@ Contacts Functions Controller File
 """
 
 from flask import Blueprint, jsonify, request
-from src.utils.emails import send_mail
+from src.utils.emails import send_mail, get_email_subject
 from src.utils.narratives import write_narratives_to_db
-from src.utils.bulletin import download_monitoring_bulletin
 from src.utils.extra import var_checker
 
 
 MAILBOX_BLUEPRINT = Blueprint("mailbox_blueprint", __name__)
 
 
-@MAILBOX_BLUEPRINT.route("/emails/send_email", methods=["POST"])
+@MAILBOX_BLUEPRINT.route("/mailbox/get_email_subject/<mail_type>/<site_code>/<date>", methods=["GET"])
+def wrap_get_email_subject(mail_type, site_code, date):
+    """
+    """
+    subject = get_email_subject(mail_type, details={"site_code": site_code, "date": date})
+
+    return subject
+
+
+@MAILBOX_BLUEPRINT.route("/mailbox/send_email", methods=["POST"])
 def wrap_send_email():
     """
     Function that sends emails
@@ -48,16 +56,35 @@ def wrap_send_email():
         raise err
 
 
-@MAILBOX_BLUEPRINT.route("/emails/download_bulletin/<release_id>", methods=["GET"])
-def wrap_download_bulletin(release_id):
+@MAILBOX_BLUEPRINT.route("/mailbox/send_eos_email", methods=["POST"])
+def send_eos_email():
     """
-    Function that lets users download bulletin by release id
+    Function that sends emails
     """
+    json_data = request.get_json()
 
     try:
-        ret = download_monitoring_bulletin(release_id=release_id)
+        subject = json_data["subject"]
+        recipients = json_data["recipients"]
+        mail_body = json_data["mail_body"]
+        file_name = json_data["file_name"]
+        eos_data = {
+            "site_code": json_data["site_code"],
+            "user_id": json_data["user_id"],
+            "charts": json_data["charts"]
+        }
+
+        send_mail(
+            recipients=recipients,
+            subject=subject,
+            message=mail_body,
+            eos_data=eos_data,
+            file_name=file_name
+        )
+
         return "Success"
+
     except KeyError:
-        return "Bulletin download FAILED."
+        return "Email NOT sent. Problem in input."
     except Exception as err:
         raise err

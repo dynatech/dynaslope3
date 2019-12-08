@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useReducer } from "react";
+import React, { useState, useEffect, useReducer, Fragment } from "react";
 import moment from "moment";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions, Typography,
-    Button, withStyles, withMobileDialog,
+    Button, withStyles, withMobileDialog, Grid
 } from "@material-ui/core";
 import { compose } from "recompose";
+import MomentUtils from "@date-io/moment";
 import AlertReleaseForm from "./AlertReleaseForm";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
-import { buildInternalAlertLevel } from "./ajax";
+import { buildInternalAlertLevel, getMonitoringReleaseByDataTS } from "./ajax";
 import { getCurrentUser } from "../../sessions/auth";
 
 const styles = theme => ({
@@ -23,6 +24,7 @@ const styles = theme => ({
         }
     }
 });
+
 
 
 function prepareTriggers (triggers) {
@@ -123,7 +125,7 @@ function AlertReleaseFormModal (props) {
         dataTimestamp: null,
         releaseTime: moment(),
         siteId: "",
-        siteCode: "",
+        siteCode: "", 
         address: "",
         reporterIdCt: "",
         reporterIdMt: mt_personnel.user_id,
@@ -133,6 +135,7 @@ function AlertReleaseFormModal (props) {
     });
 
     const [hasNoGroundData, setHasNoGroundData] = useState(false);
+    const [isUpdatingRelease, setIsUpdatingRelease] = useState(false);
 
     const [triggers, setTriggers] = useReducer(alertTriggersReducer, {
         subsurface: { switchState: false, triggers: [] },
@@ -142,6 +145,45 @@ function AlertReleaseFormModal (props) {
         earthquake: { switchState: false, triggers: [] },
         on_demand: { switchState: false, triggers: [] }
     });
+
+    useEffect(() => {
+        const { dataTimestamp: input_data_ts, siteCode } = generalData;
+
+        if (typeof input_data_ts === "object" && input_data_ts !== null) {
+            const temp_ts = moment(input_data_ts).format("YYYY-MM-DD HH:mm:ss");
+
+            getMonitoringReleaseByDataTS(siteCode, temp_ts, latest_release => {
+                if (Object.entries(latest_release).length > 1) {
+                    // const {
+                    //     comments, data_ts, release_time, trigger_list,
+                    //     event_alert: {
+                    //         public_alert_symbol: {
+                    //             public_alert_level, public_alert_symbol
+                    //         }
+                    //     }, release_publishers
+                    // } = latest_release;
+
+                    setIsUpdatingRelease(true);
+                    // setInternalAlertLevel(`Alert ${public_alert_level}-${trigger_list}`);
+                    // setGeneralData({
+                    //     ...generalData,
+                    //     dataTimestamp: data_ts,
+                    //     releaseTime: release_time,
+                    //     comments,
+                    //     publicAlertSymbol: public_alert_symbol,
+                    //     publicAlertLevel: public_alert_level
+                    // });
+
+                    // release_publishers.forEach(value => {
+                    //     const { role, user_details: { user_id } } = value;
+                    //     if (role === "mt") setGeneralData({ ...generalData, reporterIdMt: user_id });
+                    //     else if (role === "ct") setGeneralData({ ...generalData, reporterIdCt: user_id });
+                    // });
+                }
+            });
+        }
+
+    }, [generalData.dataTimestamp]);
 
     useEffect(() => {
         if (chosenCandidateAlert != null) {
@@ -175,7 +217,6 @@ function AlertReleaseFormModal (props) {
 
             // INCLUDE TRIGGERS THAT ARE GIVEN FROM ALERTGEN
             trigger_list_arr.forEach(element => {
-                console.log("candidate trigger", element);
                 const { trigger_type, alert_level, ts_updated, internal_sym_id, tech_info } = element;
 
                 setTriggers({ action: "TOGGLE_SWITCH", trigger_type, value: true });
@@ -194,7 +235,6 @@ function AlertReleaseFormModal (props) {
                 });
 
                 if (trigger_type in ["on demand", "moms", "earthquake"]) {
-                    console.log("TRIGGER TYPE", trigger_type);
                     switch (trigger_type) {
                         case "on demand":
                             setTriggers({
@@ -311,7 +351,6 @@ function AlertReleaseFormModal (props) {
         let temp = {};
 
         if (activeStep === 0) {
-            console.log(generalData);
             setEwiPayload({
                 ...ewiPayload,
                 site_id: siteId.value,
@@ -358,7 +397,6 @@ function AlertReleaseFormModal (props) {
                     trigger_list_arr: []
                 });
             }
-            console.log("latest_trigger_list", latest_trigger_list);
         } else if (activeStep === 2) {
             temp = ewiPayload;
             temp.release_details.comments = comments;
@@ -394,6 +432,7 @@ function AlertReleaseFormModal (props) {
                     </DialogContentText>
                     <AlertReleaseForm
                         activeStep={activeStep}
+                        isUpdatingRelease={isUpdatingRelease}
                         triggersState={triggers} setTriggersState={setTriggers}
                         generalData={generalData} setGeneralData={setGeneralData}
                         internalAlertLevel={internalAlertLevel} setInternalAlertLevel={setInternalAlertLevel}

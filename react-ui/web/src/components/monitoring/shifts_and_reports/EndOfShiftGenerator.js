@@ -10,6 +10,9 @@ import DetailedExpansionPanels from "./DetailedExpansionPanels";
 import SelectInputForm from "../../reusables/SelectInputForm";
 
 import { getEndOfShiftReports } from "../ajax";
+import { getCurrentUser } from "../../sessions/auth";
+
+const current_user = getCurrentUser();
 
 const useStyles = makeStyles(theme => ({
     inputGridContainer: {
@@ -206,6 +209,7 @@ function EndOfShiftGenerator (props) {
                                                 data={row}
                                                 key={index}
                                                 shiftStartTs={shift_start_ts}
+                                                currentUser={current_user}
                                             />
                                         ))
                                     ) : (

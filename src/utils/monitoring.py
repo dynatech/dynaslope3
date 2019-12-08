@@ -4,7 +4,7 @@ Contains functions for getting and accesing monitoring-related tables only
 """
 import re
 from datetime import datetime, timedelta, time, date
-from sqlalchemy.orm import joinedload, raiseload
+from sqlalchemy.orm import joinedload
 from connection import DB
 from src.models.analysis import AlertStatus
 from src.models.monitoring import (
@@ -15,7 +15,8 @@ from src.models.monitoring import (
     TriggerHierarchies, OperationalTriggerSymbols,
     MonitoringEventAlertsSchema, OperationalTriggers,
     MonitoringMoms, MomsInstances, MonitoringTriggersSchema,
-    BulletinTracker, MonitoringReleasePublishers, MonitoringTriggersMisc)
+    BulletinTracker, MonitoringReleasePublishers, MonitoringTriggersMisc,
+    EndOfShiftAnalysis)
 from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
@@ -32,6 +33,48 @@ RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
 
 EXTENDED_MONITORING_DAYS = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "EXTENDED_MONITORING_DAYS"}, retrieve_attr="var_value")
+
+
+def write_eos_data_analysis_to_db(event_id, shift_start, analysis):
+    """
+    Saves analysis to db and checks if not exists.
+
+    Args:
+        event_id (int) -
+        shift_start () -
+    """
+    eos_a = EndOfShiftAnalysis
+    try:
+        result = eos_a.query.filter(DB.and_(
+            eos_a.event_id == event_id,
+            eos_a.shift_start == shift_start
+        )).first()
+
+        if result:
+            message = "up to date"
+            if result.analysis != analysis:
+                result.analysis = analysis
+                message = "updated"
+        else:
+            eos_data = EndOfShiftAnalysis(
+                event_id=event_id,
+                shift_start=shift_start,
+                analysis=analysis
+            )
+            DB.session.add(eos_data)
+            message = "saved"
+
+        if message != "up to date":
+            DB.session.commit()
+
+    except Exception as err:
+        DB.session.rollback()
+        raise err
+
+    return {
+        "message": message,
+        "status": True
+    }
 
 
 def get_release_publisher_names(release):
@@ -549,6 +592,18 @@ def get_internal_alert_symbols(internal_sym_id=None):
 #############################################
 #   MONITORING_RELEASES RELATED FUNCTIONS   #
 #############################################
+
+def get_monitoring_releases_by_data_ts(site_code, data_ts):
+    """
+    Function getting release by site_code and data_ts
+    """
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    mr = MonitoringReleases
+    si = Sites
+    return_data = mr.query.join(mea).join(me).join(si).filter(DB.and_(si.site_code == site_code, mr.data_ts == data_ts)).first()
+
+    return return_data
 
 
 def get_monitoring_releases(

@@ -1,9 +1,12 @@
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useState, Fragment } from "react";
 import moment from "moment";
+
+import { useSnackbar } from "notistack";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
 import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
 import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
 import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
+
 import Typography from "@material-ui/core/Typography";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
@@ -15,7 +18,8 @@ import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
 import { react_host } from "../../../config";
 import { useInterval } from "../../../UtilityFunctions";
-import { saveEOSDataAnalysis } from "../ajax";
+import { saveEOSDataAnalysis, getEOSDetails } from "../ajax";
+import { sendEOSEmail } from "../../communication/mailbox/ajax";
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -46,9 +50,46 @@ const useStyles = makeStyles(theme => ({
     },
 }));
 
+function callSnackbar (enqueueSnackbar, snackBarActionFn, response) {
+    if (["saved", "up to date", "updated"].includes(response)) {
+        enqueueSnackbar(
+            `EOS data analysis ${response}`,
+            {
+                variant: "success",
+                autoHideDuration: 7000,
+                action: snackBarActionFn
+            }
+        );
+    } else {
+        enqueueSnackbar(
+            "Error saving End-of-Shift analysis...",
+            {
+                variant: "error",
+                autoHideDuration: 7000,
+                action: snackBarActionFn
+            }
+        );
+    }    
+}
+
+function extractSelectedCharts (checkboxStatus) {
+    console.log("checkboxStatus", checkboxStatus);
+
+    const chart_list = Object.keys(checkboxStatus).filter(key => checkboxStatus[key] === true);
+
+    return chart_list;
+}
+
+function prepareMailBody (mail_contents) {
+    
+    const { shiftSummary, dataAnalysis, shiftNarratives } = mail_contents;
+
+    return `${shiftSummary}\n\n${dataAnalysis}\n\n${shiftNarratives}`;
+}
+
 function DetailedExpansionPanel (props) {
     const {
-        data: eos_report, shiftStartTs
+        data: eos_report, shiftStartTs, currentUser
     } = props;
     const classes = useStyles();
     const {
@@ -62,6 +103,8 @@ function DetailedExpansionPanel (props) {
     const [dataAnalysis, setDataAnalysis] = useState(data_analysis);
     const [shiftNarratives, setShiftNarratives] = useState(narratives);
     const [clear_interval, setClearInterval] = useState(false);
+
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
     const default_cbox = {
         rainfall: false, surficial: false
@@ -111,12 +154,16 @@ function DetailedExpansionPanel (props) {
             event_id,
             dataAnalysis
         };
-        // saveEOSDataAnalysis();
+        saveEOSDataAnalysis(temp, response => {
+            console.log("response", response);
+            // callSnackbar(enqueueSnackbar, snackBarActionFn, response);
+        });
     }, 10000, clear_interval);
 
     const shift_ts_end = moment(shiftStartTs).add(12, "hours");
-    const ts_end = moment(validity).isBefore(shift_ts_end) ?
-        validity : moment(shift_ts_end).format("YYYY-MM-DD HH:mm:ss");
+    const moment_validity = moment(validity);
+    const ts_end = moment_validity.isBefore(shift_ts_end) ?
+        moment_validity.add(30, "minutes") : moment(shift_ts_end).format("YYYY-MM-DD HH:mm:ss");
 
     const rendering_url = `${react_host}/chart_rendering/${site_code}/${ts_end}`;
     const handleCheckboxEvent = value => event => {
@@ -130,6 +177,71 @@ function DetailedExpansionPanel (props) {
             }
             window.open(`${rendering_url}/${type}`, "_blank");
         }
+    };
+
+    const snackBarActionFn = key => {
+        return (<Button
+            color="primary"
+            onClick={() => { closeSnackbar(key); }}
+        >
+            Dismiss
+        </Button>);
+    };
+
+    const handleSendEOS = () => {
+        // Get the charts
+        const file_name_ts = moment(ts_end).add(30, "minutes")
+        .format("YYYY-MM-DD HH:mm:ss");
+
+        const temp = {
+            shift_ts: shiftStartTs,
+            event_id,
+            dataAnalysis
+        };
+        saveEOSDataAnalysis(temp, save_response => {
+            console.log("save_response", save_response);
+            // callSnackbar(enqueueSnackbar, snackBarActionFn, save_response);
+
+            getEOSDetails(event_id, file_name_ts, eos_details => {
+                const { subject, file_name, recipients } = eos_details;
+    
+                const charts = extractSelectedCharts(checkboxStatus);
+    
+                const input = {
+                    mail_body: prepareMailBody({ shiftSummary, dataAnalysis, shiftNarratives }),
+                    subject,
+                    recipients,
+                    file_name,
+                    site_code,
+                    user_id: currentUser.user_id,
+                    charts
+                };
+        
+                sendEOSEmail(input, response => {
+                    if (response === "Success") {
+                        enqueueSnackbar(
+                            "EOS Report Sent!",
+                            {
+                                variant: "success",
+                                autoHideDuration: 7000,
+                                action: snackBarActionFn
+                            }
+                        );
+                    } else {
+                        enqueueSnackbar(
+                            "Error sending End-of-Shift report...",
+                            {
+                                variant: "error",
+                                autoHideDuration: 7000,
+                                action: snackBarActionFn
+                            }
+                        );
+                    }
+                });
+        
+                setClearInterval(true);
+            });
+        });
     };
 
     const config = {
@@ -222,7 +334,7 @@ function DetailedExpansionPanel (props) {
                     size="small"
                     color="primary"
                     startIcon={<Send />}
-                    onClick={() => { console.log(checkboxStatus); setClearInterval(true); }}
+                    onClick={handleSendEOS}
                 >
                     Send
                 </Button>

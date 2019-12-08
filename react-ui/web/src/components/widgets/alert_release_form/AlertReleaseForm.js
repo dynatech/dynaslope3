@@ -57,12 +57,22 @@ const styles = theme => ({
     }
 });
 
+function returnUpdateWarning () {
+    return (
+        <Fragment>
+            <Grid item xs={12} >
+                <Typography variant="body2" color="secondary">You chose a data timestamp that has been released. You are allowed to update release details but changes on triggers and alert level cannot be accepted. For those kind of changes, please contact the Software Infra Devs. Thank you.</Typography>
+            </Grid>
+        </Fragment>
+    );
+}
 
 function GeneralInputForm (props) {
     const {
         setModalTitle, generalData, classes,
         handleEventChange, handleDateTime,
-        setGeneralData, setCTFullName, setMTFullName
+        setGeneralData, setCTFullName, setMTFullName,
+        isUpdatingRelease
     } = props;
 
     const {
@@ -84,8 +94,13 @@ function GeneralInputForm (props) {
         });
     };
 
+    console.log(isUpdatingRelease);
+
     return (
         <Fragment>
+            {
+                isUpdatingRelease && returnUpdateWarning()
+            }
             <Grid item xs={12} className={classes.inputGridContainer}>
                 <DynaslopeSiteSelectInputForm
                     value={siteId}
@@ -383,7 +398,7 @@ function AlertReleaseForm (props) {
         classes, activeStep, generalData,
         setGeneralData, setInternalAlertLevel,
         internalAlertLevel, setTriggerList,
-        setPublicAlertLevel
+        setPublicAlertLevel, isUpdatingRelease
     } = props;
 
     const [mtFullName, setMTFullName] = useState("");
@@ -431,6 +446,7 @@ function AlertReleaseForm (props) {
     const steps = getSteps();
 
     const getStepContent = stepIndex => {
+        console.log("isUpdatingRelease", isUpdatingRelease);
         switch (stepIndex) {
             case 0:
                 return (<GeneralInputForm
@@ -439,6 +455,7 @@ function AlertReleaseForm (props) {
                     handleEventChange={handleEventChange}
                     setMTFullName={setMTFullName}
                     setCTFullName={setCTFullName}
+                    isUpdatingRelease={isUpdatingRelease}
                 />);
             case 1:
                 return <TriggersInputForm {...props} triggersReleased={triggersReleased} />;
