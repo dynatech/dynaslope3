@@ -350,7 +350,7 @@ function LatestSiteAlertsExpansionPanel (props) {
                 <Button
                     size="small" color="primary" 
                     startIcon={<PhoneAndroid />}
-                    onClick={() => handleSMSRelease(release_id)}
+                    onClick={() => handleSMSRelease(release_id, site_code)}
                 >
                     EWI SMS
                 </Button>
@@ -390,9 +390,13 @@ function MonitoringTables (props) {
     };
 
     const [ewi_message, setEWIMessage] = useState("");
-    const handleSMSRelease = release_id => {
+    const [releaseId, setReleaseId] = useState("");
+    const [siteCode, setSiteCode] = useState("");
+    const handleSMSRelease = (release_id, site_code) => {
         getEWIMessage(release_id, data => {
             setEWIMessage(data);
+            setSiteCode(siteCode);
+            setReleaseId(release_id);
             toggleSendEWI();
         });
     };
@@ -558,6 +562,7 @@ function MonitoringTables (props) {
                 modalStateHandler={toggleSendEWI} 
                 modalState={isShowingSendEWI}
                 textboxValue={ewi_message}
+                releaseId={releaseId}
             />
         </div>
     );
