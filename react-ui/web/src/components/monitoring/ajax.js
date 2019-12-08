@@ -140,6 +140,11 @@ export function saveEOSDataAnalysis (json_data, callback) {
     makePOSTAxiosRequest(api_link, callback, json_data);
 }
 
+export function downloadEosCharts (json_data, callback) {
+    const api_link = `${host}/api/end_of_shift/download_eos_charts`;
+    makePOSTAxiosRequest(api_link, callback, json_data);
+}
+
 export function getBulletinEmailDetails (release_id, callback) {
     const api_link = `${host}/api/monitoring/get_eos_subject/${release_id}`;
 

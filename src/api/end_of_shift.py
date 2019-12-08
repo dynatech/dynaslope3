@@ -25,6 +25,7 @@ from src.utils.surficial import (
     check_if_site_has_active_surficial_markers, get_surficial_data,
     get_surficial_markers)
 from src.models.analysis import TSMSensorsSchema
+from src.utils.chart_rendering import render_charts
 from src.utils.extra import var_checker
 
 
@@ -41,6 +42,26 @@ BASIS_TO_RAISE = {
     "m": ["significant movement observed as manifestation", "Manifestation"],
     "M": ["critical movement observed as manifestation", "Manifestation"]
 }
+
+
+@END_OF_SHIFT_BLUEPRINT.route("/end_of_shift/download_eos_charts", methods=["POST"])
+def download_eos_charts():
+    """
+    """
+    json_data = request.get_json()
+
+    response = render_charts(
+        user_id=json_data["user_id"],
+        site_code=json_data["site_code"],
+        charts=json_data["charts"],
+        file_name=json_data["file_name"]
+    )
+
+    return jsonify({
+        "message": "success",
+        "file_response": response,
+        "status": True
+    })
 
 
 @END_OF_SHIFT_BLUEPRINT.route(

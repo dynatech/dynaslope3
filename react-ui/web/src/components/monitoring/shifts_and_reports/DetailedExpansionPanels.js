@@ -12,13 +12,13 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
 import { Grid, makeStyles } from "@material-ui/core";
-import { Refresh, SaveAlt, Send } from "@material-ui/icons";
+import { Refresh, SaveAlt, Send, Report } from "@material-ui/icons";
 import CKEditor from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
 import { react_host } from "../../../config";
 import { useInterval } from "../../../UtilityFunctions";
-import { saveEOSDataAnalysis, getEOSDetails } from "../ajax";
+import { saveEOSDataAnalysis, getEOSDetails, downloadEosCharts } from "../ajax";
 import { sendEOSEmail } from "../../communication/mailbox/ajax";
 
 const useStyles = makeStyles(theme => ({
@@ -73,8 +73,6 @@ function callSnackbar (enqueueSnackbar, snackBarActionFn, response) {
 }
 
 function extractSelectedCharts (checkboxStatus) {
-    console.log("checkboxStatus", checkboxStatus);
-
     const chart_list = Object.keys(checkboxStatus).filter(key => checkboxStatus[key] === true);
 
     return chart_list;
@@ -244,6 +242,36 @@ function DetailedExpansionPanel (props) {
         });
     };
 
+    const handleDownload = () => {
+        const charts = extractSelectedCharts(checkboxStatus);
+        const input = {
+            site_code, user_id: currentUser.user_id, charts, file_name: `${site_code}_chart.pdf`
+        };
+        downloadEosCharts(input, response => {
+            const { message, file_response: { file_path, message: render_msg } } = response;
+            console.log("response", render_msg);
+            if (message === "success") {
+                enqueueSnackbar(
+                    `Charts Saved! Path: ${file_path}`,
+                    {
+                        variant: "success",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            } else {
+                enqueueSnackbar(
+                    "Error saving charts...",
+                    {
+                        variant: "error",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            }
+        });
+    };
+
     const config = {
         toolbar: ["heading", "|", "bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "|", "undo", "redo"]
     };
@@ -324,7 +352,11 @@ function DetailedExpansionPanel (props) {
             </ExpansionPanelDetails>
             <Divider />
             <ExpansionPanelActions>
-                <Button size="small" startIcon={<SaveAlt />}>
+                <Button
+                    size="small"
+                    onClick={handleDownload}
+                    startIcon={<SaveAlt />}
+                >
                     Download Charts
                 </Button>
                 <Button size="small" startIcon={<Refresh />}>
