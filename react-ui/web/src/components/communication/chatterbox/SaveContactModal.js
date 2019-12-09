@@ -10,7 +10,7 @@ import { useSnackbar } from "notistack";
 import { getCurrentUser } from "../../sessions/auth";
 import ContactForm from "../contacts/ContactForm";
 import { getListOfMunicipalities } from "../ajax";
-import { bool } from "prop-types";
+// import { bool } from "prop-types";
 
 
 function prepareGeographicalList (data, category) {
@@ -30,8 +30,7 @@ function prepareGeographicalList (data, category) {
 
 function SaveContactModal (props) {
     const {
-        open, setSaveContactModal, mobileDetails,
-        setOpenOptions
+        open, setSaveContactModal, mobileDetails
     } = props;
     const { sim_num, mobile_id } = mobileDetails;
     
@@ -54,23 +53,25 @@ function SaveContactModal (props) {
         user_id: 0,
         organizations: []
     };
-    const is_edit_mode = true;
     const initial_user_data = { mobile_numbers, user };
     const [reason, setReason] = useState("");
     const [error_text, setErrorText] = useState(null);
-    const { user_id } = getCurrentUser();
+    const [is_edit_mode, setEditMode] = useState(true);
+    const [is_contact_form_open, setContactFormOpen] = useState(false);
 
     const [municipalities, setMunicipalities] = useState([]);
     const [provinces, setProvinces] = useState([]);
     const [regions, setRegions] = useState([]);
 
-    const handleChange = event => {
-        const { target: { value } } = event;
-        setReason(value);
 
-        let text = "";
-        if (value === "") text = "This is a required field";
-        setErrorText(text);
+    const setContactForm = bool => {
+        setContactFormOpen(bool);
+        setEditMode(false);
+    };
+
+    const setContactFormForEdit = bool => {
+        setEditMode(bool);
+        setContactFormOpen(bool);
     };
 
     const handleClose = () => setSaveContactModal(false);
@@ -97,8 +98,10 @@ function SaveContactModal (props) {
                     municipalities={municipalities}
                     provinces={provinces}
                     regions={regions}
+                    setContactForm={setContactForm}
                     chosenContact={initial_user_data}
                     isEditMode={is_edit_mode}
+                    setContactFormForEdit={setContactFormForEdit}
                 /> 
             </DialogContent>
             <DialogActions>

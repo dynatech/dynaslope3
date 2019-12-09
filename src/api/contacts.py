@@ -110,18 +110,12 @@ def wrap_get_contacts_per_site(site_code=None):
                                  alert_level=temp["alert_level"])
     return jsonify(data)
 
+
 @CONTACTS_BLUEPRINT.route("/contacts/get_ground_meas_reminder_recipients", methods=["GET", "POST"])
 def get_ground_meas_reminder_recipients():
+    """
+    Function that get ground meas reminder recipients
+    """
     data = get_ground_measurement_reminder_recipients()
-    return jsonify(data)
 
-@CONTACTS_BLUEPRINT.route("/contacts/get_leo", methods=["GET", "POST"])
-def get_leo():
-    current_datetime = datetime.now()
-    leo = get_ongoing_extended_overdue_events(current_datetime)
-    # data = []
-    # data.append(leo["latest"])
-    # data.append(leo["overdue"])
-    # data.append(leo["extended"])
-    # data = get_ground_measurement_reminder_recipients()
-    return jsonify(leo)
+    return jsonify(data)

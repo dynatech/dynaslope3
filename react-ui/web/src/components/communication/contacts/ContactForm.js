@@ -142,8 +142,7 @@ function ContactForm (props) {
         setContactForm, chosenContact, isEditMode,
         setContactFormForEdit
     } = props;
-    console.log(setContactFormForEdit);
-    console.log(setContactForm);
+
     let initial_mobiles = [{
         mobile_id: 0, sim_num: "", status: 1
     }];
@@ -281,7 +280,7 @@ function ContactForm (props) {
                 landline_numbers
             }
         };
-        console.log(final_data);
+        // console.log(final_data);
         saveContact(final_data, data => {
             const { status, message } = data;
             if (status === true) {
@@ -290,7 +289,7 @@ function ContactForm (props) {
                     message,
                     {
                         variant: "success",
-                        autoHideDuration: 7000,
+                        autoHideDuration: 3000,
                         action: snackBarActionFn
                     }
                 );
@@ -299,7 +298,7 @@ function ContactForm (props) {
                     message,
                     {
                         variant: "error",
-                        autoHideDuration: 7000,
+                        autoHideDuration: 3000,
                         action: snackBarActionFn
                     }
                 );

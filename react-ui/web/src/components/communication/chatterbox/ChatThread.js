@@ -320,6 +320,7 @@ function ChatThread (props) {
     const set_gdt_fn = (bool, obj = default_tag_obj) => () => {
         update_tag_object(obj);
         set_is_gdt_modal_open(bool);
+        // create API to save tag
     };
 
     return (
