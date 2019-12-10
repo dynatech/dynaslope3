@@ -115,7 +115,7 @@ def get_ewi_recipients(site_ids=None, site_codes=None, alert_level=0):
             DB.subqueryload("organizations").joinedload(
                 "organization", innerjoin=True),
             DB.raiseload("*")
-    ).filter(Users.ewi_recipient == 1)
+        ).filter(Users.ewi_recipient == 1)
 
     if site_ids:
         query = query.filter(Sites.site_id.in_(site_ids))
@@ -131,7 +131,8 @@ def get_ewi_recipients(site_ids=None, site_codes=None, alert_level=0):
 
     user_per_site_query = query.all()
     user_per_site_result = UsersRelationshipSchema(
-        many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]).dump(user_per_site_query).data
+        many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]
+        ).dump(user_per_site_query).data
 
     return user_per_site_result
 
@@ -220,12 +221,13 @@ def save_user_contact_numbers(data, user_id):
                 update_mobile = MobileNumbers.query.get(mobile_id)
                 update_mobile.sim_num = sim_num
                 update_mobile.gsm_id = get_gsm_id_by_prefix(sim_num)
-              
-                check_user_mobile = UserMobiles.query.filter(UserMobiles.mobile_id == mobile_id).first()
-                result = UserMobilesSchema(exclude=("user", "mobile_number")).dump(check_user_mobile).data
+                check_user_mobile = UserMobiles.query.filter(
+                    UserMobiles.mobile_id == mobile_id).first()
+                result = UserMobilesSchema(
+                    exclude=("user", "mobile_number")).dump(check_user_mobile).data
                 if not result:
                     insert_user_mobile = UserMobiles(
-                    user_id=user_id, mobile_id=mobile_id, status=status)
+                        user_id=user_id, mobile_id=mobile_id, status=status)
                     DB.session.add(insert_user_mobile)
 
 
@@ -370,6 +372,9 @@ def ewi_recipient_migration():
 
 
 def get_ground_measurement_reminder_recipients():
+    """
+    Function that gets recipients for ground measurement reminder
+    """
 
     current_datetime = datetime.now()
     leo = get_ongoing_extended_overdue_events(current_datetime)
@@ -380,15 +385,6 @@ def get_ground_measurement_reminder_recipients():
     latest = latest + overdue
     event_site_ids = []
     extended_site_ids = []
-    is_routine = False
-    year = current_datetime.year
-    month = current_datetime.month
-    day = current_datetime.day
-
-   
-    if routine_site_codes:
-        is_routine = True
-    
 
     for row in latest:
         site_id = row["event"]["site"]["site_id"]
@@ -399,7 +395,6 @@ def get_ground_measurement_reminder_recipients():
         if site_code in routine_site_codes:
             routine_site_codes.remove(site_code)
 
-    
     for row in extended:
         site_id = row["event"]["site"]["site_id"]
         site_code = row["event"]["site"]["site_code"]
@@ -409,8 +404,36 @@ def get_ground_measurement_reminder_recipients():
         if site_code in routine_site_codes:
             routine_site_codes.remove(site_code)
 
-    
     routine_site_ids = get_site_ids(routine_site_codes)
+
+    final_site_ids = remove_sites_with_ground_meas(
+        event_site_ids,
+        extended_site_ids,
+        routine_site_ids,
+        current_datetime)
+
+    site_recipients = [
+        {"site_ids": final_site_ids["routine_site_ids"], "type": "routine"},
+        {"site_ids": final_site_ids["event_site_ids"], "type": "event"},
+        {"site_ids": final_site_ids["extended_site_ids"], "type": "extended"}
+    ]
+
+    feedback = get_all_recipient_per_site(site_recipients)
+
+    return feedback
+
+
+def remove_sites_with_ground_meas(
+        event_site_ids,
+        extended_site_ids,
+        routine_site_ids,
+        current_datetime):
+    """
+    Function that remove site id with ground meas
+    """
+    year = current_datetime.year
+    month = current_datetime.month
+    day = current_datetime.day
 
     routine_reminder_time = datetime(year, month, day, 9, 30)
     end_time = datetime(year, month, day, 9, 35)
@@ -418,7 +441,6 @@ def get_ground_measurement_reminder_recipients():
     if routine_reminder_time < current_datetime < end_time:
         if routine_site_ids or extended_site_ids:
             run_down_ts = routine_reminder_time - timedelta(hours=4, minutes=30)
-        
             mo_result = MarkerObservations.query.filter(
                 MarkerObservations.ts.between(run_down_ts, routine_reminder_time)).all()
 
@@ -458,12 +480,18 @@ def get_ground_measurement_reminder_recipients():
                 extended_site_ids = []
                 event_site_ids.remove(site_id)
 
+    final_site_ids = {
+        "routine_site_ids": routine_site_ids,
+        "event_site_ids": event_site_ids,
+        "extended_site_ids": extended_site_ids
+    }
 
-    site_recipients = [
-        {"site_ids": routine_site_ids, "type": "routine"},
-        {"site_ids": event_site_ids, "type": "event"},
-        {"site_ids": extended_site_ids, "type": "extended"}
-    ]
+    return final_site_ids
+
+def get_all_recipient_per_site(site_recipients):
+    """
+    Function that get recipient per site
+    """
     feedback = []
     for row in site_recipients:
         site_ids = row["site_ids"]
@@ -476,12 +504,13 @@ def get_ground_measurement_reminder_recipients():
                 DB.subqueryload("organizations").joinedload(
                     "organization", innerjoin=True),
                 DB.raiseload("*")
-        ).filter(
+            ).filter(
                 Users.ewi_recipient == 1, Sites.site_id.in_(site_ids),
                 UserOrganizations.org_id == 1
-        ).all()
+            ).all()
         user_per_site_result = UsersRelationshipSchema(
-            many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]).dump(user_per_site_query).data
+            many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]
+            ).dump(user_per_site_query).data
         feedback.append(
             {"type": row["type"], "recipients": user_per_site_result})
 
@@ -489,6 +518,9 @@ def get_ground_measurement_reminder_recipients():
 
 
 def get_site_ids(site_codes):
+    """
+    Function that gets site ids
+    """
     site_query = Sites.query.filter(Sites.site_code.in_(site_codes)).all()
     site_query_result = SitesSchema(many=True).dump(site_query).data
     site_ids = []
@@ -496,4 +528,5 @@ def get_site_ids(site_codes):
         site_id = row["site_id"]
         if site_id not in site_ids:
             site_ids.append(site_id)
+            
     return site_ids
