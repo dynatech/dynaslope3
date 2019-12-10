@@ -12,8 +12,6 @@ import SelectInputForm from "../../reusables/SelectInputForm";
 import { getEndOfShiftReports } from "../ajax";
 import { getCurrentUser } from "../../sessions/auth";
 
-const current_user = getCurrentUser();
-
 const useStyles = makeStyles(theme => ({
     inputGridContainer: {
         margin: "12px 0",
@@ -122,6 +120,8 @@ function EndOfShiftGenerator (props) {
     const [isLoading, setIsLoading] = useState(false);
     const [eosData, setEosData] = useState(null);
     const [shift_start_ts, setShiftStartTs] = useState(null);
+
+    const current_user = getCurrentUser();
 
     const handleDateTime = value => {
         setStartTs(value);

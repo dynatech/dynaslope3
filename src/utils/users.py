@@ -32,7 +32,7 @@ def get_users_categorized_by_org(site_code=None):
 
     if site_code:
         base = base.join(Sites).filter(Sites.site_code == site_code)
-    
+
     users_by_org = base.all()
 
     return users_by_org
@@ -45,7 +45,8 @@ def get_community_users_simple(site_code):
         site_code
     """
     user_r = UsersRelationship
-    community_users = user_r.query.join(UserOrganizations).join(Sites).filter(Sites.site_code == site_code).all()
+    community_users = user_r.query.join(UserOrganizations).join(
+        Sites).filter(Sites.site_code == site_code).all()
 
     return community_users
 
@@ -157,31 +158,48 @@ def get_users(
     return users
 
 
-def get_dynaslope_users(
-        include_relationships=False,
-        include_inactive=False,
-        include_mobile_nums=False,
-        include_orgs=False,
-        include_hierarchy=False,
-        include_team=False,
-        return_schema_format=False,
-        return_jsonify_format=False):
+# def get_dynaslope_users(active_only=True, return_schema_format=False):
+#     """
+#     Function that gets all Dynaslope users and related data
+#     """
+#     users = get_users(
+#         include_relationships=include_relationships,
+#         include_inactive=include_inactive,
+#         include_mobile_nums=include_mobile_nums,
+#         include_orgs=include_orgs,
+#         include_hierarchy=include_hierarchy,
+#         include_team=include_team,
+#         return_schema_format=return_schema_format,
+#         return_jsonify_format=return_jsonify_format,
+#         user_group="dynaslope"
+#     )
+
+#     return users
+
+
+def get_dynaslope_users(active_only=True, return_schema_format=False):
     """
     Function that gets all Dynaslope users and related data
     """
-    users = get_users(
-        include_relationships=include_relationships,
-        include_inactive=include_inactive,
-        include_mobile_nums=include_mobile_nums,
-        include_orgs=include_orgs,
-        include_hierarchy=include_hierarchy,
-        include_team=include_team,
-        return_schema_format=return_schema_format,
-        return_jsonify_format=return_jsonify_format,
-        user_group="dynaslope"
-    )
 
-    return users
+    ur = UsersRelationship
+    query = ur.query.options(
+        DB.joinedload("account", innerjoin=True).raiseload("*"),
+        DB.raiseload("*")
+    ).order_by(ur.last_name)
+
+    if active_only:
+        # Note use status in users instead of is_active in UserAccounts
+        query = query.filter_by(status=1)
+
+    result = query.all()
+
+    if return_schema_format:
+        result = UsersRelationshipSchema(many=True, exclude=[
+            "mobile_numbers", "organizations", "ewi_restriction",
+            "teams", "landline_numbers", "emails"]).dump(result).data
+
+    return result
 
 
 def get_community_users(

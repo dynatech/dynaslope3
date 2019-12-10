@@ -182,7 +182,7 @@ function buildTimelineElements (timelineItems, bulletinHandler, site_code, site_
                     key={key}
                     dateText={moment_item_timestamp}
                     style={{ color: card_color }}
-                    dateInnerStyle={{ background: card_color, lineHeight: "48px" }}
+                    dateInnerStyle={{ background: card_color, lineHeight: "48px", textAlign: "center" }}
                     bodyContainerStyle={{
                         background: "#EEEEEE",
                         padding: "18px 20px",
@@ -324,7 +324,6 @@ function buildTimelineElements (timelineItems, bulletinHandler, site_code, site_
                     {/* HIGHLY DANGEROUS REACT CODE: */}
                     {/* Might wanna use react-html-parser in the future  */}
                     {/* <div dangerouslySetInnerHTML={{ __html: item_data }} /> */}
-                    
                 </TimelineItem>
             );
         }
@@ -403,7 +402,14 @@ function MonitoringEventTimeline (props) {
                 {
                     buildTimelineElements(timelineItems, bulletinHandler, eventDetails.site_code, eventDetails.site_id)
                 }
-            </Timeline>            
+            </Timeline>
+
+            <BulletinModal 
+                classes={classes}
+                isOpenBulletinModal={isOpenBulletinModal}
+                setIsOpenBulletinModal={setIsOpenBulletinModal}
+                releaseDetail={chosenReleaseDetail}
+            />     
         </Grid>
     );
 }

@@ -9,15 +9,18 @@ import { getEWISMSRecipients, writeEwiNarrativeToDB, getEwiSMSNarrative } from "
 import { sendMessageToDB } from "../../../websocket/communications_ws";
 import { getCurrentUser } from "../../sessions/auth";
 
-const currentUser = getCurrentUser();
-
 function SendMessageForm (props) {
-    const { isMobile, textboxValue, disableQuickSelect, releaseId, siteCode } = props;
+    const {
+        isMobile, textboxValue, disableQuickSelect,
+        releaseId, siteCode
+    } = props;
     const [recipients, setRecipients] = useState([]);
     const [options, setOptions] = useState([]);
     const [quick_select, setQuickSelect] = useState(false);
     const [composed_message, setComposedMessage] = useState(textboxValue);
     const [str_recipients, setStrRecipients] = useState("");
+
+    const currentUser = getCurrentUser();
 
     const disable_select = typeof disableQuickSelect === "undefined" ? false : disableQuickSelect;
 
@@ -71,15 +74,10 @@ function SendMessageForm (props) {
             recipient_list
         };
 
-        console.log("payload", payload);
         sendMessageToDB(payload, response => {
-            console.log("response", response);
-            
             getEwiSMSNarrative(releaseId, ewi_sms_response => {
                 const { narrative, site_list, event_id, type_id } = ewi_sms_response;
-
                 const f_narrative = `${narrative} ${setRecipients}`;
-
                 const temp_nar = {
                     type_id,
                     site_list,

@@ -22,7 +22,7 @@ const handleSwitchChange = (setTriggersState, trigger_type) => event => {
         const action = is_checked ? "ADD_TRIGGER" : "REMOVE_TRIGGER";
 
         let special_case_states;
-        if (trigger_type === "on_demand") special_case_states = { reason: "", reporterId: null };
+        if (trigger_type === "on_demand") special_case_states = { reason: "", reporterId: "" };
         else if (trigger_type === "earthquake") special_case_states = { magnitude: "", longitude: "", latitude: "" };
 
         setTriggersState({
@@ -58,9 +58,7 @@ const handleCheckboxChange = (setTriggersState, trigger_type) => value => event 
 };
 
 const handleRadioChange = (setTriggersState, trigger_type) => event => {
-    // const action = event.target.value ? "ADD_TRIGGER" : "REMOVE_TRIGGER";
     const { value } = event.target;
-    console.log("value", value, typeof (value));
 
     setTriggersState({
         action: "REMOVE_TRIGGER",

@@ -11,17 +11,7 @@ def get_sites_data(site_code=None, include_inactive=False):
     """
     Function that gets basic site data by site code
     """
-    # final_query = Sites.query
 
-    # if site_code is None:
-    #     if not include_inactive:
-    #         final_query = final_query.filter_by(active=True)
-
-    #     site = final_query.all()
-    # else:
-    #     site = final_query.filter_by(site_code=site_code).first()
-
-    # final_query = Sites.query
     final_query = DB.session.query(Sites)
 
     if site_code is None:
@@ -30,7 +20,10 @@ def get_sites_data(site_code=None, include_inactive=False):
 
         site = final_query.all()
     else:
-        site = final_query.filter_by(site_code=site_code).first()
+        if isinstance(site_code, (list,)):
+            site = final_query.filter(Sites.site_code.in_(site_code)).all()
+        else:
+            site = final_query.filter_by(site_code=site_code).first()
 
     return site
 

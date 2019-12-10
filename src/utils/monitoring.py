@@ -634,7 +634,12 @@ def get_monitoring_releases_by_data_ts(site_code, data_ts):
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
     si = Sites
-    return_data = mr.query.join(mea).join(me).join(si).filter(DB.and_(si.site_code == site_code, mr.data_ts == data_ts)).first()
+    return_data = mr.query.join(mea) \
+        .join(me).join(si).filter(
+            DB.and_(
+                si.site_code == site_code,
+                mr.data_ts == data_ts
+            )).first()
 
     return return_data
 
@@ -659,7 +664,7 @@ def get_monitoring_releases(
         .order_by(DB.desc(mr.release_time))
     return_data = None
 
-    if load_options == "end_of_shift":
+    if load_options == "end_of_shift" or load_options == "ewi_sms_bulletin":
         ea_load = DB.joinedload("event_alert", innerjoin=True)
         base = base.options(
             ea_load.joinedload("event", innerjoin=True)
@@ -673,7 +678,10 @@ def get_monitoring_releases(
     elif load_options == "ewi_narrative":
         ea_load = DB.joinedload("event_alert", innerjoin=True)
         base = base.options(
+            ea_load.joinedload("releases", innerjoin=True)
+            .raiseload("*"),
             ea_load.joinedload("event", innerjoin=True)
+            .joinedload("site", innerjoin=True)
             .raiseload("*"),
             ea_load.joinedload("public_alert_symbol", innerjoin=True),
             DB.raiseload("*")
@@ -1469,7 +1477,7 @@ def update_monitoring_release_on_db(release_to_update, release_details):
     # Update Release Details.
     release_to_update.release_time = release_details["release_time"]
     release_to_update.data_ts = release_details["data_ts"]
-    release_to_update.trigger_list = release_details["trigger_list"]
+    release_to_update.trigger_list = release_details["trigger_list_str"]
     release_to_update.bulletin_number = release_details["bulletin_number"]
     release_to_update.event_alert_id = release_details["event_alert_id"]
     release_to_update.comments = release_details["comments"]
@@ -1716,12 +1724,15 @@ def check_if_onset_release(event_alert_id=None, release_id=None, data_ts=None, e
     """
 
     if not event_alert:
-        mea = MonitoringEventAlerts.query.filter_by(
+        mea = MonitoringEventAlerts.query.options(
+            DB.subqueryload("releases").raiseload("*"),
+            DB.raiseload("*")
+        ).filter_by(
             event_alert_id=event_alert_id).first()
     else:
         mea = event_alert
 
-    # releases are ordered by desc by default
+    # releases are ordered by descreasing order by default
     first_release = mea.releases[-1].release_id
     is_onset = True
     is_first_release_but_release_time = first_release == release_id and \

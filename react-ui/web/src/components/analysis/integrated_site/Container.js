@@ -349,43 +349,43 @@ function Container (props) {
             const option = prepareOptions(!is_desktop, "surficial", surficial_data_presence);
             setSurficialDpOption(option);
         }
-    }, [surficial_data_presence]);
+    }, [surficial_data_presence, is_desktop]);
 
     useEffect(() => {
         if (subsurface_data_presence.length > 0) {
             const option = prepareOptions(!is_desktop, "subsurface", subsurface_data_presence);
             setSubsurfaceDpOption(option);
         }
-    }, [subsurface_data_presence]);
+    }, [subsurface_data_presence, is_desktop]);
 
     useEffect(() => {
         if (rainfall_data_presence.length > 0) {
             const option = prepareOptions(!is_desktop, "rainfall", rainfall_data_presence);
             setRainfallDpOption(option);
         }
-    }, [rainfall_data_presence]);
+    }, [rainfall_data_presence, is_desktop]);
 
     useEffect(() => {
         if (loggers_data_presence.length > 0) {
             const option = prepareOptions(!is_desktop, "loggers", loggers_data_presence);
             setLoggersDpOption(option);
         }
-    }, [loggers_data_presence]);
+    }, [loggers_data_presence, is_desktop]);
 
     useEffect(() => {
         const temp = createCustomLabels(chart_instances.rainfall, url);
         setRainfallCustomLabel(temp);
-    }, [chart_instances.rainfall]);
+    }, [chart_instances.rainfall, url]);
 
     useEffect(() => {
         const temp = createCustomLabels(chart_instances.surficial, url);
         setSurficialCustomLabel(temp);
-    }, [chart_instances.surficial]);
+    }, [chart_instances.surficial, url]);
 
     useEffect(() => {
         const temp = createCustomLabels(chart_instances.subsurface, url);
         setSubsurfaceCustomLabel(temp);
-    }, [chart_instances.subsurface]);
+    }, [chart_instances.subsurface, url]);
 
     const [moms_alerts, setMOMsAlerts] = useState([]);
     useEffect(() => {
@@ -401,7 +401,7 @@ function Container (props) {
 
             setMOMsAlerts(table_data);
         });  
-    }, []);
+    }, [url]);
 
     const [eq_events, setEqEvents] = useState([]);
     useEffect(() => {
@@ -423,7 +423,7 @@ function Container (props) {
                 setEqAlTblPage({ ...eq_al_tbl_pagination, count });
             }
         });
-    }, [eq_al_tbl_pagination]);
+    }, [eq_al_tbl_pagination, is_first_pass]);
 
     const is_main_page = location.pathname === path;
 

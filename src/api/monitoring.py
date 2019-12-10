@@ -76,10 +76,13 @@ def get_current_monitoring_summary_per_site(site_id):
     """
     Function dedicated to returning brief status of site
     """
-    current_site_event = get_current_monitoring_instance_per_site(site_id=site_id)
-    event_start = datetime.strftime(current_site_event.event_start, "%Y-%m-%d %H:%M:%S")
+    current_site_event = get_current_monitoring_instance_per_site(
+        site_id=site_id)
+    event_start = datetime.strftime(
+        current_site_event.event_start, "%Y-%m-%d %H:%M:%S")
     if current_site_event.validity:
-        validity = datetime.strftime(current_site_event.validity, "%Y-%m-%d %H:%M:%S")
+        validity = datetime.strftime(
+            current_site_event.validity, "%Y-%m-%d %H:%M:%S")
     else:
         validity = "None"
     site_code = current_site_event.site.site_code
@@ -103,7 +106,8 @@ def get_current_monitoring_summary_per_site(site_id):
 
     if current_event_alert.releases:
         current_release = current_event_alert.releases[0]
-        data_ts = datetime.strftime(current_release.data_ts, "%Y-%m-%d %H:%M:%S")
+        data_ts = datetime.strftime(
+            current_release.data_ts, "%Y-%m-%d %H:%M:%S")
         release_time = time.strftime(current_release.release_time, "%H:%M:%S")
         internal_alert = build_internal_alert_level(
             public_alert_level=public_alert_level,
@@ -137,7 +141,8 @@ def get_current_monitoring_summary_per_site(site_id):
             "latest_trigger": None
         }
 
-        event_triggers = get_monitoring_triggers(event_id=current_site_event.event_id)
+        event_triggers = get_monitoring_triggers(
+            event_id=current_site_event.event_id)
         if event_triggers:
             trig_symbol = event_triggers[0].internal_sym.trigger_symbol
             trig_alert_sym = trig_symbol.alert_symbol
@@ -382,10 +387,12 @@ def wrap_build_internal_alert_level():
         source_id = trigger_hierarchy["source_id"]
         hierarchy_id = trigger_hierarchy["hierarchy_id"]
         trigger_sym_id = retrieve_data_from_memcache("operational_trigger_symbols", {
-                                                     "alert_level": alert_level, "source_id": source_id}, retrieve_attr="trigger_sym_id")
-        var_checker("trigger_sym_id", trigger_sym_id, True)
+                                                     "alert_level": alert_level,
+                                                     "source_id": source_id},
+                                                     retrieve_attr="trigger_sym_id")
         internal_sym = retrieve_data_from_memcache("internal_alert_symbols", {
-                                                   "trigger_sym_id": trigger_sym_id}, retrieve_attr="alert_symbol")
+                                                   "trigger_sym_id": trigger_sym_id},
+                                                   retrieve_attr="alert_symbol")
 
         temp = {
             "alert_level": alert_level,
@@ -408,11 +415,15 @@ def wrap_build_internal_alert_level():
         public_alert_level=public_alert_level,
         trigger_list=trigger_list_final
     )
-    var_checker("internal_alert_level", internal_alert_level, True)
+
+    public_alert_symbol = retrieve_data_from_memcache("public_alert_symbols", {
+        "alert_level": public_alert_level},
+        retrieve_attr="alert_symbol")
 
     return jsonify({
         "internal_alert_level": internal_alert_level,
         "public_alert_level": public_alert_level,
+        "public_alert_symbol": public_alert_symbol,
         "trigger_list_str": trigger_list_final
     })
 
@@ -432,7 +443,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
 
         if ((datetime.now() - latest_release_data_ts).seconds / 3600) <= 2:
             # UPDATE STUFF
-            var_checker("", "UPDATE", True)
+            var_checker("Inserting release", release_details, True)
             new_release = update_monitoring_release_on_db(
                 latest_release, release_details)
             release_id = new_release
@@ -449,8 +460,6 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
             "ct", publisher_details["publisher_ct_id"], release_id)
 
         if trigger_list_arr:
-            # latest_trigger = sorted(trigger_list_arr, key=lambda x: x["ts_updated"], reverse=True)[0]
-
             latest_trigger_ts_updated = None
             # The following could should be in a foreach so we can handle list of triggers
             for trigger in trigger_list_arr:
@@ -651,8 +660,7 @@ def insert_ewi(internal_json=None):
                 site_status = site_monitoring_instance.status
 
                 if site_status == 1:
-                    release_details["event_alert_id"] = site_monitoring_instance.event_alerts.order_by(
-                        DB.desc(MonitoringEventAlerts.event_alert_id)).first().event_alert_id
+                    release_details["event_alert_id"] = site_monitoring_instance.event_alerts[0].event_alert_id
                     release_details["bulletin_number"] = update_bulletin_number(
                         routine_site_id, 1)
 
@@ -674,8 +682,7 @@ def insert_ewi(internal_json=None):
                     print("Not a routine site")
 
         elif entry_type == 2:  # stands for event
-            current_event_alert = site_monitoring_instance.event_alerts.order_by(
-                DB.desc(MonitoringEventAlerts.event_alert_id)).first()
+            current_event_alert = site_monitoring_instance.event_alerts[0]
             pub_sym_id = get_pub_sym_id(public_alert_level)
 
             validity = site_monitoring_instance.validity

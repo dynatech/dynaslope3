@@ -13,18 +13,13 @@ from src.utils.extra import (
     set_data_to_memcache, retrieve_data_from_memcache
 )
 
-
-# CLIENTS = []
-# GENERATED_ALERTS = []
-# CANDIDATE_ALERTS = []
-# ALERTS_FROM_DB = []
-# ISSUES_AND_REMINDERS = []
-
 set_data_to_memcache(name="CLIENTS", data=[])
-set_data_to_memcache(name="GENERATED_ALERTS", data=[])
-set_data_to_memcache(name="CANDIDATE_ALERTS", data=[])
-set_data_to_memcache(name="ALERTS_FROM_DB", data={})
-set_data_to_memcache(name="ISSUES_AND_REMINDERS", data=[])
+set_data_to_memcache(name="GENERATED_ALERTS", data=json.dumps([]))
+set_data_to_memcache(name="CANDIDATE_ALERTS", data=json.dumps([]))
+set_data_to_memcache(name="ALERTS_FROM_DB", data=json.dumps({
+    "latest": [], "extended": [], "overdue": []
+}))
+set_data_to_memcache(name="ISSUES_AND_REMINDERS", data=json.dumps([]))
 
 
 def emit_data(keyword):
@@ -46,42 +41,48 @@ def monitoring_background_task():
     generated_alerts = []
 
     while True:
-        if not generated_alerts:
-            generated_alerts = generate_alerts()
-            set_data_to_memcache(name="GENERATED_ALERTS",
-                                 data=generated_alerts)
-            alerts_from_db = wrap_get_ongoing_extended_overdue_events()
-            set_data_to_memcache(name="ALERTS_FROM_DB",
-                                 data=alerts_from_db)
-            set_data_to_memcache(name="CANDIDATE_ALERTS", data=candidate_alerts_generator.main(
-                generated_alerts_list=generated_alerts, db_alerts_dict=alerts_from_db))
-            emit_data("receive_generated_alerts")
-            emit_data("receive_candidate_alerts")
-            emit_data("receive_alerts_from_db")
-
-        elif datetime.now().minute % 5 == 1:
-            print()
-            system_time = datetime.strftime(
-                datetime.now(), "%Y-%m-%d %H:%M:%S")
-            print(f"{system_time} | Websocket running...")
-
-            try:
+        try:
+            if not generated_alerts:
                 generated_alerts = generate_alerts()
-                set_data_to_memcache(
-                    name="GENERATED_ALERTS", data=generated_alerts)
+                set_data_to_memcache(name="GENERATED_ALERTS",
+                                     data=generated_alerts)
                 alerts_from_db = wrap_get_ongoing_extended_overdue_events()
-                set_data_to_memcache(
-                    name="ALERTS_FROM_DB", data=alerts_from_db)
-                set_data_to_memcache(name="CANDIDATE_ALERTS", data=candidate_alerts_generator.main(
-                    generated_alerts_list=generated_alerts, db_alerts_dict=alerts_from_db))
-                print(f"{system_time} | Done processing Candidate Alerts.")
-            except Exception as err:
-                print(err)
-                raise
+                set_data_to_memcache(name="ALERTS_FROM_DB",
+                                     data=alerts_from_db)
+                candidate_alerts = candidate_alerts_generator.main(
+                    generated_alerts_list=generated_alerts, db_alerts_dict=alerts_from_db)
+                set_data_to_memcache(name="CANDIDATE_ALERTS",
+                                     data=candidate_alerts)
+                emit_data("receive_generated_alerts")
+                emit_data("receive_alerts_from_db")
+                emit_data("receive_candidate_alerts")
 
-            emit_data("receive_generated_alerts")
-            emit_data("receive_candidate_alerts")
-            emit_data("receive_alerts_from_db")
+            elif datetime.now().minute % 5 == 1:
+                print()
+                system_time = datetime.strftime(
+                    datetime.now(), "%Y-%m-%d %H:%M:%S")
+                print(f"{system_time} | Websocket running...")
+
+                try:
+                    generated_alerts = generate_alerts()
+                    set_data_to_memcache(
+                        name="GENERATED_ALERTS", data=generated_alerts)
+                    alerts_from_db = wrap_get_ongoing_extended_overdue_events()
+                    set_data_to_memcache(
+                        name="ALERTS_FROM_DB", data=alerts_from_db)
+                    set_data_to_memcache(name="CANDIDATE_ALERTS", data=candidate_alerts_generator.main(
+                        generated_alerts_list=generated_alerts, db_alerts_dict=alerts_from_db))
+                    print(f"{system_time} | Done processing Candidate Alerts.")
+                except Exception as err:
+                    print(err)
+                    raise
+
+                emit_data("receive_generated_alerts")
+                emit_data("receive_candidate_alerts")
+                emit_data("receive_alerts_from_db")
+        except Exception as err:
+            print("Exception on Monitoring thread")
+            print(err)
 
         SOCKETIO.sleep(60)  # Every 60 seconds in production stage
 
@@ -102,8 +103,8 @@ def connect():
     print(f"Current connected clients: {clients}")
 
     emit_data("receive_generated_alerts")
-    emit_data("receive_candidate_alerts")
     emit_data("receive_alerts_from_db")
+    emit_data("receive_candidate_alerts")
 
     # global ISSUES_AND_REMINDERS
     # ISSUES_AND_REMINDERS = wrap_get_issue_reminder()
@@ -137,7 +138,7 @@ def generate_alerts(site_code=None):
     Returns the new generated alerts json
     """
 
-    site_code = "umi"
+    site_code = ["umi", "ban"]
     generated_alerts_json = public_alert_generator.main(site_code=site_code)
 
     return generated_alerts_json
@@ -178,10 +179,10 @@ def update_alert_gen(site_code=None):
         json_generated_alerts[gen_alert_index] = site_gen_alert
 
         set_data_to_memcache(name="GENERATED_ALERTS",
-                             data=json.dumps(json_generated_alerts))
-        set_data_to_memcache(name="CANDIDATE_ALERTS",
-                             data=wrap_get_ongoing_extended_overdue_events())
+                             data=json_generated_alerts)
         set_data_to_memcache(name="ALERTS_FROM_DB",
+                             data=wrap_get_ongoing_extended_overdue_events())
+        set_data_to_memcache(name="CANDIDATE_ALERTS",
                              data=candidate_alerts_generator.main())
     except Exception as err:
         print(err)
@@ -207,7 +208,7 @@ def execute_write_monitoring_moms_to_db(moms_details):
         data = wrap_write_monitoring_moms_to_db(data)
         var_checker("data", data, True)
     except Exception as err:
-        raise err    
+        raise err
 
 
 def execute_write_issues_reminders(issues_and_reminders_details):
@@ -268,7 +269,6 @@ def execute_insert_ewi(insert_details):
     Function used to prepare the whole insert_ewi
     process.
     """
-    var_checker("insert_details", insert_details, True)
 
     # Insert ewi release
     status = insert_ewi(insert_details)
@@ -277,8 +277,15 @@ def execute_insert_ewi(insert_details):
     status_log = get_process_status_log("insert_ewi", status)
 
     # Update the complete alert gen data
-    site_code = insert_details["site_code"].lower()
-    update_alert_gen(site_code=site_code)
+    # site_code = insert_details["site_code"].lower()
+    # update_alert_gen(site_code=site_code)
+    set_data_to_memcache(name="ALERTS_FROM_DB",
+                         data=wrap_get_ongoing_extended_overdue_events())
+    set_data_to_memcache(name="CANDIDATE_ALERTS",
+                         data=candidate_alerts_generator.main())
+
+    emit_data("receive_alerts_from_db")
+    emit_data("receive_candidate_alerts")
 
     # return "status_log"
     return status_log
@@ -297,8 +304,8 @@ def handle_message(payload):
     if key == "insert_ewi":
         print(get_process_status_log("insert_ewi", "request"))
         var_checker("insert data", data, True)
-        # status = execute_insert_ewi(data)
-        print("status")
+        status = execute_insert_ewi(data)
+        print(status)
 
     elif key == "validate_trigger":
         print(get_process_status_log("validate_trigger", "request"))

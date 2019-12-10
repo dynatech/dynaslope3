@@ -2,11 +2,14 @@ import React, { Fragment, useEffect, useState } from "react";
 import moment from "moment";
 import MomentUtils from "@date-io/moment";
 import {
-    TextField, Grid, withStyles,
+    TextField, Grid,
     FormControl, FormLabel, Switch,
-    Divider
+    Divider, makeStyles
 } from "@material-ui/core";
-import { MuiPickersUtilsProvider, KeyboardDateTimePicker, KeyboardTimePicker } from "@material-ui/pickers";
+import {
+    MuiPickersUtilsProvider,
+    KeyboardDateTimePicker, KeyboardTimePicker
+} from "@material-ui/pickers";
 
 // Stepper Related Imports
 import Stepper from "@material-ui/core/Stepper";
@@ -29,8 +32,10 @@ import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInp
 import { sites } from "../../../store";
 
 import { getInternalAlertLevel } from "./ajax";
+import { getCurrentUser } from "../../sessions/auth";
+import { CTContext } from "../../monitoring/dashboard/CTContext";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     inputGridContainer: {
         marginTop: 6,
         marginBottom: 6
@@ -55,13 +60,17 @@ const styles = theme => ({
         marginTop: 1,
         marginBottom: 1,
     }
-});
+}));
 
 function returnUpdateWarning () {
     return (
         <Fragment>
             <Grid item xs={12} >
-                <Typography variant="body2" color="secondary">You chose a data timestamp that has been released. You are allowed to update release details but changes on triggers and alert level cannot be accepted. For those kind of changes, please contact the Software Infra Devs. Thank you.</Typography>
+                <Typography variant="body2" color="secondary">
+                    You chose a data timestamp that has been released. 
+                    You are allowed to update release details but changes on triggers and alert level cannot be accepted. 
+                    For those kind of changes, please contact the Software Infra Devs. Thank you.
+                </Typography>
             </Grid>
         </Fragment>
     );
@@ -71,8 +80,7 @@ function GeneralInputForm (props) {
     const {
         setModalTitle, generalData, classes,
         handleEventChange, handleDateTime,
-        setGeneralData, setCTFullName, setMTFullName,
-        isUpdatingRelease
+        setGeneralData, isUpdatingRelease
     } = props;
 
     const {
@@ -94,8 +102,6 @@ function GeneralInputForm (props) {
         });
     };
 
-    console.log(isUpdatingRelease);
-
     return (
         <Fragment>
             {
@@ -105,7 +111,6 @@ function GeneralInputForm (props) {
                 <DynaslopeSiteSelectInputForm
                     value={siteId}
                     changeHandler={value => setSite(value)}
-                    // renderDropdownIndicator={false}
                 />                
             </Grid>
 
@@ -146,8 +151,8 @@ function GeneralInputForm (props) {
                     div_id="reporter_id_mt"
                     changeHandler={handleEventChange("reporterIdMt")}
                     value={reporterIdMt}
-                    disabled="true"
-                    returnFullNameCallback={ret => setMTFullName(ret)}
+                    disabled
+                    // returnFullNameCallback={ret => setMTFullName(ret)}
                 />
             </Grid>
 
@@ -158,7 +163,8 @@ function GeneralInputForm (props) {
                     div_id="reporter_id_ct"
                     changeHandler={handleEventChange("reporterIdCt")}
                     value={reporterIdCt}
-                    returnFullNameCallback={ret => setCTFullName(ret)}
+                    disabled
+                    // returnFullNameCallback={ret => setCTFullName(ret)}
                 />
             </Grid>
         </Fragment>
@@ -173,7 +179,8 @@ function TriggersInputForm (props) {
     } = props;
     const {
         subsurface: { switchState: subs_switch_state },
-        surficial: { switchState: surf_switch_state } 
+        surficial: { switchState: surf_switch_state },
+        moms: { switchState: moms_switch_state } 
     } = triggersState;
 
     useEffect(() => {
@@ -183,7 +190,7 @@ function TriggersInputForm (props) {
     return (
         <Fragment>
             {
-                !subs_switch_state && !surf_switch_state && (
+                !subs_switch_state && !surf_switch_state && !moms_switch_state && (
                     <Grid item xs={12} className={hasNoGroundData ? classes.groupGridContainer : ""}>
                         <FormControl component="fieldset" className={classes.formControl}>
                             <FormLabel component="legend" className={classes.formLabel}>
@@ -191,7 +198,7 @@ function TriggersInputForm (props) {
                                 <Switch
                                     checked={hasNoGroundData}
                                     onChange={event => setHasNoGroundData(event.target.checked)}
-                                    value={hasNoGroundData}
+                                    value="has_no_ground_data"
                                 />
                             </FormLabel>
                         </FormControl>
@@ -199,7 +206,7 @@ function TriggersInputForm (props) {
                 )
             }
 
-            <Grid item xs={12} style={{ paddingTop: 20 }}>
+            <Grid item xs={12}>
                 <Typography variant="h6" color="secondary">Ground-Related Triggers</Typography>
             </Grid>
 
@@ -268,9 +275,9 @@ function CommentsInputForm (props) {
 
 function SummaryForm (props) {
     const {
-        classes,
+        classes, handleEventChange,
         generalData, internalAlertLevel, setModalTitle,
-        mtFullName, ctFullName, ewiPayload: { trigger_list_arr }
+        mtFullName, ctFullName, ewiPayload
     } = props;
     const {
         siteId, dataTimestamp, releaseTime, comments
@@ -279,12 +286,16 @@ function SummaryForm (props) {
     const [triggers_display, setTriggersDisplay] = useState(null);
 
     useEffect(() => {
-        setModalTitle("Review release summary.");
+        setModalTitle("Review release summary. Add comment if necessary.");
 
-        let temp_list = (<Typography variant="body2" color="textPrimary">No triggers included in this release.</Typography>);
-        if (trigger_list_arr.length > 0) {
-            temp_list = trigger_list_arr.map((element, index) => {
-                console.log(element, index);
+        let arr = [];
+        if (typeof ewiPayload.trigger_list_arr !== "undefined") {
+            arr = ewiPayload.trigger_list_arr;
+        }
+
+        let temp_list = <Typography variant="body2" color="textPrimary">No triggers included in this release.</Typography>;
+        if (arr.length > 0) {
+            temp_list = arr.map((element, index) => {
                 const {
                     ts_updated, alert_level, trigger_type,
                     tech_info
@@ -313,7 +324,7 @@ function SummaryForm (props) {
             });
         }
         setTriggersDisplay(temp_list);
-    }, []);
+    }, [ewiPayload]);
 
     const data_ts = moment(dataTimestamp).format("DD MMMM YYYY, HH:mm");
     const release_time = moment(releaseTime).format("HH:mm");
@@ -321,40 +332,40 @@ function SummaryForm (props) {
     return (
         <Fragment>
             <Grid item xs={6} >
-                <Typography variant="body1" color="textSecondary">Site</Typography>
+                <Typography variant="body2" color="textSecondary">Site</Typography>
                 <Typography variant="body1" color="textPrimary">
                     {siteId.label}
                 </Typography>
             </Grid>
             <Grid item xs={6} >
-                <Typography variant="body1" color="textSecondary">Alert Level</Typography>
+                <Typography variant="body2" color="textSecondary">Alert Level</Typography>
                 <Typography variant="body1" color="textPrimary">
                     {internalAlertLevel}
                 </Typography>
             </Grid>
 
             <Grid item xs={6} >
-                <Typography variant="body1" color="textSecondary">Data Timestamp</Typography>
+                <Typography variant="body2" color="textSecondary">Data Timestamp</Typography>
                 <Typography variant="body1" color="textPrimary">
                     {data_ts}
                 </Typography>
             </Grid>
             <Grid item xs={6} >
-                <Typography variant="body1" color="textSecondary">Release Time</Typography>
+                <Typography variant="body2" color="textSecondary">Release Time</Typography>
                 <Typography variant="body1" color="textPrimary">
                     {release_time}
                 </Typography>
             </Grid>
 
             <Grid item xs={6} >
-                <Typography variant="body1" color="textSecondary">MT Personnel</Typography>
+                <Typography variant="body2" color="textSecondary">MT Personnel</Typography>
                 <Typography variant="body1" color="textPrimary">
                     {mtFullName}
                 </Typography>
             </Grid>
 
             <Grid item xs={6} >
-                <Typography variant="body1" color="textSecondary">CT Personnel</Typography>
+                <Typography variant="body2" color="textSecondary">CT Personnel</Typography>
                 <Typography variant="body1" color="textPrimary">
                     {ctFullName}
                 </Typography>
@@ -377,9 +388,9 @@ function SummaryForm (props) {
                 <Divider className={classes.divider} /> 
             </Grid>
 
-            <Grid item xs={12} >
-                <Typography variant="button" color="textSecondary">Comments</Typography>
-                <Typography variant="body2" color="textPrimary">
+            <Grid item xs={12} className={classes.inputGridContainer}>
+                {/* <Typography variant="button" color="textSecondary">Comments</Typography>
+                <Typography variant="body2" color="textPrimary" align="center">
                     {
                         comments !== "" ? (
                             comments 
@@ -387,22 +398,36 @@ function SummaryForm (props) {
                             "No comment provided"
                         )
                     }
-                </Typography>
+                </Typography> */}
+
+                <TextField
+                    label="Comments"
+                    multiline
+                    rowsMax="2"
+                    placeholder="Enter additional comments necessary"
+                    value={comments}
+                    onChange={handleEventChange("comments")}
+                    fullWidth
+                />
             </Grid>
         </Fragment>
     );
 }
 
-function AlertReleaseForm (props) {
+function AlertReleaseForm (comp_props) {
     const {
-        classes, activeStep, generalData,
+        activeStep, generalData,
         setGeneralData, setInternalAlertLevel,
         internalAlertLevel, setTriggerList,
         setPublicAlertLevel, isUpdatingRelease
-    } = props;
+    } = comp_props;
+    const classes = useStyles();
+    const props = { classes, ...comp_props };
 
-    const [mtFullName, setMTFullName] = useState("");
-    const [ctFullName, setCTFullName] = useState("");
+    const current_user = getCurrentUser();
+    const { first_name, last_name } = current_user;
+    const mtFullName = `${last_name}, ${first_name}`;
+    const { ct_full_name: ctFullName } = React.useContext(CTContext);
 
     const [triggersReleased, setTriggersReleased] = useState([]);
 
@@ -424,7 +449,6 @@ function AlertReleaseForm (props) {
                 setTriggersReleased(trigger_sources);
                 setTriggerList(trigger_list_str);
                 setPublicAlertLevel(public_alert_level);
-                // set the status on form
                 setInternalAlertLevel(internal_alert_level);
             });
         }
@@ -441,35 +465,32 @@ function AlertReleaseForm (props) {
     };
 
     const getSteps = () => {
-        return ["What are the release details?", "List the triggers.", "Add Comments and Description", "Review Release Summary"];
+        // return ["What are the release details?", "List the triggers.", "Add Comments and Description", "Review Release Summary"];
+        return ["What are the release details?", "List the triggers.", "Add Comments and Review Release Summary"];
     };
     const steps = getSteps();
 
     const getStepContent = stepIndex => {
-        console.log("isUpdatingRelease", isUpdatingRelease);
         switch (stepIndex) {
             case 0:
-                return (<GeneralInputForm
+                return <GeneralInputForm
                     {...props}
                     handleDateTime={handleDateTime}
                     handleEventChange={handleEventChange}
-                    setMTFullName={setMTFullName}
-                    setCTFullName={setCTFullName}
                     isUpdatingRelease={isUpdatingRelease}
-                />);
+                />;
             case 1:
                 return <TriggersInputForm {...props} triggersReleased={triggersReleased} />;
             case 2:
-                return <CommentsInputForm {...props} handleEventChange={handleEventChange}/>;
-            case 3:
-                return <SummaryForm {...props} 
+                return <SummaryForm {...props}
                     mtFullName={mtFullName}
                     ctFullName={ctFullName}
                     internalAlertLevel={internalAlertLevel}
+                    handleEventChange={handleEventChange}
                 />;
-            case 4:
+            case 3:
                 return (
-                    <Typography variant="body1">EWI Released!</Typography>
+                    <Typography variant="body1">Early warning information released!</Typography>
                 );
             default:
                 return "Uknown stepIndex";
@@ -503,4 +524,4 @@ function AlertReleaseForm (props) {
 
 }
 
-export default withStyles(styles)(AlertReleaseForm);
+export default AlertReleaseForm;
