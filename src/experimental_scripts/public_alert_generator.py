@@ -1126,7 +1126,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
         moms_query_ts_start = surficial_moms_window_ts
         if highest_public_alert > 0:
-            moms_query_ts_start = latest_site_pa.ts
+            moms_query_ts_start = monitoring_start_ts
 
         # Get current moms alerts within ts_onset and query_ts_end
         # A.K.A. all moms within an event if alert > 0

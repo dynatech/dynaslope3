@@ -27,8 +27,10 @@ function DynaslopeSiteSelectInputForm (props) {
     const [sites, setSites] = useState([]);
 
     useEffect(() => {
-        console.log("value", value);
-        axios.get(`${host}/api/sites/get_sites_data`)
+        const cancel_token = axios.CancelToken;
+        const source = cancel_token.source();
+
+        axios.get(`${host}/api/sites/get_sites_data`, { cancelToken: source.token })
         .then(response => {
             const { data } = response;
             setSites(data);
@@ -36,6 +38,10 @@ function DynaslopeSiteSelectInputForm (props) {
         .catch(error => {
             console.log(error);
         });
+
+        return () => {
+            source.cancel();
+        };
     }, []);
 
     const to_include_address = typeof includeAddressOnOptions === "undefined" ? true : includeAddressOnOptions;

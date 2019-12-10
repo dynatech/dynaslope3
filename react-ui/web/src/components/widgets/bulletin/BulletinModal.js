@@ -38,12 +38,13 @@ function BulletinModal (props) {
     const [sent_status, setSentStatus] = useState(false);
     const [narrative_details, setNarrativeDetails] = useState({});
 
-
     useEffect(() => {
         if (typeof release_id !== "undefined") {
             getBulletinEmailDetails(release_id, ret => {
                 const {
-                    subject, recipients, mail_body, file_name: filename, narrative_details: tmp_nar
+                    subject, recipients, mail_body,
+                    file_name: filename,
+                    narrative_details: tmp_nar
                 } = ret;
 
                 setNarrativeDetails(tmp_nar);
@@ -87,23 +88,22 @@ function BulletinModal (props) {
                     closeHandler();
                 });
             } else console.log("NO NARRATIVE WRITTEN: TEST ONLY");
-
         });
     };
 
-    const mailContentHandler = value => {
-        setMailContent(value);
+    const mailContentHandler = event => {
+        setMailContent(event.target.value);
     };
 
-    const handleAddChip = (chip) => {
+    const handleAddChip = chip => {
         const temp = mail_recipients;
         temp.push(chip);
-        setMailRecipients(temp);
+        setMailRecipients([...temp]);
     };
 
     const handleDeleteChip = (chip, index) => {
-        mail_recipients.splice( mail_recipients.indexOf(chip), 1 );
-        setMailRecipients(mail_recipients);
+        mail_recipients.splice(mail_recipients.indexOf(chip), 1);
+        setMailRecipients([...mail_recipients]);
     };
 
     let f_site_code = "";
@@ -144,7 +144,7 @@ function BulletinModal (props) {
                         <ChipInput 
                             label="To"
                             value={mail_recipients}
-                            onAdd={(chip) => handleAddChip(chip)}
+                            onAdd={chip => handleAddChip(chip)}
                             onDelete={(chip, index) => handleDeleteChip(chip, index)}
                             fullWidth
                             required

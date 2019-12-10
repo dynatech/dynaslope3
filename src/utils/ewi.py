@@ -66,7 +66,8 @@ def create_ewi_message(release_id):
     """
 
     release_id = int(release_id)
-    release = get_monitoring_releases(release_id=release_id)
+    release = get_monitoring_releases(
+        release_id=release_id, load_options="ewi_sms_bulletin")
     data_ts = release.data_ts
 
     event_alert = release.event_alert

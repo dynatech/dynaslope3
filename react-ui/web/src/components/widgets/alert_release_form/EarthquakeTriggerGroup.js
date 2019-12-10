@@ -34,12 +34,19 @@ function EarthquakeTriggerGroup (props) {
 
     const { earthquake } = triggersState;
     const { switchState, triggers } = earthquake;
-    
 
-    let timestamp, tech_info, magnitude, latitude, longitude;
+    let eq_trig = {
+        timestamp: null,
+        tech_info: "",
+        magnitude: null,
+        latitude: null,
+        longitude: null
+    };
     if (triggers.length !== 0) {
-        const { timestamp, tech_info, magnitude, latitude, longitude } = triggers[0]; // There is always only ONE EQ trigger
+        eq_trig = { ...triggers[0] }; // There is always only ONE EQ trigger
     }
+
+    const { timestamp, tech_info, magnitude, latitude, longitude } = eq_trig;
 
     return (
         <Fragment>

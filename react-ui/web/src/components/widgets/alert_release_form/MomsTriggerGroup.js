@@ -1,60 +1,31 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment } from "react";
 import moment from "moment";
-import { Grid, withStyles, FormControl,
-    FormLabel, Typography, TextField } from "@material-ui/core";
+import {
+    Grid, makeStyles, FormControl,
+    FormLabel, Typography, TextField
+} from "@material-ui/core";
 
-import CheckboxGroupWithSwitch from "../../reusables/CheckboxGroupWithSwitch";
-import { handleChange, handleCheckboxChange, handleSwitchChange } from "./state_handlers";
-import TriggerTimestampAndTechInfoCombo from "./TriggerTimestampAndTechInfoCombo";
+import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     groupGridContainer: {
         marginTop: 0,
         marginBottom: 6
     }
-});
+}));
 
 function MomsTriggerGroup (props) {
     const {
-        classes, triggersState
+        triggersState, setTriggerState
     } = props;
-
-    const [trigger_type, setTriggerType] = useState("");
-    const [last_trigger_ts, setLastTriggerTs] = useState("");
-    const [tech_info, setTechInfo] = useState("");
+    const classes = useStyles();
 
     const { moms } = triggersState;
     const { switchState, triggers } = moms;
 
-    const triggers_value = {
-        trigger_2: { status: false, disabled: false },
-        trigger_3: { status: false, disabled: false },
-        trigger_0: { status: false, disabled: false },
-    };
-
-    if (triggers.length !== 0) {
-        setTriggerType("m2");
-        setLastTriggerTs(moment().format("YYYY-MM-DD HH:mm:00"));
-        setTechInfo("Significant crack found in site.");
-        triggers.forEach(trigger => {
-            const { alert_level, status, disabled } = trigger;
-            triggers_value[`trigger_${alert_level}`] = {
-                ...trigger,
-                status,
-                disabled
-            };
-
-            if (alert_level === 0) {
-                triggers_value.trigger_2.disabled = true;
-                triggers_value.trigger_3.disabled = true;
-            } else {
-                triggers_value.trigger_0.disabled = true;
-            }
-        });
-    }
-
     const techInfoHandler = () => {
         // TO DO:
+        // setTriggerState here
         console.log("change has been made");
     };
 
@@ -63,42 +34,81 @@ function MomsTriggerGroup (props) {
             <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
                 <FormControl component="fieldset" className={classes.formControl}>
                     <FormLabel component="legend" className={classes.formLabel}>
-                        <span>MOMs</span>
+                        <span>Manifestation of Movement</span>
                     </FormLabel>
                 </FormControl>
                 <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                        <Typography variant="body2">Note: If you want to add/include MOMS in the release, insert MOMS using its MOMS Insert Form</Typography>
+                    <Grid item xs={12} align="center">
+                        <Typography variant="body1" color="textSecondary">
+                            NOTE: If you want to add MOMs in the release, use MOMs Insert Form.
+                        </Typography>
                     </Grid>
                     {
-                        triggers.length > 0 && (
-                            <Fragment>
-                                <Grid item xs={12} sm={6}>
-                                    <Typography variant="body2">Trigger: {trigger_type}</Typography>
-                                </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <Typography variant="body2">Last trigger timestamp: {last_trigger_ts}</Typography>
-                                </Grid>
-                                <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
-                                    <TextField
-                                        required
-                                        label="Technical Info"
-                                        multiline
-                                        rowsMax="2"
-                                        placeholder="Enter technical info for 'MOMs' trigger"
-                                        value={tech_info}
-                                        onChange={techInfoHandler}
-                                        fullWidth
-                                    />
-                                </Grid>
-                            </Fragment>                            
-                        )
+                        triggers.map(row => {
+                            const { alert, timestamp, tech_info, moms_list } = row;
+                            return (
+                                <Fragment key={alert}>
+                                    <Grid item xs={12} sm={3} align="center">
+                                        <Typography variant="body1" component="span" color="textSecondary">Trigger: </Typography>
+                                        <Typography variant="body1" component="span"><strong>
+                                            {alert}
+                                        </strong></Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={9} align="center">
+                                        <Typography variant="body1" component="span" color="textSecondary">Trigger Timestamp: </Typography>
+                                        <Typography variant="body1" component="span"><strong>
+                                            {timestamp.format("YYYY/MM/DD HH:mm:00")}
+                                        </strong></Typography>
+                                    </Grid>
+
+                                    {
+                                        moms_list.map(ml => {
+                                            const { moms_instance, observance_ts } = ml;
+                                            const { feature: { feature_type }, feature_name, instance_id } = moms_instance;
+
+                                            return (
+                                                <Grid key={instance_id} item xs={12} container spacing={0} justify="space-around">
+                                                    <Grid item xs={6} sm align="center">
+                                                        <Typography variant="body2" color="textSecondary">Feature Type</Typography>
+                                                        <Typography variant="body2"><strong>
+                                                            {capitalizeFirstLetter(feature_type)}
+                                                        </strong></Typography>
+                                                    </Grid>
+                                                    <Grid item xs={6} sm align="center">
+                                                        <Typography variant="body2" color="textSecondary">Feature Name</Typography>
+                                                        <Typography variant="body2"><strong>{feature_name}</strong></Typography>
+                                                    </Grid>
+                                                    <Grid item xs={12} sm align="center">
+                                                        <Typography variant="body2" color="textSecondary">Observance Timestamp</Typography>
+                                                        <Typography variant="body2"><strong>
+                                                            {moment(observance_ts).format("YYYY/MM/DD HH:mm:00")}
+                                                        </strong></Typography>
+                                                    </Grid>
+                                                </Grid>
+                                            );
+                                        })
+                                    }
+
+                                    <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
+                                        <TextField
+                                            required
+                                            label="Technical Info"
+                                            multiline
+                                            rowsMax="2"
+                                            placeholder="Enter technical info for 'MOMs' trigger"
+                                            value={tech_info}
+                                            onChange={techInfoHandler}
+                                            fullWidth
+                                        />
+                                    </Grid>
+                                </Fragment>                            
+                            );
+                        })
                     }
                 </Grid>
-                
             </Grid>
         </Fragment>
     );
 }
 
-export default withStyles(styles)(MomsTriggerGroup);
+export default MomsTriggerGroup;

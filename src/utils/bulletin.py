@@ -532,7 +532,8 @@ def download_monitoring_bulletin(release_id):
     var_checker("ret", ret, True)
 
     if ret["success"]:
-        return send_file(ret["pdf_path"], as_attachment=True, attachment_filename=APP_CONFIG["bulletin_save_path"])
+        return send_file(ret["pdf_path"], as_attachment=True,
+                         attachment_filename=APP_CONFIG["bulletin_save_path"])
 
     return ret["error"]
 

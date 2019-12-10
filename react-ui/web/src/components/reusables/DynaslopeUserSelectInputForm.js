@@ -21,12 +21,15 @@ function DynaslopeUserSelectInputForm (props) {
     const [users, setUsers] = useState([]);
 
     useEffect(() => {
+        const cancel_token = axios.CancelToken;
+        const source = cancel_token.source();
+
         let api_link = `${host}/api/users/get_dynaslope_users`;
         if (isCommunityStaff) {
             const { site_code } = props;
             api_link = `${host}/api/users/get_community_users_by_site/${site_code}`;
         }
-        axios.get(api_link)
+        axios.get(api_link, { cancelToken: source.token })
         .then(response => {
             const arr = prepareUsersArray(response.data);
             setUsers(arr);
@@ -34,6 +37,10 @@ function DynaslopeUserSelectInputForm (props) {
         .catch(error => {
             console.log(error);
         });
+
+        return () => {
+            source.cancel();
+        };
     }, []);
     
     const callback = typeof returnFullNameCallback === "undefined" ? false : returnFullNameCallback;
@@ -51,7 +58,7 @@ function DynaslopeUserSelectInputForm (props) {
                         label={label}
                         div_id={div_id}
                         changeHandler={changeHandler}
-                        value={value}
+                        value={users.length === 0 ? "" : value}
                         list={users}
                         mapping={mapping}
                         css={css}
@@ -65,7 +72,7 @@ function DynaslopeUserSelectInputForm (props) {
                         label={label}
                         div_id={div_id}
                         changeHandler={changeHandler}
-                        value={value}
+                        value={users.length === 0 ? "" : value}
                         list={users}
                         mapping={mapping}
                         css={css}

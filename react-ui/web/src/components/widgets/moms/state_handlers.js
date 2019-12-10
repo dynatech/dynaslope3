@@ -7,9 +7,9 @@ const moms_entry = {
         alert_level: null,
         observance_ts: null,
         narrative: "",
-        reporter: null,
+        reporter: "",
         remarks: "",
-        validator: null
+        validator: ""
     }, 
     options: {
         feature_type: [],
@@ -29,6 +29,10 @@ function reducerFunction (state, payload) {
     const new_state = JSON.parse(JSON.stringify(state));
 
     switch (action) {
+        case "OVERWRITE":
+            return [
+                ...value
+            ];
         case "ADD_INSTANCE":
             return [
                 ...state,

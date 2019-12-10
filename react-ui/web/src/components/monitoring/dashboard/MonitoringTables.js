@@ -1,7 +1,7 @@
-import React, { Fragment, useState, useEffect } from "react";
+import React, { Fragment, useState } from "react";
 import {
     Grid, Typography,
-    Divider, Button, ButtonGroup
+    Divider, Button
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import { isWidthUp } from "@material-ui/core/withWidth";
@@ -20,6 +20,8 @@ import useModal from "../../reusables/useModal";
 import BulletinModal from "../../widgets/bulletin/BulletinModal";
 import { getEWIMessage } from "../ajax";
 import SendEwiSmsModal from "./SendEwiSmsModal";
+import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
+import { CTContext } from "./CTContext";
 
 const useStyles = makeStyles(theme => {
     const general_styles = GeneralStyles(theme);
@@ -41,28 +43,13 @@ const useStyles = makeStyles(theme => {
         },
         partialInvalidCandidate: {
             background: "linear-gradient(315deg, #bbf0f3 0%, #f6d285 74%)"
-        }
+        },
+        inputWidth: { width: "50%" }
     };
 });
 
 function format_ts (ts) {
     return moment(ts).format("DD MMMM YYYY, HH:mm");
-}
-
-function release_candidate (site_code, candidate_data) {
-    console.log(`Releasing candidate for site ${site_code}`);
-    console.log("DATA", candidate_data);
-}
-
-function open_validation_modal (site, trigger_id, ts_updated) {
-    console.log(site, trigger_id, ts_updated);
-    const data = {
-        site, trigger_id, ts_updated
-    };
-
-    return (
-        <ValidationModal data={data} />
-    );
 }
 
 const MyLoader = () => (
@@ -81,7 +68,8 @@ const MyLoader = () => (
 function CandidateAlertsExpansionPanel (props) {
     const { 
         alertData, classes, expanded,
-        handleExpansion, index
+        handleExpansion, index, releaseFormOpenHandler,
+        isShowingValidation, toggleValidation
     } = props;
 
     let site = "";
@@ -89,7 +77,7 @@ function CandidateAlertsExpansionPanel (props) {
     let ia_level = "";
     let trigger_arr = [];
     let has_new_triggers = false;
-    const { general_status } = alertData;
+    const { site_id, general_status } = alertData;
     
     if (general_status === "routine") {
         const { data_ts, public_alert_symbol } = alertData;
@@ -161,15 +149,23 @@ function CandidateAlertsExpansionPanel (props) {
                                             ts_updated, alert, tech_info,
                                             trigger_id, trigger_type
                                         } = trigger;
+
                                         const formatted_ts = format_ts(ts_updated);
                                         let trigger_validity = "Valid";
                                         let to_validate = false;
+                                        let is_validating = false;
 
                                         try {
                                             const { validating_status } = trigger;
                                             if (validating_status === 0) {
+                                                trigger_validity = "Validating";
+                                                is_validating = true;
+                                                to_validate = true;
+                                            } else if (validating_status === null) {
                                                 trigger_validity = "---";
                                                 to_validate = true;
+                                            } else if (validating_status === 1) {
+                                                to_validate = false;
                                             }
                                         } catch (err) { /* pass */ }
 
@@ -187,7 +183,7 @@ function CandidateAlertsExpansionPanel (props) {
                                         const to_show_validate_button = ["surficial", "rainfall", "subsurface"].includes(trigger_type) && to_validate;
 
                                         return (
-                                            <Fragment key={`trigger-${index + 1}`}>
+                                            <Fragment key={`trigger-${trigger_type}-${alert}`}>
                                                 <Grid item xs align="center">
                                                     <Typography variant="body1" color="textSecondary">Trigger</Typography>
                                                     <Typography variant="body1" color="textPrimary">{alert}</Typography>
@@ -215,7 +211,7 @@ function CandidateAlertsExpansionPanel (props) {
                                                     to_show_validate_button && (
                                                         <Grid item xs justify="flex-end" container>
                                                             <Button
-                                                                // onClick={toggle}
+                                                                onClick={toggleValidation}
                                                                 variant="contained" color="secondary"
                                                                 size="small" aria-label="Validate trigger"
                                                             >
@@ -225,11 +221,12 @@ function CandidateAlertsExpansionPanel (props) {
                                                     )
                                                 }
 
-                                                {/* <ValidationModal
-                                                            isShowing={isShowing}
-                                                            data={as_details}
-                                                            hide={toggle}
-                                                        /> */}
+                                                <ValidationModal
+                                                    isShowing={isShowingValidation}
+                                                    data={as_details}
+                                                    hide={toggleValidation}
+                                                    isValidating={is_validating}
+                                                />
                                                 {
                                                     trigger_arr.length > key + 1 && (
                                                         <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
@@ -240,7 +237,7 @@ function CandidateAlertsExpansionPanel (props) {
                                     })
                                 ) : (
                                     <Fragment>
-                                        <Grid item xs={12}>
+                                        <Grid item xs={12} align="center">
                                             <Typography variant="body1" color="textSecondary">No new triggers</Typography>
                                         </Grid>
                                     </Fragment>
@@ -256,9 +253,9 @@ function CandidateAlertsExpansionPanel (props) {
                     color="secondary" size="small"
                     aria-label="Release candidate alert"
                     startIcon={<Publish />}
-                    // onClick={handleOnClick(row)}
+                    onClick={releaseFormOpenHandler(alertData)}
                 >
-                            Release
+                    Release
                 </Button>
             </ExpansionPanelActions>
         </ExpansionPanel>
@@ -268,11 +265,11 @@ function CandidateAlertsExpansionPanel (props) {
 function LatestSiteAlertsExpansionPanel (props) {
     const { 
         siteAlert, classes, expanded,
-        handleExpansion, index, handleSMSRelease,
-        bulletinHandler
+        handleExpansion, handleSMSRelease,
+        bulletinHandler, keyName, type
     } = props;
     const {
-        event, internal_alert_level, releases
+        event, internal_alert_level, releases, day
     } = siteAlert;
 
     const { validity, site, event_start } = event;
@@ -289,16 +286,26 @@ function LatestSiteAlertsExpansionPanel (props) {
     if (!is_onset) adjusted_data_ts = moment(data_ts).add(30, "minutes");
     adjusted_data_ts = format_ts(adjusted_data_ts);
 
+    const panel_headers = [site_name, internal_alert_level];
+    if (type === "extended") {
+        panel_headers.push(`Day ${day}`);
+    } else {
+        panel_headers.push(adjusted_data_ts, release_time);
+    }
+
     return (
-        <ExpansionPanel expanded={expanded === `lsa-panel${index}`} onChange={handleExpansion(`lsa-panel${index}`)}>
+        <ExpansionPanel
+            expanded={expanded === keyName}
+            onChange={handleExpansion(keyName)}
+        >
             <ExpansionPanelSummary
                 // expandIcon={<ExpandMoreIcon />}
-                aria-controls={`lsa-panel${index}bh-content`}
-                id={`lsa-panel${index}bh-header`}
+                aria-controls={`${keyName}bh-content`}
+                id={`${keyName}bh-header`}
                 classes={{ content: classes.expansionPanelSummaryContent }}
             >
                 {
-                    [site_name, internal_alert_level, adjusted_data_ts, release_time].map((elem, i) => (
+                    panel_headers.map((elem, i) => (
                         <Typography
                             key={`exp-columns-${i + 1}`}
                             color="textSecondary"
@@ -366,36 +373,34 @@ function LatestSiteAlertsExpansionPanel (props) {
     );
 }
 
+// export const CTContext = React.createContext();
+
 function MonitoringTables (props) {
     const {
         candidateAlertsData, alertsFromDbData, width,
-        releaseFormOpenHandler, chosenCandidateHandler
+        releaseFormOpenHandler
     } = props;
 
     const classes = useStyles();
     const [expanded, setExpanded] = useState(false);
-    const { isShowing: isModalShowing, toggle: toggleModal } = useModal();
+    const { isShowing: isShowingValidation, toggle: toggleValidation } = useModal();
     const { isShowing: isShowingSendEWI, toggle: toggleSendEWI } = useModal();
     const [chosenReleaseDetail, setChosenReleaseDetail] = useState({});
     const [isOpenBulletinModal, setIsOpenBulletinModal] = useState(false);
+    const { reporter_id_ct, setReporterIdCt, setCTFullName } = React.useContext(CTContext);
     
     const handleExpansion = panel => (event, isExpanded) => {
         setExpanded(isExpanded ? panel : false);
-    };
-
-    const handleOnClick = chosen_candidate => () => {
-        console.log(chosen_candidate);
-        chosenCandidateHandler(chosen_candidate);
-        releaseFormOpenHandler();
     };
 
     const [ewi_message, setEWIMessage] = useState("");
     const [releaseId, setReleaseId] = useState("");
     const [siteCode, setSiteCode] = useState("");
     const handleSMSRelease = (release_id, site_code) => {
+        setSiteCode(site_code);
+
         getEWIMessage(release_id, data => {
             setEWIMessage(data);
-            setSiteCode(siteCode);
             setReleaseId(release_id);
             toggleSendEWI();
         });
@@ -417,12 +422,22 @@ function MonitoringTables (props) {
         extended_db_alerts = extended;
         overdue_db_alerts = overdue;
     }
-    
-    const as_details = {};
 
     return (
         <div className={classes.root}>
             <Grid container className={classes.sectionHeadContainer}>
+                <Grid item xs={12} align="right" style={{ marginBottom: 22 }}>
+                    <DynaslopeUserSelectInputForm
+                        variant="standard"
+                        label="Monitoring Partner"
+                        div_id="reporter_id_ct"
+                        changeHandler={event => setReporterIdCt(event.target.value)}
+                        value={reporter_id_ct}
+                        css={classes.inputWidth}
+                        returnFullNameCallback={ret => setCTFullName(ret)}
+                    />
+                </Grid>
+
                 <Grid item sm={12}>
                     <Typography className={classes.sectionHead} variant="h5">Candidate Alerts</Typography>
                 </Grid>
@@ -441,7 +456,10 @@ function MonitoringTables (props) {
                                         alertData={row}
                                         expanded={expanded}
                                         handleExpansion={handleExpansion}
+                                        releaseFormOpenHandler={releaseFormOpenHandler}
                                         index={index}
+                                        isShowingValidation={isShowingValidation}
+                                        toggleValidation={toggleValidation}
                                     />
                                 ))
                             ) : (
@@ -467,13 +485,14 @@ function MonitoringTables (props) {
                                 latest_db_alerts.map((row, index) => (
                                     <LatestSiteAlertsExpansionPanel
                                         key={`latest-${index + 1}`}
+                                        keyName={`latest-${index + 1}`}
                                         classes={classes}
                                         siteAlert={row}
                                         expanded={expanded}
                                         handleExpansion={handleExpansion}
                                         handleSMSRelease={handleSMSRelease}
-                                        index={index}
                                         bulletinHandler={bulletinHandler}
+                                        type="latest"
                                     />
                                 ))
                             ) : (
@@ -499,6 +518,7 @@ function MonitoringTables (props) {
                                 extended_db_alerts.map((row, index) => (
                                     <LatestSiteAlertsExpansionPanel
                                         key={`db-alert-${index + 1}`}
+                                        keyName={`db-alert-${index + 1}`}
                                         classes={classes}
                                         siteAlert={row}
                                         expanded={expanded}
@@ -506,6 +526,7 @@ function MonitoringTables (props) {
                                         handleSMSRelease={handleSMSRelease}
                                         index={index}
                                         bulletinHandler={bulletinHandler}
+                                        type="extended"
                                     />
                                 ))
                             ) : (
@@ -531,6 +552,7 @@ function MonitoringTables (props) {
                                 overdue_db_alerts.map((row, index) => (
                                     <LatestSiteAlertsExpansionPanel
                                         key={`overdue-alert-${index + 1}`}
+                                        keyName={`overdue-alert-${index + 1}`}
                                         classes={classes}
                                         siteAlert={row}
                                         expanded={expanded}
@@ -538,6 +560,7 @@ function MonitoringTables (props) {
                                         handleSMSRelease={handleSMSRelease}
                                         index={index}
                                         bulletinHandler={bulletinHandler}
+                                        type="overdue"
                                     />
                                 ))
                             ) : (
@@ -548,7 +571,6 @@ function MonitoringTables (props) {
                         )
                     }
                 </Grid>
-
 
                 <BulletinModal 
                     classes={classes}
@@ -563,6 +585,7 @@ function MonitoringTables (props) {
                 modalState={isShowingSendEWI}
                 textboxValue={ewi_message}
                 releaseId={releaseId}
+                siteCode={siteCode}
             />
         </div>
     );

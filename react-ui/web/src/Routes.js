@@ -2,7 +2,7 @@ import React from "react";
 import { Route, Switch } from "react-router-dom";
 
 import DashboardContainer from "./components/monitoring/dashboard/Container";
-import MonitoringEventsTable from "./components/monitoring/events_table/MonitoringEventsTable";
+import EventsTableContainer from "./components/monitoring/events_table/Container";
 import ShiftsAndReportsContainer from "./components/monitoring/shifts_and_reports/Container";
 import SiteLogsContainer from "./components/monitoring/site_logs/Container";
 import IssuesAndReminders from "./components/monitoring/issues_and_reminders/Container";
@@ -25,7 +25,7 @@ function RoutesCollection (props) {
 
         <Switch location={location}>
             <Route exact path={url} component={DashboardContainer} />
-            <Route path={`${url}monitoring/events`} component={MonitoringEventsTable} />
+            <Route path={`${url}monitoring/events`} component={EventsTableContainer} />
             <Route path={`${url}monitoring/shifts_and_reports`} component={ShiftsAndReportsContainer} />
             <Route path={`${url}monitoring/issues_and_reminders`} component={IssuesAndReminders} />
             <Route path={`${url}monitoring/logs`} component={SiteLogsContainer} />

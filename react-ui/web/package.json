@@ -16,7 +16,7 @@
     "highcharts-export-server": "^2.0.24",
     "highcharts-react-official": "^2.2.2",
     "leaflet": "^1.5.1",
-    "material-ui-chip-input": "^2.0.0-beta.1",
+    "material-ui-chip-input": "^2.0.0-beta.2",
     "moment": "^2.24.0",
     "mui-datatables": "^2.11.1",
     "notistack": "^0.9.0",

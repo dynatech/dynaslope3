@@ -4,7 +4,7 @@ import { getMOMsFeatures } from "./ajax";
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 
 export default function MomsInitialState (site_code) {
-    const [ moms_feature_types, setMomsFeatureTypes ] = useState([]);
+    const [moms_feature_types, setMomsFeatureTypes] = useState([]);
 
     useEffect(() => {
         getMOMsFeatures(site_code, data => {

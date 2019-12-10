@@ -7,10 +7,10 @@ import DialogContent from "@material-ui/core/DialogContent";
 import DialogContentText from "@material-ui/core/DialogContentText";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import { useSnackbar } from "notistack";
+import { bool } from "prop-types";
 import { getCurrentUser } from "../../sessions/auth";
 import ContactForm from "../contacts/ContactForm";
 import { getListOfMunicipalities } from "../ajax";
-// import { bool } from "prop-types";
 
 
 function prepareGeographicalList (data, category) {
