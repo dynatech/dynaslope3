@@ -101,6 +101,11 @@ def communication_background_task():
                 elif update_source == "blocked_numbers":
                     if inbox_index > -1:
                         del MESSAGES["inbox"][inbox_index]
+                elif update_source == "inbox_tag":
+                    if inbox_index > -1:
+                        msgs = get_latest_messages(mobile_id)
+                        msgs_schema = get_messages_schema_dict(msgs)
+                        inbox_messages_arr[inbox_index]["messages"] = msgs_schema
 
                 query_end = datetime.now()
 
@@ -119,9 +124,10 @@ def communication_background_task():
                 print(f"COMMS UPDATE PROCESS LOOP (WS) {len(updates)} updates",
                       (update_process_end - update_process_start).total_seconds())
                 print("")
-        except:
+        except Exception as err:
             print("")
             print("Thread Exception")
+            var_checker("Exception Detail", err, True)
             print("")
             pass
 

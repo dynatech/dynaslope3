@@ -85,7 +85,7 @@ def prepare_body(sender, recipients, subject, message, file_name=None, attachmen
 
 def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=None, eos_data=None):
     """
-    Util used to send email. Can be used for generic emails or for 
+    Util used to send email. Can be used for generic emails or for
     bulletins, eos. You just need to specify the right parameters
 
     Args:

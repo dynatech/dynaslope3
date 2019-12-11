@@ -66,7 +66,7 @@ def wrap_write_narratives_to_db():
             for site_id in site_list:
                 has_event_id = bool(json_data["event_id"])
                 if has_event_id:
-                    event_id = json_data["event_id"]            
+                    event_id = json_data["event_id"]
                 else:
                     event = find_narrative_event(timestamp, site_id)
                     if event:
@@ -89,20 +89,26 @@ def wrap_write_narratives_to_db():
         # INSERT OF NARRATIVE
         else:
             for site_id in site_list:
-                event = find_narrative_event(timestamp, site_id)
-                if event:
-                    narrative_id = write_narratives_to_db(
-                        site_id=site_id,
-                        timestamp=timestamp,
-                        narrative=narrative,
-                        type_id=type_id,
-                        user_id=user_id,
-                        event_id=event.event_id
-                    )
-                    print(get_process_status_log(f"New narrative with ID {narrative_id}", "end"))
+                has_event_id = bool(json_data["event_id"])
+                if has_event_id:
+                    event_id = json_data["event_id"]
                 else:
-                    print(get_process_status_log(f"No event found in specified timestamp on site {site_id} | {timestamp}", "fail"))
-                    raise Exception(get_process_status_log("NO EVENT IN SPECIFIED TIMESTAMP", "fail"))
+                    event = find_narrative_event(timestamp, site_id)
+                    event_id = event.event_id
+
+                # if event:
+                narrative_id = write_narratives_to_db(
+                    site_id=site_id,
+                    timestamp=timestamp,
+                    narrative=narrative,
+                    type_id=type_id,
+                    user_id=user_id,
+                    event_id=event_id
+                )
+                print(get_process_status_log(f"New narrative with ID {narrative_id}", "end"))
+                # else:
+                #     print(get_process_status_log(f"No event found in specified timestamp on site {site_id} | {timestamp}", "fail"))
+                #     raise Exception(get_process_status_log("NO EVENT IN SPECIFIED TIMESTAMP", "fail"))
 
         # If nothing goes wrong:
         DB.session.commit()

@@ -48,12 +48,23 @@ def wrap_send_email():
             bulletin_release_id=release_id
         )
 
-        return "Success"
+        response_msg = "Email sent!"
+        if release_id:
+            response_msg = "Bulletin email sent!"
+            status = True
 
     except KeyError:
-        return "Email NOT sent. Problem in input."
+        response_msg = "Bulletin email NOT sent... problem with keys."
+        status = False
     except Exception as err:
-        raise err
+        response_msg = "Bulletin email NOT sent... system/network issues."
+        status = False
+        var_checker("PROBLEM with Sending Bulletin", err, True)
+
+    return jsonify({
+        "message": response_msg,
+        "status": status
+    })
 
 
 @MAILBOX_BLUEPRINT.route("/mailbox/send_eos_email", methods=["POST"])

@@ -310,7 +310,7 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
 }
 
 function ChatThread (props) {
-    const { classes, message_list } = props;
+    const { classes, message_list, mobileDetails } = props;
     const [is_gdt_modal_open, set_is_gdt_modal_open] = useState(false);
     const default_tag_obj = {
         id: "", source: "", tags: []
@@ -334,9 +334,10 @@ function ChatThread (props) {
 
             <GeneralDataTagModal
                 isOpen={is_gdt_modal_open}
-                clickHandler={set_gdt_fn(false)}
+                closeHandler={set_gdt_fn(false)}
                 tagOption="outbox" // UPDATE THIS FOR GOD SAKE
                 tagObject={tag_object}
+                mobileDetails={mobileDetails}
             />
         </Fragment>
     );

@@ -95,7 +95,8 @@ function MailBoxContainer (props) {
         
         sendEmail(payload, ret => {
             console.log("AXIOS Response", ret);
-            if (ret === "Email sent!") {
+            const { status } = ret;
+            if (status) {
                 set_snack_bar_data({ text: "Email sent!", color: green[600] });
             } else {
                 set_snack_bar_data({ text: "Email sent!", color: red[600] });

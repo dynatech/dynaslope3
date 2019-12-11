@@ -945,6 +945,23 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
     return return_data
 
 
+def get_latest_monitoring_event_per_site(site_id):
+    """
+    Returns event details with corresponding site details. Receives an event_id from flask request.
+
+    Args: event_id
+
+    Note: From pubrelease.php getEvent
+    """
+    me = MonitoringEvents
+
+    event = me.query.options(DB.raiseload("*")) \
+        .order_by(DB.desc(MonitoringEvents.event_start)) \
+            .filter(MonitoringEvents.site_id == site_id).first()
+
+    return event
+
+
 def get_monitoring_events(event_id=None):
     """
     Returns event details with corresponding site details. Receives an event_id from flask request.
