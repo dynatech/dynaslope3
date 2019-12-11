@@ -401,6 +401,7 @@ function MonitoringTables (props) {
 
         getEWIMessage(release_id, data => {
             setEWIMessage(data);
+            setSiteCode(site_code);
             setReleaseId(release_id);
             toggleSendEWI();
         });

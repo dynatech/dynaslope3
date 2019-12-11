@@ -275,7 +275,7 @@ function ConversationWindow (props) {
                 { 
                     message_list.length === 0
                         ? <div style={{ padding: "0 16px" }}><ChatLoader style={{ height: "100%" }} /></div>
-                        : <ChatThread message_list={message_list}/>
+                        : <ChatThread message_list={message_list} mobileDetails={mobile_details} />
                 }
             </div>
 

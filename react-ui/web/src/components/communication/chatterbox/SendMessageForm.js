@@ -1,6 +1,7 @@
 import React, { useState, Fragment, useEffect } from "react";
+import { useSnackbar } from "notistack";
 import moment from "moment";
-import { IconButton, Grid } from "@material-ui/core";
+import { IconButton, Grid, Button } from "@material-ui/core";
 import { AddBox } from "@material-ui/icons";
 import MessageInputTextbox from "./MessageInputTextbox";
 import SelectMultipleWithSuggest from "../../reusables/SelectMultipleWithSuggest";
@@ -9,11 +10,17 @@ import { getEWISMSRecipients, writeEwiNarrativeToDB, getEwiSMSNarrative } from "
 import { sendMessageToDB } from "../../../websocket/communications_ws";
 import { getCurrentUser } from "../../sessions/auth";
 
+
 function SendMessageForm (props) {
     const {
         isMobile, textboxValue, disableQuickSelect,
-        releaseId, siteCode
+        releaseId, siteCode, modalStateHandler
     } = props;
+
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
+    const current_user = getCurrentUser();
+
     const [recipients, setRecipients] = useState([]);
     const [options, setOptions] = useState([]);
     const [quick_select, setQuickSelect] = useState(false);
@@ -23,6 +30,15 @@ function SendMessageForm (props) {
     const currentUser = getCurrentUser();
 
     const disable_select = typeof disableQuickSelect === "undefined" ? false : disableQuickSelect;
+
+    const snackBarActionFn = key => {
+        return (<Button
+            color="primary"
+            onClick={() => { closeSnackbar(key); }}
+        >
+            Dismiss
+        </Button>);
+    };
 
     useEffect(() => {
         getEWISMSRecipients(siteCode, ewi_recipients_list => {
@@ -34,7 +50,7 @@ function SendMessageForm (props) {
             ewi_recipients_list.forEach(item => {
                 if (item.mobile_numbers.length > 0) {
                     const { user_id, last_name, first_name, organizations, ewi_recipient } = item;
-                    const org_name = organizations[0].org_name.toUpperCase();
+                    const org_name = organizations[0].organization.name.toUpperCase();
 
                     if (!org_recipients.includes(org_name)) {
                         org_recipients.push(org_name);
@@ -83,12 +99,32 @@ function SendMessageForm (props) {
                     site_list,
                     event_id,
                     narrative: f_narrative,
-                    user_id: currentUser.user_id,
+                    user_id: current_user.user_id,
                     timestamp: moment().format("YYYY-MM-DD HH:mm:ss")
                 };
 
                 writeEwiNarrativeToDB (temp_nar, narrative_ret => {
                     // closeHandler();
+                    modalStateHandler();
+                    if (response === "Success") {
+                        enqueueSnackbar(
+                            "EWI SMS Sent!",
+                            {
+                                variant: "success",
+                                autoHideDuration: 7000,
+                                action: snackBarActionFn
+                            }
+                        );
+                    } else {
+                        enqueueSnackbar(
+                            "Error sending EWI SMS...",
+                            {
+                                variant: "error",
+                                autoHideDuration: 7000,
+                                action: snackBarActionFn
+                            }
+                        );
+                    }
                     console.log("CLOSE THE MODAL AND SHOW SNACKBAR");
                 });
             });

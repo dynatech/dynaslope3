@@ -35,6 +35,7 @@ export function getEWISMSRecipients (site_code, callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
+        console.log(response);
         console.log(data);
         callback(data);
     })
