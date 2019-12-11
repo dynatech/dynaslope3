@@ -140,7 +140,7 @@ function ContactForm (props) {
     const { 
         municipalities, provinces, regions,
         setContactForm, chosenContact, isEditMode,
-        setContactFormForEdit
+        setContactFormForEdit, handleClose
     } = props;
 
     let initial_mobiles = [{
@@ -219,6 +219,7 @@ function ContactForm (props) {
     const [restriction, setRestriction] = useState(initial_ewi_restriction);
 
     const closeButtonFn = () => {
+        handleClose();
         if (isEditMode) return setContactFormForEdit(false);
         return setContactForm(false);
     };
@@ -280,7 +281,6 @@ function ContactForm (props) {
                 landline_numbers
             }
         };
-        // console.log(final_data);
         saveContact(final_data, data => {
             const { status, message } = data;
             if (status === true) {

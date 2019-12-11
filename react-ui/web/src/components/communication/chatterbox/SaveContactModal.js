@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from "react";
 import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
-import DialogContentText from "@material-ui/core/DialogContentText";
 import DialogTitle from "@material-ui/core/DialogTitle";
-import { useSnackbar } from "notistack";
-import { getCurrentUser } from "../../sessions/auth";
 import ContactForm from "../contacts/ContactForm";
 import { getListOfMunicipalities } from "../ajax";
-// import { bool } from "prop-types";
 
 
 function prepareGeographicalList (data, category) {
@@ -55,7 +50,6 @@ function SaveContactModal (props) {
     };
     const initial_user_data = { mobile_numbers, user };
     const [reason, setReason] = useState("");
-    const [error_text, setErrorText] = useState(null);
     const [is_edit_mode, setEditMode] = useState(true);
     const [is_contact_form_open, setContactFormOpen] = useState(false);
 
@@ -102,6 +96,7 @@ function SaveContactModal (props) {
                     chosenContact={initial_user_data}
                     isEditMode={is_edit_mode}
                     setContactFormForEdit={setContactFormForEdit}
+                    handleClose={handleClose}
                 /> 
             </DialogContent>
             <DialogActions>
