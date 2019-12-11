@@ -11,7 +11,8 @@ import { SlideTransition, FadeTransition } from "../../reusables/TransitionList"
 function SendEwiSmsMessageModal (props) {
     const {
         fullScreen, modalStateHandler,
-        modalState, textboxValue, releaseId, siteCode
+        modalState, textboxValue, releaseId,
+        siteCode
     } = props;
     
     return (

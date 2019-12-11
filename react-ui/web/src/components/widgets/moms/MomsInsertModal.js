@@ -7,22 +7,56 @@ import {
 } from "@material-ui/core";
 
 import MomsForm from "./MomsForm";
-import { reducerFunction } from "./state_handlers";
-import MomsInitialState from "./MomsInitialState";
-import { insertMomsToDB } from "./ajax";
+import { reducerFunction, moms_entry } from "./state_handlers";
+// import MomsInitialState from "./MomsInitialState";
+import { insertMomsToDB, getMOMsFeatures } from "./ajax";
 import { getCurrentUser } from "../../sessions/auth";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
+
+import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 
 function MomsInsertModal (props) {
     const {
         fullScreen, isOpen,
-        closeHandler, width,
-        match: { params: { site_code } },
+        closeHandler, match,
         snackbarHandler
     } = props;
 
-    const initial_state = MomsInitialState(site_code);
-    const [ moms_entries, setMomsEntries ] = useReducer(reducerFunction, initial_state);
+    const [site, setSite] = useState("");
+    const [site_code, setSiteCode] = useState(null);
+    const [moms_entries, setMomsEntries] = useReducer(reducerFunction, []);
+
+    useEffect(() => {
+        if (typeof match !== "undefined") {
+            const { params: { site_code: sc } } = match;
+            setSiteCode(sc);
+        } 
+    }, [match]);
+    
+    useEffect(() => {
+        if (site !== "") setSiteCode(site.data.site_code);
+    }, [site]);
+    
+    const [moms_feature_types, setMomsFeatureTypes] = useState([]);
+    useEffect(() => {
+        if (site_code !== null) {
+            getMOMsFeatures(site_code, data => {
+                const feature_types = data.map(feat => {
+                    const { feature_id, feature_type, instances, alerts } = feat;
+                    const cap = capitalizeFirstLetter(feature_type);
+                    return { value: feature_id, label: cap, instances, alerts }; 
+                });
+
+                setMomsFeatureTypes({ ...moms_feature_types, feature_type: feature_types });
+
+                const moms_entry_copy = moms_entry;
+                moms_entry_copy.options.feature_type = feature_types;
+
+                const is = [moms_entry_copy];
+                setMomsEntries({ action: "OVERWRITE", value: is });
+            });
+        }
+    }, [site_code]);
 
     const handleSubmit = () => {
         console.log("moms_entries", moms_entries);
@@ -75,7 +109,6 @@ function MomsInsertModal (props) {
                 fullScreen={fullScreen}
                 open={isOpen}
                 maxWidth="sm"
-                // maxWidth={width}
                 aria-labelledby="form-dialog-title"
             >
                 <DialogTitle id="form-dialog-title">Insert Manifestation of Movement Form</DialogTitle>
@@ -87,7 +120,9 @@ function MomsInsertModal (props) {
                     <MomsForm
                         momsEntries={moms_entries}
                         setMomsEntries={setMomsEntries}
-                        site_code={site_code}
+                        siteCode={site_code}
+                        site={site}
+                        setSite={setSite}
                     />
                 </DialogContent>
                 <DialogActions>

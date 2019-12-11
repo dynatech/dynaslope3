@@ -10,6 +10,22 @@ from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log)
 
 
+def get_narrative_text(narrative_type, details):
+    """
+    """
+    narrative_text = ""
+    if narrative_type == "sms_tagging":
+        if details["tag"] == "#GroundMeas":
+            print()
+            narrative_text = f"Received surficial ground data from {details['additional_data']}"
+        elif details["tag"] == "#GroundObs":
+            narrative_text = f"Received onsite ground observation data from {details['additional_data']}"
+        elif details["tag"] == "#EwiResponse":
+            narrative_text = f"EWI-SMS acknowledged by {details['additional_data']}"
+
+    return narrative_text
+
+
 def delete_narratives_from_db(narrative_id):
     """
     """
@@ -17,7 +33,7 @@ def delete_narratives_from_db(narrative_id):
     try:
         narrative_for_delete = Narratives.query.filter(Narratives.id == narrative_id).first()
         DB.session.delete(narrative_for_delete)
-        DB.session.commit()
+        # DB.session.commit()
         print(get_process_status_log("delete_narratives_from_db", "end"))
     except:
         print(get_process_status_log("delete_narratives_from_db", "fail"))
@@ -72,8 +88,8 @@ def get_narratives(offset=None, limit=None, start=None, end=None, site_ids=None,
 
         narratives = base.order_by(
             DB.desc(nar.timestamp)).limit(limit).offset(offset).all()
-        
-        DB.session.commit()
+
+        # DB.session.commit()
 
         if include_count:
             count = get_narrative_count(base)

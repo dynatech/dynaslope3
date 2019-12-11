@@ -7,8 +7,9 @@ import {
     Grid, TextField
 } from "@material-ui/core";
 import ChipInput from "material-ui-chip-input";
-
 import moment from "moment";
+
+import { useSnackbar } from "notistack";
 import BulletinTemplate from "./BulletinTemplate";
 import { downloadBulletin, getBulletinEmailDetails, write_bulletin_narrative } from "./ajax";
 import { sendBulletinEmail } from "../../communication/mailbox/ajax";
@@ -37,13 +38,24 @@ function BulletinModal (props) {
     const [file_name, setFileName] = useState("");
     const [sent_status, setSentStatus] = useState(false);
     const [narrative_details, setNarrativeDetails] = useState({});
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
+    const snackBarActionFn = key => {
+        return (<Button
+            color="primary"
+            onClick={() => { closeSnackbar(key); }}
+        >
+            Dismiss
+        </Button>);
+    };
 
     useEffect(() => {
         if (typeof release_id !== "undefined") {
             getBulletinEmailDetails(release_id, ret => {
                 const {
-                    subject, recipients, mail_body, file_name: filename, narrative_details: tmp_nar
+                    subject, recipients, mail_body,
+                    file_name: filename,
+                    narrative_details: tmp_nar
                 } = ret;
 
                 setNarrativeDetails(tmp_nar);
@@ -76,34 +88,74 @@ function BulletinModal (props) {
             release_id,
             file_name 
         };
-
+        const loading_snackbar = enqueueSnackbar(
+            "Sending bulletin...",
+            {
+                variant: "warning",
+                // autoHideDuration: 7000,
+                persist: true
+            }
+        );
+        closeHandler();
         sendBulletinEmail(input, ret => {
+            const { status, message } = ret;
+            if (status) {
+                closeSnackbar(loading_snackbar);
+                enqueueSnackbar(
+                    message,
+                    {
+                        variant: "success",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            } else {
+                enqueueSnackbar(
+                    message,
+                    {
+                        variant: "error",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            }
+
             if (typeof narrative_details === "object") {
                 const temp_nar = {
                     ...narrative_details,
                     timestamp: moment().format("YYYY-MM-DD HH:mm:ss")
                 };
                 write_bulletin_narrative(temp_nar, narrative_ret => {
-                    closeHandler();
+                    // console.log("narrative_ret", narrative_ret);
+                    console.log("NARRATIVE WRITTEN!");
                 });
             } else console.log("NO NARRATIVE WRITTEN: TEST ONLY");
 
+        }, () => {
+            enqueueSnackbar(
+                "Send bulletin failed. Ask the devs.",
+                {
+                    variant: "error",
+                    autoHideDuration: 7000,
+                    action: snackBarActionFn
+                }
+            );
         });
     };
 
-    const mailContentHandler = value => {
-        setMailContent(value);
+    const mailContentHandler = event => {
+        setMailContent(event.target.value);
     };
 
-    const handleAddChip = (chip) => {
+    const handleAddChip = chip => {
         const temp = mail_recipients;
         temp.push(chip);
-        setMailRecipients(temp);
+        setMailRecipients([...temp]);
     };
 
     const handleDeleteChip = (chip, index) => {
-        mail_recipients.splice( mail_recipients.indexOf(chip), 1 );
-        setMailRecipients(mail_recipients);
+        mail_recipients.splice(mail_recipients.indexOf(chip), 1);
+        setMailRecipients([...mail_recipients]);
     };
 
     let f_site_code = "";
@@ -144,7 +196,7 @@ function BulletinModal (props) {
                         <ChipInput 
                             label="To"
                             value={mail_recipients}
-                            onAdd={(chip) => handleAddChip(chip)}
+                            onAdd={chip => handleAddChip(chip)}
                             onDelete={(chip, index) => handleDeleteChip(chip, index)}
                             fullWidth
                             required

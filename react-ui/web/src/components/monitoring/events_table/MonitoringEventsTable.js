@@ -9,12 +9,9 @@ import { Route, Switch, Link } from "react-router-dom";
 
 import CustomSearchRender from "./CustomSearchRender";
 import EventTimeline from "./EventTimeline";
-import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
-import { sites } from "../../../store";
 import { getMonitoringEvents, getSites } from "../ajax";
-import { prepareSitesOption } from "../../reusables/DynaslopeSiteSelectInputForm";
 
 const styles = theme => ({
     eventTable: {

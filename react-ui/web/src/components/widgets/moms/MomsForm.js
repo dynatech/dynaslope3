@@ -1,9 +1,7 @@
-import React, { Fragment, useState, useEffect } from "react";
-import { makeStyles } from "@material-ui/core/styles";
+import React, { Fragment, useState } from "react";
 import {
     Grid, TextField, Button,
-    Divider, IconButton, Typography,
-    Fab
+    Divider, IconButton, Typography
 } from "@material-ui/core";
 import { DeleteForever as DeleteIcon } from "@material-ui/icons";
 import Tooltip from "@material-ui/core/Tooltip";
@@ -14,20 +12,9 @@ import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pi
 // Widgets
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import SelectMultipleWithSuggest from "../../reusables/SelectMultipleWithSuggest";
-
-// const useStyles = makeStyles(theme => ({
-//     fab: {
-//         margin: theme.spacing(2),
-//     },
-//     absolute: {
-//         position: "absolute",
-//         bottom: theme.spacing(2),
-//         right: theme.spacing(3),
-//     },
-// }));
+import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 
 function MomsInputFields (props) {
-    // const classes = useStyles();
     const {
         momsEntry: moms_entry,
         updateField: update_field,
@@ -36,8 +23,6 @@ function MomsInputFields (props) {
     } = props;
 
     const { moms, options } = moms_entry;
-
-    console.log(is_adding_new_instance);
 
     return (
         <Grid container spacing={2}>
@@ -189,10 +174,13 @@ function MomsInputFields (props) {
 function MomsForm (props) {
     const {
         momsEntries, setMomsEntries,
-        site_code
+        siteCode, site, setSite
     } = props;
 
+    console.log("SITE CODE SA MOMS_FORM", siteCode);
+
     const [isAddingNewInstance, setIsAddingNewInstance] = useState(false);
+    // const [site, setSite] = useState("");
 
     const addInstanceFn = () => setMomsEntries({ action: "ADD_INSTANCE" });
     const updateField = key => attribute => event => {
@@ -220,68 +208,82 @@ function MomsForm (props) {
     const deleteInstanceFn = key => () => setMomsEntries({ action: "DELETE_INSTANCE", key });
 
     return (
-    // <DynaslopeSiteSelectInputForm />
         <Fragment>
-            <MuiPickersUtilsProvider utils={MomentUtils}>
-                {
-                    momsEntries.map((entry, key) => {
-                        const is_first = key === 0;
-                        const is_last = momsEntries.length === key + 1;
+            {
+                siteCode === null && (
+                    <DynaslopeSiteSelectInputForm
+                        value={site}
+                        changeHandler={value => setSite(value)}
+                    />
+                )
+            }
 
-                        return (
-                            <Fragment key={key}>
-                                <div style={{ 
-                                    display: "flex", 
-                                    justifyContent: "space-between", 
-                                    alignItems: "center",
-                                    paddingBottom: is_first ? 12 : 0
-                                }}>
-                                    <Typography variant="subtitle2">Entry Number {key + 1}</Typography>
+            {
+                (site !== null || siteCode !== null) && (
+                    <Fragment>
+                        <MuiPickersUtilsProvider utils={MomentUtils}>
+                            {
+                                momsEntries.map((entry, key) => {
+                                    const is_first = key === 0;
+                                    const is_last = momsEntries.length === key + 1;
 
-                                    {
-                                        !is_first && (
-                                            <IconButton 
-                                                aria-label="delete" 
-                                                color="primary"
-                                                onClick={deleteInstanceFn(key)}
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        )
-                                    }
-                                </div>
+                                    return (
+                                        <Fragment key={key}>
+                                            <div style={{ 
+                                                display: "flex", 
+                                                justifyContent: "space-between", 
+                                                alignItems: "center",
+                                                paddingBottom: is_first ? 12 : 0
+                                            }}>
+                                                <Typography variant="subtitle2">Entry Number {key + 1}</Typography>
 
-                                <MomsInputFields 
-                                    momsEntry={entry}
-                                    updateField={updateField(key)}
-                                    isAddingNewInstance={isAddingNewInstance}
-                                    site_code={site_code}
-                                />
+                                                {
+                                                    !is_first && (
+                                                        <IconButton 
+                                                            aria-label="delete" 
+                                                            color="primary"
+                                                            onClick={deleteInstanceFn(key)}
+                                                        >
+                                                            <DeleteIcon />
+                                                        </IconButton>
+                                                    )
+                                                }
+                                            </div>
 
-                                {
-                                    !is_last && (
-                                        <Divider
-                                            style={{ margin: "24px 0 12px" }}
-                                            variant="middle"
-                                        />
-                                    )
-                                }
-                            </Fragment>
-                        );
-                    })
-                }
-            </MuiPickersUtilsProvider>
+                                            <MomsInputFields 
+                                                momsEntry={entry}
+                                                updateField={updateField(key)}
+                                                isAddingNewInstance={isAddingNewInstance}
+                                                site_code={siteCode}
+                                            />
 
-            <div style={{ margin: "16px 0" }}>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    onClick={addInstanceFn}
-                >
-                    Add MOMs Observation Report
-                </Button>
-            </div>
+                                            {
+                                                !is_last && (
+                                                    <Divider
+                                                        style={{ margin: "24px 0 12px" }}
+                                                        variant="middle"
+                                                    />
+                                                )
+                                            }
+                                        </Fragment>
+                                    );
+                                })
+                            }
+                        </MuiPickersUtilsProvider>
+
+                        <div style={{ margin: "16px 0" }}>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                size="small"
+                                onClick={addInstanceFn}
+                            >
+                                Add MOMs Observation
+                            </Button>
+                        </div>
+                    </Fragment>
+                )
+            }
         </Fragment>
     );
 }

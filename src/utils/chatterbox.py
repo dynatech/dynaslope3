@@ -226,7 +226,7 @@ def get_message_tag_options(source):
 def get_sms_user_updates():
     """
     """
-
+    # TODO: Group updates by mobile_id and source
     DB.session.flush()
     results = DB.session.query(SmsUserUpdates).order_by(
         SmsUserUpdates.update_id).all()

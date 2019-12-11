@@ -216,7 +216,13 @@ def get_system_time():
 
 def get_process_status_log(key, status):
     """
-    Just a function used to
+    Just a function used to display what is happening in the system
+    at a certain point in time.
+
+    Args:
+        key (String) - tells which process is happening
+        status (String) - which part of the process. [request, start, success, None]
+                        None means failed.
     """
     sys_time = get_system_time()
     status_log = f"[{sys_time}] | "
