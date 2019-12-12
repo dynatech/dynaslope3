@@ -406,6 +406,7 @@ function Container (props) {
                 chosenContact={chosen_contact}
                 isEditMode={is_edit_mode}
                 setContactFormForEdit={setContactFormForEdit}
+                isFromChatterbox={false}
             /> 
         );
 
