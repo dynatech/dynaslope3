@@ -1,30 +1,15 @@
-import React, { useEffect, useState, Fragment } from "react";
+import React, { useState, Fragment } from "react";
 import ReactDOM from "react-dom";
 // import moment from "moment";
 import {
     Radio, RadioGroup, Dialog, TextField, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withStyles, withMobileDialog,
-    FormControlLabel, FormControl,
-    FormLabel
+    Button, withMobileDialog,
+    FormControlLabel, FormControl
 } from "@material-ui/core";
-// import Typography from "@material-ui/core/Typography";
-import { compose } from "recompose";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
 
-const styles = theme => ({
-    inputGridContainer: {
-        marginTop: 8,
-        marginBottom: 8
-    },
-    selectInput: {
-        width: "auto",
-        [theme.breakpoints.down("xs")]: {
-            width: "250px"
-        }
-    }
-});
-
+// eslint-disable-next-line max-params
 function validate_trigger (site_code, trigger_id, trigger_ts, alert_status, remarks, user_id) {
     const data = {
         site_code,
@@ -37,9 +22,13 @@ function validate_trigger (site_code, trigger_id, trigger_ts, alert_status, rema
     sendWSMessage("validate_trigger", data);
 }
 
-const ValidationModal = ({ isShowing, hide, classes, data }) => {
+const ValidationModal = props => {
+    const {
+        isShowing, hide, data,
+        isValidating
+    } = props;
     const { site, trigger_id, ts_updated } = data;
-    const [triggerValidity, setTriggerValidity] = useState(1);
+    const [triggerValidity, setTriggerValidity] = useState("");
     const [remarks, setRemarks] = useState("");
     const validation_data = { site, trigger_id, ts_updated, triggerValidity, remarks, user_id: 1 };
 
@@ -71,16 +60,21 @@ const ValidationModal = ({ isShowing, hide, classes, data }) => {
                     <DialogContentText>
                         Select whether trigger is valid or invalid. Also, provide remarks.
                     </DialogContentText>
-                    <FormControl component="fieldset" className={classes.formControl}>
-                        <FormLabel component="legend">Is trigger valid?</FormLabel>
+                    <FormControl component="fieldset" style={{ display: "flex" }}>
                         <RadioGroup
                             aria-label="trigger_validity"
                             name="trig_validity_1"
-                            className={classes.group}
+                            row
+                            style={{ justifyContent: "space-around" }}
                             value={triggerValidity}
                             onChange={handleChange}
                         >
                             <FormControlLabel value={1} control={<Radio />} label="Valid" />
+                            {
+                                !isValidating && (
+                                    <FormControlLabel value={0} control={<Radio />} label="Validating" />
+                                )
+                            }
                             <FormControlLabel value={-1} control={<Radio />} label="Invalid" />
                         </RadioGroup>
                     </FormControl>
@@ -108,4 +102,4 @@ const ValidationModal = ({ isShowing, hide, classes, data }) => {
 };
 
 
-export default compose(withStyles(styles), withMobileDialog())(ValidationModal);
+export default withMobileDialog()(ValidationModal);

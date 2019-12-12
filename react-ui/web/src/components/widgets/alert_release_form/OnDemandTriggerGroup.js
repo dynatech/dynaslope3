@@ -30,7 +30,6 @@ const styles = theme => ({
     }
 });
 
-
 function OnDemandTriggerGroup (props) {
     const {
         classes, triggersState, setTriggersState
@@ -39,12 +38,19 @@ function OnDemandTriggerGroup (props) {
     const { on_demand } = triggersState;
     const { switchState, triggers } = on_demand;
 
-    let timestamp, tech_info, reason, reporterId, contact_person;
+    let od_trig = {
+        timestamp: null,
+        tech_info: "",
+        reason: "",
+        reporterId: ""
+    };
     if (triggers.length !== 0) {
-        const { timestamp, tech_info, reason, reporterId } = triggers[0]; // There is always only ONE on demand trigger
-        if (reporterId !== null) contact_person = community_contacts.find(x => x.user_id === reporterId).name;
-        console.log(contact_person);
+        od_trig = { ...triggers[0] };// There is always only ONE on demand trigger
+        // if (reporterId !== null) contact_person = community_contacts.find(x => x.user_id === reporterId).name;
+        // console.log(contact_person);
     }
+
+    const { timestamp, tech_info, reason, reporterId } = od_trig;
 
     return (
         <Fragment>

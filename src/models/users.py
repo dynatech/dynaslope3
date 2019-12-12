@@ -47,20 +47,18 @@ class UsersRelationship(Users):
     __bind_key__ = "commons_db"
     __table_args__ = {"schema": "commons_db"}
 
-    # mobile_numbers = DB.relationship(
-    #     "UserMobile", backref=DB.backref("user", lazy="joined", innerjoin=True), order_by="UserMobile.priority", lazy="subquery")
-    # mobile_numbers = DB.relationship("UserMobiles", backref=DB.backref("user", lazy="joined", innerjoin=True),
-    #                                  order_by="UserMobile.priority", lazy="subquery")
-
     organizations = DB.relationship(
-        UserOrganizations, backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
+        UserOrganizations, backref=DB.backref(
+            "user", lazy="joined", innerjoin=True),
+        lazy="subquery")
 
     ewi_restriction = DB.relationship(
         "UserEwiRestrictions", backref=DB.backref("user", lazy="joined", innerjoin=True),
         lazy="joined")
 
     teams = DB.relationship(
-        "UserTeamMembers", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
+        "UserTeamMembers", backref=DB.backref("user", lazy="joined", innerjoin=True),
+        lazy="subquery")
 
     landline_numbers = DB.relationship(
         "UserLandlines", backref=DB.backref("user", lazy="joined", innerjoin=True),
@@ -70,8 +68,7 @@ class UsersRelationship(Users):
         "UserEmails", backref=DB.backref("user", lazy="joined", innerjoin=True),
         lazy="subquery")
 
-    # user_accounts = DB.relationship(
-    #     "UserAccounts", backref=DB.backref("user", lazy="joined", innerjoin=True), lazy="subquery")
+    # user_account relationship declared on UserAccounts
 
     def __repr__(self):
         return f"Type relationship"
@@ -215,7 +212,7 @@ class UserAccounts(DB.Model):
     salt = DB.Column(DB.String(200))
 
     user = DB.relationship(Users, backref=DB.backref(
-        "account", lazy="raise", innerjoin=True), lazy="joined", innerjoin=True, uselist=False)
+        "account", lazy="raise", innerjoin=True), lazy="joined", uselist=False)
 
     def __repr__(self):
         return f"{self.email}"
@@ -277,6 +274,7 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users Relationships
     """
+
     mobile_numbers = fields.Nested(
         "UserMobilesSchema", many=True, exclude=("user",))
 

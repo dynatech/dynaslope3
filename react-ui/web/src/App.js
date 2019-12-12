@@ -16,6 +16,8 @@ import { access_refresh_interval } from "./config";
 import BulletinTemplate from "./components/widgets/bulletin/BulletinTemplate";
 import ChartRenderingContainer from "./components/chart_rendering/Container";
 
+import { CTProvider } from "./components/monitoring/dashboard/CTContext";
+
 const styles = theme => ({
     app: {
         height: "100%",
@@ -71,6 +73,8 @@ function App (props) {
     return (
         <BrowserRouter>
             <Switch>
+                <Route path="/bulletin/:release_id" component={BulletinTemplate} />
+                <Route path="/chart_rendering/:site_code/:ts_end/:chart_type/:tsm_sensor?" component={ChartRenderingContainer} />
                 <Route exact path="/login" render={r_props => {
                     return (
                     // eslint-disable-next-line no-nested-ternary
@@ -85,8 +89,6 @@ function App (props) {
                         )
                     );
                 }} />
-                <Route path="/bulletin/:release_id" component={BulletinTemplate} />
-                <Route path="/chart_rendering/:site_code/:ts_end/:chart_type/:tsm_sensor?" component={ChartRenderingContainer} />
                 <Route path="/" render={r_props => {
                     return (
                     // eslint-disable-next-line no-nested-ternary
@@ -94,7 +96,7 @@ function App (props) {
                             <div>Loading...</div>
                         ) : (
                             is_logged ? (
-                                <Fragment>
+                                <CTProvider>
                                     <Header
                                         {...r_props} 
                                         drawerHandler={toggleDrawer}
@@ -112,7 +114,7 @@ function App (props) {
                                     </div>
                             
                                     <Footer />
-                                </Fragment>
+                                </CTProvider>
                             ) : (
                                 <Redirect to="/login" />
                             )

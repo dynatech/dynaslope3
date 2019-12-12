@@ -40,7 +40,7 @@ function RainfallRadioGroup (props) {
                     radioValue={triggers_value.alert_level}
                     choices={[
                         { value: "1", label: "Release new trigger" },
-                        { value: "0", label: "No data (R0)" },
+                        { value: "-1", label: "No data (R0)" },
                         { value: "-2", label: "Intermediate threshold (rx)" }
                     ]}
                     changeHandler={handleRadioChange(setTriggersState, "rainfall")}
@@ -48,7 +48,7 @@ function RainfallRadioGroup (props) {
             </Grid>
 
             {
-                triggers_value.alert_level === "1" ? (
+                triggers_value.alert_level === "1" && switchState ? (
                     <TriggerTimestampAndTechInfoCombo
                         labelFor="R1"
                         trigger_timestamp={triggers_value.timestamp}

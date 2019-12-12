@@ -7,14 +7,12 @@ import { withStyles, createMuiTheme, MuiThemeProvider } from "@material-ui/core/
 import { compose } from "recompose";
 import { Route, Switch, Link } from "react-router-dom";
 
+import MonitoringEventTimeline from "./EventTimeline";
 import CustomSearchRender from "./CustomSearchRender";
-import EventTimeline from "./EventTimeline";
 import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
-import { sites } from "../../../store";
 import { getMonitoringEvents, getSites } from "../ajax";
-import { prepareSitesOption } from "../../reusables/DynaslopeSiteSelectInputForm";
 
 const filter_sites_option = [];
 
@@ -75,7 +73,7 @@ const getMuiTheme = createMuiTheme({
 function MonitoringEventsTable (props) {
     const {
         classes, width, location,
-        match: { path, url }
+        match: { url }
     } = props;
 
     const [data, setData] = useState([["Loading Data..."]]);
@@ -91,9 +89,18 @@ function MonitoringEventsTable (props) {
     const [search_str, setSearchString] = useState("");
     const [on_search_open, setOnSearchOpen] = useState(false);
 
-    // useEffect(() => {
-
-    // }, []);
+    useEffect(() => {
+        getSites([], ret1 => {
+            const temp = {};
+            ret1.forEach(site => {
+                const address = prepareSiteAddress(site, true, "start");
+                const site_code = site.site_code.toUpperCase();
+                filter_sites_option.push(site_code);
+                temp[site_code] = { site_id: site.site_id, address };
+            });
+            setSitesDict(temp);
+        });
+    }, []);
 
     useEffect(() => {
         // setTotalEventCount(setCount);
@@ -106,27 +113,18 @@ function MonitoringEventsTable (props) {
             include_count: true,
             limit, offset, filters, search_str
         };
-        getSites([], ret1 => {
-            const temp = {};
-            ret1.forEach(site => {
-                const address = prepareSiteAddress(site, true, "start");
-                const site_code = site.site_code.toUpperCase();
-                filter_sites_option.push(site_code);
-                temp[site_code] = { site_id: site.site_id, address };
-            });
-            setSitesDict(temp);
-
-            getMonitoringEvents(input, ret2 => {            
-                const { events, count: total } = ret2;
-                const final_data = prepareEventsArray(url, events, temp);
-                setData(final_data);
-                setCount(total);
-                setIsLoading(false);
-            });     
+        
+        getMonitoringEvents(input, ret2 => {            
+            const { events, count: total } = ret2;
+            const final_data = prepareEventsArray(url, events, sites_dict);
+            setData(final_data);
+            setCount(total);
+            setIsLoading(false);
         });
-   
-
-    }, [page, rowsPerPage, filters, search_str]);
+    }, [
+        page, rowsPerPage, filters,
+        search_str, url, sites_dict
+    ]);
 
     const options = {
         textLabels: {
@@ -171,7 +169,6 @@ function MonitoringEventsTable (props) {
         },
         onFilterChange: (changedColumn, ret_filters) => {
             const chosen_filters = [];
-            console.log("ret_filters", ret_filters);
             let is_empty = true;
             ret_filters.forEach((row, index) => {
 
@@ -185,7 +182,6 @@ function MonitoringEventsTable (props) {
                         const site_names = [];
 
                         row.forEach(site => {
-                            console.log("site", site);
                             site_ids.push(sites_dict[site].site_id);
                             site_names.push(site);
                         });
@@ -346,7 +342,7 @@ function MonitoringEventsTable (props) {
 
                     <Route path={`${url}/:event_id`} render={
                         props => (
-                            <EventTimeline
+                            <MonitoringEventTimeline
                                 {...props}
                                 width={width}
                             />

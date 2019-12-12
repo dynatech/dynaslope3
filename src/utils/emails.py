@@ -14,7 +14,6 @@ from src.utils.chart_rendering import render_charts
 from src.utils.extra import var_checker
 
 
-
 SMTP_SERVER = "smtp.gmail.com"
 PORT = 587
 SENDER_EMAIL = "dynaslopeswat@gmail.com"
@@ -86,7 +85,7 @@ def prepare_body(sender, recipients, subject, message, file_name=None, attachmen
 
 def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=None, eos_data=None):
     """
-    Util used to send email. Can be used for generic emails or for 
+    Util used to send email. Can be used for generic emails or for
     bulletins, eos. You just need to specify the right parameters
 
     Args:
@@ -100,15 +99,18 @@ def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=
 
     attachments = []
     if bulletin_release_id:
-        attachments.append(render_monitoring_bulletin(release_id=bulletin_release_id))
+        attachments.append(render_monitoring_bulletin(
+            release_id=bulletin_release_id))
     elif eos_data:
         user_id = eos_data["user_id"]
         site_code = eos_data["site_code"]
         charts = eos_data["charts"]
-        render_charts_response = render_charts(user_id, site_code, charts, file_name)
+        render_charts_response = render_charts(
+            user_id, site_code, charts, file_name)
         attachments.append(render_charts_response["file_path"])
 
-    body = prepare_body(SENDER_EMAIL, recipients, subject, message, file_name, attachments)
+    body = prepare_body(SENDER_EMAIL, recipients, subject,
+                        message, file_name, attachments)
     text = body.as_string()
 
     try:

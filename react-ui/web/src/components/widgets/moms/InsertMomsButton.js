@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@material-ui/core";
+import { Landscape } from "@material-ui/icons";
 
 export default function InsertMomsButton (props) {
     const { clickHandler } = props;
@@ -10,6 +11,7 @@ export default function InsertMomsButton (props) {
             color="primary"
             size="small"
             onClick={clickHandler}
+            startIcon={<Landscape />}
         >
             Insert MOMs
         </Button>

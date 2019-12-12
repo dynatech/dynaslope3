@@ -95,14 +95,15 @@ function prepareSiteMapData (sites, url, setSiteInformation) {
 
 function createSiteCards (sites, url, setSiteInformation) {
     return sites.map((site, index) => {
-        const { 
-            site_id, site_code, purok,
-            sitio, barangay, municipality,
-            province, region, active,
-            psgc, households, season            
-        } = site;
+        // const { 
+        //     site_id, site_code, purok,
+        //     sitio, barangay, municipality,
+        //     province, region, active,
+        //     psgc, households, season            
+        // } = site;
+        const { site_code } = site;
 
-        const address = prepareSiteAddress(site, true, "start");
+        // const address = prepareSiteAddress(site, true, "start");
 
         return (
             <Grid item xs={4} sm={3} lg={2} key={`card_grid_${index + 1}`}>
@@ -114,14 +115,12 @@ function createSiteCards (sites, url, setSiteInformation) {
                                 {/* <Typography className="card-title" color="textSecondary" gutterBottom>
                                     {timestamp}
                                 </Typography> */}
-                                <div style={{ display: "flex", alignItems: "baseline", alignContent: "flex-end", justifyContent: "space-between" }}>
-                                    <Typography variant="h5" component="h2">
-                                        {site_code.toUpperCase()}
-                                    </Typography>
-                                    {/* <Typography className="card-internal-alert" color="textSecondary">
+                                <Typography variant="h5" component="h2" align="center">
+                                    {site_code.toUpperCase()}
+                                </Typography>
+                                {/* <Typography className="card-internal-alert" color="textSecondary">
                                         {internal_alert}
                                     </Typography> */}
-                                </div>
                             </CardContent>
                         </CardActionArea>
                     </Card>

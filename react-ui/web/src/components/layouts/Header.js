@@ -11,8 +11,6 @@ import {
     Notifications as NotificationsIcon
 } from "@material-ui/icons";
 import { withStyles } from "@material-ui/core/styles";
-import DynaLogo from "../../images/dynaslope-logo.png";
-import DostPhivolcsLogo from "../../images/dost-phivolcs-logo.png";
 import PhivolcsDynaslopeLogo from "../../images/phivolcs-dynaslope-logo.png";
 import GeneralStyles from "../../GeneralStyles";
 import { logout, getCurrentUser } from "../sessions/auth";
