@@ -165,7 +165,7 @@ function AlertReleaseFormModal (props) {
     const {
         fullScreen, isOpen,
         closeHandler, chosenCandidateAlert,
-        setChosenCandidateAlert
+        setChosenCandidateAlert, setIsOpenRoutineModal
     } = props;
     const classes = useStyles();
     const { user_id: reporter_id_mt } = getCurrentUser();
@@ -542,6 +542,9 @@ function AlertReleaseFormModal (props) {
                                         </Button>
                                         <Button variant="contained" color="primary" onClick={handleNext} disabled={isNextBtnDisabled}>
                                             {activeStep === steps.length - 1 ? "Submit" : "Next"}
+                                        </Button>
+                                        <Button onClick={setIsOpenRoutineModal} className={classes.backButton}>
+                                            Release Routine
                                         </Button>
                                     </div>
                                 </div>

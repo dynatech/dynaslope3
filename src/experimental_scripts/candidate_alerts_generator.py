@@ -21,6 +21,7 @@ import os
 import re
 from datetime import date, datetime, time, timedelta
 
+from connection import create_app
 from config import APP_CONFIG
 from src.utils.extra import (
     retrieve_data_from_memcache, var_checker,
@@ -165,14 +166,19 @@ def extract_non_triggering_moms(unreleased_moms_list):
 
     non_triggering_moms = []
     try:
-        cta_moms = next(iter(
-            filter(lambda x: x["type"] == "moms", unreleased_moms_list)), None)
-        moms_list = cta_moms["moms_list"]
+        # cta_moms = next(iter(
+        #     filter(lambda x: x["type"] == "moms", unreleased_moms_list)), None)
+        # moms_list = cta_moms["moms_list"]
+        # non_triggering_moms = list(
+        #     filter(lambda x: x["op_trigger"] == 0, moms_list))
         non_triggering_moms = list(
-            filter(lambda x: x["op_trigger"] == 0, moms_list))
-    except KeyError:
+            filter(lambda x: x["op_trigger"] == 0, unreleased_moms_list))
+
+    except KeyError as err:
+        print(err)
         pass
-    except TypeError:
+    except TypeError as err:
+        print(err)
         # No moms in this site
         # print("No moms in this site")
         pass
@@ -473,6 +479,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
     merged_db_alerts_list_copy = latest + overdue
 
+    current_routine_data_ts = None
     if without_alerts:
         for site_wo_alert in without_alerts:
             general_status = "routine"
@@ -523,6 +530,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     # Check if site data entry on generated alerts is already
                     # for release time
                     if ts.time() == routine_extended_release_time:
+                        current_routine_data_ts = site_wo_alert["ts"]
                         non_triggering_moms = extract_non_triggering_moms(
                             site_wo_alert["unreleased_moms_list"])
 
@@ -542,10 +550,14 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
         nd_routine_list.extend(nd_list)
 
     if routine_sites_list:
-        has_routine_data = a0_routine_list != [] and nd_routine_list != []
+        has_routine_data = a0_routine_list or nd_routine_list
 
         if has_routine_data:
-            routine_data_ts = a0_routine_list[0]["ts"]
+            # try:
+            #     routine_data_ts = a0_routine_list[0]["ts"]
+            # except IndexError:
+            #     routine_data_ts = nd_routine_list[0]["ts"]
+            routine_data_ts = current_routine_data_ts
 
             public_alert_symbol = retrieve_data_from_memcache(
                 "public_alert_symbols", {"alert_level": 0}, retrieve_attr="alert_symbol")
@@ -553,7 +565,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             routine_candidates = {
                 "public_alert_level": 0,
                 "public_alert_symbol": public_alert_symbol,
-                "data_ts": str(routine_data_ts),
+                "data_ts": routine_data_ts,
+                # "data_ts": str(routine_data_ts),
                 "general_status": "routine",
                 "routine_details": [
                     {
@@ -657,4 +670,7 @@ def main(ts=None, generated_alerts_list=None, db_alerts_dict=None):
 
 
 if __name__ == "__main__":
+    config_name = os.getenv("FLASK_CONFIG")
+    app = create_app(config_name, skip_memcache=True, skip_websocket=True)
+
     main()
