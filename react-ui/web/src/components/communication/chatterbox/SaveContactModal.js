@@ -48,6 +48,7 @@ function SaveContactModal (props) {
         organizations: []
     };
     const initial_user_data = { mobile_numbers, user };
+    const is_from_chatterbox = true;
     const [reason, setReason] = useState("");
     const [is_edit_mode, setEditMode] = useState(true);
     const [is_contact_form_open, setContactFormOpen] = useState(false);
@@ -96,6 +97,7 @@ function SaveContactModal (props) {
                     isEditMode={is_edit_mode}
                     setContactFormForEdit={setContactFormForEdit}
                     handleClose={handleClose}
+                    isFromChatterbox={is_from_chatterbox}
                 /> 
             </DialogContent>
             <DialogActions>
