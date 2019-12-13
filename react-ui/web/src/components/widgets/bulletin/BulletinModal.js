@@ -13,6 +13,7 @@ import { useSnackbar } from "notistack";
 import BulletinTemplate from "./BulletinTemplate";
 import { downloadBulletin, getBulletinEmailDetails, write_bulletin_narrative } from "./ajax";
 import { sendBulletinEmail } from "../../communication/mailbox/ajax";
+import { sendWSMessage } from "../../../websocket/monitoring_ws";
 
 const default_data = {
     mail_content: "",
@@ -28,7 +29,8 @@ function BulletinModal (props) {
         releaseDetail
     } = props;
     const {
-        release_id, site_code, site_id
+        release_id, site_code, site_id,
+        type // either "latest", "extended", "overdue"
     } = releaseDetail;
 
     // const [bulletin_modal_data, setBulletinModalData] = useState({});
@@ -126,7 +128,6 @@ function BulletinModal (props) {
                     timestamp: moment().format("YYYY-MM-DD HH:mm:ss")
                 };
                 write_bulletin_narrative(temp_nar, narrative_ret => {
-                    // console.log("narrative_ret", narrative_ret);
                     console.log("NARRATIVE WRITTEN!");
                 });
             } else console.log("NO NARRATIVE WRITTEN: TEST ONLY");
@@ -140,6 +141,12 @@ function BulletinModal (props) {
                     action: snackBarActionFn
                 }
             );
+        });
+
+        sendWSMessage("update_db_alert_ewi_sent_status", {
+            alert_db_group: type,
+            site_id,
+            ewi_group: "bulletin"
         });
     };
 

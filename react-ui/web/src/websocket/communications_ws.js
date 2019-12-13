@@ -5,6 +5,7 @@ let socket;
 function subscribeToWebSocket (callback, page = "chatterbox") {
     socket = io(`${host}/communications`, {
         reconnectionDelay: 10000,
+        reconnectionAttempts: 30
         // transports: ["websocket"]
     });
 
@@ -31,6 +32,17 @@ function removeReceiveMobileIDRoomUpdateListener () {
     socket.removeListener("receive_mobile_id_room_update");
 }
 
+function receiveSearchResults (callback) {
+    socket.on("receive_search_results", data => {
+        console.log("Chatterbox Search Results", data);
+        callback(data);
+    });
+}
+
+function removeReceiveSearchResults () {
+    socket.removeListener("receive_search_results");
+}
+
 function sendMessageToDB (data, callback) {
     socket.emit("send_message_to_db", data, ret => {
         if (typeof callback !== "undefined")
@@ -46,5 +58,5 @@ function unsubscribeToWebSocket () {
 export {
     socket, subscribeToWebSocket, unsubscribeToWebSocket, 
     receiveMobileIDRoomUpdate, removeReceiveMobileIDRoomUpdateListener,
-    sendMessageToDB, // receiveAllContacts
+    sendMessageToDB, receiveSearchResults, removeReceiveSearchResults
 };

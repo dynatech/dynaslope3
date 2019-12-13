@@ -1,9 +1,12 @@
 """
 """
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from src.models.inbox_outbox import SmsTagsSchema
-from src.utils.chatterbox import get_quick_inbox, get_message_tag_options
+from src.utils.chatterbox import (
+    get_quick_inbox, get_message_tag_options,
+    insert_message_on_database
+)
 from src.utils.ewi import create_ewi_message
 from src.utils.surficial import check_if_site_has_active_surficial_markers
 from src.utils.monitoring import get_monitoring_releases
@@ -46,7 +49,8 @@ def get_ewi_sms_narrative(release_id):
     """
     """
 
-    release = get_monitoring_releases(release_id=release_id, load_options="ewi_narrative")
+    release = get_monitoring_releases(
+        release_id=release_id, load_options="ewi_narrative")
     data_ts = release.data_ts
     event_alert = release.event_alerts
     public_alert_level = event_alert.public_alert_symbol.alert_level
@@ -54,7 +58,8 @@ def get_ewi_sms_narrative(release_id):
     event = event_alert.event
     event_id = event.event_id
     site_id = event.site_id
-    first_release = list(sorted(event_alert.releases, key=lambda x: x.data_ts))[0]
+    first_release = list(
+        sorted(event_alert.releases, key=lambda x: x.data_ts))[0]
 
     # Get data needed to see if onset
     first_data_ts = first_release.data_ts
@@ -62,7 +67,8 @@ def get_ewi_sms_narrative(release_id):
 
     ewi_sms_detail = " onset"
     if not is_onset:
-        release_hour = round_to_nearest_release_time(data_ts, interval=4).strftime("%I%p")
+        release_hour = round_to_nearest_release_time(
+            data_ts, interval=4).strftime("%I%p")
         ewi_sms_detail = f" {release_hour}"
 
     narrative = f"Sent{ewi_sms_detail} EWI SMS to "
@@ -73,3 +79,30 @@ def get_ewi_sms_narrative(release_id):
         "site_list": [site_id],
         "type_id": 1
     })
+
+
+@CHATTERBOX_BLUEPRINT.route("/chatterbox/send_message", methods=["POST"])
+def wrap_insert_message_on_database():
+    """
+    """
+
+    data = request.get_json()
+    ret_obj = {
+        "status": True,
+        "message": "success"
+    }
+
+    try:
+        insert_message_on_database(data)
+    except Exception as err:
+        print(err)
+        if hasattr(err, "message"):
+            error_msg = err.message
+        else:
+            error_msg = err
+        ret_obj = {
+            "status": False,
+            "message": f"Error: {error_msg}"
+        }
+
+    return jsonify(ret_obj)

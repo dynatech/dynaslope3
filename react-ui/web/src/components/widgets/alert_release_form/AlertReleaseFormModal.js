@@ -337,6 +337,7 @@ function AlertReleaseFormModal (props) {
             setGeneralData({ ...initial_general_data });
             setTriggers({ action: "RESET_STATE" });
             setCurrentTriggerList({ action: "RESET_STATE" });
+            setInternalAlertLevel("");
             setActiveStep(0);
         }
     }, [chosenCandidateAlert, reporter_id_ct]);

@@ -5,7 +5,11 @@ let socket;
 
 function connectToWebsocket () {
     if (typeof socket === "undefined" || socket === null) {
-        socket = io(`${host}/monitoring`);
+        socket = io(`${host}/monitoring`, {
+            reconnectionDelay: 10000,
+            reconnectionAttempts: 30
+            // transports: ["websocket"]
+        });
     }
 }
 
@@ -38,8 +42,7 @@ export function unsubscribeToWebSocket () {
 export function receiveIssuesAndReminders (callback) {
     connectToWebsocket();
 
-    socket.on("receive_issues_and_reminders", data => {
-        // console.log(data);    
+    socket.on("receive_issues_and_reminders", data => {   
         callback(data);
     });
 }
@@ -67,6 +70,7 @@ export function receiveAlertsFromDB (callback) {
 
     socket.on("receive_alerts_from_db", data => {
         const temp = JSON.parse(data);
+        console.log(temp); 
         callback(temp);
     });
 }

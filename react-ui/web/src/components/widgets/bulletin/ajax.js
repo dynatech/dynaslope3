@@ -6,7 +6,7 @@ import { makeGETAxiosRequest, makePOSTAxiosRequest } from "../../../UtilityFunct
 export function write_bulletin_narrative (payload, callback) {
     const api_link = `${host}/api/narratives/write_narratives_to_db`;
 
-    makePOSTAxiosRequest(api_link, callback, payload);
+    makePOSTAxiosRequest(api_link, payload, callback);
 }
 
 

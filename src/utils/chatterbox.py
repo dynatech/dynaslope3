@@ -16,17 +16,20 @@ from src.models.inbox_outbox import (
 from src.models.users import Users
 from src.models.mobile_numbers import (
     UserMobiles, MobileNumbers, MobileNumbersSchema)
+from src.utils.contacts import get_mobile_numbers
 from src.utils.extra import var_checker
 
 
-def get_quick_inbox():
+def get_quick_inbox(inbox_limit=50, messages_per_convo=20):
     query_start = datetime.now()
     vlmmid = ViewLatestMessagesMobileID
-    inbox_mobile_ids = vlmmid.query.outerjoin(UserMobiles, vlmmid.mobile_id == UserMobiles.mobile_id) \
-        .outerjoin(Users).order_by(DB.desc(vlmmid.max_ts)).limit(50).all()
+    inbox_mobile_ids = vlmmid.query.outerjoin(
+        UserMobiles, vlmmid.mobile_id == UserMobiles.mobile_id) \
+        .outerjoin(Users).order_by(DB.desc(vlmmid.max_ts)).limit(inbox_limit).all()
     unsent_messages_arr = get_unsent_messages()
 
-    latest_inbox_messages = get_messages_for_mobile_group(inbox_mobile_ids)
+    latest_inbox_messages = get_messages_for_mobile_group(
+        inbox_mobile_ids, messages_per_convo)
     unsent_messages = format_unsent_messages(unsent_messages_arr)
 
     messages = {
@@ -51,13 +54,13 @@ def get_unsent_messages():
     return unsent_messages_arr
 
 
-def get_messages_for_mobile_group(mobile_ids):
+def get_messages_for_mobile_group(mobile_ids, messages_per_convo):
     messages = []
 
     for row in mobile_ids:
         mobile_id = row.mobile_id
         mobile_schema = get_user_mobile_details(mobile_id)
-        msgs = get_latest_messages(mobile_id)
+        msgs = get_latest_messages(mobile_id, messages_per_convo)
         msgs_schema = get_messages_schema_dict(msgs)
 
         # msgs_schema = TempLatestMessagesSchema(many=True).dump(msgs).data
@@ -78,7 +81,8 @@ def get_messages_schema_dict(msgs):
     query_tag_start = datetime.now()
 
     for msg in msgs:
-        msg_schema = get_message_tags(msg)
+        msg_schema = TempLatestMessagesSchema().dump(msg).data
+        msg_schema["tags"] = get_message_tags(msg)
         msgs_schema.append(msg_schema)
 
     query_tag_end = datetime.now()
@@ -130,7 +134,7 @@ def get_user_mobile_details(mobile_id):
     return mobile_schema
 
 
-def get_latest_messages(mobile_id):
+def get_latest_messages(mobile_id, messages_per_convo=20):
     """
     """
 
@@ -176,7 +180,7 @@ def get_latest_messages(mobile_id):
         .order_by(DB.desc(sous.outbox_id))
 
     union = sms_inbox.union(sms_outbox).order_by(
-        DB.desc(text("anon_1_ts"))).limit(20)
+        DB.desc(text("anon_1_ts"))).limit(messages_per_convo)
 
     query_end = datetime.now()
 
@@ -191,8 +195,6 @@ def get_latest_messages(mobile_id):
 def get_message_tags(message):
     """
     """
-
-    msg_schema = TempLatestMessagesSchema().dump(message).data
 
     tags_list = []
     if message.source == "inbox":
@@ -210,9 +212,7 @@ def get_message_tags(message):
         tags_list = SmsOutboxUserTagsSchema(
             many=True, exclude=["outbox_message"]).dump(sms_tags).data
 
-    msg_schema["tags"] = tags_list
-
-    return msg_schema
+    return tags_list
 
 
 def get_message_tag_options(source):
@@ -275,3 +275,26 @@ def insert_message_on_database(obj):
         DB.session.flush()
 
     DB.session.commit()
+
+
+def get_search_results(obj):
+    """
+    """
+
+    site_ids = obj["site_ids"]
+    org_ids = obj["org_ids"]
+
+    contacts = get_mobile_numbers(
+        return_schema=True, site_ids=site_ids, org_ids=org_ids)
+
+    search_results = []
+    for contact in contacts:
+        mobile_id = contact["mobile_number"]["mobile_id"]
+        msgs = get_latest_messages(mobile_id, messages_per_convo=1)
+        msgs_schema = get_messages_schema_dict(msgs)
+
+        contact["messages"] = msgs_schema
+
+        search_results.append(contact)
+
+    return search_results

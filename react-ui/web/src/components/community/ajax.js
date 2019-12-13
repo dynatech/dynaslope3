@@ -28,3 +28,14 @@ export function getAllSites (input, callback) {
         console.log(error);
     });
 }
+
+export function getSiteSeason (site_code, callback) {
+    axios.get(`${host}/api/sites/get_site_season/${site_code}`)
+    .then(response => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch(error => {
+        console.log(error);
+    });
+}

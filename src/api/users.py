@@ -3,7 +3,9 @@ Users Functions Controller File
 """
 
 from flask import Blueprint, jsonify
+from connection import DB
 from src.models.users import UsersSchema
+from src.models.organizations import Organizations, OrganizationsSchema
 from src.utils.users import (
     get_dynaslope_users, get_community_users,
     get_community_users_simple, get_users_categorized_by_org
@@ -121,3 +123,18 @@ def wrap_get_community_users(
         include_orgs=True)
 
     return output
+
+
+@USERS_BLUEPRINT.route("/users/get_organizations", methods=["GET"])
+def get_organizations():
+    """
+    """
+
+    orgs = Organizations.query.options(
+        DB.raiseload("*")
+    ).all()
+
+    result = OrganizationsSchema(many=True, exclude=["users"]) \
+        .dump(orgs).data
+
+    return jsonify(result)

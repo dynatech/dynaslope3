@@ -63,12 +63,14 @@ class Seasons(DB.Model):
         TINYINT, DB.ForeignKey("commons_db.routine_schedules.sched_group_id"))
 
     sites = DB.relationship(
-        "Sites", backref=DB.backref("season_months", lazy="subquery"), lazy="subquery")
+        "Sites", backref=DB.backref("season_months", lazy="raise"), lazy="subquery")
     routine_schedules = DB.relationship(
-        "RoutineSchedules", backref=DB.backref("seasons", lazy="subquery"), uselist=True, lazy="subquery")
+        "RoutineSchedules", backref=DB.backref("seasons", lazy="subquery"),
+        uselist=True, lazy="subquery")
 
     def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Season Group ID: {self.season_group_id}")
+        return (f"Type < {self.__class__.__name__} > "
+                f"Season Group ID: {self.season_group_id}")
 
 
 class RoutineSchedules(DB.Model):
@@ -95,15 +97,16 @@ class SitesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Sites class
     """
+
     def __init__(self, *args, **kwargs):
-        self.include = kwargs.pop('include', None)
+        self.include = kwargs.pop("include", None)
         super().__init__(*args, **kwargs)
 
     def _update_fields(self, *args, **kwargs):
         super()._update_fields(*args, **kwargs)
         if self.include:
             for field_name in self.include:
-                self.fields[field_name] = self._declared_fields[field_name]    
+                self.fields[field_name] = self._declared_fields[field_name]
 
     season = fields.Integer()
     season_months = fields.Nested("SeasonsSchema", exclude=("sites",))
@@ -122,7 +125,21 @@ class SeasonsSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Seasons class
     """
 
+    routine_schedules = fields.Nested("RoutineSchedulesSchema", many=True,
+                                      exclude=["seasons"])
+
     class Meta:
         """Saves table class structure as schema model"""
         model = Seasons
+        ordered = False
+
+
+class RoutineSchedulesSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of RoutineSchedules class
+    """
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = RoutineSchedules
         ordered = False

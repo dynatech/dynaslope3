@@ -3,7 +3,11 @@ Sites Functions Controller File
 """
 
 from flask import Blueprint, jsonify, request
-from src.utils.sites import get_sites_data, get_site_events, get_all_geographical_selection_per_category
+from src.utils.sites import (
+    get_sites_data, get_site_events,
+    get_all_geographical_selection_per_category,
+    get_site_season
+)
 from src.models.sites import SitesSchema
 from src.models.monitoring import MonitoringEventsSchema
 from src.utils.loggers import get_loggers
@@ -23,8 +27,8 @@ def wrap_get_sites_data(site_code=None):
         "include_inactive", default="false", type=str)
     include_inactive = True if include_inactive == "true" else False
     site = get_sites_data(site_code=site_code,
-                          include_inactive=include_inactive)
-    # site_schema = SitesSchema(include=("season_months",))
+                          include_inactive=include_inactive,
+                          raise_load=True)
 
     site_schema = SitesSchema()
     if site_code is None:
@@ -35,7 +39,8 @@ def wrap_get_sites_data(site_code=None):
     # NOTE: Add the Lat and Long
     if isinstance(output, list):
         for site in output:
-            site_logger_sample = get_loggers(site_code=site["site_code"], many=False)
+            site_logger_sample = get_loggers(
+                site_code=site["site_code"], many=False)
             site["latitude"] = site_logger_sample.latitude
             site["longitude"] = site_logger_sample.longitude
 
@@ -67,3 +72,13 @@ def wrap_g_a_g_s_p_c(category):
     site_json = SitesSchema(many=True).dump(selection).data
 
     return jsonify(site_json)
+
+
+@SITES_BLUEPRINT.route("/sites/get_site_season", methods=["GET"])
+@SITES_BLUEPRINT.route("/sites/get_site_season/<site_code>", methods=["GET"])
+def wrap_get_site_season(site_code=None):
+    """
+    """
+
+    result = get_site_season(site_code, return_schema_format=True)
+    return jsonify(result)

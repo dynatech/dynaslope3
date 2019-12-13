@@ -11,9 +11,10 @@ import { SlideTransition, FadeTransition } from "../../reusables/TransitionList"
 function SendEwiSmsMessageModal (props) {
     const {
         fullScreen, modalStateHandler,
-        modalState, textboxValue, releaseId,
-        siteCode
+        modalState, textboxValue, releaseDetail,
     } = props;
+
+    const { release_id, site_code } = releaseDetail;
     
     return (
         <Dialog
@@ -48,8 +49,10 @@ function SendEwiSmsMessageModal (props) {
                         isMobile={fullScreen}
                         textboxValue={textboxValue}
                         disableQuickSelect
-                        releaseId={releaseId}
-                        siteCode={siteCode}
+                        releaseId={release_id}
+                        siteCode={site_code}
+                        fromEWIModal
+                        updateSentStatusObj={releaseDetail}
                     />
                 </div>
             </DialogContent>

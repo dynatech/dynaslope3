@@ -4,13 +4,13 @@ import { makePOSTAxiosRequest, makeGETAxiosRequest } from "../../../UtilityFunct
 
 export function handleDelete (json_data, callback) {
     const api_link = `${host}/api/issues_and_reminders/delete_narratives_from_db`;
-    makePOSTAxiosRequest(api_link, callback, json_data);
+    makePOSTAxiosRequest(api_link, json_data, callback);
 }
 
 export function buildInternalAlertLevel (json_data, callback) {
     // Make an API request
     const api_link = `${host}/api/monitoring/build_internal_alert_level`;
-    makePOSTAxiosRequest(api_link, callback, json_data);
+    makePOSTAxiosRequest(api_link, json_data, callback);
 }
 
 export function getMonitoringReleaseByDataTS (site_code, data_ts, callback) {

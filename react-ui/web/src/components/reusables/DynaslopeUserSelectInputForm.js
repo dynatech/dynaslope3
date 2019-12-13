@@ -1,8 +1,12 @@
-import React, { Fragment, useState, useEffect } from "react";
+import React, {
+    Fragment, useState, useEffect,
+    useContext
+} from "react";
 import axios from "axios";
 import SelectInputForm from "./SelectInputForm";
 import OutlinedSelectInputForm from "./OutlinedSelectInputForm";
 import { host } from "../../config";
+import { GeneralContext } from "../contexts/GeneralContext";
 
 const mapping = { id: "user_id", label: "name" };
 
@@ -19,29 +23,32 @@ function DynaslopeUserSelectInputForm (props) {
     } = props;
 
     const [users, setUsers] = useState([]);
+    const { users: saved_users } = useContext(GeneralContext);
 
     useEffect(() => {
         const cancel_token = axios.CancelToken;
         const source = cancel_token.source();
-
-        let api_link = `${host}/api/users/get_dynaslope_users`;
         if (isCommunityStaff) {
             const { site_code } = props;
-            api_link = `${host}/api/users/get_community_users_by_site/${site_code}`;
-        }
-        axios.get(api_link, { cancelToken: source.token })
-        .then(response => {
-            const arr = prepareUsersArray(response.data);
+            const api_link = `${host}/api/users/get_community_users_by_site/${site_code}`;
+
+            axios.get(api_link, { cancelToken: source.token })
+            .then(response => {
+                const arr = prepareUsersArray(response.data);
+                setUsers(arr);
+            })
+            .catch(error => {
+                console.log(error);
+            });
+        } else {
+            const arr = prepareUsersArray(saved_users);
             setUsers(arr);
-        })
-        .catch(error => {
-            console.log(error);
-        });
+        }
 
         return () => {
             source.cancel();
         };
-    }, []);
+    }, [saved_users]);
     
     const callback = typeof returnFullNameCallback === "undefined" ? false : returnFullNameCallback;
 

@@ -1,3 +1,6 @@
+"""
+"""
+
 import json
 from datetime import datetime
 from flask import request
@@ -41,48 +44,50 @@ def monitoring_background_task():
     generated_alerts = []
 
     while True:
-        try:
-            if not generated_alerts:
+        # try:
+        if not generated_alerts:
+            generated_alerts = generate_alerts()
+            set_data_to_memcache(name="GENERATED_ALERTS",
+                                 data=generated_alerts)
+            alerts_from_db = wrap_get_ongoing_extended_overdue_events()
+            set_data_to_memcache(name="ALERTS_FROM_DB",
+                                 data=alerts_from_db)
+            candidate_alerts = candidate_alerts_generator.main(
+                generated_alerts_list=generated_alerts, db_alerts_dict=alerts_from_db)
+            set_data_to_memcache(name="CANDIDATE_ALERTS",
+                                 data=candidate_alerts)
+            emit_data("receive_generated_alerts")
+            emit_data("receive_alerts_from_db")
+            emit_data("receive_candidate_alerts")
+
+        elif datetime.now().minute % 5 == 1:
+            print()
+            system_time = datetime.strftime(
+                datetime.now(), "%Y-%m-%d %H:%M:%S")
+            print(f"{system_time} | Websocket running...")
+
+            try:
                 generated_alerts = generate_alerts()
-                set_data_to_memcache(name="GENERATED_ALERTS",
-                                     data=generated_alerts)
+                set_data_to_memcache(
+                    name="GENERATED_ALERTS", data=generated_alerts)
                 alerts_from_db = wrap_get_ongoing_extended_overdue_events()
-                set_data_to_memcache(name="ALERTS_FROM_DB",
-                                     data=alerts_from_db)
-                candidate_alerts = candidate_alerts_generator.main(
-                    generated_alerts_list=generated_alerts, db_alerts_dict=alerts_from_db)
-                set_data_to_memcache(name="CANDIDATE_ALERTS",
-                                     data=candidate_alerts)
-                emit_data("receive_generated_alerts")
-                emit_data("receive_alerts_from_db")
-                emit_data("receive_candidate_alerts")
+                set_data_to_memcache(
+                    name="ALERTS_FROM_DB", data=alerts_from_db)
+                set_data_to_memcache(name="CANDIDATE_ALERTS", data=candidate_alerts_generator.main(
+                    generated_alerts_list=generated_alerts, db_alerts_dict=alerts_from_db))
+                print(f"{system_time} | Done processing Candidate Alerts.")
+            except Exception as err:
+                print(err)
+                raise
 
-            elif datetime.now().minute % 5 == 1:
-                print()
-                system_time = datetime.strftime(
-                    datetime.now(), "%Y-%m-%d %H:%M:%S")
-                print(f"{system_time} | Websocket running...")
-
-                try:
-                    generated_alerts = generate_alerts()
-                    set_data_to_memcache(
-                        name="GENERATED_ALERTS", data=generated_alerts)
-                    alerts_from_db = wrap_get_ongoing_extended_overdue_events()
-                    set_data_to_memcache(
-                        name="ALERTS_FROM_DB", data=alerts_from_db)
-                    set_data_to_memcache(name="CANDIDATE_ALERTS", data=candidate_alerts_generator.main(
-                        generated_alerts_list=generated_alerts, db_alerts_dict=alerts_from_db))
-                    print(f"{system_time} | Done processing Candidate Alerts.")
-                except Exception as err:
-                    print(err)
-                    raise
-
-                emit_data("receive_generated_alerts")
-                emit_data("receive_candidate_alerts")
-                emit_data("receive_alerts_from_db")
-        except Exception as err:
-            print("Exception on Monitoring thread")
-            print(err)
+            emit_data("receive_generated_alerts")
+            emit_data("receive_candidate_alerts")
+            emit_data("receive_alerts_from_db")
+        # except Exception as err:
+            # print("")
+            # print("Monitoring Thread Exception")
+            # var_checker("Exception Detail", err, True)
+            # DB.session.rollback()
 
         SOCKETIO.sleep(60)  # Every 60 seconds in production stage
 
@@ -164,9 +169,6 @@ def update_alert_gen(site_code=None):
     print(get_process_status_log("update alert gen", "start"))
     try:
         generated_alerts = retrieve_data_from_memcache("GENERATED_ALERTS")
-        candidate_alerts = retrieve_data_from_memcache("CANDIDATE_ALERTS")
-        alerts_from_db = retrieve_data_from_memcache("ALERTS_FROM_DB")
-
         site_gen_alert = generate_alerts(site_code)
 
         # Find the current entry for the site provided
@@ -291,6 +293,31 @@ def execute_insert_ewi(insert_details):
     return status_log
 
 
+def execute_update_db_alert_ewi_sent_status(alert_db_group, site_id, ewi_group):
+    """
+    alert_db_group (str):    either "latest", "extended" or "overdue"
+    ewi_group (str):        either "sms" or "bulletin"
+    """
+
+    alerts_from_db = retrieve_data_from_memcache("ALERTS_FROM_DB")
+    json_alerts = json.loads(alerts_from_db)
+
+    group = json_alerts[alert_db_group]
+    alert = None
+    index = None
+    for i, row in enumerate(group):
+        if row["event"]["site_id"] == site_id:
+            alert = row
+            index = i
+
+    alert["sent_statuses"][f"is_{ewi_group}_sent"] = True
+    group[index] = alert
+    json_alerts[alert_db_group] = group
+
+    set_data_to_memcache("ALERTS_FROM_DB", json.dumps(json_alerts))
+    emit_data("receive_alerts_from_db")
+
+
 @SOCKETIO.on("message", namespace="/monitoring")
 def handle_message(payload):
     """
@@ -329,6 +356,12 @@ def handle_message(payload):
         print(get_process_status_log("update_monitoring_tables", "request"))
         # NOTE: UNFINISHED BUSINESS
 
+    elif key == "update_db_alert_ewi_sent_status":
+        print(get_process_status_log("update_db_alert_ewi_sent_status", "request"))
+        execute_update_db_alert_ewi_sent_status(
+            data["alert_db_group"],
+            data["site_id"],
+            data["ewi_group"])
     else:
         print("ERROR: Key provided not found.")
         raise Exception("WEBSOCKET MESSAGE: KEY NOT FOUND")
