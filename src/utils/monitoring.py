@@ -10,7 +10,7 @@ from src.models.analysis import AlertStatus
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
     MonitoringMomsReleases, MonitoringOnDemand,
-    MonitoringEarthquake, MonitoringTriggers, 
+    MonitoringEarthquake, MonitoringTriggers,
     MomsFeatures, InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols,
     MonitoringEventAlertsSchema, OperationalTriggers,
@@ -206,7 +206,7 @@ def get_site_moms_alerts(site_id, ts_start, ts_end):
     moms = MonitoringMoms
     mi = MomsInstances
     site_moms_alerts_list = moms.query.join(mi).options(
-        joinedload("moms_instance", innerjoin=True) \
+        joinedload("moms_instance", innerjoin=True)
         .joinedload("feature", innerjoin=True).raiseload("*"),
         joinedload("moms_release").raiseload("*")) \
         .order_by(DB.desc(moms.observance_ts)) \
@@ -337,8 +337,8 @@ def update_alert_status(as_details):
                 DB.session.flush()
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}." +
-                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}."
+                      + f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -365,11 +365,13 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
     is_sms_sent = False
     is_bulletin_sent = False
 
-    end_ts = round_to_nearest_release_time(start_ts, interval=release_interval_hours)
+    end_ts = round_to_nearest_release_time(
+        start_ts, interval=release_interval_hours)
     if not is_onset_release:
         end_ts = end_ts + timedelta(minutes=30)
-    
-    narrative_list = get_narratives(event_id=event_id, start=start_ts, end=end_ts)
+
+    narrative_list = get_narratives(
+        event_id=event_id, start=start_ts, end=end_ts)
 
     for item in narrative_list:
         is_sms_sent = "EWI SMS" in item.narrative
@@ -396,6 +398,8 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     release_interval_hours = RELEASE_INTERVAL_HOURS
     extended_monitoring_days = EXTENDED_MONITORING_DAYS
 
+    script_start = datetime.now()
+
     if not run_ts:
         run_ts = datetime.now()
 
@@ -405,8 +409,9 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     extended = []
     overdue = []
     for event_alert in active_event_alerts:
-        validity = event_alert.event.validity
-        event_id = event_alert.event.event_id
+        event = event_alert.event
+        validity = event.validity
+        event_id = event.event_id
         latest_release = event_alert.releases[0]
 
         # NOTE: LOUIE This formats release time to have date instead of time only
@@ -418,8 +423,8 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         # CHECK IF ONSET RELEASE (only one release)
         is_onset_release = len(event_alert.releases) == 1
         # NOTE: CHECK NARRATIVE IF ALREADY SENT EWI SMS. if onset, do not add 30mins.
-        sent_statuses = check_ewi_narrative_sent_status(is_onset_release, event_id, data_ts)
-
+        sent_statuses = check_ewi_narrative_sent_status(
+            is_onset_release, event_id, data_ts)
 
         if data_ts.hour == 23 and release_time.hour < release_interval_hours:
         # if data_ts.hour == 23 and release_time.hour < 4:
@@ -430,7 +435,11 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             release_time = f"{str_data_ts_ymd} {str_release_time}"
 
         event_alert_data = MonitoringEventAlertsSchema(
-            many=False).dump(event_alert).data
+            many=False, exclude=[
+                "releases.moms_releases",
+                "releases.release_publishers",
+                "releases.triggers"
+            ]).dump(event_alert).data
         public_alert_level = event_alert.public_alert_symbol.alert_level
         trigger_list = latest_release.trigger_list
         event_alert_data["internal_alert_level"] = build_internal_alert_level(
@@ -443,10 +452,14 @@ def get_ongoing_extended_overdue_events(run_ts=None):
 
         # NOTE: LOUIE SPECIAL intervention to add all triggers of the whole event.
         # Bypassing the use of MonitoringEvent instead
-        all_event_triggers = get_monitoring_triggers(event_id=event_id)
+        all_event_triggers = get_monitoring_triggers(
+            event_id=event_id,
+            load_options="on_going_and_extended")
         latest_triggers_per_kind = get_unique_triggers(trigger_list=all_event_triggers)
-        mtS_m = MonitoringTriggersSchema(many=True)
-        event_alert_data["latest_event_triggers"] = mtS_m.dump(latest_triggers_per_kind).data
+        mts = MonitoringTriggersSchema(many=True, exclude=[
+            "release", "trigger_misc.moms_releases.moms_details.narrative.site",
+            "trigger_misc.moms_releases.moms_details.moms_instance.site"])
+        event_alert_data["latest_event_triggers"] = mts.dump(latest_triggers_per_kind).data
 
         if run_ts <= validity:
             # On time release
@@ -456,16 +469,14 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                 # Late release
                 overdue.append(event_alert_data)
             else:
-                # elif validity < rounded_data_ts and rounded_data_ts < (validity + timedelta(days=3)):
-                # EXTENDED
-
                 # Get Next Day 00:00
                 next_day = validity + timedelta(days=1)
                 start = datetime(next_day.year, next_day.month, next_day.day, 0, 0, 0)
                 # Day 3 is the 3rd 12-noon from validity
                 end = start + timedelta(days=extended_monitoring_days)
                 current = run_ts  # Production code is current time
-                # Count the days distance between current date and day 3 to know which extended day it is
+                # Count the days distance between current date and
+                # day 3 to know which extended day it is
                 difference = end - current
                 day = extended_monitoring_days - difference.days
 
@@ -475,17 +486,22 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                     event_alert_data["day"] = day
                     extended.append(event_alert_data)
                 else:
-                    # TODO: Make an API call to end an event when extended is finished? based on old code
-                    # NOTE: HOWEVER -> Meron ng update sa insert_ewi part ng last extended release. No need to put this here.
+                    # TODO: Make an API call to end an event
+                    # when extended is finished? based on old code
+                    # NOTE: HOWEVER -> Meron ng update sa insert_ewi
+                    # part ng last extended release. No need to put this here.
                     # print("FINISH EVENT")
-                    print("EVENT FINISHED")
 
                     monitoring_status = event_alert.event.status
                     if monitoring_status == 2:
                         routine_ts = round_down_data_ts(run_ts)
                         site_id = event_alert.event.site_id
 
-                        pub_sym_id = retrieve_data_from_memcache("public_alert_symbols", {"alert_level": 0}, retrieve_attr="pub_sym_id")
+                        pub_sym_id = retrieve_data_from_memcache(
+                            "public_alert_symbols",
+                            {"alert_level": 0},
+                            retrieve_attr="pub_sym_id")
+
                         try:
                             end_current_monitoring_event_alert(
                                 event_alert.event_alert_id, routine_ts)
@@ -509,16 +525,22 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                         except Exception as err:
                             print(err)
                             DB.session.rollback()
-
-                        var_checker("PRINTING for log only: instance_details", instance_details, True)
+                        # var_checker("PRINTING for log only: instance_details",
+                        # instance_details, True)
                     else:
-                        var_checker("PRINTING for log only", "ALREADY IN ROUTINE", True)
+                        # var_checker("PRINTING for log only", "ALREADY IN ROUTINE", True)
+                        pass
+
+        break
 
     db_alerts = {
         "latest": latest,
         "extended": extended,
         "overdue": overdue
     }
+
+    script_end = datetime.now()
+    print("GET DB ALERTS RUNTIME: ", script_end - script_start)
 
     return db_alerts
 
@@ -758,8 +780,14 @@ def get_monitoring_triggers(
 
     if load_options == "end_of_shift":
         base = base.options(
-            DB.joinedload("internal_sym"),
+            DB.joinedload("internal_sym", innerjoin=True),
             DB.raiseload("*")
+        )
+    elif load_options == "on_going_and_extended":
+        base = base.options(
+            DB.raiseload("release"),
+            DB.raiseload("trigger_misc.moms_releases.moms_details.narrative.site"),
+            DB.raiseload("trigger_misc.moms_releases.moms_details.moms_instance.site")
         )
 
     if ts_start:
@@ -994,8 +1022,15 @@ def get_active_monitoring_events():
 
     # Ignore the pylinter error on using "== None" vs "is None",
     # since SQLAlchemy interprets "is None" differently.
-    active_events = mea.query.join(me).order_by(
-        DB.desc(mea.event_alert_id)).filter(DB.and_(me.status == 2, mea.ts_end == None)).all()
+    active_events = mea.query.join(me) \
+        .options(
+            DB.joinedload("event", innerjoin=True).joinedload("site", innerjoin=True) \
+                .raiseload("*"),
+            DB.subqueryload("releases").raiseload("*"),
+            DB.joinedload("public_alert_symbol").raiseload("*"),
+            DB.raiseload("*")
+        ).order_by(DB.desc(mea.event_alert_id)) \
+            .filter(DB.and_(me.status == 2, mea.ts_end == None)).all()
 
     return active_events
 

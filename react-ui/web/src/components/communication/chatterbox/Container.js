@@ -2,12 +2,10 @@ import React, {
     Fragment, useState,
     useEffect
 } from "react";
-import { withStyles } from "@material-ui/core/styles";
-import { Button, Badge } from "@material-ui/core";
+import { Button, Badge, makeStyles } from "@material-ui/core";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { Route, Switch } from "react-router-dom";
 import { Create, Search } from "@material-ui/icons";
-import { compose } from "recompose";
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 import MessageList from "./MessageList";
@@ -16,12 +14,13 @@ import TabBar from "../../reusables/TabBar";
 import SendMessageModal from "./SendMessageModal";
 import CircularAddButton from "../../reusables/CircularAddButton";
 import SearchMessageModal from "./SearchMessageModal";
+import SearchResultsPage from "./SearchResultsPage";
 
 import { 
     socket, subscribeToWebSocket, unsubscribeToWebSocket 
 } from "../../../websocket/communications_ws";
 
-const styles = theme => {
+const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
     
     return {
@@ -35,10 +34,11 @@ const styles = theme => {
         },
 
     }; 
-};
+});
 
-function Container (props) {
-    const { classes, location, match: { url }, width } = props;
+function Container (comp_props) {
+    const { location, match: { url }, width } = comp_props;
+    const classes = useStyles();
 
     const [chosen_tab, setChosenTab] = useState(0);
     const [is_open_send_modal, setIsOpenSendModal] = useState(false);
@@ -189,7 +189,6 @@ function Container (props) {
 
                         <SearchMessageModal 
                             modalStateHandler={set_modal_fn("search", false)}
-                            // clickHandler={this.handleBoolean("has_chosen_message", true)}
                             modalState={is_open_search_modal}
                             url={url}
                         /> 
@@ -198,7 +197,11 @@ function Container (props) {
             />
             
             <Route path={`${url}/search_results`} render={
-                props => <ConversationWindow />
+                props => <SearchResultsPage
+                    {...props}
+                    messageCollection={message_collection}
+                    socket={socket}
+                />
             } 
             />
 
@@ -215,4 +218,4 @@ function Container (props) {
 
 }
 
-export default compose(withWidth(), withStyles(styles))(Container);
+export default withWidth()(Container);

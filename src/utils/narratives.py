@@ -31,7 +31,8 @@ def delete_narratives_from_db(narrative_id):
     """
     print(get_process_status_log("delete_narratives_from_db", "start"))
     try:
-        narrative_for_delete = Narratives.query.filter(Narratives.id == narrative_id).first()
+        narrative_for_delete = Narratives.query.filter(
+            Narratives.id == narrative_id).first()
         DB.session.delete(narrative_for_delete)
         # DB.session.commit()
         print(get_process_status_log("delete_narratives_from_db", "end"))
@@ -49,14 +50,18 @@ def find_narrative_event(timestamp, site_id):
     mea = MonitoringEventAlerts
     event = None
 
-    result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(me).filter(DB.and_(mea.ts_start <= timestamp, timestamp <= mea.ts_end)).filter(me.site_id == site_id).first()
+    result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(me).filter(DB.and_(
+        mea.ts_start <= timestamp, timestamp <= mea.ts_end)).filter(me.site_id == site_id).first()
     if result:
         event = result
 
     return event
 
 
-def get_narratives(offset=None, limit=None, start=None, end=None, site_ids=None, include_count=None, search=None, event_id=None):
+def get_narratives(
+        offset=None, limit=None, start=None,
+        end=None, site_ids=None, include_count=None,
+        search=None, event_id=None, raise_site=True):
     """
         Returns one or more row/s of narratives.
 
@@ -73,6 +78,8 @@ def get_narratives(offset=None, limit=None, start=None, end=None, site_ids=None,
     nar = Narratives
     base = nar.query
 
+    if raise_site:
+        base = base.options(DB.raiseload("site"))
 
     if start is None and end is None:
         pass
@@ -89,6 +96,8 @@ def get_narratives(offset=None, limit=None, start=None, end=None, site_ids=None,
         narratives = base.order_by(
             DB.desc(nar.timestamp)).limit(limit).offset(offset).all()
 
+        DB.session.commit()
+
         # DB.session.commit()
 
         if include_count:
@@ -97,7 +106,8 @@ def get_narratives(offset=None, limit=None, start=None, end=None, site_ids=None,
         else:
             return narratives
     else:
-        narratives = base.order_by(DB.asc(nar.timestamp)).filter(nar.event_id == event_id).all()
+        narratives = base.order_by(DB.asc(nar.timestamp)).filter(
+            nar.event_id == event_id).all()
         DB.session.commit()
         return narratives
 

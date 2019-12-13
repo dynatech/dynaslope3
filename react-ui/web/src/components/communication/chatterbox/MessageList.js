@@ -1,11 +1,10 @@
 import React, { Fragment } from "react";
 import { Link } from "react-router-dom";
-import PropTypes from "prop-types";
 
 import {
     List, ListItem, ListItemAvatar,
     ListItemText, Avatar, Grid, 
-    Chip, Typography, withStyles, IconButton
+    Chip, Typography, makeStyles, IconButton
 } from "@material-ui/core";
 import { isWidthUp } from "@material-ui/core/withWidth";
 import {
@@ -21,7 +20,7 @@ import OptionsModal from "./OptionsModal";
 import BlockNumberModal from "./BlockNumberModal";
 import SaveContactModal from "./SaveContactModal";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     inline: {
         display: "inline",
     },
@@ -35,7 +34,7 @@ const styles = theme => ({
     noFlexGrow: { flexGrow: 0 },
     hidden: { display: "none" },
     sentIcon: { fontSize: "1.10rem" }
-});
+}));
 
 export function mobileUserFormatter (user_details) {
     const { user } = user_details;
@@ -194,8 +193,11 @@ function MessageListItem (row, props, openOptionsModal) {
     );
 }
 
-function MessageList (props) {
-    const { classes, messagesArr, hidden } = props;
+function MessageList (comp_props) {
+    const { messagesArr, hidden } = comp_props;
+    const classes = useStyles();
+    const props = { ...comp_props, classes };
+
     const [open_options, setOpenOptions] = React.useState(false);
     const [is_unregistered, setIfUnregistered] = React.useState(false);
     const [open_block_modal, setBlockModal] = React.useState(false);
@@ -255,8 +257,4 @@ function MessageList (props) {
     );
 }
 
-MessageList.propTypes = {
-    classes: PropTypes.object.isRequired,
-};
-
-export default withStyles(styles)(MessageList);
+export default MessageList;

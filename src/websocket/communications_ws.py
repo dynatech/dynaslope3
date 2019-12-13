@@ -1,8 +1,10 @@
-import json
-from connection import SOCKETIO
+"""
+"""
+
 from datetime import datetime
 from flask import request
 from flask_socketio import join_room, leave_room
+from connection import SOCKETIO, DB
 from src.utils.extra import var_checker
 from config import APP_CONFIG
 
@@ -11,12 +13,12 @@ from src.utils.chatterbox import (
     get_sms_user_updates,
     get_latest_messages,
     get_unsent_messages,
-    get_message_tags,
     get_user_mobile_details,
     delete_sms_user_update,
     get_messages_schema_dict,
     format_unsent_messages,
-    insert_message_on_database
+    insert_message_on_database,
+    get_search_results
 )
 from src.utils.contacts import get_all_contacts
 
@@ -126,9 +128,9 @@ def communication_background_task():
                 print("")
         except Exception as err:
             print("")
-            print("Thread Exception")
+            print("Communication Thread Exception")
             var_checker("Exception Detail", err, True)
-            print("")
+            DB.session.rollback()
             pass
 
         SOCKETIO.sleep(0.5)
@@ -181,7 +183,7 @@ def join_mobile_id_room(mobile_id):
     else:
         mobile_details = get_user_mobile_details(mobile_id)
 
-        msgs = get_latest_messages(mobile_id)
+        msgs = get_latest_messages(mobile_id, limit=20)
         msgs_schema = get_messages_schema_dict(msgs)
 
         message_row = {
@@ -231,6 +233,14 @@ def leave_mobile_id_room(mobile_id):
     print(f"=====> Available rooms", room_mobile_ids.keys())
 
 
+@SOCKETIO.on("get_search_results", namespace="/communications")
+def wrap_get_search_results(payload):
+    print(f"====> Message received", payload)
+    result = get_search_results(payload)
+    SOCKETIO.emit("receive_search_results", result,
+                  namespace="/communications")
+
+
 @SOCKETIO.on("send_message_to_db", namespace="/communications")
 def send_message_to_db(payload):
     print(f"====> Message received", payload)
@@ -245,7 +255,7 @@ def wrap_get_all_contacts():
 
 
 def get_inbox():
-    return get_quick_inbox()
+    return get_quick_inbox(inbox_limit=1, messages_per_convo=20)
 
 
 def get_contacts():

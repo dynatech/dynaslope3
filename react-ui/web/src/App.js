@@ -17,6 +17,7 @@ import BulletinTemplate from "./components/widgets/bulletin/BulletinTemplate";
 import ChartRenderingContainer from "./components/chart_rendering/Container";
 
 import { CTProvider } from "./components/monitoring/dashboard/CTContext";
+import { GeneralProvider } from "./components/contexts/GeneralContext";
 
 const styles = theme => ({
     app: {
@@ -96,25 +97,27 @@ function App (props) {
                             <div>Loading...</div>
                         ) : (
                             is_logged ? (
-                                <CTProvider>
-                                    <Header
-                                        {...r_props} 
-                                        drawerHandler={toggleDrawer}
-                                        onLogout={onLogout}
-                                    />
-                                    <Navigation
-                                        drawerHandler={toggleDrawer}
-                                        drawer={drawer}
-                                    />
+                                <GeneralProvider>
+                                    <CTProvider>
+                                        <Header
+                                            {...r_props} 
+                                            drawerHandler={toggleDrawer}
+                                            onLogout={onLogout}
+                                        />
+                                        <Navigation
+                                            drawerHandler={toggleDrawer}
+                                            drawer={drawer}
+                                        />
                                     
-                                    <div className={classes.app}>
-                                        <div className={classes.body}>
-                                            <RoutesCollection {...r_props} />
+                                        <div className={classes.app}>
+                                            <div className={classes.body}>
+                                                <RoutesCollection {...r_props} />
+                                            </div>
                                         </div>
-                                    </div>
                             
-                                    <Footer />
-                                </CTProvider>
+                                        <Footer />
+                                    </CTProvider>
+                                </GeneralProvider>
                             ) : (
                                 <Redirect to="/login" />
                             )

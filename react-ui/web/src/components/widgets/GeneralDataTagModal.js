@@ -1,4 +1,4 @@
-import React, { useState, useEffect, forwardRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
@@ -10,9 +10,12 @@ import moment from "moment";
 import SelectMultipleWithSuggest from "../reusables/SelectMultipleWithSuggest";
 import { SlideTransition, FadeTransition } from "../reusables/TransitionList";
 import { host } from "../../config";
-import { handleUpdateInsertTags, handleDeleteTags } from "./ajax";
+// import { handleUpdateInsertTags, handleDeleteTags } from "./ajax";
 import { getCurrentUser } from "../sessions/auth";
 import { mobileUserFormatter } from "../communication/chatterbox/MessageList";
+
+const handleUpdateInsertTags = () => {};
+const handleDeleteTags = () => {};
 
 const styles = theme => ({
     link: { textDecoration: "none" }

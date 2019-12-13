@@ -12,7 +12,7 @@ import moment from "moment";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
 import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
 import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
-import { Publish, Description, PhoneAndroid } from "@material-ui/icons";
+import { Publish, Description, PhoneAndroid, Done } from "@material-ui/icons";
 import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
 import GeneralStyles from "../../../GeneralStyles";
 import ValidationModal from "./ValidationModal";
@@ -265,12 +265,15 @@ function CandidateAlertsExpansionPanel (props) {
 function LatestSiteAlertsExpansionPanel (props) {
     const { 
         siteAlert, classes, expanded,
-        handleExpansion, handleSMSRelease,
+        handleExpansion, smsHandler,
         bulletinHandler, keyName, type
     } = props;
     const {
-        event, internal_alert_level, releases, day
+        event, internal_alert_level, releases,
+        day, sent_statuses
     } = siteAlert;
+
+    const { is_sms_sent, is_bulletin_sent } = sent_statuses;
 
     const { validity, site, event_start } = event;
     const { site_code, site_id } = site;
@@ -357,14 +360,16 @@ function LatestSiteAlertsExpansionPanel (props) {
                 <Button
                     size="small" color="primary" 
                     startIcon={<PhoneAndroid />}
-                    onClick={() => handleSMSRelease(release_id, site_code)}
+                    onClick={smsHandler({ release_id, site_code, site_id, type })}
+                    endIcon={ is_sms_sent && <Done /> }
                 >
                     EWI SMS
                 </Button>
                 <Button 
                     size="small" color="primary"
                     startIcon={<Description />}
-                    onClick={bulletinHandler({ release_id, site_code, site_id })}
+                    onClick={bulletinHandler({ release_id, site_code, site_id, type })}
+                    endIcon={ is_bulletin_sent && <Done /> }
                 >
                         Bulletin
                 </Button>
@@ -372,8 +377,6 @@ function LatestSiteAlertsExpansionPanel (props) {
         </ExpansionPanel>
     );
 }
-
-// export const CTContext = React.createContext();
 
 function MonitoringTables (props) {
     const {
@@ -394,20 +397,17 @@ function MonitoringTables (props) {
     };
 
     const [ewi_message, setEWIMessage] = useState("");
-    const [releaseId, setReleaseId] = useState("");
-    const [siteCode, setSiteCode] = useState("");
-    const handleSMSRelease = (release_id, site_code) => {
-        setSiteCode(site_code);
+    const smsHandler = release => elem_event => {
+        setChosenReleaseDetail(release);
 
+        const { release_id } = release;
         getEWIMessage(release_id, data => {
             setEWIMessage(data);
-            setSiteCode(site_code);
-            setReleaseId(release_id);
             toggleSendEWI();
         });
     };
 
-    const bulletinHandler = release => event => {
+    const bulletinHandler = release => elem_event => {
         setChosenReleaseDetail(release);
         setIsOpenBulletinModal(true);
     };
@@ -491,7 +491,7 @@ function MonitoringTables (props) {
                                         siteAlert={row}
                                         expanded={expanded}
                                         handleExpansion={handleExpansion}
-                                        handleSMSRelease={handleSMSRelease}
+                                        smsHandler={smsHandler}
                                         bulletinHandler={bulletinHandler}
                                         type="latest"
                                     />
@@ -524,7 +524,7 @@ function MonitoringTables (props) {
                                         siteAlert={row}
                                         expanded={expanded}
                                         handleExpansion={handleExpansion}
-                                        handleSMSRelease={handleSMSRelease}
+                                        smsHandler={smsHandler}
                                         index={index}
                                         bulletinHandler={bulletinHandler}
                                         type="extended"
@@ -558,7 +558,7 @@ function MonitoringTables (props) {
                                         siteAlert={row}
                                         expanded={expanded}
                                         handleExpansion={handleExpansion}
-                                        handleSMSRelease={handleSMSRelease}
+                                        smsHandler={smsHandler}
                                         index={index}
                                         bulletinHandler={bulletinHandler}
                                         type="overdue"
@@ -585,8 +585,7 @@ function MonitoringTables (props) {
                 modalStateHandler={toggleSendEWI} 
                 modalState={isShowingSendEWI}
                 textboxValue={ewi_message}
-                releaseId={releaseId}
-                siteCode={siteCode}
+                releaseDetail={chosenReleaseDetail}
             />
         </div>
     );

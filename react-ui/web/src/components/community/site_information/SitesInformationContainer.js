@@ -1,11 +1,11 @@
 import React, { 
     Fragment, useState, 
-    useEffect
+    useEffect, useContext
 } from "react";
 
 import {
     Card, CardContent, CardActionArea,
-    Grid, Typography
+    Grid, Typography, withWidth
 } from "@material-ui/core";
 import ContentLoader from "react-content-loader";
 
@@ -17,8 +17,7 @@ import PhilippineMap from "./PhilippineMap";
 
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
-import { prepareSiteAddress } from "../../../UtilityFunctions";
-import { getAllSites } from "../ajax";
+import { GeneralContext } from "../../contexts/GeneralContext";
 
 const useStyles = makeStyles(theme => {
     const general_styles = GeneralStyles(theme);
@@ -92,7 +91,6 @@ function prepareSiteMapData (sites, url, setSiteInformation) {
     });
 }
 
-
 function createSiteCards (sites, url, setSiteInformation) {
     return sites.map((site, index) => {
         // const { 
@@ -107,7 +105,11 @@ function createSiteCards (sites, url, setSiteInformation) {
 
         return (
             <Grid item xs={4} sm={3} lg={2} key={`card_grid_${index + 1}`}>
-                <Link to={`${url}/${site_code}`} style={{ textDecoration: "none", color: "black" }} onClick={ret => setSiteInformation(site)}>
+                <Link 
+                    to={`${url}/${site_code}`} 
+                    style={{ textDecoration: "none", color: "black" }} 
+                    onClick={ret => setSiteInformation(site)}
+                >
                     <Card className="alert-card">
                         {/* <CardActionArea onClick={handleClickOpen(index)}> */}
                         <CardActionArea>
@@ -130,28 +132,26 @@ function createSiteCards (sites, url, setSiteInformation) {
     });
 }
 
-
 function SitesInformationContainer (props) {
     const classes = useStyles();
     const {
         width, location,
-        match: { path, url }
+        match: { url }
     } = props;
 
-    const [siteInformation, setSiteInformation] = useState([]);
+    const { sites } = useContext(GeneralContext);
+
+    const [siteInformation, setSiteInformation] = useState(null);
     const [site_cards_list, setSiteCardsList] = useState(null);
     const [siteMapData, setSiteMapData] = useState(null);
 
     useEffect(() => {
-        getAllSites(null, ret => {
-            const site_cards = createSiteCards(ret, url, setSiteInformation);
-            setSiteCardsList(site_cards);
+        const site_cards = createSiteCards(sites, url, setSiteInformation);
+        setSiteCardsList(site_cards);
 
-            const site_map = prepareSiteMapData(ret, url, setSiteInformation);
-            setSiteMapData(site_map);
-        });  
-    }, []);
-
+        const site_map = prepareSiteMapData(sites, url, setSiteInformation);
+        setSiteMapData(site_map);
+    }, [sites]);
 
     return (
         <Fragment>
@@ -160,7 +160,6 @@ function SitesInformationContainer (props) {
                     title="Community | Site Information"
                 />
             </div>
-
 
             <div className={classes.pageContentMargin}>
                 <Switch location={location}>
@@ -177,7 +176,6 @@ function SitesInformationContainer (props) {
                                                 />                                                
                                             )
                                     }
-
                                 </Grid>
                                 <Grid item xs={12} sm={6} container spacing={1}>
                                     {
@@ -198,9 +196,8 @@ function SitesInformationContainer (props) {
                     />
                 </Switch>
             </div>
-
         </Fragment>
     );
 }
 
-export default (SitesInformationContainer);
+export default withWidth()(SitesInformationContainer);

@@ -69,7 +69,8 @@ function computeForStartTs (ts, duration = 7, unit = "days") {
     return ts_start;
 }
 
-function makePOSTAxiosRequest (api_link, callback = null, payload) {
+// eslint-disable-next-line max-params
+function makePOSTAxiosRequest (api_link, payload, callback = null, err = null) {
     axios.post(api_link, payload)
     .then((response) => {
         const { data } = response; 
@@ -79,6 +80,9 @@ function makePOSTAxiosRequest (api_link, callback = null, payload) {
     })
     .catch((error) => {
         console.log(error);
+        if (err !== null) {
+            err(error);
+        }
     });
 }
 

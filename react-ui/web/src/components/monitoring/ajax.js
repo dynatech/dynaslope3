@@ -11,7 +11,7 @@ export function getEOSDetails (event_id, shift_ts_end, callback) {
 
 export function getShiftData (input, callback) {
     const api_link = `${host}/api/shift_checker/get_shift_data`;
-    makePOSTAxiosRequest(input, api_link, callback);
+    makePOSTAxiosRequest(api_link, input, callback);
 }
 
 export function getEndOfShiftReports (input, callback) {
@@ -137,12 +137,12 @@ export function getSites (input, callback) {
 
 export function saveEOSDataAnalysis (json_data, callback) {
     const api_link = `${host}/api/end_of_shift/save_eos_data_analysis`;
-    makePOSTAxiosRequest(api_link, callback, json_data);
+    makePOSTAxiosRequest(api_link, json_data, callback);
 }
 
 export function downloadEosCharts (json_data, callback) {
     const api_link = `${host}/api/end_of_shift/download_eos_charts`;
-    makePOSTAxiosRequest(api_link, callback, json_data);
+    makePOSTAxiosRequest(api_link, json_data, callback);
 }
 
 export function getBulletinEmailDetails (release_id, callback) {

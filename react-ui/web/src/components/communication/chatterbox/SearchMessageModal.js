@@ -1,135 +1,157 @@
-import React, { Component } from "react";
+import React, {
+    useState, useEffect, useContext
+} from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withMobileDialog, Slide,
-    Fade, IconButton, withStyles
+    Button, withMobileDialog, IconButton,
+    makeStyles
 } from "@material-ui/core";
 import { Link } from "react-router-dom";
 import { Close } from "@material-ui/icons";
-import { compose } from "recompose";
 import SelectMultipleWithSuggest from "../../reusables/SelectMultipleWithSuggest";
-import {
-    sites as Sites,
-    organizations as Organizations
-} from "../../../store";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
+import { GeneralContext } from "../../contexts/GeneralContext";
+import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     link: { textDecoration: "none" }
-});
-
-const sites_option = Sites.map(site => ({
-    value: site.site_id,
-    label: site.site_code.toUpperCase(),
 }));
 
-const orgs_option = Organizations.map(org => ({
-    value: org,
-    label: org.toUpperCase(),
-}));
+// const sites_option = Sites.map(site => ({
+//     value: site.site_id,
+//     label: site.site_code.toUpperCase(),
+// }));
 
-class SearchMessageModal extends Component {
-    state = {
-        sites: null,
-        organizations: null
-    }
+// const orgs_option = Organizations.map(org => ({
+//     value: org,
+//     label: org.toUpperCase(),
+// }));
 
-    handleChange = name => value => {
-        this.setState({
-            [name]: value,
+function SearchMessageModal (props) {
+    const {
+        fullScreen, modalStateHandler,
+        modalState, url,
+        isMobile
+    } = props;
+    const classes = useStyles();
+
+    const {
+        organizations: orgs_list
+    } = useContext(GeneralContext);
+
+    const [org_options, setOrgOptions] = useState([]);
+    useEffect(() => {
+        const temp = orgs_list.map(row => {
+            let pre = "";
+            switch (row.scope) {
+                case 1:
+                    pre = "Barangay "; break;
+                case 2:
+                    pre = "Municipal "; break;
+                case 3:
+                    pre = "Provincial "; break;
+                case 4:
+                    pre = "Regional "; break;
+                case 5:
+                    pre = "National "; break;
+                default:
+                    break;
+            }
+
+            return {
+                value: row.org_id,
+                label: pre + row.name.toUpperCase()
+            };
         });
+        setOrgOptions(temp);
+    }, [orgs_list]);
+
+    const [sites, setSites] = useState([]);
+    const [organizations, setOrganizations] = useState([]);
+
+    const compound_fn = () => {
+        modalStateHandler();
     };
-    
 
-    render () {
-        const {
-            classes, fullScreen, modalStateHandler,
-            modalState, url, clickHandler,
-            isMobile
-        } = this.props;
-        const { sites, organizations } = this.state;
-        const compound_fn = () => {
-            modalStateHandler();
-            clickHandler();
-        };
+    const handleChange = name => value => {
+        if (name === "sites") {
+            setSites(value);
+        } else if (name === "organizations") {
+            setOrganizations(value);
+        }
+    };
 
-        return (
-            <Dialog
-                fullWidth
-                fullScreen={fullScreen}
-                open={modalState}
-                aria-labelledby="form-dialog-title"
-                TransitionComponent={fullScreen ? SlideTransition : FadeTransition}
-                    
-            >
-                <DialogTitle id="form-dialog-title">
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span>Search messages</span>
-                        <IconButton 
-                            color="inherit" 
-                            onClick={modalStateHandler}
-                            aria-label="Close"
-                            style={{ padding: 0 }}
-                        >
-                            <Close />
-                        </IconButton>
-                    </div>
-                </DialogTitle>
-                <DialogContent style={{ overflowY: "hidden" }}>
-                    <DialogContentText>
-                        Fill in the following 
-                    </DialogContentText>
-
-                    <div style={{ margin: "24px 0" }}>
-                        <SelectMultipleWithSuggest
-                            label="Organizations"
-                            options={orgs_option}
-                            value={organizations}
-                            changeHandler={this.handleChange("organizations")}
-                            placeholder="Select organizations"
-                            renderDropdownIndicator={false}
-                            openMenuOnClick
-                            isMulti
-                        />
-                    </div>
-                    
-                    <div style={{ margin: "24px 0" }}>
-                        <SelectMultipleWithSuggest
-                            label="Sites"
-                            options={sites_option}
-                            value={sites}
-                            changeHandler={this.handleChange("sites")}
-                            placeholder="Select sites"
-                            renderDropdownIndicator={false}
-                            openMenuOnClick
-                            isMulti
-                        />
-                    </div>
-
-                    {
-                        !isMobile && <div style={{ height: 240 }} />
-                    }
+    return (
+        <Dialog
+            fullWidth
+            fullScreen={fullScreen}
+            open={modalState}
+            aria-labelledby="form-dialog-title"
+            TransitionComponent={fullScreen ? SlideTransition : FadeTransition}
                 
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={compound_fn} color="primary">
-                        <Link to={{
-                            pathname: `${url}/search_results`,
-                            state: {
-                                sites, organizations
-                            }
-                        }} className={classes.link}>
+        >
+            <DialogTitle id="form-dialog-title">
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span>Search Chatterbox</span>
+                    <IconButton 
+                        color="inherit" 
+                        onClick={modalStateHandler}
+                        aria-label="Close"
+                        style={{ padding: 0 }}
+                    >
+                        <Close />
+                    </IconButton>
+                </div>
+            </DialogTitle>
+            <DialogContent style={{ overflowY: "hidden" }}>
+                <DialogContentText>
+                    Fill in the following 
+                </DialogContentText>
+
+                <div style={{ margin: "24px 0" }}>
+                    <SelectMultipleWithSuggest
+                        label="Organizations"
+                        options={org_options}
+                        value={organizations}
+                        changeHandler={handleChange("organizations")}
+                        placeholder="Select organizations"
+                        renderDropdownIndicator={false}
+                        openMenuOnClick
+                        isMulti
+                    />
+                </div>
+                
+                <div style={{ margin: "24px 0" }}>
+                    <DynaslopeSiteSelectInputForm
+                        value={sites}
+                        changeHandler={value => setSites(value)}
+                        isMulti
+                    />     
+                </div>
+
+                {
+                    !isMobile && <div style={{ height: 240 }} />
+                }
+            
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={compound_fn} color="primary">
+                    <Link to={{
+                        pathname: `${url}/search_results`,
+                        state: {
+                            sites, organizations
+                        }
+                    }} className={classes.link}>
                         Search
-                        </Link>
-                    </Button>
-                    <Button onClick={modalStateHandler}>
+                    </Link>
+                </Button>
+                <Button onClick={modalStateHandler}>
                     Cancel
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        );
-    }
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
 }
 
-export default compose(withStyles(styles), withMobileDialog())(SearchMessageModal);
+export default withMobileDialog()(SearchMessageModal);

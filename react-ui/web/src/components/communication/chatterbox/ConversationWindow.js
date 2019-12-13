@@ -177,8 +177,7 @@ function ConversationWindow (props) {
         classes, history,
         match: { params: { mobile_id } },
         location: { state: { async } },
-        messageCollection,
-        socket
+        messageCollection, socket
     } = props;
 
     const [conversation_details, setConversationDetails] = useState({
@@ -237,7 +236,9 @@ function ConversationWindow (props) {
             ]
         };
 
-        sendMessageToDB(data);
+        // change this to sendMessage function block
+        // on SendMessageForm.js
+        // sendMessageToDB(data);
     };
 
     const convo_end_ref = useRef(null);

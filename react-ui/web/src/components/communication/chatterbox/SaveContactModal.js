@@ -22,7 +22,6 @@ function prepareGeographicalList (data, category) {
     return list;
 }
 
-
 function SaveContactModal (props) {
     const {
         open, setSaveContactModal, mobileDetails

@@ -25,19 +25,46 @@ from src.models.analysis import MarkerObservations, MarkerObservationsSchema
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 
 
-def get_all_contacts(return_schema=False):
+def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None):
+    """
+    """
+
+    base_query = UserMobiles.query.join(Users) \
+        .options(
+            joinedload("user").subqueryload("organizations")
+            .joinedload("site").raiseload("*")) \
+        .order_by(Users.last_name, UserMobiles.priority)
+
+    if org_ids:
+        base_query = base_query.join(UserOrganizations) \
+            .filter(UserOrganizations.org_id.in_(org_ids))
+
+    if site_ids:
+        if org_ids:
+            base_query = base_query.join(Sites)
+        else:
+            base_query = base_query.join(UserOrganizations) \
+                .join(Sites)
+
+        base_query = base_query.filter(Sites.site_id.in_(site_ids))
+
+    mobile_numbers = base_query.all()
+
+    if return_schema:
+        mobile_numbers = UserMobilesSchema(many=True).dump(mobile_numbers).data
+
+    return mobile_numbers
+
+
+def get_all_contacts(return_schema=False, site_ids=None, org_ids=None):
     """
     Function that get all contacts
     """
 
-    mobile_numbers = UserMobiles.query.join(Users).options(
-        joinedload("user").subqueryload("organizations")
-        .joinedload("site").raiseload("*")
-    ).order_by(Users.last_name, UserMobiles.priority).all()
+    mobile_numbers = []
 
     if return_schema:
-        numbers_schema = UserMobilesSchema(many=True).dump(mobile_numbers).data
-
+        numbers_schema = get_mobile_numbers(return_schema, site_ids, org_ids)
         users_id = {}
         mobile_numbers = []
         for num in numbers_schema:
@@ -63,7 +90,10 @@ def get_all_contacts(return_schema=False):
     return mobile_numbers
 
 
-def get_contacts_per_site(site_ids=None, site_codes=None, only_ewi_recipients=True, alert_level=0):
+def get_contacts_per_site(site_ids=None,
+                          site_codes=None, only_ewi_recipients=True,
+                          alert_level=0, org_ids=None,
+                          return_schema_format=True):
     """
     Function that get contacts per site
     """
@@ -84,6 +114,11 @@ def get_contacts_per_site(site_ids=None, site_codes=None, only_ewi_recipients=Tr
     if site_codes:
         query = query.filter(Sites.site_code.in_(site_codes))
 
+    if org_ids:
+        query = query.join(UserOrganizations).filter(
+            UserOrganizations.org_id.in_(org_ids)
+        )
+
     if only_ewi_recipients:
         query = query.filter(Users.ewi_recipient == 1)
 
@@ -93,10 +128,12 @@ def get_contacts_per_site(site_ids=None, site_codes=None, only_ewi_recipients=Tr
             uer.user_id.is_(None), uer.alert_level < alert_level
         ))
 
-    user_per_site_query = query.all()
-    user_per_site_result = UsersRelationshipSchema(
-        many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]) \
-        .dump(user_per_site_query).data
+    user_per_site_result = query.all()
+
+    if return_schema_format:
+        user_per_site_result = UsersRelationshipSchema(
+            many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]) \
+            .dump(user_per_site_result).data
 
     return user_per_site_result
 
@@ -115,7 +152,7 @@ def get_ewi_recipients(site_ids=None, site_codes=None, alert_level=0):
             DB.subqueryload("organizations").joinedload(
                 "organization", innerjoin=True),
             DB.raiseload("*")
-        ).filter(Users.ewi_recipient == 1)
+    ).filter(Users.ewi_recipient == 1)
 
     if site_ids:
         query = query.filter(Sites.site_id.in_(site_ids))
@@ -132,7 +169,7 @@ def get_ewi_recipients(site_ids=None, site_codes=None, alert_level=0):
     user_per_site_query = query.all()
     user_per_site_result = UsersRelationshipSchema(
         many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]
-        ).dump(user_per_site_query).data
+    ).dump(user_per_site_query).data
 
     return user_per_site_result
 
@@ -229,7 +266,6 @@ def save_user_contact_numbers(data, user_id):
                     insert_user_mobile = UserMobiles(
                         user_id=user_id, mobile_id=mobile_id, status=status)
                     DB.session.add(insert_user_mobile)
-
 
     if landline_number_len > 0:
         for row in landline_numbers:
@@ -440,7 +476,8 @@ def remove_sites_with_ground_meas(
 
     if routine_reminder_time < current_datetime < end_time:
         if routine_site_ids or extended_site_ids:
-            run_down_ts = routine_reminder_time - timedelta(hours=4, minutes=30)
+            run_down_ts = routine_reminder_time - \
+                timedelta(hours=4, minutes=30)
             mo_result = MarkerObservations.query.filter(
                 MarkerObservations.ts.between(run_down_ts, routine_reminder_time)).all()
 
@@ -450,7 +487,8 @@ def remove_sites_with_ground_meas(
                 extended_site_ids.remove(site_id)
 
         if event_site_ids:
-            run_down_ts = routine_reminder_time - timedelta(hours=1, minutes=30)
+            run_down_ts = routine_reminder_time - \
+                timedelta(hours=1, minutes=30)
             mo_result = MarkerObservations.query.filter(
                 MarkerObservations.ts.between(run_down_ts, routine_reminder_time)).all()
 
@@ -470,7 +508,8 @@ def remove_sites_with_ground_meas(
         one_thirty_end_time = datetime(year, month, day, 13, 35)
 
         if one_thirty_reminder_time < current_datetime < one_thirty_end_time:
-            run_down_ts = one_thirty_reminder_time - timedelta(hours=1, minutes=30)
+            run_down_ts = one_thirty_reminder_time - \
+                timedelta(hours=1, minutes=30)
             mo_result = MarkerObservations.query.filter(
                 MarkerObservations.ts.between(run_down_ts, one_thirty_reminder_time)).all()
 
@@ -488,6 +527,7 @@ def remove_sites_with_ground_meas(
 
     return final_site_ids
 
+
 def get_all_recipient_per_site(site_recipients):
     """
     Function that get recipient per site
@@ -504,13 +544,13 @@ def get_all_recipient_per_site(site_recipients):
                 DB.subqueryload("organizations").joinedload(
                     "organization", innerjoin=True),
                 DB.raiseload("*")
-            ).filter(
+        ).filter(
                 Users.ewi_recipient == 1, Sites.site_id.in_(site_ids),
                 UserOrganizations.org_id == 1
-            ).all()
+        ).all()
         user_per_site_result = UsersRelationshipSchema(
             many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]
-            ).dump(user_per_site_query).data
+        ).dump(user_per_site_query).data
         feedback.append(
             {"type": row["type"], "recipients": user_per_site_result})
 
@@ -528,5 +568,5 @@ def get_site_ids(site_codes):
         site_id = row["site_id"]
         if site_id not in site_ids:
             site_ids.append(site_id)
-            
+
     return site_ids

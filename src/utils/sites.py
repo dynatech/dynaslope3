@@ -4,15 +4,18 @@ Contains functions for getting and accesing Sites table only
 """
 
 from connection import DB
-from src.models.sites import Sites
+from src.models.sites import Sites, SitesSchema
 
 
-def get_sites_data(site_code=None, include_inactive=False):
+def get_sites_data(site_code=None, include_inactive=False, raise_load=False):
     """
     Function that gets basic site data by site code
     """
 
-    final_query = DB.session.query(Sites)
+    final_query = Sites.query
+
+    if raise_load:
+        final_query = final_query.options(DB.raiseload("*"))
 
     if site_code is None:
         if not include_inactive:
@@ -76,3 +79,34 @@ def build_site_address(site_info):
     address += f"Brgy. {site_info.barangay}, {site_info.municipality}, {site_info.province}"
 
     return address
+
+
+def get_site_season(site_code=None, site_id=None, return_schema_format=True):
+    """
+    """
+
+    query = Sites.query.options(
+        DB.joinedload("season_months", innerjoin=True)
+        .subqueryload("routine_schedules"),
+        DB.raiseload("*")
+    )
+
+    is_many = True
+    if site_code or site_id:
+        is_many = False
+
+        if site_code:
+            query = query.filter_by(site_code=site_code)
+
+        if site_id:
+            query = query.filter_by(site_id=site_id)
+
+        result = query.first()
+    else:
+        result = query.all()
+
+    if return_schema_format:
+        schema = SitesSchema(many=is_many, include=["season_months"])
+        result = schema.dump(result).data
+
+    return result
