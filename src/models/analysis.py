@@ -14,6 +14,25 @@ from src.models.users import UsersSchema
 # Start of Class Declarations #
 ###############################
 
+class TemporaryInsertHolder(DB.Model):
+    """
+    Class representation of site_markers table
+    """
+    __tablename__ = "temp_insert_holder"
+    __bind_key__ = "analysis_db"
+    __table_args__ = {"schema": "analysis_db"}
+
+    tih_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    ts = DB.Column(DB.DateTime)
+    class_name = DB.Column(DB.String(40))
+    row_id = DB.Column(DB.Integer)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> tih_id: {self.tih_id}"
+                f" ts: {self.ts} class_name: {self.class_name}"
+                f" row_id: {self.row_id}")
+
+
 class SiteMarkers(DB.Model):
     """
     Class representation of site_markers table

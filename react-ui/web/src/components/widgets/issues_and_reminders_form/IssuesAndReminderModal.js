@@ -46,19 +46,6 @@ function IssuesAndReminderModal (props) {
         }
     }, [isOpen, chosenIssueReminder]);
 
-    // useEffect(() => {
-    //     setIssueReminderData(chosenIssueReminder);
-    //     // if (!(Object.entries(chosenIssueReminder).length === 0 && chosenIssueReminder.constructor === Object)) {
-    //     //     console.log("PUMASOK KING INA");
-    //     //     setIssueReminderData({
-    //     //         ...issue_reminder_data,
-    //     //         ...chosenIssueReminder
-    //     //     });
-    //     // } else {
-    //     //     handleReset();
-    //     // }
-    // }, [chosenIssueReminder]); 
-
     const closeHandler = () => setIsOpenIssueReminderModal(false);
 
     const handleSubmit = () => {

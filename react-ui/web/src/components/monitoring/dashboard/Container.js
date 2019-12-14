@@ -10,6 +10,7 @@ import TabBar from "../../reusables/TabBar";
 import MonitoringTables from "./MonitoringTables";
 import GeneratedAlerts from "./GeneratedAlerts";
 import AlertReleaseFormModal from "../../widgets/alert_release_form/AlertReleaseFormModal";
+import RoutineReleaseFormModal from "../../widgets/alert_release_form/RoutineReleaseFormModal";
 import IssuesAndRemindersList from "../../widgets/issues_and_reminders_form/IssuesAndRemindersList";
 import CircularAddButton from "../../reusables/CircularAddButton";
 import GeneralStyles from "../../../GeneralStyles";
@@ -46,6 +47,7 @@ function Container (props) {
     const [candidateAlertsData, setCandidateAlertsData] = useState(null);
     const [alertsFromDbData, setAlertsFromDbData] = useState(null);
     const [isOpenReleaseModal, setIsOpenReleaseModal] = useState(false);
+    const [isOpenRoutineModal, setIsOpenRoutineModal] = useState(false);
     const [chosenCandidateAlert, setChosenCandidateAlert] = useState(null);
 
     const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
@@ -76,11 +78,17 @@ function Container (props) {
             setIsUpdateNeeded(!bool);
             setIsOpenIssueReminderModal(bool);
         }
+        else if (data === "is_routine_modal_open") setIsOpenRoutineModal(bool);
     };
 
     const releaseAlertHandler = chosen_candidate => () => {
         setChosenCandidateAlert(chosen_candidate);
         handleBoolean("is_open_release_modal", true)();
+    };
+
+    const routineReleaseHandler = chosen_candidate => () => {
+        setChosenCandidateAlert(chosen_candidate);
+        handleBoolean("is_routine_modal_open", true)();
     };
 
     const is_desktop = isWidthUp("md", width);
@@ -163,6 +171,14 @@ function Container (props) {
                 setChosenCandidateAlert={setChosenCandidateAlert}
                 chosenCandidateAlert={chosenCandidateAlert}
                 alertsFromDbData={alertsFromDbData}
+                setIsOpenRoutineModal={routineReleaseHandler(null)}
+            />
+
+            <RoutineReleaseFormModal
+                isOpen={isOpenRoutineModal}
+                closeHandler={handleBoolean("is_routine_modal_open", false)}
+                chosenCandidateAlert={chosenCandidateAlert}
+                setChosenCandidateAlert={setChosenCandidateAlert}
             />
 
             <MomsInsertModal
@@ -171,6 +187,7 @@ function Container (props) {
                 // snackbarHandler={set_snackbar_notif_fn(true)}
                 // width={width}
             />
+
         </Fragment>
     );
 

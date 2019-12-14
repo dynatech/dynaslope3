@@ -11,9 +11,43 @@ import pprint
 import time as time_t
 from datetime import datetime, timedelta, time
 from connection import MEMORY_CLIENT
+from src.models.analysis import (
+    TemporaryInsertHolder
+)
 from src.models.monitoring import (
     PublicAlertSymbols as pas, OperationalTriggerSymbols as ots,
     InternalAlertSymbols as ias, TriggerHierarchies as th)
+
+
+def test_truncator(class_name=None, date=None):
+    """
+    Returns number of rows deleted. Provide at least one
+
+    Args:
+        class_name (String) - 
+        date (Datetime) -
+    """
+    tih = TemporaryInsertHolder
+    base = tih.query
+
+    if class_name or date:
+        add_on = ""
+        date_add_on = ""
+        if class_name:
+            base = base.filter(tih.class_name == class_name)
+            add_on = f" {class_name}"
+        if date:
+            base = base.filter(tih.date >= date)
+            f_date = datetime.strftime(date, "%Y-%m-%d %H:%M:%S")
+            date_add_on = f" {f_date}"
+
+        rows_deleted = base.delete()
+        response = f"Deleted {rows_deleted} rows{add_on}{date_add_on}."
+        
+    else:
+        raise Exception("YOU CAN NEVER USE THIS UTIL IF YOU DO NOT PROVIDE AT LEAST ONE OF THE PARAMS")
+
+    return response
 
 
 def set_data_to_memcache(name, data):
