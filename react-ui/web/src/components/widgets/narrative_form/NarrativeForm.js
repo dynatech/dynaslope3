@@ -70,7 +70,6 @@ function NarrativeForm (props) {
 
     useEffect(() => {
         if (narrative_id !== "") {
-            console.log("site list before shit", site_list); 
             const site_id = site_list[0];
             const site = sites_option.filter((number) => number.value === site_id);
             console.log(site);

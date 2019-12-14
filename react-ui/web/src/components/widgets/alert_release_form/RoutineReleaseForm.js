@@ -1,21 +1,22 @@
-import React, { Fragment, useEffect, useState } from "react";
-import moment from "moment";
+import React, { useState, useEffect } from "react";
 import MomentUtils from "@date-io/moment";
 import {
-    TextField, Grid,
-    FormControl, FormLabel, Switch,
-    Divider, makeStyles
+    Grid, Divider, makeStyles
 } from "@material-ui/core";
 import {
     MuiPickersUtilsProvider,
     KeyboardDateTimePicker, KeyboardTimePicker
 } from "@material-ui/pickers";
+import List from "@material-ui/core/List";
+import Card from "@material-ui/core/Card";
+import CardHeader from "@material-ui/core/CardHeader";
+import ListItem from "@material-ui/core/ListItem";
+import ListItemText from "@material-ui/core/ListItemText";
+import ListItemIcon from "@material-ui/core/ListItemIcon";
+import Checkbox from "@material-ui/core/Checkbox";
+import Button from "@material-ui/core/Button";
 
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
-import DynaslopeSiteCheckboxGroupForm from "../../reusables/DynaslopeSiteCheckboxGroupForm";
-import CheckboxesGroup from "../../reusables/CheckboxGroup";
-import { getInternalAlertLevel } from "./ajax";
-import { getCurrentUser } from "../../sessions/auth";
 import { CTContext } from "../../monitoring/dashboard/CTContext";
 
 
@@ -35,64 +36,160 @@ const useStyles = makeStyles(theme => ({
         }
     },
     root: {
-        width: "90%",
-    }
+        margin: "auto",
+    },
+    cardHeader: {
+        padding: theme.spacing(1, 2),
+    },
+    list: {
+        width: 200,
+        height: 230,
+        backgroundColor: theme.palette.background.paper,
+        overflow: "auto",
+    },
+    button: {
+        margin: theme.spacing(0.5, 0),
+    },
 }));
 
 
+function not (a, b) {
+    return a.filter(row => !b.some(x => x.value === row.value));
+}
+  
+function intersection (a, b) {
+    return a.filter(row => b.some(x => x.value === row.value));
+}
+  
+function union (a, b) {
+    return [...a, ...not(b, a)];
+}
+
 function RoutineReleaseForm (comp_props) {
     const {
-        routineData, setRoutineData, routineSitesList,
-        setRoutineSitesList
+        routineData, setRoutineData,
+        a0SiteList, setA0SiteList,
+        NDSiteList, setNDSiteList
     } = comp_props;
 
     const classes = useStyles();
-    const props = { classes, ...comp_props };
-    const [cbox_options, setCboxOptions] = useState(null);
+    const { reporter_id_ct } = React.useContext(CTContext);
 
-    console.log("routineSitesList", routineSitesList);
+    const [form_data_ts, setFormDataTs] = useState(null);
+    const [form_release_time, setFormReleaseTime] = useState(null);
+    const [dataTimestamp, setDataTimestamp] = useState(null);
 
-    let a0_data = [];
-    let nd_data = [];
-    routineSitesList.forEach(element => {
-        const { internal_alert_level, checked_sites, given_sites } = element;
-        // SAME VALUES SO THE SITES SELECTED BY CANDIDATE GENERATOR IS CHECKED AND ENABLED BY DEFAULT.
-        const temp = { checked_sites, given_sites };
-        
-        if (internal_alert_level === "A0") a0_data = temp;
-        else if (internal_alert_level === "ND") nd_data = temp;
-    });
+    useEffect(() => {
+        setFormDataTs(routineData.data_timestamp);
+        setFormReleaseTime(routineData.release_time);
+    }, [routineData]);
 
-    const { data_timestamp, release_time, reporter_id_ct, reporter_id_mt } = routineData;
+    console.log("form_data_ts", form_data_ts);
 
-    const changeState = (key, value) => {
-        setRoutineData({ ...routineData, [key]: value });
-    };
+    const { reporter_id_mt } = routineData;
 
     const handleDateTime = key => value => {
-        changeState(key, value);
+        const temp = { ...routineData, [key]: value };
+        setDataTimestamp(value);
+        setRoutineData(temp);
     };
 
-    const handleEventChange = key => event => {
-        const { value } = event.target;
-        changeState(key, value);
-    };
+    const [checked, setChecked] = React.useState([]);
 
-    const handleCheckboxEvent = key => value => event => {
-        const { target: { checked } } = event;
-        console.log(`checked ${key} site ${value}`);
-        console.log("value", value);
-        if (key === "a0") {
-            console.log("do on a0");
-            // if ()
-        } else if (key === "nd") {
-            console.log("do on nd");
+    const leftChecked = intersection(checked, a0SiteList.site_id_list);
+    const rightChecked = intersection(checked, NDSiteList.site_id_list);
+
+    const handleToggle = (value, list) => () => {
+        const currentIndex = checked.findIndex(row => row.value === value);
+        const newChecked = [...checked];
+
+        if (currentIndex === -1) {
+            const site = list.find(row => row.value === value);
+            newChecked.push(site);
+        } else {
+            newChecked.splice(currentIndex, 1);
         }
-        // setNoDataCheckBox({ ...checkboxStatus, [value]: checked });
+
+        setChecked(newChecked);
     };
 
-    console.log("a0_data", a0_data);
-    console.log("nd_data", nd_data);
+    const numberOfChecked = items => intersection(checked, items).length;
+
+    const handleToggleAll = items => () => {
+        if (numberOfChecked(items) === items.length) {
+            setChecked(not(checked, items));
+        } else {
+            setChecked(union(checked, items));
+        }
+    };
+
+    const handleCheckedRight = () => {
+        setNDSiteList({
+            ...NDSiteList,
+            site_id_list: NDSiteList.site_id_list.concat(leftChecked)
+        });
+        setA0SiteList({
+            ...a0SiteList,
+            site_id_list: not(a0SiteList.site_id_list, leftChecked)
+        });
+        setChecked(not(checked, leftChecked));
+    };
+
+    const handleCheckedLeft = () => {
+        setA0SiteList({
+            ...a0SiteList,
+            site_id_list: a0SiteList.site_id_list.concat(rightChecked)
+        });
+        setNDSiteList({
+            ...NDSiteList,
+            site_id_list: not(NDSiteList.site_id_list, rightChecked)
+        });
+        setChecked(not(checked, rightChecked));
+    };
+
+    const customList = (title, items) => {
+        const { site_id_list } = items;
+        return (
+            <Card>
+                <CardHeader
+                    className={classes.cardHeader}
+                    avatar={
+                        <Checkbox
+                            onClick={handleToggleAll(site_id_list)}
+                            checked={numberOfChecked(site_id_list) === site_id_list.length && site_id_list.length !== 0}
+                            indeterminate={numberOfChecked(site_id_list) !== site_id_list.length && numberOfChecked(site_id_list) !== 0}
+                            disabled={site_id_list.length === 0}
+                            inputProps={{ "aria-label": "all site_id_list selected" }}
+                        />
+                    }
+                    title={title}
+                    subheader={`${numberOfChecked(site_id_list)}/${site_id_list.length} selected`}
+                />
+                <Divider />
+                <List className={classes.list} dense component="div" role="list">
+                    {site_id_list.map(value => {
+                        const { value: site_id, label } = value;
+                        const labelId = `transfer-list-all-item-${site_id}-label`;
+
+                        return (
+                            <ListItem key={site_id} role="listitem" button onClick={handleToggle(site_id, site_id_list)}>
+                                <ListItemIcon>
+                                    <Checkbox
+                                        checked={checked.some(row => row.value === site_id)}
+                                        tabIndex={-1}
+                                        disableRipple
+                                        inputProps={{ "aria-labelledby": labelId }}
+                                    />
+                                </ListItemIcon>
+                                <ListItemText id={labelId} primary={label} />
+                            </ListItem>
+                        );
+                    })}
+                    <ListItem />
+                </List>
+            </Card>
+        );
+    };
 
     return (
         <MuiPickersUtilsProvider utils={MomentUtils}>
@@ -108,12 +205,12 @@ function RoutineReleaseForm (comp_props) {
                         required
                         autoOk
                         label="Data timestamp"
-                        value={data_timestamp}
-                        onChange={handleDateTime("dataTimestamp")}
+                        value={dataTimestamp}
+                        onChange={handleDateTime("data_timestamp")}
                         ampm={false}
-                        placeholder="2010-01-01 00:00"
+                        placeholder="2010/01/01 00:00"
                         format="YYYY/MM/DD HH:mm"
-                        mask="____-__-__ __:__"
+                        mask="____/__/__ __:__"
                         clearable
                         disableFuture
                     />
@@ -127,37 +224,40 @@ function RoutineReleaseForm (comp_props) {
                         label="Time of release"
                         mask="__:__"
                         placeholder="00:00"
-                        value={release_time}
-                        onChange={handleDateTime("releaseTime")}
+                        value={form_release_time}
+                        onChange={handleDateTime("release_time")}
                         clearable
                     />
                 </Grid>
 
-                {
-                    a0_data !== null && (
-                        <Grid 
-                            item xs={12} container
-                            spacing={1} justify="space-evenly"
-                        >
-                            <DynaslopeSiteCheckboxGroupForm
-                                label="A0 Routine Sites"
-                                values={a0_data}
-                                handleCheckboxEvent={handleCheckboxEvent("a0")}
-                            />
-                        </Grid> 
-                    )
-                }
-
-
-                <Grid 
-                    item xs={12} container
-                    spacing={1} justify="space-around"
-                >
-                    <DynaslopeSiteCheckboxGroupForm
-                        label="ND Routine Sites"
-                        values={nd_data}
-                        handleCheckboxEvent={handleCheckboxEvent("nd")}
-                    />
+                {/* TRANSFER LIST GOES HERE */}
+                <Grid container spacing={2} justify="center" alignItems="center" className={classes.root}>
+                    <Grid item>{customList("A0 Sites", a0SiteList)}</Grid>
+                    <Grid item>
+                        <Grid container direction="column" alignItems="center">
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                className={classes.button}
+                                onClick={handleCheckedRight}
+                                disabled={leftChecked.length === 0}
+                                aria-label="move selected NDSiteList"
+                            >
+                                &gt;
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                className={classes.button}
+                                onClick={handleCheckedLeft}
+                                disabled={rightChecked.length === 0}
+                                aria-label="move selected a0SiteList"
+                            >
+                                &lt;
+                            </Button>
+                        </Grid>
+                    </Grid>
+                    <Grid item>{customList("ND Sites", NDSiteList)}</Grid>
                 </Grid>
 
                 <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
@@ -165,10 +265,8 @@ function RoutineReleaseForm (comp_props) {
                         variant="standard"
                         label="MT Personnel"
                         div_id="reporter_id_mt"
-                        changeHandler={handleEventChange("reporter_id_mt")}
                         value={reporter_id_mt}
                         disabled
-                        // returnFullNameCallback={ret => setMTFullName(ret)}
                     />
                 </Grid>
 
@@ -177,10 +275,8 @@ function RoutineReleaseForm (comp_props) {
                         variant="standard"
                         label="CT Personnel"
                         div_id="reporter_id_ct"
-                        changeHandler={handleEventChange("reporter_id_ct")}
                         value={reporter_id_ct}
                         disabled
-                        // returnFullNameCallback={ret => setCTFullName(ret)}
                     />
                 </Grid>
             </Grid>

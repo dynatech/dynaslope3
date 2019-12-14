@@ -177,8 +177,6 @@ function MomsForm (props) {
         siteCode, site, setSite
     } = props;
 
-    console.log("SITE CODE SA MOMS_FORM", siteCode);
-
     const [isAddingNewInstance, setIsAddingNewInstance] = useState(false);
     // const [site, setSite] = useState("");
 
