@@ -7,16 +7,10 @@ import PhivolcsLetterFooter from "../../../images/phivolcs-letter-footer.png";
 import { getBulletinDetails } from "./ajax";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 
-const useStyle = (releaseId) => makeStyles(theme => {
+const useStyle = releaseId => makeStyles(theme => {
     let temp;
     if (typeof releaseId === "undefined") {
         temp = {
-            root: {
-                // width: 1240, // 1240, // 2480 // 595,
-                // height: 1753, // 150dpi - 1753, // 300dpi - 3508, // 72dpi - 842,
-                // backgroundColor: "antiquewhite",
-                // border: "0.5px solid black"
-            },
             letterHeadContainer: {
                 width: "inherit",
                 height: "auto",
@@ -38,8 +32,6 @@ const useStyle = (releaseId) => makeStyles(theme => {
                 [theme.breakpoints.up("lg")]: {
                     marginTop: "66.6656px",
                 }
-                // position: "absolute", 
-                // bottom: 0
             },
             phivolcsLetterHead: {
                 maxWidth: "100%",
@@ -123,19 +115,13 @@ const useStyle = (releaseId) => makeStyles(theme => {
         };
     } else {
         temp = {
-            root: {
-                // width: 1240, // 1240, // 2480 // 595,
-                // height: 1753, // 150dpi - 1753, // 300dpi - 3508, // 72dpi - 842,
-                // backgroundColor: "antiquewhite",
-                // border: "0.5px solid black"
-            },
             letterHeadContainer: {
                 width: "inherit",
                 height: "auto",
                 boxSizing: "border-box",
                 padding: "7px 11px",
                 [theme.breakpoints.only("md")]: {
-                    padding: "14.5831px 22.9163px",
+                    padding: "20px 22.9163px",
                 },
                 [theme.breakpoints.up("lg")]: {
                     padding: "29.1662px 45.8326px",
@@ -150,8 +136,6 @@ const useStyle = (releaseId) => makeStyles(theme => {
                 [theme.breakpoints.up("lg")]: {
                     marginTop: "16.6664px",
                 }
-                // position: "absolute", 
-                // bottom: 0
             },
             phivolcsLetterHead: {
                 maxWidth: "100%",
@@ -175,8 +159,10 @@ const useStyle = (releaseId) => makeStyles(theme => {
                 marginBottom: 4,
                 fontSize: "0.65625rem",
                 [theme.breakpoints.only("md")]: {
-                    marginBottom: 8.3332,
-                    fontSize: "0.91144375rem"
+                    // marginBottom: 8.3332,
+                    // fontSize: "0.91144375rem"
+                    marginBottom: 16,
+                    fontSize: "1.45rem",
                 },
                 [theme.breakpoints.up("lg")]: {
                     marginBottom: 33.3328,
@@ -190,9 +176,9 @@ const useStyle = (releaseId) => makeStyles(theme => {
                 fontSize: "0.4875rem",
                 marginBottom: 3,
                 [theme.breakpoints.only("md")]: {
-                    padding: "4.1666px 6.2499px",
-                    fontSize: "0.6770725rem",
-                    marginBottom: 6.2499
+                    padding: "10px 16px",
+                    fontSize: "1rem",
+                    marginBottom: 12
                 },
                 [theme.breakpoints.up("lg")]: {
                     padding: "8.3332px 12.4998px",
@@ -203,7 +189,7 @@ const useStyle = (releaseId) => makeStyles(theme => {
             sectionHeader: {
                 fontSize: "0.525rem",
                 [theme.breakpoints.only("md")]: {
-                    fontSize: "0.729155rem"
+                    fontSize: "1.2rem"
                 },
                 [theme.breakpoints.up("lg")]: {
                     fontSize: "1.0937325rem"
@@ -212,7 +198,7 @@ const useStyle = (releaseId) => makeStyles(theme => {
             sectionDetails: {
                 fontSize: "0.4875rem",
                 [theme.breakpoints.only("md")]: {
-                    fontSize: "0.6770725rem"
+                    fontSize: "1rem"
                 },
                 [theme.breakpoints.up("lg")]: {
                     fontSize: "1.01560875rem"
@@ -310,10 +296,7 @@ function BulletinTemplate (props) {
     const classes = useStyle(releaseId)();
     const [excess_divs, setExcessDivs] = useState([]);
     const [is_bulletin_ready, setIsBulletinReady] = useState(false);
-    // const [classes, setClasses] = useState(useStyle());
-    // if (typeof releaseId !== "undefined") {
-    //     setClasses(useStyleForModal());
-    // }
+
     const [is_loaded, setIsLoaded] = useState(false);
     const content_body = useRef(null);
     const [bulletin_detail, setBulletinDetails] = useState({

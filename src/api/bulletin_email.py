@@ -127,6 +127,7 @@ def get_bulletin_email_details(release_id):
     # PERPARE THE NARRATIVE
 
     # Get MT Publisher
+    # TODO: Try to change this to the person who sent the bulletin
     release_publishers = bulletin_release_data.release_publishers
     ct_reporter = next(filter(lambda reporter: reporter.role
                               == 'ct', release_publishers)).user_details

@@ -21,7 +21,10 @@ import {
 
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
-import { subscribeToWebSocket } from "../../../websocket/communications_ws";
+import {
+    subscribeToWebSocket, receiveAllContacts,
+    removeReceiveAllContacts
+} from "../../../websocket/communications_ws";
 import { getUserOrganizations, prepareSiteAddress } from "../../../UtilityFunctions";
 import ContactList from "./ContactList";
 import { SlideTransition } from "../../reusables/TransitionList";
@@ -346,7 +349,7 @@ function Container (props) {
     const [regions, setRegions] = useState([]);
 
     const onContactClickFn = React.useCallback(row => () => {
-        console.log(row)
+        console.log(row);
         setChosenContact(row);
         setSlideOpen(true);
     }, []);
@@ -363,20 +366,24 @@ function Container (props) {
     };
 
     useEffect(() => {
-        subscribeToWebSocket((data) => {
+        subscribeToWebSocket("contacts");
+
+        receiveAllContacts(data => {
             setContacts(data);
             if (data.length > 0) setChosenContact(data[0]);
             setContactsArray(data);
-        }, "contacts");
+        });
+
+        return () => removeReceiveAllContacts();
     }, []);
 
-    useEffect(() => {
-        getListOfMunicipalities(data => {
-            setMunicipalities(prepareGeographicalList(data, "municipality"));
-            setProvinces(prepareGeographicalList(data, "province"));
-            setRegions(prepareGeographicalList(data, "region"));
-        });
-    }, []);
+    // useEffect(() => {
+    //     getListOfMunicipalities(data => {
+    //         setMunicipalities(prepareGeographicalList(data, "municipality"));
+    //         setProvinces(prepareGeographicalList(data, "province"));
+    //         setRegions(prepareGeographicalList(data, "region"));
+    //     });
+    // }, []);
 
     useEffect(() => {
         const filtered = contacts.filter(row => {

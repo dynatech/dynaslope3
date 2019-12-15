@@ -53,6 +53,7 @@ function SendEwiSmsMessageModal (props) {
                         siteCode={site_code}
                         fromEWIModal
                         updateSentStatusObj={releaseDetail}
+                        modalStateHandler={modalStateHandler}
                     />
                 </div>
             </DialogContent>

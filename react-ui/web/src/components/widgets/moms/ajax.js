@@ -2,7 +2,7 @@ import axios from "axios";
 import { host } from "../../../config";
 
 
-export function insertMomsToDB (moms_list, callback) {
+export function insertMomsToDB (moms_list, callback, err_callback) {
     const api_link = `${host}/api/manifestations_of_movement/write_monitoring_moms_to_db`;
 
     console.log("moms_list", moms_list);
@@ -17,6 +17,9 @@ export function insertMomsToDB (moms_list, callback) {
     })
     .catch((error) => {
         console.log(error);
+        if (err_callback !== null) {
+            err_callback(error);
+        }
     });
 }
 

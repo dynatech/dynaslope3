@@ -40,13 +40,13 @@ def wrap_write_monitoring_moms_to_db(internal_json=None):
         for moms_obs in moms_list:
             write_monitoring_moms_to_db(moms_details=moms_obs, site_id=site_id)
 
-        # DB.session.commit()
-        DB.session.rollback()
+        DB.session.commit()
     except Exception as err:
+        print("YOWO", err)
         DB.session.rollback()
-        raise err
+        return jsonify({"status": False, "message": err})
 
-    return "success"
+    return jsonify({"status": True, "message": "success"})
 
 
 @MOMS_BLUEPRINT.route("/manifestations_of_movement/get_latest_alerts", methods=["GET"])

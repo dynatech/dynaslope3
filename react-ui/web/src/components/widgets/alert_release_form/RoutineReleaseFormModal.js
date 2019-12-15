@@ -76,7 +76,7 @@ function RoutineReleaseFormModal (props) {
     }, [sites]);
 
     useEffect(() => {
-        if (typeof chosenCandidateAlert !== "undefined" && chosenCandidateAlert !== null) {
+        if (typeof chosenCandidateAlert !== "undefined" && chosenCandidateAlert !== null && chosenCandidateAlert.general_status === "routine") {
             setRoutineData(chosenCandidateAlert);
             const { routine_details: rd } = chosenCandidateAlert;
             setA0SiteList(rd.filter(row => row.internal_alert_level === "A0"));

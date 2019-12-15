@@ -130,14 +130,14 @@ def formulate_surficial_tech_info(surficial_alert_detail):
     return surficial_tech_info
 
 
-def get_surficial_alerts(site_id, latest_trigger_ts):
+def get_surficial_alerts(site_id, latest_trigger_ts, alert_level):
     """
     Sample
     Note: Please revise this to accomodate the changes in relationships of MarkerAlerts
     """
     surficial_alerts_list = []
     surficial_alerts = ma.query.filter(
-        ma.ts == latest_trigger_ts, ma.alert_level > 0)
+        ma.ts == latest_trigger_ts, ma.alert_level == alert_level)
     for item in surficial_alerts.all():
         if item.marker.site_id == site_id:
             surficial_alerts_list.append(item)
@@ -149,24 +149,8 @@ def get_surficial_tech_info(surficial_alert_details):
     """
     g triggers or surficial triggers tech info
     """
-    g2_triggers = []
-    g3_triggers = []
-    surficial_tech_info = {}
-
-    for item in surficial_alert_details:
-        if item.alert_level == 2:
-            g2_triggers.append(item)
-
-        if item.alert_level == 3:
-            g3_triggers.append(item)
-
-        group_array = [g2_triggers, g3_triggers]
-        for index, group in enumerate(group_array):
-            if group:
-                tech_info = formulate_surficial_tech_info(group)
-                # NOTE: code below can be improved using maps
-                surficial_tech_info["g" + str(index + 2)] = tech_info
-
+    surficial_tech_info = formulate_surficial_tech_info(
+        surficial_alert_details)
     return surficial_tech_info
 
 
@@ -229,7 +213,7 @@ def get_rainfall_tech_info(rainfall_alert_details):
     return rain_tech_info
 
 
-def get_subsurface_node_alerts(site_id, start_ts, latest_trigger_ts):
+def get_subsurface_node_alerts(site_id, start_ts, latest_trigger_ts, alert_level):
     """
     Update: Returns a list of node alerts
     Returns list of sensors with its corresponding node alerts
@@ -240,7 +224,9 @@ def get_subsurface_node_alerts(site_id, start_ts, latest_trigger_ts):
 
         tsm_node_alerts = []
         for sensor in tsm_sensors:
-            sensor_node_alerts = sensor.node_alerts.order_by(DB.desc(na.na_id)).filter(
+            sensor_node_alerts = sensor.node_alerts.filter(
+                DB.or_(na.disp_alert == alert_level, na.vel_alert == 3)) \
+                .order_by(DB.desc(na.na_id)).filter(
                 start_ts <= na.ts, na.ts <= latest_trigger_ts).all()
             if sensor_node_alerts:  # If there are no node alerts on sensor, skip.
                 # If there is, remove duplicate node alerts. We only need the latest.
@@ -340,22 +326,23 @@ def get_subsurface_tech_info(subsurface_node_alerts):
     ####
     # NEW VERSION OF COMPARATOR AS ALTERNATIVE TO PANDAS DROP DUPLICATES
 
-    s2_triggers = []
-    s3_triggers = []
-    for node_alert in subsurface_node_alerts:  # Most like two only
-        if node_alert.disp_alert == 2 or node_alert.vel_alert == 2:
-            s2_triggers.append(node_alert)
-        if node_alert.disp_alert == 3 or node_alert.vel_alert == 3:
-            s3_triggers.append(node_alert)
+    # s2_triggers = []
+    # s3_triggers = []
+    # for node_alert in subsurface_node_alerts:  # Most like two only
+    #     if node_alert.disp_alert == 2 or node_alert.vel_alert == 2:
+    #         s2_triggers.append(node_alert)
+    #     if node_alert.disp_alert == 3 or node_alert.vel_alert == 3:
+    #         s3_triggers.append(node_alert)
 
-    subsurface_tech_info = {}
-    node_alert_group_list = [s2_triggers, s3_triggers]
-    for index, node_alert_group in enumerate(node_alert_group_list):
-        if node_alert_group:
-            tech_info = formulate_subsurface_tech_info(node_alert_group)
-            # Commented the following code because according to Senior SRS, only the string is needed.
-            # subsurface_tech_info["L" + str(index+2)] = tech_info
-            subsurface_tech_info = tech_info
+    subsurface_tech_info = formulate_subsurface_tech_info(
+        subsurface_node_alerts)
+    # node_alert_group_list = [s2_triggers, s3_triggers]
+    # for index, node_alert_group in enumerate(node_alert_group_list):
+    #     if node_alert_group:
+    #         tech_info = formulate_subsurface_tech_info(node_alert_group)
+    #         # Commented the following code because according to Senior SRS, only the string is needed.
+    #         # subsurface_tech_info["L" + str(index+2)] = tech_info
+    #         subsurface_tech_info = tech_info
 
     return subsurface_tech_info
 
@@ -374,12 +361,13 @@ def main(trigger, special_details=None):
     site_id = trigger.site_id
     latest_trigger_ts = trigger.ts_updated
     trigger_source = trigger.trigger_symbol.trigger_hierarchy.trigger_source
+    alert_level = trigger.trigger_symbol.alert_level
     start_ts = round_to_nearest_release_time(
         latest_trigger_ts) - timedelta(hours=release_interval)
 
     if trigger_source == 'subsurface':
         subsurface_node_alerts = get_subsurface_node_alerts(
-            site_id, start_ts, latest_trigger_ts)
+            site_id, start_ts, latest_trigger_ts, alert_level)
 
         technical_info = get_subsurface_tech_info(
             subsurface_node_alerts)
@@ -392,7 +380,7 @@ def main(trigger, special_details=None):
 
     elif trigger_source == 'surficial':
         surficial_alert_details = get_surficial_alerts(
-            site_id, latest_trigger_ts)
+            site_id, latest_trigger_ts, alert_level)
         technical_info = get_surficial_tech_info(
             surficial_alert_details)
 

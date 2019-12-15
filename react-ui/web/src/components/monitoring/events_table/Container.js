@@ -47,9 +47,15 @@ function prepareEventsArray (url, arr, sites_dict) {
             if (validity !== "" && validity !== null) final_ts_end = moment(validity).format("D MMMM YYYY, h:mm");
 
             const event_link = prepareEventTimelineLink(url, event_id);
+
+            let address = "";
+            if (Object.keys(sites_dict).length) {
+                address = sites_dict[site_code.toUpperCase()].address;
+            }
+
             const event_entry = [
                 event_link,
-                sites_dict[site_code.toUpperCase()].address,
+                address,
                 entry_type,
                 public_alert,
                 final_event_start,

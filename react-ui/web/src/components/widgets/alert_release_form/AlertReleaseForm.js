@@ -31,7 +31,7 @@ import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInp
 
 import { sites } from "../../../store";
 
-import { getInternalAlertLevel } from "./ajax";
+import { getLatestSiteRelease } from "./ajax";
 import { getCurrentUser } from "../../sessions/auth";
 import { CTContext } from "../../monitoring/dashboard/CTContext";
 
@@ -80,7 +80,8 @@ function GeneralInputForm (props) {
     const {
         setModalTitle, generalData, classes,
         handleEventChange, handleDateTime,
-        setGeneralData, isUpdatingRelease
+        setGeneralData, isUpdatingRelease,
+        changeState
     } = props;
 
     const {
@@ -100,6 +101,7 @@ function GeneralInputForm (props) {
             address: label,
             siteCode: data.site_code
         });
+        changeState("siteId", ret);
     };
 
     return (
@@ -177,6 +179,7 @@ function TriggersInputForm (props) {
         setModalTitle, hasNoGroundData, setHasNoGroundData,
         triggersReleased
     } = props;
+
     const {
         subsurface: { switchState: subs_switch_state },
         surficial: { switchState: surf_switch_state },
@@ -234,6 +237,7 @@ function TriggersInputForm (props) {
             <RainfallTriggerGroup
                 triggersState={triggersState}
                 setTriggersState={setTriggersState}
+                triggersReleased={triggersReleased}
             />
 
             <EarthquakeTriggerGroup
@@ -245,30 +249,6 @@ function TriggersInputForm (props) {
                 triggersState={triggersState}
                 setTriggersState={setTriggersState}
             />
-        </Fragment>
-    );
-}
-
-function CommentsInputForm (props) {
-    const { generalData: { comments }, handleEventChange, classes, setModalTitle } = props;
-
-    useEffect(() => {
-        setModalTitle("Write your release comments.");
-    }, []);
-
-    return (
-        <Fragment>
-            <Grid item xs={12} className={classes.inputGridContainer}>
-                <TextField
-                    label="Comments"
-                    multiline
-                    rowsMax="2"
-                    placeholder="Enter additional comments necessary"
-                    value={comments}
-                    onChange={handleEventChange("comments")}
-                    fullWidth
-                />
-            </Grid>
         </Fragment>
     );
 }
@@ -293,7 +273,10 @@ function SummaryForm (props) {
             arr = ewiPayload.trigger_list_arr;
         }
 
-        let temp_list = <Typography variant="body2" color="textPrimary">No triggers included in this release.</Typography>;
+        let temp_list = <Typography variant="body2" color="textPrimary" align="center">
+            No triggers included in this release.
+        </Typography>;
+
         if (arr.length > 0) {
             temp_list = arr.map((element, index) => {
                 const {
@@ -379,7 +362,7 @@ function SummaryForm (props) {
                 <Grid item xs={12}>
                     <Typography variant="button" color="textSecondary">Triggers</Typography>
                 </Grid>
-                <Grid item xs={12} container spacing={1}>
+                <Grid item xs={12} container spacing={1} align="center">
                     {triggers_display}
                 </Grid>
             </Grid>
@@ -389,17 +372,6 @@ function SummaryForm (props) {
             </Grid>
 
             <Grid item xs={12} className={classes.inputGridContainer}>
-                {/* <Typography variant="button" color="textSecondary">Comments</Typography>
-                <Typography variant="body2" color="textPrimary" align="center">
-                    {
-                        comments !== "" ? (
-                            comments 
-                        ) : (
-                            "No comment provided"
-                        )
-                    }
-                </Typography> */}
-
                 <TextField
                     label="Comments"
                     multiline
@@ -418,8 +390,9 @@ function AlertReleaseForm (comp_props) {
     const {
         activeStep, generalData,
         setGeneralData, setInternalAlertLevel,
-        internalAlertLevel, setTriggerList,
-        setPublicAlertLevel, isUpdatingRelease
+        internalAlertLevel, // setTriggerList,
+        setPublicAlertLevel, isUpdatingRelease,
+        currentTriggersStatus, dBSavedTriggers
     } = comp_props;
     const classes = useStyles();
     const props = { classes, ...comp_props };
@@ -429,30 +402,31 @@ function AlertReleaseForm (comp_props) {
     const mtFullName = `${last_name}, ${first_name}`;
     const { ct_full_name: ctFullName } = React.useContext(CTContext);
 
-    const [triggersReleased, setTriggersReleased] = useState([]);
+    const [triggersReleased, setTriggersReleased] = useState([...currentTriggersStatus]);
 
     const changeState = (key, value) => {
         if (key === "siteId") {
             // get the current Internal alert level of site
-            const input = { site_id: value };
-            getInternalAlertLevel(input, ret => {
-                const site = sites.find(o => o.site_id === value);
-                const { site_code } = site;
-                setGeneralData({
-                    ...generalData,
-                    site_code
-                });
+            const input = { site_id: value.value };
+            getLatestSiteRelease(input, ret => {
+                // const site = sites.find(o => o.site_id === value);
+                // const { site_code } = site;
+                // setGeneralData({
+                //     ...generalData,
+                //     site_code
+                // });
                 const {
                     internal_alert_level, public_alert_level, trigger_list_str,
                     trigger_sources
                 } = ret;
                 setTriggersReleased(trigger_sources);
-                setTriggerList(trigger_list_str);
+                // setTriggerList(trigger_list_str);
                 setPublicAlertLevel(public_alert_level);
                 setInternalAlertLevel(internal_alert_level);
             });
+        } else {
+            setGeneralData({ ...generalData, [key]: value });
         }
-        setGeneralData({ ...generalData, [key]: value });
     };
 
     const handleDateTime = key => value => {
@@ -478,6 +452,7 @@ function AlertReleaseForm (comp_props) {
                     handleDateTime={handleDateTime}
                     handleEventChange={handleEventChange}
                     isUpdatingRelease={isUpdatingRelease}
+                    changeState={changeState}
                 />;
             case 1:
                 return <TriggersInputForm {...props} triggersReleased={triggersReleased} />;

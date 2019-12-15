@@ -1,20 +1,19 @@
 import React, {
-    Fragment, useState, useEffect,
-    useRef
+    useState, useEffect,
+
 } from "react";
 
 import { 
     IconButton, Typography, Divider,
-    withStyles, Grid, Chip,
-    Avatar, makeStyles, Button
+    makeStyles, Button
 } from "@material-ui/core";
 import { ArrowBackIos } from "@material-ui/icons";
 
-import ContentLoader from "react-content-loader";
-
-import { isWidthUp } from "@material-ui/core/withWidth";
+import { isWidthDown } from "@material-ui/core/withWidth";
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
+import MessageList from "./MessageList";
+
 import { receiveSearchResults, removeReceiveSearchResults } from "../../../websocket/communications_ws";
 
 const useStyles = makeStyles(theme => {
@@ -44,44 +43,6 @@ const useStyles = makeStyles(theme => {
         }
     };
 });
-
-const AvatarWithText = () => (
-    <ContentLoader 
-        height={70}
-        width={800}
-        speed={2}
-        primaryColor="#f3f3f3"
-        secondaryColor="#ecebeb"
-        preserveAspectRatio="xMinYMin slice"
-    >
-        <rect x="69" y="7" rx="4" ry="4" width="663" height="19" /> 
-        <rect x="70" y="35" rx="3" ry="3" width="293" height="14" /> 
-        <rect x="0" y="120" rx="3" ry="3" width="201" height="6" /> 
-        <circle cx="30" cy="30" r="30" />
-    </ContentLoader>
-);
-
-const ChatLoader = props => {
-    return (
-        <ContentLoader
-            height={160}
-            width={446}
-            speed={2}
-            primaryColor="#f3f3f3"
-            secondaryColor="#ecebeb"
-        >
-            <circle cx="19" cy="25" r="16" />
-            <rect x="39" y="12" rx="5" ry="5" width="220" height="10" />
-            <rect x="40" y="29" rx="5" ry="5" width="220" height="10" />
-            <circle cx="420" cy="71" r="16" />
-            <rect x="179" y="76" rx="5" ry="5" width="220" height="10" />
-            <rect x="179" y="58" rx="5" ry="5" width="220" height="10" />
-            <circle cx="21" cy="117" r="16" />
-            <rect x="45" y="104" rx="5" ry="5" width="220" height="10" />
-            <rect x="45" y="122" rx="5" ry="5" width="220" height="10" />
-        </ContentLoader>
-    );
-};
   
 const goBack = history => e => {
     e.preventDefault();
@@ -92,7 +53,7 @@ function BackToMainButton (props) {
     const { width, history } = props;
 
     return (
-        isWidthUp(width, "sm") ? (<Button
+        isWidthDown(width, "sm") ? (<Button
             variant="contained"
             color="primary"
             size="small" 
@@ -111,38 +72,40 @@ function BackToMainButton (props) {
     );
 }
 
-
 function SearchResultsPage (props) {
     const {
-        location,
-        messageCollection, socket
+        location, socket, width,
+        url, is_desktop,
+        searchResults, setSearchResults,
+        ListLoader
     } = props;
     const classes = useStyles();
     const { state: {
-        sites, organizations 
+        sites, organizations
     } } = location;
-    // console.log("message_collection", messageCollection);
 
     const [is_loading, setIsLoading] = useState(false);
+    // const [search_results, setSearchResults] = useState([]);
 
-    const has_no_input = sites.length === 0 && organizations.length === 0;
+    const has_no_input = sites === null && organizations === null;
 
     useEffect(() => {
-        setIsLoading(true);
+        const has_no_search_results = searchResults.length === 0;
 
-        if (!has_no_input) {
+        if (!has_no_input && has_no_search_results) {
+            setIsLoading(true);
+
             const input = {
                 site_ids: sites.map(s => s.value),
-                org_ids: sites.map(o => o.value)
+                org_ids: organizations.map(o => o.value)
             };
-
-            console.log(input, socket);
 
             if (typeof socket !== "undefined") {
                 socket.emit("get_search_results", input);
     
                 receiveSearchResults(data => {
-                    console.log(data);
+                    setIsLoading(false);
+                    setSearchResults(data);
                 });
             }
         }
@@ -152,7 +115,7 @@ function SearchResultsPage (props) {
                 removeReceiveSearchResults();
             }
         };
-    }, [socket, sites, organizations]);
+    }, [socket, searchResults, sites, organizations]);
 
     return (
         <div className={classes.pageContentMargin}>
@@ -160,7 +123,7 @@ function SearchResultsPage (props) {
                 title="Communications | Chatterbox"
             />
 
-            <Divider style={{ marginBottom: 24 }} />
+            {/* <Divider style={{ marginBottom: 24 }} /> */}
 
             <BackToMainButton {...props} />
 
@@ -176,8 +139,29 @@ function SearchResultsPage (props) {
                 )
             }
 
-
-
+            {
+                // eslint-disable-next-line no-nested-ternary
+                is_loading ? (
+                    <div style={{ width: "100%" }}>
+                        <ListLoader />
+                    </div>
+                ) : (
+                    searchResults.length > 0 ? (
+                        <MessageList
+                            width={width}
+                            url={url}
+                            messagesArr={searchResults}
+                            async
+                            hidden={false}
+                            is_desktop={is_desktop}
+                        />
+                    ) : (
+                        <Typography variant="h6" align="center">
+                            <strong>No results found</strong>
+                        </Typography>
+                    )
+                )
+            }
         </div>
     );
 }

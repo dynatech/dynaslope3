@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useContext } from "react";
-import axios from "axios";
+import React, { useContext } from "react";
 import SelectMultipleWithSuggest from "./SelectMultipleWithSuggest";
 import { prepareSiteAddress } from "../../UtilityFunctions";
-import { host } from "../../config";
 import { GeneralContext } from "../contexts/GeneralContext";
 
 export function prepareSitesOption (arr, to_include_address) {
@@ -35,14 +33,13 @@ function DynaslopeSiteSelectInputForm (props) {
     let pass_value = value;
     if (value !== "" && value !== null) {
         const { label, value: site_id } = value;
-        
         const callback = typeof returnSiteDataCallback === "undefined" ? false : returnSiteDataCallback;
         if (callback) {
             const site = sites.find(o => o.site_id === site_id);
             if (typeof site !== "undefined") returnSiteDataCallback(site);
         }
 
-        if (typeof label === "undefined") {
+        if (typeof label === "undefined" && !is_multi) {
             pass_value = options[site_id - 1];
         }
     }

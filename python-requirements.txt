@@ -29,6 +29,8 @@ selenium
 phantomjs
 fpdf
 eventlet
+flask-socketio
+img2pdf
 
 Analysis Scripts Library
 ------------------------

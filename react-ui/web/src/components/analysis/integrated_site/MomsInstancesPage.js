@@ -109,8 +109,8 @@ function MomsInstancesPage (props) {
 
     const [is_moms_modal_open, setMomsModal] = useState(false);
     const set_moms_modal_fn = bool => () => setMomsModal(bool);
-    const [is_snackbar_notif_open, setSnackbarNotif] = useState(false);
-    const set_snackbar_notif_fn = bool => () => setSnackbarNotif(bool);
+    // const [is_snackbar_notif_open, setSnackbarNotif] = useState(false);
+    // const set_snackbar_notif_fn = bool => () => setSnackbarNotif(bool);
 
     return (
         <Fragment>
@@ -148,34 +148,8 @@ function MomsInstancesPage (props) {
                 {...props}
                 isOpen={is_moms_modal_open}
                 closeHandler={set_moms_modal_fn(false)}
-                snackbarHandler={set_snackbar_notif_fn(true)}
-                width={width}
-            />
-
-            <Snackbar
-                anchorOrigin={{
-                    vertical: "top",
-                    horizontal: "right",
-                }}
-                open={is_snackbar_notif_open}
-                autoHideDuration={6000}
-                onClose={set_snackbar_notif_fn(false)}
-                ContentProps={{
-                    "aria-describedby": "message-id",
-                }}
-                message={<span id="message-id">MOMs saved to database</span>}
-                action={[
-                    <IconButton
-                        key="close"
-                        aria-label="close"
-                        color="inherit"
-                        className={classes.close}
-                        onClick={set_snackbar_notif_fn(false)}
-                    >
-                        <CloseIcon />
-                    </IconButton>,
-                ]}
-                style={{ backgroundColor: green[600] }}
+                // snackbarHandler={set_snackbar_notif_fn(true)}
+                // width={width}
             />
             
             <Route path={`${url}/:instance_id`} render={

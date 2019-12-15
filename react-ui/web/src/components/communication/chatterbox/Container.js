@@ -6,6 +6,7 @@ import { Button, Badge, makeStyles } from "@material-ui/core";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { Route, Switch } from "react-router-dom";
 import { Create, Search } from "@material-ui/icons";
+import ContentLoader from "react-content-loader";
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 import MessageList from "./MessageList";
@@ -17,7 +18,8 @@ import SearchMessageModal from "./SearchMessageModal";
 import SearchResultsPage from "./SearchResultsPage";
 
 import { 
-    socket, subscribeToWebSocket, unsubscribeToWebSocket 
+    socket, subscribeToWebSocket, removeReceiveLatestMessages,
+    receiveAllMobileNumbers, receiveLatestMessages
 } from "../../../websocket/communications_ws";
 
 const useStyles = makeStyles(theme => {
@@ -36,6 +38,29 @@ const useStyles = makeStyles(theme => {
     }; 
 });
 
+const ListLoader = () => (
+    <ContentLoader 
+        height={400}
+        width={600}
+        speed={2}
+        primaryColor="#f3f3f3"
+        secondaryColor="#ecebeb"
+    >
+        <circle cx="47" cy="48" r="26" /> 
+        <rect x="90" y="36" rx="0" ry="0" width="489" height="29" /> 
+        <circle cx="47" cy="108" r="26" /> 
+        <rect x="90" y="96" rx="0" ry="0" width="489" height="29" /> 
+        <circle cx="49" cy="168" r="26" /> 
+        <rect x="90" y="156" rx="0" ry="0" width="489" height="29" />
+        <circle cx="49" cy="228" r="26" /> 
+        <rect x="90" y="216" rx="0" ry="0" width="489" height="29" />
+        <circle cx="49" cy="288" r="26" /> 
+        <rect x="90" y="276" rx="0" ry="0" width="489" height="29" />
+        <circle cx="49" cy="348" r="26" /> 
+        <rect x="90" y="336" rx="0" ry="0" width="489" height="29" />
+    </ContentLoader>
+);
+
 function Container (comp_props) {
     const { location, match: { url }, width } = comp_props;
     const classes = useStyles();
@@ -44,14 +69,16 @@ function Container (comp_props) {
     const [is_open_send_modal, setIsOpenSendModal] = useState(false);
     const [is_open_search_modal, setIsOpenSearchModal] = useState(false);
     const [message_collection, setMessagesCollection] = useState({
-        inbox: [],
-        unsent: []
+        inbox: null,
+        unsent: null
     });
     const [tabs_array, setTabsArray] = useState([
         { label: "Inbox", href: "inbox" },
         { label: "Unsent", href: "unsent" },
         // { label: "Dynaslope", href: "dynaslope" }
     ]);
+    const [search_results, setSearchResults] = useState([]);
+    const [recipients_list, setRecipientsList] = useState([]);
 
     const set_modal_fn = (key, bool) => () => {
         if (key === "send") setIsOpenSendModal(bool);
@@ -59,7 +86,9 @@ function Container (comp_props) {
     };
 
     useEffect(() => {
-        subscribeToWebSocket(data => {
+        subscribeToWebSocket("chatterbox");
+
+        receiveLatestMessages(data => {
             setMessagesCollection(data);
             
             const { unsent: { length } } = data;
@@ -78,7 +107,11 @@ function Container (comp_props) {
             setTabsArray(prev => [...prev.slice(0, index), { label, href: "unsent" }]);
         });
 
-        return () => unsubscribeToWebSocket();
+        receiveAllMobileNumbers(data => {
+            setRecipientsList(data);
+        });
+
+        return () => removeReceiveLatestMessages();
     }, []);
 
     const is_desktop = isWidthUp("md", width);
@@ -140,13 +173,19 @@ function Container (comp_props) {
                                 // )
                             }
 
-                            <MessageList
-                                width={width}
-                                url={url}
-                                messagesArr={message_collection.inbox}
-                                hidden={chosen_tab !== 0}
-                                is_desktop={is_desktop}
-                            />
+                            {
+                                message_collection.inbox === null ? (
+                                    <div style={{ width: "100%" }}><ListLoader /></div>
+                                ) : (
+                                    <MessageList
+                                        width={width}
+                                        url={url}
+                                        messagesArr={message_collection.inbox}
+                                        hidden={chosen_tab !== 0}
+                                        is_desktop={is_desktop}
+                                    />
+                                )
+                            }
 
                             {
                                 // chosen_tab === 1 && (
@@ -159,14 +198,20 @@ function Container (comp_props) {
                                 // )
                             }
 
-                            <MessageList
-                                width={width}
-                                url={url}
-                                messagesArr={message_collection.unsent}
-                                async
-                                hidden={chosen_tab !== 1}
-                                is_desktop={is_desktop}
-                            />
+                            {
+                                message_collection.unsent === null ? (
+                                    <div style={{ width: "100%" }}><ListLoader /></div>
+                                ) : (
+                                    <MessageList
+                                        width={width}
+                                        url={url}
+                                        messagesArr={message_collection.unsent}
+                                        async
+                                        hidden={chosen_tab !== 1}
+                                        is_desktop={is_desktop}
+                                    />
+                                )
+                            }
 
                             {/* {
                                 chosen_tab === 2 && (
@@ -185,11 +230,13 @@ function Container (comp_props) {
                         <SendMessageModal
                             modalStateHandler={set_modal_fn("send", false)} 
                             modalState={is_open_send_modal}
+                            recipientsList={recipients_list}
                         />
 
                         <SearchMessageModal 
                             modalStateHandler={set_modal_fn("search", false)}
                             modalState={is_open_search_modal}
+                            setSearchResultsToEmpty={() => setSearchResults([])}
                             url={url}
                         /> 
                     </Fragment>
@@ -201,6 +248,12 @@ function Container (comp_props) {
                     {...props}
                     messageCollection={message_collection}
                     socket={socket}
+                    url={url}
+                    width={width}
+                    is_desktop={is_desktop}
+                    searchResults={search_results}
+                    setSearchResults={setSearchResults}
+                    ListLoader={ListLoader}
                 />
             } 
             />

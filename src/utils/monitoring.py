@@ -251,7 +251,10 @@ def get_saved_event_triggers(event_id):
     mea = MonitoringEventAlerts
     me = MonitoringEvents
     event_triggers = DB.session.query(
-        mt.internal_sym_id, DB.func.max(mt.ts)).join(mr).join(mea).join(me).filter(me.event_id == event_id).group_by(mt.internal_sym_id).all()
+        mt.internal_sym_id, DB.func.max(mt.ts)) \
+            .join(mr).join(mea).join(me) \
+                .filter(me.event_id == event_id) \
+                    .group_by(mt.internal_sym_id).all()
 
     return event_triggers
 
@@ -365,10 +368,14 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
     is_sms_sent = False
     is_bulletin_sent = False
 
+
+    if not is_onset_release or \
+        (is_onset_release and start_ts.hour % 3 and start_ts.minute == 30):
+        # TODO: make this dynamic
+        start_ts = start_ts + timedelta(minutes=30)
+
     end_ts = round_to_nearest_release_time(
         start_ts, interval=release_interval_hours)
-    if not is_onset_release:
-        end_ts = end_ts + timedelta(minutes=30)
 
     narrative_list = get_narratives(
         event_id=event_id, start=start_ts, end=end_ts)

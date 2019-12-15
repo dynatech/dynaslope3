@@ -145,13 +145,16 @@ function ValueContainer (props) {
 function MultiValue (props) {
     const {
         children, selectProps, isFocused,
-        removeProps
+        data, removeProps
     } = props;
+
+    const { chipLabel } = data;
+    const label = typeof chipLabel !== "undefined" ? chipLabel : children;
 
     return (
         <Chip
             tabIndex={-1}
-            label={children}
+            label={label}
             className={`${selectProps.classes.chip} ${
                 { [selectProps.classes.chipFocused]: isFocused,
                 }}`
@@ -177,7 +180,7 @@ function SelectMultipleWithSuggest (props) {
         classes, theme, changeHandler,
         options, value, label, placeholder,
         renderDropdownIndicator, openMenuOnClick, isMulti,
-        isDisabled, isClearable
+        isDisabled, isClearable, hasAlternativeChipLabel
     } = props;
 
     const selectStyles = {
@@ -211,6 +214,17 @@ function SelectMultipleWithSuggest (props) {
         components.IndicatorSeparator = () => null;
     }
 
+    // const h_a_c_l = hasAlternativeChipLabel === undefined ? false : hasAlternativeChipLabel;
+    // if (h_a_c_l) {
+    //     const mv_comp = props => (
+    //         <components.MultiValue {...props}>
+    //             {props.data.chipLabel}
+    //         </components.MultiValue>
+    //     );
+
+    //     components.MultiValue = mv_comp;
+    // }
+    
     return (
         <div className={classes.root}>
             <NoSsr>
@@ -233,6 +247,7 @@ function SelectMultipleWithSuggest (props) {
                     openMenuOnClick={open_menu_on_click}
                     isDisabled={is_disabled}
                     isClearable={is_clearable}
+                    hasAlternativeChipLabel={hasAlternativeChipLabel}
                 />
             </NoSsr>
         </div>

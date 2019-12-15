@@ -1,4 +1,7 @@
-import React, { useState, useEffect, Fragment } from "react";
+import React, { 
+    useState, useEffect,
+    Fragment, useContext
+} from "react";
 
 import {
     Paper, Typography, LinearProgress,
@@ -21,17 +24,7 @@ import GeneralStyles from "../../../GeneralStyles";
 import NarrativeFormModal from "../../widgets/narrative_form/NarrativeFormModal";
 import DeleteNarrativeModal from "../../widgets/narrative_form/DeleteNarrativeModal";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
-import { sites } from "../../../store";
-
-const filter_sites_option = [];
-const sites_dict = {};
-
-sites.forEach(site => {
-    const address = prepareSiteAddress(site, true, "start");
-    const site_code = site.site_code.toUpperCase();
-    filter_sites_option.push(site_code);
-    sites_dict[site_code] = site.site_id;
-});
+import { GeneralContext } from "../../contexts/GeneralContext";
 
 const styles = theme => ({
     inputGridContainer: {
@@ -61,7 +54,6 @@ const getMuiTheme = createMuiTheme({
         }
     }
 });
-
 
 function getManipulationButtons (narrative, data_handlers) {
     const { 
@@ -128,6 +120,17 @@ function SiteLogs (props) {
     const [chosenNarrative, setChosenNarrative] = useState({});
     const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
 
+    const { sites } = useContext(GeneralContext);
+
+    const filter_sites_option = [];
+    const sites_dict = {};
+
+    sites.forEach(site => {
+        const address = prepareSiteAddress(site, true, "start");
+        const site_code = site.site_code.toUpperCase();
+        filter_sites_option.push(site_code);
+        sites_dict[site_code] = site.site_id;
+    });
 
     useEffect(() => {
         setIsLoading(true);

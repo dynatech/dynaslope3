@@ -73,7 +73,7 @@ function SiteStakeholdersList (props) {
     const {
         siteCode
     } = props;
-    // const [community_contacts, setCommunityContacts] = useState({});
+
     const [community_contacts, setCommunityContacts] = useState([]);
 
     useEffect(() => {
@@ -84,13 +84,23 @@ function SiteStakeholdersList (props) {
     }, []);
 
     return (
-        <Paper className={classes.customPaper}>
-            <Typography variant="h6" color="primary">Site Stakeholders</Typography>
-            <Divider className={classes.Divider} />
-            {community_contacts}
-        </Paper>
-    );
+        // <Paper className={classes.customPaper}>
+        //     <Typography variant="h6" color="primary">Site Stakeholders</Typography>
+        //     <Divider className={classes.Divider} />
+        //     {community_contacts}
+        // </Paper>
+        <Fragment>
+            <Grid item xs={12} align="center">
+                <Typography variant="h6" color="textPrimary">
+                    <strong>Site Stakeholders</strong>
+                </Typography>
+            </Grid>
 
+            <Grid item xs={12} align="center">
+                {community_contacts}
+            </Grid>
+        </Fragment>
+    );
 }
 
 export default (SiteStakeholdersList);

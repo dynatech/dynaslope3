@@ -7,7 +7,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 from src.models.narratives import (NarrativesSchema)
 from src.utils.narratives import (get_narratives, write_narratives_to_db,
-                                  update_narratives_on_db, find_narrative_event,
+                                  update_narratives_on_db, find_narrative_event_id,
                                   delete_narratives_from_db)
 from src.utils.extra import var_checker, get_process_status_log
 
@@ -55,7 +55,6 @@ def wrap_write_narratives_to_db():
         if not isinstance(timestamp, datetime):
             timestamp = datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S")
 
-
         try:
             narrative_id = json_data["narrative_id"]
         except KeyError:
@@ -68,11 +67,12 @@ def wrap_write_narratives_to_db():
                 if has_event_id:
                     event_id = json_data["event_id"]
                 else:
-                    event = find_narrative_event(timestamp, site_id)
+                    event = find_narrative_event_id(timestamp, site_id)
                     if event:
                         event_id = event.event_id
                     else:
-                        raise Exception(get_process_status_log("INSERT NARRATIVES", "fail"))
+                        raise Exception(get_process_status_log(
+                            "INSERT NARRATIVES", "fail"))
 
                 var_checker("narrative_id", narrative_id, True)
                 status = update_narratives_on_db(
@@ -84,7 +84,8 @@ def wrap_write_narratives_to_db():
                     user_id=user_id,
                     event_id=event_id
                 )
-                print(get_process_status_log(f"{status} updated narrative with ID: {narrative_id}", "end"))
+                print(get_process_status_log(
+                    f"{status} updated narrative with ID: {narrative_id}", "end"))
 
         # INSERT OF NARRATIVE
         else:
@@ -93,8 +94,7 @@ def wrap_write_narratives_to_db():
                 if has_event_id:
                     event_id = json_data["event_id"]
                 else:
-                    event = find_narrative_event(timestamp, site_id)
-                    event_id = event.event_id
+                    event_id = find_narrative_event_id(timestamp, site_id)
 
                 # if event:
                 narrative_id = write_narratives_to_db(
@@ -105,7 +105,8 @@ def wrap_write_narratives_to_db():
                     user_id=user_id,
                     event_id=event_id
                 )
-                print(get_process_status_log(f"New narrative with ID {narrative_id}", "end"))
+                print(get_process_status_log(
+                    f"New narrative with ID {narrative_id}", "end"))
                 # else:
                 #     print(get_process_status_log(f"No event found in specified timestamp on site {site_id} | {timestamp}", "fail"))
                 #     raise Exception(get_process_status_log("NO EVENT IN SPECIFIED TIMESTAMP", "fail"))
@@ -150,7 +151,7 @@ def wrap_get_narratives(start=None, end=None):
 
     return_val = get_narratives(
         offset, limit, start, end,
-        site_ids, include_count, search)
+        site_ids, include_count, search, raise_site=False)
 
     if include_count:
         narratives = return_val[0]

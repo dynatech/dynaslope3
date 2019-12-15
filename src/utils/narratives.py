@@ -21,7 +21,7 @@ def get_narrative_text(narrative_type, details):
         elif details["tag"] == "#GroundObs":
             narrative_text = f"Received onsite ground observation data from {details['additional_data']}"
         elif details["tag"] == "#EwiResponse":
-            narrative_text = f"EWI-SMS acknowledged by {details['additional_data']}"
+            narrative_text = f"EWI SMS acknowledged by {details['additional_data']}"
 
     return narrative_text
 
@@ -43,19 +43,25 @@ def delete_narratives_from_db(narrative_id):
     return "Success"
 
 
-def find_narrative_event(timestamp, site_id):
+def find_narrative_event_id(timestamp, site_id):
     """
     """
     me = MonitoringEvents
     mea = MonitoringEventAlerts
-    event = None
+    event_id = None
 
-    result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(me).filter(DB.and_(
-        mea.ts_start <= timestamp, timestamp <= mea.ts_end)).filter(me.site_id == site_id).first()
-    if result:
-        event = result
+    filtering = DB.or_(DB.and_(
+        mea.ts_start <= timestamp, timestamp <= mea.ts_end), DB.and_(
+        mea.ts_start <= timestamp, mea.ts_end == None))
 
-    return event
+    event_alert = mea.query.options(DB.joinedload("event", innerjoin=True), DB.raiseload("*")) \
+        .order_by(DB.desc(mea.event_alert_id)).join(me).filter(filtering).filter(me.site_id == site_id) \
+        .first()
+
+    if event_alert:
+        event_id = event_alert.event.event_id
+
+    return event_id
 
 
 def get_narratives(

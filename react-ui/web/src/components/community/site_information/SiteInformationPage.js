@@ -5,15 +5,17 @@ import React, {
 
 import {
     withStyles, Grid, Typography,
-    Divider, Paper
+    Divider
 } from "@material-ui/core";
 import ContentLoader from "react-content-loader";
 
+import moment from "moment";
+
 import GeneralStyles from "../../../GeneralStyles";
-import SiteInformationSheet from "./SiteInformationSheet";
-import SiteCurrentStatus from "./SiteCurrentStatus";
+// import SiteInformationSheet from "./SiteInformationSheet";
+// import SiteCurrentStatus from "./SiteCurrentStatus";
 import SiteStakeholdersList from "./SiteStakeholdersList";
-import SiteEventsTable from "./SiteEventsTable";
+// import SiteEventsTable from "./SiteEventsTable";
 import BackToMainButton from "./BackToMainButton";
 import { GeneralContext } from "../../contexts/GeneralContext";
 import { prepareSiteAddress, capitalizeFirstLetter } from "../../../UtilityFunctions";
@@ -46,9 +48,9 @@ function SiteInformationPage (props) {
     const [season_months, setSeasonMonths] = useState([]);
     const [routine_schedule, setRoutineSchedule] = useState([]);
 
-    const [site_as_title, setSiteAsTitle] = useState("");
-    const [local_site_information, setLocalSiteInformation] = useState({});
-    const [siteIdToPass, setSiteIdToPass] = useState("");
+    // const [site_as_title, setSiteAsTitle] = useState("");
+    // const [local_site_information, setLocalSiteInformation] = useState({});
+    // const [siteIdToPass, setSiteIdToPass] = useState("");
 
     useEffect(() => {
         if (typeof siteInformation === "undefined") {
@@ -82,7 +84,20 @@ function SiteInformationPage (props) {
                 const { season_months: sm } = data;
                 const { routine_schedules: rs } = sm;
 
-                setRoutineSchedule(rs);
+                const c_dry = [];
+                const c_wet = [];
+                rs.forEach(row => {
+                    const day = moment(row.iso_week_day, "D").format("dddd");
+                    if (row.season_type === "d") c_dry.push(day);
+                    else c_wet.push(day);
+                });
+
+                const c_list = [
+                    { key: "dry", list: c_dry },
+                    { key: "wet", list: c_wet }
+                ];
+
+                setRoutineSchedule(c_list);
 
                 delete sm.routine_schedules;
                 delete sm.season_group_id;
@@ -112,7 +127,6 @@ function SiteInformationPage (props) {
             </div>
 
             <Grid container spacing={2}>
-
                 {
                     site !== null ? (
                         <Fragment>
@@ -191,14 +205,47 @@ function SiteInformationPage (props) {
                                     </Typography>
                                 </Grid>
 
+                                <Grid item xs={12} align="center" container spacing={0}>
+                                    <Grid item xs={12}>
+                                        <Typography variant="subtitle2" color="textSecondary">
+                                            Routine Schedules
+                                        </Typography>
+                                    </Grid>
+
+                                    {
+                                        routine_schedule.length > 0 && (
+                                            routine_schedule.map(row => {
+                                                const { key, list } = row;
+
+                                                return (
+                                                    <Grid item xs={6} key={key}>
+                                                        <Typography variant="subtitle1" color="textSecondary">
+                                                            { capitalizeFirstLetter(key) }
+                                                        </Typography>
+                                                        <Typography variant="subtitle1" color="textPrimary">
+                                                            {
+                                                                list.map(l => capitalizeFirstLetter(l)).join(", ")
+                                                            }
+                                                        </Typography>
+                                                    </Grid>
+                                                );
+                                            })
+                                        )
+                                    }
+                                </Grid>
+
                                 <Grid item xs align="center">
                                     <Typography variant="subtitle2" color="textSecondary">
-                                        Routine Schedules
+                                        Current Alert Level
                                     </Typography>
                                     <Typography variant="subtitle1" color="textPrimary">
-                                        { site.psgc }
+                                        ---
                                     </Typography>
                                 </Grid>
+                            </Grid>
+
+                            <Grid item xs={12} align="center">
+                                <SiteStakeholdersList siteCode={site.site_code} />
                             </Grid>
             
 

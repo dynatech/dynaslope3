@@ -7,9 +7,9 @@ export function handleDelete (json_data, callback) {
     makePOSTAxiosRequest(api_link, json_data, callback);
 }
 
-export function buildInternalAlertLevel (json_data, callback) {
+export function createReleaseDetails (json_data, callback) {
     // Make an API request
-    const api_link = `${host}/api/monitoring/build_internal_alert_level`;
+    const api_link = `${host}/api/monitoring/create_release_details`;
     makePOSTAxiosRequest(api_link, json_data, callback);
 }
 
@@ -18,7 +18,7 @@ export function getMonitoringReleaseByDataTS (site_code, data_ts, callback) {
     makeGETAxiosRequest(api_link, callback);
 }
 
-export function getInternalAlertLevel (input, callback) {
+export function getLatestSiteRelease (input, callback) {
     const {
         site_id
     } = input;

@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from "react";
+import React, { useState, Fragment, useContext } from "react";
 import moment from "moment";
 import ContentLoader from "react-content-loader";
 import {
@@ -7,10 +7,10 @@ import {
     Button, Dialog, DialogContent,
     DialogTitle, DialogActions, Divider
 } from "@material-ui/core";
-import { sites } from "../../../store";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
+import { GeneralContext } from "../../contexts/GeneralContext";
 
-function searchSites (site_code) {
+function searchSites (site_code, sites) {
     let site_details = null;
     for (let index = 0; index < sites.length; index += 1) {
         if (sites[index].site_code === site_code) {
@@ -21,10 +21,19 @@ function searchSites (site_code) {
     return site_details;
 }
 
-function getAlertDialog (chosen_site, open, handleClose) {
-    const { site_code, ts, internal_alert, validity, current_trigger_alerts, event_triggers } = chosen_site;
-    const site_details = searchSites(site_code);
-    const timestamp = moment(ts).format("D MMMM YYYY, h:mm");
+function formatTS (ts) {
+    return moment(ts).format("D MMMM YYYY, h:mm");
+}
+
+// eslint-disable-next-line max-params
+function getAlertDialog (chosen_site, open, handleClose, sites) {
+    const {
+        site_code, ts, internal_alert, validity, 
+        current_trigger_alerts, event_triggers
+    } = chosen_site;
+
+    const site_details = searchSites(site_code, sites);
+    const timestamp = formatTS(ts);
     const address = prepareSiteAddress(site_details);
     const rel_trigger_divs = [];
     let rel_subsurface = null;
@@ -94,7 +103,7 @@ function getAlertDialog (chosen_site, open, handleClose) {
                         <Grid item xs={12}><Divider /></Grid>
 
                         <Grid item xs={12}>
-                            <Typography variant="subtitle1" color="textPrimary">Operational Alert Status</Typography>
+                            <Typography variant="caption" color="textPrimary"><strong>OPERATIONAL ALERT STATUS</strong></Typography>
                         </Grid>
 
                         {
@@ -128,22 +137,52 @@ function getAlertDialog (chosen_site, open, handleClose) {
                                     <Grid item xs={12}><Divider /></Grid>
 
                                     <Grid item xs={12}>
-                                        <Typography variant="subtitle1" color="textPrimary">Event Triggers</Typography>
+                                        <Typography variant="caption" color="textPrimary"><strong>EVENT TRIGGERS</strong></Typography>
                                     </Grid>
                                 </Fragment>
                             )
                         }
 
                         {
-                            event_triggers.map((trigger) => {
-                                const { ts_updated, alert, tech_info } = trigger;
-                                const formatted_ts = moment(ts_updated).format("D MMMM YYYY, h:mm");
+                            event_triggers.map(trigger => {
+                                const { ts_updated, alert, tech_info, invalid, invalid_details } = trigger;
+                                const formatted_ts = formatTS(ts_updated);
 
                                 return (
-                                    <Grid item sm={12} key={alert}>
-                                        <Typography variant="body1" color="textPrimary">Trigger | {alert}</Typography>
-                                        <Typography variant="body1" color="textPrimary">{formatted_ts}</Typography>
-                                        <Typography variant="caption" color="textSecondary">{tech_info}</Typography>
+                                    <Grid item xs={12} container spacing={1} key={alert}>
+                                        <Grid item xs align="center">
+                                            <Typography variant="body1" color="textPrimary"><strong>Trigger | {alert}</strong></Typography>
+                                        </Grid>
+                                        <Grid item xs align="center">
+                                            <Typography variant="body1" color="textPrimary">{formatted_ts}</Typography>
+                                        </Grid>
+                                        <Grid item xs={12} align="center">
+                                            <Typography variant="body2" color="textSecondary">{tech_info}</Typography>
+                                        </Grid>
+
+                                        {
+                                            typeof invalid !== "undefined" && invalid === true && (
+                                                <Fragment>
+                                                    <Grid item xs={12} align="center">
+                                                        <Typography variant="body1" color="textPrimary"><strong>INVALIDATED ALERT</strong></Typography>
+                                                    </Grid>
+                                                    <Grid item xs align="center">
+                                                        <Typography variant="body1" color="textPrimary">
+                                                            { `${invalid_details.user.first_name} ${invalid_details.user.last_name}`}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item xs align="center">
+                                                        <Typography variant="body1" color="textPrimary">
+                                                            {formatTS(invalid_details.ts_ack)}
+                                                        </Typography>
+                                                    </Grid>
+                                                    <Grid item xs={12} align="center">
+                                                        <Typography variant="body2" color="textSecondary">{invalid_details.remarks}</Typography>
+                                                    </Grid>
+                                                </Fragment>
+                                            )
+                                        }
+                                        <Grid item xs={12}><Divider /></Grid>
                                     </Grid>
                                 );
                             })
@@ -164,7 +203,7 @@ function getAlertDialog (chosen_site, open, handleClose) {
 // eslint-disable-next-line max-params
 function createCard (alert_detail, index, handleClickOpen, handleClickClose) {
     const { ts, site_code, internal_alert } = alert_detail;
-    const timestamp = moment(ts).format("D MMMM YYYY, h:mm");
+    const timestamp = formatTS(ts);
 
     return (
         <Grid item xs={6} sm={4} lg={3} key={index}>
@@ -222,11 +261,12 @@ function GeneratedAlerts (props) {
 
     let dialog = "";
     const { generatedAlertsData } = props;
+    const { sites } = useContext(GeneralContext);
 
     if (generatedAlertsData !== null) {
         if (generatedAlertsData.length > 0) {
             const chosen_site = generatedAlertsData[key];
-            dialog = getAlertDialog(chosen_site, open, handleClose);
+            dialog = getAlertDialog(chosen_site, open, handleClose, sites);
         }
     }
 

@@ -174,9 +174,11 @@ function MomsInputFields (props) {
 function MomsForm (props) {
     const {
         momsEntries, setMomsEntries,
-        siteCode, site, setSite
+        siteCode, site, setSite,
+        selectSite
     } = props;
 
+    const select_site = typeof selectSite === "undefined" ? false : selectSite;
     const [isAddingNewInstance, setIsAddingNewInstance] = useState(false);
     // const [site, setSite] = useState("");
 
@@ -208,16 +210,18 @@ function MomsForm (props) {
     return (
         <Fragment>
             {
-                siteCode === null && (
-                    <DynaslopeSiteSelectInputForm
-                        value={site}
-                        changeHandler={value => setSite(value)}
-                    />
+                select_site && (
+                    <div style={{ marginBottom: 12 }}>
+                        <DynaslopeSiteSelectInputForm
+                            value={site}
+                            changeHandler={value => setSite(value)}
+                        />
+                    </div>
                 )
             }
 
             {
-                (site !== null || siteCode !== null) && (
+                (!select_site || (select_site && site !== null)) ? (
                     <Fragment>
                         <MuiPickersUtilsProvider utils={MomentUtils}>
                             {
@@ -269,7 +273,7 @@ function MomsForm (props) {
                             }
                         </MuiPickersUtilsProvider>
 
-                        <div style={{ margin: "16px 0" }}>
+                        <div style={{ margin: "16px 0", textAlign: "right" }}>
                             <Button
                                 variant="contained"
                                 color="primary"
@@ -280,6 +284,8 @@ function MomsForm (props) {
                             </Button>
                         </div>
                     </Fragment>
+                ) : (
+                    <div style={{ height: 200 }} />
                 )
             }
         </Fragment>

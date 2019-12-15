@@ -1,64 +1,79 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import moment from "moment";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withStyles, withMobileDialog
+    Button, withMobileDialog
 } from "@material-ui/core";
-import { compose } from "recompose";
 // import AlertReleaseForm from "./AlertReleaseForm";
 import { handleNarratives } from "./ajax";
 import NarrativeForm from "./NarrativeForm";
+import { getCurrentUser } from "../../sessions/auth";
+import { GeneralContext } from "../../contexts/GeneralContext";
+import { prepareSiteAddress } from "../../../UtilityFunctions";
 
-const styles = theme => ({
-    inputGridContainer: {
-        marginTop: 8,
-        marginBottom: 8
-    },
-    selectInput: {
-        width: "auto",
-        [theme.breakpoints.down("xs")]: {
-            width: "250px"
-        }
-    }
-});
+export function prepareSitesOption (arr, to_include_address) {
+    return arr.map(site => {
+        const { 
+            site_code, site_id
+        } = site;
 
+        let address = site_code.toUpperCase();
+        if (to_include_address) address = prepareSiteAddress(site, true, "start");
+        return { value: site_id, label: address, data: site };
+    });
+}
 
 function NarrativeFormModal (props) {
     const {
-        classes, fullScreen, isOpen,
+        fullScreen, isOpen,
         closeHandler, setIsUpdateNeeded,
         chosenNarrative, isUpdateNeeded
     } = props;
 
-    const [narrative_data, setNarrativeData] = useState({
+    const current_user = getCurrentUser();
+
+    const initial_data = {
         narrative_id: null,
-        site_list: [],
+        // site_list: [],
         timestamp: moment().format("YYYY-MM-DD HH:mm"),
         narrative: "",
-        user_id: "",
-        event_id: "",
+        user_id: current_user.user_id,
+        event_id: null,
         type_id: 1
-    });    
+    };
+
+    const [site_list, setSiteList] = useState(null);
+    const [narrative_data, setNarrativeData] = useState(initial_data);
+    
+    const { sites } = useContext(GeneralContext);
+    const site_options = prepareSitesOption(sites, true);
 
     useEffect(() => {
         let default_narr_data = {};
-        if (chosenNarrative !== {}) {
+
+        if (Object.keys(chosenNarrative).length !== 0) {
             const {
                 id, narrative, timestamp, site_id, user_id, event_id, type_id
             } = chosenNarrative;
+
+            const site = site_options.filter(row => row.value === site_id);
+            delete site.data;
+            setSiteList([...site]);
+
             default_narr_data = {
-                narrative_id: id, site_list: [site_id],
+                narrative_id: id,
+                // site_list: [site_id],
                 timestamp, narrative,
                 user_id, event_id, type_id
             };
             setNarrativeData(default_narr_data);
         }
-    }, [chosenNarrative]); 
+    }, [chosenNarrative]);
 
     const handleSubmit = () => {
         const temp = [];
-        narrative_data.site_list.forEach(({ value }) => {
+        site_list.forEach(({ value }) => {
             // Value is site_id
             temp.push(value);
         });
@@ -76,13 +91,18 @@ function NarrativeFormModal (props) {
     const handleReset = () => {
         setNarrativeData({
             narrative_id: null,
-            site_list: [],
             timestamp: moment().format("YYYY-MM-DD HH:mm"),
             narrative: "",
-            user_id: "",
+            user_id: current_user.user_id,
             event_id: "",
             type_id: 1
         });
+        setSiteList(null);
+    };
+
+    const closeFn = () => {
+        closeHandler();
+        handleReset();
     };
 
     return (
@@ -103,12 +123,13 @@ function NarrativeFormModal (props) {
 
                     <NarrativeForm
                         narrativeData={narrative_data} setNarrativeData={setNarrativeData}
+                        siteList={site_list} setSiteList={setSiteList}
                     />
                 </DialogContent>
                 <DialogActions>
                     <div>
-                        <Button onClick={closeHandler} color="primary">
-                                            Cancel
+                        <Button onClick={closeFn} color="primary">
+                            Cancel
                         </Button>
                         <Button onClick={handleReset}>Reset</Button>
                         <Button variant="contained" color="primary" onClick={handleSubmit} disabled={false}>
@@ -121,4 +142,4 @@ function NarrativeFormModal (props) {
     );
 }
 
-export default compose(withStyles(styles), withMobileDialog())(NarrativeFormModal);
+export default withMobileDialog()(NarrativeFormModal);

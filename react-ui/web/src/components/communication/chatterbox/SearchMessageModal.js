@@ -31,6 +31,7 @@ const useStyles = makeStyles(theme => ({
 function SearchMessageModal (props) {
     const {
         fullScreen, modalStateHandler,
+        setSearchResultsToEmpty,
         modalState, url,
         isMobile
     } = props;
@@ -72,6 +73,7 @@ function SearchMessageModal (props) {
 
     const compound_fn = () => {
         modalStateHandler();
+        setSearchResultsToEmpty();
     };
 
     const handleChange = name => value => {

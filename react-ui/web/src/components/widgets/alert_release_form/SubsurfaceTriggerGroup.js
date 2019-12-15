@@ -24,7 +24,7 @@ function SubsurfaceCheckboxGroup (props) {
     const triggers_value = {
         trigger_2: { status: false, disabled: false },
         trigger_3: { status: false, disabled: false },
-        trigger_0: { status: false, disabled: false },
+        trigger_nd: { status: false, disabled: false },
     };
 
     if (triggers.length !== 0) {
@@ -36,16 +36,16 @@ function SubsurfaceCheckboxGroup (props) {
                 disabled
             };
 
-            if (alert_level === 0) {
+            if (alert_level === "nd") {
                 triggers_value.trigger_2.disabled = true;
                 triggers_value.trigger_3.disabled = true;
             } else {
-                triggers_value.trigger_0.disabled = true;
+                triggers_value.trigger_nd.disabled = true;
             }
         });
     }
 
-    const { trigger_2, trigger_3, trigger_0 } = triggers_value;
+    const { trigger_2, trigger_3, trigger_nd } = triggers_value;
 
     const checkbox_choices = [
         { state: trigger_2, value: 2, label: "Release trigger (s2)" },
@@ -56,11 +56,18 @@ function SubsurfaceCheckboxGroup (props) {
     // if ("subsurface" in triggersReleased) {
     //     hide_subsurface_0 = false;
     // }
-
-    if (triggersReleased.includes("subsurface")) {
+    
+    const row = triggersReleased.filter(r => r.trigger_source === "subsurface");
+    if (row.length > 0) {
+        const temp = row.pop();
         checkbox_choices.push({
-            state: trigger_0, value: 0, label: "No data ([s/S]0)"
+            state: trigger_nd, value: "nd", label: "No data ([s/S]0)"
         });
+
+        if (temp.alert_level === -1) {
+            triggers_value.trigger_nd.status = true;
+            triggers_value.trigger_nd.disabled = false;
+        }
     }
 
     return (

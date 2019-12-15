@@ -104,24 +104,28 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
 
     Args:
         output_dict (dictionary) - the generated public_alert for each site
-        previous_latest_site_pa (PublicAlert class) - the previous public_alert before the script run
+        previous_latest_site_pa (PublicAlert class) - the previous public_alert
+                                                        before the script run
     """
     try:
         # latest_site_pa_id = previous_latest_site_pa.public_id
         prev_pub_sym_id = previous_latest_site_pa.pub_sym_id
         new_pub_sym_id = output_dict["pub_sym_id"]
 
-        new_alert_level = retrieve_data_from_memcache("public_alert_symbols", {"pub_sym_id": new_pub_sym_id}, retrieve_attr="alert_level")
+        new_alert_level = retrieve_data_from_memcache("public_alert_symbols", \
+            {"pub_sym_id": new_pub_sym_id}, retrieve_attr="alert_level")
         is_new_public_alert = prev_pub_sym_id != new_pub_sym_id
         prev_l_s_pa_ts_updated = previous_latest_site_pa.ts_updated
         new_l_s_pa_ts_updated = output_dict["ts_updated"]
-        no_alerts_wtn_30_mins = new_l_s_pa_ts_updated - timedelta(minutes=30) > prev_l_s_pa_ts_updated
+        no_alerts_wtn_30_mins = new_l_s_pa_ts_updated - timedelta(minutes=30) > \
+            prev_l_s_pa_ts_updated
+        is_retroactive_run = prev_l_s_pa_ts_updated > new_l_s_pa_ts_updated
 
         # If the alert symbol is different, create a new entry
         if no_alerts_wtn_30_mins and new_alert_level == 0:
             is_new_public_alert = True
         else:
-            if not is_new_public_alert:
+            if not is_new_public_alert and not is_retroactive_run:
                 # Update the previous public alert first
                 previous_latest_site_pa.ts_updated = output_dict["ts"]
 
@@ -1312,6 +1316,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             "purok": site.purok,
             "sitio": site.sitio,
             "barangay": site.barangay,
+            "alert_level": highest_public_alert,
             "public_alert": public_alert_symbol,
             "internal_alert": internal_alert,
             "has_ground_data": ground_alert_level == 0,

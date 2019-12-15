@@ -20,7 +20,7 @@ from src.utils.chatterbox import (
     insert_message_on_database,
     get_search_results
 )
-from src.utils.contacts import get_all_contacts
+from src.utils.contacts import get_all_contacts, get_recipients_option
 
 CLIENTS = []
 MESSAGES = {
@@ -28,7 +28,8 @@ MESSAGES = {
     "unsent": []
 }
 ROOM_MOBILE_IDS = {}
-CONTACTS = []
+CONTACTS_USERS = []
+CONTACTS_MOBILE = []
 
 
 def emit_data(keyword):
@@ -145,8 +146,9 @@ def connect():
 
     SOCKETIO.emit("receive_latest_messages", MESSAGES,
                   room=sid, namespace="/communications")
-
-    SOCKETIO.emit("receive_all_contacts", CONTACTS,
+    SOCKETIO.emit("receive_all_contacts", CONTACTS_USERS,
+                  room=sid, namespace="/communications")
+    SOCKETIO.emit("receive_all_mobile_numbers", CONTACTS_MOBILE,
                   room=sid, namespace="/communications")
 
 
@@ -162,6 +164,20 @@ def disconnect():
             row["users"].remove(sid)
         except ValueError:
             pass
+
+
+@SOCKETIO.on("get_latest_messages", namespace="/communications")
+def wrap_get_latest_messages():
+    sid = request.sid
+    SOCKETIO.emit("receive_latest_messages", MESSAGES,
+                  room=sid, namespace="/communications")
+
+
+@SOCKETIO.on("get_latest_messages", namespace="/communications")
+def wrap_get_latest_messages():
+    sid = request.sid
+    SOCKETIO.emit("receive_latest_messages", MESSAGES,
+                  room=sid, namespace="/communications")
 
 
 @SOCKETIO.on("join_mobile_id_room", namespace="/communications")
@@ -183,7 +199,7 @@ def join_mobile_id_room(mobile_id):
     else:
         mobile_details = get_user_mobile_details(mobile_id)
 
-        msgs = get_latest_messages(mobile_id, limit=20)
+        msgs = get_latest_messages(mobile_id)
         msgs_schema = get_messages_schema_dict(msgs)
 
         message_row = {
@@ -228,7 +244,6 @@ def leave_mobile_id_room(mobile_id):
 
     leave_room(mobile_id)
 
-    sid = request.sid
     print(f"=====> {sid} LEFT ROOM", mobile_id)
     print(f"=====> Available rooms", room_mobile_ids.keys())
 
@@ -236,9 +251,11 @@ def leave_mobile_id_room(mobile_id):
 @SOCKETIO.on("get_search_results", namespace="/communications")
 def wrap_get_search_results(payload):
     print(f"====> Message received", payload)
+    sid = request.sid
     result = get_search_results(payload)
+
     SOCKETIO.emit("receive_search_results", result,
-                  namespace="/communications")
+                  room=sid, namespace="/communications")
 
 
 @SOCKETIO.on("send_message_to_db", namespace="/communications")
@@ -250,7 +267,14 @@ def send_message_to_db(payload):
 @SOCKETIO.on("get_all_contacts", namespace="/communications")
 def wrap_get_all_contacts():
     sid = request.sid
-    SOCKETIO.emit("receive_all_contacts", CONTACTS,
+    SOCKETIO.emit("receive_all_contacts", CONTACTS_USERS,
+                  room=sid, namespace="/communications")
+
+
+@SOCKETIO.on("get_all_mobile_numbers", namespace="/communications")
+def wrap_get_all_mobile_numbers():
+    sid = request.sid
+    SOCKETIO.emit("receive_all_mobile_numbers", CONTACTS_MOBILE,
                   room=sid, namespace="/communications")
 
 
@@ -258,12 +282,14 @@ def get_inbox():
     return get_quick_inbox(inbox_limit=1, messages_per_convo=20)
 
 
-def get_contacts():
-    return get_all_contacts(return_schema=True)
+def get_contacts(orientation):
+    return get_all_contacts(return_schema=True, orientation=orientation)
 
 
 def main():
     global MESSAGES
-    global CONTACTS
+    global CONTACTS_USERS
+    global CONTACTS_MOBILE
     MESSAGES = get_inbox()
-    CONTACTS = get_contacts()
+    CONTACTS_USERS = get_contacts(orientation="users")
+    CONTACTS_MOBILE = get_recipients_option()

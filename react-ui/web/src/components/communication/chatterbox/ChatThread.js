@@ -1,7 +1,6 @@
 import React, { useState, Fragment } from "react";
-import PropTypes from "prop-types";
 import moment from "moment";
-import { withStyles } from "@material-ui/core/styles";
+
 import List from "@material-ui/core/List";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemText from "@material-ui/core/ListItemText";
@@ -16,7 +15,7 @@ import {
 import GenericAvatar from "../../../images/generic-user-icon.jpg";
 import GeneralDataTagModal from "../../widgets/GeneralDataTagModal";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     root: {
         width: "100%",
         backgroundColor: theme.palette.background.paper,
@@ -124,7 +123,7 @@ const styles = theme => ({
     sentIcon: {
         fontSize: "1rem"
     }
-});
+}));
 
 function arrowGenerator (color) {
     return {
@@ -265,7 +264,7 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
         primary={
             <Typography component="span" className={classes.chatMessage} variant="body2" color="textPrimary">
                 <span style={{ paddingRight: 6, zIndex: 1 }}>{message}</span>
-                <IconButton className={classes.tagButton} onClick={set_gdt_fn(true, tag_object)}>
+                <IconButton className={classes.tagButton} onClick={set_gdt_fn(true, tag_object, message)}>
                     {tag_icon}
                 </IconButton>
             </Typography>
@@ -310,16 +309,19 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
 }
 
 function ChatThread (props) {
-    const { classes, message_list, mobileDetails } = props;
+    const { message_list, mobileDetails } = props;
+    const classes = useStyles();
     const [is_gdt_modal_open, set_is_gdt_modal_open] = useState(false);
+    const [selected_message, setSelectedMessage] = useState("");
     const default_tag_obj = {
         id: "", source: "", tags: []
     };
     const [tag_object, update_tag_object] = useState(default_tag_obj);
 
-    const set_gdt_fn = (bool, obj = default_tag_obj) => () => {
+    const set_gdt_fn = (bool, obj = default_tag_obj, message) => () => {
         update_tag_object(obj);
         set_is_gdt_modal_open(bool);
+        setSelectedMessage(message);
         // create API to save tag
     };
 
@@ -330,21 +332,26 @@ function ChatThread (props) {
                     message_list.slice(0).reverse()
                     .map(row => chatBubbleCreator(classes, row, set_gdt_fn))
                 }
+
+                {
+                    message_list.length === 0 && (
+                        <Typography variant="subtitle1" align="center">
+                            No conversation yet
+                        </Typography>
+                    )
+                }
             </List>
 
             <GeneralDataTagModal
                 isOpen={is_gdt_modal_open}
                 closeHandler={set_gdt_fn(false)}
-                tagOption="outbox" // UPDATE THIS FOR GOD SAKE
+                tagOption={tag_object.source} // UPDATE THIS FOR GOD SAKE
                 tagObject={tag_object}
                 mobileDetails={mobileDetails}
+                message={selected_message}
             />
         </Fragment>
     );
 }
 
-ChatThread.propTypes = {
-    classes: PropTypes.object.isRequired,
-};
-
-export default withStyles(styles)(ChatThread);
+export default ChatThread;

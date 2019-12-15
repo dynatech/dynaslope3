@@ -52,7 +52,7 @@ def get_ewi_sms_narrative(release_id):
     release = get_monitoring_releases(
         release_id=release_id, load_options="ewi_narrative")
     data_ts = release.data_ts
-    event_alert = release.event_alerts
+    event_alert = release.event_alert
     public_alert_level = event_alert.public_alert_symbol.alert_level
 
     event = event_alert.event
@@ -93,7 +93,8 @@ def wrap_insert_message_on_database():
     }
 
     try:
-        insert_message_on_database(data)
+        outbox_id = insert_message_on_database(data)
+        ret_obj["outbox_id"] = outbox_id
     except Exception as err:
         print(err)
         if hasattr(err, "message"):

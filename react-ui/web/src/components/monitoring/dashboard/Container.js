@@ -41,7 +41,7 @@ const tabs_array = [
 ];
 
 function Container (props) {
-    const { classes, width } = props;
+    const { classes, width, history } = props;
     const [chosenTab, setChosenTab] = useState(0);
     const [generatedAlerts, setGeneratedAlerts] = useState(null);
     const [candidateAlertsData, setCandidateAlertsData] = useState(null);
@@ -57,7 +57,7 @@ function Container (props) {
     const set_moms_modal_fn = bool => () => setMomsModal(bool);
     
     useEffect(() => {
-        subscribeToWebSocket("socket_fns");
+        subscribeToWebSocket();
 
         receiveGeneratedAlerts(generated_alerts => setGeneratedAlerts(generated_alerts));
         receiveCandidateAlerts(candidate_alerts => setCandidateAlertsData(candidate_alerts));
@@ -154,6 +154,7 @@ function Container (props) {
                                     candidateAlertsData={candidateAlertsData}
                                     alertsFromDbData={alertsFromDbData}
                                     releaseFormOpenHandler={releaseAlertHandler}
+                                    history={history}
                                 />
                             )}
                             {chosenTab === 1 && <GeneratedAlerts generatedAlertsData={generatedAlerts} />}
