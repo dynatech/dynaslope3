@@ -73,8 +73,8 @@ NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "NO_DATA_HOURS_EXTENSION"}, retrieve_attr="var_value")
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/run_alert_generation", methods=["GET"]):
-@MONITORING_BLUEPRINT.route("/monitoring/run_alert_generation/<site_id>", methods=["GET"]):
+@MONITORING_BLUEPRINT.route("/monitoring/run_alert_generation", methods=["GET"])
+@MONITORING_BLUEPRINT.route("/monitoring/run_alert_generation/<site_id>", methods=["GET"])
 def wrap_update_alert_gen(site_code=None):
     update_alert_gen(site_code=site_code)
 
