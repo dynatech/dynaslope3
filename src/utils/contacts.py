@@ -25,7 +25,7 @@ from src.models.analysis import MarkerObservations, MarkerObservationsSchema
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 
 
-def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None):
+def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None, only_ewi_recipients=False):
     """
     """
 
@@ -48,6 +48,9 @@ def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None):
 
         base_query = base_query.filter(Sites.site_id.in_(site_ids))
 
+    if only_ewi_recipients:
+        base_query = base_query.filter(Users.ewi_recipient == 1)
+
     mobile_numbers = base_query.all()
 
     if return_schema:
@@ -56,38 +59,106 @@ def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None):
     return mobile_numbers
 
 
-def get_all_contacts(return_schema=False, site_ids=None, org_ids=None):
+def get_all_contacts(
+        return_schema=False, site_ids=None,
+        org_ids=None, orientation="users"):
     """
     Function that get all contacts
     """
+    query_start = datetime.now()
 
     mobile_numbers = []
 
     if return_schema:
         numbers_schema = get_mobile_numbers(return_schema, site_ids, org_ids)
-        users_id = {}
-        mobile_numbers = []
-        for num in numbers_schema:
-            user_dict = num["user"]
-            user_id = user_dict["user_id"]
-            mobile_number_dict = {
-                **num["mobile_number"],
-                "priority": num["priority"],
-                "status": num["status"]
-            }
 
-            if user_id in users_id.keys():
-                key = users_id[user_id]
-                mobile_numbers[key]["mobile_numbers"].append(
-                    mobile_number_dict)
-            else:
-                mobile_numbers.append({
-                    "user": user_dict,
-                    "mobile_numbers": [mobile_number_dict]
-                })
-                users_id[user_id] = len(mobile_numbers) - 1
+        if orientation == "users":
+            users_id = {}
+            mobile_numbers = []
+            for num in numbers_schema:
+                user_dict = num["user"]
+                user_id = user_dict["user_id"]
+                mobile_number_dict = {
+                    **num["mobile_number"],
+                    "priority": num["priority"],
+                    "status": num["status"]
+                }
+
+                if user_id in users_id.keys():
+                    key = users_id[user_id]
+                    mobile_numbers[key]["mobile_numbers"].append(
+                        mobile_number_dict)
+                else:
+                    mobile_numbers.append({
+                        "user": user_dict,
+                        "mobile_numbers": [mobile_number_dict]
+                    })
+                    users_id[user_id] = len(mobile_numbers) - 1
+        elif orientation == "mobile_numbers":
+            mobile_numbers = numbers_schema
+
+    query_end = datetime.now()
+    print("GET CONTACTS RUNTIME: ", query_end - query_start)
 
     return mobile_numbers
+
+
+def get_recipients_option(site_ids=None, site_codes=None,
+                          only_ewi_recipients=None, alert_level=None,
+                          org_ids=None):
+
+    query_start = datetime.now()
+
+    mobile_numbers = get_mobile_numbers(
+        site_ids=site_ids, org_ids=org_ids, only_ewi_recipients=only_ewi_recipients)
+    result = UserMobilesSchema(many=True, exclude=["landline_numbers", "emails"]) \
+        .dump(mobile_numbers).data
+
+    recipients_options = []
+    for row in result:
+        user = row["user"]
+        orgs = user["organizations"]
+
+        label = f'{user["last_name"]}, {user["first_name"]}'
+        final_org = ""
+        if orgs:
+            temp = orgs[0]
+            org = temp["organization"]
+            scope = org["scope"]
+            org_name = org["name"].upper()
+            site = temp["site"]
+
+            if scope == 0:
+                final_org = f'{site["site_code"].upper()} {org_name}'
+            elif scope == 1:
+                if org_name == "LGU":
+                    org_name = f"B{org_name}"
+                final_org = f'{site["site_code"].upper()} {org_name}'
+            elif scope == 2:
+                if org_name == "LGU":
+                    org_name = f"M{org_name}"
+                final_org = f'{site["municipality"]} {org_name}'
+            elif scope == 3:
+                if org_name == "LGU":
+                    org_name = f"P{org_name}"
+                final_org = f'{site["province"]} {org_name}'
+            elif scope == 4:
+                final_org = f'Region {site["region"]} {org_name}'
+            elif scope == 4:
+                final_org = f"National {org_name}"
+
+        temp = {
+            **row["mobile_number"],
+            "label": label,
+            "org": final_org,
+        }
+
+        recipients_options.append(temp)
+
+    query_end = datetime.now()
+    print("GET RECIPIENTS OPTIONS RUNTIME: ", query_end - query_start)
+
+    return recipients_options
 
 
 def get_contacts_per_site(site_ids=None,

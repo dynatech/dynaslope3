@@ -94,7 +94,7 @@ def create_ewi_message(release_id):
     if alert_level != 3:
         has_active_markers = check_if_site_has_active_surficial_markers(
             site_id=site.site_id)
-        g_data = "ground_data" if has_active_markers else "ground observation"
+        g_data = "ground data" if has_active_markers else "ground observation"
         ground_reminder = f"Inaasahan namin ang pagpapadala ng LEWC ng {g_data} "
 
         is_alert_0 = alert_level == 0

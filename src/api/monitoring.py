@@ -217,15 +217,21 @@ def wrap_get_site_alert_details():
     trigger_list = latest_release.trigger_list
     event_id = latest_release.event_alert.event.event_id
     event_triggers = get_saved_event_triggers(event_id)
-    trigger_sources = [
-        temp.internal_sym.trigger_symbol.trigger_hierarchy.trigger_source
-        for temp in event_triggers]
+    var_checker("event_triggers: site_details", event_triggers, True)
+
+    trigger_sources = []
+    for temp in event_triggers:
+        a = retrieve_data_from_memcache("internal_alert_symbols", {
+            "internal_sym_id": temp[0]}, retrieve_one=True)
+        source = a["trigger_symbol"]["trigger_hierarchy"]["trigger_source"]
+        trigger_sources.append({
+            "trigger_source": source,
+            "alert_level": 0
+        })
 
     internal_alert_level = public_alert_level
     if public_alert_level != "A0":
         internal_alert_level = f"{public_alert_level}-{trigger_list}"
-
-    var_checker("internal_alert_level", internal_alert_level, True)
 
     return jsonify({
         "internal_alert_level": internal_alert_level,
@@ -358,27 +364,66 @@ def wrap_get_pub_sym_id(alert_level):
     return str(pub_sym)
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/build_internal_alert_level", methods=["POST"])
-def wrap_build_internal_alert_level():
+@MONITORING_BLUEPRINT.route("/monitoring/create_release_details", methods=["POST"])
+def create_release_details():
     """
     build internal alert level
     """
+
     json_data = request.get_json()
     internal_alert_level = ""
     public_alert_level = ""
 
-    counted_triggers_list = []
     # current is string
     current = json_data["current_trigger_list"]
     # latest is array
     latest = json_data["latest_trigger_list"]
 
+    current = list(
+        sorted(current, key=lambda x: x["internal_sym"]["trigger_symbol"]["alert_level"], reverse=True))
+
+    counted_triggers_list = []
+    trigger_source_list = []
+
     sorted_latest = list(
         sorted(latest, key=lambda x: x["alert_level"], reverse=True))
-    public_alert_level = sorted_latest[0]["alert_level"]
+    highest_alert_from_latest = sorted_latest[0]["alert_level"]
 
-    # Return highest unique triggers
-    trigger_source_list = []
+    highest_alert_from_current = 0
+    for row in current:
+        internal_sym = row["internal_sym"]
+        internal_alert_symbol = internal_sym["alert_symbol"]
+        trigger_symbol = internal_sym["trigger_symbol"]
+        alert_level = trigger_symbol["alert_level"]
+        source_id = trigger_symbol["source_id"]
+        trigger_hierarchy = trigger_symbol["trigger_hierarchy"]
+        trigger_source = trigger_hierarchy["trigger_source"]
+        hierarchy_id = trigger_hierarchy["hierarchy_id"]
+
+        if highest_alert_from_current < alert_level:
+            highest_alert_from_current = alert_level
+
+        temp = {
+            "alert_level": alert_level,
+            "source": trigger_source,
+            "symbol": internal_alert_symbol,
+            "hierarchy_id": hierarchy_id
+        }
+
+        if source_id not in trigger_source_list:
+            trigger_source_list.append(source_id)
+            counted_triggers_list.append(temp)
+        else:
+            index = next((index for (index, d) in enumerate(
+                counted_triggers_list) if d["source"] == trigger_source))
+            if temp["alert_level"] > counted_triggers_list[index]["alert_level"]:
+                counted_triggers_list[index]["alert_level"] = temp["alert_level"]
+                counted_triggers_list[index]["symbol"] = temp["symbol"]
+
+    public_alert_level = highest_alert_from_latest if \
+        highest_alert_from_latest > highest_alert_from_current \
+        else highest_alert_from_current
+
     for trigger_source in sorted_latest:
         alert_level = trigger_source["alert_level"]
         trigger_type = trigger_source["trigger_type"]
@@ -386,13 +431,17 @@ def wrap_build_internal_alert_level():
             "trigger_hierarchies", {"trigger_source": trigger_type})
         source_id = trigger_hierarchy["source_id"]
         hierarchy_id = trigger_hierarchy["hierarchy_id"]
-        trigger_sym_id = retrieve_data_from_memcache("operational_trigger_symbols", {
-                                                     "alert_level": alert_level,
-                                                     "source_id": source_id},
-                                                     retrieve_attr="trigger_sym_id")
-        internal_sym = retrieve_data_from_memcache("internal_alert_symbols", {
-                                                   "trigger_sym_id": trigger_sym_id},
-                                                   retrieve_attr="alert_symbol")
+        trigger_sym_id = retrieve_data_from_memcache(
+            "operational_trigger_symbols", {
+                "alert_level": alert_level,
+                "source_id": source_id
+            },
+            retrieve_attr="trigger_sym_id")
+        internal_sym = retrieve_data_from_memcache(
+            "internal_alert_symbols", {
+                "trigger_sym_id": trigger_sym_id
+            },
+            retrieve_attr="alert_symbol")
 
         temp = {
             "alert_level": alert_level,
@@ -400,9 +449,30 @@ def wrap_build_internal_alert_level():
             "symbol": internal_sym,
             "hierarchy_id": hierarchy_id
         }
+
         if source_id not in trigger_source_list:
+            # check if rx (no rainfall trigger)
+            if temp["source"] == "rainfall" and temp["alert_level"] == -2:
+                temp["symbol"] = temp["symbol"].lower()
+
             trigger_source_list.append(source_id)
             counted_triggers_list.append(temp)
+        else:
+            index = next((index for (index, d) in enumerate(
+                counted_triggers_list) if d["source"] == trigger_type))  # take note of variable name trigger_type sa taas trigger_source
+            if temp["alert_level"] > counted_triggers_list[index]["alert_level"]:
+                counted_triggers_list[index]["alert_level"] = temp["alert_level"]
+                counted_triggers_list[index]["symbol"] = temp["symbol"]
+            elif temp["alert_level"] in [-1, -2]:
+                saved_alert_level = counted_triggers_list[index]["alert_level"]
+                if temp["source"] != "rainfall":
+                    if saved_alert_level == 3:
+                        temp["symbol"] = temp["symbol"].upper()
+                    else:
+                        temp["symbol"] = temp["symbol"].lower()
+
+                counted_triggers_list[index]["alert_level"] = temp["alert_level"]
+                counted_triggers_list[index]["symbol"] = temp["symbol"]
 
     sorted_by_hierarchy = list(
         sorted(counted_triggers_list, key=lambda x: x["hierarchy_id"]))
@@ -728,7 +798,8 @@ def insert_ewi(internal_json=None):
 
                 # Raising from lower alert level e.g. A1->A2->A3->etc.
                 # NOTE: LOUIE change max alert level here
-                if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= (max_possible_alert_level + 1):
+                if pub_sym_id > current_event_alert.pub_sym_id \
+                        and pub_sym_id <= (max_possible_alert_level + 1):
                     # if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= 4:
                     # Now that you created a new event
                     print("---RAISING")
@@ -738,7 +809,8 @@ def insert_ewi(internal_json=None):
                     event_alert_id = write_monitoring_event_alert_to_db(
                         event_alert_details)
 
-                elif pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30):
+                elif pub_sym_id == current_event_alert.pub_sym_id \
+                        and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
@@ -806,7 +878,8 @@ def insert_ewi(internal_json=None):
             }
 
             insert_ewi_release(instance_details,
-                               release_details, publisher_details, trigger_list_arr, non_triggering_moms=non_triggering_moms)
+                               release_details, publisher_details, trigger_list_arr,
+                               non_triggering_moms=non_triggering_moms)
 
         elif entry_type == -1:
             print()
@@ -1123,7 +1196,7 @@ def get_event_timeline_data(event_id):
         # Narratives
         narratives_list = get_narratives(event_id=event_id)
         narratives_data_list = NarrativesSchema(
-            many=True).dump(narratives_list).data
+            many=True, exclude=["site"]).dump(narratives_list).data
         if narratives_data_list:
             for narrative in narratives_data_list:
                 timestamp = narrative["timestamp"]

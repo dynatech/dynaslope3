@@ -71,14 +71,13 @@ function SaveContactModal (props) {
     const handleClose = () => setSaveContactModal(false);
     const handleExited = () => setReason("");
 
-    useEffect(() => {
-        getListOfMunicipalities(data => {
-            setMunicipalities(prepareGeographicalList(data, "municipality"));
-            setProvinces(prepareGeographicalList(data, "province"));
-            setRegions(prepareGeographicalList(data, "region"));
-        });
-    }, []);
-
+    // useEffect(() => {
+    //     getListOfMunicipalities(data => {
+    //         setMunicipalities(prepareGeographicalList(data, "municipality"));
+    //         setProvinces(prepareGeographicalList(data, "province"));
+    //         setRegions(prepareGeographicalList(data, "region"));
+    //     });
+    // }, []);
 
     return (
         <Dialog

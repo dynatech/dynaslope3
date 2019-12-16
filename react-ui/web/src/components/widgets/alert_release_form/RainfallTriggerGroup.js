@@ -15,7 +15,8 @@ const styles = theme => ({
 
 function RainfallRadioGroup (props) {
     const {
-        classes, triggersState, setTriggersState
+        classes, triggersState, setTriggersState,
+        triggersReleased
     } = props;
 
     const { rainfall } = triggersState;
@@ -28,6 +29,21 @@ function RainfallRadioGroup (props) {
         });
     }
 
+    const choices = [
+        { value: "1", label: "Release new trigger" }
+    ];
+
+    const row = triggersReleased.filter(r => r.trigger_source === "rainfall");
+    if (row.length > 0) {
+        const temp = row.pop();
+        choices.push(
+            { value: "-1", label: "No data (R0)" },
+            { value: "-2", label: "Intermediate threshold (rx)" }
+        );
+
+        if (temp.alert_level !== 1) { triggers_value.alert_level = temp.alert_level.toString(); }
+    }
+
     return (
         <Fragment>
             <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
@@ -38,11 +54,7 @@ function RainfallRadioGroup (props) {
                     switchHandler={handleSwitchChange(setTriggersState, "rainfall")}
                     switchValue="rainfall_switch"
                     radioValue={triggers_value.alert_level}
-                    choices={[
-                        { value: "1", label: "Release new trigger" },
-                        { value: "-1", label: "No data (R0)" },
-                        { value: "-2", label: "Intermediate threshold (rx)" }
-                    ]}
+                    choices={choices}
                     changeHandler={handleRadioChange(setTriggersState, "rainfall")}
                 />
             </Grid>

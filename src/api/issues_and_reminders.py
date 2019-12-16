@@ -7,16 +7,19 @@ from flask import Blueprint, jsonify, request
 from connection import DB
 # from src.models.monitoring import (IssuesAndRemindersSchema)
 from src.models.issues_and_reminders import (IssuesAndRemindersSchema)
-from src.utils.issues_and_reminders import (get_issues_and_reminders, write_issue_reminder_to_db)
+from src.utils.issues_and_reminders import (
+    get_issues_and_reminders, write_issue_reminder_to_db)
 from src.utils.extra import var_checker
 
 
-ISSUES_AND_REMINDERS_BLUEPRINT = Blueprint("issues_and_reminders_blueprint", __name__)
+ISSUES_AND_REMINDERS_BLUEPRINT = Blueprint(
+    "issues_and_reminders_blueprint", __name__)
 
 
 @ISSUES_AND_REMINDERS_BLUEPRINT.route("/issues_and_reminders/get_issues_reminders", methods=["GET"])
 def wrap_get_issue_reminder():
-    issues = get_issues_and_reminders(include_count=False, include_expired=False)
+    issues = get_issues_and_reminders(
+        include_count=False, include_expired=False)
     data = IssuesAndRemindersSchema(many=True).dump(issues).data
 
     return data
@@ -46,7 +49,8 @@ def wrap_write_issue_reminder_to_db():
         except KeyError:
             postings = None
 
-        status = write_issue_reminder_to_db(json_data["iar_id"], detail, user_id, ts_posted, ts_expiration, resolved_by, resolution, ts_resolved, site_id_list, is_event_entry)
+        status = write_issue_reminder_to_db(json_data["iar_id"], detail, user_id, ts_posted,
+                                            ts_expiration, resolved_by, resolution, ts_resolved, site_id_list, is_event_entry)
 
         # DB.session.rollback()
         DB.session.commit()
@@ -55,7 +59,6 @@ def wrap_write_issue_reminder_to_db():
         raise
 
     return status
-
 
 
 @ISSUES_AND_REMINDERS_BLUEPRINT.route("/issues_and_reminders/get_issues_and_reminders", methods=["GET"])
@@ -97,7 +100,8 @@ def wrap_get_issues_and_reminders(start=None, end=None):
     else:
         issues_and_reminders = return_val
 
-    issues_and_reminders_data = issues_and_reminders_schema.dump(issues_and_reminders).data
+    issues_and_reminders_data = issues_and_reminders_schema.dump(
+        issues_and_reminders).data
 
     if include_count:
         issues_and_reminders_data = {

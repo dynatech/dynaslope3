@@ -9,7 +9,8 @@ from src.utils.contacts import (
     get_all_contacts, save_user_information,
     save_user_contact_numbers, save_user_affiliation,
     ewi_recipient_migration, get_contacts_per_site,
-    get_ground_measurement_reminder_recipients
+    get_ground_measurement_reminder_recipients,
+    get_recipients_option
 )
 
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
@@ -108,6 +109,37 @@ def wrap_get_contacts_per_site(site_code=None):
                                  site_codes=temp["site_codes"],
                                  only_ewi_recipients=temp["only_ewi_recipients"],
                                  alert_level=temp["alert_level"])
+    return jsonify(data)
+
+
+@CONTACTS_BLUEPRINT.route("/contacts/get_recipients_option", methods=["GET", "POST"])
+@CONTACTS_BLUEPRINT.route("/contacts/get_recipients_option/<site_code>", methods=["GET", "POST"])
+def wrap_get_recipients_option(site_code=None):
+    temp = {
+        "site_ids": [],
+        "org_ids": [],
+        "site_codes": [],
+        "alert_level": 0,
+        "only_ewi_recipients": True
+    }
+
+    if site_code:
+        temp["site_codes"].append(site_code)
+    else:
+        data = request.get_json()
+
+        for key in [
+            "site_ids", "site_codes", "alert_level",
+            "only_ewi_recipients", "org_ids"
+        ]:
+            if key in data:
+                temp[key] = data[key]
+
+    data = get_recipients_option(site_ids=temp["site_ids"],
+                                 site_codes=temp["site_codes"],
+                                 only_ewi_recipients=temp["only_ewi_recipients"],
+                                 alert_level=temp["alert_level"],
+                                 org_ids=temp["org_ids"])
     return jsonify(data)
 
 

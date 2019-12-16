@@ -112,11 +112,13 @@ def get_surficial_data(
             Sites.site_code == site_code)
 
     if end_ts:
-        end_ts = datetime.strptime(end_ts, "%Y-%m-%d %H:%M:%S")
+        if not isinstance(end_ts, datetime):
+            end_ts = datetime.strptime(end_ts, "%Y-%m-%d %H:%M:%S")
         filtered_query = filtered_query.filter(mo.ts <= end_ts)
 
     if start_ts:
-        start_ts = datetime.strptime(start_ts, "%Y-%m-%d %H:%M:%S")
+        if not isinstance(start_ts, datetime):
+            start_ts = datetime.strptime(start_ts, "%Y-%m-%d %H:%M:%S")
         filtered_query = filtered_query.filter(mo.ts >= start_ts)
 
     if limit:

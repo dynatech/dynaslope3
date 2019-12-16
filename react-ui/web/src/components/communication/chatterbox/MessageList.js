@@ -54,15 +54,59 @@ function returnTS (ts_received) {
     return ts;
 }
 
-function MessageListItem (row, props, openOptionsModal) {
-    const { messages, mobile_details } = row;
-    const [first_message] = messages;
+function SecondaryInformation (classes, first_message) {
     const { 
         sms_msg: message, ts: msg_ts, 
         source, send_status, ts_sent
     } = first_message;
-    const { classes, url, width, async, is_desktop } = props;
     const ts = returnTS(msg_ts);
+
+    return (
+        <Grid 
+            container 
+            justify="space-between"
+            spacing={0}
+        >
+            <Grid item xs={1} style={{ flexBasis: 0, marginRight: 6 }}>
+                {
+                    source === "inbox" ? (
+                        <CallReceived fontSize="small" />
+                    ) : (
+                        <CallMade fontSize="small" />
+                    )
+                }
+            </Grid>
+            <Grid item xs className={classes.overflowEllipsis}>
+                {message}
+            </Grid>
+            <Grid
+                item
+                style={{ marginRight: 8 }}
+                className={classes.noFlexGrow}
+            >
+                {ts}
+            </Grid>
+            <Grid item style={{ paddingTop: 2, marginRight: 8 }}>
+                {
+                    (send_status === 0 || (send_status === null && ts_sent !== null)) && <RadioButtonUnchecked className={classes.sentIcon} />
+                }
+                {
+                    send_status > 0 && send_status <= 5 && (
+                        <CheckCircle color="primary" className={classes.sentIcon} />
+                    )
+                }
+                {
+                    (send_status === -1 || send_status > 5) && <Cancel color="error" className={classes.sentIcon} />
+                }
+            </Grid>
+        </Grid>
+    );
+}
+
+function MessageListItem (row, props, openOptionsModal) {
+    const { messages, mobile_details } = row;
+    const [first_message] = messages;
+    const { classes, url, width, async, is_desktop } = props;
 
     const { mobile_id, sim_num, user_details } = mobile_details;
     const sim_number = simNumFormatter(sim_num);
@@ -147,44 +191,11 @@ function MessageListItem (row, props, openOptionsModal) {
                         className: classes.overflowEllipsis
                     }}
                     secondary={
-                        <Grid 
-                            container 
-                            justify="space-between"
-                            spacing={0}
-                        >
-                            <Grid item xs={1} style={{ flexBasis: 0, marginRight: 6 }}>
-                                {
-                                    source === "inbox" ? (
-                                        <CallReceived fontSize="small" />
-                                    ) : (
-                                        <CallMade fontSize="small" />
-                                    )
-                                }
-                            </Grid>
-                            <Grid item xs className={classes.overflowEllipsis}>
-                                {message}
-                            </Grid>
-                            <Grid
-                                item
-                                style={{ marginRight: 8 }}
-                                className={classes.noFlexGrow}
-                            >
-                                {ts}
-                            </Grid>
-                            <Grid item style={{ paddingTop: 2, marginRight: 8 }}>
-                                {
-                                    (send_status === 0 || (send_status === null && ts_sent !== null)) && <RadioButtonUnchecked className={classes.sentIcon} />
-                                }
-                                {
-                                    send_status > 0 && send_status <= 5 && (
-                                        <CheckCircle color="primary" className={classes.sentIcon} />
-                                    )
-                                }
-                                {
-                                    (send_status === -1 || send_status > 5) && <Cancel color="error" className={classes.sentIcon} />
-                                }
-                            </Grid>
-                        </Grid>
+                        messages.length > 0 ? (
+                            SecondaryInformation(classes, first_message)
+                        ) : (
+                            <div style={{ textAlign: "center" }}>No conversation yet</div>
+                        )
                     }
                     secondaryTypographyProps={{ component: "div" }}
                 />

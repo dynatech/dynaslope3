@@ -94,15 +94,14 @@ function BulletinModal (props) {
             "Sending bulletin...",
             {
                 variant: "warning",
-                // autoHideDuration: 7000,
                 persist: true
             }
         );
         closeHandler();
         sendBulletinEmail(input, ret => {
             const { status, message } = ret;
+            closeSnackbar(loading_snackbar);
             if (status) {
-                closeSnackbar(loading_snackbar);
                 enqueueSnackbar(
                     message,
                     {
@@ -111,6 +110,22 @@ function BulletinModal (props) {
                         action: snackBarActionFn
                     }
                 );
+
+                if (typeof narrative_details === "object") {
+                    const temp_nar = {
+                        ...narrative_details,
+                        timestamp: moment().format("YYYY-MM-DD HH:mm:ss")
+                    };
+                    write_bulletin_narrative(temp_nar, narrative_ret => {
+                        console.log("NARRATIVE WRITTEN!");
+                    });
+                } else console.log("NO NARRATIVE WRITTEN: TEST ONLY");
+
+                sendWSMessage("update_db_alert_ewi_sent_status", {
+                    alert_db_group: type,
+                    site_id,
+                    ewi_group: "bulletin"
+                });
             } else {
                 enqueueSnackbar(
                     message,
@@ -121,18 +136,8 @@ function BulletinModal (props) {
                     }
                 );
             }
-
-            if (typeof narrative_details === "object") {
-                const temp_nar = {
-                    ...narrative_details,
-                    timestamp: moment().format("YYYY-MM-DD HH:mm:ss")
-                };
-                write_bulletin_narrative(temp_nar, narrative_ret => {
-                    console.log("NARRATIVE WRITTEN!");
-                });
-            } else console.log("NO NARRATIVE WRITTEN: TEST ONLY");
-
         }, () => {
+            closeSnackbar(loading_snackbar);
             enqueueSnackbar(
                 "Send bulletin failed. Ask the devs.",
                 {
@@ -141,12 +146,6 @@ function BulletinModal (props) {
                     action: snackBarActionFn
                 }
             );
-        });
-
-        sendWSMessage("update_db_alert_ewi_sent_status", {
-            alert_db_group: type,
-            site_id,
-            ewi_group: "bulletin"
         });
     };
 

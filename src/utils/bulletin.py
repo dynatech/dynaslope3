@@ -57,7 +57,7 @@ class DriverContainer:
         options.add_argument("--disable-extensions")
         options.add_argument('--ignore-certificate-errors')
         options.add_argument('--no-sandbox')
-        options.add_argument("--log-level=3")  # Turn off logging
+        options.add_argument("--log-level=4")  # Turn off logging
 
         os_platform = platform.system()
         lc_platform = os_platform.lower()

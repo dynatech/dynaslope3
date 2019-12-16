@@ -2,24 +2,16 @@ import React, { useState, useEffect } from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withMobileDialog, withStyles
+    Button, withMobileDialog
 } from "@material-ui/core";
-import { compose } from "recompose";
 import axios from "axios";
 import moment from "moment";
 import SelectMultipleWithSuggest from "../reusables/SelectMultipleWithSuggest";
 import { SlideTransition, FadeTransition } from "../reusables/TransitionList";
 import { host } from "../../config";
-// import { handleUpdateInsertTags, handleDeleteTags } from "./ajax";
+import { handleUpdateInsertTags, handleDeleteTags } from "./ajax";
 import { getCurrentUser } from "../sessions/auth";
 import { mobileUserFormatter } from "../communication/chatterbox/MessageList";
-
-const handleUpdateInsertTags = () => {};
-const handleDeleteTags = () => {};
-
-const styles = theme => ({
-    link: { textDecoration: "none" }
-});
 
 function prepareContactPerson (mobileDetails) {
     let name = mobileDetails.sim_num;
@@ -40,9 +32,13 @@ function prepareContactPerson (mobileDetails) {
 
 function useFetchTagOptions (tag_selection) {
     const [tags, update_tags] = useState([]);
+    const cancel_token = axios.CancelToken;
+    const source = cancel_token.source();
 
     useEffect(() => {
-        axios.get(`${host}/api/chatterbox/get_message_tag_options/sms${tag_selection}_users`)
+        const api_link = `${host}/api/chatterbox/get_message_tag_options/sms${tag_selection}_users`;
+
+        axios.get(api_link, { cancelToken: source.token })
         .then(({ data }) => {
             const arr = data.map(row => ({
                 value: row.tag_id,
@@ -54,6 +50,8 @@ function useFetchTagOptions (tag_selection) {
         .catch(error => {
             console.log(error);
         });
+
+        // return source.cancel();
     }, [tag_selection]);
 
     return tags;
@@ -74,12 +72,12 @@ function GeneralDataTagModal (props) {
     const {
         fullScreen, isOpen,
         closeHandler, tagOption, isMobile,
-        tagObject, mobileDetails
+        tagObject, mobileDetails, message
     } = props;
 
     const tag_options = useFetchTagOptions(tagOption);
 
-    const [tags, update_tags] = useState([]);
+    const [tags, update_tags] = useState(null);
     const [orig_tags, setOrigTags] = useState([]);
 
     useEffect(() =>{
@@ -105,8 +103,14 @@ function GeneralDataTagModal (props) {
         const var_key_id = source === "inbox" ? "inbox_id" : "outbox_id";
 
         // DELETE MISSING TAGS
-        let missing_tags = 0;
-        if (orig_tags.length > 0) missing_tags = orig_tags.filter((i => a => a !== tags[i] || !++i)(0));
+        let missing_tags = [];
+        console.log(orig_tags, tags);
+        if (orig_tags.length > 0) {
+            if (tags === null) missing_tags = [...orig_tags];
+            else {
+                missing_tags = orig_tags.filter(row => !tags.some(x => x.value === row.value));
+            }
+        }
 
         if (missing_tags.length > 0) {
             console.log("missing_tags", missing_tags);
@@ -132,9 +136,9 @@ function GeneralDataTagModal (props) {
 
         // ADD NEW TAGS
         let new_tags = [];
-        if (tags.length > 0) new_tags = tags.filter((i => a => a !== orig_tags[i] || !++i)(0));
+        if (tags !== null) new_tags = tags.filter((i => a => a !== orig_tags[i] || !++i)(0));
 
-        if (new_tags.length > 0) {            
+        if (new_tags.length > null) {            
             console.log("new_tags", new_tags);
             const tag_id_list = new_tags.map(tag => {
                 return tag.value;
@@ -142,6 +146,7 @@ function GeneralDataTagModal (props) {
             const payload = {
                 tag_type: `sms${source}_user_tags`,
                 contact_person,
+                message,
                 tag_details: {
                     user_id: getCurrentUser().user_id,
                     [var_key_id]: id,
@@ -204,4 +209,4 @@ function GeneralDataTagModal (props) {
     );
 }
 
-export default compose(withStyles(styles), withMobileDialog())(GeneralDataTagModal);
+export default withMobileDialog()(GeneralDataTagModal);

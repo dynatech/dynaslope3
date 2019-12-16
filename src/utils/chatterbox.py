@@ -276,6 +276,8 @@ def insert_message_on_database(obj):
 
     DB.session.commit()
 
+    return outbox_id
+
 
 def get_search_results(obj):
     """
@@ -289,12 +291,23 @@ def get_search_results(obj):
 
     search_results = []
     for contact in contacts:
-        mobile_id = contact["mobile_number"]["mobile_id"]
+        mobile_number = contact["mobile_number"]
+        mobile_id = mobile_number["mobile_id"]
         msgs = get_latest_messages(mobile_id, messages_per_convo=1)
         msgs_schema = get_messages_schema_dict(msgs)
 
-        contact["messages"] = msgs_schema
+        temp = {
+            "messages": msgs_schema,
+            "mobile_details": {
+                **mobile_number,
+                "user_details": {
+                    "user": contact["user"],
+                    "priority": contact["priority"],
+                    "status": contact["status"]
+                }
+            }
+        }
 
-        search_results.append(contact)
+        search_results.append(temp)
 
     return search_results

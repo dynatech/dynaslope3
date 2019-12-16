@@ -11,7 +11,7 @@ from src.utils.general_data_tag import (
 )
 from src.models.general_data_tag import GeneralDataTagManagerSchema
 from src.utils.monitoring import get_latest_monitoring_event_per_site
-from src.utils.narratives import write_narratives_to_db, get_narrative_text, find_narrative_event
+from src.utils.narratives import write_narratives_to_db, get_narrative_text
 from src.utils.sites import get_sites_data
 from src.utils.extra import var_checker, get_process_status_log
 
@@ -34,6 +34,7 @@ def handle_update_insert_tags():
     """
     tag_data = request.get_json()
     contact_person = tag_data["contact_person"]
+    message = tag_data["message"]
     tag_type = tag_data["tag_type"]
     tag_details = tag_data["tag_details"]
     tag_id_list = tag_details["tag_id_list"]
@@ -48,30 +49,36 @@ def handle_update_insert_tags():
                 row_to_update=tag_row,
                 tag_details=tag_details,
                 tag_id=tag_id
-                )
+            )
 
         else:
             response = insert_data_tag(
                 tag_type=tag_type,
                 tag_details=tag_details,
                 tag_id=tag_id
-                )
+            )
 
         # Get tag description
         # tag_description = get_tag_description(tag_id=tag_id, tag_type=tag_type)
         tag_description = get_tag_description(tag_id=tag_id)
         var_checker("tag_description", tag_description, True)
-        if tag_description in ["#GroundMeas", "#GroundObs", "#EwiMessage"]:
+        # TODO: change tags when new tags came or use tag_ids
+        if tag_description in ["#GroundMeas", "#GroundObs", "#EwiResponse"]:
             get_process_status_log(key="Writing narratives", status="request")
+
+            additional_data = contact_person
+            if tag_description in ["#GroundObs", "#EwiResponse"]:
+                additional_data += f" - {message}"
 
             narrative = get_narrative_text(
                 narrative_type="sms_tagging", details={
                     "tag": tag_description,
-                    "additional_data": contact_person
+                    "additional_data": additional_data
                 })
             var_checker("narrative", narrative, True)
 
-            get_process_status_log("inserting narratives with provided site_id_list", "request")
+            get_process_status_log(
+                "inserting narratives with provided site_id_list", "request")
             try:
                 for site_id in site_id_list:
                     # TODO: Make sure that this would handle routine in the future.
@@ -90,10 +97,13 @@ def handle_update_insert_tags():
                         )
                         print("narrative_id", narrative_id)
             except Exception as err:
-                var_checker("error in writing narrative in insert tag api", err, True)
-                get_process_status_log("inserting narratives with provided site_id_list", "fail")
+                var_checker(
+                    "error in writing narrative in insert tag api", err, True)
+                get_process_status_log(
+                    "inserting narratives with provided site_id_list", "fail")
                 raise
-            get_process_status_log("inserting narratives with provided site_id_list", "success")
+            get_process_status_log(
+                "inserting narratives with provided site_id_list", "success")
 
         var_checker("response of insert", response, True)
 
@@ -122,3 +132,23 @@ def handle_delete_tags():
     DB.session.commit()
 
     return jsonify({"message": "success", "status": True})
+
+
+@GENERAL_DATA_TAG_BLUEPRINT.route("/general_data_tag/insert_ewi_sms_tag", methods=["POST"])
+def insert_ewi_sms_tag():
+    """
+    Function that insert tags
+    """
+
+    tag_details = request.get_json()
+
+    # TODO: change hard-coded code
+    response = insert_data_tag(
+        tag_type="smsoutbox_user_tags",
+        tag_details=tag_details,
+        tag_id=18  # harcoded for #EwiMessage
+    )
+
+    DB.session.commit()
+
+    return jsonify(response)

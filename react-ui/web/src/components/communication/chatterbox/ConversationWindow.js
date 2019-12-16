@@ -181,7 +181,7 @@ function ConversationWindow (props) {
     } = props;
 
     const [conversation_details, setConversationDetails] = useState({
-        message_list: [],
+        message_list: null,
         mobile_details: {}
     });
     const [composed_message, setComposedMessage] = useState("");
@@ -211,15 +211,18 @@ function ConversationWindow (props) {
     let { mobile_details, message_list } = conversation_details;
 
     if (!async) {
-        const message_arr = [...messageCollection.inbox];
-        const filtered = message_arr.filter(row => row.mobile_details.mobile_id === parseInt(mobile_id, 10));
+        const { inbox } = messageCollection;
+        if (inbox !== null) {
+            const message_arr = [...messageCollection.inbox];
+            const filtered = message_arr.filter(row => row.mobile_details.mobile_id === parseInt(mobile_id, 10));
 
-        if (filtered.length > 0) {
-            const convo = filtered.pop();
-            const { mobile_details: mb, messages } = convo;
+            if (filtered.length > 0) {
+                const convo = filtered.pop();
+                const { mobile_details: mb, messages } = convo;
             
-            mobile_details = mb;
-            message_list = messages;
+                mobile_details = mb;
+                message_list = messages;
+            }
         }
     }
 
@@ -249,7 +252,7 @@ function ConversationWindow (props) {
     return (
         <Fragment>
             {
-                message_list.length === 0
+                message_list === null
                     ? <div 
                         className={classes.regularContainer} 
                         style={{ paddingLeft: 16, paddingBottom: 0 }}
@@ -274,14 +277,14 @@ function ConversationWindow (props) {
 
             <div className={classes.regularContainer}>
                 { 
-                    message_list.length === 0
+                    message_list === null
                         ? <div style={{ padding: "0 16px" }}><ChatLoader style={{ height: "100%" }} /></div>
                         : <ChatThread message_list={message_list} mobileDetails={mobile_details} />
                 }
             </div>
 
             {
-                message_list.length > 0 && (
+                message_list !== null && (
                     <Fragment>
                         <Divider className={classes.divider}/>
 

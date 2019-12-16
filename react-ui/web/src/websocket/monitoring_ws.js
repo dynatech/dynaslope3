@@ -7,17 +7,17 @@ function connectToWebsocket () {
     if (typeof socket === "undefined" || socket === null) {
         socket = io(`${host}/monitoring`, {
             reconnectionDelay: 10000,
-            reconnectionAttempts: 30
-            // transports: ["websocket"]
+            reconnectionAttempts: 30,
+            transports: ["websocket"]
         });
     }
 }
 
-export function subscribeToWebSocket (socket_fns) {
+export function subscribeToWebSocket () {
     connectToWebsocket();
 }
 
-export function sendWSMessage (key, data) {
+export function sendWSMessage (key, data = null) {
     console.log("Payload: { key: data }", key, data);
     const payload = {
         data,
@@ -42,7 +42,7 @@ export function unsubscribeToWebSocket () {
 export function receiveIssuesAndReminders (callback) {
     connectToWebsocket();
 
-    socket.on("receive_issues_and_reminders", data => {   
+    socket.on("receive_issues_and_reminders", data => {
         callback(data);
     });
 }
@@ -52,6 +52,7 @@ export function receiveGeneratedAlerts (callback) {
 
     socket.on("receive_generated_alerts", data => {
         const temp = JSON.parse(data);
+        console.log("Generated alerts: ", temp);
         callback(temp);
     });
 }
@@ -61,6 +62,7 @@ export function receiveCandidateAlerts (callback) {
 
     socket.on("receive_candidate_alerts", data => {
         const temp = JSON.parse(data);
+        console.log("Candidate alerts: ", temp);
         callback(temp);
     });
 }
@@ -70,7 +72,7 @@ export function receiveAlertsFromDB (callback) {
 
     socket.on("receive_alerts_from_db", data => {
         const temp = JSON.parse(data);
-        console.log(temp); 
+        console.log("Alerts from DB: ", temp);
         callback(temp);
     });
 }

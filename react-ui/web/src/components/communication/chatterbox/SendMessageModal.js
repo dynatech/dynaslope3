@@ -11,7 +11,8 @@ import { SlideTransition, FadeTransition } from "../../reusables/TransitionList"
 function SendMessageModal (props) {
     const {
         fullScreen, modalStateHandler,
-        modalState, textboxValue
+        modalState, textboxValue,
+        recipientsList
     } = props;
     
     return (
@@ -42,7 +43,12 @@ function SendMessageModal (props) {
                 </DialogContentText>
                         
                 <div style={{ marginTop: 20 }}>
-                    <SendMessageForm isMobile={fullScreen} textboxValue={textboxValue} />
+                    <SendMessageForm 
+                        isMobile={fullScreen}
+                        textboxValue={textboxValue}
+                        recipientsList={recipientsList}
+                        modalStateHandler={modalStateHandler}
+                    />
                 </div>
             </DialogContent>
             <DialogActions>

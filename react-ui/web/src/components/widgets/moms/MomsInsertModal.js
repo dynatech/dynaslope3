@@ -6,9 +6,9 @@ import {
     Button, withMobileDialog
 } from "@material-ui/core";
 
+import { useSnackbar } from "notistack";
 import MomsForm from "./MomsForm";
 import { reducerFunction, moms_entry } from "./state_handlers";
-// import MomsInitialState from "./MomsInitialState";
 import { insertMomsToDB, getMOMsFeatures } from "./ajax";
 import { getCurrentUser } from "../../sessions/auth";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
@@ -18,11 +18,10 @@ import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 function MomsInsertModal (props) {
     const {
         fullScreen, isOpen,
-        closeHandler, match,
-        snackbarHandler
+        closeHandler, match
     } = props;
 
-    const [site, setSite] = useState("");
+    const [site, setSite] = useState(null);
     const [site_code, setSiteCode] = useState(null);
     const [moms_entries, setMomsEntries] = useReducer(reducerFunction, []);
 
@@ -34,8 +33,19 @@ function MomsInsertModal (props) {
     }, [match]);
     
     useEffect(() => {
-        if (site !== "") setSiteCode(site.data.site_code);
+        if (site !== null) setSiteCode(site.data.site_code);
     }, [site]);
+
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
+    const snackBarActionFn = key => {
+        return (<Button
+            color="primary"
+            onClick={() => { closeSnackbar(key); }}
+        >
+            Dismiss
+        </Button>);
+    };
     
     const [moms_feature_types, setMomsFeatureTypes] = useState([]);
     useEffect(() => {
@@ -90,15 +100,43 @@ function MomsInsertModal (props) {
             moms_list,
             site_code
         };
+
         console.log("PAYLOAD", payload);
 
         // Write data to DB
         // sendWSMessage("write_monitoring_moms_to_db", payload);
-        // closeHandler();
-        insertMomsToDB(payload, ret => {
-            console.log(ret);
-            snackbarHandler();
-            closeHandler();
+        closeHandler();
+        insertMomsToDB(payload, response => {
+            if (response.status) {
+                sendWSMessage("run_alert_generation", { site_code });
+
+                enqueueSnackbar(
+                    "MOMs input success!",
+                    {
+                        variant: "success",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            } else {
+                enqueueSnackbar(
+                    response.message,
+                    {
+                        variant: "error",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            }
+        }, () => {
+            enqueueSnackbar(
+                "Error MOMS input...",
+                {
+                    variant: "error",
+                    autoHideDuration: 7000,
+                    action: snackBarActionFn
+                }
+            );
         });
     };
 
@@ -123,6 +161,7 @@ function MomsInsertModal (props) {
                         siteCode={site_code}
                         site={site}
                         setSite={setSite}
+                        selectSite
                     />
                 </DialogContent>
                 <DialogActions>

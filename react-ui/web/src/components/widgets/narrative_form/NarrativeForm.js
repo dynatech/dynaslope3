@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useContext, useState } from "react";
 import {
     TextField, Grid, withStyles
 } from "@material-ui/core";
@@ -9,26 +9,8 @@ import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pi
 
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
-import { sites } from "../../../store";
-
-
-function prepareSitesOption (arr) {
-    return arr.map(site => {
-        const { 
-            site_code, sitio, purok,
-            barangay, municipality, province,
-            site_id
-        } = site;
-        let address = sitio !== null ? `Sitio ${sitio}, ` : "";
-        address += purok !== null ? `Purok ${purok}, ` : "";
-        address += `Brgy. ${barangay}, ${municipality}, ${province}`;
-        address = `${site_code.toUpperCase()} (${address})`;
-
-        return { value: site_id, label: address, data: site };
-    });
-}
-
-const sites_option = prepareSitesOption(sites);
+import { GeneralContext } from "../../contexts/GeneralContext";
+import { prepareSiteAddress } from "../../../UtilityFunctions";
 
 const styles = theme => ({
     inputGridContainer: {
@@ -57,29 +39,16 @@ const styles = theme => ({
     }
 });
 
-
 function NarrativeForm (props) {
     const {
         classes, narrativeData,
-        setNarrativeData
+        setNarrativeData, siteList,
+        setSiteList
     } = props;
 
     const {
-        narrative_id, site_list, narrative, timestamp, user_id
+        narrative, timestamp, user_id
     } = narrativeData;
-
-    useEffect(() => {
-        if (narrative_id !== "") {
-            const site_id = site_list[0];
-            const site = sites_option.filter((number) => number.value === site_id);
-            console.log(site);
-
-            setNarrativeData({
-                ...narrativeData,
-                site_list: site
-            });
-        }
-    }, []);
 
     const handleDateTime = key => value => {
         setNarrativeData({
@@ -88,10 +57,9 @@ function NarrativeForm (props) {
         });
     };
 
-    const update_site_value = value => setNarrativeData({
-        ...narrativeData,
-        site_list: value  
-    });
+    const update_site_value = value => {
+        setSiteList(value);
+    };
 
     const handleEventChange = key => event => {
         const { value } = event.target;
@@ -102,11 +70,7 @@ function NarrativeForm (props) {
         });
     };
 
-    const temp = site_list;
-    console.log("narrativeData", narrativeData);
-
     return (
-
         <MuiPickersUtilsProvider utils={MomentUtils}>
             <Grid
                 container
@@ -116,7 +80,7 @@ function NarrativeForm (props) {
             >
                 <Grid item xs={12} className={classes.inputGridContainer}>
                     <DynaslopeSiteSelectInputForm 
-                        value={temp}
+                        value={siteList}
                         changeHandler={update_site_value}
                         isMulti                    
                     />
@@ -128,6 +92,7 @@ function NarrativeForm (props) {
                         div_id="user_id"
                         changeHandler={handleEventChange("user_id")}
                         value={user_id}
+                        disabled
                     />
                 </Grid>
                 <Grid item xs={12} sm={6} className={classes.inputGridContainer}>

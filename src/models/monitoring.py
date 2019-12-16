@@ -431,7 +431,8 @@ class OperationalTriggers(UserMixin, DB.Model):
         "Sites", backref=DB.backref("operational_triggers", lazy="dynamic"), lazy="select")
 
     trigger_symbol = DB.relationship(
-        "OperationalTriggerSymbols", backref="operational_triggers", lazy="joined", innerjoin=True) #lazy="select")
+        "OperationalTriggerSymbols", backref="operational_triggers",
+        lazy="joined", innerjoin=True) #lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger_ID: {self.trigger_id}"

@@ -1,21 +1,17 @@
-import React, { Component } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withMobileDialog, Slide,
-    Fade, IconButton, withStyles,
-    FormControl, FormLabel, FormGroup
+    Button, withMobileDialog, IconButton, makeStyles,
+    FormControl, FormLabel, FormGroup,
+    FormControlLabel, Checkbox
 } from "@material-ui/core";
 import { CheckCircle, RemoveCircle } from "@material-ui/icons";
-import { compose } from "recompose";
 import CheckboxGroup from "../../reusables/CheckboxGroup";
-import {
-    sites as Sites,
-    organizations as Organizations
-} from "../../../store";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
+import { GeneralContext } from "../../contexts/GeneralContext";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     formControl: {
         width: "-webkit-fill-available",
         marginTop: 8,
@@ -67,10 +63,10 @@ const styles = theme => ({
             padding: "12px 6px"
         }
     }
-});
+}));
 
 function renderCheckboxes (classes, entry, state_handlers) {
-    const { state, group, list } = entry;
+    const { state_list, group, list } = entry;
     const { handleCheckAll, handleChange } = state_handlers;
     const lgroup = group.toLowerCase();
 
@@ -100,7 +96,7 @@ function renderCheckboxes (classes, entry, state_handlers) {
             </FormLabel>
             <FormGroup className={classes.checkboxGroup}>
                 <CheckboxGroup
-                    choices={list.map(x => listMapper(x, group, state))}
+                    choices={list.map(x => listMapper(x, group, state_list))}
                     changeHandler={handleChange(lgroup)}
                     checkboxStyle={classes[`checkbox${group}`]}
                 />
@@ -109,113 +105,169 @@ function renderCheckboxes (classes, entry, state_handlers) {
     );
 }
 
-function listMapper (x, group, state) {
+function listMapper (x, group, state_list) {
+    let id;
     if (group === "Sites") {
-        const id = `${x.site_id}`;
+        id = "site_id";
+    } else if (group === "Organizations") {
+        id = "org_id";
+    }
+
+    const arr = state_list.filter(row => row.value === x[id]);
+    return arr.pop();
+}
+
+function QuickSelectModal (props) {
+    const { fullScreen, value, closeHandler } = props;
+    const classes = useStyles();
+
+    const { sites: site_list, organizations: org_list } = useContext(GeneralContext);
+
+    const initial_sites = site_list.map(row => ({
+        label: row.site_code.toUpperCase(),
+        value: row.site_id,
+        state: false
+    }));
+
+    const initial_orgs = org_list.map(row => {
+        let pre = "";
+        switch (row.scope) {
+            case 1:
+                pre = "Barangay "; break;
+            case 2:
+                pre = "Municipal "; break;
+            case 3:
+                pre = "Provincial "; break;
+            case 4:
+                pre = "Regional "; break;
+            case 5:
+                pre = "National "; break;
+            default:
+                break;
+        }
+
         return {
-            state: state.get(id),
-            value: id,
-            label: x.site_code.toUpperCase()
+            label: pre + row.name.toUpperCase(),
+            value: row.org_id,
+            state: false
         };
-    }
+    });
 
-    // if (group === "Organizations")
-    return {
-        state: state.get(x),
-        value: x,
-        label: x.toUpperCase()
-    };
-}
+    const [only_ewi_recipients, setOnlyEwiRecipients] = useState(false);
+    const [sites, setSites] = useState(initial_sites);
+    const [organizations, setOrganizations] = useState(initial_orgs);
 
-class QuickSelectModal extends Component {
-    state = {
-        sites: new Map(),
-        organizations: new Map(),
-        only_ewi_recipients: true
-    }
-
-    componentDidMount () {
-        const sites = Sites.map(site => [`${site.site_id}`, false]);
-        const sites_map = new Map(sites);
-
-        const orgs = Organizations.map(org => [org, false]);
-        const orgs_map = new Map(orgs);
-
-        this.setState({ sites: sites_map, organizations: orgs_map });
-    }
-    
-    handleChange = prop => value => e => {
+    const handleChange = prop => val => e => {
         const is_checked = e.target.checked;
-        this.setState(prevState => {
-            const update = (prop === "only_ewi_recipients")
-                ? is_checked
-                : prevState[prop].set(value, is_checked);
-            return { [prop]: update };
+
+        if (prop === "only_ewi_recipient") {
+            setOnlyEwiRecipients(is_checked);
+        } else {
+            let list;
+            let setter;
+            if (prop === "sites") {
+                list = sites;
+                setter = setSites;
+            } else if (prop === "organizations") {
+                list = organizations;
+                setter = setOrganizations;
+            }
+
+            const index = list.findIndex(x => x.value === val);
+            list[index].state = is_checked;
+            setter([ ...list ]);
+            
+        }
+    };
+        
+    const handleCheckAll = (prop, bool) => () => {
+        let list;
+        let setter;
+        if (prop === "sites") {
+            list = sites;
+            setter = setSites;
+        } else if (prop === "organizations") {
+            list = organizations;
+            setter = setOrganizations;
+        }
+
+        const arr = list.map(x => ({ ...x, state: bool }));
+        setter([ ...arr ]);
+    };
+
+    const state_handlers = { handleCheckAll, handleChange };
+
+    const selectHandler = () => {
+        const site_ids = [];
+        const org_ids = [];
+
+        sites.forEach(row => {
+            if (row.state) site_ids.push(row.value);
         });
-    }
 
-    handleCheckAll = (prop, bool) => () => {
-        this.setState(prevState => {
-            prevState[prop].forEach((v, key) => {
-                prevState[prop].set(key, bool);
-            });
-
-            return { [prop]: prevState[prop] };
+        organizations.forEach(row => {
+            if (row.state) org_ids.push(row.value);
         });
-    }
-   
-    render () {
-        const { classes, fullScreen, value, closeHandler } = this.props;
-        const { sites, organizations, only_ewi_recipients } = this.state;
-        const state_handlers = {
-            handleCheckAll: this.handleCheckAll,
-            handleChange: this.handleChange
-        };
 
-        return (
-            <div>
-                <Dialog
-                    fullWidth
-                    fullScreen={fullScreen}
-                    open={value}
-                    aria-labelledby="form-dialog-title"
-                    TransitionComponent={fullScreen ? SlideTransition : FadeTransition}
-                    maxWidth="md"
-                >
-                    <DialogTitle id="form-dialog-title">
-                        Select recipients
-                    </DialogTitle>
-                    <DialogContent>
-                        <DialogContentText>
-                            Choose your preferred sites and offices as message recipients.
-                        </DialogContentText>
-                        
-                        <FormControl className={classes.formControl}>
-                            <CheckboxGroup
-                                choices={[{ state: only_ewi_recipients, value: "only_ewi_recipients", label: "Include selected EWI recipients only" }]}
-                                changeHandler={this.handleChange("only_ewi_recipients")}
-                            />
-                        </FormControl>
+        console.log({
+            site_ids,
+            org_ids,
+            only_ewi_recipients
+        });
 
-                        {
-                            [
-                                { state: organizations, group: "Organizations", list: Organizations },
-                                { state: sites, group: "Sites", list: Sites }
-                            ].map(entry => renderCheckboxes(classes, entry, state_handlers))
-                        }
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={closeHandler} color="primary">
-                            Select
-                        </Button>
-                        <Button onClick={closeHandler}>
-                            Cancel
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-            </div>
-        );
-    }
+        closeHandler();
+    };
+
+    return (
+        <div>
+            <Dialog
+                fullWidth
+                fullScreen={fullScreen}
+                open={value}
+                aria-labelledby="form-dialog-title"
+                TransitionComponent={fullScreen ? SlideTransition : FadeTransition}
+                maxWidth="md"
+            >
+                <DialogTitle id="form-dialog-title">
+                    Select recipients
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Choose your preferred sites and offices as message recipients.
+                    </DialogContentText>
+                    
+                    <FormControl className={classes.formControl}>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={only_ewi_recipients}
+                                    onChange={e => setOnlyEwiRecipients(e.target.checked)}
+                                    value="only_ewi_recipients"
+                                    className={classes.checkboxes}
+                                />
+                            }
+                            label="Only EWI Recipients"
+                        />
+                    </FormControl>
+
+                    {
+                        [
+                            { state_list: organizations, group: "Organizations", list: org_list },
+                            { state_list: sites, group: "Sites", list: site_list }
+                        ].map(row => renderCheckboxes(classes, row, state_handlers))
+                    }
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={selectHandler} color="primary">
+                        Select
+                    </Button>
+                    <Button onClick={closeHandler}>
+                        Cancel
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </div>
+    );
 }
 
-export default compose(withMobileDialog(), withStyles(styles))(QuickSelectModal);
+export default withMobileDialog()(QuickSelectModal);

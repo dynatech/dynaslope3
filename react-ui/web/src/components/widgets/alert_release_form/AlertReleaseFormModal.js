@@ -3,12 +3,11 @@ import moment from "moment";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions, Typography,
-    Button, makeStyles, withMobileDialog,
+    Button, makeStyles, withMobileDialog, Grid
 } from "@material-ui/core";
-import MomentUtils from "@date-io/moment";
 import AlertReleaseForm from "./AlertReleaseForm";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
-import { buildInternalAlertLevel, getMonitoringReleaseByDataTS } from "./ajax";
+import { createReleaseDetails, getMonitoringReleaseByDataTS } from "./ajax";
 import { getCurrentUser } from "../../sessions/auth";
 import { CTContext } from "../../monitoring/dashboard/CTContext";
 
@@ -27,17 +26,26 @@ const useStyles = makeStyles(theme => ({
 
 function prepareTriggers (triggers) {
     const trigger_list = [];
+
     Object.keys(triggers).forEach((key) => {
         if (triggers[key].switchState) {
             const temp = triggers[key].triggers;
             const trigger_type = key === "on_demand" ? "on demand" : key;
+            
             temp.forEach(trigger => {
                 const {
-                    timestamp, alert_level, internal_sym_id,
-                    tech_info
+                    timestamp, alert_level,
+                    internal_sym_id, tech_info
                 } = trigger;
 
-                const ts_updated = timestamp.format("YYYY-MM-DD HH:mm:00");
+
+                let ts_updated = null;
+                if (timestamp !== null) 
+                    ts_updated = timestamp.format("YYYY-MM-DD HH:mm:00");
+
+                let final_alert_level = alert_level;
+                if (alert_level === "nd") final_alert_level = -1;
+                else if (alert_level === "rx") final_alert_level = -2;
 
                 let addendum;
                 switch (key) {
@@ -75,15 +83,15 @@ function prepareTriggers (triggers) {
                         break;
                 }
 
-
                 const formatted = {
                     ...addendum,
-                    alert_level,
+                    alert_level: final_alert_level,
                     internal_sym_id,
                     tech_info,
                     trigger_type,
                     ts_updated
                 };
+
                 trigger_list.push(formatted);
             });
         }
@@ -198,7 +206,10 @@ function AlertReleaseFormModal (props) {
     const [isUpdatingRelease, setIsUpdatingRelease] = useState(false);
 
     const [triggers, setTriggers] = useReducer(alertTriggersReducer, { ...initial_triggers_data });
-    const [currentTriggerList, setCurrentTriggerList] = useReducer(alertTriggersReducer, { ...initial_triggers_data });
+    // const [currentTriggerList, setCurrentTriggerList] = useReducer(alertTriggersReducer, { ...initial_triggers_data });
+    const [db_saved_triggers, setDBSavedTriggers] = useState([]);
+
+    const [current_triggers_status, setCurrentTriggersStatus] = useState([]);
 
     useEffect(() => {
         const { dataTimestamp: input_data_ts, siteCode } = generalData;
@@ -219,12 +230,32 @@ function AlertReleaseFormModal (props) {
             const {
                 site_id, site_code, public_alert_level,
                 public_alert_symbol, release_details, trigger_list_arr,
-                has_ground_data, non_triggering_moms
+                has_ground_data, non_triggering_moms, internal_alert_level,
+                current_triggers_status: cts, saved_event_triggers
             } = chosenCandidateAlert;
             const { data_ts, trigger_list_str } = release_details;
 
-            // TODO: update next line
-            setInternalAlertLevel(`A${public_alert_level}-${trigger_list_str}`);
+            setInternalAlertLevel(internal_alert_level);
+
+            const valid_triggers = [];
+            trigger_list_arr.forEach(row => {
+                if (row.invalid !== true) {
+                    valid_triggers.push(row);
+                }
+
+                if (row.trigger_type === "moms") {
+                    const { moms_list } = row;
+                    row.moms_id_list = moms_list.map(x => x.moms_id);
+                }
+            });
+
+            let final_non_trig_moms = null;
+            if (non_triggering_moms.length > 0) {
+                const moms_id_list = non_triggering_moms.map(row => row.moms_id);
+                final_non_trig_moms = {
+                    moms_id_list
+                };
+            }
 
             setEwiPayload({
                 ...ewiPayload,
@@ -241,7 +272,8 @@ function AlertReleaseFormModal (props) {
                     publisher_mt_id: reporter_id_mt,
                     publisher_ct_id: reporter_id_ct
                 },
-                non_triggering_moms
+                trigger_list_arr: valid_triggers,
+                non_triggering_moms: final_non_trig_moms
             });
 
             const no_ground_data = !has_ground_data;
@@ -261,86 +293,130 @@ function AlertReleaseFormModal (props) {
             setGeneralData({ ...temp });
 
             setTriggers({ action: "RESET_STATE" });
-            setCurrentTriggerList({ action: "RESET_STATE" });
+            if (typeof saved_event_triggers !== "undefined")
+                setDBSavedTriggers(saved_event_triggers);
+            // setCurrentTriggerList({ action: "RESET_STATE" });
+
+            const invalid_list = [];
             // INCLUDE TRIGGERS THAT ARE GIVEN FROM ALERTGEN
             trigger_list_arr.forEach(element => {
                 const { 
                     trigger_type, alert_level, ts_updated, 
-                    internal_sym_id, tech_info, alert
+                    internal_sym_id, tech_info, alert, invalid
                 } = element;
+
+                if (typeof invalid === "undefined") {
+                    let obj = { action: "TOGGLE_SWITCH", trigger_type, value: true };
+                    setTriggers(obj);
+                    // setCurrentTriggerList(obj);
+
+                    const value = {
+                        alert,
+                        alert_level,
+                        internal_sym_id,
+                        tech_info,
+                        disabled: false,
+                        status: true,
+                        timestamp: moment(ts_updated)
+                    };
+
+                    if (trigger_type === "moms") {
+                        const { moms_list } = element;
+                        value.moms_list = moms_list;
+                        value.moms_id_list = moms_list.map(row => row.moms_id);
+                    }
+                
+                    obj = { action: "ADD_TRIGGER", trigger_type, value };
+                    setTriggers(obj);
+                    // setCurrentTriggerList(obj);
+
+                    if (trigger_type in ["on demand", "earthquake"]) {
+                        let addendum = null;
+                        switch (trigger_type) {
+                            case "on demand":
+                                addendum = {
+                                    action: "UPDATE_TRIGGER",
+                                    trigger_type,
+                                    value: {
+                                        od_details: {
+                                            request_ts: "",
+                                            narrative: ""
+                                        }
+                                    }
+                                };
+                                break;
+                            case "earthquake":
+                                addendum = {
+                                    action: "UPDATE_TRIGGER",
+                                    trigger_type,
+                                    value: {
+                                        eq_details: {
+                                            magnitude: "",
+                                            latitude: "",
+                                            longitude: ""
+                                        }
+                                    }
+                                };
+                                break;
+                            default:
+                                break;
+                        }
+
+                        if (addendum != null) {
+                            setTriggers(addendum);
+                        }
+                    }
+                } else {
+                    invalid_list.push(trigger_type);
+                }
+            });
+
+            // Set in candidate alerts, programmed to contain only rxs and nds
+            setCurrentTriggersStatus(cts);
+            cts.forEach(row => {
+                const { trigger_source: trigger_type, alert_level } = row;
+
+                // Do not toggle NDs and Rxs if trigger is invalid
+                if (invalid_list.includes(trigger_type)) return; 
+
+                let f_alert_level = alert_level;
+                // rainfall is excluded because of radio input (diff value as keys)
+                if (alert_level === -1 && trigger_type !== "rainfall") {
+                    f_alert_level = "nd";
+                }
 
                 let obj = { action: "TOGGLE_SWITCH", trigger_type, value: true };
                 setTriggers(obj);
-                setCurrentTriggerList(obj);
+                // setCurrentTriggerList(obj);
 
                 const value = {
-                    alert,
-                    alert_level,
-                    internal_sym_id,
-                    tech_info,
-                    disabled: false,
                     status: true,
-                    timestamp: moment(ts_updated)
+                    disabled: false,
+                    alert_level: f_alert_level,
+                    timestamp: null,
+                    tech_info: ""
                 };
 
-                if (trigger_type === "moms") {
-                    const { moms_list } = element;
-                    value.moms_list = moms_list;
-                    value.moms_id_list = moms_list.map(row => row.moms_id);
-                }
-                
                 obj = { action: "ADD_TRIGGER", trigger_type, value };
                 setTriggers(obj);
-                setCurrentTriggerList(obj);
-
-                if (trigger_type in ["on demand", "earthquake"]) {
-                    let addendum = null;
-                    switch (trigger_type) {
-                        case "on demand":
-                            addendum = {
-                                action: "UPDATE_TRIGGER",
-                                trigger_type,
-                                value: {
-                                    od_details: {
-                                        request_ts: "",
-                                        narrative: ""
-                                    }
-                                }
-                            };
-                            break;
-                        case "earthquake":
-                            addendum = {
-                                action: "UPDATE_TRIGGER",
-                                trigger_type,
-                                value: {
-                                    eq_details: {
-                                        magnitude: "",
-                                        latitude: "",
-                                        longitude: ""
-                                    }
-                                }
-                            };
-                            break;
-                        default:
-                            break;
-                    }
-
-                    if (addendum != null) {
-                        setTriggers(addendum);
-                        setCurrentTriggerList(addendum);
-                    }
-                }
+                // setCurrentTriggerList(obj);
             });
 
             setActiveStep(2);
         } else {
             setGeneralData({ ...initial_general_data });
             setTriggers({ action: "RESET_STATE" });
-            setCurrentTriggerList({ action: "RESET_STATE" });
+            // setCurrentTriggerList({ action: "RESET_STATE" });
+            setDBSavedTriggers([]);
+            setCurrentTriggersStatus([]);
             setInternalAlertLevel("");
             setActiveStep(0);
         }
     }, [chosenCandidateAlert, reporter_id_ct]);
+
+    // THIS USEEFFECT CHECKS WHETHER NEXT BUTTON SHOULD BE ENABLED
+    // CHECK IF INPUT HAS ENTRIES
+    const [is_recomputing, setIsRecomputing] = useState(false);
 
     useEffect(() => {
         setIsNextBtnDisabled(true);
@@ -398,9 +474,9 @@ function AlertReleaseFormModal (props) {
             setIsNextBtnDisabled(is_disabled);
         } else if (activeStep === 2) {
             const bool = reporter_id_ct === "";
-            setIsNextBtnDisabled(bool);
+            setIsNextBtnDisabled(bool || is_recomputing);
         }
-    }, [generalData, triggers, activeStep, reporter_id_ct]);
+    }, [generalData, triggers, activeStep, reporter_id_ct, is_recomputing]);
 
     useEffect(() => {
         const { subsurface, surficial } = triggers;
@@ -441,18 +517,23 @@ function AlertReleaseFormModal (props) {
                     publisher_mt_id: reporterIdMt,
                     publisher_ct_id: reporterIdCt
                 },
-                non_triggering_moms: []
+                non_triggering_moms: [] // should set non_triggering_moms on next
             });
         } else if (activeStep === 1) {
             latest_trigger_list = prepareTriggers(triggers);
-            current_trigger_list = prepareTriggers(currentTriggerList);
+            // current_trigger_list = prepareTriggers(currentTriggerList);
+            current_trigger_list = db_saved_triggers;
 
             // PREPARE THE INTERNAL ALERT from BACKEND
             const json_data = { latest_trigger_list, current_trigger_list };
             console.log("JSON data for alert generation recomputation", json_data);
 
             if (latest_trigger_list.length > 0) {
-                buildInternalAlertLevel(json_data, ret => {
+                setIsRecomputing(true);
+
+                const final_arr = latest_trigger_list.filter(row => row.alert_level > 0);
+                
+                createReleaseDetails(json_data, ret => {
                     const {
                         internal_alert_level, public_alert_level,
                         trigger_list_str, public_alert_symbol
@@ -468,8 +549,10 @@ function AlertReleaseFormModal (props) {
                             ...ewiPayload.release_details,
                             trigger_list_str
                         },
-                        trigger_list_arr: latest_trigger_list
+                        trigger_list_arr: final_arr
                     });
+
+                    setIsRecomputing(false);
                 });
             } else {
                 setEwiPayload({
@@ -494,6 +577,8 @@ function AlertReleaseFormModal (props) {
         closeHandler();
         setActiveStep(0);
         setChosenCandidateAlert(null);
+        setGeneralData({ ...initial_general_data });
+        setEwiPayload({});
     };
 
     return (
@@ -515,42 +600,45 @@ function AlertReleaseFormModal (props) {
                         triggersState={triggers} setTriggersState={setTriggers}
                         generalData={generalData} setGeneralData={setGeneralData}
                         internalAlertLevel={internalAlertLevel} setInternalAlertLevel={setInternalAlertLevel}
-                        setTriggerList={setCurrentTriggerList} setPublicAlertLevel={setPublicAlertLevel}
+                        // setTriggerList={setCurrentTriggerList}
+                        setPublicAlertLevel={setPublicAlertLevel}
                         setModalTitle={setModalTitle} ewiPayload={ewiPayload}
                         hasNoGroundData={hasNoGroundData} setHasNoGroundData={setHasNoGroundData}
+                        currentTriggersStatus={current_triggers_status}
+                        dBSavedTriggers={db_saved_triggers}
                     />
                 </DialogContent>
                 <DialogActions>
-                    <div>
-                        {
-                            activeStep === steps.length ? (
-                                <div>
-                                    {/* <Typography className={classes.instructions}>All steps completed</Typography> */}
-                                    {/* <Button onClick={handleReset}>Reset</Button> */}
-                                    <Button onClick={handleClose} color="primary">
+                    {
+                        activeStep === steps.length ? (
+                            <div>
+                                {/* <Typography className={classes.instructions}>All steps completed</Typography> */}
+                                {/* <Button onClick={handleReset}>Reset</Button> */}
+                                <Button onClick={handleClose} color="primary">
                                         Okay
-                                    </Button>
-                                </div>
-                            ) : (
-                                <div>
-                                    <div>
-                                        <Button onClick={handleClose} color="primary">
-                                            Cancel
-                                        </Button>
-                                        <Button disabled={activeStep === 0} onClick={handleBack} className={classes.backButton}>
-                                            Back
-                                        </Button>
-                                        <Button variant="contained" color="primary" onClick={handleNext} disabled={isNextBtnDisabled}>
-                                            {activeStep === steps.length - 1 ? "Submit" : "Next"}
-                                        </Button>
-                                        <Button onClick={setIsOpenRoutineModal} className={classes.backButton}>
+                                </Button>
+                            </div>
+                        ) : (
+                            <Grid container spacing={1} justify="space-between">
+                                <Grid item xs style={{ display: chosenCandidateAlert === null ? "flex" : "none" }}>
+                                    <Button onClick={setIsOpenRoutineModal} className={classes.backButton}>
                                             Release Routine
-                                        </Button>
-                                    </div>
-                                </div>
-                            )
-                        }
-                    </div>
+                                    </Button>
+                                </Grid>
+                                <Grid item xs align="right">
+                                    <Button onClick={handleClose} color="primary">
+                                            Cancel
+                                    </Button>
+                                    <Button disabled={activeStep === 0} onClick={handleBack} className={classes.backButton}>
+                                            Back
+                                    </Button>
+                                    <Button variant="contained" color="primary" onClick={handleNext} disabled={isNextBtnDisabled}>
+                                        {activeStep === steps.length - 1 ? "Submit" : "Next"}
+                                    </Button>
+                                </Grid>
+                            </Grid>
+                        )
+                    }
                 </DialogActions>
             </Dialog>
         </div>

@@ -2,10 +2,9 @@ import React, { useState, useEffect } from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withMobileDialog, withStyles, Grid
+    Button, withMobileDialog, Grid
 } from "@material-ui/core";
-import { compose } from "recompose";
-import { axios } from "axios";
+
 import moment from "moment";
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
@@ -13,14 +12,11 @@ import { Link } from "react-router-dom";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 
-const styles = theme => ({
-    link: { textDecoration: "none" }
-});
 
-function ConsolidatedSiteChartsModal (props) {
+function InsertNarrativeModal (props) {
     const {
-        classes, fullScreen, isOpen,
-        clickHandler, tagOption, isMobile,
+        fullScreen, isOpen,
+        clickHandler, isMobile,
         url
     } = props;
     const [site_value, setSiteValue] = useState([]);
@@ -104,4 +100,4 @@ function ConsolidatedSiteChartsModal (props) {
     );
 }
 
-export default compose(withStyles(styles), withMobileDialog())(ConsolidatedSiteChartsModal);
+export default withMobileDialog()(InsertNarrativeModal);

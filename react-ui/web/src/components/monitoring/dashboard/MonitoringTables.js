@@ -12,7 +12,7 @@ import moment from "moment";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
 import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
 import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
-import { Publish, Description, PhoneAndroid, Done } from "@material-ui/icons";
+import { Publish, Description, PhoneAndroid, Done, Timeline } from "@material-ui/icons";
 import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
 import GeneralStyles from "../../../GeneralStyles";
 import ValidationModal from "./ValidationModal";
@@ -22,6 +22,7 @@ import { getEWIMessage } from "../ajax";
 import SendEwiSmsModal from "./SendEwiSmsModal";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { CTContext } from "./CTContext";
+import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 
 const useStyles = makeStyles(theme => {
     const general_styles = GeneralStyles(theme);
@@ -77,7 +78,7 @@ function CandidateAlertsExpansionPanel (props) {
     let ia_level = "";
     let trigger_arr = [];
     let has_new_triggers = false;
-    const { site_id, general_status } = alertData;
+    const { site_id, general_status, is_release_time, unresolved_moms_list } = alertData;
     
     if (general_status === "routine") {
         const { data_ts, public_alert_symbol } = alertData;
@@ -85,7 +86,10 @@ function CandidateAlertsExpansionPanel (props) {
         ts = format_ts(data_ts);
         ia_level = public_alert_symbol;
     } else {
-        const { site_code, release_details, internal_alert_level, trigger_list_arr } = alertData;
+        const { 
+            site_code, release_details, internal_alert_level,
+            trigger_list_arr
+        } = alertData;
         const { data_ts } = release_details;
         site = site_code;
         ts = format_ts(data_ts);
@@ -245,6 +249,54 @@ function CandidateAlertsExpansionPanel (props) {
                             }
                         </Grid>
                     </Grid>
+
+                    {
+                        typeof unresolved_moms_list !== "undefined" && unresolved_moms_list.length > 0 && (
+                            <Fragment>
+                                <Grid item xs={12} container spacing={1}>
+                                    <Grid item xs={12}>
+                                        <Typography variant="subtitle2" color="textPrimary">UNRESOLVED MOMS LIST</Typography>
+                                    </Grid>
+                        
+                                    <Grid item xs={12} container spacing={2} alignItems="center">
+                                        {
+                                            unresolved_moms_list.map((row, key) => {
+                                                const { moms_instance, observance_ts, op_trigger } = row;
+                                                const { feature: { feature_type }, feature_name } = moms_instance;
+                                                const feature = `${capitalizeFirstLetter(feature_type)} ${feature_name.toUpperCase()}`;
+                                                const formatted_ts = format_ts(observance_ts);
+
+                                                return (
+                                                    <Fragment key={row.moms_id}>
+                                                        <Grid item xs align="center">
+                                                            <Typography variant="body1" color="textSecondary">Feature</Typography>
+                                                            <Typography variant="body1" color="textPrimary">{feature}</Typography>
+                                                        </Grid>
+
+                                                        <Grid item xs={4} align="center">
+                                                            <Typography variant="body1" color="textSecondary">Last Report</Typography>
+                                                            <Typography variant="body1" color="textPrimary">{formatted_ts}</Typography>
+                                                        </Grid>
+
+                                                        <Grid item xs align="center">
+                                                            <Typography variant="body1" color="textSecondary">Alert Level</Typography>
+                                                            <Typography variant="body1" color="textPrimary">{op_trigger}</Typography>
+                                                        </Grid>
+
+                                                        {
+                                                            trigger_arr.length > key + 1 && (
+                                                                <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
+                                                            )
+                                                        }
+                                                    </Fragment>
+                                                );
+                                            })
+                                        }
+                                    </Grid>
+                                </Grid>
+                            </Fragment>
+                        )
+                    }
                 </Grid>
             </ExpansionPanelDetails>
             <Divider />
@@ -254,6 +306,7 @@ function CandidateAlertsExpansionPanel (props) {
                     aria-label="Release candidate alert"
                     startIcon={<Publish />}
                     onClick={releaseFormOpenHandler(alertData)}
+                    disabled={!is_release_time}
                 >
                     Release
                 </Button>
@@ -266,7 +319,8 @@ function LatestSiteAlertsExpansionPanel (props) {
     const { 
         siteAlert, classes, expanded,
         handleExpansion, smsHandler,
-        bulletinHandler, keyName, type
+        bulletinHandler, keyName, type,
+        history
     } = props;
     const {
         event, internal_alert_level, releases,
@@ -275,7 +329,7 @@ function LatestSiteAlertsExpansionPanel (props) {
 
     const { is_sms_sent, is_bulletin_sent } = sent_statuses;
 
-    const { validity, site, event_start } = event;
+    const { validity, site, event_start, event_id } = event;
     const { site_code, site_id } = site;
     const site_name = site_code.toUpperCase();
     
@@ -359,6 +413,14 @@ function LatestSiteAlertsExpansionPanel (props) {
             <ExpansionPanelActions>
                 <Button
                     size="small" color="primary" 
+                    startIcon={<Timeline />}
+                    onClick={() => (history.push(`/monitoring/events/${event_id}`))}
+                    align="left"
+                >
+                    Timeline
+                </Button>
+                <Button
+                    size="small" color="primary" 
                     startIcon={<PhoneAndroid />}
                     onClick={smsHandler({ release_id, site_code, site_id, type })}
                     endIcon={ is_sms_sent && <Done /> }
@@ -381,7 +443,7 @@ function LatestSiteAlertsExpansionPanel (props) {
 function MonitoringTables (props) {
     const {
         candidateAlertsData, alertsFromDbData, width,
-        releaseFormOpenHandler
+        releaseFormOpenHandler, history
     } = props;
 
     const classes = useStyles();
@@ -494,6 +556,7 @@ function MonitoringTables (props) {
                                         smsHandler={smsHandler}
                                         bulletinHandler={bulletinHandler}
                                         type="latest"
+                                        history={history}
                                     />
                                 ))
                             ) : (
@@ -528,6 +591,7 @@ function MonitoringTables (props) {
                                         index={index}
                                         bulletinHandler={bulletinHandler}
                                         type="extended"
+                                        history={history}
                                     />
                                 ))
                             ) : (
@@ -562,6 +626,7 @@ function MonitoringTables (props) {
                                         index={index}
                                         bulletinHandler={bulletinHandler}
                                         type="overdue"
+                                        history={history}
                                     />
                                 ))
                             ) : (

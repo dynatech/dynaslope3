@@ -23,8 +23,8 @@ MARSHMALLOW = Marshmallow()
 BCRYPT = Bcrypt()
 JWT = JWTManager()
 LOGIN_MANAGER = LoginManager()
-# SOCKETIO = SocketIO(async_mode="eventlet")
-SOCKETIO = SocketIO(async_mode="threading")
+SOCKETIO = SocketIO(async_mode="eventlet")
+# SOCKETIO = SocketIO(async_mode="threading")
 
 MONITORING_WS_THREAD = None
 COMMUNICATION_WS_THREAD = None

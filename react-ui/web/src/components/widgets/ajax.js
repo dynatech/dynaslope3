@@ -1,17 +1,21 @@
-import axios from "axios";
 import { host } from "../../config";
-import { makeGETAxiosRequest, makePOSTAxiosRequest } from "../../UtilityFunctions";
+import { makePOSTAxiosRequest } from "../../UtilityFunctions";
 
 export function handleUpdateInsertTags (payload, callback) {
     const api_link = `${host}/api/general_data_tag/handle_update_insert_tags`;
 
-    makePOSTAxiosRequest(api_link, callback, payload);
+    makePOSTAxiosRequest(api_link, payload, callback);
 }
 
 export function handleDeleteTags (payload, callback) {
     const api_link = `${host}/api/general_data_tag/handle_delete_tags`;
 
-    makePOSTAxiosRequest(api_link, callback, payload);
+    makePOSTAxiosRequest(api_link, payload, callback);
+}
+
+export function insertTagsAfterEWISms (payload, callback) {
+    const api_link = `${host}/api/general_data_tag/insert_ewi_sms_tag`;
+    makePOSTAxiosRequest(api_link, payload, callback);
 }
 
 export function buffer_only () {

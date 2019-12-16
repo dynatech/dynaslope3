@@ -104,7 +104,6 @@ def get_eos_email_details(event_id, shift_ts_end):
     })
 
 
-
 def extract_unique_release_events(releases_list):
     """
     Remove duplicates per unique event. Assuming there was
@@ -173,8 +172,8 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
             event_id=event.event_id, ts_start=ts_start,
             ts_end=ts_end, load_options="end_of_shift")
         most_recent = get_monitoring_triggers(
-            event_id=event.event_id, ts_start=shift_start -
-            timedelta(hours=11, minutes=30),
+            event_id=event.event_id, ts_start=shift_start
+            - timedelta(hours=11, minutes=30),
             ts_end=shift_start, load_options="end_of_shift")
 
         eos_data = {
@@ -274,13 +273,14 @@ def get_shift_end_info(end_ts, eos_dict):
     """
     Prepare the end info of end-of-shift report.
     """
+
     eos_data = eos_dict["eos_data"]
     shift_triggers = eos_data["shift_triggers"]
     validity = eos_data["validity"]
     validity = datetime.strftime(validity, '%B %d, %Y, %I:%M %p')
     internal_alert_level = eos_data["internal_alert_level"]
 
-    if eos_data["alert_level"] == 1:
+    if eos_data["alert_level"] == 0:
         end_info = f"- Alert <b>lowered to A0</b>; monitoring ended at <b> \
             {validity}</b>.<br/>"
     else:
@@ -380,8 +380,8 @@ def process_eos_data_analysis(
                         f"{datetime.strftime(data[0].ts, '%B %d, %Y, %I:%M %p')}</b>. ")
                 surf += (f"Displacement of marker(s) from last data sending <b>"
                          f"({datetime.strftime(data[1].ts, '%B %d, %Y, %I:%M %p')}):</b> ")
-                surf += ", ".join(str("<b>" + x["marker_name"]
-                                      + " -> " + x["change"] + "</b>") for x in data_list)
+                surf += ", ".join(str("<b>" + x["marker_name"] +
+                                      " -> " + x["change"] + "</b>") for x in data_list)
 
         string += f"<br/>- Surficial data: {surf}"
 
