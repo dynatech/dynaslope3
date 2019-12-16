@@ -54,7 +54,7 @@ from src.utils.extra import (
 from src.utils.bulletin import create_monitoring_bulletin, render_monitoring_bulletin
 from src.utils.sites import build_site_address
 
-from src.websocket.monitoring_ws import update_alert_gen
+# from src.websocket.monitoring_ws import update_alert_gen
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
@@ -73,12 +73,12 @@ NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "NO_DATA_HOURS_EXTENSION"}, retrieve_attr="var_value")
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/run_alert_generation", methods=["GET"])
-@MONITORING_BLUEPRINT.route("/monitoring/run_alert_generation/<site_id>", methods=["GET"])
-def wrap_update_alert_gen(site_code=None):
-    update_alert_gen(site_code=site_code)
+# @MONITORING_BLUEPRINT.route("/monitoring/run_alert_generation", methods=["GET"])
+# @MONITORING_BLUEPRINT.route("/monitoring/run_alert_generation/<site_id>", methods=["GET"])
+# def wrap_update_alert_gen(site_code=None):
+#     update_alert_gen(site_code=site_code)
 
-    return "Ran alert generation..."
+#     return "Ran alert generation..."
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_current_monitoring_summary_per_site/<site_id>", methods=["GET"])
