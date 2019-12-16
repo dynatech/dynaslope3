@@ -144,8 +144,8 @@ def generate_alerts(site_code=None):
     Returns the new generated alerts json
     """
 
-    if not site_code:  # to be removed (for testing only)
-        site_code = ["agb", "umi"]
+    # if not site_code:  # to be removed (for testing only)
+    # site_code = ["agb", "umi"]
     generated_alerts_json = public_alert_generator.main(site_code=site_code)
 
     return generated_alerts_json
