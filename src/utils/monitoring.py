@@ -307,7 +307,7 @@ def update_alert_status(as_details):
         alert_status_result = check_if_alert_status_entry_in_db(
             trigger_id)
 
-        val_map = {1: "valid", -1: "invalid", 0: "validating"}
+        val_map = {1: "valid", -1: "invalid", 0: "validating", None: ""}
 
         if alert_status_result:
             try:
@@ -345,9 +345,9 @@ def update_alert_status(as_details):
                 return_data = "success"
 
             except Exception as err:
-                DB.session.rollback()
-                print("NO existing alert_status found. An ERROR has occurred.")
                 print(err)
+                DB.session.rollback()
+                # print("NO existing alert_status found. An ERROR has occurred.")
                 raise
 
         DB.session.commit()
@@ -555,7 +555,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
 def get_routine_sites(timestamp=None, include_inactive=False):
     """
     Utils counterpart of identifing the routine site per day.
-    Returns "routine_sites" in a list as value.
+    Returns "routine_sites" site_codes in a list as value.
 
     E.g.:
     {
