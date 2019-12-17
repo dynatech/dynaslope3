@@ -27,7 +27,7 @@ from src.utils.monitoring import (
     get_ongoing_extended_overdue_events, get_max_possible_alert_level,
     get_latest_release_per_site, get_saved_event_triggers,
     get_monitoring_triggers, build_internal_alert_level,
-    get_monitoring_releases_by_data_ts,
+    get_monitoring_releases_by_data_ts, get_routine_sites,
 
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
@@ -79,6 +79,44 @@ NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
 #     update_alert_gen(site_code=site_code)
 
 #     return "Ran alert generation..."
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_unreleased_routine_sites/<data_timestamp>", methods=["GET"])
+@MONITORING_BLUEPRINT.route("/monitoring/get_unreleased_routine_sites/<data_timestamp>/<req_source>", methods=["GET"])
+def get_unreleased_routine_sites(data_timestamp, req_source=None):
+    """
+    Returns a dictionary containing site codes of routine sites who have released EWI
+    and have not released EWI.
+
+    Returns:
+        released_sites, unreleased_sites
+
+    Args:
+        data_timestamp (String)
+    """
+    f_timestamp = data_timestamp
+    if isinstance(data_timestamp, str):
+        f_timestamp = datetime.strptime(data_timestamp, "%Y-%m-%d %H:%M:%S")
+    routine_sites = get_routine_sites(f_timestamp)
+
+    released_sites = []
+    unreleased_sites = []
+    for site_code in routine_sites:
+        # This is with the assumption that you are using data_timestamp
+        site_release = get_monitoring_releases_by_data_ts(site_code, f_timestamp)
+        if site_release:
+            released_sites.append(site_code)
+        else:
+            unreleased_sites.append(site_code)
+
+    output = {
+        "released_sites": released_sites,
+        "unreleased_sites": unreleased_sites
+    }
+    if req_source:
+        return json.dumps(output)
+    else:
+        return output
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_current_monitoring_summary_per_site/<site_id>", methods=["GET"])
@@ -680,20 +718,20 @@ def insert_ewi(internal_json=None):
             site_id = json_data["site_id"]
             is_not_routine = True
         except KeyError:
-            site_id_list = json_data["routine_sites_ids"]
+            # site_id_list = json_data["routine_sites_ids"]
             entry_type = 1
             is_not_routine = False
 
         # Release-related variables from JSON
-        release_details = json_data["release_details"]
-        publisher_details = json_data["publisher_details"]
-        trigger_list_arr = json_data["trigger_list_arr"]
+        if is_not_routine:
+            release_details = json_data["release_details"]
+            publisher_details = json_data["publisher_details"]
+            trigger_list_arr = json_data["trigger_list_arr"]
+            datetime_data_ts = datetime.strptime(
+                release_details["data_ts"], "%Y-%m-%d %H:%M:%S")
+            release_details["data_ts"] = datetime_data_ts
 
         non_triggering_moms = json_data["non_triggering_moms"]
-
-        datetime_data_ts = datetime.strptime(
-            release_details["data_ts"], "%Y-%m-%d %H:%M:%S")
-        release_details["data_ts"] = datetime_data_ts
         public_alert_level = json_data["public_alert_level"]
 
         if is_not_routine:
@@ -731,35 +769,59 @@ def insert_ewi(internal_json=None):
         if entry_type == 1:  # stands for routine
             # Mass release for routine sites.
 
-            for routine_site_id in site_id_list:
-                # The following lines of code: "site_monitoring_instance..." up
-                # to "if site_status == 1:..." is just a fail-safe used
-                # for making sure that the site is not on alert.
-                site_monitoring_instance = get_current_monitoring_instance_per_site(
-                    routine_site_id)
-                site_status = site_monitoring_instance.status
+            routine_sets = json_data["routine_details"]
 
-                if site_status == 1:
-                    release_details["event_alert_id"] = site_monitoring_instance.event_alerts[0].event_alert_id
-                    release_details["bulletin_number"] = update_bulletin_number(
-                        routine_site_id, 1)
+            for item in routine_sets:
+                site_id_list = item["site_id_list"]
+                for routine_site in site_id_list:
+                    # The following lines of code: "site_monitoring_instance..." up
+                    # to "if site_status == 1:..." is just a fail-safe used
+                    # for making sure that the site is not on alert.
+                    var_checker("routine_site", routine_site, True)
 
-                    instance_details = {
-                        "site_id": routine_site_id,
-                        "event_id": site_monitoring_instance.event_id,
-                        "public_alert_level": public_alert_level
-                    }
+                    routine_site_id = routine_site["value"]
+                    site_monitoring_instance = get_current_monitoring_instance_per_site(
+                        routine_site_id)
+                    if site_monitoring_instance:
+                        site_status = site_monitoring_instance.status
 
-                    site_non_trig_moms = {}
-                    try:
-                        site_non_trig_moms = non_triggering_moms[site_id]
-                    except KeyError:
-                        pass
+                        if site_status == 1:
+                            release_details = {
+                                "event_alert_id": site_monitoring_instance.event_alerts[0].event_alert_id,
+                                "bulletin_number": update_bulletin_number(routine_site_id, 1),
+                                "data_ts": json_data["data_timestamp"],
+                                "release_time": json_data["release_time"],
+                                "trigger_list_str": item["trigger_list_str"],
+                                "comments": ""
+                            }
+                            publisher_details = {
+                                "publisher_mt_id": json_data["reporter_id_mt"],
+                                "publisher_ct_id": json_data["reporter_id_ct"]
+                            }
 
-                    insert_ewi_release(instance_details,
-                                       release_details, publisher_details, non_triggering_moms=site_non_trig_moms)
-                else:
-                    print("Not a routine site")
+                            var_checker("release_details", 5, True)
+
+                            instance_details = {
+                                "site_id": routine_site_id,
+                                "event_id": site_monitoring_instance.event_id,
+                                "public_alert_level": public_alert_level
+                            }
+                            var_checker("instance_details", instance_details, True)
+
+                            site_non_trig_moms = {}
+                            try:
+                                site_non_trig_moms = non_triggering_moms[routine_site_id]
+                            except KeyError:
+                                pass
+
+                            insert_ewi_release(
+                                instance_details,
+                                release_details,
+                                publisher_details,
+                                non_triggering_moms=site_non_trig_moms
+                            )
+                    else:
+                        print("No event on site")
 
         elif entry_type == 2:  # stands for event
             current_event_alert = site_monitoring_instance.event_alerts[0]

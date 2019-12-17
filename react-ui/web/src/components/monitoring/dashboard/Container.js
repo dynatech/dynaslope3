@@ -88,6 +88,8 @@ function Container (props) {
 
     const routineReleaseHandler = chosen_candidate => () => {
         setChosenCandidateAlert(chosen_candidate);
+        // setIsOpenReleaseModal(false);
+        handleBoolean("is_open_release_modal", false)();
         handleBoolean("is_routine_modal_open", true)();
     };
 

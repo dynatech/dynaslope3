@@ -1411,7 +1411,7 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
     # Write to specified filepath and filename
     directory = APP_CONFIG["generated_alerts_path"]
     directory = os.path.abspath(directory)
-    var_checker("directory", directory, True)
+    # var_checker("directory", directory, True)
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -1427,10 +1427,10 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 if __name__ == "__main__":
     config_name = os.getenv("FLASK_CONFIG")
     app = create_app(config_name, skip_memcache=True, skip_websocket=True)
-    # main()
+    main()
 
     # TEST MAIN
     # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")
     # main(query_ts_end="2019-09-05 15:50:00", query_ts_start="2019-09-05 15:50:00", is_test=True, site_code="umi")
     # main(query_ts_end="2019-05-22 11:00:00", query_ts_start="2019-05-22 11:00:00", is_test=True, site_code="hum")
-    main(is_test=True)
+    # main(is_test=True)

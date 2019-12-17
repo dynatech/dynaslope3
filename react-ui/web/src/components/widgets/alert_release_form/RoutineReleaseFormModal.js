@@ -48,7 +48,7 @@ function RoutineReleaseFormModal (props) {
         general_status: "routine",
         reporter_id_ct,
         reporter_id_mt,
-        non_triggering_moms: []
+        non_triggering_moms: {}
     };
 
     const a0_list = {
@@ -89,6 +89,10 @@ function RoutineReleaseFormModal (props) {
                 ...a0SiteList,
                 site_id_list: temp
             });
+            setNDSiteList({
+                ...NDSiteList,
+                site_id_list: []
+            });
         }
     }, [chosenCandidateAlert, reporter_id_ct]);
 
@@ -108,8 +112,8 @@ function RoutineReleaseFormModal (props) {
             ]
         };
         console.log("temp_payload", temp_payload);
-
-        // sendWSMessage("insert_ewi", ewiPayload);
+        sendWSMessage("insert_ewi", temp_payload);
+        closeHandler();
     };
 
     return (
