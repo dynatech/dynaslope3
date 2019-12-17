@@ -1345,13 +1345,15 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ####################################
         # TRY TO WRITE TO DB PUBLIC_ALERTS #
         ####################################
+
+        # Revert any changes made in SQLAlchemy objects. No DB updates necessary
+        # up to this point.
+        # Internal Alert Symbol
+        DB.session.rollback()
+
         if not do_not_write_to_db:
             try:
                 current_pa_id = latest_site_pa.public_id
-
-                # Revert any changes made in SQLAlchemy objects. No DB updates necessary
-                # up to this point.
-                DB.session.rollback()
 
                 public_alert_result = write_to_db_public_alerts(
                     for_db_public_dict, latest_site_pa)
