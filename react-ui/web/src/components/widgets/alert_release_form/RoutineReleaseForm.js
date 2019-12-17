@@ -84,8 +84,6 @@ function RoutineReleaseForm (comp_props) {
         setFormReleaseTime(routineData.release_time);
     }, [routineData]);
 
-    console.log("form_data_ts", form_data_ts);
-
     const { reporter_id_mt } = routineData;
 
     const handleDateTime = key => value => {
@@ -163,7 +161,7 @@ function RoutineReleaseForm (comp_props) {
                         />
                     }
                     title={title}
-                    subheader={`${numberOfChecked(site_id_list)}/${site_id_list.length} selected`}
+                    // subheader={`${numberOfChecked(site_id_list)}/${site_id_list.length} selected`}
                 />
                 <Divider />
                 <List className={classes.list} dense component="div" role="list">
