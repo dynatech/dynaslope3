@@ -43,7 +43,8 @@ export function receiveIssuesAndReminders (callback) {
     connectToWebsocket();
 
     socket.on("receive_issues_and_reminders", data => {
-        callback(data);
+        const temp = JSON.parse(data);
+        callback(temp);
     });
 }
 

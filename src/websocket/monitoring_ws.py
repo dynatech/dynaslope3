@@ -2,6 +2,7 @@
 """
 
 import json
+import traceback
 from datetime import datetime
 from flask import request
 from connection import SOCKETIO, DB
@@ -94,6 +95,7 @@ def monitoring_background_task():
             print("")
             print("Monitoring Thread Exception")
             var_checker("Exception Detail", err, True)
+            print(traceback.format_exc())
             DB.session.rollback()
 
         SOCKETIO.sleep(60)  # Every 60 seconds in production stage
@@ -308,20 +310,23 @@ def execute_update_db_alert_ewi_sent_status(alert_db_group, site_id, ewi_group):
     alerts_from_db = retrieve_data_from_memcache("ALERTS_FROM_DB")
     json_alerts = json.loads(alerts_from_db)
 
-    group = json_alerts[alert_db_group]
-    alert = None
-    index = None
-    for i, row in enumerate(group):
-        if row["event"]["site_id"] == site_id:
-            alert = row
-            index = i
+    # TODO: supposed to be search kung existing sa latest, extended and overdue
+    # if wala then don't do updating
+    if alert_db_group:
+        group = json_alerts[alert_db_group]
+        alert = None
+        index = None
+        for i, row in enumerate(group):
+            if row["event"]["site_id"] == site_id:
+                alert = row
+                index = i
 
-    alert["sent_statuses"][f"is_{ewi_group}_sent"] = True
-    group[index] = alert
-    json_alerts[alert_db_group] = group
+        alert["sent_statuses"][f"is_{ewi_group}_sent"] = True
+        group[index] = alert
+        json_alerts[alert_db_group] = group
 
-    set_data_to_memcache("ALERTS_FROM_DB", json.dumps(json_alerts))
-    emit_data("receive_alerts_from_db")
+        set_data_to_memcache("ALERTS_FROM_DB", json.dumps(json_alerts))
+        emit_data("receive_alerts_from_db")
 
 
 @SOCKETIO.on("message", namespace="/monitoring")

@@ -42,7 +42,7 @@ def prepare_onset_message(release_data, address, site_alert_level):
                                        reverse=True)))
 
     trigger_ts = highest_trigger.ts
-    f_trig_ts = datetime.strftime(trigger_ts, "%B%e, %Y, %I:%M %p")
+    f_trig_ts = datetime.strftime(trigger_ts, "%B %e, %Y, %I:%M %p")
     cause = highest_trigger.internal_sym.bulletin_trigger.first().cause
 
     onset_msg = f"As of {f_trig_ts}, {address} is under {site_alert_level} based on {cause}."
@@ -54,9 +54,9 @@ def prepare_base_email_body(address, alert_level, data_ts):
     """
     Prepare the basic bulletin email content.
     """
-    f_r_time = datetime.strftime(data_ts, "%B%e, %Y, %I:%M %p")
+    f_r_time = datetime.strftime(data_ts, "%B %e, %Y, %I:%M %p")
 
-    return f"\nDEWS-L Bulletin for {f_r_time}\n{alert_level} - {address}"
+    return f"\nDynaslope Bulletin for {f_r_time}\n{alert_level} - {address}"
 
 
 @BULLETIN_EMAIL.route("/bulletin_email/get_bulletin_email_details/<release_id>", methods=["GET"])

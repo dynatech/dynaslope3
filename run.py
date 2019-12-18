@@ -5,6 +5,10 @@ Contains the Flask App initialization function
 
 import os
 from argparse import ArgumentParser
+
+from gevent import monkey
+monkey.patch_all()
+
 from connection import create_app, SOCKETIO
 
 PARSER = ArgumentParser(description="Run Dynaslope 3.0 Server")

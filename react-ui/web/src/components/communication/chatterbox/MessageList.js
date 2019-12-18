@@ -119,6 +119,8 @@ function MessageListItem (row, props, openOptionsModal) {
         sender = s;
         orgs = o;
     }
+
+    console.log(row);
     
     const on_option_button_click = e => {
         e.preventDefault();
@@ -215,8 +217,8 @@ function MessageList (comp_props) {
     const [open_save_contact_modal, setSaveContactModal] = React.useState(false);
     const [chosen_mobile, setChosenMobile] = React.useState({});
 
-    const openOptionsModal = (is_unregistered, mobile_details) => {
-        setIfUnregistered(is_unregistered);
+    const openOptionsModal = (is_unreg, mobile_details) => {
+        setIfUnregistered(is_unreg);
         setChosenMobile(mobile_details);
         setOpenOptions(true);
     };

@@ -53,14 +53,14 @@ const useStyle = releaseId => makeStyles(theme => {
             },
             title: {
                 marginBottom: 16,
-                fontSize: "0.875rem",
+                fontSize: "0.8rem",
                 [theme.breakpoints.only("md")]: {
                     marginBottom: 33.3328,
-                    fontSize: "1.82288750rem"
+                    fontSize: "1.6664rem"
                 },
                 [theme.breakpoints.up("lg")]: {
                     marginBottom: 66.6656,
-                    fontSize: "3.64576800rem"
+                    fontSize: "3.47111rem"
                 }
             },
             mainInfo: {

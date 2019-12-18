@@ -2,6 +2,7 @@
 Narratives functions API File
 """
 
+import json
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from connection import DB
@@ -22,8 +23,8 @@ def wrap_get_issue_reminder():
         include_count=False, include_expired=False)
     data = IssuesAndRemindersSchema(many=True).dump(issues).data
 
-    return data
-    # return jsonify(data)
+    # return data
+    return json.dumps(data)
 
 
 @ISSUES_AND_REMINDERS_BLUEPRINT.route("/issues_and_reminders/write_issue_reminder_to_db", methods=["POST"])

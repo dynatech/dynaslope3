@@ -19,7 +19,6 @@ import Button from "@material-ui/core/Button";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { CTContext } from "../../monitoring/dashboard/CTContext";
 
-
 const useStyles = makeStyles(theme => ({
     inputGridContainer: {
         marginTop: 6,
@@ -52,7 +51,6 @@ const useStyles = makeStyles(theme => ({
     },
 }));
 
-
 function not (a, b) {
     return a.filter(row => !b.some(x => x.value === row.value));
 }
@@ -75,12 +73,11 @@ function RoutineReleaseForm (comp_props) {
     const classes = useStyles();
     const { reporter_id_ct } = React.useContext(CTContext);
 
-    const [form_data_ts, setFormDataTs] = useState(null);
     const [form_release_time, setFormReleaseTime] = useState(null);
     const [dataTimestamp, setDataTimestamp] = useState(null);
 
     useEffect(() => {
-        setFormDataTs(routineData.data_timestamp);
+        setDataTimestamp(routineData.data_ts);
         setFormReleaseTime(routineData.release_time);
     }, [routineData]);
 

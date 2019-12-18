@@ -1,6 +1,7 @@
 """
 """
 
+import traceback
 from datetime import datetime
 from flask import request
 from flask_socketio import join_room, leave_room
@@ -131,6 +132,7 @@ def communication_background_task():
             print("")
             print("Communication Thread Exception")
             var_checker("Exception Detail", err, True)
+            print(traceback.format_exc())
             DB.session.rollback()
             pass
 

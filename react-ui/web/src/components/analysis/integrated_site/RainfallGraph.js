@@ -250,9 +250,11 @@ function RainfallGraph (props) {
         saveSVG
     } = props;
 
+    const arr_num = typeof rain_gauge !== "undefined" ? 1 : 4;
+
     const [rainfall_data, setRainfallData] = useState([]);
     const [processed_data, setProcessedData] = useState([]);
-    const chartRefs = useRef([...Array(4)].map(() => ({
+    const chartRefs = useRef([...Array(arr_num)].map(() => ({
         instantaneous: createRef(),
         cumulative: createRef()
     })));
@@ -359,7 +361,9 @@ function RainfallGraph (props) {
                     {
                         chartRefs.current.map((ref, i) => {
                             let opt = { ...default_options };
-                            if (options.length > 0) opt = options[i];
+                            if (options.length > 0) {
+                                opt = options[i];
+                            }
 
                             return (
                                 <Fragment key={i}>

@@ -78,7 +78,10 @@ function CandidateAlertsExpansionPanel (props) {
     let ia_level = "";
     let trigger_arr = [];
     let has_new_triggers = false;
-    const { site_id, general_status, is_release_time, unresolved_moms_list } = alertData;
+    const {
+        general_status, is_release_time,
+        unresolved_moms_list
+    } = alertData;
     
     if (general_status === "routine") {
         const { data_ts, public_alert_symbol } = alertData;
@@ -305,7 +308,7 @@ function CandidateAlertsExpansionPanel (props) {
                     color="secondary" size="small"
                     aria-label="Release candidate alert"
                     startIcon={<Publish />}
-                    onClick={releaseFormOpenHandler(alertData)}
+                    onClick={releaseFormOpenHandler(alertData, general_status)}
                     disabled={!is_release_time}
                 >
                     Release
@@ -501,11 +504,11 @@ function MonitoringTables (props) {
                     />
                 </Grid>
 
-                <Grid item sm={12}>
+                <Grid item xs={12}>
                     <Typography className={classes.sectionHead} variant="h5">Candidate Alerts</Typography>
                 </Grid>
 
-                <Grid item sm={12} style={{ marginBottom: 22 }}>
+                <Grid item xs={12} style={{ marginBottom: 22 }}>
                     {
                         // eslint-disable-next-line no-nested-ternary
                         candidateAlertsData === null ? (
@@ -534,11 +537,11 @@ function MonitoringTables (props) {
                     }
                 </Grid>
 
-                <Grid item sm={12}>
+                <Grid item xs={12}>
                     <Typography className={classes.sectionHead} variant="h5">Latest Site Alerts</Typography>
                 </Grid>
 
-                <Grid item sm={12} style={{ marginBottom: 22 }}>
+                <Grid item xs={12} style={{ marginBottom: 22 }}>
                     {
                         // eslint-disable-next-line no-nested-ternary
                         alertsFromDbData === null ? (
@@ -568,11 +571,11 @@ function MonitoringTables (props) {
                     }
                 </Grid>
 
-                <Grid item sm={12}>
+                <Grid item xs={12}>
                     <Typography className={classes.sectionHead} variant="h5">Sites under Extended Monitoring</Typography>
                 </Grid>
 
-                <Grid item sm={12} style={{ marginBottom: 22 }}>
+                <Grid item xs={12} style={{ marginBottom: 22 }}>
                     {
                         // eslint-disable-next-line no-nested-ternary
                         alertsFromDbData === null ? (
@@ -603,11 +606,11 @@ function MonitoringTables (props) {
                     }
                 </Grid>
 
-                <Grid item sm={12}>
+                <Grid item xs={12}>
                     <Typography className={classes.sectionHead} variant="h5">Sites with Due Alerts</Typography>
                 </Grid>
 
-                <Grid item sm={12} style={{ marginBottom: 22 }}>
+                <Grid item xs={12} style={{ marginBottom: 22 }}>
                     {
                         // eslint-disable-next-line no-nested-ternary
                         alertsFromDbData === null ? (
