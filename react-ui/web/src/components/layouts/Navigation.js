@@ -1,16 +1,16 @@
-import React, { PureComponent, Fragment } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import {
     AppBar, Tabs, Tab,
     MenuItem, MenuList,
     Popper, Paper, Grow, ClickAwayListener,
+    makeStyles,
+    Typography
 } from "@material-ui/core";
 import { Link } from "react-router-dom";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
-import { withStyles } from "@material-ui/core/styles";
-import { compose } from "recompose";
 import ScreenDrawer from "./ScreenDrawer";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     navBar: {
         display: "none",
         [theme.breakpoints.up("md")]: {
@@ -23,8 +23,11 @@ const styles = theme => ({
         marginTop: 2
     },
     list: { width: 250 },
-    link: { textDecoration: "none" }
-});
+    link: { 
+        textDecoration: "none",
+        color: "blue"
+    }
+}));
 
 const navigation_labels = [
     {
@@ -53,7 +56,8 @@ const navigation_labels = [
             },
             {
                 label: "Quality Assurance",
-                link: "/monitoring/qa"
+                link: "/monitoring/qa",
+                soon: true
             }
         ]
     },
@@ -67,11 +71,13 @@ const navigation_labels = [
             },
             {
                 label: "Communications Analytics",
-                link: "/analysis/communications"
+                link: "/analysis/communications",
+                soon: true
             },
             {
                 label: "Monitoring Alerts Analytics",
-                link: "/analysis/alerts"
+                link: "/analysis/alerts",
+                soon: true
             }
         ]
     },
@@ -87,10 +93,6 @@ const navigation_labels = [
                 label: "Contacts",
                 link: "/communication/contacts"
             },
-            // {
-            //     label: "Callbox",
-            //     link: "/communication/callbox"
-            // },
             {
                 label: "Mailbox",
                 link: "/communication/mailbox"
@@ -107,11 +109,13 @@ const navigation_labels = [
             },
             {
                 label: "Stakeholders' Concerns",
-                link: "/community/concerns"
+                link: "/community/concerns",
+                soon: true
             },
             {
                 label: "Community Feedback",
-                link: "/community/feedback"
+                link: "/community/feedback",
+                soon: true
             }
         ]
     },
@@ -121,145 +125,275 @@ const navigation_labels = [
         sub: [
             {
                 label: "Protocols",
-                link: "/knowlegde/protocols"
+                link: "/knowlegde/protocols",
+                soon: true
             },
             {
                 label: "Papers",
-                link: "/knowledge/papers"
+                link: "/knowledge/papers",
+                soon: true
             }
         ]
     }
 ];
 
-class Navigation extends PureComponent {
-    constructor (props) {
-        super(props);
+// class Navigation extends PureComponent {
+//     constructor (props) {
+//         super(props);
 
-        const { pathname } = window.location;
-        const path = pathname.split("/")[1];
-        const index = navigation_labels.findIndex(obj => obj.key === path);
+//         const { pathname } = window.location;
+//         const path = pathname.split("/")[1];
+//         const index = navigation_labels.findIndex(obj => obj.key === path);
 
-        this.state = {
-            value: index === -1 ? 0 : index,
-            from_tab: null,
-            last_clicked_tab: null,
-            popper_open: false,
-            anchorEl: null
-        };
-    }
+//         this.state = {
+//             value: index === -1 ? 0 : index,
+//             from_tab: null,
+//             last_clicked_tab: null,
+//             popper_open: false,
+//             anchorEl: null
+//         };
+//     }
    
-    handleTabChange = (event, value) => {
-        this.setState({ value });
+//     const handleTabChange = event, value => {
+//         setValue(value);
+//     };
+
+//     const handleNavTabClick = event => { 
+//         const { value: old_value } = this.state;
+
+//         this.setState({
+//             popper_open: true,
+//             anchorEl: event.currentTarget,
+//             from_tab: old_value
+//         }, () => {
+//             const { value: updated_value } = this.state;
+//             this.setState({ last_clicked_tab: updated_value });
+//         });
+//     };
+
+//     handlePopperClickAway = event => {
+//         const { anchorEl, from_tab } = this.state; 
+
+//         if (anchorEl.contains(event.target)) {
+//             return;
+//         }
+        
+//         this.setState({ popper_open: false, value: from_tab });
+//     };
+
+//     handleMenuClick = event => {
+//         this.setState({ popper_open: false });
+//     }
+
+//     render () {
+//         const { width, classes, drawerHandler, drawer } = this.props;
+//         const {
+//             value, popper_open, anchorEl,
+//             from_tab, last_clicked_tab
+//         } = this.state;
+
+//         const index = value === from_tab && last_clicked_tab !== null ? last_clicked_tab : value;
+//         const { sub } = navigation_labels[index];
+    
+//         return (
+//             <Fragment>
+//                 <div className={classes.navBar}>
+//                     <AppBar position="fixed" color="default" className={classes.appBar}>
+//                         <Tabs
+//                             value={value}
+//                             onChange={this.const handleTabChange}
+//                            indicatorColosetValue(value);                  textColor="primary"
+//                             variant={isWidthUp("md", width) ? "standard" : "scrollable"}
+//                             scrollButtons="on"
+//                             centereconst d={isWidthUp("md", width)}
+//                         >
+//                             {navigation_labels.map(({ main, key }) => 
+//                                 <Tab
+//                                     key={key}
+//                                     label={main}
+//                                     aria-owns={popper_open ? "monitoring-menu" : null}
+//                                     aria-haspopup="true"
+//                                     onClick={this.handleNavTabClick}
+//                                 />
+//                             )}
+//                         </Tabs>
+//                     </AppBar>
+//                 </div>
+
+//                 <Popper
+//                     className={classes.popper}
+//                     open={popper_open}
+//                     anchorEl={anchorEl}
+//                     transition
+//                     disablePortal
+//                 >
+//                     {({ TransitionProps, placement }) => (
+//                         <Grow
+//                             {...TransitionProps}
+//                             id="monitoring-menu"
+//                             style={{ transformOrigin: placement === "bottom" ? "center top" : "center bottom" }}
+//                         >
+//                             <Paper>
+//                                 <ClickAwayListener onClickAway={this.handlePopperClickAway}>
+//                                     <MenuList>
+//                                         {
+//                                             sub.map(({ label, link }) =>
+//                                                 <Link to={link} key={label} className={classes.link}>
+//                                                     <MenuItem
+//                                                         onClick={this.handleMenuClick}
+//                                                     >
+//                                                         {label}
+//                                                     </MenuItem>
+//                                                 </Link> 
+//                                             )
+//                                         }
+//                                     </MenuList>
+//                                 </ClickAwayListener>
+//                             </Paper>
+//                         </Grow>
+//                     )}
+//                 </Popper>
+                
+//                 <ScreenDrawer
+//                     drawer={drawer}
+//                     drawerHandler={drawerHandler}
+//                     navigationLabels={navigation_labels}
+//                 />
+//             </Fragment>
+//         );
+//     }
+// }
+
+function Navigation (props) {
+    const { width, drawerHandler, drawer } = props;
+    const classes = useStyles();
+
+    const { pathname } = window.location;
+    const path = pathname.split("/")[1];
+    const index = navigation_labels.findIndex(obj => obj.key === path);
+
+    const [value, setValue] = useState(index === -1 ? 0 : index);
+    const [from_tab, setFromTab] = useState(null);
+    const [last_clicked_tab, setLastClickedTab] = useState(null);
+    const [popper_open, setPopperOpen] = useState(false);
+    const [anchorEl, setAnchorE1] = useState(null);
+
+    const tab = value === from_tab && last_clicked_tab !== null ? last_clicked_tab : value;
+    const { sub } = navigation_labels[tab];
+
+    useEffect(() => {
+        setLastClickedTab(value);
+    }, [value]);
+
+    const handleTabChange = (event, val) => {
+        setValue(val);
     };
 
-    handleNavTabClick = event => { 
-        const { value: old_value } = this.state;
+    const handleNavTabClick = event => { 
+        const old_value = value;
 
-        this.setState({
-            popper_open: true,
-            anchorEl: event.currentTarget,
-            from_tab: old_value
-        }, () => {
-            const { value: updated_value } = this.state;
-            this.setState({ last_clicked_tab: updated_value });
-        });
+        setPopperOpen(true);
+        setAnchorE1(event.currentTarget);
+        setFromTab(old_value);
     };
 
-    handlePopperClickAway = event => {
-        const { anchorEl, from_tab } = this.state; 
-
+    const handlePopperClickAway = event => {
         if (anchorEl.contains(event.target)) {
             return;
         }
         
-        this.setState({ popper_open: false, value: from_tab });
+        setPopperOpen(false);
+        setTimeout(() => setValue(from_tab), 100);
     };
 
-    handleMenuClick = event => {
-        this.setState({ popper_open: false });
-    }
+    const handleMenuClick = event => {
+        setPopperOpen(false);
+    };
 
-    render () {
-        const { width, classes, drawerHandler, drawer } = this.props;
-        const {
-            value, popper_open, anchorEl,
-            from_tab, last_clicked_tab
-        } = this.state;
+    return (
+        <Fragment>
+            <div className={classes.navBar}>
+                <AppBar position="fixed" color="default" className={classes.appBar}>
+                    <Tabs
+                        value={value}
+                        onChange={handleTabChange}
+                        indicatorColor="primary"
+                        textColor="primary"
+                        variant={isWidthUp("md", width) ? "standard" : "scrollable"}
+                        scrollButtons="on"
+                        centered={isWidthUp("md", width)}
+                    >
+                        {navigation_labels.map(({ main, key }) => 
+                            <Tab
+                                key={key}
+                                label={main}
+                                aria-owns={popper_open ? "monitoring-menu" : null}
+                                aria-haspopup="true"
+                                onClick={handleNavTabClick}
+                            />
+                        )}
+                    </Tabs>
+                </AppBar>
+            </div>
 
-        const index = value === from_tab && last_clicked_tab !== null ? last_clicked_tab : value;
-        const { sub } = navigation_labels[index];
-    
-        return (
-            <Fragment>
-                <div className={classes.navBar}>
-                    <AppBar position="fixed" color="default" className={classes.appBar}>
-                        <Tabs
-                            value={value}
-                            onChange={this.handleTabChange}
-                            indicatorColor="primary"
-                            textColor="primary"
-                            variant={isWidthUp("md", width) ? "standard" : "scrollable"}
-                            scrollButtons="on"
-                            centered={isWidthUp("md", width)}
-                        >
-                            {navigation_labels.map(({ main, key }) => 
-                                <Tab
-                                    key={key}
-                                    label={main}
-                                    aria-owns={popper_open ? "monitoring-menu" : null}
-                                    aria-haspopup="true"
-                                    onClick={this.handleNavTabClick}
-                                />
-                            )}
-                        </Tabs>
-                    </AppBar>
-                </div>
-
-                <Popper
-                    className={classes.popper}
-                    open={popper_open}
-                    anchorEl={anchorEl}
-                    transition
-                    disablePortal
-                >
-                    {({ TransitionProps, placement }) => (
-                        <Grow
-                            {...TransitionProps}
-                            id="monitoring-menu"
-                            style={{ transformOrigin: placement === "bottom" ? "center top" : "center bottom" }}
-                        >
-                            <Paper>
-                                <ClickAwayListener onClickAway={this.handlePopperClickAway}>
-                                    <MenuList>
-                                        {
-                                            sub.map(({ label, link }) =>
-                                                <Link to={link} key={label} className={classes.link}>
-                                                    <MenuItem
-                                                        onClick={this.handleMenuClick}
+            <Popper
+                className={classes.popper}
+                open={popper_open}
+                anchorEl={anchorEl}
+                transition
+                disablePortal
+            >
+                {({ TransitionProps, placement }) => (
+                    <Grow
+                        {...TransitionProps}
+                        id="monitoring-menu"
+                        style={{ transformOrigin: placement === "bottom" ? "center top" : "center bottom" }}
+                    >
+                        <Paper>
+                            <ClickAwayListener onClickAway={handlePopperClickAway}>
+                                <MenuList>
+                                    {
+                                        sub.map(({ label, link, soon }) => {
+                                            const disabled = typeof soon !== "undefined";
+                                            return (
+                                                <Link
+                                                    to={link}
+                                                    key={label}
+                                                    className={classes.link}
+                                                    disabled={disabled}
+                                                >
+                                                    <MenuItem 
+                                                        onClick={handleMenuClick}
+                                                        disabled={disabled}
                                                     >
                                                         {label}
-                                                    </MenuItem>
-                                                </Link> 
-                                            )
-                                        }
-                                    </MenuList>
-                                </ClickAwayListener>
-                            </Paper>
-                        </Grow>
-                    )}
-                </Popper>
+                                                        {
+                                                            disabled && <Typography
+                                                                component="span"
+                                                                variant="overline"
+                                                                style={{ paddingLeft: 4 }}
+                                                            >
+                                                                SOON
+                                                            </Typography>
+                                                        }</MenuItem>
+                                                </Link>
+                                            );
+                                        })
+                                    }
+                                </MenuList>
+                            </ClickAwayListener>
+                        </Paper>
+                    </Grow>
+                )}
+            </Popper>
                 
-                <ScreenDrawer
-                    drawer={drawer}
-                    drawerHandler={drawerHandler}
-                    navigationLabels={navigation_labels}
-                />
-            </Fragment>
-        );
-    }
+            <ScreenDrawer
+                drawer={drawer}
+                drawerHandler={drawerHandler}
+                navigationLabels={navigation_labels}
+            />
+        </Fragment>
+    );
 }
 
-export default compose(
-    withStyles(styles),
-    withWidth()
-)(Navigation);
+export default React.memo(withWidth()(Navigation));

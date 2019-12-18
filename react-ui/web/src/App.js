@@ -42,6 +42,10 @@ const styles = theme => ({
 function App (props) {
     const { classes } = props;
 
+    useEffect(() => {
+        document.title = "MIA 3.0 - Dynaslope Monitoring and Information Application";
+    }, []);
+
     const [drawer, setDrawer] = useState(false);
     const toggleDrawer = bool => () => {
         setDrawer(bool);

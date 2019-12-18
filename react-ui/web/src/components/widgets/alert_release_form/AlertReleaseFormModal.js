@@ -226,7 +226,7 @@ function AlertReleaseFormModal (props) {
     }, [generalData.dataTimestamp]);
 
     useEffect(() => {
-        if (chosenCandidateAlert !== null) {
+        if (chosenCandidateAlert !== null && chosenCandidateAlert.general_status !== "routine") {
             const {
                 site_id, site_code, public_alert_level,
                 public_alert_symbol, release_details, trigger_list_arr,

@@ -81,9 +81,14 @@ function Container (props) {
         else if (data === "is_routine_modal_open") setIsOpenRoutineModal(bool);
     };
 
-    const releaseAlertHandler = chosen_candidate => () => {
+    const releaseAlertHandler = (chosen_candidate, general_status) => () => {
         setChosenCandidateAlert(chosen_candidate);
-        handleBoolean("is_open_release_modal", true)();
+
+        if (general_status === "routine") {
+            handleBoolean("is_routine_modal_open", true)();
+        } else {
+            handleBoolean("is_open_release_modal", true)();
+        }
     };
 
     const routineReleaseHandler = chosen_candidate => () => {

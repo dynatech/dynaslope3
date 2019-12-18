@@ -2,12 +2,13 @@ import React, { Fragment, useState, useEffect, useRef } from "react";
 
 import { 
     IconButton, Typography, Divider,
-    withStyles, Grid, Chip,
-    Avatar
+    Grid, Chip, makeStyles, Avatar,
+    Button
 } from "@material-ui/core";
 import { KeyboardArrowLeft } from "@material-ui/icons";
 
 import ContentLoader from "react-content-loader";
+import { useSnackbar } from "notistack";
 
 import ChatThread from "./ChatThread";
 import GeneralStyles from "../../../GeneralStyles";
@@ -15,12 +16,13 @@ import MessageInputTextbox from "./MessageInputTextbox";
 import GenericAvatar from "../../../images/generic-user-icon.jpg";
 import { simNumFormatter } from "../../../UtilityFunctions";
 import { 
-    receiveMobileIDRoomUpdate, removeReceiveMobileIDRoomUpdateListener,
-    sendMessageToDB
+    receiveMobileIDRoomUpdate,
+    removeReceiveMobileIDRoomUpdateListener
 } from "../../../websocket/communications_ws";
 import { mobileUserFormatter } from "./MessageList";
+import { sendMessage } from "../ajax";
 
-const styles = theme => {
+const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
     
     return {
@@ -67,7 +69,7 @@ const styles = theme => {
         },
         noFlexGrow: { flexGrow: 0 }
     };
-};
+});
 
 const AvatarWithText = () => (
     <ContentLoader 
@@ -174,11 +176,14 @@ const goBack = history => e => {
 
 function ConversationWindow (props) {
     const {
-        classes, history,
+        history,
         match: { params: { mobile_id } },
         location: { state: { async } },
         messageCollection, socket
     } = props;
+    const classes = useStyles();
+
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
     const [conversation_details, setConversationDetails] = useState({
         message_list: null,
@@ -226,10 +231,19 @@ function ConversationWindow (props) {
         }
     }
 
+    const snackBarActionFn = key => {
+        return (<Button
+            color="primary"
+            onClick={() => { closeSnackbar(key); }}
+        >
+            Dismiss
+        </Button>);
+    };
+
     const on_send_message_fn = () => {
         const { mobile_id: m_id, gsm_id } = mobile_details;
 
-        const data = {
+        const payload = {
             sms_msg: composed_message,
             recipient_list: [
                 {
@@ -238,6 +252,37 @@ function ConversationWindow (props) {
                 }
             ]
         };
+
+        sendMessage(payload, response => {
+            if (response.status) {
+                enqueueSnackbar(
+                    "EWI SMS Sent!",
+                    {
+                        variant: "success",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            } else {
+                enqueueSnackbar(
+                    response.message,
+                    {
+                        variant: "error",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            }
+        }, () => {
+            enqueueSnackbar(
+                "Error sending EWI SMS...",
+                {
+                    variant: "error",
+                    autoHideDuration: 7000,
+                    action: snackBarActionFn
+                }
+            );
+        });
 
         // change this to sendMessage function block
         // on SendMessageForm.js
@@ -307,4 +352,4 @@ function ConversationWindow (props) {
     );
 }
 
-export default withStyles(styles)(ConversationWindow);
+export default ConversationWindow;

@@ -235,7 +235,7 @@ function BootstrapTooltip (props) {
 
 function chatBubbleCreator (classes, message_row, set_gdt_fn) {
     const {
-        convo_id, inbox_id, outbox_id, 
+        convo_id,
         source, sms_msg: message,
         ts_received, ts_written,
         ts_sent, send_status, tags
@@ -246,6 +246,8 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
         source,
         id: message_row[`${source}_id`],
     };
+
+    console.log(message_row);
 
     const is_you = source === "outbox";
     let timestamp = is_you ? ts_written : ts_received;

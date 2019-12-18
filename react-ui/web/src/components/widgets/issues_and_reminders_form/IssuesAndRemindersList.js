@@ -1,12 +1,14 @@
-import React, { Fragment, useState, useEffect } from "react";
-import { withStyles } from "@material-ui/core/styles";
+import React, {
+    Fragment, useState, useEffect
+} from "react";
 
 import {
     Typography, GridList, 
     GridListTile, GridListTileBar, 
     IconButton, Tooltip,
     Dialog, DialogContent, DialogTitle,
-    DialogActions, Button, DialogContentText
+    DialogActions, Button, DialogContentText,
+    makeStyles
 } from "@material-ui/core";
 import InfoIcon from "@material-ui/icons/InfoOutlined";
 
@@ -15,8 +17,7 @@ import moment from "moment";
 import IssuesAndReminderModal from "./IssuesAndReminderModal";
 import { receiveIssuesAndReminders } from "../../../websocket/monitoring_ws";
 
-
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     inputGridContainer: {
         marginTop: 8,
         marginBottom: 8
@@ -28,7 +29,7 @@ const styles = theme => ({
         }
     },
     gridList: {
-        height: "75vh",
+        height: "100vh",
         margin: "0 !important",
         boxShadow: "0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12)",
         "&::-webkit-scrollbar": {
@@ -69,7 +70,7 @@ const styles = theme => ({
     tileBar: {
         background: "#7f7f7f"
     }
-});
+}));
 
 function IssuesAndReminderCard (props) {
     const { 
@@ -206,9 +207,12 @@ function includeSiteList (issues_and_reminders) {
 
 function IssuesAndReminderList (props) {
     const {
-        classes, isOpenIssueReminderModal, setIsOpenIssueReminderModal,
+        isOpenIssueReminderModal, setIsOpenIssueReminderModal,
         isUpdateNeeded, setIsUpdateNeeded
     } = props;
+
+    const classes = useStyles();
+
     const [tile_data, setTileData] = useState([]);
     const [has_active_issues, setHasActiveIssues] = useState(false);
     const [chosenIssueReminder, setChosenIssueReminder] = useState({
@@ -222,6 +226,7 @@ function IssuesAndReminderList (props) {
 
     useEffect(() => {
         receiveIssuesAndReminders(issues_and_reminders => {
+            setHasActiveIssues(false);
             let final_tile_data = (
                 <Typography component="div" style={{ fontStyle: "italic", width: "auto", height: 0 }}>
                    No active issues
@@ -245,31 +250,6 @@ function IssuesAndReminderList (props) {
 
     return (
         <Fragment>         
-            {/* <Grid container spacing={1}>
-                <Grid item xs={12} md={12}>
-                    <Button
-                        aria-label="Post Issue/Reminder"
-                        variant="contained"
-                        color="primary"
-                        size="small"
-                        style={{ width: "auto" }}
-                        onClick={handleBoolean("is_issue_reminder_modal_open")}
-                    >
-                        Post Issue/Reminder
-                    </Button>                       
-                </Grid>
-                <Grid item xs={12} md={12}>
-                    <Typography>
-                        As of {moment().format("DD MMMM YYYY, HH:mm")}                        
-                    </Typography>
-                </Grid>
-                <Grid item xs={12} md={12}>
-                    <GridList cellHeight={180} className={classes.gridList}>
-                        {tile_data}
-                    </GridList>
-                </Grid>
-            </Grid> */}
-            
             <GridList component="div" cellHeight="auto" className={`${classes.gridList} ${!has_active_issues && classes.hasNoIssues}`}>
                 {tile_data}
             </GridList>
@@ -295,4 +275,4 @@ function IssuesAndReminderList (props) {
     );
 }
 
-export default withStyles(styles)(IssuesAndReminderList);
+export default IssuesAndReminderList;

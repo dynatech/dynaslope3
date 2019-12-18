@@ -87,7 +87,8 @@ function SiteInformationPage (props) {
                 const c_dry = [];
                 const c_wet = [];
                 rs.forEach(row => {
-                    const day = moment(row.iso_week_day, "D").format("dddd");
+                    const day = moment().isoWeekday(row.iso_week_day)
+                    .format("dddd");
                     if (row.season_type === "d") c_dry.push(day);
                     else c_wet.push(day);
                 });

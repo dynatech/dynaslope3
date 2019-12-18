@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useContext, useReducer } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import moment from "moment";
 import {
     Dialog, DialogTitle, DialogContent,
-    DialogContentText, DialogActions, Typography,
-    Button, makeStyles, withMobileDialog,
+    DialogContentText, DialogActions,
+    Button, withMobileDialog,
 } from "@material-ui/core";
-import MomentUtils from "@date-io/moment";
+
 import RoutineReleaseForm from "./RoutineReleaseForm";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
 import { getCurrentUser } from "../../sessions/auth";
@@ -43,7 +43,7 @@ function RoutineReleaseFormModal (props) {
     const initial_routine_data = {
         public_alert_symbol: "A0",
         public_alert_level: "0",
-        data_timestamp: null,
+        data_ts: null,
         release_time: moment(),
         general_status: "routine",
         reporter_id_ct,
@@ -65,10 +65,14 @@ function RoutineReleaseFormModal (props) {
     const [routineData, setRoutineData] = useState({ ...initial_routine_data });
     const [a0SiteList, setA0SiteList] = useState({ ...a0_list });
     const [NDSiteList, setNDSiteList] = useState({ ...nd_list });
+    const [site_options, setSiteOptions] = useState([]);
+
+    const disabled = (a0SiteList.site_id_list.length === 0 && NDSiteList.site_id_list.length === 0) || reporter_id_ct === "";
 
     useEffect(() => {
         setRoutineData({ ...initial_routine_data });
         const temp = prepareSitesOption(sites);
+        setSiteOptions(temp);
         setA0SiteList({
             ...a0SiteList,
             site_id_list: temp
@@ -77,10 +81,30 @@ function RoutineReleaseFormModal (props) {
 
     useEffect(() => {
         if (typeof chosenCandidateAlert !== "undefined" && chosenCandidateAlert !== null && chosenCandidateAlert.general_status === "routine") {
-            setRoutineData(chosenCandidateAlert);
+            const copy = { ...chosenCandidateAlert };
+            delete copy.routine_details;
+
+            const temp = {
+                ...initial_routine_data,
+                ...copy
+            };
+
+            setRoutineData(temp);
+
             const { routine_details: rd } = chosenCandidateAlert;
-            setA0SiteList(rd.filter(row => row.internal_alert_level === "A0"));
-            setNDSiteList(rd.filter(row => row.internal_alert_level === "ND"));
+            rd.forEach(row => {
+                const { site_id_list, internal_alert_level } = row;
+
+                const site_list = site_options.filter(s => site_id_list.includes(s.value));
+                row.site_id_list = site_list;
+
+                if (internal_alert_level === "A0") {
+                    setA0SiteList(row);
+                } else {
+                    setNDSiteList(row);
+                }
+            });
+
             setEwiPayload({ ...ewiPayload });
         } else {
             setRoutineData({ ...initial_routine_data });
@@ -94,7 +118,7 @@ function RoutineReleaseFormModal (props) {
                 site_id_list: []
             });
         }
-    }, [chosenCandidateAlert, reporter_id_ct]);
+    }, [chosenCandidateAlert, reporter_id_ct, site_options]);
 
     const handleSubmit = () => {
         console.log("Submitting data...", ewiPayload);
@@ -114,6 +138,12 @@ function RoutineReleaseFormModal (props) {
         console.log("temp_payload", temp_payload);
         sendWSMessage("insert_ewi", temp_payload);
         closeHandler();
+    };
+
+    const handleClose = () => {
+        closeHandler();
+        setA0SiteList({ ...a0_list });
+        setNDSiteList({ ...nd_list });
     };
 
     return (
@@ -141,10 +171,15 @@ function RoutineReleaseFormModal (props) {
                 <DialogActions>
                     <div>
                         <div>
-                            <Button onClick={closeHandler} color="primary">
+                            <Button onClick={handleClose} color="primary">
                                 Cancel
                             </Button>
-                            <Button variant="contained" color="primary" onClick={handleSubmit}>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={handleSubmit}
+                                disabled={disabled}
+                            >
                                 Submit
                             </Button>
                         </div>
