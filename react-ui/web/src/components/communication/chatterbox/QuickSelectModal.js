@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useContext } from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
@@ -10,6 +10,7 @@ import { CheckCircle, RemoveCircle } from "@material-ui/icons";
 import CheckboxGroup from "../../reusables/CheckboxGroup";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 import { GeneralContext } from "../../contexts/GeneralContext";
+import { getRecipientsList } from "../ajax";
 
 const useStyles = makeStyles(theme => ({
     formControl: {
@@ -118,7 +119,10 @@ function listMapper (x, group, state_list) {
 }
 
 function QuickSelectModal (props) {
-    const { fullScreen, value, closeHandler } = props;
+    const {
+        fullScreen, isOpen, closeHandler,
+        setRecipients
+    } = props;
     const classes = useStyles();
 
     const { sites: site_list, organizations: org_list } = useContext(GeneralContext);
@@ -176,7 +180,6 @@ function QuickSelectModal (props) {
             const index = list.findIndex(x => x.value === val);
             list[index].state = is_checked;
             setter([ ...list ]);
-            
         }
     };
         
@@ -209,10 +212,31 @@ function QuickSelectModal (props) {
             if (row.state) org_ids.push(row.value);
         });
 
-        console.log({
+        const payload = {
             site_ids,
             org_ids,
             only_ewi_recipients
+        };
+
+        getRecipientsList(payload, response => {
+            const temp = response.map(row => {
+                const { label, mobile_id, org, sim_num } = row;
+                let fin_label = label;
+                if (org !== "") fin_label = `${label} (${org})`;
+                fin_label += ` - ${sim_num}`;
+
+                const chip_label = `${label} - ${sim_num}`;
+
+                return {
+                    label: fin_label,
+                    chipLabel: chip_label,
+                    value: mobile_id,
+                    sim_num,
+                    data: row
+                };
+            });
+            
+            setRecipients(temp);
         });
 
         closeHandler();
@@ -223,7 +247,7 @@ function QuickSelectModal (props) {
             <Dialog
                 fullWidth
                 fullScreen={fullScreen}
-                open={value}
+                open={isOpen}
                 aria-labelledby="form-dialog-title"
                 TransitionComponent={fullScreen ? SlideTransition : FadeTransition}
                 maxWidth="md"

@@ -24,6 +24,12 @@ function subscribeToWebSocket (page) {
     }
 }
 
+function sendWSMessage (key) {
+    connectToWebsocket();
+
+    socket.emit(key);
+}
+
 function receiveLatestMessages (callback) {
     connectToWebsocket();
 
@@ -100,5 +106,5 @@ export {
     receiveMobileIDRoomUpdate, removeReceiveMobileIDRoomUpdateListener,
     sendMessageToDB, receiveSearchResults, removeReceiveSearchResults,
     receiveAllMobileNumbers, receiveLatestMessages, receiveAllContacts,
-    removeReceiveAllContacts, removeReceiveLatestMessages
+    removeReceiveAllContacts, removeReceiveLatestMessages, sendWSMessage
 };

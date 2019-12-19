@@ -554,12 +554,17 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
     try:
         site_id = monitoring_instance_details["site_id"]
         event_id = monitoring_instance_details["event_id"]
+        public_alert_level = monitoring_instance_details["public_alert_level"]
 
         # Get the latest release timestamp
         latest_release = get_latest_release_per_site(site_id)
         latest_release_data_ts = latest_release.data_ts
+        latest_pa_level = latest_release.event_alert.public_alert_symbol.alert_level
 
-        if ((datetime.now() - latest_release_data_ts).seconds / 3600) <= 2:
+        is_within_one_hour = ((datetime.now() - latest_release_data_ts).seconds / 3600) <= 1
+        is_higher_alert = public_alert_level > latest_pa_level
+
+        if is_within_one_hour and not is_higher_alert:
             # UPDATE STUFF
             var_checker("Inserting release", release_details, True)
             new_release = update_monitoring_release_on_db(
@@ -1285,7 +1290,7 @@ def get_event_timeline_data(event_id):
             many=True).dump(eos_analysis_list).data
 
         if eos_analysis_data_list:
-            var_checker("eos data", eos_analysis_data_list, True)
+            # var_checker("eos data", eos_analysis_data_list, True)
             for eos_analysis in eos_analysis_data_list:
                 shift_end = datetime.strptime(
                     eos_analysis["shift_start"], "%Y-%m-%d %H:%M:%S") + timedelta(hours=13)

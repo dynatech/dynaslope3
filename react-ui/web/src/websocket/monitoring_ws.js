@@ -27,6 +27,8 @@ export function sendWSMessage (key, data = null) {
 }
 
 export function onWSMessage (message) {
+    connectToWebsocket();
+    
     socket.on("message", (msg) => {
         console.log(msg);
     });

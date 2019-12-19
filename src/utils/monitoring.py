@@ -104,7 +104,7 @@ def get_max_possible_alert_level():
 
 def format_candidate_alerts_for_insert(candidate_data):
     """
-    Adds the candidate triggers missing data before doing the insert_ewi\
+    Adds the candidate triggers missing data before doing the insert_ewi
     Most likely be used in CBEWSL
     """
     formatted_candidate_data = candidate_data
@@ -317,7 +317,8 @@ def update_alert_status(as_details):
                 alert_status_result.user_id = user_id
 
                 print(
-                    f"Trigger ID [{trigger_id}] alert_status is updated as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                    (f"Trigger ID [{trigger_id}] alert_status is updated as {alert_status} "
+                     f"[{val_map[alert_status]}]. Remarks: \"{remarks}\""))
                 return_data = "success"
             except Exception as err:
                 DB.session.rollback()
@@ -368,7 +369,6 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
     is_sms_sent = False
     is_bulletin_sent = False
 
-
     if not is_onset_release or \
         (is_onset_release and start_ts.hour % 3 and start_ts.minute == 30):
         # TODO: make this dynamic
@@ -381,8 +381,11 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
         event_id=event_id, start=start_ts, end=end_ts)
 
     for item in narrative_list:
-        is_sms_sent = "EWI SMS" in item.narrative
-        is_bulletin_sent = "EWI BULLETIN" in item.narrative
+        if "EWI SMS" in item.narrative:
+            is_sms_sent = True
+
+        if "EWI BULLETIN" in item.narrative:
+            is_bulletin_sent = True
 
     return {
         "is_sms_sent": is_sms_sent, "is_bulletin_sent": is_bulletin_sent
@@ -885,7 +888,10 @@ def get_latest_release_per_site(site_id):
     mr = MonitoringReleases
     me = MonitoringEvents
     mea = MonitoringEventAlerts
-    latest_release = mr.query.order_by(DB.desc(mr.release_id)).join(mea).join(me).filter(me.site_id == site_id).first()
+    latest_release = mr.query.order_by(
+        DB.desc(mr.release_id)) \
+        .join(mea).join(me).filter(me.site_id == site_id) \
+        .first()
 
     return latest_release
 

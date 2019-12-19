@@ -91,7 +91,7 @@ function BulletinModal (props) {
             file_name 
         };
         const loading_snackbar = enqueueSnackbar(
-            "Sending bulletin...",
+            "Sending EWI bulletin...",
             {
                 variant: "warning",
                 persist: true

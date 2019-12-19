@@ -119,8 +119,6 @@ function MessageListItem (row, props, openOptionsModal) {
         sender = s;
         orgs = o;
     }
-
-    console.log(row);
     
     const on_option_button_click = e => {
         e.preventDefault();

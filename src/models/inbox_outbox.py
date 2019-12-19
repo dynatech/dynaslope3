@@ -23,12 +23,9 @@ class SmsInboxUsers(DB.Model):
     ts_stored = DB.Column(DB.DateTime, default=datetime.utcnow())
     mobile_id = DB.Column(
         DB.Integer, DB.ForeignKey("comms_db.user_mobile.mobile_id"))
-    # mobile_id = DB.Column(DB.Integer, nullable=False)
     sms_msg = DB.Column(DB.String(1000))
     read_status = DB.Column(DB.Integer, nullable=False)
     web_status = DB.Column(DB.Integer, nullable=False)
-    # gsm_id = DB.Column(
-    #     DB.Integer, DB.ForeignKey("comms_db.gsm_modules.gsm_id"))
     gsm_id = DB.Column(DB.Integer, nullable=False)
 
     mobile_details = DB.relationship("UserMobile",

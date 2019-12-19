@@ -53,7 +53,7 @@ APP_CONFIG = {
     "charts_render_path": f"{ROOT_PATH}/temp/charts",
     # "url": "http://localhost:3000",
     "url": "http://192.168.150.110",
-    "is_live_mode": False,
+    "is_live_mode": True,
     "director_and_head_emails": ["rusolidum@phivolcs.dost.gov.ph", "asdaag48@gmail.com"],
     "dynaslope_groups": ["phivolcs-dynaslope@googlegroups.com", "phivolcs-senslope@googlegroups.com"],
     "dev_email": "dynaslopeswat@gmail.com"

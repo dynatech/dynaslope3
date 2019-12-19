@@ -49,6 +49,10 @@ function processTriggers (triggers) {
                         const entry = processMomsTrigger(moms_entry, int_alert_sym);
                         additional.push(entry);
                     });
+                } else if (trigger_source === "on demand") {
+                    const { trigger_misc: { on_demand } } = trigger;
+                    // # TODO: ihabol yung on demand details
+                    // wala pa yung reporter ids
                 }
 
                 return <Fragment key={trigger_id}>

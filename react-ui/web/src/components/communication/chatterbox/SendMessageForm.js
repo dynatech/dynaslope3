@@ -154,7 +154,11 @@ function SendMessageForm (props) {
                 }));
             });
         } else {
-            console.log(recipients);
+            recipients.forEach(({ data: { mobile_id, gsm_id } }) => {
+                recipient_list.push({
+                    mobile_id, gsm_id
+                });
+            });
         }
 
         const formatted_message = `${composed_message} - ${current_user.first_name} from PHIVOLCS-DYNASLOPE`;
@@ -164,7 +168,19 @@ function SendMessageForm (props) {
             recipient_list
         };
 
+        const loading_snackbar = enqueueSnackbar(
+            "Sending EWI message...",
+            {
+                variant: "warning",
+                persist: true
+            }
+        );
+
+        modalStateHandler();
+
         sendMessage(payload, response => {
+            closeSnackbar(loading_snackbar);
+
             if (from_ewi_modal && response.status) {
                 getEwiSMSNarrative(releaseId, ewi_sms_response => {
                     const { narrative, site_list, event_id, type_id } = ewi_sms_response;
@@ -189,17 +205,16 @@ function SendMessageForm (props) {
                 };
 
                 insertTagsAfterEWISms(payload);
-            }
 
-            modalStateHandler();
-            if (response.status) {
                 const { site_id, type } = updateSentStatusObj;
                 sendWSMessage("update_db_alert_ewi_sent_status", {
                     alert_db_group: type,
                     site_id,
                     ewi_group: "sms"
                 });
+            }
 
+            if (response.status) {
                 enqueueSnackbar(
                     "EWI SMS Sent!",
                     {
@@ -229,6 +244,9 @@ function SendMessageForm (props) {
             );
         });
     };
+
+    const is_recipients_empty = recipients === null || recipients.length === 0;
+    const is_message_empty = composed_message === "" || typeof composed_message === "undefined";
 
     return (
         <Fragment>
@@ -268,7 +286,11 @@ function SendMessageForm (props) {
                 }
             </Grid>
             
-            <QuickSelectModal value={quick_select} closeHandler={value => setQuickSelect(false)} />
+            <QuickSelectModal
+                isOpen={quick_select}
+                closeHandler={value => setQuickSelect(false)}
+                setRecipients={setRecipients}
+            />
 
             {
                 !isMobile && <div style={{ height: 80 }} />
@@ -278,6 +300,7 @@ function SendMessageForm (props) {
                 <MessageInputTextbox
                     limitRows={false}
                     value={composed_message}
+                    disableSend={is_recipients_empty || is_message_empty}
                     sendButtonClickHandler={on_send_message_fn}
                     messageChangeHandler={handle_message_fn}
                 />

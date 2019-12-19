@@ -82,7 +82,7 @@ function prepareMailBody (mail_contents) {
     
     const { shiftSummary, dataAnalysis, shiftNarratives } = mail_contents;
 
-    return `${shiftSummary}\n\n${dataAnalysis}\n\n${shiftNarratives}`;
+    return `${shiftSummary}<br/><br/>${dataAnalysis}<br/><br/>${shiftNarratives}`;
 }
 
 function DetailedExpansionPanel (props) {
@@ -196,6 +196,15 @@ function DetailedExpansionPanel (props) {
             event_id,
             dataAnalysis
         };
+
+        const loading_snackbar = enqueueSnackbar(
+            "Sending End-of-Shift Report...",
+            {
+                variant: "warning",
+                persist: true
+            }
+        );
+
         saveEOSDataAnalysis(temp, save_response => {
             console.log("save_response", save_response);
             // callSnackbar(enqueueSnackbar, snackBarActionFn, save_response);
@@ -216,9 +225,11 @@ function DetailedExpansionPanel (props) {
                 };
         
                 sendEOSEmail(input, response => {
+                    closeSnackbar(loading_snackbar);
+                    console.log(response);
                     if (response === "Success") {
                         enqueueSnackbar(
-                            "EOS Report Sent!",
+                            "End-of-Shift Report Sent!",
                             {
                                 variant: "success",
                                 autoHideDuration: 7000,
@@ -227,7 +238,7 @@ function DetailedExpansionPanel (props) {
                         );
                     } else {
                         enqueueSnackbar(
-                            "Error sending End-of-Shift report...",
+                            "Error sending End-of-Shift Report...",
                             {
                                 variant: "error",
                                 autoHideDuration: 7000,
@@ -235,6 +246,16 @@ function DetailedExpansionPanel (props) {
                             }
                         );
                     }
+                }, () => {
+                    closeSnackbar(loading_snackbar); 
+                    enqueueSnackbar(
+                        "Error sending End-of-Shift Report...",
+                        {
+                            variant: "error",
+                            autoHideDuration: 7000,
+                            action: snackBarActionFn
+                        }
+                    );
                 });
         
                 setClearInterval(true);

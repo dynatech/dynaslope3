@@ -21,7 +21,8 @@ class Narratives(DB.Model):
         DB.DateTime, default=datetime.datetime.utcnow, nullable=False)
     narrative = DB.Column(DB.String(500), nullable=False)
     type_id = DB.Column(DB.Integer, nullable=False)
-    user_id = DB.Column(DB.Integer, DB.ForeignKey("commons_db.users.user_id"), nullable=False)
+    user_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.users.user_id"), nullable=False)
 
     site = DB.relationship(
         "Sites", backref=DB.backref("narratives", lazy="raise"), lazy="select")
@@ -32,7 +33,6 @@ class Narratives(DB.Model):
         return (f"Type <{self.__class__.__name__}> Narrative ID: {self.id}"
                 f" Site ID: {self.site_id} Event ID: {self.event_id}"
                 f" Narrative: {self.narrative} Type ID: {self.type_id}")
-
 
 
 class NarrativesSchema(MARSHMALLOW.ModelSchema):
