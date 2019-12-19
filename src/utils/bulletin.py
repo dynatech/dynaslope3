@@ -158,7 +158,7 @@ class DriverContainer:
 
 
 BROWSER_DRIVER = DriverContainer()
-atexit.register(BROWSER_DRIVER.cleanup())
+# atexit.register(BROWSER_DRIVER.cleanup())
 
 
 def prepare_symbols_list(internal_sym_ids):
