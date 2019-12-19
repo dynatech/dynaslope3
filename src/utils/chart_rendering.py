@@ -47,9 +47,13 @@ def render_charts(user_id, site_code, charts, file_name=None):
     if charts:
         file_path = render_to_pdf(save_path, file_name)
         print("Chart rendering successful...")
-        response = {"status": True, "message": "Chart rendering successful...", "file_path": file_path}
+        response = {
+            "status": True,
+            "message": "Chart rendering successful...",
+            "file_path": file_path}
     else:
-        response = {"status": True, "message": "No chart requested. Process successful..."}
+        response = {"status": True,
+                    "message": "No chart requested. Process successful..."}
 
     return response
 

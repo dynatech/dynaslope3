@@ -181,6 +181,7 @@ class OldMonitoringOnDemand(UserMixin, DB.Model):
     id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trigger_id = DB.Column(DB.Integer, DB.ForeignKey(
         "public_alert_trigger.trigger_id"), nullable=False)
+    ts = DB.Column(DB.DateTime, nullable=False)
     is_lgu = DB.Column(DB.Boolean)
     is_llmc = DB.Column(DB.Boolean)
     reason = DB.Column(DB.String(200), nullable=False)
@@ -479,13 +480,13 @@ class OldNarratives(DB.Model):
 #         model = MonitoringInternalAlertSymbols
 
 
-class MonitoringEndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Monitoring End of Shift Analysis class
-    """
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = MonitoringEndOfShiftAnalysis
+# class MonitoringEndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
+#     """
+#     Schema representation of Monitoring End of Shift Analysis class
+#     """
+#     class Meta:
+#         """Saves table class structure as schema model"""
+#         model = MonitoringEndOfShiftAnalysis
 
 
 # Moved

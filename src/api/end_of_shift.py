@@ -168,9 +168,15 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
         event_alert = unique_release_dict["temp"].event_alert
         event = event_alert.event
         alert_level = event_alert.public_alert_symbol.alert_level
-        shift_triggers_list = get_monitoring_triggers(
+        trig_list = get_monitoring_triggers(
             event_id=event.event_id, ts_start=ts_start,
             ts_end=ts_end, load_options="end_of_shift")
+        trig_id_list = []
+        for row in trig_list:
+            if row.internal_sym_id not in trig_id_list:
+                shift_triggers_list.append(row)
+                trig_id_list.append(row.internal_sym_id)
+
         most_recent = get_monitoring_triggers(
             event_id=event.event_id, ts_start=shift_start
             - timedelta(hours=11, minutes=30),
@@ -241,7 +247,7 @@ def get_shift_start_info(shift_start_ts, shift_end_ts, eos_dict):
         start_info = f"{start_header} <br />- Monitoring initiated on {report_start_ts} due to " \
             f"{BASIS_TO_RAISE[str(first_trigger_type)][0]} ({first_trigger_info})."
     else:
-        part_a = f"- Event monitoring started on {report_start_ts} due to" \
+        part_a = f"- Event monitoring started on {report_start_ts} due to " \
             f"{BASIS_TO_RAISE[str(first_trigger_type)][0]} ({first_trigger_info})."
         part_b = ""
         most_recent_triggers = eos_data["most_recent"]
@@ -309,7 +315,7 @@ def get_shift_end_info(end_ts, eos_dict):
 
         end_info = f"{part_a}- {con}"
 
-    shift_end = f"<b>SHIFT END:<br/>{datetime.strftime(end_ts, '%B %d, %Y, %I:%M %p')}</b><br />"
+    shift_end = f"<b>SHIFT END:<br/>{datetime.strftime(end_ts, '%B %d, %Y, %I:%M %p')}</b>"
     end_info = shift_end + end_info
 
     return end_info

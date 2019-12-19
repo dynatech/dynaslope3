@@ -70,7 +70,7 @@ function CandidateAlertsExpansionPanel (props) {
     const { 
         alertData, classes, expanded,
         handleExpansion, index, releaseFormOpenHandler,
-        isShowingValidation, toggleValidation
+        isShowingValidation, toggleValidation, validationDetails
     } = props;
 
     let site = "";
@@ -183,10 +183,6 @@ function CandidateAlertsExpansionPanel (props) {
                                             }
                                         } catch (err) { /* pass */ }
 
-                                        const as_details = {
-                                            site, trigger_id, ts_updated
-                                        };
-
                                         const to_show_validate_button = ["surficial", "rainfall", "subsurface"].includes(trigger_type) && to_validate;
 
                                         return (
@@ -218,7 +214,9 @@ function CandidateAlertsExpansionPanel (props) {
                                                     to_show_validate_button && (
                                                         <Grid item xs justify="flex-end" container>
                                                             <Button
-                                                                onClick={toggleValidation}
+                                                                onClick={toggleValidation(true, {
+                                                                    site, trigger_id, ts_updated
+                                                                })}
                                                                 variant="contained" color="secondary"
                                                                 size="small" aria-label="Validate trigger"
                                                             >
@@ -230,8 +228,8 @@ function CandidateAlertsExpansionPanel (props) {
 
                                                 <ValidationModal
                                                     isShowing={isShowingValidation}
-                                                    data={as_details}
-                                                    hide={toggleValidation}
+                                                    data={validationDetails}
+                                                    hide={toggleValidation(false, {})}
                                                     isValidating={is_validating}
                                                 />
                                                 {
@@ -451,7 +449,9 @@ function MonitoringTables (props) {
 
     const classes = useStyles();
     const [expanded, setExpanded] = useState(false);
-    const { isShowing: isShowingValidation, toggle: toggleValidation } = useModal();
+    // const { isShowing: isShowingValidation, toggle: toggleValidation } = useModal();
+    const [isShowingValidation, setIsShowingValidation] = useState(false);
+    const [validation_details, setValidationDetails] = useState({});
     const { isShowing: isShowingSendEWI, toggle: toggleSendEWI } = useModal();
     const [chosenReleaseDetail, setChosenReleaseDetail] = useState({});
     const [isOpenBulletinModal, setIsOpenBulletinModal] = useState(false);
@@ -470,6 +470,11 @@ function MonitoringTables (props) {
             setEWIMessage(data);
             toggleSendEWI();
         });
+    };
+
+    const toggleValidation = (bool, data) => () => {
+        setValidationDetails(data);
+        setIsShowingValidation(bool);
     };
 
     const bulletinHandler = release => elem_event => {
@@ -526,6 +531,7 @@ function MonitoringTables (props) {
                                         index={index}
                                         isShowingValidation={isShowingValidation}
                                         toggleValidation={toggleValidation}
+                                        validationDetails={validation_details}
                                     />
                                 ))
                             ) : (

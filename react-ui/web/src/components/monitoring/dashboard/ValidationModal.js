@@ -42,15 +42,19 @@ const ValidationModal = props => {
     }
 
     function handleClose () {
-        setTriggerValidity(0);
-        setRemarks("");
         hide();
+        setTriggerValidity("");
+        setRemarks("");
     }
 
     const handleOnClick = key => event => {
         validate_trigger(site, trigger_id, ts_updated, triggerValidity, remarks, 1);
         hide();
+        setTriggerValidity("");
+        setRemarks("");
     };
+
+    const disabled = triggerValidity === "";
 
     return isShowing ? ReactDOM.createPortal(
         <Fragment>
@@ -92,7 +96,7 @@ const ValidationModal = props => {
                     <Button onClick={handleClose} color="primary">
                         Cancel
                     </Button>
-                    <Button onClick={handleOnClick(validation_data)} color="primary">
+                    <Button onClick={handleOnClick(validation_data)} color="primary" disabled={disabled}>
                         Confirm
                     </Button>
                 </DialogActions>

@@ -60,7 +60,7 @@ function getUserOrganizations (user, return_grouped = false) {
 }
 
 function simNumFormatter (sim_num) {
-    return sim_num[0] === "0" ? sim_num : `+${sim_num}`;
+    return sim_num[0] === "0" || sim_num.match(/[a-z]/i) ? sim_num : `+${sim_num}`;
 }
 
 function computeForStartTs (ts, duration = 7, unit = "days") {

@@ -22,7 +22,7 @@ export function sendBulletinEmail (input, callback, err) {
     makePOSTAxiosRequest(api_link, input, callback, err);
 }
 
-export function sendEOSEmail (json_data, callback) {
+export function sendEOSEmail (json_data, callback, err) {
     const api_link = `${host}/api/mailbox/send_eos_email`;
-    makePOSTAxiosRequest(api_link, json_data, callback);
+    makePOSTAxiosRequest(api_link, json_data, callback, err);
 }

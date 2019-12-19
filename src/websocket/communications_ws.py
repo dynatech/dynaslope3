@@ -273,6 +273,15 @@ def wrap_get_all_contacts():
                   room=sid, namespace="/communications")
 
 
+@SOCKETIO.on("update_all_contacts", namespace="/communications")
+def wrap_update_all_contacts():
+    sid = request.sid
+    global CONTACTS_USERS
+    CONTACTS_USERS = get_contacts(orientation="users")
+    SOCKETIO.emit("receive_all_contacts", CONTACTS_USERS,
+                  room=sid, namespace="/communications")
+
+
 @SOCKETIO.on("get_all_mobile_numbers", namespace="/communications")
 def wrap_get_all_mobile_numbers():
     sid = request.sid
@@ -281,7 +290,7 @@ def wrap_get_all_mobile_numbers():
 
 
 def get_inbox():
-    return get_quick_inbox(inbox_limit=1, messages_per_convo=20)
+    return get_quick_inbox(inbox_limit=50, messages_per_convo=20)
 
 
 def get_contacts(orientation):

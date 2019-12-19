@@ -319,11 +319,14 @@ def save_user_contact_numbers(data, user_id):
                 gsm_id = get_gsm_id_by_prefix(sim_num)
                 insert_mobile_number = MobileNumbers(
                     sim_num=sim_num, gsm_id=gsm_id)
+
                 DB.session.add(insert_mobile_number)
                 DB.session.flush()
+
                 last_inserted_mobile_id = insert_mobile_number.mobile_id
                 insert_user_mobile = UserMobiles(
                     user_id=user_id, mobile_id=last_inserted_mobile_id, status=status)
+
                 DB.session.add(insert_user_mobile)
             else:
                 update_mobile = MobileNumbers.query.get(mobile_id)
@@ -333,6 +336,7 @@ def save_user_contact_numbers(data, user_id):
                     UserMobiles.mobile_id == mobile_id).first()
                 result = UserMobilesSchema(
                     exclude=("user", "mobile_number")).dump(check_user_mobile).data
+
                 if not result:
                     insert_user_mobile = UserMobiles(
                         user_id=user_id, mobile_id=mobile_id, status=status)

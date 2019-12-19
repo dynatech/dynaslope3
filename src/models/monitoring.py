@@ -92,11 +92,13 @@ class MonitoringReleases(UserMixin, DB.Model):
     comments = DB.Column(DB.String(500))
 
     triggers = DB.relationship(
-        "MonitoringTriggers", backref=DB.backref("release", lazy="joined", innerjoin=True), lazy="subquery")
+        "MonitoringTriggers", backref=DB.backref("release", lazy="joined", innerjoin=True),
+        lazy="subquery")
 
     release_publishers = DB.relationship(
-        "MonitoringReleasePublishers", backref=DB.backref("release",
-                                                          lazy="joined", innerjoin=True), lazy="subquery")
+        "MonitoringReleasePublishers",
+        backref=DB.backref("release", lazy="joined", innerjoin=True),
+        lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Release ID: {self.release_id}"

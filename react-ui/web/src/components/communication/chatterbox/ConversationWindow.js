@@ -263,6 +263,7 @@ function ConversationWindow (props) {
                         action: snackBarActionFn
                     }
                 );
+                setComposedMessage("");
             } else {
                 enqueueSnackbar(
                     response.message,
@@ -283,10 +284,6 @@ function ConversationWindow (props) {
                 }
             );
         });
-
-        // change this to sendMessage function block
-        // on SendMessageForm.js
-        // sendMessageToDB(data);
     };
 
     const convo_end_ref = useRef(null);
@@ -336,6 +333,7 @@ function ConversationWindow (props) {
                         <div className={classes.chatInputContainer}>
                             <MessageInputTextbox 
                                 value={composed_message}
+                                disableSend={composed_message === ""}
                                 messageChangeHandler={handle_message_fn}
                                 sendButtonClickHandler={on_send_message_fn}
                             />

@@ -3,6 +3,7 @@ Utility file for Monitoring Tables
 Contains functions for getting and accesing Sites table only
 """
 
+import atexit
 import os
 import platform
 import re
@@ -68,6 +69,9 @@ class DriverContainer:
             chrome_options=options)
 
         print("Finished initializing Selenium WebDriver...")
+
+    def cleanup(self):
+        self.driver.quit()
 
     def render_bulletin(self, release_id):
         error = ""
@@ -154,6 +158,7 @@ class DriverContainer:
 
 
 BROWSER_DRIVER = DriverContainer()
+atexit.register(BROWSER_DRIVER.cleanup())
 
 
 def prepare_symbols_list(internal_sym_ids):
@@ -346,6 +351,7 @@ def process_triggers_information(grouped_triggers, int_sym_objects):
     for int_sym_obj in int_sym_objects:
         int_sym_id = int_sym_obj["internal_sym_id"]
         description = int_sym_obj["description"]
+        trigger_source = int_sym_obj["trigger_source"]
 
         triggers = grouped_triggers[int_sym_id]
         first_trigger = triggers.pop()
@@ -358,6 +364,19 @@ def process_triggers_information(grouped_triggers, int_sym_objects):
         first_ts = format_timestamp_to_string(first_trigger.ts)
         description = description.replace(
             "[timestamp]", f"<strong>{first_ts}</strong>")
+
+        if trigger_source == "earthquake":
+            eq = first_trigger.trigger_misc.eq
+            latitude = float(eq.latitude)
+            longitude = float(eq.longitude)
+            magnitude = float(eq.magnitude)
+
+            description = description.replace(
+                "[magnitude]", f"<strong>{magnitude}</strong>")
+            description = description.replace(
+                "[lat]", f"<strong>{latitude} N</strong>")
+            description = description.replace(
+                "[lon]", f"<strong>{longitude} E</strong>")
 
         retriggers_str = process_recent_ts_triggers(latest_triggers)
         if retriggers_str:
@@ -423,7 +442,7 @@ def get_release_publishers_initial(release_publishers):
         first_name = user_details.first_name
         last_name = user_details.last_name
 
-        whole_name = [first_name, last_name]
+        whole_name = first_name.split(" ") + last_name.split(" ")
         letters = [word[0] for word in whole_name]
 
         publishers.append("".join(letters))

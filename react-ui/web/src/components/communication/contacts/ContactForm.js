@@ -19,6 +19,7 @@ import MaskedInput, { conformToMask } from "react-text-mask";
 import SelectInputForm from "../../reusables/SelectInputForm";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import { saveContact } from "../ajax";
+import { sendWSMessage } from "../../../websocket/communications_ws";
 
 const offices_obj = {
     "0": ["LEWC"],
@@ -286,10 +287,19 @@ function ContactForm (props) {
             const { status, message } = data;
             if (status === true) {
                 closeButtonFn();
+                sendWSMessage("update_all_contacts");
                 enqueueSnackbar(
                     message,
                     {
                         variant: "success",
+                        autoHideDuration: 3000,
+                        action: snackBarActionFn
+                    }
+                );
+                enqueueSnackbar(
+                    "Updating contact list...",
+                    {
+                        variant: "warning",
                         autoHideDuration: 3000,
                         action: snackBarActionFn
                     }

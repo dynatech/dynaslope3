@@ -15,7 +15,8 @@ MAILBOX_BLUEPRINT = Blueprint("mailbox_blueprint", __name__)
 def wrap_get_email_subject(mail_type, site_code, date):
     """
     """
-    subject = get_email_subject(mail_type, details={"site_code": site_code, "date": date})
+    subject = get_email_subject(
+        mail_type, details={"site_code": site_code, "date": date})
 
     return subject
 
@@ -95,7 +96,8 @@ def send_eos_email():
 
         return "Success"
 
-    except KeyError:
+    except KeyError as err:
+        print(err)
         return "Email NOT sent. Problem in input."
     except Exception as err:
         raise err

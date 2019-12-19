@@ -46,18 +46,20 @@ EVENT_STATUS = {
 
 def get_events():
     return OldMonitoringEvents.query.order_by(
-        OldMonitoringEvents.event_start).all()
+        OldMonitoringEvents.event_start).filter(OldMonitoringEvents.event_id > 9000).all()
+        # next .filter(DB.and_(OldMonitoringEvents.event_id > 1050, OldMonitoringEvents.event_id <= ? ))
     # return OldMonitoringEvents.query.filter(OldMonitoringEvents.site_id == 12).order_by(OldMonitoringEvents.event_start).all()
     # return OldMonitoringEvents.query.filter(OldMonitoringEvents.event_id == 51).all()
 
 
 def get_last_site_event(site_id):
-    return MonitoringEvents.query.filter(MonitoringEvents.site_id == site_id).order_by(
+    return MonitoringEvents.query.options(DB.raiseload("*")) \
+        .filter(MonitoringEvents.site_id == site_id).order_by(
         DB.desc(MonitoringEvents.event_start)).first()
 
 
 def get_last_event_alert(event_id):
-    return MonitoringEventAlerts.query.filter(
+    return MonitoringEventAlerts.query.options(DB.raiseload("*")).filter(
         MonitoringEventAlerts.event_id == event_id).order_by(
             DB.desc(MonitoringEventAlerts.ts_start)).first()
 
@@ -73,7 +75,7 @@ def insert_event_alert(release, ts_start_for_next_event):
     public_alert, trigger_list = get_public_alert_level(
         internal_alert, return_triggers=True, include_ND=True)
 
-    sym = PublicAlertSymbols.query.filter(
+    sym = PublicAlertSymbols.query.options(DB.raiseload("*")).filter(
         PublicAlertSymbols.alert_symbol == public_alert).first()
     new_pub_sym_id = sym.pub_sym_id
 
@@ -106,7 +108,8 @@ def insert_event_alert(release, ts_start_for_next_event):
 
 
 def get_internal_symbol(trigger):
-    internal_symbol = InternalAlertSymbols.query.filter_by(alert_symbol=DB.func.binary(trigger.trigger_type)).first()
+    internal_symbol = InternalAlertSymbols.query \
+        .filter_by(alert_symbol=DB.func.binary(trigger.trigger_type)).first()
     return internal_symbol
 
 
@@ -159,7 +162,7 @@ def insert_to_eq_table(trigger):
 
 
 def get_feature_id(feature_type):
-    feature = MomsFeatures.query.filter(
+    feature = MomsFeatures.query.options(DB.raiseload("*")).filter(
         MomsFeatures.feature_type == feature_type).first()
 
     if feature is None:
@@ -180,7 +183,7 @@ def get_feature_id(feature_type):
 def insert_to_moms_instances_table(feature):
     feature_id = get_feature_id(feature.feature_type)
 
-    result = MomsInstances.query.filter(
+    result = MomsInstances.query.options(DB.raiseload("*")).filter(
         DB.and_(MomsInstances.site_id == feature.site_id,
         MomsInstances.feature_id == feature_id,
         MomsInstances.feature_name == feature.feature_name)).first()
@@ -390,7 +393,7 @@ def process_event_triggers(triggers, release, site_id):
             info=trigger.info
         )
 
-        trigger_source = internal_symbol.op_trigger_symbol.trigger_hierarchy.trigger_source
+        trigger_source = internal_symbol.trigger_symbol.trigger_hierarchy.trigger_source
         if trigger_source in ["on demand", "earthquake", "moms"]:
             od_id = None
             eq_id = None

@@ -81,8 +81,11 @@ def monitoring_background_task():
                     alerts_from_db = wrap_get_ongoing_extended_overdue_events()
                     set_data_to_memcache(
                         name="ALERTS_FROM_DB", data=alerts_from_db)
-                    set_data_to_memcache(name="CANDIDATE_ALERTS", data=candidate_alerts_generator.main(
-                        generated_alerts_list=generated_alerts, db_alerts_dict=alerts_from_db))
+                    set_data_to_memcache(name="CANDIDATE_ALERTS",
+                                         data=candidate_alerts_generator.main(
+                                             generated_alerts_list=generated_alerts,
+                                             db_alerts_dict=alerts_from_db)
+                                         )
                     print(f"{system_time} | Done processing Candidate Alerts.")
                 except Exception as err:
                     print(err)

@@ -95,7 +95,7 @@ def get_bulletin_email_details(release_id):
     mail_body = prepare_base_email_body(
         site_address, site_alert_level, data_ts)
 
-    if is_onset:
+    if is_onset and p_a_level != 0:  # prevent onset from lowering to A0:
         onset_msg = prepare_onset_message(
             bulletin_release_data,
             site_address,
@@ -104,6 +104,10 @@ def get_bulletin_email_details(release_id):
 
         mail_body = f"{onset_msg}\n {mail_body}"
 
+        file_time = data_ts
+    else:
+        file_time = round_to_nearest_release_time(data_ts, 4)
+
     # GET THE SUBJECT NOW
     subject = get_email_subject(mail_type="bulletin", details={
         "site_code": site.site_code,
@@ -111,7 +115,7 @@ def get_bulletin_email_details(release_id):
     })
 
     # GET THE FILENAME NOW
-    file_time = round_to_nearest_release_time(data_ts, 4).strftime("%I%p")
+    file_time = file_time.strftime("%I%p")
     file_date = data_ts.strftime("%d%b%y")
     filename = f"{site.site_code.upper()}_{file_date}_{file_time}".upper() + ".pdf"
 
@@ -147,11 +151,15 @@ def get_bulletin_email_details(release_id):
             if len_recipients != (index + 1):
                 str_recipients = str_recipients + ", "
 
+    if is_onset:
+        file_time = "onset " + file_time
+    narrative = f"Sent {file_time} EWI BULLETIN to {str_recipients}"
+
     narrative_details = {
         "site_list": [site_id],
         "event_id": event_id,
         "timestamp": datetime.now(),
-        "narrative": f"Sent {file_time} EWI BULLETIN to {str_recipients}",
+        "narrative": narrative,
         "type_id": 1,
         "user_id": ct_reporter.user_id
     }

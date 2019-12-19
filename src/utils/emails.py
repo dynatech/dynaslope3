@@ -62,8 +62,9 @@ def prepare_body(sender, recipients, subject, message, file_name=None, attachmen
     """
     body = MIMEMultipart("alternative")
     body["To"] = ", ".join(recipients)
-    body["From"] = sender
+    body["From"] = f"Dynaslope Monitoring <{sender}>"
     body["Subject"] = subject
+    body["In-Reply-To"] = f"<{sender}>"
     message = MIMEText(message, "html")
 
     body.attach(message)
@@ -105,9 +106,10 @@ def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=
         user_id = eos_data["user_id"]
         site_code = eos_data["site_code"]
         charts = eos_data["charts"]
-        render_charts_response = render_charts(
-            user_id, site_code, charts, file_name)
-        attachments.append(render_charts_response["file_path"])
+        if charts:
+            render_charts_response = render_charts(
+                user_id, site_code, charts, file_name)
+            attachments.append(render_charts_response["file_path"])
 
     body = prepare_body(SENDER_EMAIL, recipients, subject,
                         message, file_name, attachments)

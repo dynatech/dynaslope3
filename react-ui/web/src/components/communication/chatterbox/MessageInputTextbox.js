@@ -22,7 +22,7 @@ const useStyles = makeStyles(theme => ({
 
 function MessageInputTextbox (props) {
     const {
-        limitRows, value,
+        limitRows, value, disableSend,
         messageChangeHandler, sendButtonClickHandler
     } = props;
     const classes = useStyles();
@@ -53,6 +53,7 @@ function MessageInputTextbox (props) {
                         color="primary"
                         aria-label="Send message"
                         onClick={sendButtonClickHandler}
+                        disabled={disableSend}
                     >
                         <SendRounded />
                     </IconButton>

@@ -247,8 +247,6 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
         id: message_row[`${source}_id`],
     };
 
-    console.log(message_row);
-
     const is_you = source === "outbox";
     let timestamp = is_you ? ts_written : ts_received;
     timestamp = moment(timestamp).format("M/D/YYYY HH:mm");
@@ -280,10 +278,10 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
                     {timestamp}
                 </div>
                 {
-                    (send_status === 0 || (send_status === null && ts_sent !== null)) && <RadioButtonUnchecked className={classes.sentIcon} />
+                    ((send_status >= 0 && send_status < 5) || (send_status === null && ts_sent !== null)) && <RadioButtonUnchecked className={classes.sentIcon} />
                 }
                 {
-                    send_status > 0 && send_status <= 5 && (
+                    send_status === 5 && (
                         <BootstrapTooltip disableFocusListener title={ moment(ts_sent).format("M/D/YYYY HH:mm") }>
                             <CheckCircle color="primary" className={classes.sentIcon} />
                         </BootstrapTooltip>

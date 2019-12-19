@@ -123,7 +123,7 @@ function RoutineReleaseFormModal (props) {
     const handleSubmit = () => {
         console.log("Submitting data...", ewiPayload);
 
-        const f_data_ts = moment(routineData.data_timestamp).format("YYYY-MM-DD HH:mm:ss");
+        const f_data_ts = moment(routineData.data_ts).format("YYYY-MM-DD HH:mm:ss");
         const f_rel_time = moment(routineData.release_time).format("YYYY-MM-DD HH:mm:ss");
 
         const temp_payload = {

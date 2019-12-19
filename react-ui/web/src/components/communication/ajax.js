@@ -85,3 +85,17 @@ export function getEwiSMSNarrative (release_id, callback) {
         console.error(error);
     });
 }
+
+export function getRecipientsList (payload, callback) {
+    const api_link = `${host}/api/contacts/get_recipients_option`;
+
+    axios.post(api_link, payload)
+    .then(response => {
+        const { data } = response;
+        console.log("Selected recipients", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
