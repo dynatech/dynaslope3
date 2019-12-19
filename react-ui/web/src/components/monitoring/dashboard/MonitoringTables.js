@@ -97,7 +97,7 @@ function CandidateAlertsExpansionPanel (props) {
         site = site_code;
         ts = format_ts(data_ts);
         ia_level = internal_alert_level;
-        trigger_arr = trigger_list_arr;
+        trigger_arr = typeof trigger_list_arr === "undefined" ? [] : trigger_list_arr;
         has_new_triggers = trigger_arr !== "No new triggers" && trigger_arr.length > 0;
     }
     site = site.toUpperCase();

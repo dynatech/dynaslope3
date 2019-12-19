@@ -6,8 +6,8 @@ Analysis tables
 import datetime
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
-from src.models.monitoring import OperationalTriggers
 from src.models.users import UsersSchema
+from src.models.sites import Sites75
 
 
 ###############################
@@ -42,7 +42,7 @@ class SiteMarkers(DB.Model):
     __bind_key__ = "senslopedb"
     __table_args__ = {"schema": "senslopedb"}
 
-    site_id = DB.Column(DB.Integer, DB.ForeignKey("commons_db.sites.site_id"))
+    site_id = DB.Column(DB.Integer, DB.ForeignKey("senslopedb.sites.site_id"))
     site_code = DB.Column(DB.String(3))
     marker_id = DB.Column(DB.Integer, DB.ForeignKey(
         "senslopedb.markers.marker_id"), primary_key=True)
@@ -93,13 +93,13 @@ class EarthquakeAlerts(DB.Model):
     eq_id = DB.Column(DB.Integer, DB.ForeignKey(
         "senslopedb.earthquake_events.eq_id"), nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "senslopedb.sites.site_id"), nullable=False)
     distance = DB.Column(DB.Float(5, 3), nullable=False)
 
     eq_event = DB.relationship(
         "EarthquakeEvents", backref=DB.backref("eq_alerts", lazy="subquery"), lazy="select")
     site = DB.relationship(
-        "Sites", backref=DB.backref("eq_alerts", lazy="dynamic"), lazy="select")
+        Sites75, backref=DB.backref("eq_alerts", lazy="dynamic"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> EQ Alert ID: {self.ea_id}"
@@ -117,14 +117,14 @@ class Markers(DB.Model):
 
     marker_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "senslopedb.sites.site_id"), nullable=False)
     description = DB.Column(DB.String(50))
     latitude = DB.Column(DB.Float(9, 6))
     longitude = DB.Column(DB.Float(9, 6))
     in_use = DB.Column(DB.Boolean)
 
     site = DB.relationship(
-        "Sites", backref=DB.backref("markers", lazy="dynamic"), lazy="select")
+        Sites75, backref=DB.backref("markers", lazy="dynamic"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Marker ID: {self.marker_id}"
@@ -189,7 +189,7 @@ class MarkerObservations(DB.Model):
 
     mo_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "senslopedb.sites.site_id"), nullable=False)
     ts = DB.Column(DB.DateTime)
     meas_type = DB.Column(DB.String(10))
     observer_name = DB.Column(DB.String(100))
@@ -198,7 +198,7 @@ class MarkerObservations(DB.Model):
     weather = DB.Column(DB.String(20))
 
     site = DB.relationship(
-        "Sites", backref=DB.backref("marker_observations", lazy="dynamic"), lazy="select")
+        Sites75, backref=DB.backref("marker_observations", lazy="dynamic"), lazy="select")
     # marker_data = DB.relationship(
     #     "MarkerData", backref="marker_observation_report", lazy="subquery")
 
@@ -276,7 +276,7 @@ class RainfallAlerts(DB.Model):
     ra_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "senslopedb.sites.site_id"), nullable=False)
     rain_id = DB.Column(DB.Integer, DB.ForeignKey(
         "senslopedb.rainfall_gauges.rain_id"), nullable=False)
     rain_alert = DB.Column(DB.String(2))
@@ -284,7 +284,7 @@ class RainfallAlerts(DB.Model):
     threshold = DB.Column(DB.Float(5, 2))
 
     site = DB.relationship(
-        "Sites", backref=DB.backref("rainfall_alerts", lazy="dynamic"), lazy="subquery")
+        Sites75, backref=DB.backref("rainfall_alerts", lazy="dynamic"), lazy="subquery")
 
     rainfall_gauge = DB.relationship("RainfallGauges", backref=DB.backref(
         "rainfall_alerts", lazy="dynamic"), lazy="subquery")
@@ -306,12 +306,12 @@ class RainfallThresholds(DB.Model):
 
     rt_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "senslopedb.sites.site_id"), nullable=False)
     threshold_name = DB.Column(DB.String(12), nullable=False)
     threshold_value = DB.Column(DB.Float(8, 5), nullable=False)
 
     site = DB.relationship(
-        "Sites", backref=DB.backref("rainfall_thresholds", lazy="dynamic"), lazy="subquery")
+        Sites75, backref=DB.backref("rainfall_thresholds", lazy="dynamic"), lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Rain Threshold ID: {self.rt_id}"
@@ -354,11 +354,11 @@ class RainfallPriorities(DB.Model):
     rain_id = DB.Column(DB.Integer, DB.ForeignKey(
         "senslopedb.rainfall_gauges.rain_id"), nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "senslopedb.sites.site_id"), nullable=False)
     distance = DB.Column(DB.Float(5, 2), nullable=False)
 
     site = DB.relationship(
-        "Sites", backref=DB.backref("rainfall_priorities", lazy="dynamic"), lazy="subquery")
+        Sites75, backref=DB.backref("rainfall_priorities", lazy="dynamic"), lazy="subquery")
 
     rainfall_gauge = DB.relationship("RainfallGauges", backref=DB.backref(
         "rainfall_priorities", lazy="dynamic"), lazy="subquery")
@@ -402,7 +402,7 @@ class TSMSensors(DB.Model):
 
     tsm_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "senslopedb.sites.site_id"), nullable=False)
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
         "senslopedb.loggers.logger_id"), nullable=False)
     date_activated = DB.Column(DB.Date)
@@ -411,7 +411,7 @@ class TSMSensors(DB.Model):
     number_of_segments = DB.Column(DB.Integer)
     version = DB.Column(DB.Integer)
 
-    site = DB.relationship("Sites", backref=DB.backref(
+    site = DB.relationship(Sites75, backref=DB.backref(
         "tsm_sensors", lazy="dynamic"))
 
     tsm_alert = DB.relationship(
@@ -469,7 +469,7 @@ class Loggers(DB.Model):
 
     logger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "senslopedb.sites.site_id"), nullable=False)
     logger_name = DB.Column(DB.String(7))
     date_activated = DB.Column(DB.Date)
     date_deactivated = DB.Column(DB.Date)
@@ -478,7 +478,7 @@ class Loggers(DB.Model):
     model_id = DB.Column(DB.Integer, DB.ForeignKey(
         "senslopedb.logger_models.model_id"), nullable=False)
 
-    site = DB.relationship("Sites", backref=DB.backref(
+    site = DB.relationship(Sites75, backref=DB.backref(
         "loggers", lazy="dynamic"))
 
     def __repr__(self):
@@ -518,13 +518,13 @@ class AlertStatus(DB.Model):
     """
 
     __tablename__ = "alert_status"
-    __bind_key__ = "senslopedb"
-    __table_args__ = {"schema": "senslopedb"}
+    __bind_key__ = "analysis_db"
+    __table_args__ = {"schema": "analysis_db"}
 
     stat_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts_last_retrigger = DB.Column(DB.DateTime)
     trigger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "senslopedb.operational_triggers.trigger_id"))
+        "ewi_db.operational_triggers.trigger_id"))
     ts_set = DB.Column(DB.DateTime)
     ts_ack = DB.Column(DB.DateTime)
     alert_status = DB.Column(DB.Integer)
@@ -532,7 +532,7 @@ class AlertStatus(DB.Model):
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.users.user_id"), nullable=False)
 
-    trigger = DB.relationship(OperationalTriggers,
+    trigger = DB.relationship("OperationalTriggers",
                               backref=DB.backref(
                                   "alert_status", lazy="select", uselist=False),
                               primaryjoin="AlertStatus.trigger_id==OperationalTriggers.trigger_id",

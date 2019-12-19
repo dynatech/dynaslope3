@@ -14,10 +14,10 @@ schema = comms_db
 
 
 [ubuntu75_pysys_local]
-host = 192.168.150.253
+host = 192.168.150.75
 port = 3306
-user = root
-password = senslope
+user = pysys_local
+password = NaCAhztBgYZ3HwTkvHwwGVtJn5sVMFgg
 schema = senslopedb
 
 [staff1]
@@ -28,8 +28,8 @@ password = senslope
 schema = senslopedb
 
 [smsdb_remote]
-host = 192.168.150.253
+host = 192.168.150.75
 port = 3306
-user = root
-password = senslope
+user = pysys_local
+password = NaCAhztBgYZ3HwTkvHwwGVtJn5sVMFgg
 schema = senslopedb

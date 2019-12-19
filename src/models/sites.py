@@ -37,6 +37,32 @@ class Sites(UserMixin, DB.Model):
                 f" Site Code: {self.site_code}")
 
 
+class Sites75(DB.Model):
+    """
+    Class representation of Sites table
+    """
+
+    __tablename__ = "sites"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
+
+    site_id = DB.Column(TINYINT, primary_key=True)
+    site_code = DB.Column(DB.String(3), nullable=False)
+    purok = DB.Column(DB.String(45))
+    sitio = DB.Column(DB.String(45))
+    barangay = DB.Column(DB.String(45), nullable=False)
+    municipality = DB.Column(DB.String(45), nullable=False)
+    province = DB.Column(DB.String(45), nullable=False)
+    region = DB.Column(DB.String(45), nullable=False)
+    active = DB.Column(DB.Boolean, nullable=False, default=True)
+    psgc = DB.Column(DB.Integer, nullable=False)
+    households = DB.Column(DB.String(255), nullable=False)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
+                f" Site Code: {self.site_code}")
+
+
 class Seasons(DB.Model):
     """
     Class representation of Seasons Table

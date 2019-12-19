@@ -39,6 +39,35 @@ class Users(DB.Model, UserMixin):
                 f" Status: {self.status}")
 
 
+class Users75(DB.Model, UserMixin):
+    """
+    Class representation of users table
+    """
+    __tablename__ = "users75"
+    __bind_key__ = "comms_db75"
+    __table_args__ = {"schema": "comms_db75"}
+
+    user_id = DB.Column(DB.Integer, primary_key=True)
+    salutation = DB.Column(DB.String(15))
+    first_name = DB.Column(DB.String(45))
+    middle_name = DB.Column(DB.String(45))
+    last_name = DB.Column(DB.String(45))
+    nickname = DB.Column(DB.String(45))
+    sex = DB.Column(DB.String(1))
+    status = DB.Column(DB.Integer, nullable=True)
+    birthday = DB.Column(DB.DateTime)
+    # ewi_recipient = DB.Column(DB.Integer, nullable=True)
+
+    def get_id(self):
+        """Filler docstring"""
+        return self.user_id
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> User ID: {self.user_id}"
+                f" First Name: {self.first_name} Last Name: {self.last_name}"
+                f" Status: {self.status}")
+
+
 class UsersRelationship(Users):
     """
     Class representation of users relation in mobile and organization of users
