@@ -418,8 +418,8 @@ class OperationalTriggers(UserMixin, DB.Model):
     """
 
     __tablename__ = "operational_triggers"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
