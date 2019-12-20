@@ -44,8 +44,8 @@ class Users75(DB.Model, UserMixin):
     Class representation of users table
     """
     __tablename__ = "users75"
-    __bind_key__ = "comms_db75"
-    __table_args__ = {"schema": "comms_db75"}
+    __bind_key__ = "comms_db_375"
+    __table_args__ = {"schema": "comms_db_375"}
 
     user_id = DB.Column(DB.Integer, primary_key=True)
     salutation = DB.Column(DB.String(15))
@@ -110,8 +110,8 @@ class UserMobile(DB.Model):
     Class representation of user mobile table
     """
     __tablename__ = "user_mobile"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     mobile_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
@@ -155,8 +155,8 @@ class UserLandlines(DB.Model):
     Class representation of user_landlines table
     """
     __tablename__ = "user_landlines"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     landline_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(
@@ -277,8 +277,8 @@ class UserEwiRestrictions(DB.Model):
     """
 
     __tablename__ = "user_ewi_restrictions"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.users.user_id"), primary_key=True)

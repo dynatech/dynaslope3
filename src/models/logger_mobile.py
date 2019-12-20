@@ -4,7 +4,7 @@ from connection import DB, MARSHMALLOW
 class LoggerMobile(DB.Model):
     __tablename__ = "logger_mobile"
 
-    __bind_key__ = "comms_db"
+    __bind_key__ = "comms_db_3"
 
     mobile_id = DB.Column(DB.Integer, primary_key=True)
     logger_id = DB.Column(DB.Integer, nullable=False)

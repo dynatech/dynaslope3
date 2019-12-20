@@ -250,7 +250,7 @@ class DatabaseConnection:
 
 	def get_gsm_info(self, gsm_id):
 		gsm_dict = {}
-		query = "SELECT * FROM comms_db.gsm_modules where gsm_id = '" + \
+		query = "SELECT * FROM comms_db_3.gsm_modules where gsm_id = '" + \
 			str(gsm_id)+"';"
 		gsm_info = self.read_db(query)  # Refactor this
 		for gsm_id, gsm_server_id, gsm_name, sim_num, network, port, pwr, rng, module_type in gsm_info:

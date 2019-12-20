@@ -4,7 +4,7 @@ from connection import DB, MARSHMALLOW
 class SmsOutboxLoggerStatus(DB.Model):
 	__tablename__ = "smsoutbox_logger_status"
 
-	__bind_key__ = "comms_db"
+	__bind_key__ = "comms_db_3"
 
 	stat_id = DB.Column(DB.Integer, primary_key=True)
 	outbox_id = DB.Column(DB.Integer, nullable=True)

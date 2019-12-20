@@ -8,8 +8,8 @@ class GsmServers(DB.Model):
     """
 
     __tablename__ = "gsm_servers"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     gsm_server_id = DB.Column(DB.Integer, primary_key=True)
     name = DB.Column(DB.String(45))
@@ -25,8 +25,8 @@ class NetworkCarriers(DB.Model):
     Class representation of network_carrier table
     """
     __tablename__ = "network_carriers"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     network_id = DB.Column(DB.Integer, primary_key=True)
     carrier = DB.Column(DB.String(45))
@@ -40,16 +40,16 @@ class GsmModules(DB.Model):
     """
 
     __tablename__ = "gsm_modules"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     gsm_id = DB.Column(DB.Integer, primary_key=True)
     gsm_server_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.gsm_servers.gsm_server_id"))
+        DB.Integer, DB.ForeignKey("comms_db_3.gsm_servers.gsm_server_id"))
     gsm_name = DB.Column(DB.String(10))
     gsm_sim_num = DB.Column(DB.String(12))
     network_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db.network_carriers.network_id"))
+        "comms_db_3.network_carriers.network_id"))
     ser_port = DB.Column(DB.String(20))
     pwr_on_pin = DB.Column(DB.Integer, nullable=True)
     ring_pin = DB.Column(DB.Integer, nullable=True)
@@ -69,12 +69,12 @@ class GsmCsqLogs(DB.Model):
     """
 
     __tablename__ = "gsm_csq_logs"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     log_id = DB.Column(DB.Integer, primary_key=True)
     gsm_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.gsm_modules.gsm_id"))
+        DB.Integer, DB.ForeignKey("comms_db_3.gsm_modules.gsm_id"))
     ts = DB.Column(DB.DateTime, default=datetime.utcnow())
     csq_val = DB.Column(DB.Integer, nullable=True)
 
@@ -88,15 +88,15 @@ class SimPrefixes(DB.Model):
     """
 
     __tablename__ = "sim_prefixes"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     prefix_id = DB.Column(DB.Integer, primary_key=True)
     prefix = DB.Column(DB.String(4))
     network_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db.network_carrier.network_id"))
+        "comms_db_3.network_carrier.network_id"))
     gsm_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db.gsm_modules.gsm_id"))
+        "comms_db_3.gsm_modules.gsm_id"))
 
     # network = DB.relationship(
     #     "NetworkCarriers", backref=DB.backref("sim_prefixes", lazy="subquery"), lazy="joined", innerjoin=True)

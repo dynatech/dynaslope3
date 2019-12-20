@@ -4,7 +4,7 @@ from connection import DB, MARSHMALLOW
 class SmsOutboxLoggers(DB.Model):
 	__tablename__ = "smsoutbox_loggers"
 
-	__bind_key__ = "comms_db"
+	__bind_key__ = "comms_db_3"
 
 	outbox_id = DB.Column(DB.Integer, primary_key=True)
 	ts_written = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
