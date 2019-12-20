@@ -114,8 +114,8 @@ class SmsOutboxUsers2(DB.Model):
     """
 
     __tablename__ = "smsoutbox_users"
-    __bind_key__ = "comms_db_2"
-    __table_args__ = {"schema": "comms_db_2"}
+    __bind_key__ = "comms_db"  # TAKE NOTE
+    __table_args__ = {"schema": "comms_db"}
 
     outbox_id = DB.Column(DB.Integer, primary_key=True)
     ts_written = DB.Column(DB.DateTime, default=datetime.utcnow())
@@ -154,8 +154,8 @@ class SmsOutboxUserStatus2(DB.Model):
     """
 
     __tablename__ = "smsoutbox_user_status"
-    __bind_key__ = "comms_db_2"
-    __table_args__ = {"schema": "comms_db_2"}
+    __bind_key__ = "comms_db"  # TAKE NOTE
+    __table_args__ = {"schema": "comms_db"}
 
     stat_id = DB.Column(DB.Integer, primary_key=True)
     outbox_id = DB.Column(DB.Integer)
