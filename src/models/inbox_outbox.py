@@ -122,7 +122,7 @@ class SmsOutboxUserStatus(DB.Model):
         DB.Integer, DB.ForeignKey("comms_db_3.smsoutbox_users.outbox_id"))
     mobile_id = DB.Column(
         DB.Integer, DB.ForeignKey("comms_db_3.user_mobile.mobile_id"))
-    ts_sent = DB.Column(DB.DateTime, default=datetime.utcnow())
+    ts_sent = DB.Column(DB.DateTime, default=None)
     send_status = DB.Column(DB.Integer, nullable=False)
     gsm_id = DB.Column(DB.Integer, nullable=False)
 
