@@ -6,7 +6,7 @@ from sqlalchemy import bindparam, literal, text
 from sqlalchemy.orm import joinedload, raiseload
 from connection import DB
 from src.models.inbox_outbox import (
-    SmsInboxUsers, SmsOutboxUsers, SmsOutboxUsers2
+    SmsInboxUsers, SmsOutboxUsers, SmsOutboxUsers2,
     SmsOutboxUserStatus, SmsOutboxUserStatus2,
     ViewLatestMessagesMobileID, TempLatestMessagesSchema,
     SmsInboxUserTags, SmsInboxUserTagsSchema,
