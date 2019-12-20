@@ -492,7 +492,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
 
                 if day <= 0:
                     latest.append(event_alert_data)
-                elif day > 0 and day < extended_monitoring_days:
+                elif day > 0 and day <= extended_monitoring_days:
                     event_alert_data["day"] = day
                     extended.append(event_alert_data)
                 else:
@@ -541,11 +541,9 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                         # var_checker("PRINTING for log only", "ALREADY IN ROUTINE", True)
                         pass
 
-        break
-
     db_alerts = {
         "latest": latest,
-        "extended": extended,
+        "extended": sorted(extended, key=lambda x: x["day"], reverse=True),
         "overdue": overdue
     }
 

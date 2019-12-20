@@ -121,8 +121,8 @@ def process_totally_invalid_sites(totally_invalid_sites_list,
             generated_alert["ts"], "%Y-%m-%d %H:%M:%S")
         is_release_time = check_if_routine_extended_release_time(ts)
 
-        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                            site_code, extended))
+        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                            == site_code, extended))
         if is_in_extended_alerts:
             if is_release_time:
                 general_status = "extended"
@@ -386,10 +386,10 @@ def format_site_wo_alert_entry(site_wo_alert, nd_internal_alert_sym, is_release_
 def check_if_routine_extended_release_time(ts):
     """
     """
-    is_release_time = True
-    if ts.hour != ROUTINE_EXTENDED_RELEASE_TIME.hour and \
+    is_release_time = False
+    if ts.hour == ROUTINE_EXTENDED_RELEASE_TIME.hour and \
             ts.minute == ROUTINE_EXTENDED_RELEASE_TIME.minute:
-        is_release_time = False
+        is_release_time = True
     return is_release_time
 
 
@@ -453,8 +453,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 for event_trigger in site_w_alert["event_triggers"]:
                     saved_trigger = next(filter(
-                        lambda x: x["internal_sym"]["internal_sym_id"]
-                        == event_trigger["internal_sym_id"],
+                        lambda x: x["internal_sym"]["internal_sym_id"] ==
+                        event_trigger["internal_sym_id"],
                         saved_event_triggers), None)
 
                     is_trigger_new = False
@@ -528,10 +528,10 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             not_a0_db_alerts_list = list(filter(
                 lambda x: x["public_alert_symbol"]["alert_level"] != 0, merged_db_alerts_list_copy))
 
-            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                              site_code, not_a0_db_alerts_list))
-            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                                site_code, extended))
+            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                              == site_code, not_a0_db_alerts_list))
+            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                                == site_code, extended))
 
             is_release_time = True
             site_wo_alert["alert_level"] = 0

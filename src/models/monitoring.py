@@ -418,8 +418,8 @@ class OperationalTriggers(UserMixin, DB.Model):
     """
 
     __tablename__ = "operational_triggers"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
@@ -443,25 +443,49 @@ class OperationalTriggers(UserMixin, DB.Model):
                 f" | TRIGGER SYMBOL alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}")
 
 
-
-class OperationalTriggers75(UserMixin, DB.Model):
+class OperationalTriggersSync(UserMixin, DB.Model):
     """
     Class representation of operational_triggers
     """
 
-    __tablename__ = "operational_triggers"
-    __bind_key__ = "senslopedb"
-    __table_args__ = {"schema": "senslopedb"}
+    __tablename__ = "operational_triggers_sync"
+    __bind_key__ = "ewi_db"
+    __table_args__ = {"schema": "ewi_db"}
 
-    trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    update_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    trigger_id = DB.Column(DB.Integer, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
-    site_id = DB.Column(DB.Integer, nullable=False)
+    site_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "commons_db.sites.site_id"), nullable=False)
     trigger_sym_id = DB.Column(DB.Integer, nullable=False)
+    ts_updated = DB.Column(DB.DateTime, nullable=False)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Update ID: {self.update_id} Trigger_ID: {self.trigger_id}"
+                f" Site_ID: {self.site_id} trigger_sym_id: {self.trigger_sym_id}"
+                f" ts: {self.ts} ts_updated: {self.ts_updated}"
+                f" | TRIGGER SYMBOL alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}")
+
+
+
+# class OperationalTriggers75(UserMixin, DB.Model):
+#     """
+#     Class representation of operational_triggers
+#     """
+
+#     __tablename__ = "operational_triggers"
+#     __bind_key__ = "senslopedb"
+#     __table_args__ = {"schema": "senslopedb"}
+
+#     trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+#     ts = DB.Column(DB.DateTime, nullable=False)
+#     site_id = DB.Column(DB.Integer, nullable=False)
+#     trigger_sym_id = DB.Column(DB.Integer, nullable=False)
     # site_id = DB.Column(DB.Integer, DB.ForeignKey(
     #     "commons_db.sites.site_id"), nullable=False)
     # trigger_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
     #     "ewi_db.operational_trigger_symbols.trigger_sym_id"), nullable=False)
-    ts_updated = DB.Column(DB.DateTime, nullable=False)
+    # ts_updated = DB.Column(DB.DateTime, nullable=False)
 
     # site = DB.relationship(
     #     "Sites", backref=DB.backref("operational_triggers", lazy="dynamic"), lazy="select")
@@ -470,11 +494,11 @@ class OperationalTriggers75(UserMixin, DB.Model):
     #     "OperationalTriggerSymbols", backref="operational_triggers",
     #     lazy="joined", innerjoin=True) #lazy="select")
 
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Trigger_ID: {self.trigger_id}"
-                f" Site_ID: {self.site_id} trigger_sym_id: {self.trigger_sym_id}"
-                f" ts: {self.ts} ts_updated: {self.ts_updated}"
-                f" | TRIGGER SYMBOL alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}")
+    # def __repr__(self):
+    #     return (f"Type <{self.__class__.__name__}> Trigger_ID: {self.trigger_id}"
+    #             f" Site_ID: {self.site_id} trigger_sym_id: {self.trigger_sym_id}"
+    #             f" ts: {self.ts} ts_updated: {self.ts_updated}"
+                # f" | TRIGGER SYMBOL alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}")
 
 
 class OperationalTriggerSymbols(UserMixin, DB.Model):

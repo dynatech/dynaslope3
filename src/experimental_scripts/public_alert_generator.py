@@ -32,7 +32,6 @@ from src.utils.monitoring import (
     round_down_data_ts, get_site_moms_alerts,
     round_to_nearest_release_time, get_max_possible_alert_level)
 from src.utils.extra import (var_checker, retrieve_data_from_memcache, get_process_status_log)
-from src.models.sites import Sites75
 
 
 MOMS_SCHEMA_EXCLUSION = (
@@ -1077,7 +1076,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
     for site in active_sites:
         site_id = site.site_id
-        site_75 = Sites75.query.filter_by(site_id=site_id).first()
         site_code = site.site_code
         s_pub_alerts_query = site.public_alerts
         s_op_triggers_query = site.operational_triggers
@@ -1163,7 +1161,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         # Special function to Dyna3, no need to modularize
         subsurface_alerts_list = None
         if is_subsurface_active:
-            site_tsm_sensors = site_75.tsm_sensors.all()
+            site_tsm_sensors = site.tsm_sensors.all()
             subsurface_alerts_list = get_tsm_alerts(
                 site_tsm_sensors, query_ts_end)
 
@@ -1171,7 +1169,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         is_rainfall_active = retrieve_data_from_memcache(
             "trigger_hierarchies", {"trigger_source": "rainfall"}, retrieve_attr="is_active")
         if is_rainfall_active:
-            latest_rainfall_alert = site_75.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
+            latest_rainfall_alert = site.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
                 ra.ts == query_ts_end).first()
         
         current_trigger_alerts = get_current_trigger_alert_conditions(release_op_triggers_list, surficial_moms_window_ts,
