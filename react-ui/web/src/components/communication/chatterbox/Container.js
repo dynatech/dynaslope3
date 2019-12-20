@@ -1,6 +1,6 @@
 import React, {
     Fragment, useState,
-    useEffect
+    useEffect, useContext
 } from "react";
 import { Button, Badge, makeStyles } from "@material-ui/core";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
@@ -16,8 +16,8 @@ import SendMessageModal from "./SendMessageModal";
 import CircularAddButton from "../../reusables/CircularAddButton";
 import SearchMessageModal from "./SearchMessageModal";
 import SearchResultsPage from "./SearchResultsPage";
-
-import { 
+import { GeneralContext } from "../../contexts/GeneralContext"; 
+import {
     socket, subscribeToWebSocket, removeReceiveLatestMessages,
     receiveAllMobileNumbers, receiveLatestMessages
 } from "../../../websocket/communications_ws";
@@ -85,8 +85,10 @@ function Container (comp_props) {
         else if (key === "search") setIsOpenSearchModal(bool);
     };
 
+    const { setIsReconnecting } = useContext(GeneralContext);
+
     useEffect(() => {
-        subscribeToWebSocket("chatterbox");
+        subscribeToWebSocket("chatterbox", setIsReconnecting);
 
         receiveLatestMessages(data => {
             setMessagesCollection(data);

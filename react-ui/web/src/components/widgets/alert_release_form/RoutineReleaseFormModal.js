@@ -142,8 +142,8 @@ function RoutineReleaseFormModal (props) {
 
     const handleClose = () => {
         closeHandler();
-        setA0SiteList({ ...a0_list });
-        setNDSiteList({ ...nd_list });
+        // setA0SiteList({ ...a0_list });
+        // setNDSiteList({ ...nd_list });
     };
 
     return (

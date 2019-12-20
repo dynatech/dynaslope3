@@ -1,6 +1,6 @@
 import React, {
     Fragment, useState,
-    useEffect
+    useEffect, useContext
 } from "react";
 
 import { withStyles } from "@material-ui/core/styles";
@@ -30,6 +30,7 @@ import ContactList from "./ContactList";
 import { SlideTransition } from "../../reusables/TransitionList";
 import ContactForm from "./ContactForm";
 import { getListOfMunicipalities } from "../ajax";
+import { GeneralContext } from "../../contexts/GeneralContext";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
@@ -69,7 +70,7 @@ const styles = theme => {
             }
         },
         insetDivider: { padding: "8px 70px !important" }
-    }; 
+    };
 };
 
 function prepareGeographicalList (data, category) {
@@ -365,8 +366,10 @@ function Container (props) {
         setContactFormOpen(bool);
     };
 
+    const { setIsReconnecting } = useContext(GeneralContext);
+
     useEffect(() => {
-        subscribeToWebSocket("contacts");
+        subscribeToWebSocket("contacts", setIsReconnecting);
 
         receiveAllContacts(data => {
             setContacts(data);

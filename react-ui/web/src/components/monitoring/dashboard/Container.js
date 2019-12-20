@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useState } from "react";
+import React, { Fragment, useEffect, useState, useContext } from "react";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { withStyles } from "@material-ui/core/styles";
 import { compose } from "recompose";
@@ -20,6 +20,7 @@ import {
 } from "../../../websocket/monitoring_ws";
 import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
 import InsertMomsButton from "../../widgets/moms/InsertMomsButton";
+import { GeneralContext } from "../../contexts/GeneralContext";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
@@ -55,9 +56,11 @@ function Container (props) {
 
     const [is_moms_modal_open, setMomsModal] = useState(false);
     const set_moms_modal_fn = bool => () => setMomsModal(bool);
+
+    const { setIsReconnecting } = useContext(GeneralContext);
     
     useEffect(() => {
-        subscribeToWebSocket();
+        subscribeToWebSocket(setIsReconnecting);
 
         receiveGeneratedAlerts(generated_alerts => setGeneratedAlerts(generated_alerts));
         receiveCandidateAlerts(candidate_alerts => setCandidateAlertsData(candidate_alerts));

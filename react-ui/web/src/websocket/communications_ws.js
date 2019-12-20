@@ -13,7 +13,7 @@ function connectToWebsocket () {
     }
 }
 
-function subscribeToWebSocket (page) {
+function subscribeToWebSocket (page, reconnect_callback) {
     connectToWebsocket();
 
     if (page === "chatterbox") {
@@ -22,6 +22,19 @@ function subscribeToWebSocket (page) {
     } else if (page === "contacts") {
         socket.emit("get_all_contacts");
     }
+
+    socket.on("reconnecting", () => {
+        reconnect_callback(true);
+    });
+
+    socket.on("reconnect", () => {
+        reconnect_callback(false);
+    });
+
+    socket.on("reconnect_failed", () => {
+        // reconnect_callback(false);
+        console.log("failed");
+    });
 }
 
 function sendWSMessage (key) {
