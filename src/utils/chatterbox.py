@@ -6,8 +6,8 @@ from sqlalchemy import bindparam, literal, text
 from sqlalchemy.orm import joinedload, raiseload
 from connection import DB
 from src.models.inbox_outbox import (
-    SmsInboxUsers, SmsOutboxUsers,
-    SmsOutboxUserStatus,
+    SmsInboxUsers, SmsOutboxUsers, SmsOutboxUsers2
+    SmsOutboxUserStatus, SmsOutboxUserStatus2,
     ViewLatestMessagesMobileID, TempLatestMessagesSchema,
     SmsInboxUserTags, SmsInboxUserTagsSchema,
     SmsTags, SmsOutboxUserTags, SmsOutboxUserTagsSchema,
@@ -250,7 +250,7 @@ def insert_message_on_database(obj):
     sms_msg = obj["sms_msg"]
     recipient_list = obj["recipient_list"]
 
-    new_msg = SmsOutboxUsers(
+    new_msg = SmsOutboxUsers2(
         ts_written=datetime.now(),
         source="central",
         sms_msg=sms_msg
@@ -265,7 +265,7 @@ def insert_message_on_database(obj):
         mobile_id = row["mobile_id"]
         gsm_id = row["gsm_id"]
 
-        new_status = SmsOutboxUserStatus(
+        new_status = SmsOutboxUserStatus2(
             outbox_id=outbox_id,
             mobile_id=mobile_id,
             gsm_id=gsm_id
