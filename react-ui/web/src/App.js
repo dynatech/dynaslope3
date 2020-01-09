@@ -1,5 +1,5 @@
 import React, { 
-    Fragment, useState, useEffect,
+    useState, useEffect,
     useRef
 } from "react";
 import { BrowserRouter, Switch, Route, Redirect } from "react-router-dom";
@@ -41,7 +41,7 @@ const styles = theme => ({
 
 function App (props) {
     const { classes } = props;
-
+    
     useEffect(() => {
         document.title = "MIA 3.0 - Dynaslope Monitoring and Information Application";
     }, []);
@@ -101,6 +101,7 @@ function App (props) {
                             <div>Loading...</div>
                         ) : (
                             is_logged ? (
+                                // <ConnectionNotifierProvider>
                                 <GeneralProvider>
                                     <CTProvider>
                                         <Header
@@ -122,6 +123,7 @@ function App (props) {
                                         <Footer />
                                     </CTProvider>
                                 </GeneralProvider>
+                                // </ConnectionNotifierProvider>
                             ) : (
                                 <Redirect to="/login" />
                             )

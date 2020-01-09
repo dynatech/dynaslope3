@@ -13,8 +13,9 @@ def get_loggers(site_code=None, many=True):
     """
     Function that gets basic site data by site code
     """
-    # base = DB.session.query(Loggers).order_by(DB.desc(Loggers.logger_id)).options(joinedload("tsm_sensor").joinedload("site"))
-    base = Loggers.query.order_by(DB.desc(Loggers.logger_id)).join(TSMSensors).join(Sites)
+
+    base = Loggers.query.order_by(
+        DB.desc(Loggers.logger_id)).join(TSMSensors).join(Sites)
 
     if site_code:
         base = base.filter(Sites.site_code == site_code)

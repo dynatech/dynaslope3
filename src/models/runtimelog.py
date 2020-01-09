@@ -4,7 +4,7 @@ from connection import DB, MARSHMALLOW
 class RunTimeLog(DB.Model):
     __tablename__ = "runtimelog"
 
-    __bind_key__ = "comms_db"
+    __bind_key__ = "comms_db_3"
 
     log_id = DB.Column(DB.Integer, primary_key=True)
     ts = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)

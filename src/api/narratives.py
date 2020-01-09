@@ -21,9 +21,13 @@ def wrap_delete_narratives_from_db():
     """
         Deletes specific narrative.
     """
-    json_data = request.get_json()
-    var_checker("json_data", json_data, True)
-    status = delete_narratives_from_db(json_data["narrative_id"])
+    try:
+        json_data = request.get_json()
+        var_checker("json_data", json_data, True)
+        status = delete_narratives_from_db(json_data["narrative_id"])
+        DB.session.commit()
+    except Exception as err:
+        print(err)
 
     return status
 

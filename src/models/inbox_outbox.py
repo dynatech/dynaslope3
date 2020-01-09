@@ -15,14 +15,14 @@ class SmsInboxUsers(DB.Model):
     """
 
     __tablename__ = "smsinbox_users"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     inbox_id = DB.Column(DB.Integer, primary_key=True)
     ts_sms = DB.Column(DB.DateTime, default=datetime.utcnow())
     ts_stored = DB.Column(DB.DateTime, default=datetime.utcnow())
     mobile_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.user_mobile.mobile_id"))
+        DB.Integer, DB.ForeignKey("comms_db_3.user_mobile.mobile_id"))
     sms_msg = DB.Column(DB.String(1000))
     read_status = DB.Column(DB.Integer, nullable=False)
     web_status = DB.Column(DB.Integer, nullable=False)
@@ -45,8 +45,8 @@ class SmsTags(DB.Model):
     """
 
     __tablename__ = "sms_tags"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     tag_id = DB.Column(DB.Integer, primary_key=True)
     tag = DB.Column(DB.String(30), nullable=False)
@@ -63,13 +63,13 @@ class SmsInboxUserTags(DB.Model):
     """
 
     __tablename__ = "smsinbox_user_tags"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     siu_tag_id = DB.Column(DB.Integer, primary_key=True)
     inbox_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.smsinbox_users.inbox_id"))
-    tag_id = DB.Column(DB.Integer, DB.ForeignKey("comms_db.sms_tags.tag_id"))
+        DB.Integer, DB.ForeignKey("comms_db_3.smsinbox_users.inbox_id"))
+    tag_id = DB.Column(DB.Integer, DB.ForeignKey("comms_db_3.sms_tags.tag_id"))
     user_id = DB.Column(
         DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
     ts = DB.Column(DB.DateTime, default=datetime.utcnow())
@@ -89,8 +89,8 @@ class SmsOutboxUsers(DB.Model):
     """
 
     __tablename__ = "smsoutbox_users"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     outbox_id = DB.Column(DB.Integer, primary_key=True)
     ts_written = DB.Column(DB.DateTime, default=datetime.utcnow())
@@ -108,21 +108,59 @@ class SmsOutboxUsers(DB.Model):
         return f"Type <{self.sms_msg}>"
 
 
+class SmsOutboxUsers2(DB.Model):
+    """
+    Class representation of smsoutbox_users table
+    """
+
+    __tablename__ = "smsoutbox_users"
+    __bind_key__ = "comms_db"  # TAKE NOTE
+    __table_args__ = {"schema": "comms_db"}
+
+    outbox_id = DB.Column(DB.Integer, primary_key=True)
+    ts_written = DB.Column(DB.DateTime, default=datetime.utcnow())
+    source = DB.Column(DB.String(45))
+    sms_msg = DB.Column(DB.String(1000))
+
+    def __repr__(self):
+        return f"Type <{self.sms_msg}>"
+
+
 class SmsOutboxUserStatus(DB.Model):
     """
     Class representation of smsoutbox_user_status table
     """
 
     __tablename__ = "smsoutbox_user_status"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     stat_id = DB.Column(DB.Integer, primary_key=True)
     outbox_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.smsoutbox_users.outbox_id"))
+        DB.Integer, DB.ForeignKey("comms_db_3.smsoutbox_users.outbox_id"))
     mobile_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.user_mobile.mobile_id"))
-    ts_sent = DB.Column(DB.DateTime, default=datetime.utcnow())
+        DB.Integer, DB.ForeignKey("comms_db_3.user_mobile.mobile_id"))
+    ts_sent = DB.Column(DB.DateTime, default=None)
+    send_status = DB.Column(DB.Integer, nullable=False)
+    gsm_id = DB.Column(DB.Integer, nullable=False)
+
+    def __repr__(self):
+        return f"Type <{self.__class__.__name__}>"
+
+
+class SmsOutboxUserStatus2(DB.Model):
+    """
+    Class representation of smsoutbox_user_status table
+    """
+
+    __tablename__ = "smsoutbox_user_status"
+    __bind_key__ = "comms_db"  # TAKE NOTE
+    __table_args__ = {"schema": "comms_db"}
+
+    stat_id = DB.Column(DB.Integer, primary_key=True)
+    outbox_id = DB.Column(DB.Integer)
+    mobile_id = DB.Column(DB.Integer)
+    ts_sent = DB.Column(DB.DateTime, default=None)
     send_status = DB.Column(DB.Integer, nullable=False)
     gsm_id = DB.Column(DB.Integer, nullable=False)
 
@@ -136,13 +174,13 @@ class SmsOutboxUserTags(DB.Model):
     """
 
     __tablename__ = "smsoutbox_user_tags"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     sou_tag_id = DB.Column(DB.Integer, primary_key=True)
     outbox_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.smsoutbox_users.outbox_id"))
-    tag_id = DB.Column(DB.Integer, DB.ForeignKey("comms_db.sms_tags.tag_id"))
+        DB.Integer, DB.ForeignKey("comms_db_3.smsoutbox_users.outbox_id"))
+    tag_id = DB.Column(DB.Integer, DB.ForeignKey("comms_db_3.sms_tags.tag_id"))
     user_id = DB.Column(
         DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
     ts = DB.Column(DB.DateTime, default=datetime.utcnow())
@@ -162,8 +200,8 @@ class SmsUserUpdates(DB.Model):
     """
 
     __tablename__ = "sms_user_updates"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     update_id = DB.Column(DB.Integer, primary_key=True)
     mobile_id = DB.Column(DB.Integer)
@@ -181,8 +219,8 @@ class ViewLatestMessages(DB.Model):
     """
 
     __tablename__ = "view_latest_messages"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     convo_id = DB.Column(DB.Integer, primary_key=True)
     max_time = DB.Column(DB.DateTime)
@@ -202,8 +240,8 @@ class ViewLatestMessagesMobileID(DB.Model):
     """
 
     __tablename__ = "view_latest_messages_mobile_id"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     mobile_id = DB.Column(DB.Integer, primary_key=True)
     max_ts = DB.Column(DB.DateTime)
@@ -218,8 +256,8 @@ class ViewLatestUnsentMessages(DB.Model):
     """
 
     __tablename__ = "view_latest_unsent_messages"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     mobile_id = DB.Column(DB.Integer, primary_key=True)
     convo_id = DB.Column(DB.Integer)

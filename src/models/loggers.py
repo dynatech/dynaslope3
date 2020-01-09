@@ -5,7 +5,7 @@ from connection import DB, MARSHMALLOW
 class LoggerModels(DB.Model):
     __tablename__ = "loggers"
 
-    __bind_key__ = "comms_db"
+    __bind_key__ = "comms_db_3"
 
     logger_id = DB.Column(DB.Integer, primary_key=True)
     site_id = DB.Column(

@@ -30,7 +30,7 @@ class GeneralDataTag(DB.Model):
     tag_id_fk = DB.Column(
         DB.Integer, DB.ForeignKey("commons_db.general_data_references.tag_id"))
     tagger_eid_fk = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db.users.user_id"))
+        DB.Integer, DB.ForeignKey("comms_db_3.users.user_id"))
     table_element_id = DB.Column(DB.String(10))
     table_used = DB.Column(DB.String(45))
     timestamp = DB.Column(DB.String(45))

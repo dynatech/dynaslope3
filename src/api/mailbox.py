@@ -32,6 +32,7 @@ def wrap_send_email():
         subject = json_data["subject"]
         recipients = json_data["recipients"]
         mail_body = json_data["mail_body"]
+        status = True
 
         release_id = None
         file_name = None
@@ -52,7 +53,6 @@ def wrap_send_email():
         response_msg = "Email sent!"
         if release_id:
             response_msg = "Bulletin email sent!"
-            status = True
 
     except KeyError:
         response_msg = "Bulletin email NOT sent... problem with keys."

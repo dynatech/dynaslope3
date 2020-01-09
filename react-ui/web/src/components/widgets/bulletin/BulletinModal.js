@@ -62,11 +62,8 @@ function BulletinModal (props) {
 
                 setNarrativeDetails(tmp_nar);
     
-                typeof recipients === "object" ? 
-                    setMailRecipients([recipients[0].TEST_SERVER_EMAIL]) 
-                    : 
-                    setMailRecipients(recipients);
-    
+                setMailRecipients(recipients);
+
                 setMailSubject(subject);
                 setMailContent(mail_body);
                 setFileName(filename);

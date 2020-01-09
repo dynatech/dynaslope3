@@ -68,7 +68,6 @@ function getManipulationButtons (narrative, data_handlers) {
     };
 
     const handleDelete = value => {
-        console.log("Clicked delete");
         setChosenNarrative(narrative);
         setIsOpenDeleteModal(true);
     };
@@ -151,6 +150,7 @@ function SiteLogs (props) {
                     setIsOpenNarrativeModal, isOpenNarrativeModal,
                     setIsOpenDeleteModal, isOpenDeleteModal
                 });
+            console.log("tbl_data", processed);
             setTableData(processed);
             setCount(total);
             setIsLoading(false);
@@ -259,6 +259,7 @@ function SiteLogs (props) {
             label: "Timestamp",
             options: {
                 filter: false,
+                sort: false
             }
         },
         {
@@ -269,7 +270,8 @@ function SiteLogs (props) {
                 filterList: typeof filter_list.site_name === "undefined" ? [] : filter_list.site_name,
                 filterOptions: {
                     names: filter_sites_option
-                }
+                },
+                sort: false
             }
         },
         {

@@ -1,10 +1,10 @@
 [Hosts]
-local = 192.168.150.253
-senslope = 192.168.150.253
-dynaslope = 192.168.150.253
-gsm = 192.168.150.253
-gsm2 = 192.168.150.253
-sandbox = 192.168.150.253
+local = 192.168.150.75
+senslope = 192.168.150.124
+dynaslope = 192.168.150.129
+gsm = 192.168.150.127
+gsm2 = 192.168.150.75
+sandbox = 192.168.150.75
 
 
 [Resource]
@@ -23,9 +23,9 @@ resources4 = sb_remote,sb_rack_remote_1,sb_local
 
 
 [Db]
-password = senslope
+password = NaCAhztBgYZ3HwTkvHwwGVtJn5sVMFgg
 name = senslopedb
-user = root
+user = pysys_local
 
 [Serial]
 baudrate = 57600

@@ -39,6 +39,35 @@ class Users(DB.Model, UserMixin):
                 f" Status: {self.status}")
 
 
+class Users75(DB.Model, UserMixin):
+    """
+    Class representation of users table
+    """
+    __tablename__ = "users75"
+    __bind_key__ = "comms_db_375"
+    __table_args__ = {"schema": "comms_db_375"}
+
+    user_id = DB.Column(DB.Integer, primary_key=True)
+    salutation = DB.Column(DB.String(15))
+    first_name = DB.Column(DB.String(45))
+    middle_name = DB.Column(DB.String(45))
+    last_name = DB.Column(DB.String(45))
+    nickname = DB.Column(DB.String(45))
+    sex = DB.Column(DB.String(1))
+    status = DB.Column(DB.Integer, nullable=True)
+    birthday = DB.Column(DB.DateTime)
+    # ewi_recipient = DB.Column(DB.Integer, nullable=True)
+
+    def get_id(self):
+        """Filler docstring"""
+        return self.user_id
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> User ID: {self.user_id}"
+                f" First Name: {self.first_name} Last Name: {self.last_name}"
+                f" Status: {self.status}")
+
+
 class UsersRelationship(Users):
     """
     Class representation of users relation in mobile and organization of users
@@ -81,8 +110,8 @@ class UserMobile(DB.Model):
     Class representation of user mobile table
     """
     __tablename__ = "user_mobile"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     mobile_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
@@ -126,8 +155,8 @@ class UserLandlines(DB.Model):
     Class representation of user_landlines table
     """
     __tablename__ = "user_landlines"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     landline_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(
@@ -248,8 +277,8 @@ class UserEwiRestrictions(DB.Model):
     """
 
     __tablename__ = "user_ewi_restrictions"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.users.user_id"), primary_key=True)

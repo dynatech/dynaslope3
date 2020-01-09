@@ -13,8 +13,21 @@ function connectToWebsocket () {
     }
 }
 
-export function subscribeToWebSocket () {
+export function subscribeToWebSocket (reconnect_callback) {
     connectToWebsocket();
+
+    socket.on("reconnecting", () => {
+        reconnect_callback(true);
+    });
+
+    socket.on("reconnect", () => {
+        reconnect_callback(false);
+    });
+
+    socket.on("reconnect_failed", () => {
+        // reconnect_callback(false);
+        console.log("failed");
+    });
 }
 
 export function sendWSMessage (key, data = null) {

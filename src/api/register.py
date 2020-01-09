@@ -91,7 +91,7 @@ def forgot_password():
             user_id = row["user_fk_id"]
             account_id = row["account_id"]
 
-        mobile_query = text("SELECT * FROM comms_db.user_mobile "
+        mobile_query = text("SELECT * FROM comms_db_3.user_mobile "
                             "WHERE user_id = " + str(user_id))
 
         mobile_query_result = DB.engine.execute(mobile_query)
@@ -100,7 +100,7 @@ def forgot_password():
             mobile_id = row["mobile_id"]
     else:
         print("mobile")
-        query = text("SELECT * FROM comms_db.user_mobile "
+        query = text("SELECT * FROM comms_db_3.user_mobile "
                      "WHERE sim_num = '" + str(key) + "'")
 
         result = DB.engine.execute(query)

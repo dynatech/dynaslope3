@@ -16,8 +16,8 @@ class MobileNumbers(DB.Model):
     """
 
     __tablename__ = "mobile_numbers"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     mobile_id = DB.Column(SMALLINT, primary_key=True)
     sim_num = DB.Column(DB.String(30))
@@ -33,13 +33,13 @@ class UserMobiles(DB.Model):
     """
 
     __tablename__ = "user_mobiles"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     user_id = DB.Column(SMALLINT, DB.ForeignKey(
         "commons_db.users.user_id"), primary_key=True)
     mobile_id = DB.Column(SMALLINT, DB.ForeignKey(
-        "comms_db.mobile_numbers.mobile_id"), primary_key=True)
+        "comms_db_3.mobile_numbers.mobile_id"), primary_key=True)
     priority = DB.Column(TINYINT)
     status = DB.Column(TINYINT, nullable=False)
 
@@ -62,11 +62,11 @@ class BlockedMobileNumbers(DB.Model):
     """
 
     __tablename__ = "blocked_mobile_numbers"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "comms_db_3"
+    __table_args__ = {"schema": "comms_db_3"}
 
     mobile_id = DB.Column(SMALLINT, DB.ForeignKey(
-        "comms_db.mobile_numbers.mobile_id"), primary_key=True)
+        "comms_db_3.mobile_numbers.mobile_id"), primary_key=True)
     reason = DB.Column(DB.String(500), nullable=False)
     reporter_id = DB.Column(SMALLINT, DB.ForeignKey(
         "commons_db.users.user_id"))
