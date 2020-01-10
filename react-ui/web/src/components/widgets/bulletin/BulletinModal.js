@@ -22,6 +22,34 @@ const default_data = {
     sent_status: false
 };
 
+function formatRecipientsToString (mail_recipients) {
+    let str_recipients = "";
+    const len_recipients = mail_recipients.length;
+    let index = 0;
+    mail_recipients.forEach((recipient) => {
+        console.log("%d: %s", index, recipient);
+        let tmp_rcp = "";
+        switch (recipient) {
+            case "rusolidum@phivolcs.dost.gov.ph":
+                tmp_rcp = "RUS";
+                break;
+            case "asdaag48@gmail.com":
+                tmp_rcp = "ASD";
+                break;
+            default:
+                tmp_rcp = recipient;
+                break;
+        }
+        str_recipients += tmp_rcp;
+
+        if (len_recipients !== (index + 1)) str_recipients += ", ";
+        index += 1;
+    });
+
+    return str_recipients;
+}
+
+
 function BulletinModal (props) {
     const {
         classes, fullScreen, isOpenBulletinModal,
@@ -96,6 +124,7 @@ function BulletinModal (props) {
         );
         closeHandler();
         sendBulletinEmail(input, ret => {
+            console.log("sent bulletin email...", ret);
             const { status, message } = ret;
             closeSnackbar(loading_snackbar);
             if (status) {
@@ -108,21 +137,23 @@ function BulletinModal (props) {
                     }
                 );
 
+                sendWSMessage("update_db_alert_ewi_sent_status", {
+                    alert_db_group: type,
+                    site_id,
+                    ewi_group: "bulletin"
+                });
+
                 if (typeof narrative_details === "object") {
+                    const formatted_recip = formatRecipientsToString(mail_recipients);
                     const temp_nar = {
                         ...narrative_details,
+                        narrative: `${narrative_details.narrative} ${formatted_recip}`,
                         timestamp: moment().format("YYYY-MM-DD HH:mm:ss")
                     };
                     write_bulletin_narrative(temp_nar, narrative_ret => {
                         console.log("NARRATIVE WRITTEN!");
                     });
                 } else console.log("NO NARRATIVE WRITTEN: TEST ONLY");
-
-                sendWSMessage("update_db_alert_ewi_sent_status", {
-                    alert_db_group: type,
-                    site_id,
-                    ewi_group: "bulletin"
-                });
             } else {
                 enqueueSnackbar(
                     message,
