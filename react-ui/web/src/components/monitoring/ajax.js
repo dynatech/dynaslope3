@@ -114,6 +114,19 @@ export function getEventTimelineEntries (input, callback) {
     });    
 }
 
+export function getRoutineEWIMessage (temp, callback) {
+    const api_link = `${host}/api/chatterbox/get_routine_ewi_template`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function getEWIMessage (release_id, callback) {
     const api_link = `${host}/api/chatterbox/get_ewi_message/${release_id}`;
 

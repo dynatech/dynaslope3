@@ -25,6 +25,28 @@ from src.models.analysis import MarkerObservations, MarkerObservationsSchema
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 
 
+def get_org_ids(scopes=None, org_names=None):
+    """
+    Returns org ids as need by other APIs
+    """
+    orgs = Organizations
+    base = orgs.query.order_by(DB.asc(orgs.scope))
+
+    if scopes:
+        base = base.filter(orgs.scope in scopes)
+
+    if org_names:
+        base = base.filter(orgs.org_name in org_names)
+    
+    org_ids = base.all()
+
+    org_id_list = []
+    for item in org_ids:
+        org_id_list.append(item.org_id)
+
+    return org_id_list
+
+
 def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None, only_ewi_recipients=False):
     """
     """

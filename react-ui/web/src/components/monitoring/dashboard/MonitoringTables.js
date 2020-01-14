@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useState, useEffect } from "react";
 import {
     Grid, Typography,
     Divider, Button
@@ -18,8 +18,9 @@ import GeneralStyles from "../../../GeneralStyles";
 import ValidationModal from "./ValidationModal";
 import useModal from "../../reusables/useModal";
 import BulletinModal from "../../widgets/bulletin/BulletinModal";
-import { getEWIMessage } from "../ajax";
+import { getEWIMessage, getRoutineEWIMessage } from "../ajax";
 import SendEwiSmsModal from "./SendEwiSmsModal";
+import SendRoutineEwiSmsModal from "./SendRoutineEwiSmsModal";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { CTContext } from "./CTContext";
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
@@ -454,8 +455,8 @@ function RoutineExpansionPanel (props) {
         released_sites, unreleased_sites
     } = siteAlert;
 
-    // let adjusted_data_ts = data_ts;
-    // adjusted_data_ts = format_ts(adjusted_data_ts);
+    let adjusted_data_ts = released_sites[0].data_ts;
+    adjusted_data_ts = format_ts(adjusted_data_ts);
 
     return (
         <ExpansionPanel
@@ -469,7 +470,7 @@ function RoutineExpansionPanel (props) {
                 classes={{ content: classes.expansionPanelSummaryContent }}
             >
                 {
-                    ["ROUTINE", "adjusted_data_ts"].map((elem, i) => (
+                    ["ROUTINE", adjusted_data_ts].map((elem, i) => (
                         <Typography
                             key={`exp-columns-${i + 1}`}
                             color="textSecondary"
@@ -487,7 +488,7 @@ function RoutineExpansionPanel (props) {
                         <Grid item xs={12} sm align="center">
                             <Typography component="span" variant="body1" color="textSecondary" style={{ paddingRight: 8 }}>Data Timestamp:</Typography>
                             {/* <Typography component="span" variant="body1" color="textPrimary">{adjusted_data_ts}</Typography> */}
-                            <Typography component="span" variant="body1" color="textPrimary">adjusted_data_ts</Typography>
+                            <Typography component="span" variant="body1" color="textPrimary">{adjusted_data_ts}</Typography>
                         </Grid>
                     </Grid>
 
@@ -500,8 +501,8 @@ function RoutineExpansionPanel (props) {
                     <Grid item xs={12} container spacing={1}>
                         {
                             released_sites.map((row, key) => (
-                                <Grid key={`site-${row}`} item xs align="center">
-                                    <Typography variant="body1" color="textSecondary">{row}</Typography>
+                                <Grid key={`site-${row.site_code}`} item xs={2} align="center">
+                                    <Typography variant="body1" color="textSecondary">{row.site_code.toUpperCase()}</Typography>
                                 </Grid>
                             ))
                         }
@@ -513,9 +514,7 @@ function RoutineExpansionPanel (props) {
                 <Button
                     size="small" color="primary" 
                     startIcon={<PhoneAndroid />}
-                    onClick={smsHandler({
-                        type
-                    })}
+                    onClick={smsHandler(released_sites)}
                     // endIcon={ is_sms_sent && <Done /> }
                 >
                 EWI SMS
@@ -537,9 +536,11 @@ function MonitoringTables (props) {
     const [isShowingValidation, setIsShowingValidation] = useState(false);
     const [validation_details, setValidationDetails] = useState({});
     const { isShowing: isShowingSendEWI, toggle: toggleSendEWI } = useModal();
+    const { isShowing: isShowingSendRoutineEWI, toggle: toggleSendRoutineEWI } = useModal();
     const [chosenReleaseDetail, setChosenReleaseDetail] = useState({});
     const [isOpenBulletinModal, setIsOpenBulletinModal] = useState(false);
     const { reporter_id_ct, setReporterIdCt, setCTFullName } = React.useContext(CTContext);
+    const [routine_site_id_list, setRoutineSiteIDList] = useState({});
     
     const handleExpansion = panel => (event, isExpanded) => {
         setExpanded(isExpanded ? panel : false);
@@ -553,6 +554,18 @@ function MonitoringTables (props) {
         getEWIMessage(release_id, data => {
             setEWIMessage(data);
             toggleSendEWI();
+        });
+    };
+
+    useEffect(() => {
+        console.log("reporter_id_ct", reporter_id_ct);
+    }, [reporter_id_ct]);
+
+    const routineSmsHandler = site_id_list => temp => {
+        getRoutineEWIMessage({}, data => {
+            setRoutineSiteIDList(site_id_list);
+            setEWIMessage(data);
+            toggleSendRoutineEWI();
         });
     };
 
@@ -703,34 +716,27 @@ function MonitoringTables (props) {
                     alertsFromDbData === null ? (
                         <MyLoader />
                     ) : (
-                        routine_db_alerts.length > 0 && (
-                            <Grid item xs={12}>
-                                <Typography className={classes.sectionHead} variant="h5">Sites under Routine Monitoring</Typography>
-                            </Grid>
-                        )
-                    )
-                }
-                {
-                    // eslint-disable-next-line no-nested-ternary
-                    alertsFromDbData === null ? (
-                        <MyLoader />
-                    ) : (
-                        routine_db_alerts.length > 0 && (
-                            routine_db_alerts.map((row, index) => (
-                                <RoutineExpansionPanel
-                                    key={`routine-alert-${index + 1}`}
-                                    keyName={`routine-alert-${index + 1}`}
-                                    classes={classes}
-                                    siteAlert={row}
-                                    expanded={expanded}
-                                    handleExpansion={handleExpansion}
-                                    smsHandler={smsHandler}
-                                    index={index}
-                                    bulletinHandler={bulletinHandler}
-                                    type="routine"
-                                    history={history}
-                                />
-                            ))
+                        typeof routine_db_alerts.released_sites !== "undefined" && routine_db_alerts.released_sites.length > 0 && (
+                            <Fragment>
+                                <Grid item xs={12}>
+                                    <Typography className={classes.sectionHead} variant="h5">Sites under Routine Monitoring</Typography>
+                                </Grid>
+                                <Grid item xs={12} style={{ marginBottom: 22 }}>
+                                    <RoutineExpansionPanel
+                                        key="routine-alert-panel"
+                                        keyName="routine-alert-panel"
+                                        classes={classes}
+                                        siteAlert={routine_db_alerts}
+                                        expanded={expanded}
+                                        handleExpansion={handleExpansion}
+                                        smsHandler={routineSmsHandler}
+                                        index={0}
+                                        bulletinHandler={bulletinHandler}
+                                        type="routine"
+                                        history={history}
+                                    />
+                                </Grid>
+                            </Fragment>
                         )
                     )
                 }
@@ -783,6 +789,14 @@ function MonitoringTables (props) {
                 modalState={isShowingSendEWI}
                 textboxValue={ewi_message}
                 releaseDetail={chosenReleaseDetail}
+            />
+
+            <SendRoutineEwiSmsModal
+                modalStateHandler={toggleSendRoutineEWI} 
+                modalState={isShowingSendRoutineEWI}
+                textboxValue={ewi_message}
+                siteList={routine_site_id_list}
+                user_id={reporter_id_ct}
             />
         </div>
     );
