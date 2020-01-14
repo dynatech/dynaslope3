@@ -16,8 +16,8 @@ class OldUsers(DB.Model):
     Class representation of users table
     """
     __tablename__ = "users"
-    __bind_key__ = "comms_db_3"
-    __table_args__ = {"schema": "comms_db_3"}
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db"}
 
     user_id = DB.Column(DB.Integer, primary_key=True)
     salutation = DB.Column(DB.String(15))
@@ -75,9 +75,9 @@ class OldMonitoringReleases(UserMixin, DB.Model):
     comments = DB.Column(DB.String(200))
     bulletin_number = DB.Column(DB.Integer, nullable=False)
     reporter_id_mt = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db_3.users.user_id"), nullable=False)
+        "comms_db.users.user_id"), nullable=False)
     reporter_id_ct = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db_3.users.user_id"), nullable=False)
+        "comms_db.users.user_id"), nullable=False)
 
     triggers = DB.relationship(
         "OldMonitoringTriggers", backref="release", lazy="subquery")
@@ -137,7 +137,7 @@ class OldMonitoringManifestation(UserMixin, DB.Model):
     remarks = DB.Column(DB.String(500))
     narrative = DB.Column(DB.String(500))
     validator = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_3.users.user_id"))
+        DB.Integer, DB.ForeignKey("comms_db.users.user_id"))
     op_trigger = DB.Column(DB.Integer, nullable=False)
 
     release = DB.relationship(
@@ -160,7 +160,7 @@ class OldMonitoringManifestationFeatures(UserMixin, DB.Model):
 
     feature_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "comms_db_3.sites.site_id"), nullable=False)
+        "comms_db.sites.site_id"), nullable=False)
     feature_type = DB.Column(DB.String(20), nullable=False)
     feature_name = DB.Column(DB.String(20))
 

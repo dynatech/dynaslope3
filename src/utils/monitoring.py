@@ -34,6 +34,9 @@ RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
 EXTENDED_MONITORING_DAYS = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "EXTENDED_MONITORING_DAYS"}, retrieve_attr="var_value")
 
+ROU_EXT_RELEASE_TIME = retrieve_data_from_memcache(
+    "dynamic_variables", {"var_name": "ROUTINE_EXTENDED_RELEASE_TIME"}, retrieve_attr="var_value")
+
 
 def write_eos_data_analysis_to_db(event_id, shift_start, analysis):
     """
@@ -405,6 +408,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     """
     global RELEASE_INTERVAL_HOURS
     global EXTENDED_MONITORING_DAYS
+    global ROU_EXT_RELEASE_TIME
     release_interval_hours = RELEASE_INTERVAL_HOURS
     extended_monitoring_days = EXTENDED_MONITORING_DAYS
 
@@ -418,6 +422,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     latest = []
     extended = []
     overdue = []
+    routine = {}
     for event_alert in active_event_alerts:
         event = event_alert.event
         validity = event.validity
@@ -541,10 +546,19 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                         # var_checker("PRINTING for log only", "ALREADY IN ROUTINE", True)
                         pass
 
+    # Currently 12; so data timestamp to get should be 30 minutes before
+    dt = datetime.combine(date.today(), time(hour=ROU_EXT_RELEASE_TIME, minute=0))
+    less_30_dt = dt - timedelta(minutes=30)
+    next_release_dt = dt + timedelta(hours=release_interval_hours)
+    routine_extended_release_time = less_30_dt.time()
+    if routine_extended_release_time <= run_ts.time() < next_release_dt.time():
+        routine = get_unreleased_routine_sites(less_30_dt, only_site_code=True)
+
     db_alerts = {
         "latest": latest,
         "extended": sorted(extended, key=lambda x: x["day"], reverse=True),
-        "overdue": overdue
+        "overdue": overdue,
+        "routine": routine
     }
 
     script_end = datetime.now()
@@ -553,7 +567,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     return db_alerts
 
 
-def get_routine_sites(timestamp=None, include_inactive=False):
+def get_routine_sites(timestamp=None, include_inactive=False, only_site_code=True):
     """
     Utils counterpart of identifing the routine site per day.
     Returns "routine_sites" site_codes in a list as value.
@@ -581,12 +595,37 @@ def get_routine_sites(timestamp=None, include_inactive=False):
     routine_sites = []
     for group in result:
         for site in group.sites:
+            site_detail = site
+            if only_site_code:
+                site_detail = site.site_code
+
             if site.active:
-                routine_sites.append(site.site_code)
+                routine_sites.append(site_detail)
             elif include_inactive and not site.active:
-                routine_sites.append(site.site_code)
+                routine_sites.append(site_detail)
 
     return routine_sites
+
+
+def get_unreleased_routine_sites(data_timestamp, only_site_code=True):
+    routine_sites = get_routine_sites(timestamp=data_timestamp, only_site_code=only_site_code)
+
+    released_sites = []
+    unreleased_sites = []
+    for site_details in routine_sites:
+        # This is with the assumption that you are using data_timestamp
+        site_release = get_monitoring_releases_by_data_ts(site_details, data_timestamp)
+        if site_release:
+            released_sites.append(site_details)
+        else:
+            unreleased_sites.append(site_details)
+
+    output = {
+        "released_sites": released_sites,
+        "unreleased_sites": unreleased_sites
+    }
+
+    return output
 
 
 def process_trigger_list(trigger_list, include_ND=False):

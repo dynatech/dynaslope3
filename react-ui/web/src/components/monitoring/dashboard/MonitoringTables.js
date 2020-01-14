@@ -325,7 +325,7 @@ function LatestSiteAlertsExpansionPanel (props) {
     } = props;
     const {
         event, internal_alert_level, releases,
-        day, sent_statuses
+        day, sent_statuses, public_alert_symbol
     } = siteAlert;
 
     const { is_sms_sent, is_bulletin_sent } = sent_statuses;
@@ -423,7 +423,10 @@ function LatestSiteAlertsExpansionPanel (props) {
                 <Button
                     size="small" color="primary" 
                     startIcon={<PhoneAndroid />}
-                    onClick={smsHandler({ release_id, site_code, site_id, type })}
+                    onClick={smsHandler({
+                        release_id, site_code, site_id,
+                        type, public_alert_symbol
+                    })}
                     endIcon={ is_sms_sent && <Done /> }
                 >
                     EWI SMS
@@ -434,7 +437,88 @@ function LatestSiteAlertsExpansionPanel (props) {
                     onClick={bulletinHandler({ release_id, site_code, site_id, type })}
                     endIcon={ is_bulletin_sent && <Done /> }
                 >
-                        Bulletin
+                    Bulletin
+                </Button>
+            </ExpansionPanelActions>
+        </ExpansionPanel>
+    );
+}
+
+function RoutineExpansionPanel (props) {
+    const { 
+        siteAlert, classes, expanded,
+        handleExpansion, smsHandler,
+        keyName, type
+    } = props;
+    const {
+        released_sites, unreleased_sites
+    } = siteAlert;
+
+    // let adjusted_data_ts = data_ts;
+    // adjusted_data_ts = format_ts(adjusted_data_ts);
+
+    return (
+        <ExpansionPanel
+            expanded={expanded === keyName}
+            onChange={handleExpansion(keyName)}
+        >
+            <ExpansionPanelSummary
+            // expandIcon={<ExpandMoreIcon />}
+                aria-controls={`${keyName}bh-content`}
+                id={`${keyName}bh-header`}
+                classes={{ content: classes.expansionPanelSummaryContent }}
+            >
+                {
+                    ["ROUTINE", "adjusted_data_ts"].map((elem, i) => (
+                        <Typography
+                            key={`exp-columns-${i + 1}`}
+                            color="textSecondary"
+                            variant="body2"
+                        >
+                            {elem}
+                        </Typography>
+                    ))
+                }
+            </ExpansionPanelSummary>
+            <Divider style={{ marginBottom: 12 }} />
+            <ExpansionPanelDetails>
+                <Grid container spacing={1}>
+                    <Grid item xs={12} container spacing={1}>
+                        <Grid item xs={12} sm align="center">
+                            <Typography component="span" variant="body1" color="textSecondary" style={{ paddingRight: 8 }}>Data Timestamp:</Typography>
+                            {/* <Typography component="span" variant="body1" color="textPrimary">{adjusted_data_ts}</Typography> */}
+                            <Typography component="span" variant="body1" color="textPrimary">adjusted_data_ts</Typography>
+                        </Grid>
+                    </Grid>
+
+                    <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
+
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="textPrimary">ROUTINE SITES</Typography>
+                    </Grid>
+                    
+                    <Grid item xs={12} container spacing={1}>
+                        {
+                            released_sites.map((row, key) => (
+                                <Grid key={`site-${row}`} item xs align="center">
+                                    <Typography variant="body1" color="textSecondary">{row}</Typography>
+                                </Grid>
+                            ))
+                        }
+                    </Grid>
+                </Grid>
+            </ExpansionPanelDetails>
+            <Divider />
+            <ExpansionPanelActions>
+                <Button
+                    size="small" color="primary" 
+                    startIcon={<PhoneAndroid />}
+                    onClick={smsHandler({
+                        type
+                    })}
+                    // endIcon={ is_sms_sent && <Done /> }
+                >
+                EWI SMS
                 </Button>
             </ExpansionPanelActions>
         </ExpansionPanel>
@@ -487,11 +571,13 @@ function MonitoringTables (props) {
     let latest_db_alerts = [];
     let extended_db_alerts = [];
     let overdue_db_alerts = [];
+    let routine_db_alerts = [];
     if (alertsFromDbData !== null) {
-        const { latest, extended, overdue } = alertsFromDbData;
+        const { latest, extended, overdue, routine } = alertsFromDbData;
         latest_db_alerts = latest;
         extended_db_alerts = extended;
         overdue_db_alerts = overdue;
+        routine_db_alerts = routine;
     }
 
     return (
@@ -611,6 +697,43 @@ function MonitoringTables (props) {
                         )
                     }
                 </Grid>
+
+                {
+                    // eslint-disable-next-line no-nested-ternary
+                    alertsFromDbData === null ? (
+                        <MyLoader />
+                    ) : (
+                        routine_db_alerts.length > 0 && (
+                            <Grid item xs={12}>
+                                <Typography className={classes.sectionHead} variant="h5">Sites under Routine Monitoring</Typography>
+                            </Grid>
+                        )
+                    )
+                }
+                {
+                    // eslint-disable-next-line no-nested-ternary
+                    alertsFromDbData === null ? (
+                        <MyLoader />
+                    ) : (
+                        routine_db_alerts.length > 0 && (
+                            routine_db_alerts.map((row, index) => (
+                                <RoutineExpansionPanel
+                                    key={`routine-alert-${index + 1}`}
+                                    keyName={`routine-alert-${index + 1}`}
+                                    classes={classes}
+                                    siteAlert={row}
+                                    expanded={expanded}
+                                    handleExpansion={handleExpansion}
+                                    smsHandler={smsHandler}
+                                    index={index}
+                                    bulletinHandler={bulletinHandler}
+                                    type="routine"
+                                    history={history}
+                                />
+                            ))
+                        )
+                    )
+                }
 
                 <Grid item xs={12}>
                     <Typography className={classes.sectionHead} variant="h5">Sites with Due Alerts</Typography>

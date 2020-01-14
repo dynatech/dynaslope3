@@ -7,6 +7,7 @@ import datetime
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
 from src.models.users import UsersSchema
+from src.models.monitoring import OperationalTriggers
 
 
 ###############################
@@ -517,8 +518,8 @@ class AlertStatus(DB.Model):
     """
 
     __tablename__ = "alert_status"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": "analysis_db"}
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": "senslopedb"}
 
     stat_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts_last_retrigger = DB.Column(DB.DateTime)
@@ -531,7 +532,7 @@ class AlertStatus(DB.Model):
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
         "commons_db.users.user_id"), nullable=False)
 
-    trigger = DB.relationship("OperationalTriggers",
+    trigger = DB.relationship(OperationalTriggers,
                               backref=DB.backref(
                                   "alert_status", lazy="select", uselist=False),
                               primaryjoin="AlertStatus.trigger_id==OperationalTriggers.trigger_id",
@@ -573,43 +574,6 @@ class AlertStatusSync(DB.Model):
                 f" ts_ack: {self.ts_ack} alert_status: {self.alert_status}"
                 f" remarks: {self.remarks} user_id: {self.user_id}"
                 f" || TRIGGER: {self.trigger} || user: {self.user}")
-
-
-# class AlertStatus75(DB.Model):
-#     """
-#     Class representation of alert_status in senslopedb table
-#     """
-
-#     __tablename__ = "alert_status"
-#     __bind_key__ = "senslopedb"
-#     __table_args__ = {"schema": "senslopedb"}
-
-#     stat_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-#     ts_last_retrigger = DB.Column(DB.DateTime)
-#     trigger_id = DB.Column(DB.Integer, DB.ForeignKey(
-#         "ewi_db.operational_triggers.trigger_id"))
-#     ts_set = DB.Column(DB.DateTime)
-#     ts_ack = DB.Column(DB.DateTime)
-#     alert_status = DB.Column(DB.Integer)
-#     remarks = DB.Column(DB.String(450))
-#     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-#         "commons_db.users.user_id"), nullable=False)
-
-    # trigger = DB.relationship("OperationalTriggers",
-    #                           backref=DB.backref(
-    #                               "alert_status", lazy="select", uselist=False),
-    #                           primaryjoin="AlertStatus.trigger_id==OperationalTriggers.trigger_id",
-    #                           lazy="joined", innerjoin=True)
-
-    # user = DB.relationship(
-    #     "Users", backref=DB.backref("alert_status_ack", lazy="dynamic"), lazy="select")
-
-    # def __repr__(self):
-    #     return (f"Type <{self.__class__.__name__}> stat ID: {self.stat_id}"
-    #             f" ts_last_retrigger: {self.ts_last_retrigger} ts_set: {self.ts_set}"
-    #             f" ts_ack: {self.ts_ack} alert_status: {self.alert_status}"
-    #             f" remarks: {self.remarks} user_id: {self.user_id}"
-    #             f" || TRIGGER: {self.trigger} || user: {self.user}")
 
 
 class DataPresenceRainGauges(DB.Model):

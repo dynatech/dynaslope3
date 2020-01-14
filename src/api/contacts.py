@@ -92,7 +92,7 @@ def wrap_get_contacts_per_site(site_code=None):
     temp = {
         "site_ids": [],
         "site_codes": [],
-        "alert_level": 0,
+        # "alert_level": 0,
         "only_ewi_recipients": True
     }
 
@@ -101,14 +101,14 @@ def wrap_get_contacts_per_site(site_code=None):
     else:
         data = request.get_json()
 
-        for key in ["site_ids", "site_codes", "alert_level", "only_ewi_recipients"]:
+        for key in ["site_ids", "site_codes", "only_ewi_recipients"]:
             if key in data:
                 temp[key] = data[key]
 
     data = get_contacts_per_site(site_ids=temp["site_ids"],
                                  site_codes=temp["site_codes"],
                                  only_ewi_recipients=temp["only_ewi_recipients"],
-                                 alert_level=temp["alert_level"])
+                                 include_ewi_restrictions=True)
     return jsonify(data)
 
 

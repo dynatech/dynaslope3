@@ -28,6 +28,7 @@ from src.utils.monitoring import (
     get_latest_release_per_site, get_saved_event_triggers,
     get_monitoring_triggers, build_internal_alert_level,
     get_monitoring_releases_by_data_ts, get_routine_sites,
+    get_unreleased_routine_sites,
 
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
@@ -73,17 +74,8 @@ NO_DATA_HOURS_EXTENSION = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "NO_DATA_HOURS_EXTENSION"}, retrieve_attr="var_value")
 
 
-# @MONITORING_BLUEPRINT.route("/monitoring/run_alert_generation", methods=["GET"])
-# @MONITORING_BLUEPRINT.route("/monitoring/run_alert_generation/<site_id>", methods=["GET"])
-# def wrap_update_alert_gen(site_code=None):
-#     update_alert_gen(site_code=site_code)
-
-#     return "Ran alert generation..."
-
-
 @MONITORING_BLUEPRINT.route("/monitoring/get_unreleased_routine_sites/<data_timestamp>", methods=["GET"])
-@MONITORING_BLUEPRINT.route("/monitoring/get_unreleased_routine_sites/<data_timestamp>/<req_source>", methods=["GET"])
-def get_unreleased_routine_sites(data_timestamp, req_source=None):
+def wrap_get_unreleased_routine_sites(data_timestamp):
     """
     Returns a dictionary containing site codes of routine sites who have released EWI
     and have not released EWI.
@@ -97,26 +89,10 @@ def get_unreleased_routine_sites(data_timestamp, req_source=None):
     f_timestamp = data_timestamp
     if isinstance(data_timestamp, str):
         f_timestamp = datetime.strptime(data_timestamp, "%Y-%m-%d %H:%M:%S")
-    routine_sites = get_routine_sites(f_timestamp)
 
-    released_sites = []
-    unreleased_sites = []
-    for site_code in routine_sites:
-        # This is with the assumption that you are using data_timestamp
-        site_release = get_monitoring_releases_by_data_ts(site_code, f_timestamp)
-        if site_release:
-            released_sites.append(site_code)
-        else:
-            unreleased_sites.append(site_code)
+    output = get_unreleased_routine_sites(f_timestamp, only_site_code=True)
 
-    output = {
-        "released_sites": released_sites,
-        "unreleased_sites": unreleased_sites
-    }
-    if req_source:
-        return json.dumps(output)
-    else:
-        return output
+    return json.dumps(output)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_current_monitoring_summary_per_site/<site_id>", methods=["GET"])
@@ -887,7 +863,8 @@ def insert_ewi(internal_json=None):
                         event_alert_details)
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
-                        and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30):
+                        and current_event_alert.event.validity \
+                            == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
@@ -918,29 +895,28 @@ def insert_ewi(internal_json=None):
                         }
                         event_alert_id = write_monitoring_event_alert_to_db(
                             event_alert_details)
+                    # elif release_time >= (validity + timedelta(hours=alert_extension_limit)):
+                    #     # elif release_time >= (validity + timedelta(days=3)):
+                    #     print("---END OF EXTENDED")
+                    #     print("---LOWER FINALLY")
 
-                    elif release_time >= (validity + timedelta(hours=alert_extension_limit)):
-                        # elif release_time >= (validity + timedelta(days=3)):
-                        print("---END OF EXTENDED")
-                        print("---LOWER FINALLY")
-
-                        end_current_monitoring_event_alert(
-                            current_event_alert_id, datetime_data_ts)
-                        new_instance_details = {
-                            "event_details": {
-                                "site_id": site_id,
-                                "event_start": datetime_data_ts,
-                                "validity": None,
-                                "status": 1
-                            },
-                            "event_alert_details": {
-                                "pub_sym_id": pub_sym_id,
-                                "ts_start": datetime_data_ts
-                            }
-                        }
-                        instance_details = start_new_monitoring_instance(
-                            new_instance_details)
-                        event_alert_id = instance_details["event_alert_id"]
+                    #     end_current_monitoring_event_alert(
+                    #         current_event_alert_id, datetime_data_ts)
+                    #     new_instance_details = {
+                    #         "event_details": {
+                    #             "site_id": site_id,
+                    #             "event_start": datetime_data_ts,
+                    #             "validity": None,
+                    #             "status": 1
+                    #         },
+                    #         "event_alert_details": {
+                    #             "pub_sym_id": pub_sym_id,
+                    #             "ts_start": datetime_data_ts
+                    #         }
+                    #     }
+                    #     instance_details = start_new_monitoring_instance(
+                    #         new_instance_details)
+                    #     event_alert_id = instance_details["event_alert_id"]
 
             # Append the chosen event_alert_id
             release_details["event_alert_id"] = event_alert_id

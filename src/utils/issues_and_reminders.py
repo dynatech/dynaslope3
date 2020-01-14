@@ -52,7 +52,8 @@ def delete_issues_reminders_site_postings(site_id, event_id):
     """
     """
     irsp = IssuesRemindersSitePostings
-    result = irsp.query.filter(DB.and_(irsp.site_id == site_id, irsp.event_id == event_id)).first()
+    result = irsp.query.filter(
+        DB.and_(irsp.site_id == site_id, irsp.event_id == event_id)).first()
 
     DB.session.delete(result)
 
@@ -68,11 +69,13 @@ def process_transaction_logs(site_id_list, postings, is_event_entry, new_issue_a
             for site_id in site_id_list:
                 is_site_posted = False
                 if postings:
-                    is_site_posted = bool(next(filter(lambda x: x["site_id"] == site_id, postings), None))
-                
+                    is_site_posted = bool(
+                        next(filter(lambda x: x["site_id"] == site_id, postings), None))
+
                 if not is_site_posted:
-                    write_iar_transaction_entry(new_issue_and_reminder_id, is_event_entry=is_event_entry, site_id=site_id)
-        
+                    write_iar_transaction_entry(
+                        new_issue_and_reminder_id, is_event_entry=is_event_entry, site_id=site_id)
+
         # Delete unneeded logs
         if postings:
             for post in postings:
@@ -80,8 +83,9 @@ def process_transaction_logs(site_id_list, postings, is_event_entry, new_issue_a
                 if site_id_list:
                     if site_id not in site_id_list:
                         event_id = post["event_id"]
-                        delete_issues_reminders_site_postings(site_id, event_id)
-        
+                        delete_issues_reminders_site_postings(
+                            site_id, event_id)
+
         DB.session.commit()
     except Exception as err:
         DB.session.rollback()
@@ -92,7 +96,7 @@ def process_transaction_logs(site_id_list, postings, is_event_entry, new_issue_a
     print(get_process_status_log("process_transaction_logs", "end"))
 
     # else:
-    #     write_iar_transaction_entry(new_issue_and_reminder_id, is_event_entry=False, site_id=None)    
+    #     write_iar_transaction_entry(new_issue_and_reminder_id, is_event_entry=False, site_id=None)
 
 
 def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_expiration, resolved_by, resolution, ts_resolved, site_id_list, is_event_entry, postings=None):
@@ -117,7 +121,8 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_expiration
                 ts_posted = datetime.strptime(ts_posted, "%Y-%m-%d %H:%M:%S")
             if not isinstance(ts_expiration, datetime):
                 if ts_expiration != "Invalid date":
-                    ts_expiration = datetime.strptime(ts_expiration, "%Y-%m-%d %H:%M:%S")
+                    ts_expiration = datetime.strptime(
+                        ts_expiration, "%Y-%m-%d %H:%M:%S")
                 else:
                     ts_expiration = None
     except Exception as err:
@@ -125,7 +130,8 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_expiration
         pass
 
     try:
-        issue_reminder_row = IssuesAndReminders.query.filter_by(iar_id=iar_id).first()
+        issue_reminder_row = IssuesAndReminders.query.filter_by(
+            iar_id=iar_id).first()
         issue_and_reminder_id = iar_id
 
         if issue_reminder_row:
@@ -137,7 +143,7 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_expiration
             issue_reminder_row.resolution = resolution
             issue_reminder_row.resolved_by = resolved_by
             issue_reminder_row.ts_resolved = ts_resolved
-            
+
             DB.session.commit()
             # issue_reminder_row.site_id_list = site_id_list
             # issue_reminder_row.is_event_entry = is_event_entry
@@ -157,10 +163,11 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_expiration
             DB.session.add(issue_and_reminder)
             DB.session.flush()
             issue_and_reminder_id = issue_and_reminder.iar_id
-            
+
             print(get_process_status_log("write_issue_reminder_to_db", "end"))
 
-        process_transaction_logs(site_id_list, postings, is_event_entry, issue_and_reminder_id)
+        process_transaction_logs(
+            site_id_list, postings, is_event_entry, issue_and_reminder_id)
 
     except Exception as err:
         print(err)
@@ -187,7 +194,8 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
     iar = IssuesAndReminders
     irp = IssuesRemindersSitePostings
     # base = DB.session.query(iar)
-    base = DB.session.query(iar).options(joinedload(iar.postings).joinedload(irp.event)).filter(iar.resolution == None)
+    base = iar.query.options(joinedload(iar.postings).joinedload(
+        irp.event)).filter(iar.resolution == None)
     return_data = None
 
     if start and end:
@@ -198,9 +206,11 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
             base = base.filter(iar.detail.ilike("%" + search + "%"))
 
         if not include_expired:
-            base = base.filter(DB.or_(iar.ts_expiration > datetime.now(), iar.ts_expiration == None))
+            base = base.filter(
+                DB.or_(iar.ts_expiration > datetime.now(), iar.ts_expiration == None))
 
-        issues_and_reminders = base.order_by(DB.desc(iar.ts_posted)).limit(limit).offset(offset).all()
+        issues_and_reminders = base.order_by(
+            DB.desc(iar.ts_posted)).limit(limit).offset(offset).all()
         DB.session.commit()
 
         if include_count:
@@ -209,7 +219,8 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
         else:
             return_data = issues_and_reminders
     else:
-        issues_and_reminders = base.order_by(DB.desc(iar.timestamp)).filter(iar.event_id == event_id).all()
+        issues_and_reminders = base.order_by(
+            DB.desc(iar.timestamp)).filter(iar.event_id == event_id).all()
         DB.session.commit()
         return_data = issues_and_reminders
 

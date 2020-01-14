@@ -84,17 +84,6 @@ class ScreenDrawer extends Component {
                 >
                     <div className={classes.list}>
                         <Toolbar className={classes.drawerHeader}>
-                            {/* <img className={classes.dynaslopeLogo} src={DynaLogo} alt="Dynaslope Logo" />
-                            <div className={classes.titleBlock}>
-                                <Typography variant="subtitle1" className={classes.projectTitle}>
-                                Project Dynaslope
-                                </Typography>
-                                <Typography variant="caption" className={classes.projectSubtitle}>
-                                    IMPLEMENTED<br />AND FUNDED BY
-                                </Typography>
-                            </div>
-                            
-                            <img className={classes.phivolcsLogo} src={DostPhivolcsLogo} alt="PHIVOLCS Logo" /> */}
                             <img
                                 src={PhivolcsDynaslopeLogo}
                                 alt="PHIVOLCS-Dynaslope Logo"
@@ -107,13 +96,12 @@ class ScreenDrawer extends Component {
                             <Typography variant="subtitle2" className={classes.projectSubtitle}>
                                 Monitoring and Information Application
                             </Typography>
-
                         </Toolbar>
 
                         <Divider />
 
                         <List component="nav">
-                            <ListItem button>
+                            {/* <ListItem button>
                                 <ListItemIcon>
                                     <Badge badgeContent={4} color="secondary">
                                         <MailIcon />
@@ -128,7 +116,7 @@ class ScreenDrawer extends Component {
                                     </Badge>
                                 </ListItemIcon>
                                 <ListItemText primary="Notifications" />
-                            </ListItem>
+                            </ListItem> */}
                             <ListItem button>
                                 <ListItemIcon>
                                     <AccountCircle />

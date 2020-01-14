@@ -21,7 +21,11 @@ from src.utils.chatterbox import (
     insert_message_on_database,
     get_search_results
 )
-from src.utils.contacts import get_all_contacts, get_recipients_option
+from src.utils.contacts import (
+    get_all_contacts,
+    get_recipients_option,
+    get_ground_measurement_reminder_recipients
+)
 
 CLIENTS = []
 MESSAGES = {
@@ -47,9 +51,14 @@ def communication_background_task():
     global MESSAGES
     global ROOM_MOBILE_IDS
     inbox_messages_arr = MESSAGES["inbox"]
+    is_first_run = False
+    ground_meas_run = False
 
     while True:
         try:
+            is_first_run, ground_meas_run = process_ground_measurement_reminder(
+                is_first_run, ground_meas_run)
+
             updates = get_sms_user_updates()
             update_process_start = datetime.now()
 
@@ -84,7 +93,7 @@ def communication_background_task():
 
                         MESSAGES["inbox"][inbox_index]["messages"] = msgs_schema
 
-                    unsent_messages_arr = get_unsent_messages()
+                    unsent_messages_arr = get_unsent_messages(duration=1)
                     unsent_messages = format_unsent_messages(
                         unsent_messages_arr)
 
@@ -100,7 +109,8 @@ def communication_background_task():
 
                         ROOM_MOBILE_IDS[mobile_id]["details"]["messages"] = msgs_schema
 
-                        SOCKETIO.emit("receive_mobile_id_room_update", ROOM_MOBILE_IDS[mobile_id]["details"],
+                        SOCKETIO.emit("receive_mobile_id_room_update",
+                                      ROOM_MOBILE_IDS[mobile_id]["details"],
                                       room=mobile_id, namespace="/communications")
                 elif update_source == "blocked_numbers":
                     if inbox_index > -1:
@@ -123,6 +133,7 @@ def communication_background_task():
                 print("")
 
             update_process_end = datetime.now()
+
             if updates:
                 print("")
                 print(f"COMMS UPDATE PROCESS LOOP (WS) {len(updates)} updates",
@@ -166,13 +177,6 @@ def disconnect():
             row["users"].remove(sid)
         except ValueError:
             pass
-
-
-@SOCKETIO.on("get_latest_messages", namespace="/communications")
-def wrap_get_latest_messages():
-    sid = request.sid
-    SOCKETIO.emit("receive_latest_messages", MESSAGES,
-                  room=sid, namespace="/communications")
 
 
 @SOCKETIO.on("get_latest_messages", namespace="/communications")
@@ -295,6 +299,30 @@ def get_inbox():
 
 def get_contacts(orientation):
     return get_all_contacts(return_schema=True, orientation=orientation)
+
+
+def process_ground_measurement_reminder(is_first_run, ground_meas_run):
+    ts_now = datetime.now()
+    if ts_now.hour in [5, 9, 13] and ts_now.minute == 30:
+        if not is_first_run:
+            is_first_run = True
+            ground_meas_run = True
+    else:
+        ground_meas_run = False
+        is_first_run = False
+
+    if ground_meas_run:
+        ground_meas_run = False
+        recipients_group = get_ground_measurement_reminder_recipients(ts_now)
+
+        for row in recipients_group:
+            recipients = row["recipients"]
+
+            if recipients:
+                # TODO: send message
+                print("send messages - ground measurement reminder")
+
+    return is_first_run, ground_meas_run
 
 
 def main():

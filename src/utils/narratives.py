@@ -131,7 +131,7 @@ def write_narratives_to_db(site_id, timestamp, narrative, type_id, user_id, even
 
     Args:
         site_id (Integer)
-        event_id (Integer) - not required
+        event_id (Integer)
         timestamp  (DateTime)
         narratives (String)
 

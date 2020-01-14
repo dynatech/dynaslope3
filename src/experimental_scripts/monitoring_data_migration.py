@@ -1,16 +1,20 @@
+import os
 import sys
 sys.path.append(
     r"D:\Users\swat-dynaslope\Documents\DYNASLOPE-3.0\dynaslope3-final")
-from run import APP
+from connection import create_app
 from pprint import pprint
 from connection import DB
 from src.models.sites import Sites
 from src.models.monitoring_old import (
     OldMonitoringEvents, OldMonitoringManifestation,
-    OldMonitoringManifestationFeatures, OldUsers
+    OldMonitoringManifestationFeatures, OldUsers, OldMonitoringReleases
 )
 from src.models.monitoring import *
 from src.models.narratives import Narratives
+
+from datetime import datetime
+
 
 def get_public_alert_level(internal_alert_level, return_triggers=False, include_ND=False):
     alert = internal_alert_level.split("-")
@@ -35,6 +39,7 @@ def get_public_alert_level(internal_alert_level, return_triggers=False, include_
 
     return public_alert
 
+
 EVENT_STATUS = {
     "on-going": 2,
     "extended": 2,
@@ -46,8 +51,8 @@ EVENT_STATUS = {
 
 def get_events():
     return OldMonitoringEvents.query.order_by(
-        OldMonitoringEvents.event_start).filter(OldMonitoringEvents.event_id > 9000).all()
-        # next .filter(DB.and_(OldMonitoringEvents.event_id > 1050, OldMonitoringEvents.event_id <= ? ))
+        OldMonitoringEvents.event_start).all()
+    # next .filter(DB.and_(OldMonitoringEvents.event_id > 1050, OldMonitoringEvents.event_id <= ? ))
     # return OldMonitoringEvents.query.filter(OldMonitoringEvents.site_id == 12).order_by(OldMonitoringEvents.event_start).all()
     # return OldMonitoringEvents.query.filter(OldMonitoringEvents.event_id == 51).all()
 
@@ -185,8 +190,8 @@ def insert_to_moms_instances_table(feature):
 
     result = MomsInstances.query.options(DB.raiseload("*")).filter(
         DB.and_(MomsInstances.site_id == feature.site_id,
-        MomsInstances.feature_id == feature_id,
-        MomsInstances.feature_name == feature.feature_name)).first()
+                MomsInstances.feature_id == feature_id,
+                MomsInstances.feature_name == feature.feature_name)).first()
 
     if result is None:
         # If not exists, insert new instance
@@ -240,6 +245,7 @@ def insert_to_moms_table(release):
         id_list.append(moms_entry.moms_id)
 
     return id_list
+
 
 def insert_non_triggering_to_moms_table():
     """
@@ -339,9 +345,64 @@ def main():
         process_event_releases(releases, site_id, last_event_alert, ts_start_for_next_event)
 
     # For testing - Inserts moms without release_id
-    # insert_non_triggering_to_moms_table()
+    insert_non_triggering_to_moms_table()
 
     DB.session.commit()
+
+# def main():
+#     rr = OldMonitoringReleases
+#     ts = datetime.strptime("2019-12-20 11:30:00", "%Y-%m-%d %H:%M:%S")
+#     a = rr.query.filter(rr.data_timestamp == ts).all()
+
+#     for row in a:
+#         old_event_id = row.event_id
+#         _, trigger_list = get_public_alert_level(
+#             row.internal_alert_level, return_triggers=True, include_ND=True)
+
+#         c = MonitoringEvents.query.filter_by(event_id=old_event_id).first()
+#         if c:
+#             last_event_alert = get_last_event_alert(old_event_id)
+
+#             new_release = MonitoringReleases(
+#                 release_id=row.release_id,
+#                 event_alert_id=last_event_alert.event_alert_id,
+#                 data_ts=row.data_timestamp,
+#                 trigger_list=trigger_list,
+#                 release_time=row.release_time,
+#                 bulletin_number=row.bulletin_number
+#             )
+
+#             publisher_ct, publisher_mt = prepare_release_publishers(
+#                 row.release_id, row)
+
+#             DB.session.bulk_save_objects(
+#                 [new_release, publisher_ct, publisher_mt])
+
+#             print("not routine", row.data_timestamp)
+#         else:
+#             # old_event = OldMonitoringEvents.query.filter_by(
+#             #     event_id=old_event_id).first()
+#             # new_event = get_last_site_event(old_event.site_id)
+#             # event_alert = get_last_event_alert(new_event.event_id)
+
+#             # new_release = MonitoringReleases(
+#             #     release_id=row.release_id,
+#             #     event_alert_id=event_alert.event_alert_id,
+#             #     data_ts=row.data_timestamp,
+#             #     trigger_list=trigger_list,
+#             #     release_time=row.release_time,
+#             #     bulletin_number=row.bulletin_number
+#             # )
+
+#             # publisher_ct, publisher_mt = prepare_release_publishers(
+#             #     row.release_id, row)
+
+#             # DB.session.bulk_save_objects(
+#             #     [new_release, publisher_ct, publisher_mt])
+
+#             print("routine find last routine and event_alert", row.data_timestamp)
+
+#     DB.session.commit()
 
 
 def process_event_releases(releases, site_id, last_event_alert, ts_start_for_next_event):
@@ -440,4 +501,7 @@ def prepare_release_publishers(release_id, release):
 
 
 if __name__ == "__main__":
+    CONFIG_NAME = os.getenv("FLASK_CONFIG")
+    create_app(CONFIG_NAME, skip_memcache=True,
+                 skip_websocket=True)
     main()

@@ -46,9 +46,12 @@ def get_quick_inbox(inbox_limit=50, messages_per_convo=20):
     return messages
 
 
-def get_unsent_messages():
+def get_unsent_messages(duration=1):
+    """
+    Args: duration (int) - in days
+    """
     vlum = ViewLatestUnsentMessages
-    date_filter = datetime.now() - timedelta(days=12)
+    date_filter = datetime.now() - timedelta(days=duration)
     unsent_messages_arr = vlum.query.filter(
         vlum.ts_written > date_filter).order_by(vlum.ts_written).all()
     return unsent_messages_arr
@@ -229,7 +232,7 @@ def get_sms_user_updates():
     # TODO: Group updates by mobile_id and source
     DB.session.flush()
     results = DB.session.query(SmsUserUpdates).order_by(
-        SmsUserUpdates.update_id).all()
+        SmsUserUpdates.update_id).limit(10).all()
     DB.session.commit()
 
     return results
