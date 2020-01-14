@@ -98,6 +98,9 @@ function MailBoxContainer (props) {
             const { status } = ret;
             if (status) {
                 set_snack_bar_data({ text: "Email sent!", color: green[600] });
+                setRecipientsDict(recip_default);
+                setSubject("");
+                setMailBody("");
             } else {
                 set_snack_bar_data({ text: "Email sent!", color: red[600] });
             }

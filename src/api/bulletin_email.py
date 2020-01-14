@@ -126,7 +126,7 @@ def get_bulletin_email_details(release_id):
             recipients.extend(APP_CONFIG["dynaslope_groups"])
     else:
         # NOTE to front-end. CHECK if TEST SERVER by using typeof object.
-        recipients.append({"TEST_SERVER_EMAIL": APP_CONFIG["dev_email"]})
+        recipients.append(APP_CONFIG["dev_email"])
 
     # PERPARE THE NARRATIVE
 
