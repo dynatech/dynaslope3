@@ -101,7 +101,6 @@ def wrap_send_routine_ewi_sms():
                 1, user_id, event_id \
             )
 
-
     response = {
         "message": "success",
         "status": True
