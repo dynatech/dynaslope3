@@ -44,6 +44,22 @@ export function getEWISMSRecipients (site_code, callback) {
     });
 }
 
+
+export function sendRoutineEwiMessage (payload, callback, error_callback) {
+    const api_link = `${host}/api/chatterbox/send_routine_ewi_sms`;
+
+    axios.post(api_link, payload)
+    .then(response => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+        error_callback(error);
+    });
+}
+
+
 export function sendMessage (payload, callback, error_callback) {
     const api_link = `${host}/api/chatterbox/send_message`;
 
