@@ -26,6 +26,9 @@ from src.utils.contacts import (
     get_recipients_option,
     get_ground_measurement_reminder_recipients
 )
+from src.utils.ewi import create_ground_measurement_reminder
+from src.utils.general_data_tag import insert_data_tag
+from src.utils.narratives import write_narratives_to_db, find_narrative_event_id
 
 CLIENTS = []
 MESSAGES = {
@@ -317,10 +320,40 @@ def process_ground_measurement_reminder(is_first_run, ground_meas_run):
 
         for row in recipients_group:
             recipients = row["recipients"]
+            monitoring_type = row["type"]
+            site_ids = row["site_ids"]
 
             if recipients:
-                # TODO: send message
-                print("send messages - ground measurement reminder")
+                message = create_ground_measurement_reminder(monitoring_type, ts_now)
+                recipient_list = []
+                for recipient in recipients:
+                    mobile_numbers = recipient["mobile_numbers"]
+                    recipient_list = recipient_list + mobile_numbers
+
+                outbox_id = insert_message_on_database({
+                    "sms_msg": message,
+                    "recipient_list": recipient_list
+                })
+
+                ts = datetime.now()
+                default_user_id = 2
+
+                # Tag message
+                tag_details = {
+                    "outbox_id": outbox_id,
+                    "user_id": default_user_id,
+                    "ts": ts
+                }
+
+                tag_id = 125 # NOTE: for refactoring, GroundMeasReminder number on sms_user_tags
+                insert_data_tag("smsoutbox_user_tags", tag_details, tag_id)
+
+                # Add narratives
+                narrative = f"Sent surficial ground data reminder for {monitoring_type} monitoring"
+                for site_id in site_ids:
+                    event_id = find_narrative_event_id(ts, site_id)
+                    write_narratives_to_db(
+                        site_id, ts, narrative, 1, default_user_id, event_id=event_id)
 
     return is_first_run, ground_meas_run
 

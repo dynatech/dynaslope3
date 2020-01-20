@@ -12,6 +12,7 @@ from src.utils.monitoring import update_alert_status
 from src.utils.issues_and_reminders import write_issue_reminder_to_db
 from src.api.issues_and_reminders import wrap_get_issue_reminder
 from src.api.manifestations_of_movement import wrap_write_monitoring_moms_to_db
+from src.utils.rainfall import get_all_site_rainfall_data
 from src.utils.extra import (
     var_checker, get_system_time, get_process_status_log,
     set_data_to_memcache, retrieve_data_from_memcache
@@ -24,6 +25,7 @@ set_data_to_memcache(name="ALERTS_FROM_DB", data=json.dumps({
     "latest": [], "extended": [], "overdue": [], "routine": {}
 }))
 set_data_to_memcache(name="ISSUES_AND_REMINDERS", data=json.dumps([]))
+set_data_to_memcache(name="RAINFALL_DATA", data=json.dumps([]))
 
 
 def emit_data(keyword, sid=None):
@@ -36,6 +38,8 @@ def emit_data(keyword, sid=None):
         data_to_emit = retrieve_data_from_memcache("ALERTS_FROM_DB")
     elif keyword == "receive_issues_and_reminders":
         data_to_emit = retrieve_data_from_memcache("ISSUES_AND_REMINDERS")
+    elif keyword == "receive_rainfall_data":
+        data_to_emit = retrieve_data_from_memcache("RAINFALL_DATA")
 
     # var_checker("data_list", data_list, True)
     if sid:
@@ -63,10 +67,15 @@ def monitoring_background_task():
                 set_data_to_memcache(name="ISSUES_AND_REMINDERS",
                                      data=wrap_get_issue_reminder())
 
+                rainfall_data = execute_get_all_site_rainfall_data()
+                set_data_to_memcache(name="RAINFALL_DATA",
+                                     data=rainfall_data)
+
                 emit_data("receive_generated_alerts")
                 emit_data("receive_alerts_from_db")
                 emit_data("receive_candidate_alerts")
                 emit_data("receive_issues_and_reminders")
+                emit_data("receive_rainfall_data")
 
             elif datetime.now().minute % 5 == 1:
                 print()
@@ -94,6 +103,14 @@ def monitoring_background_task():
                 emit_data("receive_generated_alerts")
                 emit_data("receive_candidate_alerts")
                 emit_data("receive_alerts_from_db")
+
+            # Update rainfall summary data
+            elif datetime.now().minute in [15, 45]:
+                rainfall_data = execute_get_all_site_rainfall_data()
+                set_data_to_memcache(name="RAINFALL_DATA",
+                                     data=rainfall_data)
+                emit_data("receive_rainfall_data")
+
         except Exception as err:
             print("")
             print("Monitoring Thread Exception")
@@ -123,6 +140,7 @@ def connect():
     emit_data("receive_alerts_from_db", sid=sid)
     emit_data("receive_candidate_alerts", sid=sid)
     emit_data("receive_issues_and_reminders", sid=sid)
+    emit_data("receive_rainfall_data", sid=sid)
 
 
 @SOCKETIO.on('disconnect', namespace='/monitoring')
@@ -330,6 +348,10 @@ def execute_update_db_alert_ewi_sent_status(alert_db_group, site_id, ewi_group):
 
         set_data_to_memcache("ALERTS_FROM_DB", json.dumps(json_alerts))
         emit_data("receive_alerts_from_db")
+
+
+def execute_get_all_site_rainfall_data():
+    return get_all_site_rainfall_data()
 
 
 @SOCKETIO.on("message", namespace="/monitoring")
