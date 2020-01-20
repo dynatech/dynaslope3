@@ -21,7 +21,7 @@ set_data_to_memcache(name="CLIENTS", data=[])
 set_data_to_memcache(name="GENERATED_ALERTS", data=json.dumps([]))
 set_data_to_memcache(name="CANDIDATE_ALERTS", data=json.dumps([]))
 set_data_to_memcache(name="ALERTS_FROM_DB", data=json.dumps({
-    "latest": [], "extended": [], "overdue": []
+    "latest": [], "extended": [], "overdue": [], "routine": {}
 }))
 set_data_to_memcache(name="ISSUES_AND_REMINDERS", data=json.dumps([]))
 
@@ -314,7 +314,7 @@ def execute_update_db_alert_ewi_sent_status(alert_db_group, site_id, ewi_group):
     json_alerts = json.loads(alerts_from_db)
 
     # TODO: supposed to be search kung existing sa latest, extended and overdue
-    # if wala then don't do updating
+    # if wala then don't update
     if alert_db_group:
         group = json_alerts[alert_db_group]
         alert = None

@@ -83,7 +83,7 @@ class UsersRelationship(Users):
 
     ewi_restriction = DB.relationship(
         "UserEwiRestrictions", backref=DB.backref("user", lazy="joined", innerjoin=True),
-        lazy="joined")
+        lazy="joined", uselist=False)
 
     teams = DB.relationship(
         "UserTeamMembers", backref=DB.backref("user", lazy="joined", innerjoin=True),
@@ -311,7 +311,7 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
         UserOrganizationsSchema, many=True, exclude=("user",))
 
     ewi_restriction = fields.Nested(
-        "UserEwiRestrictionsSchema", many=True, exclude=("user",))
+        "UserEwiRestrictionsSchema", exclude=("user",))
 
     teams = fields.Nested(
         "UserTeamsSchema", many=True, exclude=("user",))

@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useState, useEffect } from "react";
 import {
     Grid, Typography,
     Divider, Button
@@ -18,8 +18,9 @@ import GeneralStyles from "../../../GeneralStyles";
 import ValidationModal from "./ValidationModal";
 import useModal from "../../reusables/useModal";
 import BulletinModal from "../../widgets/bulletin/BulletinModal";
-import { getEWIMessage } from "../ajax";
+import { getEWIMessage, getRoutineEWIMessage } from "../ajax";
 import SendEwiSmsModal from "./SendEwiSmsModal";
+import SendRoutineEwiSmsModal from "./SendRoutineEwiSmsModal";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { CTContext } from "./CTContext";
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
@@ -325,7 +326,7 @@ function LatestSiteAlertsExpansionPanel (props) {
     } = props;
     const {
         event, internal_alert_level, releases,
-        day, sent_statuses
+        day, sent_statuses, public_alert_symbol
     } = siteAlert;
 
     const { is_sms_sent, is_bulletin_sent } = sent_statuses;
@@ -423,7 +424,10 @@ function LatestSiteAlertsExpansionPanel (props) {
                 <Button
                     size="small" color="primary" 
                     startIcon={<PhoneAndroid />}
-                    onClick={smsHandler({ release_id, site_code, site_id, type })}
+                    onClick={smsHandler({
+                        release_id, site_code, site_id,
+                        type, public_alert_symbol
+                    })}
                     endIcon={ is_sms_sent && <Done /> }
                 >
                     EWI SMS
@@ -434,7 +438,86 @@ function LatestSiteAlertsExpansionPanel (props) {
                     onClick={bulletinHandler({ release_id, site_code, site_id, type })}
                     endIcon={ is_bulletin_sent && <Done /> }
                 >
-                        Bulletin
+                    Bulletin
+                </Button>
+            </ExpansionPanelActions>
+        </ExpansionPanel>
+    );
+}
+
+function RoutineExpansionPanel (props) {
+    const { 
+        siteAlert, classes, expanded,
+        handleExpansion, smsHandler,
+        keyName, type
+    } = props;
+    const {
+        released_sites, unreleased_sites
+    } = siteAlert;
+
+    let adjusted_data_ts = released_sites[0].data_ts;
+    adjusted_data_ts = format_ts(adjusted_data_ts);
+
+    return (
+        <ExpansionPanel
+            expanded={expanded === keyName}
+            onChange={handleExpansion(keyName)}
+        >
+            <ExpansionPanelSummary
+            // expandIcon={<ExpandMoreIcon />}
+                aria-controls={`${keyName}bh-content`}
+                id={`${keyName}bh-header`}
+                classes={{ content: classes.expansionPanelSummaryContent }}
+            >
+                {
+                    ["ROUTINE", adjusted_data_ts].map((elem, i) => (
+                        <Typography
+                            key={`exp-columns-${i + 1}`}
+                            color="textSecondary"
+                            variant="body2"
+                        >
+                            {elem}
+                        </Typography>
+                    ))
+                }
+            </ExpansionPanelSummary>
+            <Divider style={{ marginBottom: 12 }} />
+            <ExpansionPanelDetails>
+                <Grid container spacing={1}>
+                    <Grid item xs={12} container spacing={1}>
+                        <Grid item xs={12} sm align="center">
+                            <Typography component="span" variant="body1" color="textSecondary" style={{ paddingRight: 8 }}>Data Timestamp:</Typography>
+                            {/* <Typography component="span" variant="body1" color="textPrimary">{adjusted_data_ts}</Typography> */}
+                            <Typography component="span" variant="body1" color="textPrimary">{adjusted_data_ts}</Typography>
+                        </Grid>
+                    </Grid>
+
+                    <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
+
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle2" color="textPrimary">ROUTINE SITES</Typography>
+                    </Grid>
+                    
+                    <Grid item xs={12} container spacing={1}>
+                        {
+                            released_sites.map((row, key) => (
+                                <Grid key={`site-${row.site_code}`} item xs={2} align="center">
+                                    <Typography variant="body1" color="textSecondary">{row.site_code.toUpperCase()}</Typography>
+                                </Grid>
+                            ))
+                        }
+                    </Grid>
+                </Grid>
+            </ExpansionPanelDetails>
+            <Divider />
+            <ExpansionPanelActions>
+                <Button
+                    size="small" color="primary" 
+                    startIcon={<PhoneAndroid />}
+                    onClick={smsHandler(released_sites)}
+                    // endIcon={ is_sms_sent && <Done /> }
+                >
+                EWI SMS
                 </Button>
             </ExpansionPanelActions>
         </ExpansionPanel>
@@ -453,9 +536,11 @@ function MonitoringTables (props) {
     const [isShowingValidation, setIsShowingValidation] = useState(false);
     const [validation_details, setValidationDetails] = useState({});
     const { isShowing: isShowingSendEWI, toggle: toggleSendEWI } = useModal();
+    const { isShowing: isShowingSendRoutineEWI, toggle: toggleSendRoutineEWI } = useModal();
     const [chosenReleaseDetail, setChosenReleaseDetail] = useState({});
     const [isOpenBulletinModal, setIsOpenBulletinModal] = useState(false);
     const { reporter_id_ct, setReporterIdCt, setCTFullName } = React.useContext(CTContext);
+    const [routine_site_id_list, setRoutineSiteIDList] = useState({});
     
     const handleExpansion = panel => (event, isExpanded) => {
         setExpanded(isExpanded ? panel : false);
@@ -469,6 +554,18 @@ function MonitoringTables (props) {
         getEWIMessage(release_id, data => {
             setEWIMessage(data);
             toggleSendEWI();
+        });
+    };
+
+    useEffect(() => {
+        console.log("reporter_id_ct", reporter_id_ct);
+    }, [reporter_id_ct]);
+
+    const routineSmsHandler = site_id_list => temp => {
+        getRoutineEWIMessage({}, data => {
+            setRoutineSiteIDList(site_id_list);
+            setEWIMessage(data);
+            toggleSendRoutineEWI();
         });
     };
 
@@ -487,11 +584,13 @@ function MonitoringTables (props) {
     let latest_db_alerts = [];
     let extended_db_alerts = [];
     let overdue_db_alerts = [];
+    let routine_db_alerts = [];
     if (alertsFromDbData !== null) {
-        const { latest, extended, overdue } = alertsFromDbData;
+        const { latest, extended, overdue, routine } = alertsFromDbData;
         latest_db_alerts = latest;
         extended_db_alerts = extended;
         overdue_db_alerts = overdue;
+        routine_db_alerts = routine;
     }
 
     return (
@@ -612,6 +711,36 @@ function MonitoringTables (props) {
                     }
                 </Grid>
 
+                {
+                    // eslint-disable-next-line no-nested-ternary
+                    alertsFromDbData === null ? (
+                        <MyLoader />
+                    ) : (
+                        typeof routine_db_alerts.released_sites !== "undefined" && routine_db_alerts.released_sites.length > 0 && (
+                            <Fragment>
+                                <Grid item xs={12}>
+                                    <Typography className={classes.sectionHead} variant="h5">Sites under Routine Monitoring</Typography>
+                                </Grid>
+                                <Grid item xs={12} style={{ marginBottom: 22 }}>
+                                    <RoutineExpansionPanel
+                                        key="routine-alert-panel"
+                                        keyName="routine-alert-panel"
+                                        classes={classes}
+                                        siteAlert={routine_db_alerts}
+                                        expanded={expanded}
+                                        handleExpansion={handleExpansion}
+                                        smsHandler={routineSmsHandler}
+                                        index={0}
+                                        bulletinHandler={bulletinHandler}
+                                        type="routine"
+                                        history={history}
+                                    />
+                                </Grid>
+                            </Fragment>
+                        )
+                    )
+                }
+
                 <Grid item xs={12}>
                     <Typography className={classes.sectionHead} variant="h5">Sites with Due Alerts</Typography>
                 </Grid>
@@ -660,6 +789,13 @@ function MonitoringTables (props) {
                 modalState={isShowingSendEWI}
                 textboxValue={ewi_message}
                 releaseDetail={chosenReleaseDetail}
+            />
+
+            <SendRoutineEwiSmsModal
+                modalStateHandler={toggleSendRoutineEWI} 
+                modalState={isShowingSendRoutineEWI}
+                textboxValue={ewi_message}
+                siteList={routine_site_id_list}
             />
         </div>
     );

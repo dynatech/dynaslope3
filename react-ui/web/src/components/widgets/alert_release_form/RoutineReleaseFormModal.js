@@ -35,7 +35,7 @@ function RoutineReleaseFormModal (props) {
         closeHandler, chosenCandidateAlert
     } = props;
     const { user_id: reporter_id_mt } = getCurrentUser();
-    const { reporter_id_ct } = React.useContext(CTContext);
+    const { reporter_id_ct: tmp_ct } = React.useContext(CTContext);
     const { sites } = useContext(GeneralContext);
 
     const [ewiPayload, setEwiPayload] = useState({});
@@ -46,7 +46,7 @@ function RoutineReleaseFormModal (props) {
         data_ts: null,
         release_time: moment(),
         general_status: "routine",
-        reporter_id_ct,
+        reporter_id_ct: tmp_ct,
         reporter_id_mt,
         non_triggering_moms: {}
     };
@@ -67,7 +67,7 @@ function RoutineReleaseFormModal (props) {
     const [NDSiteList, setNDSiteList] = useState({ ...nd_list });
     const [site_options, setSiteOptions] = useState([]);
 
-    const disabled = (a0SiteList.site_id_list.length === 0 && NDSiteList.site_id_list.length === 0) || reporter_id_ct === "";
+    const disabled = (a0SiteList.site_id_list.length === 0 && NDSiteList.site_id_list.length === 0) || tmp_ct === "";
 
     useEffect(() => {
         setRoutineData({ ...initial_routine_data });
@@ -118,13 +118,14 @@ function RoutineReleaseFormModal (props) {
                 site_id_list: []
             });
         }
-    }, [chosenCandidateAlert, reporter_id_ct, site_options]);
+    // }, [chosenCandidateAlert, reporter_id_ct, site_options]);
+    }, [chosenCandidateAlert, site_options]);
 
     const handleSubmit = () => {
         console.log("Submitting data...", ewiPayload);
 
         const f_data_ts = moment(routineData.data_ts).format("YYYY-MM-DD HH:mm:ss");
-        const f_rel_time = moment(routineData.release_time).format("YYYY-MM-DD HH:mm:ss");
+        const f_rel_time = moment(routineData.release_time).format("HH:mm:ss");
 
         const temp_payload = {
             ...routineData,

@@ -75,15 +75,24 @@ function SendMessageForm (props) {
             getEWISMSRecipients(siteCode, ewi_recipients_list => {
                 const temp_ewi_recipients = [];
                 const default_recipients = [];
-                const org_recipients = [];
+
+                const { type, public_alert_symbol: { alert_level } } = updateSentStatusObj;
 
                 ewi_recipients_list.forEach(item => {
                     if (item.mobile_numbers.length > 0) {
-                        const { user_id, last_name, first_name, organizations, ewi_recipient } = item;
-                        const org_name = organizations[0].organization.name.toUpperCase();
-
-                        if (!org_recipients.includes(org_name)) {
-                            org_recipients.push(org_name);
+                        const {
+                            user_id, last_name, first_name,
+                            organizations, ewi_recipient, ewi_restriction
+                        } = item;
+                        const { name, scope } = organizations[0].organization;
+                        let org_name = name.toUpperCase();
+                        
+                        if (name === "lgu") {
+                            let prefix;
+                            if (scope === 1) prefix = "B";
+                            if (scope === 2) prefix = "M";
+                            if (scope === 3) prefix = "P";
+                            org_name = prefix + org_name;
                         }
                     
                         const temp = {
@@ -93,12 +102,27 @@ function SendMessageForm (props) {
                         };
 
                         temp_ewi_recipients.push(temp);
-                        if (ewi_recipient === 1) default_recipients.push(temp);
+                        if (ewi_recipient === 1) {
+                            let to_push = true;
+                            if (type === "extended") { 
+                                // LEWC to MLGU
+                                to_push = false;
+                                if (name === "lewc" || (scope < 3 && name === "lgu")) to_push = true; 
+                            } else if (ewi_restriction !== null && alert_level !== 0 && alert_level < ewi_restriction.alert_level) {
+                                to_push = false;
+                            }
+                            
+                            if (to_push) default_recipients.push(temp);
+                        }
                     }
                 });
                 setOptions(temp_ewi_recipients);
                 setRecipients(default_recipients);
                 setIsLoadingRecipients(false);
+
+                // TODO: pass chosen release for alert level
+                // if extended, lewc and blgu only
+                // if regular release, remove people with restrictions
             });
         }
     }, [siteCode]);
@@ -144,8 +168,6 @@ function SendMessageForm (props) {
     const on_send_message_fn = () => {
         const recipient_list = [];
 
-        // TODO: ETO YUNG PANGKUHA NG RECIPIENTS PAG SA EWI SMS MODAL
-        // GAWA NG SARILI PAG GALING SA COMPOSE
         if (from_ewi_modal) {
             recipients.forEach(({ data: { mobile_numbers } }) => {
                 mobile_numbers.forEach(item => recipient_list.push({

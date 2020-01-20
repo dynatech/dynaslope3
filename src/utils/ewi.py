@@ -3,7 +3,7 @@
 
 import re
 import copy
-from datetime import timedelta
+from datetime import timedelta, datetime
 from src.utils.monitoring import (
     get_monitoring_releases, check_if_onset_release,
     get_next_ground_data_reporting, get_next_ewi_release_ts,
@@ -61,40 +61,56 @@ def get_highest_trigger(trigger_list_str):
     return sorted_arr[0]
 
 
-def create_ewi_message(release_id):
+def create_ewi_message(release_id=None):
     """
+    Returns ewi message for event, routine monitoring.
+
+    Arg:
+        release_id (Int) - by not providing a release_id, you are basically asking for a template.
+        In this case, routine ewi sms template.
     """
+    greeting = get_greeting(datetime.now())
+    address = "(site_location)"
+    ts_str = datetime.strftime(datetime.now(), "%Y-%m-%d")
+    alert_level = 0
+    data_ts = datetime.now()
+    monitoring_status = 2
+    is_onset = False
 
-    release_id = int(release_id)
-    release = get_monitoring_releases(
-        release_id=release_id, load_options="ewi_sms_bulletin")
-    data_ts = release.data_ts
+    if release_id:
+        release_id = int(release_id)
+        release = get_monitoring_releases(
+            release_id=release_id, load_options="ewi_sms_bulletin")
+        data_ts = release.data_ts
 
-    event_alert = release.event_alert
-    pub_sym_id = event_alert.pub_sym_id
-    event_alert_id = event_alert.event_alert_id
-    alert_level = event_alert.public_alert_symbol.alert_level
+        event_alert = release.event_alert
+        pub_sym_id = event_alert.pub_sym_id
+        event_alert_id = event_alert.event_alert_id
+        alert_level = event_alert.public_alert_symbol.alert_level
 
-    event = event_alert.event
-    site = event.site
-    validity = event.validity
-    monitoring_status = event.status
+        event = event_alert.event
+        site = event.site
+        validity = event.validity
+        monitoring_status = event.status
 
-    is_onset = check_if_onset_release(event_alert_id, release_id, data_ts)
-    updated_data_ts = data_ts
-    if not is_onset:
-        updated_data_ts = data_ts + timedelta(minutes=30)
+        is_onset = check_if_onset_release(event_alert_id, release_id, data_ts)
+        updated_data_ts = data_ts
+        if not is_onset:
+            updated_data_ts = data_ts + timedelta(minutes=30)
 
-    greeting = get_greeting(updated_data_ts)
-    address = build_site_address(site)
-    ts_str = format_timestamp_to_string(updated_data_ts)
+        greeting = get_greeting(updated_data_ts)
+        address = build_site_address(site)
+        ts_str = format_timestamp_to_string(updated_data_ts)
 
     # No ground measurement reminder if A3
     ground_reminder = ""
     if alert_level != 3:
-        has_active_markers = check_if_site_has_active_surficial_markers(
-            site_id=site.site_id)
-        g_data = "ground data" if has_active_markers else "ground observation"
+        if release_id:
+            has_active_markers = check_if_site_has_active_surficial_markers(
+                site_id=site.site_id)
+            g_data = "ground data" if has_active_markers else "ground observation"
+        else:
+            g_data = "ground data/ground observation"
         ground_reminder = f"Inaasahan namin ang pagpapadala ng LEWC ng {g_data} "
 
         is_alert_0 = alert_level == 0
@@ -112,7 +128,7 @@ def create_ewi_message(release_id):
 
             reporting_str = ""
 
-            if monitoring_status == 2:  # if monitoring status is event
+            if release_id and monitoring_status == 2:  # if monitoring status is event
                 reporting_date = format_timestamp_to_string(
                     reporting_ts, date_only=True)
                 modifier = f"bukas, {reporting_date},"

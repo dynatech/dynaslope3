@@ -121,7 +121,7 @@ function Header (props) {
 
                     <div className={classes.grow} />
                     <div className={classes.sectionDesktop}>
-                        <IconButton color="inherit">
+                        {/* <IconButton color="inherit">
                             <Badge badgeContent={4} color="secondary">
                                 <MailIcon />
                             </Badge>
@@ -130,7 +130,7 @@ function Header (props) {
                             <Badge badgeContent={17} color="secondary">
                                 <NotificationsIcon />
                             </Badge>
-                        </IconButton>
+                        </IconButton> */}
                         <Button
                             aria-owns="menu-list-grow"
                             aria-haspopup="true"
@@ -140,9 +140,6 @@ function Header (props) {
                         >
                             <strong>{first_name}</strong>
                         </Button>
-                        {/* <Typography variant="body2" component="div">
-                            <strong>Kevin Dhale</strong>
-                        </Typography> */}
                     </div>
                 </Toolbar>
             </AppBar>

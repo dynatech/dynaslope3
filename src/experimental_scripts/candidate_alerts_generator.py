@@ -248,7 +248,7 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
     except KeyError:
         pass
 
-    if general_status not in ["extended", "routine"]:
+    if general_status not in ["routine"]:
         triggers = alert_entry["event_triggers"]
         trigger_list_arr = []
 
@@ -291,12 +291,17 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         except KeyError:
             saved_event_triggers = []
 
+        try:
+            has_ground_data = alert_entry["has_ground_data"]
+        except KeyError:
+            has_ground_data = None
+
         formatted_alerts_for_ewi = {
             **formatted_alerts_for_ewi,
             "is_release_time": alert_entry["is_release_time"],
             "to_extend_validity": to_extend_validity,
             "trigger_list_arr": trigger_list_arr,
-            "has_ground_data": alert_entry["has_ground_data"],
+            "has_ground_data": has_ground_data,
             "saved_event_triggers": saved_event_triggers
         }
 
@@ -345,6 +350,7 @@ def fix_internal_alert(alert_entry, nd_internal_alert_sym):
         if invalid_triggers:  # If there are invalid triggers, yet there are valid triggers.
             validity_status = "partially_invalid"
     else:
+        trigger_list_str = "A1-"  # NOTE: just to signify invalid in dashboard at first glance
         validity_status = "invalid"
 
     public_alert_sym = internal_alert.split("-")[0]
@@ -388,7 +394,7 @@ def check_if_routine_extended_release_time(ts):
     """
     is_release_time = False
     if ts.hour == ROUTINE_EXTENDED_RELEASE_TIME.hour and \
-            ts.minute == ROUTINE_EXTENDED_RELEASE_TIME.minute:
+            ts.minute >= ROUTINE_EXTENDED_RELEASE_TIME.minute:
         is_release_time = True
     return is_release_time
 
@@ -411,7 +417,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
     release_interval_hours = RELEASE_INTERVAL_HOURS
 
     routine_sites_list = []
-    if query_end_ts.hour == routine_extended_release_time.hour:
+    if query_end_ts.hour == routine_extended_release_time.hour and \
+            query_end_ts.minute >= routine_extended_release_time.minute:
         ts = round_to_nearest_release_time(
             query_end_ts, release_interval_hours) - timedelta(minutes=30)
         temp_sites = get_unreleased_routine_sites(ts)

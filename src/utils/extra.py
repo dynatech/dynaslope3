@@ -43,9 +43,10 @@ def test_truncator(class_name=None, date=None):
 
         rows_deleted = base.delete()
         response = f"Deleted {rows_deleted} rows{add_on}{date_add_on}."
-        
+
     else:
-        raise Exception("YOU CAN NEVER USE THIS UTIL IF YOU DO NOT PROVIDE AT LEAST ONE OF THE PARAMS")
+        raise Exception(
+            "YOU CAN NEVER USE THIS UTIL IF YOU DO NOT PROVIDE AT LEAST ONE OF THE PARAMS")
 
     return response
 
@@ -100,7 +101,7 @@ def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True
         else:
             final_return_data = return_data
     else:
-        raise Exception("Table name provided is not found in memcached")
+        raise Exception(f"Table name '{table_name}' is not found in memcached")
 
     return final_return_data
 
