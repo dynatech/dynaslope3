@@ -94,9 +94,11 @@ function processTableData (data, data_handlers) {
             site_name: prepareSiteAddress(row.site, true, "start"),
             ts: moment(row.timestamp).format("DD MMMM YYYY, HH:mm:ss"),
             type: row.type_id,
+            user_details: `${row.user_details.first_name} ${row.user_details.last_name}`,
             actions: getManipulationButtons(row, data_handlers)
         }
     ));
+    console.log("processed", processed);
 
     return processed;
 }
@@ -287,6 +289,13 @@ function SiteLogs (props) {
             label: "Type",
             options: {
                 filter: true,
+            }
+        },
+        {
+            name: "user_details",
+            label: "Reporter",
+            options: {
+                filter: false,
             }
         },
         {
