@@ -92,3 +92,13 @@ export function receiveAlertsFromDB (callback) {
         callback(temp);
     });
 }
+
+export function receiveAllSiteRainfallData (callback) {
+    connectToWebsocket();
+
+    socket.on("receive_rainfall_data", data => {
+        const temp = JSON.parse(data);
+        console.log("All Site Rainfall Data: ", temp);
+        callback(temp);
+    });
+}

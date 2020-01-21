@@ -19,9 +19,9 @@ from src.models.organizations import (
     UserOrganizations
 )
 from src.models.gsm import SimPrefixes, SimPrefixesSchema
-from src.models.sites import Sites, SitesSchema
+from src.models.sites import Sites
 from src.models.user_ewi_status import UserEwiStatus, UserEwiStatusSchema
-from src.models.analysis import MarkerObservations, MarkerObservationsSchema
+from src.models.analysis import MarkerObservations
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 
 
@@ -73,7 +73,8 @@ def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None, only_ew
     if only_ewi_recipients:
         base_query = base_query.filter(Users.ewi_recipient == 1)
 
-    mobile_numbers = base_query.all()
+    # default is to get only active mobile numbers
+    mobile_numbers = base_query.filter(UserMobiles.status == 1).all()
 
     if return_schema:
         mobile_numbers = UserMobilesSchema(many=True).dump(mobile_numbers).data
@@ -186,13 +187,14 @@ def get_recipients_option(site_ids=None, site_codes=None,
 def get_contacts_per_site(site_ids=None,
                           site_codes=None, only_ewi_recipients=True,
                           include_ewi_restrictions=False, org_ids=None,
-                          return_schema_format=True):
+                          return_schema_format=True,
+                          include_inactive_numbers=False):
     """
     Function that get contacts per site
     """
 
     query = UsersRelationship.query.join(
-        UserOrganizations).join(Sites).options(
+        UserOrganizations).join(Sites).join(UserMobiles).options(
             DB.subqueryload("mobile_numbers").joinedload(
                 "mobile_number", innerjoin=True),
             DB.subqueryload("organizations").joinedload(
@@ -222,6 +224,9 @@ def get_contacts_per_site(site_ids=None,
         # uer = UserEwiRestrictions
         query = query.options(DB.joinedload("ewi_restriction"))
         schema_exclusions.remove("ewi_restriction")
+
+    if not include_inactive_numbers:
+        query = query.filter(UserMobiles.status == 1)
 
     user_per_site_result = query.all()
 
@@ -554,7 +559,7 @@ def get_ground_measurement_reminder_recipients(current_datetime):
         {"site_ids": final_site_ids["extended_site_ids"], "type": "extended"}
     ]
 
-    feedback = get_receipients_for_ground_meas(site_recipients)
+    feedback = get_recipients_for_ground_meas(site_recipients)
 
     return feedback
 
@@ -635,7 +640,7 @@ def remove_sites_with_ground_meas(
     return final_site_ids
 
 
-def get_receipients_for_ground_meas(site_recipients):
+def get_recipients_for_ground_meas(site_recipients):
     """
     Function that get recipient per site
     """
@@ -646,26 +651,28 @@ def get_receipients_for_ground_meas(site_recipients):
 
         if site_ids:
             user_per_site_query = UsersRelationship.query \
-                .join(
-                    UserOrganizations).join(Sites).options(
-                        DB.subqueryload("mobile_numbers").joinedload(
-                            "mobile_number", innerjoin=True),
-                        DB.subqueryload("organizations").joinedload(
-                            "site", innerjoin=True),
-                        DB.subqueryload("organizations").joinedload(
-                            "organization", innerjoin=True),
-                        DB.raiseload("*")
+                .join(UserOrganizations) \
+                .join(Sites) \
+                .join(UserMobiles) \
+                .options(
+                    DB.subqueryload("mobile_numbers").joinedload(
+                        "mobile_number", innerjoin=True),
+                    DB.subqueryload("organizations").joinedload(
+                        "site", innerjoin=True),
+                    DB.subqueryload("organizations").joinedload(
+                        "organization", innerjoin=True),
+                    DB.raiseload("*")
                 ).filter(
                     Users.ewi_recipient == 1, Sites.site_id.in_(site_ids),
-                    UserOrganizations.org_id == 1
+                    UserOrganizations.org_id == 1, UserMobiles.status == 1
                 ).all()
 
             user_per_site_result = UsersRelationshipSchema(
                 many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]
             ).dump(user_per_site_query).data
 
-        feedback.append(
-            {"type": row["type"], "recipients": user_per_site_result})
+        row["recipients"] = user_per_site_result
+        feedback.append(row)
 
     return feedback
 

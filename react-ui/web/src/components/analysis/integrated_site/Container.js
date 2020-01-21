@@ -1,6 +1,6 @@
 import React, { 
     Fragment, useState, 
-    useEffect
+    useEffect, useContext
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -31,9 +31,14 @@ import {
     getMOMsAlertSummary, getEarthquakeEvents, getEarthquakeAlerts,
     getDataPresenceData
 } from "../ajax";
+import { 
+    subscribeToWebSocket, unsubscribeToWebSocket,
+    receiveAllSiteRainfallData
+} from "../../../websocket/monitoring_ws";
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
+import { GeneralContext } from "../../contexts/GeneralContext";
 
 heatmap(Highcharts);
 
@@ -292,6 +297,114 @@ function prepareOptions (is_mobile, type, data_list) {
     return options;
 }
 
+function formatRainfallSummaryData (data) {
+    const list_1d = [];
+    const list_3d = [];
+    const site_codes = [];
+
+    data.forEach(record => {
+        const {
+            site_code,
+            "1D cml": cumulative_1d,
+            "3D cml": cumulative_3d,
+            "half of 2yr max": threshold_1d,
+            "2yr max": threshold_3d,
+            DataSource: data_source
+        } = record;
+
+        const temp_1d = cumulative_1d ? `${cumulative_1d} mm` : "No Data";
+        const temp_3d = cumulative_3d ? `${cumulative_3d} mm` : "No Data";
+
+        const cum_1d = {
+            y: (cumulative_1d / threshold_1d) * 100,
+            data_value: `<b><i>One Day Data</i></b><br>- Cumulative Data: <b>${temp_1d}</b><br>- Threshold: <b>${threshold_1d} mm</b>`,
+            data_source
+        };
+
+        const cum_3d = {
+            y: (cumulative_3d / threshold_3d) * 100,
+            data_value: `<b><i>Three Day Data</i></b><br>- Cumulative Data: <b>${temp_3d}</b><br>- Threshold: <b>${threshold_3d} mm</b>`,
+            data_source
+        };
+
+        list_1d.push(cum_1d);
+        list_3d.push(cum_3d);
+        site_codes.push(site_code.toUpperCase());
+    });
+
+    return {
+        list_1d, list_3d, site_codes
+    };
+}
+
+function prepareRainfallSummaryOption (rainfall_summary) {
+    const { site_codes, list_1d, list_3d } = rainfall_summary;
+    
+    return {
+        chart: {
+            type: "column"
+        },
+        title: {
+            text: "<b>Cumulative Rainfall Data vs Threshold Plot of Dynaslope Sites</b>",
+            style: { fontSize: "1rem" },
+            y: 20
+        },
+        subtitle: {
+            text: `As of: <b>${moment().format("D MMM YYYY, HH:mm")}</b><br>Note: Percentage capped at 100%`,
+        },
+        xAxis: {
+            categories: site_codes,
+            title: {
+                text: "<b>Sites</b>"
+            }
+        },
+        yAxis: {
+            min: 0,
+            max: 100,
+            title: {
+                text: "<b>Threshold Ratio (%)</b>"
+            }
+        },
+        tooltip: {
+            shared: true,
+            useHTML: true,
+            formatter () {
+                const { x, points } = this;
+                const { data_source } = points[0].point;
+                const source = data_source.replace(/_/g, " ");
+
+                let str = `<b>${x} (${source.toUpperCase()})</b><br>`;
+                points.forEach(point => {
+                    str += `${point.point.data_value}<br>`;
+                    str += `- Percentage: <b>${point.point.y.toFixed(2)}%</b><br>`;
+                });
+
+                return str;
+            }
+        },
+        plotOptions: {
+            column: {
+                grouping: false,
+                shadow: false
+            }
+        },
+        series: [{
+            name: "Three-day Cumulative Data",
+            data: list_3d,
+            pointPadding: 0, 
+            color: "#FF0000"
+        }, {
+            name: "One-day Cumulative Data",
+            data: list_1d,
+            pointPadding: 0.2
+
+        }],
+        credits: {
+            enabled: false
+        },
+    };
+}
+
 function Container (props) {
     const {
         width, location,
@@ -321,6 +434,9 @@ function Container (props) {
     const [loggers_dp_option, setLoggersDpOption] = useState(null);
     
     const [chart_instances, setChartInstances] = useState({});
+
+    const [rainfall_summary, setRainfallSummary] = useState(null);
+    const [rainfall_summary_option, setRainfallSummaryOption] = useState(null);
 
     const save_chart_instances_fn = name => chart => {
         setChartInstances(prev => ({ ...prev, [name]: chart }));
@@ -386,6 +502,23 @@ function Container (props) {
         const temp = createCustomLabels(chart_instances.subsurface, url);
         setSubsurfaceCustomLabel(temp);
     }, [chart_instances.subsurface, url]);
+
+    const { setIsReconnecting } = useContext(GeneralContext);
+    
+    useEffect(() => {
+        subscribeToWebSocket(setIsReconnecting);
+
+        receiveAllSiteRainfallData(data => {
+            const obj = formatRainfallSummaryData(data);
+            setRainfallSummary(obj);
+            const temp = prepareRainfallSummaryOption(obj);
+            setRainfallSummaryOption(temp);
+        });
+
+        return function cleanup () {
+            unsubscribeToWebSocket();
+        };
+    }, []);
 
     const [moms_alerts, setMOMsAlerts] = useState([]);
     useEffect(() => {
@@ -508,6 +641,21 @@ function Container (props) {
                                             </Paper>
                                         ) : (
                                             <MyLoader style={{ height: "100%" }}/>
+                                        )
+                                    }
+                                </Grid>
+
+                                <Grid item xs={12}>
+                                    {
+                                        rainfall_summary !== null ? (
+                                            <Paper elevation={2}>
+                                                <HighchartsReact
+                                                    highcharts={Highcharts}
+                                                    options={rainfall_summary_option}
+                                                />
+                                            </Paper>
+                                        ) : (
+                                            <div>Loading...</div>
                                         )
                                     }
                                 </Grid>

@@ -4,10 +4,11 @@
 """
 
 import json
+from datetime import datetime
 from connection import DB
 from src.models.analysis import RainfallAlerts as ra
 from src.utils.extra import get_unix_ts_value
-from analysis.rainfall.rainfall import web_plotter
+from analysis.rainfall.rainfall import main as rainfall_main, web_plotter
 
 
 def get_rainfall_alerts(site_id=None, latest_trigger_ts=None):
@@ -124,3 +125,13 @@ def process_rainfall_plot_data(rainfall_data):
         plot_data.append(temp)
 
     return plot_data
+
+
+def get_all_site_rainfall_data():
+    ts = datetime.now()
+    rainfall_summary = rainfall_main(
+        end=ts, Print=False,
+        write_to_db=False, print_plot=False, save_plot=False,
+        is_command_line_run=False)
+
+    return rainfall_summary

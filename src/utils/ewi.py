@@ -182,3 +182,22 @@ def create_ewi_message(release_id=None):
                    f"{third_line}Salamat.")
 
     return ewi_message
+
+
+def create_ground_measurement_reminder(monitoring_type, ts):
+    greeting = "umaga"
+    hour = ts.hour
+
+    if hour == 5:
+        time = "07:30 AM"
+    elif hour == 9:
+        time = "11:30 AM"
+    else:
+        greeting = "hapon"
+        time = "03:30 PM"
+
+    message = f"Magandang {greeting}. Inaasahan ang pagpapadala ng LEWC ng ground data " + \
+        f"bago mag-{time} para sa {monitoring_type} monitoring. Agad ipaalam kung may " + \
+        "makikitang manipestasyon ng paggalaw ng lupa o iba pang pagbabago sa site. Salamat."
+
+    return message
