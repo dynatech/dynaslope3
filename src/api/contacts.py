@@ -10,7 +10,8 @@ from src.utils.contacts import (
     save_user_contact_numbers, save_user_affiliation,
     ewi_recipient_migration, get_contacts_per_site,
     get_ground_measurement_reminder_recipients,
-    get_recipients_option
+    get_recipients_option,
+    get_blocked_numbers
 )
 
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
@@ -148,6 +149,35 @@ def get_ground_meas_reminder_recipients():
     """
     Function that get ground meas reminder recipients
     """
-    data = get_ground_measurement_reminder_recipients()
+    now = datetime.now()
+    # current_datetime = now.strftime("%Y-%m-%d %H:%M:%S")
+    data = get_ground_measurement_reminder_recipients(now)
 
     return jsonify(data)
+
+@CONTACTS_BLUEPRINT.route("/contacts/blocked_numbers", methods=["GET", "POST"])
+def get_all_blocked_numbers():
+    """
+    Function that gets all blocked numbers
+    """
+    try:
+        blocked_numbers = get_blocked_numbers()
+        status = True
+    except Exception as err:
+        blocked_numbers = []
+        status = False
+
+    feedback = {
+        "status": status,
+        "blocked_numbers": blocked_numbers
+    }
+
+    return jsonify(feedback)
+
+@CONTACTS_BLUEPRINT.route("/contacts/save_blocked_number", methods=["GET", "POST"])
+def save_blocked_number():
+    """
+    Function that save blocked number
+    """
+
+    return True

@@ -59,19 +59,19 @@ function conformTextMask (mobile_number) {
 function removeNumberMask (data, type) {
     const altered_data = [];
     if (type === "mobile") {
-        data.map((row, index) => {
-            row.sim_num = row.sim_num.replace(/[\(\)+-\s]/g, "");
+        data.forEach((row, index) => {
+            row.sim_num = row.sim_num.replace(/[()+-\s]/g, "");
             altered_data.push(row);
         });
     } else {
-        data.map((row, index) => {
+        data.forEach((row, index) => {
             delete row.mobile_id;
             const { landline_id } = row;
 
-            if (landline_id == undefined) {
+            if (landline_id === undefined) {
                 row.landline_id = 0;
             }
-            row.landline_num = row.landline_num.replace(/[\(\)+-\s]/g, "");
+            row.landline_num = row.landline_num.replace(/[()+-\s]/g, "");
             altered_data.push(row);
         });
     }
@@ -102,6 +102,50 @@ function userAffiliation (scope, site_details) {
         site,
         location
     };
+}
+
+function contactFormValidation (user_details, contact_numbers, affiliation) {
+    const { first_name, last_name } = user_details;
+    const { scope, site, office, location } = affiliation;
+    const { mobile_nums, landline_nums } = contact_numbers;
+    let is_sim_num_invalid = false;
+    let is_affiliation_invalid = false;
+    let is_landline_num_invalid = false;
+    let button_state = null;
+
+    mobile_nums.forEach((row, index) => {
+        const { sim_num } = row;
+        if (is_sim_num_invalid === false) {
+            if (sim_num === "") { is_sim_num_invalid = true; }
+            else { is_sim_num_invalid = sim_num.includes("x"); }
+        }
+    });
+
+    if (landline_nums.length !== 0)
+        landline_nums.forEach((row, index) => {
+            const { landline_num } = row;
+            if (is_landline_num_invalid === false) {
+                if (landline_num === "") { is_landline_num_invalid = true; }
+                else { is_landline_num_invalid = landline_num.includes("x"); }
+            }
+        });
+
+    if (scope === 0 || scope === 1) {
+        if (site === "" || office === "") { is_affiliation_invalid = true; }
+        else { is_affiliation_invalid = false; }
+    } else if (scope === 2 || scope === 3 || scope === 4) {
+        if (location === "" || office === "") { is_affiliation_invalid = true; }
+        else { is_affiliation_invalid = false; }
+    } else if (scope === 5) {
+        if (location === "") { is_affiliation_invalid = true; }
+        else { is_affiliation_invalid = false; }
+    }
+
+    if (first_name === "" || last_name === "" || is_sim_num_invalid === true || is_affiliation_invalid === true || is_landline_num_invalid === true) {
+        button_state = true;
+    } else { button_state = false; }
+
+    return button_state;
 }
 
 function reducerFunction (state, action) {
@@ -155,11 +199,12 @@ function ContactForm (props) {
     let initial_location = "";
     let initial_ewi_recipient = true;
     let initial_ewi_restriction = 0;
+    const initial_save_button_state = false;
     let initial_user_details = {
         first_name: "", last_name: "",
         middle_name: "", nickname: "", user_id: 0
     };
-
+    
     if (isEditMode) {
         const { mobile_numbers, user: {
             ewi_recipient, ewi_restriction, landline_numbers, emails, first_name,
@@ -177,9 +222,12 @@ function ContactForm (props) {
             initial_location = location;
     
         }
-        if (ewi_restriction.length !== 0) {
-            const { alert_level } = ewi_restriction[0];
-            initial_ewi_restriction = alert_level;
+
+        if (ewi_restriction !== null) {
+            if (ewi_restriction.length !== 0) {
+                const { alert_level } = ewi_restriction;
+                initial_ewi_restriction = alert_level;
+            }
         }
         const updated_mobile_numbers = mobile_numbers.map((row, index) => {
             const new_data = JSON.parse(JSON.stringify(row));
@@ -218,6 +266,7 @@ function ContactForm (props) {
     const [is_ewi_recipient, setEwiRecipient] = useState(initial_ewi_recipient);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const [restriction, setRestriction] = useState(initial_ewi_restriction);
+    const [save_button_state, setSaveButtonState] = useState(initial_save_button_state);
 
     const closeButtonFn = () => {
         if (isFromChatterbox) handleClose();
@@ -241,14 +290,20 @@ function ContactForm (props) {
     };
 
     useEffect(() => {
-
         let office_list = [];
         if (scope !== "") {
             office_list = offices_obj[scope];
             const o = office_list.map(x => ({ id: x.toLowerCase(), label: x }));
             setOffices(o);
+            if (!isEditMode) {
+                setSite("");
+                setLocation("");
+                setOffice("");
+            }
         }
+        
     }, [scope]);
+
 
     const [final_obj, setFinalObj] = useState({});
 
@@ -258,7 +313,20 @@ function ContactForm (props) {
                 ...user_details
             }
         });
-    }, [user_details]);
+
+        let button_state = true;
+        const affiliation = {
+            scope, site, office, location
+        };
+
+        const contact_numbers = {
+            mobile_nums, landline_nums
+        };
+
+        button_state = contactFormValidation(user_details, contact_numbers, affiliation);
+        setSaveButtonState(button_state);
+
+    }, [user_details, mobile_nums, landline_nums, scope, site, office, location]);
 
     const saveFunction = () => {
         const mobile_numbers = removeNumberMask(mobile_nums, "mobile");
@@ -408,8 +476,8 @@ function ContactForm (props) {
                     value={scope}
                     list={scope_list}
                     mapping={{ id: "id", label: "label" }}
-                    error
                     required
+                    error={scope === ""}
                 />
             </Grid>
 
@@ -435,8 +503,8 @@ function ContactForm (props) {
                             value={location}
                             list={scope_list[scope].list}
                             mapping={{ id: "id", label: "label" }}
-                            error
                             required
+                            error={location === ""}
                         />
                     </Grid>
                 )
@@ -450,8 +518,8 @@ function ContactForm (props) {
                     value={office}
                     list={offices}
                     mapping={{ id: "id", label: "label" }}
-                    error
                     required
+                    error={office === ""}
                 />
             </Grid>
             
@@ -479,8 +547,8 @@ function ContactForm (props) {
                     value={restriction}
                     list={restriction_list}
                     mapping={{ id: "id", label: "label" }}
-                    error
                     required
+                    error={restriction === ""}
                 />
             </Grid>
 
@@ -500,6 +568,12 @@ function ContactForm (props) {
                 mobile_nums.map((row, index) => {
                     const { sim_num, status, has_delete } = row;
                     const enable_delete = typeof has_delete !== "undefined";
+                    let is_sim_num_invalid = true;
+                    if (sim_num === "") {
+                        is_sim_num_invalid = true;
+                    } else {
+                        is_sim_num_invalid = sim_num.includes("x");
+                    }
                     return (
                         <Fragment key={index}>
                             <Grid item xs={7}>
@@ -522,6 +596,8 @@ function ContactForm (props) {
                                             inputComponent: TextMaskCustom,
                                             inputProps: { mask: mobile_number_mask }
                                         }}
+                                        required
+                                        error={is_sim_num_invalid}
                                     />
                                 </FormControl>
                             </Grid>
@@ -605,6 +681,12 @@ function ContactForm (props) {
             {
                 landline_nums.map((row, index) => {
                     const { landline_num } = row;
+                    let is_landline_valid = true;
+                    if (landline_num === "" ) {
+                        is_landline_valid = true;
+                    } else {
+                        is_landline_valid = landline_num.includes("x");
+                    }
                     return (
                         <Fragment key={index}>
                             <Grid item xs={10}>
@@ -627,6 +709,8 @@ function ContactForm (props) {
                                             inputProps: { mask: [/\d/, /\d/, /\d/, "-", /\d/, /\d/, /\d/, /\d/] }
                                             // startAdornment: <InputAdornment position="start">(+639)</InputAdornment>
                                         }}
+                                        required
+                                        error={is_landline_valid}
                                     />
                                 </FormControl>
                             </Grid>
@@ -735,7 +819,13 @@ function ContactForm (props) {
             </Grid>
 
             <Grid item xs={12} style={{ textAlign: "right" }}>
-                <Button color="secondary" variant="contained" style={{ marginRight: 6 }} onClick={() => saveFunction()}>
+                <Button 
+                    color="secondary" 
+                    variant="contained"
+                    style={{ marginRight: 6 }} 
+                    onClick={() => saveFunction()}
+                    disabled={save_button_state}
+                >
                     Save
                 </Button>
                 <Button variant="contained" onClick={() => setContactFormForEdit(false)}>
