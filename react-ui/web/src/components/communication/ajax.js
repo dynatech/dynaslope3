@@ -128,3 +128,16 @@ export function getBlockedContacts (callback) {
         console.error(error);
     });
 }
+
+export function saveBlockedContact (input, callback) {
+    const api_link = `${host}/api/contacts/save_block_number`;
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save blocked contact data reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}

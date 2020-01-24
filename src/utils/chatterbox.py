@@ -315,3 +315,12 @@ def get_search_results(obj):
         search_results.append(temp)
 
     return search_results
+
+def get_rain_info_sites():
+    """
+    Function that get rain info
+    """
+
+
+    return ""
+

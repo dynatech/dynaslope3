@@ -690,3 +690,20 @@ def get_blocked_numbers():
     result = BlockedMobileNumbersSchema(many=True).dump(query).data
 
     return result
+
+def save_blocked_number(data):
+    """
+    Function that save block number
+    """
+    now = datetime.now()
+    current_datetime = now.strftime("%Y-%m-%d %H:%M:%S")
+    mobile_id = data["mobile_id"]
+    reporter_id = data["reporter_id"]
+    reason = data["reason"]
+
+    insert_query = BlockedMobileNumbers(mobile_id=mobile_id, reason=reason,
+        reporter_id=reporter_id, ts=current_datetime)
+    DB.session.add(insert_query)
+
+
+    return True

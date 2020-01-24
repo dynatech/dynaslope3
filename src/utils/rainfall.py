@@ -128,8 +128,10 @@ def process_rainfall_plot_data(rainfall_data):
 
 
 def get_all_site_rainfall_data():
+    print("DITOOOOOOOOOOOO")
     ts = datetime.now()
     rainfall_summary = rainfall_main(
+        site_code='umi,agb',
         end=ts, Print=False,
         write_to_db=False, print_plot=False, save_plot=False,
         is_command_line_run=False)

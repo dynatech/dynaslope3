@@ -110,3 +110,11 @@ def get_site_season(site_code=None, site_id=None, return_schema_format=True):
         result = schema.dump(result).data
 
     return result
+
+def get_site_per(selector="province"):
+    """
+    Function that gets site per municipality, province, region
+    """
+    # query = Sites.query().filter_by(selector)
+
+    return True
