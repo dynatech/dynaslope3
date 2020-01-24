@@ -17,7 +17,6 @@ export function getListOfMunicipalities (callback) {
 
 export function saveContact (input, callback) {
     const api_link = `${host}/api/contacts/save_contact`;
-    console.log(input);
     axios.post(api_link, input)
     .then(response => {
         const { data } = response;
@@ -109,6 +108,20 @@ export function getRecipientsList (payload, callback) {
     .then(response => {
         const { data } = response;
         console.log("Selected recipients", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function getBlockedContacts (callback) {
+    const api_link = `${host}/api/contacts/blocked_numbers`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log(data);
         callback(data);
     })
     .catch(error => {

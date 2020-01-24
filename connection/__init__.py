@@ -145,9 +145,6 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     from src.api.contacts import CONTACTS_BLUEPRINT
     app.register_blueprint(CONTACTS_BLUEPRINT, url_prefix="/api")
 
-    from src.api.inbox_outbox import INBOX_OUTBOX_BLUEPRINT
-    app.register_blueprint(INBOX_OUTBOX_BLUEPRINT, url_prefix="/api")
-
     from src.api.chatterbox import CHATTERBOX_BLUEPRINT
     app.register_blueprint(CHATTERBOX_BLUEPRINT, url_prefix="/api")
 

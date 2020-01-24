@@ -75,7 +75,8 @@ const styles = theme => {
             textDecoration: "none"
         },
         valueFont: {
-            color: "black"
+            color: "black",
+            textDecoration: "none"
         },
 
         summary: {
@@ -115,20 +116,22 @@ function processShiftData (classes, select_by, raw_data) {
             const new_stuff = data.map((second_row, index2) => {
                 const {
                     general_status, site_code, 
-                    public_alert_level, event_id
+                    public_alert_level, event_id,
+                    trigger_list_str
                 } = second_row;
+                console.log("sec row", second_row);
 
                 const event_link = prepareEventTimelineLink(classes, event_id, site_code);
 
                 return (
-                    <Grid item xs={4} key={`site_alert_${ index2 + 1}`}>
-                        <Typography variant="body2" color="textSecondary">
-                            Site code: <span className={classes.valueFont}>{event_link}</span>
+                    <Grid item xs={4} key={`site_alert_${ index2 + 1}`} className={classes.summary}>
+                        <Typography variant="body2" className={classes.alignCenter}>
+                            <span className={classes.valueFont}>{event_link}</span>
                         </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                            Alert <span className={classes.valueFont}>{public_alert_level}</span>
+                        <Typography variant="body2" className={classes.alignCenter}>
+                            <span className={classes.valueFont}>Alert {public_alert_level} ({trigger_list_str})</span>
                         </Typography>
-                        <Typography variant="body2" color="textSecondary">
+                        <Typography variant="body2" color="textSecondary" className={classes.alignCenter}>
                             Monitoring status: <span className={classes.valueFont}>{capitalizeFirstLetter(general_status)}</span>
                         </Typography>
                     </Grid>
@@ -143,14 +146,19 @@ function processShiftData (classes, select_by, raw_data) {
                         id="panel1a-header"
                     >
                         <Grid container>
-                            <Grid item xs={6} className={classes.alignCenter}>
+                            <Grid item xs={4} className={classes.alignCenter}>
                                 <Typography color="textSecondary">
                                     Shift Date: <span className={classes.valueFont}>{moment(date).format("MMMM D, YYYY")}</span>
                                 </Typography>
                             </Grid>
-                            <Grid item xs={6} className={classes.alignCenter}>
+                            <Grid item xs={4} className={classes.alignCenter}>
                                 <Typography color="textSecondary">
                                     Sites Monitored: <span className={classes.valueFont}>{alert_summary}</span>
+                                </Typography>
+                            </Grid>
+                            <Grid item xs={4} className={classes.alignCenter}>
+                                <Typography color="textSecondary">
+                                    Shift Schedule: <span className={classes.valueFont}>{ampm}</span>
                                 </Typography>
                             </Grid>
                         </Grid>
@@ -159,27 +167,27 @@ function processShiftData (classes, select_by, raw_data) {
                     <ExpansionPanelDetails>
                         <Grid container spacing={2} className={classes.def_padding}>
                             <Grid item xs={4}>
-                                <Typography variant="body1" color="textPrimary" className={classes.alignCenter}>
-                                    {ampm}
-                                </Typography>
                                 <Typography variant="body1" color="textSecondary" className={classes.alignCenter}>
                                     Shift Schedule
                                 </Typography>
+                                <Typography variant="body1" color="textPrimary" className={classes.alignCenter}>
+                                    {ampm}
+                                </Typography>
                             </Grid>
                             <Grid item xs={4}>
-                                <Typography variant="body1" color="textPrimary" className={classes.alignCenter}>
-                                    {mt}
-                                </Typography>
                                 <Typography variant="body1" color="textSecondary" className={classes.alignCenter}>
                                     MT Personnel
                                 </Typography>
+                                <Typography variant="body1" color="textPrimary" className={classes.alignCenter}>
+                                    {mt}
+                                </Typography>
                             </Grid>
                             <Grid item xs={4}>
-                                <Typography variant="body1" color="textPrimary" className={classes.alignCenter}>
-                                    {ct}
-                                </Typography>
                                 <Typography variant="body1" color="textSecondary" className={classes.alignCenter}>
                                     CT Personnel
+                                </Typography>
+                                <Typography variant="body1" color="textPrimary" className={classes.alignCenter}>
+                                    {ct}
                                 </Typography>
                             </Grid>
                             <div style={{ paddingTop: 20, paddingBottom: 20 }}>
@@ -356,15 +364,16 @@ function prepareDataHeader (classes, ui_data, handlers) {
                 </Grid>                
             </Paper>
         );
-    } else {
-        dom_elements = (
-            <Paper className={classes.def_padding}>
-                <Typography variant="body1" color="textPrimary">
-                    {ui_ts_start} to {ui_ts_end}
-                </Typography>
-            </Paper>
-        );
     }
+    // } else {
+    //     dom_elements = (
+    //         <Paper className={classes.def_padding}>
+    //             <Typography variant="body1" color="textPrimary">
+    //                 {ui_ts_start} to {ui_ts_end}
+    //             </Typography>
+    //         </Paper>
+    //     );
+    // }
 
     setDataHeader(dom_elements);
 }

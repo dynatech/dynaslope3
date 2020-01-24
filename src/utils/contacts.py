@@ -12,16 +12,17 @@ from src.models.users import (
 )
 from src.models.mobile_numbers import (
     UserMobiles, UserMobilesSchema,
-    MobileNumbers
+    MobileNumbers, BlockedMobileNumbers,
+    BlockedMobileNumbersSchema
 )
 from src.models.organizations import (
     Organizations, OrganizationsSchema,
     UserOrganizations
 )
 from src.models.gsm import SimPrefixes, SimPrefixesSchema
-from src.models.sites import Sites, SitesSchema
+from src.models.sites import Sites
 from src.models.user_ewi_status import UserEwiStatus, UserEwiStatusSchema
-from src.models.analysis import MarkerObservations, MarkerObservationsSchema
+from src.models.analysis import MarkerObservations
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 
 
@@ -73,7 +74,8 @@ def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None, only_ew
     if only_ewi_recipients:
         base_query = base_query.filter(Users.ewi_recipient == 1)
 
-    mobile_numbers = base_query.all()
+    # default is to get only active mobile numbers
+    mobile_numbers = base_query.filter(UserMobiles.status == 1).all()
 
     if return_schema:
         mobile_numbers = UserMobilesSchema(many=True).dump(mobile_numbers).data
@@ -186,13 +188,14 @@ def get_recipients_option(site_ids=None, site_codes=None,
 def get_contacts_per_site(site_ids=None,
                           site_codes=None, only_ewi_recipients=True,
                           include_ewi_restrictions=False, org_ids=None,
-                          return_schema_format=True):
+                          return_schema_format=True,
+                          include_inactive_numbers=False):
     """
     Function that get contacts per site
     """
 
     query = UsersRelationship.query.join(
-        UserOrganizations).join(Sites).options(
+        UserOrganizations).join(Sites).join(UserMobiles).options(
             DB.subqueryload("mobile_numbers").joinedload(
                 "mobile_number", innerjoin=True),
             DB.subqueryload("organizations").joinedload(
@@ -222,6 +225,9 @@ def get_contacts_per_site(site_ids=None,
         # uer = UserEwiRestrictions
         query = query.options(DB.joinedload("ewi_restriction"))
         schema_exclusions.remove("ewi_restriction")
+
+    if not include_inactive_numbers:
+        query = query.filter(UserMobiles.status == 1)
 
     user_per_site_result = query.all()
 
@@ -453,13 +459,13 @@ def save_user_ewi_restriction(restriction, user_id):
     """
     Function that save user ewi restriction
     """
+    if restriction != 0:
+        UserEwiRestrictions.query.filter(
+            UserEwiRestrictions.user_id == user_id).delete()
 
-    UserEwiRestrictions.query.filter(
-        UserEwiRestrictions.user_id == user_id).delete()
-
-    save_restriction_query = UserEwiRestrictions(
-        user_id=user_id, alert_level=restriction)
-    DB.session.add(save_restriction_query)
+        save_restriction_query = UserEwiRestrictions(
+            user_id=user_id, alert_level=restriction)
+        DB.session.add(save_restriction_query)
 
     return True
 
@@ -554,7 +560,7 @@ def get_ground_measurement_reminder_recipients(current_datetime):
         {"site_ids": final_site_ids["extended_site_ids"], "type": "extended"}
     ]
 
-    feedback = get_receipients_for_ground_meas(site_recipients)
+    feedback = get_recipients_for_ground_meas(site_recipients)
 
     return feedback
 
@@ -567,62 +573,47 @@ def remove_sites_with_ground_meas(
     """
     Function that remove site id with ground meas
     """
+    
     year = current_datetime.year
     month = current_datetime.month
     day = current_datetime.day
 
     routine_reminder_time = datetime(year, month, day, 9, 30)
-    end_time = datetime(year, month, day, 9, 35)
+    routine_end_time = datetime(year, month, day, 9, 35)
+    one_thirty_reminder_time = datetime(year, month, day, 13, 30)
+    one_thirty_end_time = datetime(year, month, day, 13, 35)
+    five_thirty_reminder_time = datetime(year, month, day, 5, 30)
+    five_thirty_end_time = datetime(year, month, day, 5, 35)
 
-    if routine_reminder_time < current_datetime < end_time:
+    if routine_reminder_time < current_datetime < routine_end_time:
         if routine_site_ids or extended_site_ids:
-            run_down_ts = routine_reminder_time - \
-                timedelta(hours=4, minutes=30)
-            mo_result = MarkerObservations.query.filter(
-                MarkerObservations.ts.between(run_down_ts, routine_reminder_time)).all()
+            result = get_site_with_observation_and_remove(routine_reminder_time, timedelta_hour=4)
 
-            for row in mo_result:
-                site_id = row.site_id
-                if site_id in routine_site_ids:
-                    routine_site_ids.remove(site_id)
-                if site_id in extended_site_ids:
-                    extended_site_ids.remove(site_id)
+            for site_id in result:
+                routine_site_ids.remove(site_id)
+                extended_site_ids.remove(site_id)
 
         if event_site_ids:
-            run_down_ts = routine_reminder_time - \
-                timedelta(hours=1, minutes=30)
-            mo_result = MarkerObservations.query.filter(
-                MarkerObservations.ts.between(run_down_ts, routine_reminder_time)).all()
+            result = get_site_with_observation_and_remove(routine_reminder_time, timedelta_hour=1)
 
-            for row in mo_result:
-                site_id = row.site_id
-                if site_id in event_site_ids:
-                    event_site_ids.remove(site_id)
+            for site_id in result:
+                event_site_ids.remove(site_id)
     else:
         routine_site_ids = []
         extended_site_ids = []
 
-        five_thirty_reminder_time = datetime(year, month, day, 5, 30)
-        five_thirty_end_time = datetime(year, month, day, 5, 35)
+        # reminder_time = five_thirty_reminder_time
 
         if five_thirty_reminder_time < current_datetime < five_thirty_end_time:
-            run_down_ts = five_thirty_reminder_time - \
-                timedelta(hours=1, minutes=30)
-
-        one_thirty_reminder_time = datetime(year, month, day, 13, 30)
-        one_thirty_end_time = datetime(year, month, day, 13, 35)
+            reminder_time = five_thirty_reminder_time
 
         if one_thirty_reminder_time < current_datetime < one_thirty_end_time:
-            run_down_ts = one_thirty_reminder_time - \
-                timedelta(hours=1, minutes=30)
+            reminder_time = one_thirty_reminder_time
+        
+        result = get_site_with_observation_and_remove(reminder_time, timedelta_hour=1)
 
-        mo_result = MarkerObservations.query.filter(
-            MarkerObservations.ts.between(run_down_ts, one_thirty_reminder_time)).all()
-
-        for row in mo_result:
-            site_id = row.site_id
-            if site_id in event_site_ids:
-                event_site_ids.remove(site_id)
+        for site_id in result:
+            event_site_ids.remove(site_id)
 
     final_site_ids = {
         "routine_site_ids": routine_site_ids,
@@ -630,12 +621,17 @@ def remove_sites_with_ground_meas(
         "extended_site_ids": extended_site_ids
     }
 
-    print(final_site_ids)
-
     return final_site_ids
 
+def get_site_with_observation_and_remove(reminder_time, timedelta_hour=1):
+    run_down_ts = reminder_time - \
+        timedelta(hours=timedelta_hour, minutes=30)
+    mo_result = MarkerObservations.query.with_entities(MarkerObservations.site_id).filter(
+        MarkerObservations.ts.between(run_down_ts, reminder_time)).all()
 
-def get_receipients_for_ground_meas(site_recipients):
+    return mo_result
+
+def get_recipients_for_ground_meas(site_recipients):
     """
     Function that get recipient per site
     """
@@ -646,26 +642,28 @@ def get_receipients_for_ground_meas(site_recipients):
 
         if site_ids:
             user_per_site_query = UsersRelationship.query \
-                .join(
-                    UserOrganizations).join(Sites).options(
-                        DB.subqueryload("mobile_numbers").joinedload(
-                            "mobile_number", innerjoin=True),
-                        DB.subqueryload("organizations").joinedload(
-                            "site", innerjoin=True),
-                        DB.subqueryload("organizations").joinedload(
-                            "organization", innerjoin=True),
-                        DB.raiseload("*")
+                .join(UserOrganizations) \
+                .join(Sites) \
+                .join(UserMobiles) \
+                .options(
+                    DB.subqueryload("mobile_numbers").joinedload(
+                        "mobile_number", innerjoin=True),
+                    DB.subqueryload("organizations").joinedload(
+                        "site", innerjoin=True),
+                    DB.subqueryload("organizations").joinedload(
+                        "organization", innerjoin=True),
+                    DB.raiseload("*")
                 ).filter(
                     Users.ewi_recipient == 1, Sites.site_id.in_(site_ids),
-                    UserOrganizations.org_id == 1
+                    UserOrganizations.org_id == 1, UserMobiles.status == 1
                 ).all()
 
             user_per_site_result = UsersRelationshipSchema(
-                many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]
+                many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction", "mobile_numbers.mobile_number.blocked_mobile"]
             ).dump(user_per_site_query).data
 
-        feedback.append(
-            {"type": row["type"], "recipients": user_per_site_result})
+        row["recipients"] = user_per_site_result
+        feedback.append(row)
 
     return feedback
 
@@ -682,3 +680,13 @@ def get_site_ids(site_codes):
         site_ids.append(row.site_id)
 
     return site_ids
+    
+def get_blocked_numbers():
+    """
+    Function that gets blocked numbers
+    """
+    query = BlockedMobileNumbers.query.all()
+
+    result = BlockedMobileNumbersSchema(many=True).dump(query).data
+
+    return result

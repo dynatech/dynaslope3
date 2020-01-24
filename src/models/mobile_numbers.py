@@ -7,7 +7,7 @@ from marshmallow import fields
 from sqlalchemy.dialects.mysql import TINYINT, SMALLINT
 from connection import DB, MARSHMALLOW
 
-from src.models.users import UsersRelationship, UsersRelationshipSchema
+from src.models.users import UsersRelationship, UsersRelationshipSchema, Users
 
 
 class MobileNumbers(DB.Model):
@@ -71,6 +71,13 @@ class BlockedMobileNumbers(DB.Model):
     reporter_id = DB.Column(SMALLINT, DB.ForeignKey(
         "commons_db.users.user_id"))
     ts = DB.Column(DB.DateTime, nullable=False)
+    
+    reporter = DB.relationship(Users, backref=DB.backref(
+        "blocked_mobile_numbers", lazy="raise"),
+        lazy="joined", innerjoin=True)
+    mobile_number = DB.relationship(MobileNumbers, backref=DB.backref(
+        "blocked_mobile"),
+        lazy="joined", innerjoin=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Mobile ID: {self.mobile_id}"
@@ -103,4 +110,17 @@ class UserMobilesSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = UserMobiles
+
+class BlockedMobileNumbersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of BlockedNumbers class
+    """
+
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    reporter = fields.Nested("UsersSchema")
+    mobile_number = fields.Nested("MobileNumbersSchema", exclude=["blocked_mobile"])
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = BlockedMobileNumbers
 

@@ -49,6 +49,14 @@ ROUTINE_EXTENDED_RELEASE_TIME = DT.time()
 ##########################
 
 
+def update_routine_extended_release_time_copy():
+    global DT
+    global ROUTINE_EXTENDED_RELEASE_TIME
+    DT = datetime.combine(date.today(), time(hour=ROU_EXT_RELEASE_TIME, minute=0)) - \
+        timedelta(minutes=30)
+    ROUTINE_EXTENDED_RELEASE_TIME = DT.time()
+
+
 def remove_for_lowering_sites(candidates, db_alerts_dict):
     """
     Remove sites that are already released.
@@ -121,8 +129,8 @@ def process_totally_invalid_sites(totally_invalid_sites_list,
             generated_alert["ts"], "%Y-%m-%d %H:%M:%S")
         is_release_time = check_if_routine_extended_release_time(ts)
 
-        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
-                                            == site_code, extended))
+        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
+                                            site_code, extended))
         if is_in_extended_alerts:
             if is_release_time:
                 general_status = "extended"
@@ -410,7 +418,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
     totally_invalid_sites_list = []
 
-    # NOTE: LOUIE VARIABLES Routine Release Time
+    update_routine_extended_release_time_copy()
+
     global ROUTINE_EXTENDED_RELEASE_TIME
     global RELEASE_INTERVAL_HOURS
     routine_extended_release_time = ROUTINE_EXTENDED_RELEASE_TIME
@@ -460,8 +469,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 for event_trigger in site_w_alert["event_triggers"]:
                     saved_trigger = next(filter(
-                        lambda x: x["internal_sym"]["internal_sym_id"] ==
-                        event_trigger["internal_sym_id"],
+                        lambda x: x["internal_sym"]["internal_sym_id"]
+                        == event_trigger["internal_sym_id"],
                         saved_event_triggers), None)
 
                     is_trigger_new = False
@@ -535,10 +544,10 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             not_a0_db_alerts_list = list(filter(
                 lambda x: x["public_alert_symbol"]["alert_level"] != 0, merged_db_alerts_list_copy))
 
-            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
-                                              == site_code, not_a0_db_alerts_list))
-            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
-                                                == site_code, extended))
+            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
+                                              site_code, not_a0_db_alerts_list))
+            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
+                                                site_code, extended))
 
             is_release_time = True
             site_wo_alert["alert_level"] = 0

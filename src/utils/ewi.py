@@ -3,7 +3,7 @@
 
 import re
 import copy
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 from src.utils.monitoring import (
     get_monitoring_releases, check_if_onset_release,
     get_next_ground_data_reporting, get_next_ewi_release_ts,
@@ -69,11 +69,12 @@ def create_ewi_message(release_id=None):
         release_id (Int) - by not providing a release_id, you are basically asking for a template.
         In this case, routine ewi sms template.
     """
-    greeting = get_greeting(datetime.now())
+    today = date.today()
+    data_ts = datetime(today.year, today.month, today.day, 12, 0)
+    greeting = get_greeting(data_ts)
     address = "(site_location)"
-    ts_str = datetime.strftime(datetime.now(), "%Y-%m-%d")
+    ts_str = format_timestamp_to_string(data_ts)
     alert_level = 0
-    data_ts = datetime.now()
     monitoring_status = 2
     is_onset = False
 
@@ -123,7 +124,7 @@ def create_ewi_message(release_id=None):
         if alert_level in [1, 2]:
             ground_reminder += f"{modifier} bago mag-{reporting_time}. "
         else:
-            clause = " para sa "
+            clause = " para sa"
             reason = " susunod na routine monitoring"
 
             reporting_str = ""
@@ -146,7 +147,7 @@ def create_ewi_message(release_id=None):
                     reason = f" {extended_day} araw ng 3-day extended monitoring"
                     reporting_str = f"{modifier} bago mag-{reporting_time}"
 
-            ground_reminder += f"{reporting_str}{clause} {reason}."
+            ground_reminder += f"{reporting_str}{clause}{reason}."
 
     desc_and_response = ""
     next_ewi = ""
@@ -182,3 +183,22 @@ def create_ewi_message(release_id=None):
                    f"{third_line}Salamat.")
 
     return ewi_message
+
+
+def create_ground_measurement_reminder(monitoring_type, ts):
+    greeting = "umaga"
+    hour = ts.hour
+
+    if hour == 5:
+        time = "07:30 AM"
+    elif hour == 9:
+        time = "11:30 AM"
+    else:
+        greeting = "hapon"
+        time = "03:30 PM"
+
+    message = f"Magandang {greeting}. Inaasahan ang pagpapadala ng LEWC ng ground data " + \
+        f"bago mag-{time} para sa {monitoring_type} monitoring. Agad ipaalam kung may " + \
+        "makikitang manipestasyon ng paggalaw ng lupa o iba pang pagbabago sa site. Salamat."
+
+    return message
