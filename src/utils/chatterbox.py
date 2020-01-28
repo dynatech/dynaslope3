@@ -131,7 +131,8 @@ def get_user_mobile_details(mobile_id):
     mobile_schema = MobileNumbersSchema(exclude=[
         "user_details.user.landline_numbers",
         "user_details.user.emails",
-        "user_details.user.ewi_restriction"
+        "user_details.user.ewi_restriction",
+        "blocked_mobile"
     ]).dump(mobile_details).data
 
     return mobile_schema
@@ -319,3 +320,12 @@ def get_search_results(obj):
         search_results.append(temp)
 
     return search_results
+
+def get_rain_info_sites():
+    """
+    Function that get rain info
+    """
+
+
+    return ""
+

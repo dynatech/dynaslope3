@@ -17,7 +17,6 @@ export function getListOfMunicipalities (callback) {
 
 export function saveContact (input, callback) {
     const api_link = `${host}/api/contacts/save_contact`;
-    console.log(input);
     axios.post(api_link, input)
     .then(response => {
         const { data } = response;
@@ -44,6 +43,18 @@ export function getEWISMSRecipients (site_code, callback) {
     });
 }
 
+export function getRainInformation (input, callback) {
+    const api_link = `${host}/api/rainfall/get_all_site_rainfall_data`;
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Get rain information data reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
 
 export function sendRoutineEwiMessage (payload, callback, error_callback) {
     const api_link = `${host}/api/chatterbox/send_routine_ewi_sms`;
@@ -116,6 +127,33 @@ export function getRecipientsList (payload, callback) {
     });
 }
 
+export function getBlockedContacts (callback) {
+    const api_link = `${host}/api/contacts/blocked_numbers`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log(data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function saveBlockedContact (input, callback) {
+    const api_link = `${host}/api/contacts/save_block_number`;
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save blocked contact data reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function loadMoreMessages (mobile_id, batch, callback) {
     const api_link = `${host}/api/chatterbox/load_more_messages/${mobile_id}/${batch}`;
 
@@ -128,4 +166,3 @@ export function loadMoreMessages (mobile_id, batch, callback) {
     .catch(error => {
         console.error(error);
     });
-}

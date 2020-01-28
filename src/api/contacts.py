@@ -10,7 +10,8 @@ from src.utils.contacts import (
     save_user_contact_numbers, save_user_affiliation,
     ewi_recipient_migration, get_contacts_per_site,
     get_ground_measurement_reminder_recipients,
-    get_recipients_option
+    get_recipients_option, get_blocked_numbers,
+    save_blocked_number
 )
 
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
@@ -40,7 +41,7 @@ def save_contact():
         data = request.form
 
     status = None
-    message = "test"
+    message = ""
 
     try:
         if data["value"] is not None:
@@ -148,6 +149,65 @@ def get_ground_meas_reminder_recipients():
     """
     Function that get ground meas reminder recipients
     """
-    data = get_ground_measurement_reminder_recipients()
+    now = datetime.now()
+    # current_datetime = now.strftime("%Y-%m-%d %H:%M:%S")
+    data = get_ground_measurement_reminder_recipients(now)
 
     return jsonify(data)
+
+@CONTACTS_BLUEPRINT.route("/contacts/blocked_numbers", methods=["GET", "POST"])
+def get_all_blocked_numbers():
+    """
+    Function that gets all blocked numbers
+    """
+    try:
+        blocked_numbers = get_blocked_numbers()
+        status = True
+    except Exception as err:
+        blocked_numbers = []
+        status = False
+
+    feedback = {
+        "status": status,
+        "blocked_numbers": blocked_numbers
+    }
+
+    return jsonify(feedback)
+
+@CONTACTS_BLUEPRINT.route("/contacts/save_block_number", methods=["GET", "POST"])
+def save_block_number():
+    """
+    Function that save blocked number
+    """
+    data = request.get_json()
+    if data is None:
+        data = request.form
+
+    status = None
+    message = ""
+
+    try:
+        if data["value"] is not None:
+            data = data["value"]
+    except KeyError:
+        print("Value is defined.")
+        pass
+
+    try:
+        print(data)
+        save_blocked_number(data)
+        message = "Successfully blocked mobile number!"
+        status = True
+        DB.session.commit()
+    except Exception as err:
+        DB.session.rollback()
+        message = "Something went wrong, Please try again"
+        status = False
+        print(err)
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+
+    return jsonify(feedback)

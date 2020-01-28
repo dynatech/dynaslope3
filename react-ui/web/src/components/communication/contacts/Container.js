@@ -1,6 +1,7 @@
 import React, {
     Fragment, useState,
-    useEffect, useContext
+    useEffect, useContext,
+    createContext
 } from "react";
 
 import { withStyles } from "@material-ui/core/styles";
@@ -15,10 +16,12 @@ import {
     Toolbar, Dialog
 } from "@material-ui/core";
 import { 
-    Close, Call, Person, PersonAdd,
-    Block, Edit, PhoneAndroid, MailOutline
+    Close, Call, Person, PersonAdd, ViewList,
+    Block, Edit, PhoneAndroid, MailOutline,
+    Phone
 } from "@material-ui/icons";
 
+import moment from "moment";
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 import {
@@ -27,10 +30,11 @@ import {
 } from "../../../websocket/communications_ws";
 import { getUserOrganizations, prepareSiteAddress } from "../../../UtilityFunctions";
 import ContactList from "./ContactList";
+import BlockedContactList from "./BlockedContactList";
 import { SlideTransition } from "../../reusables/TransitionList";
 import ContactForm from "./ContactForm";
-import { getListOfMunicipalities } from "../ajax";
 import { GeneralContext } from "../../contexts/GeneralContext";
+import { getBlockedContacts } from "../ajax";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
@@ -322,6 +326,110 @@ function IndividualContact (props) {
     );
 }
 
+function BlockContact (props) {
+    const { chosenContact } = props;
+    if (chosenContact.length === 0) {
+        return (
+            <Grid
+                container 
+                spacing={1} 
+                alignItems="center"
+                justify="space-evenly"
+            >
+                <Grid item xs={7}>
+                    <Typography variant="caption" display="block">
+                        No initial blocked contact
+                    </Typography>
+                </Grid>
+            </Grid>
+        );
+    }
+    const { mobile_number, reporter, ts, reason } = chosenContact;
+    const { mobile_id, sim_num, user_details } = mobile_number;
+    const { first_name: reporter_first_name, last_name: reporter_last_name } = reporter;
+    let contact_name = "No contact details";
+    if (user_details !== null) {
+        const { user: { first_name, last_name } } = user_details;
+        contact_name = `${last_name}, ${first_name}`;
+    }
+    const date_reported = moment(ts).format("MMMM D, YYYY hh:mm a");
+    return (
+        <Grid
+            container 
+            spacing={1} 
+            alignItems="center"
+            justify="space-evenly"
+        >
+            <Grid item xs={1}>
+                <Avatar>
+                    <Phone />
+                </Avatar>
+            </Grid>
+
+            <Grid item xs={7}>
+                <Typography variant="h5" align="center">
+                    {`+${sim_num}`}
+                </Typography>
+            </Grid>
+
+            <Grid item xs={12} style={{ padding: "12px 4px" }} >
+                <Divider />
+            </Grid>
+
+            <Grid item xs={12}>
+                <Typography variant="subtitle1">
+                    Details:
+                </Typography>
+                <Typography variant="caption" display="block" gutterBottom>
+                    {contact_name}
+                </Typography>
+            </Grid>
+
+            <Grid item xs={12} style={{ padding: "12px 4px" }} >
+                <Divider />
+            </Grid>
+
+            <Grid item xs={12}>
+                <Typography variant="subtitle1">
+                    Reason:
+                </Typography>
+                <Typography variant="caption" display="block" gutterBottom>
+                    {`${reason}`}
+                </Typography>
+                <Typography color="textSecondary" variant="caption" paragraph>
+                    {`Date reported: ${date_reported}`}
+                </Typography>
+            </Grid>
+
+            <Grid item xs={12} style={{ padding: "12px 4px" }} >
+                <Divider />
+            </Grid>
+
+            <Grid item xs={12}>
+                <Typography variant="subtitle1">
+                    Reporter:
+                </Typography>
+                <Typography variant="caption" display="block" gutterBottom>
+                    {`${reporter_last_name}, ${reporter_first_name}`}
+                </Typography>
+            </Grid>
+            <Grid item xs={12} style={{ padding: "12px 4px" }} >
+                <Divider />
+            </Grid>
+
+            <Grid item xs={12} style={{ textAlign: "right" }}>
+                <Button 
+                    color="secondary" 
+                    variant="contained"
+                    startIcon={<PersonAdd />}
+                >
+                    Unblock
+                </Button>
+            </Grid>
+        </Grid>
+    );
+}
+
 const SearchBar = ({ search_str, setSearchStr }) => (
     <TextField
         margin="dense"
@@ -342,16 +450,23 @@ function Container (props) {
     const [chosen_contact, setChosenContact] = useState({});
     const [is_slide_open, setSlideOpen] = useState(false);
     const [is_contact_form_open, setContactFormOpen] = useState(false);
+    const [is_block_numbers_open, setOpenBlockedNumbers] = useState(false);
     const [is_edit_mode, setEditMode] = useState(false);
     const [search_str, setSearchStr] = useState("");
+    const [ blocked_number_array, setBlockedNumberArray ] = useState([]);
+    const [ blocked_chosen_contact, setBlockedChosenContact ] = useState([]);
 
     const [municipalities, setMunicipalities] = useState([]);
     const [provinces, setProvinces] = useState([]);
     const [regions, setRegions] = useState([]);
 
     const onContactClickFn = React.useCallback(row => () => {
-        console.log(row);
         setChosenContact(row);
+        setSlideOpen(true);
+    }, []);
+
+    const onBlockContactClickFn = React.useCallback(row => () => {
+        setBlockedChosenContact(row);
         setSlideOpen(true);
     }, []);
 
@@ -366,8 +481,12 @@ function Container (props) {
         setContactFormOpen(bool);
     };
 
-    const { setIsReconnecting } = useContext(GeneralContext);
+    const onShowBlockedNumbers = () => {
+        if (is_block_numbers_open) setOpenBlockedNumbers(false);
+        else setOpenBlockedNumbers(true);
+    };
 
+    const { setIsReconnecting, sites } = useContext(GeneralContext);
     useEffect(() => {
         subscribeToWebSocket("contacts", setIsReconnecting);
 
@@ -380,13 +499,11 @@ function Container (props) {
         return () => removeReceiveAllContacts();
     }, []);
 
-    // useEffect(() => {
-    //     getListOfMunicipalities(data => {
-    //         setMunicipalities(prepareGeographicalList(data, "municipality"));
-    //         setProvinces(prepareGeographicalList(data, "province"));
-    //         setRegions(prepareGeographicalList(data, "region"));
-    //     });
-    // }, []);
+    useEffect(() => {
+        setMunicipalities(prepareGeographicalList(sites, "municipality"));
+        setProvinces(prepareGeographicalList(sites, "province"));
+        setRegions(prepareGeographicalList(sites, "region"));
+    }, [sites]);
 
     useEffect(() => {
         const filtered = contacts.filter(row => {
@@ -397,6 +514,19 @@ function Container (props) {
         });
         setContactsArray(filtered);
     }, [search_str]);
+
+    useEffect(() => {
+        getBlockedContacts(data => {
+            const { status, blocked_numbers } = data;
+            if (status) {
+                setBlockedNumberArray(blocked_numbers);
+                if (blocked_numbers.length !== 0) {
+                    setBlockedChosenContact(blocked_numbers[0]);
+                }
+            }
+        });
+    }, []);
+
     
     let contact = "";
     // eslint-disable-next-line no-prototype-builtins
@@ -419,6 +549,14 @@ function Container (props) {
                 isFromChatterbox={false}
             /> 
         );
+
+        if (is_block_numbers_open) {
+            return (
+                <BlockContact
+                    chosenContact={blocked_chosen_contact}
+                />
+            );
+        }
 
         return (
             <IndividualContact 
@@ -455,11 +593,23 @@ function Container (props) {
                                     </ListItemIcon>
                                     <ListItemText primary="Add contact" />
                                 </ListItem>
-                                <ListItem button>
+                                <ListItem button onClick={() => onShowBlockedNumbers(true)}>
                                     <ListItemIcon>
-                                        <Block />
+                                        {
+                                            is_block_numbers_open ? (
+                                                <ViewList/>
+                                            ) : (
+                                                <Block/>
+                                            )
+                                        }
                                     </ListItemIcon>
-                                    <ListItemText primary="Show blocked numbers" />
+                                    {
+                                        is_block_numbers_open ? (
+                                            <ListItemText primary="Show active numbers" />
+                                        ) : (
+                                            <ListItemText primary="Show blocked numbers" />
+                                        )
+                                    }
                                 </ListItem>
                                 {/* <ListItem button>
                                     <ListItemIcon>
@@ -473,11 +623,21 @@ function Container (props) {
                 </Hidden>
                 
                 <Grid item xs={12} md={8} lg={5}>
-                    <ContactList 
-                        {...props} 
-                        contacts={contacts_array}
-                        onContactClickFn={onContactClickFn}
-                    />
+                    {
+                        is_block_numbers_open ? (
+                            <BlockedContactList
+                                blocked_numbers={blocked_number_array}
+                                onBlockContactClickFn={onBlockContactClickFn}
+                            />
+                        ) : (
+                            <ContactList 
+                                {...props} 
+                                contacts={contacts_array}
+                                onContactClickFn={onContactClickFn}
+                                showBlockedNumbers={is_block_numbers_open}
+                            />
+                        )
+                    }
                 </Grid>
                 
                 <Hidden mdDown>
