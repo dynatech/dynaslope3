@@ -37,7 +37,7 @@ def get_org_ids(scopes=None, org_names=None):
 
     if org_names:
         base = base.filter(orgs.org_name in org_names)
-    
+
     org_ids = base.all()
 
     org_id_list = []
@@ -634,8 +634,6 @@ def remove_sites_with_ground_meas(
         "event_site_ids": event_site_ids,
         "extended_site_ids": extended_site_ids
     }
-
-    print(final_site_ids)
 
     return final_site_ids
 

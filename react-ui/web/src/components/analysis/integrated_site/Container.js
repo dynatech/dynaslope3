@@ -312,8 +312,8 @@ function formatRainfallSummaryData (data) {
             DataSource: data_source
         } = record;
 
-        const temp_1d = cumulative_1d ? `${cumulative_1d} mm` : "No Data";
-        const temp_3d = cumulative_3d ? `${cumulative_3d} mm` : "No Data";
+        const temp_1d = cumulative_1d ? `${cumulative_1d} mm` : "0 mm";
+        const temp_3d = cumulative_3d ? `${cumulative_3d} mm` : "0 mm";
 
         const cum_1d = {
             y: (cumulative_1d / threshold_1d) * 100,
@@ -435,7 +435,6 @@ function Container (props) {
     
     const [chart_instances, setChartInstances] = useState({});
 
-    const [rainfall_summary, setRainfallSummary] = useState(null);
     const [rainfall_summary_option, setRainfallSummaryOption] = useState(null);
 
     const save_chart_instances_fn = name => chart => {
@@ -510,7 +509,6 @@ function Container (props) {
 
         receiveAllSiteRainfallData(data => {
             const obj = formatRainfallSummaryData(data);
-            setRainfallSummary(obj);
             const temp = prepareRainfallSummaryOption(obj);
             setRainfallSummaryOption(temp);
         });
@@ -527,14 +525,33 @@ function Container (props) {
             data.forEach(site => {
                 const { site_code, moms_alert } = site;
                 const address = prepareSiteAddress(site, true, "start");
-                const site_entry = <Link to={`${url}/moms/${site_code}`} style={{ color: "black" }}>{address}</Link>;
-                const arr = [site_entry, moms_alert];
+                const arr = { site_code, address, moms_alert };
                 table_data.push(arr);
             });
 
             setMOMsAlerts(table_data);
         });  
     }, [url]);
+
+    const moms_table_options = [
+        {
+            name: "address",
+            label: "Site",
+            options: {
+                filter: false,
+                customBodyRender: (value, { rowIndex }) => {
+                    const { site_code } = moms_alerts[rowIndex];
+                    return <Link to={`${url}/moms/${site_code}`} style={{ color: "black" }}>
+                        {value}
+                    </Link>;
+                }
+            }
+        },
+        {
+            name: "moms_alert",
+            label: "Alert"
+        }
+    ];
 
     const [eq_events, setEqEvents] = useState([]);
     useEffect(() => {
@@ -647,7 +664,7 @@ function Container (props) {
 
                                 <Grid item xs={12}>
                                     {
-                                        rainfall_summary !== null ? (
+                                        rainfall_summary_option !== null ? (
                                             <Paper elevation={2}>
                                                 <HighchartsReact
                                                     highcharts={Highcharts}
@@ -675,7 +692,7 @@ function Container (props) {
                                     <Paper elevation={2}>
                                         <MUIDataTable
                                             title="Latest MOMs Alert"
-                                            columns={["Site", "Alert"]}
+                                            columns={moms_table_options}
                                             options={{
                                                 textLabels: {
                                                     body: {

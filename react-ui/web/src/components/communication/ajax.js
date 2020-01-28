@@ -115,3 +115,17 @@ export function getRecipientsList (payload, callback) {
         console.error(error);
     });
 }
+
+export function loadMoreMessages (mobile_id, batch, callback) {
+    const api_link = `${host}/api/chatterbox/load_more_messages/${mobile_id}/${batch}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("Additional loaded messages", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}

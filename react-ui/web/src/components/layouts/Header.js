@@ -152,8 +152,26 @@ function Header (props) {
                 onClose={handleClose}
                 className={classes.menu}
             >
-                <MenuItem onClick={handleClose}>Profile</MenuItem>
-                <MenuItem onClick={handleClose}>My account</MenuItem>
+                <MenuItem disabled onClick={handleClose}>
+                    Profile 
+                    <Typography
+                        component="span"
+                        variant="overline"
+                        style={{ paddingLeft: 4 }}
+                    >
+                        SOON
+                    </Typography>
+                </MenuItem>
+                <MenuItem disabled onClick={handleClose}>
+                    My account
+                    <Typography
+                        component="span"
+                        variant="overline"
+                        style={{ paddingLeft: 4 }}
+                    >
+                        SOON
+                    </Typography>
+                </MenuItem>
                 <MenuItem onClick={onClickLogout}>Logout</MenuItem>
             </Menu>
         </div>

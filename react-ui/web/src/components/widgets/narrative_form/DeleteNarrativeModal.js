@@ -2,12 +2,9 @@ import React from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withStyles, withMobileDialog
+    Button, withMobileDialog
 } from "@material-ui/core";
-import { compose } from "recompose";
 import { handleDelete } from "./ajax";
-
-const styles = theme => ({});
 
 function DeleteNarrativeModal (props) {
     const {
@@ -15,7 +12,7 @@ function DeleteNarrativeModal (props) {
         closeHandler, chosenNarrative, 
         setIsUpdateNeeded, isUpdateNeeded
     } = props;
-    const { id: narrative_id } = chosenNarrative;
+    const { id: narrative_id, narrative } = chosenNarrative;
 
     const handleDeleteClick = () => {
         const payload = {
@@ -24,9 +21,7 @@ function DeleteNarrativeModal (props) {
         handleDelete(payload, ret => {
             closeHandler();
             console.log("ret", ret);
-            console.log("isUpdateNeeded", isUpdateNeeded);
             setIsUpdateNeeded(!isUpdateNeeded);
-            console.log("isUpdateNeeded", isUpdateNeeded);
         });
     };
 
@@ -42,7 +37,10 @@ function DeleteNarrativeModal (props) {
                 <DialogTitle id="form-dialog-title">Site Logs Delete</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Are you sure you want to delete this narrative [{narrative_id}]?
+                        Are you sure you want to delete this narrative?
+                    </DialogContentText>
+                    <DialogContentText align="center">
+                        { `"${narrative}"` }
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
@@ -60,4 +58,4 @@ function DeleteNarrativeModal (props) {
     );
 }
 
-export default compose(withStyles(styles), withMobileDialog())(DeleteNarrativeModal);
+export default withMobileDialog()(DeleteNarrativeModal);

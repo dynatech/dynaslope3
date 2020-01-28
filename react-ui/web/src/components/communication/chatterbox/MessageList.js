@@ -4,7 +4,8 @@ import { Link } from "react-router-dom";
 import {
     List, ListItem, ListItemAvatar,
     ListItemText, Avatar, Grid, 
-    Chip, Typography, makeStyles, IconButton
+    Chip, Typography, makeStyles,
+    IconButton, Paper
 } from "@material-ui/core";
 import { isWidthUp } from "@material-ui/core/withWidth";
 import {
@@ -32,7 +33,7 @@ const useStyles = makeStyles(theme => ({
     },
     link: { textDecoration: "none" },
     noFlexGrow: { flexGrow: 0 },
-    hidden: { display: "none" },
+    hidden: { display: "none !important" },
     sentIcon: { fontSize: "1.10rem" }
 }));
 
@@ -224,24 +225,30 @@ function MessageList (comp_props) {
     const handleOptionsClose = value => {
         setOpenOptions(false);
     };
-
-    const openBlockModal = mobile_details => {
-        setChosenMobile(mobile_details);
-        setBlockModal(true);
-    };
-
-    const openSaveContactModal = mobile_details => {
-        setChosenMobile(mobile_details);
-        setSaveContactModal(true);
-    };
     
     return (
         <Fragment>
-            <List dense className={ hidden ? classes.hidden : "" }>
-                {
-                    messagesArr.map(row => MessageListItem(row, props, openOptionsModal))
-                }
-            </List>
+            {
+                messagesArr.length === 0 ? (
+                    <Paper
+                        style={{
+                            height: "30vh", padding: 60, display: "flex",
+                            justifyContent: "center", alignItems: "center",
+                            background: "gainsboro", border: "4px solid #CCCCCC",
+                            marginTop: 30
+                        }}
+                        className={ hidden ? classes.hidden : "" }
+                    >
+                        <div>No conversations</div>
+                    </Paper>
+                ) : (
+                    <List dense className={ hidden ? classes.hidden : "" }>
+                        {
+                            messagesArr.map(row => MessageListItem(row, props, openOptionsModal))
+                        }
+                    </List>
+                )
+            }
 
             <OptionsModal 
                 open={open_options}

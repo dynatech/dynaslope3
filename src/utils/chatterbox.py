@@ -137,11 +137,13 @@ def get_user_mobile_details(mobile_id):
     return mobile_schema
 
 
-def get_latest_messages(mobile_id, messages_per_convo=20):
+def get_latest_messages(mobile_id, messages_per_convo=20, batch=0):
     """
     """
 
     query_start = datetime.now()
+
+    offset = messages_per_convo * batch
 
     siu = SmsInboxUsers
     siut = SmsInboxUserTags
@@ -164,8 +166,8 @@ def get_latest_messages(mobile_id, messages_per_convo=20):
     sous = SmsOutboxUserStatus
     sout = SmsOutboxUserTags
 
-    outbox_sub = sout.query.join(sou).filter(
-        sout.outbox_id == sou.outbox_id).subquery()
+    # outbox_sub = sout.query.join(sou).filter(
+    #     sout.outbox_id == sou.outbox_id).subquery()
 
     sms_outbox = DB.session.query(
         sous.stat_id.label("convo_id"),
@@ -183,7 +185,7 @@ def get_latest_messages(mobile_id, messages_per_convo=20):
         .order_by(DB.desc(sous.outbox_id))
 
     union = sms_inbox.union(sms_outbox).order_by(
-        DB.desc(text("anon_1_ts"))).limit(messages_per_convo)
+        DB.desc(text("anon_1_ts"))).limit(messages_per_convo).offset(offset)
 
     query_end = datetime.now()
 
@@ -238,11 +240,14 @@ def get_sms_user_updates():
     return results
 
 
-def delete_sms_user_update(row):
+def delete_sms_user_update(row=None):
     """
     """
+    if row:
+        DB.session.delete(row)
+    else:
+        SmsUserUpdates.query.delete()
 
-    DB.session.delete(row)
     DB.session.commit()
 
 
@@ -253,7 +258,7 @@ def insert_message_on_database(obj):
     sms_msg = obj["sms_msg"]
     recipient_list = obj["recipient_list"]
 
-    new_msg = SmsOutboxUsers2(
+    new_msg = SmsOutboxUsers(
         ts_written=datetime.now(),
         source="central",
         sms_msg=sms_msg
@@ -268,7 +273,7 @@ def insert_message_on_database(obj):
         mobile_id = row["mobile_id"]
         gsm_id = row["gsm_id"]
 
-        new_status = SmsOutboxUserStatus2(
+        new_status = SmsOutboxUserStatus(
             outbox_id=outbox_id,
             mobile_id=mobile_id,
             gsm_id=gsm_id
