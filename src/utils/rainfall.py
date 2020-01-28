@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from connection import DB
 from src.models.analysis import RainfallAlerts as ra
+from src.models.sites import Sites, SitesSchema
 from src.utils.extra import get_unix_ts_value
 from analysis.rainfall.rainfall import main as rainfall_main, web_plotter
 
@@ -127,13 +128,65 @@ def process_rainfall_plot_data(rainfall_data):
     return plot_data
 
 
-def get_all_site_rainfall_data():
-    print("DITOOOOOOOOOOOO")
-    ts = datetime.now()
+def get_all_site_rainfall_data(data):
+    sites = data["site_details"]
+    as_of = data["date_time"]
+    is_express = data["is_express"]
+    site_codes_list = []
+    messages = []
+
+    for row in sites:
+        site_codes_list.append(row["site_code"])
+    site_codes_list.sort()
+    site_codes_string = ','.join(site_codes_list)
+
     rainfall_summary = rainfall_main(
-        site_code='umi,agb',
-        end=ts, Print=False,
+        site_code=site_codes_string,
+        end=as_of, Print=False,
         write_to_db=False, print_plot=False, save_plot=False,
         is_command_line_run=False)
 
-    return rainfall_summary
+
+    decoded_data = json.loads(rainfall_summary)
+    for row in decoded_data:
+        decoded_site_code = row["site_code"]
+        for sites_row in sites:
+            if sites_row["site_code"] == decoded_site_code:
+                site_info = sites_row["site_info"]
+
+        one_day_cml = row["1D cml"]
+        half_of_2yr_max = row["half of 2yr max"]
+        three_day_cml = row["3D cml"]
+        two_year_max = row["2yr max"]
+    
+        if one_day_cml != None:
+            one_day = int(one_day_cml / half_of_2yr_max * 100)
+            three_day = int(three_day_cml / two_year_max * 100)
+
+            one_day_percentage = "One-day percentage: " + str(one_day) + "%" + "\n"
+            one_day_cumulative = "One-day cumulative rainfall: " + str(one_day_cml) + " mm" + "\n"
+            one_day_threshold = "One-day rainfall threshold: " + str(half_of_2yr_max) + " mm" + "\n\n"
+            three_day_percentage = "Three-day percentage: " + str(three_day) + "%" + "\n"
+            three_day_cumulative = "Three-day cumulative rainfall: " + str(one_day_cml) + " mm" + "\n"
+            three_day_threshold = "Three-day rainfall threshold: " + str(two_year_max) + " mm" + "\n\n\n"
+            if is_express:
+                message = str("Rainfall Information for " + site_info + " as of <as_of> : \n" + one_day_percentage +
+                    one_day_threshold + three_day_percentage + three_day_threshold)
+            else:
+                message = str("Rainfall Information for " + site_info + " as of <as_of> : \n" + one_day_cumulative +
+                    one_day_threshold + three_day_cumulative + three_day_threshold)
+            data = {
+                "message": message
+            }
+        else:
+            data = {
+                "message": str("No data for " + site_info)
+            }
+        
+        messages.append(data)
+
+    final_message = ""
+    for row in messages:
+        final_message += "\n" + str(row["message"])
+
+    return final_message

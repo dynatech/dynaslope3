@@ -205,5 +205,4 @@ def main(site_code='', end='', Print=True, write_to_db=True,
 ###############################################################################
 
 if __name__ == "__main__":
-    print("HEREEEEEEEEEEEEEEEEee")
     main()

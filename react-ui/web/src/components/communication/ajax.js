@@ -43,6 +43,18 @@ export function getEWISMSRecipients (site_code, callback) {
     });
 }
 
+export function getRainInformation (input, callback) {
+    const api_link = `${host}/api/rainfall/get_all_site_rainfall_data`;
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Get rain information data reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
 
 export function sendRoutineEwiMessage (payload, callback, error_callback) {
     const api_link = `${host}/api/chatterbox/send_routine_ewi_sms`;
