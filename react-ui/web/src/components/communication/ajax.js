@@ -166,3 +166,4 @@ export function loadMoreMessages (mobile_id, batch, callback) {
     .catch(error => {
         console.error(error);
     });
+}
