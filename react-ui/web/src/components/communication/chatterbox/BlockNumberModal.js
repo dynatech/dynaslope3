@@ -8,7 +8,7 @@ import DialogContentText from "@material-ui/core/DialogContentText";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import { useSnackbar } from "notistack";
 import { getCurrentUser } from "../../sessions/auth";
-
+import { saveBlockedContact } from "../ajax";
 
 function BlockNumberModal (props) {
     const {
@@ -55,17 +55,31 @@ function BlockNumberModal (props) {
             };
 
             console.log(payload);
-
+            saveBlockedContact(payload, data => {
+                const { status, message } = data;
+                console.log(data);
+                if (status) {
+                    enqueueSnackbar(
+                        message,
+                        {
+                            variant: "success",
+                            autoHideDuration: 4000,
+                            action: snackBarActionFn
+                        }
+                    );
+                } else {
+                    enqueueSnackbar(
+                        message,
+                        {
+                            variant: "error",
+                            autoHideDuration: 3000,
+                            action: snackBarActionFn
+                        }
+                    );
+                }
+            });
             setOpenOptions(false);
 
-            enqueueSnackbar(
-                "Mobile number blocked!",
-                {
-                    variant: "success",
-                    autoHideDuration: 7000,
-                    action: snackBarActionFn
-                }
-            );
         }
     };
 

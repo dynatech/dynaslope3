@@ -328,6 +328,22 @@ function IndividualContact (props) {
 
 function BlockContact (props) {
     const { chosenContact } = props;
+    if (chosenContact.length === 0) {
+        return (
+            <Grid
+                container 
+                spacing={1} 
+                alignItems="center"
+                justify="space-evenly"
+            >
+                <Grid item xs={7}>
+                    <Typography variant="caption" display="block">
+                        No initial blocked contact
+                    </Typography>
+                </Grid>
+            </Grid>
+        );
+    }
     const { mobile_number, reporter, ts, reason } = chosenContact;
     const { mobile_id, sim_num, user_details } = mobile_number;
     const { first_name: reporter_first_name, last_name: reporter_last_name } = reporter;

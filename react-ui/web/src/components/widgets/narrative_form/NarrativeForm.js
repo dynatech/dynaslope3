@@ -45,7 +45,7 @@ function NarrativeForm (props) {
         setNarrativeData, siteList,
         setSiteList
     } = props;
-
+    
     const {
         narrative, timestamp, user_id
     } = narrativeData;
