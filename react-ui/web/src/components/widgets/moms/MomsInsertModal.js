@@ -84,7 +84,7 @@ function MomsInsertModal (props) {
             return 	{
                 alert_level: alert_level.label,
                 instance_id: feature_name.value,
-                feature_name: feature_name.label,
+                feature_name: feature_name.label === "(Add new instance)" ? null : feature_name.label,
                 feature_type: feature_type.label,
                 report_narrative: narrative,
                 observance_ts: moment_obs_ts,
