@@ -68,7 +68,8 @@ const useStyles = makeStyles(theme => ({
         }
     },
     tileBar: {
-        background: "#7f7f7f"
+        background: "#7f7f7f",
+        height: "50px !important"
     }
 }));
 

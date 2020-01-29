@@ -32,7 +32,7 @@ function prepareEventTimelineLink (url, event_id) {
     );
 }
 
-function prepareEventsArray (url, arr, sites_dict) {
+function prepareEventsArray (arr, sites_dict) {
     return arr.map(
         (element, index) => {
             const {
@@ -46,15 +46,14 @@ function prepareEventsArray (url, arr, sites_dict) {
             if (event_start !== "" && event_start !== null) final_event_start = moment(event_start).format("D MMMM YYYY, h:mm");
             if (validity !== "" && validity !== null) final_ts_end = moment(validity).format("D MMMM YYYY, h:mm");
 
-            const event_link = prepareEventTimelineLink(url, event_id);
-
             let address = "";
             if (Object.keys(sites_dict).length) {
-                address = sites_dict[site_code.toUpperCase()].address;
+                const { address: add } = sites_dict[site_code.toUpperCase()];
+                address = add;
             }
 
             const event_entry = [
-                event_link,
+                event_id,
                 address,
                 entry_type,
                 public_alert,
@@ -122,7 +121,7 @@ function MonitoringEventsTable (props) {
         
         getMonitoringEvents(input, ret2 => {            
             const { events, count: total } = ret2;
-            const final_data = prepareEventsArray(url, events, sites_dict);
+            const final_data = prepareEventsArray(events, sites_dict);
             setData(final_data);
             setCount(total);
             setIsLoading(false);
@@ -258,6 +257,10 @@ function MonitoringEventsTable (props) {
             label: "Event ID",
             options: {
                 filter: false,
+                customBodyRender: (value, { rowIndex }) => {
+                    if (value === "Loading Data...") return value;
+                    return prepareEventTimelineLink(url, value);
+                }
             }
         },
         {

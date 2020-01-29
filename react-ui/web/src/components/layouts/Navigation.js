@@ -355,14 +355,10 @@ function Navigation (props) {
                                     {
                                         sub.map(({ label, link, soon }) => {
                                             const disabled = typeof soon !== "undefined";
-                                            return (
-                                                <Link
-                                                    to={link}
-                                                    key={label}
-                                                    className={classes.link}
-                                                    disabled={disabled}
-                                                >
-                                                    <MenuItem 
+                                            if (disabled) {
+                                                return (
+                                                    <MenuItem
+                                                        key={label}
                                                         onClick={handleMenuClick}
                                                         disabled={disabled}
                                                     >
@@ -373,9 +369,24 @@ function Navigation (props) {
                                                                 variant="overline"
                                                                 style={{ paddingLeft: 4 }}
                                                             >
-                                                                SOON
+                                                        SOON
                                                             </Typography>
-                                                        }</MenuItem>
+                                                        }
+                                                    </MenuItem>
+                                                );
+                                            }
+
+                                            return (
+                                                <Link
+                                                    to={link}
+                                                    key={label}
+                                                    className={classes.link}
+                                                >
+                                                    <MenuItem 
+                                                        onClick={handleMenuClick}
+                                                    >
+                                                        {label}
+                                                    </MenuItem>
                                                 </Link>
                                             );
                                         })

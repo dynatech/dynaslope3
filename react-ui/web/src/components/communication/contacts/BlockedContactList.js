@@ -14,6 +14,9 @@ import { getBlockedContacts } from "../ajax";
 
 function BlockedContactList (props) {
     const { blocked_numbers, onBlockContactClickFn, } = props;
+    if (blocked_numbers.length === 0) {
+        return (<div>No blocked contact</div>);
+    }
     return (
         <List dense style={{ paddingTop: 0 }}>
             {

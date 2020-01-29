@@ -63,8 +63,7 @@ function getManipulationButtons (narrative, data_handlers) {
     const handleEdit = value => {
         setChosenNarrative(narrative);
         setIsOpenNarrativeModal(true);
-        console.log(narrative);
-        console.log("Clicked Edit");
+        console.log("Edit", narrative);
     };
 
     const handleDelete = value => {
@@ -87,15 +86,14 @@ function getManipulationButtons (narrative, data_handlers) {
 }
 
 
-function processTableData (data, data_handlers) {
+function processTableData (data) {
     const processed = data.map(row => (
         {
             ...row,
             site_name: prepareSiteAddress(row.site, true, "start"),
             ts: moment(row.timestamp).format("DD MMMM YYYY, HH:mm:ss"),
             type: row.type_id,
-            user_details: `${row.user_details.first_name} ${row.user_details.last_name}`,
-            actions: getManipulationButtons(row, data_handlers)
+            actions: "---"
         }
     ));
     console.log("processed", processed);
@@ -127,7 +125,6 @@ function SiteLogs (props) {
     const sites_dict = {};
 
     sites.forEach(site => {
-        const address = prepareSiteAddress(site, true, "start");
         const site_code = site.site_code.toUpperCase();
         filter_sites_option.push(site_code);
         sites_dict[site_code] = site.site_id;
@@ -145,14 +142,7 @@ function SiteLogs (props) {
 
         getNarratives(input, ret => {
             const { narratives, count: total } = ret;
-            const processed = processTableData(
-                narratives, 
-                { 
-                    setChosenNarrative, 
-                    setIsOpenNarrativeModal, isOpenNarrativeModal,
-                    setIsOpenDeleteModal, isOpenDeleteModal
-                });
-            console.log("tbl_data", processed);
+            const processed = processTableData(narratives);
             setTableData(processed);
             setCount(total);
             setIsLoading(false);
@@ -303,7 +293,15 @@ function SiteLogs (props) {
             label: "Actions",
             options: {
                 filter: false,
-                sort: false
+                sort: false,
+                customBodyRender: (value, { rowIndex }) => {
+                    const row = table_data[rowIndex];
+                    return getManipulationButtons(row, { 
+                        setChosenNarrative, 
+                        setIsOpenNarrativeModal, isOpenNarrativeModal,
+                        setIsOpenDeleteModal, isOpenDeleteModal
+                    });
+                }
             }
         }
     ];

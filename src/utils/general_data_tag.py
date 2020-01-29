@@ -85,7 +85,7 @@ def get_tag_by_type(tag_type, tag_details, tag_id):
     row = query_class.query.filter(DB.and_(
         getattr(query_class, row_key_1) == tag_details[row_key_1],
         query_class.tag_id == tag_id
-        )).first()
+    )).first()
 
     return row
 
@@ -126,12 +126,13 @@ def insert_data_tag(tag_type, tag_details, tag_id):
             DB.session.flush()
             general_tag_id_container = data_insertion_container.sou_tag_id
 
-        var_checker(f"New {tag_type} tag saved to DB with ID", general_tag_id_container, True)
+        # var_checker(f"New {tag_type} tag saved to DB with ID", general_tag_id_container, True)
         DB.session.commit()
 
     except Exception as err:
         DB.session.rollback()
-        var_checker(f"Error in saving tags for {tag_type} tag table", err, True)
+        var_checker(
+            f"Error in saving tags for {tag_type} tag table", err, True)
         raise
 
     return {"message": "success", "status": True, "data": general_tag_id_container}
@@ -167,10 +168,11 @@ def update_data_tag(row_to_update, tag_details, tag_id):
 
     except Exception as err:
         DB.session.rollback()
-        var_checker(f"Error in updating tags for {row_type} tag table", err, True)
+        var_checker(
+            f"Error in updating tags for {row_type} tag table", err, True)
         raise
 
-    var_checker(f"New {row_type} tag saved to DB with ID", id_to_return, True)
+    # var_checker(f"New {row_type} tag saved to DB with ID", id_to_return, True)
     DB.session.commit()
 
     return {"message": "success", "status": True, "data": id_to_return}

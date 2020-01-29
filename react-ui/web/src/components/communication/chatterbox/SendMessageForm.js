@@ -54,7 +54,6 @@ function SendMessageForm (props) {
         updateSentStatusObj, // updateSentStatusObj used only in EWISmsModal
         recipientsList
     } = props;
-
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
     const current_user = getCurrentUser();
@@ -325,6 +324,7 @@ function SendMessageForm (props) {
                     disableSend={is_recipients_empty || is_message_empty}
                     sendButtonClickHandler={on_send_message_fn}
                     messageChangeHandler={handle_message_fn}
+                    setComposedMessage={setComposedMessage}
                 />
             </div>
                 

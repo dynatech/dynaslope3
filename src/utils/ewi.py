@@ -107,11 +107,9 @@ def create_ewi_message(release_id=None):
     ground_reminder = ""
     if alert_level != 3:
         if release_id:
-            has_active_markers = check_if_site_has_active_surficial_markers(
-                site_id=site.site_id)
-            g_data = "ground data" if has_active_markers else "ground observation"
+            g_data = get_ground_data_noun(site.site_id)
         else:
-            g_data = "ground data/ground observation"
+            g_data = "ground measurement/ground observation"
         ground_reminder = f"Inaasahan namin ang pagpapadala ng LEWC ng {g_data} "
 
         is_alert_0 = alert_level == 0
@@ -151,6 +149,7 @@ def create_ewi_message(release_id=None):
 
     desc_and_response = ""
     next_ewi = ""
+
     if alert_level > 0:
         trigger_list_str = release.trigger_list
         trigger_list_str = process_trigger_list(
@@ -185,9 +184,18 @@ def create_ewi_message(release_id=None):
     return ewi_message
 
 
-def create_ground_measurement_reminder(monitoring_type, ts):
+def get_ground_data_noun(site_id):
+    has_active_markers = check_if_site_has_active_surficial_markers(
+        site_id=site_id)
+    g_data = "ground measurement" if has_active_markers else "ground observation"
+
+    return g_data
+
+
+def create_ground_measurement_reminder(site_id, monitoring_type, ts):
     greeting = "umaga"
     hour = ts.hour
+    ground_data_noun = get_ground_data_noun(site_id)
 
     if hour == 5:
         time = "07:30 AM"
@@ -197,7 +205,7 @@ def create_ground_measurement_reminder(monitoring_type, ts):
         greeting = "hapon"
         time = "03:30 PM"
 
-    message = f"Magandang {greeting}. Inaasahan ang pagpapadala ng LEWC ng ground data " + \
+    message = f"Magandang {greeting}. Inaasahan ang pagpapadala ng LEWC ng {ground_data_noun} " + \
         f"bago mag-{time} para sa {monitoring_type} monitoring. Agad ipaalam kung may " + \
         "makikitang manipestasyon ng paggalaw ng lupa o iba pang pagbabago sa site. Salamat."
 

@@ -23,7 +23,8 @@ const useStyles = makeStyles(theme => ({
 function MessageInputTextbox (props) {
     const {
         limitRows, value, disableSend,
-        messageChangeHandler, sendButtonClickHandler
+        messageChangeHandler, sendButtonClickHandler,
+        setComposedMessage
     } = props;
     const classes = useStyles();
     const limit = limitRows === undefined ? true : limitRows;
@@ -63,7 +64,11 @@ function MessageInputTextbox (props) {
                 </div>
             </div>
 
-            <LoadTemplateModal isOpen={is_modal_open} clickHandler={set_function(false)}/>
+            <LoadTemplateModal
+                isOpen={is_modal_open} 
+                setComposedMessage={setComposedMessage}
+                clickHandler={set_function(false)}
+            />
         </Fragment>
     );
 }

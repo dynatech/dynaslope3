@@ -18,7 +18,7 @@ import {
 import { 
     Close, Call, Person, PersonAdd, ViewList,
     Block, Edit, PhoneAndroid, MailOutline,
-    Phone
+    Phone, SimCard
 } from "@material-ui/icons";
 
 import moment from "moment";
@@ -31,10 +31,11 @@ import {
 import { getUserOrganizations, prepareSiteAddress } from "../../../UtilityFunctions";
 import ContactList from "./ContactList";
 import BlockedContactList from "./BlockedContactList";
+import SimPrefixesList from "./SimPrefixesList";
 import { SlideTransition } from "../../reusables/TransitionList";
 import ContactForm from "./ContactForm";
 import { GeneralContext } from "../../contexts/GeneralContext";
-import { getBlockedContacts } from "../ajax";
+import { getBlockedContacts, getSimPrefixes } from "../ajax";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
@@ -328,6 +329,22 @@ function IndividualContact (props) {
 
 function BlockContact (props) {
     const { chosenContact } = props;
+    if (chosenContact.length === 0) {
+        return (
+            <Grid
+                container 
+                spacing={1} 
+                alignItems="center"
+                justify="space-evenly"
+            >
+                <Grid item xs={7}>
+                    <Typography variant="caption" display="block">
+                        No initial blocked contact
+                    </Typography>
+                </Grid>
+            </Grid>
+        );
+    }
     const { mobile_number, reporter, ts, reason } = chosenContact;
     const { mobile_id, sim_num, user_details } = mobile_number;
     const { first_name: reporter_first_name, last_name: reporter_last_name } = reporter;
@@ -435,10 +452,12 @@ function Container (props) {
     const [is_slide_open, setSlideOpen] = useState(false);
     const [is_contact_form_open, setContactFormOpen] = useState(false);
     const [is_block_numbers_open, setOpenBlockedNumbers] = useState(false);
+    const [is_sim_prefixes_open, setOpenSimPrefixes] = useState(false);
     const [is_edit_mode, setEditMode] = useState(false);
     const [search_str, setSearchStr] = useState("");
     const [ blocked_number_array, setBlockedNumberArray ] = useState([]);
     const [ blocked_chosen_contact, setBlockedChosenContact ] = useState([]);
+    const [ sim_prefixes_list, setSimPrefixesList ] = useState([]);
 
     const [municipalities, setMunicipalities] = useState([]);
     const [provinces, setProvinces] = useState([]);
@@ -466,8 +485,23 @@ function Container (props) {
     };
 
     const onShowBlockedNumbers = () => {
-        if (is_block_numbers_open) setOpenBlockedNumbers(false);
-        else setOpenBlockedNumbers(true);
+        if (is_block_numbers_open) {
+            setOpenBlockedNumbers(false);
+            setOpenSimPrefixes(false);
+        } else { 
+            setOpenBlockedNumbers(true);
+            setOpenSimPrefixes(false);
+        }
+    };
+
+    const onShowSimPrefixes = () => {
+        if (is_sim_prefixes_open) {
+            setOpenSimPrefixes(false);
+            setOpenBlockedNumbers(true);
+        } else { 
+            setOpenSimPrefixes(true); 
+            setOpenBlockedNumbers(false);
+        }
     };
 
     const { setIsReconnecting, sites } = useContext(GeneralContext);
@@ -507,6 +541,13 @@ function Container (props) {
                 if (blocked_numbers.length !== 0) {
                     setBlockedChosenContact(blocked_numbers[0]);
                 }
+            }
+        });
+
+        getSimPrefixes(data => {
+            const { status, prefixes } = data;
+            if (status) {
+                setSimPrefixesList(prefixes);
             }
         });
     }, []);
@@ -552,7 +593,32 @@ function Container (props) {
             />
         );
     };
+    
+    const ListContent = () => {
+        if (is_sim_prefixes_open) {
+            return (
+                <SimPrefixesList
+                    sim_prefixes={sim_prefixes_list}
+                />
+            );
+        }
 
+        if (is_block_numbers_open) {
+            return (
+                <BlockedContactList
+                    blocked_numbers={blocked_number_array}
+                    onBlockContactClickFn={onBlockContactClickFn}
+                />
+            );
+        }
+        
+        return ( <ContactList 
+            {...props} 
+            contacts={contacts_array}
+            onContactClickFn={onContactClickFn}
+            showBlockedNumbers={is_block_numbers_open}
+        />);
+    };
     return (
         <div className={classes.pageContentMargin}>
             <PageTitle
@@ -595,6 +661,12 @@ function Container (props) {
                                         )
                                     }
                                 </ListItem>
+                                <ListItem button onClick={() => onShowSimPrefixes(true)}>
+                                    <ListItemIcon>
+                                        <SimCard />
+                                    </ListItemIcon>
+                                    <ListItemText primary="Sim Prefixes" />
+                                </ListItem>
                                 {/* <ListItem button>
                                     <ListItemIcon>
                                         <Block />
@@ -605,8 +677,17 @@ function Container (props) {
                         </div>
                     </Grid>
                 </Hidden>
-                
+
                 <Grid item xs={12} md={8} lg={5}>
+                    {ListContent()}
+                    {/* {
+                        is_sim_prefixes_open ? (
+                            <SimPrefixesList
+                                sim_prefixes={sim_prefixes_list}
+                            />
+                        ) : (<div />)
+                    }
+
                     {
                         is_block_numbers_open ? (
                             <BlockedContactList
@@ -621,7 +702,7 @@ function Container (props) {
                                 showBlockedNumbers={is_block_numbers_open}
                             />
                         )
-                    }
+                    } */}
                 </Grid>
                 
                 <Hidden mdDown>

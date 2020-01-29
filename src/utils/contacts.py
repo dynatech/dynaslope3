@@ -38,7 +38,7 @@ def get_org_ids(scopes=None, org_names=None):
 
     if org_names:
         base = base.filter(orgs.org_name in org_names)
-    
+
     org_ids = base.all()
 
     org_id_list = []
@@ -688,5 +688,32 @@ def get_blocked_numbers():
     query = BlockedMobileNumbers.query.all()
 
     result = BlockedMobileNumbersSchema(many=True).dump(query).data
+
+    return result
+
+def save_blocked_number(data):
+    """
+    Function that save block number
+    """
+    now = datetime.now()
+    current_datetime = now.strftime("%Y-%m-%d %H:%M:%S")
+    mobile_id = data["mobile_id"]
+    reporter_id = data["reporter_id"]
+    reason = data["reason"]
+
+    insert_query = BlockedMobileNumbers(mobile_id=mobile_id, reason=reason,
+        reporter_id=reporter_id, ts=current_datetime)
+    DB.session.add(insert_query)
+
+
+    return True
+
+def get_all_sim_prefix():
+    """
+    Function that gets sim prefixes
+    """
+
+    query = SimPrefixes.query.all()
+    result = SimPrefixesSchema(many=True).dump(query).data
 
     return result
