@@ -146,7 +146,7 @@ def insert_ewi_sms_tag():
     response = insert_data_tag(
         tag_type="smsoutbox_user_tags",
         tag_details=tag_details,
-        tag_id=18  # harcoded for #EwiMessage
+        tag_id=18  # hardcoded for #EwiMessage
     )
 
     DB.session.commit()

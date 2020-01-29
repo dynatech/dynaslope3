@@ -41,66 +41,66 @@ def wrap_send_routine_ewi_sms():
     Step 4. Prep narrative
     Step 5. Tag
     """
-
     json_data = request.get_json()
     site_list = json_data["site_list"]
     user_id = json_data["user_id"]
 
     var_checker("site_list", site_list, True)
 
-    for site in site_list:
-        site_code = site["site_code"]
-        # site_id = site["site_id"]
-        release_id = site["release_id"]
-        event_id = site["event_id"]
+    try:
+        for site in site_list:
+            site_code = site["site_code"]
+            # site_id = site["site_id"]
+            release_id = site["release_id"]
+            event_id = site["event_id"]
 
-        #######################
-        # PREPARE EWI MESSAGE #
-        #######################
-        ewi_message = create_ewi_message(release_id=release_id)
-        var_checker("ewi_message", ewi_message, True)
+            #######################
+            # PREPARE EWI MESSAGE #
+            #######################
+            ewi_message = create_ewi_message(release_id=release_id)
+            # var_checker("ewi_message", ewi_message, True)
 
-        ################################
-        # PREPARE RECIPIENT MOBILE IDS #
-        ################################
-        org_id_list = get_org_ids(scopes=[0, 1, 2, 3])
-        routine_recipients = get_contacts_per_site(
-            site_codes=[site_code], org_ids=org_id_list, return_schema_format=False)
+            ################################
+            # PREPARE RECIPIENT MOBILE IDS #
+            ################################
+            org_id_list = get_org_ids(scopes=[0, 1, 2, 3])
+            routine_recipients = get_contacts_per_site(
+                site_codes=[site_code], org_ids=org_id_list)
 
-        mobile_id_list = []
-        for recip in routine_recipients:
-            mobile_numbers = recip.mobile_numbers
-            for item in mobile_numbers:
-                mobile_id = item.mobile_number.mobile_id
-                mobile_id_list.append(mobile_id)
-        # var_checker("mobile_id_list", mobile_id_list, True)
+            mobile_id_list = []
+            for recip in routine_recipients:
+                mobile_numbers = recip["mobile_numbers"]
+                for item in mobile_numbers:
+                    mobile_number = item["mobile_number"]
+                    mobile_id_list.append(mobile_number)
+            # var_checker("mobile_id_list", mobile_id_list, True)
 
-        #############################
-        # STORE MESSAGE TO DATABASE #
-        #############################
-        outbox_id = insert_message_on_database({
-            "sms_msg": ewi_message,
-            "recipient_list": mobile_id_list
-        })
+            #############################
+            # STORE MESSAGE TO DATABASE #
+            #############################
+            outbox_id = insert_message_on_database({
+                "sms_msg": ewi_message,
+                "recipient_list": mobile_id_list
+            })
 
-        #######################
-        # TAG THE NEW MESSAGE #
-        #######################
-        tag_details = {
-            "outbox_id": outbox_id,
-            "user_id": user_id,
-            "ts": datetime.now()
-        }
-        tag_id = 125  # TODO: FOR REFACTORING
-        insert_data_tag("sms_outbox_user_tags", tag_details, tag_id)
+            #######################
+            # TAG THE NEW MESSAGE #
+            #######################
+            tag_details = {
+                "outbox_id": outbox_id,
+                "user_id": user_id,
+                "ts": datetime.now()
+            }
+            tag_id = 18  # TODO: FOR REFACTORING, for #EwiMessage
+            insert_data_tag("sms_outbox_user_tags", tag_details, tag_id)
 
-        #############################
-        # PREPARE ROUTINE NARRATIVE #
-        #############################
-        narrative = f"Sent surficial ground data reminder for routine monitoring"
-        for site2 in site_list:
+            #############################
+            # PREPARE ROUTINE NARRATIVE #
+            #############################
+            # NOTE: Hardcoded narrative muna
+            narrative = f"Sent 12NN routine EWI SMS to LEWC, BLGU, MLGU"
             write_narratives_to_db(
-                site2.site_id, datetime.now(), narrative,
+                site["site_id"], datetime.now(), narrative,
                 1, user_id, event_id
             )
             DB.session.commit()
