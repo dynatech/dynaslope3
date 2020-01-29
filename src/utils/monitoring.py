@@ -1888,8 +1888,6 @@ def get_next_ground_data_reporting(data_ts, is_onset=False, is_alert_0=False, in
     hour = data_ts.hour
     minute = data_ts.minute
 
-    print("YOYOY", data_ts)
-
     time_comp = time(11, 30) if is_alert_0 else time(7, 30)
     modifier = "mamaya"
 

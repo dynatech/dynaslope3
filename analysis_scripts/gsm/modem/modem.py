@@ -7,7 +7,7 @@ import time
 import warnings
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-# from gsmmodem import pdu as PduDecoder
+from gsmmodem import pdu as PduDecoder
 import volatile.memory as mem
 
 try:

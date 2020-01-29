@@ -19,12 +19,17 @@ import itertools
 import os
 from sqlalchemy import create_engine
 from dateutil.parser import parse
+
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import analysis.querydb as qdb
+import volatile.memory as mem
+
+
 
 
 columns = ['tsm_id', 'presence', 'last_data', 'ts_updated', 'diff_days']
 df = pd.DataFrame(columns=columns)
+sc = mem.server_config()
 
 
 def get_tsm_sensors():
@@ -40,6 +45,10 @@ def get_data(lgrname):
     query= "SELECT max(ts) FROM "+ 'tilt_' + lgrname + "  where ts > '2010-01-01' and '2019-01-01' order by ts desc limit 1 "
 #    localdf = psql.read_sql(query, db)
     localdf = qdb.get_db_dataframe(query)
+    if (localdf.empty == False): 
+        return localdf
+    else:
+        localdf = 0
     print (localdf)
     return localdf
 
@@ -62,19 +71,19 @@ def dftosql(df):
     diff = df['ts_updated'] - df['last_data']
     tdta = diff
     fdta = tdta.astype('timedelta64[D]')
-    days = fdta.astype(int)
-    df['diff_days'] = days
+    #days = fdta.astype(int)
+    df['diff_days'] = fdta
 
     df.loc[(df['diff_days'] > -1) & (df['diff_days'] < 3), 'presence'] = 'active' 
     df['presence'] = df['diff_days'].apply(lambda x: '1' if x <= 3 else '0') 
     print (df) 
-    engine=create_engine('mysql+mysqlconnector://root:senslope@192.168.150.253:3306/senslopedb', echo = False)
-#    df.to_csv('loggers2.csv')
-#    engine=create_engine('mysql+mysqlconnector://root:senslope@127.0.0.1:3306/senslopedb', echo = False)
-
-    df.to_sql(name = 'data_presence_tsm', con = engine, if_exists = 'replace', index = False)
+#    engine=create_engine('mysql+mysqlconnector://root:senslope@192.168.150.253:3306/senslopedb', echo = False)
+    engine = create_engine('mysql+pymysql://' + sc['db']['user']  + ':'+ sc['db']['password'] + '@' + sc['hosts']['local'] +':3306/' + sc['db']['name'])
+    df.to_sql(name = 'data_presence_tsm', con = engine, if_exists = 'append', index = False)
+    
     return df
 
-
+query = "DELETE FROM data_presence_tsm"
+qdb.execute_query(query, hostdb='local')
 dftosql(df)
 

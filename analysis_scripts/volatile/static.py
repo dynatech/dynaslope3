@@ -141,8 +141,6 @@ def get_db_dataframe(query):
     except psql.DatabaseError:
         print ("Error getting query %s" % (query))
         return None
-    except:
-        print(sys.exc_info()[0])
 
 
 def set_mysql_tables(mc):

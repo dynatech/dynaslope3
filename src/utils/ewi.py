@@ -197,15 +197,15 @@ def create_ground_measurement_reminder(site_id, monitoring_type, ts):
     ground_data_noun = get_ground_data_noun(site_id)
 
     if hour == 5:
-        time = "07:30 AM"
+        dt_time = "07:30 AM"
     elif hour == 9:
-        time = "11:30 AM"
+        dt_time = "11:30 AM"
     else:
         greeting = "hapon"
-        time = "03:30 PM"
+        dt_time = "03:30 PM"
 
     message = f"Magandang {greeting}. Inaasahan ang pagpapadala ng LEWC ng {ground_data_noun} " + \
-        f"bago mag-{time} para sa {monitoring_type} monitoring. Agad ipaalam kung may " + \
+        f"bago mag-{dt_time} para sa {monitoring_type} monitoring. Agad ipaalam kung may " + \
         "makikitang manipestasyon ng paggalaw ng lupa o iba pang pagbabago sa site. Salamat."
 
     return message
