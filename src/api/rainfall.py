@@ -49,9 +49,20 @@ def wrap_get_rainfall_plot_data(site_code, end_ts=None):
 def get_all_site_rainfall_datas():
     data = request.get_json()
     try:
-        rainfall_summary = get_all_site_rainfall_data(data)
+        site_details = data["site_details"]
+        is_express = data["is_express"]
+        date_time = data["date_time"]
+        as_of = data["as_of"]
+        site_codes_list = []
+
+        for row in site_details:
+            site_codes_list.append(row["site_code"])
+        site_codes_list.sort()
+        site_codes_string = ','.join(site_codes_list)
+
+        rainfall_summary = get_all_site_rainfall_data(site_codes_string=site_codes_string, end_ts=date_time)
         rain_data = process_rainfall_information_message(
-            rainfall_summary, data)
+            rainfall_summary, site_details, as_of, is_express)
         status = True
         message = "Rain information successfully loaded!"
     except Exception as err:

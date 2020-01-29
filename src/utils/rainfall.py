@@ -128,34 +128,18 @@ def process_rainfall_plot_data(rainfall_data):
     return plot_data
 
 
-def get_all_site_rainfall_data(data=None):
-    site_codes_string = ''
-    as_of = datetime.now()
-
-    if data:
-        sites = data["site_details"]
-        as_of = data["date_time"]
-        site_codes_list = []
-
-        for row in sites:
-            site_codes_list.append(row["site_code"])
-        site_codes_list.sort()
-        site_codes_string = ','.join(site_codes_list)
-
+def get_all_site_rainfall_data(site_codes_string=None, end_ts=datetime.now()):
     rainfall_summary = rainfall_main(
         site_code=site_codes_string,
-        end=as_of, Print=False,
+        end=end_ts, Print=False,
         write_to_db=False, print_plot=False, save_plot=False,
         is_command_line_run=False)
 
     return rainfall_summary
 
 
-def process_rainfall_information_message(rainfall_summary, data):
+def process_rainfall_information_message(rainfall_summary, sites, as_of, is_express):
     messages = []
-    sites = data["site_details"]
-    as_of = data["date_time"]
-    is_express = data["is_express"]
 
     decoded_data = json.loads(rainfall_summary)
     for row in decoded_data:
@@ -173,24 +157,18 @@ def process_rainfall_information_message(rainfall_summary, data):
             one_day = int(one_day_cml / half_of_2yr_max * 100)
             three_day = int(three_day_cml / two_year_max * 100)
 
-            one_day_percentage = "One-day percentage: " + \
-                str(one_day) + "%" + "\n"
-            one_day_cumulative = "One-day cumulative rainfall: " + \
-                str(one_day_cml) + " mm" + "\n"
-            one_day_threshold = "One-day rainfall threshold: " + \
-                str(half_of_2yr_max) + " mm" + "\n\n"
-            three_day_percentage = "Three-day percentage: " + \
-                str(three_day) + "%" + "\n"
-            three_day_cumulative = "Three-day cumulative rainfall: " + \
-                str(one_day_cml) + " mm" + "\n"
-            three_day_threshold = "Three-day rainfall threshold: " + \
-                str(two_year_max) + " mm" + "\n\n\n"
+            one_day_percentage = (f"One-day cumulative rainfall percentage: {str(one_day)}% \n")
+            one_day_cumulative = (f"One-day cumulative rainfall: {str(one_day_cml)} mm \n")
+            one_day_threshold = (f"One-day rainfall threshold: {str(half_of_2yr_max)} mm \n")
+            three_day_percentage = (f"Three-day cumulative rainfall percentage: {str(three_day)}% \n")
+            three_day_cumulative = (f"Three-day cumulative rainfall: {str(three_day_cml)} mm \n")
+            three_day_threshold = (f"Three-day rainfall threshold: {str(two_year_max)} mm \n")
             if is_express:
-                message = str("Rainfall Information for " + site_info + " as of <as_of> : \n" + one_day_percentage
-                              + one_day_threshold + three_day_percentage + three_day_threshold)
+                rain_info = (f"{one_day_percentage} {three_day_percentage}")
             else:
-                message = str("Rainfall Information for " + site_info + " as of <as_of> : \n" + one_day_cumulative
-                              + one_day_threshold + three_day_cumulative + three_day_threshold)
+                rain_info = (f"{one_day_cumulative} {one_day_threshold} \n {three_day_cumulative} {three_day_threshold}")
+
+            message = (f"Rainfall Information for {site_info} as of {as_of} : \n {rain_info} ")
             data = {
                 "message": message
             }
