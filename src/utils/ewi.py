@@ -3,7 +3,7 @@
 
 import re
 import copy
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, time, date
 from src.utils.monitoring import (
     get_monitoring_releases, check_if_onset_release,
     get_next_ground_data_reporting, get_next_ewi_release_ts,
@@ -69,11 +69,11 @@ def create_ewi_message(release_id=None):
         release_id (Int) - by not providing a release_id, you are basically asking for a template.
         In this case, routine ewi sms template.
     """
-    greeting = get_greeting(datetime.now())
+    greeting = "tanghali"
     address = "(site_location)"
-    ts_str = datetime.strftime(datetime.now(), "%Y-%m-%d")
     alert_level = 0
-    data_ts = datetime.now()
+    data_ts = datetime.combine(date.today(), time(12, 0))
+    ts_str = format_timestamp_to_string(data_ts)
     monitoring_status = 2
     is_onset = False
 

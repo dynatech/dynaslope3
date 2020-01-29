@@ -442,7 +442,8 @@ def get_release_publishers_initial(release_publishers):
         first_name = user_details.first_name
         last_name = user_details.last_name
 
-        whole_name = first_name.split(" ") + last_name.split(" ")
+        # NOTE: make sure walang trailing spaces
+        whole_name = first_name.strip().split(" ") + last_name.strip().split(" ")
         letters = [word[0] for word in whole_name]
 
         publishers.append("".join(letters))

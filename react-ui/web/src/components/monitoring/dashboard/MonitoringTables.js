@@ -286,7 +286,7 @@ function CandidateAlertsExpansionPanel (props) {
                                                         </Grid>
 
                                                         {
-                                                            trigger_arr.length > key + 1 && (
+                                                            unresolved_moms_list.length > key + 1 && (
                                                                 <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
                                                             )
                                                         }

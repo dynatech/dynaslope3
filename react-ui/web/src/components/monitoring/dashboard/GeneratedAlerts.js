@@ -90,7 +90,7 @@ function getAlertDialog (chosen_site, open, handleClose, sites) {
                             <Grid item xs align="center">
                                 <Typography variant="body1" color="textSecondary">Validity</Typography>
                                 <Typography variant="body1" color="textPrimary">
-                                    {validity}
+                                    {formatTS(validity)}
                                 </Typography>
                             </Grid>
                         )

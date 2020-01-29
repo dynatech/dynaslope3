@@ -1192,7 +1192,7 @@ def get_event_timeline_data(event_id):
             "event_start": datetime.strftime(
                 event_collection_data.event_start, "%Y-%m-%d %H:%M:%S"),
             "event_id": event_collection_data.event_id,
-            "validity": validity,
+            "validity": datetime.strftime(validity, "%Y-%m-%d %H:%M:%S"),
             "site_id": site.site_id,
             "site_code": site.site_code,
             "site_address": build_site_address(site),

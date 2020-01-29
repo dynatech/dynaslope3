@@ -350,7 +350,7 @@ def process_ground_measurement_reminder(is_first_run, ground_meas_run):
                         "ts": ts
                     }
 
-                    tag_id = 125  # NOTE: for refactoring, GroundMeasReminder id on sms_user_tags
+                    tag_id = 10  # NOTE: for refactoring, GroundMeasReminder id on sms_tags
                     insert_data_tag("smsoutbox_user_tags", tag_details, tag_id)
 
                     # Add narratives

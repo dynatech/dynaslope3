@@ -341,7 +341,7 @@ def update_alert_status(as_details):
                     user_id=user_id
                 )
                 DB.session.add(alert_stat)
-                DB.session.flush()
+                DB.session.commit()
 
                 stat_id = alert_stat.stat_id
                 print(f"New alert status written with ID: {stat_id}."
@@ -353,8 +353,6 @@ def update_alert_status(as_details):
                 DB.session.rollback()
                 # print("NO existing alert_status found. An ERROR has occurred.")
                 raise
-
-        DB.session.commit()
     except Exception as err:
         DB.session.rollback()
         print(err)
@@ -1867,6 +1865,8 @@ def get_next_ground_data_reporting(data_ts, is_onset=False, is_alert_0=False, in
     hour = data_ts.hour
     minute = data_ts.minute
 
+    print("YOYOY", data_ts)
+
     time_comp = time(11, 30) if is_alert_0 else time(7, 30)
     modifier = "mamaya"
 
@@ -1876,7 +1876,7 @@ def get_next_ground_data_reporting(data_ts, is_onset=False, is_alert_0=False, in
             release_ts.date(), time_comp) + timedelta(days=1)
     elif hour <= 7 and minute == 0:
         reporting = datetime.combine(data_ts.date(), time_comp)
-    elif hour >= 15 and minute >= 30:
+    elif (hour == 15 and minute >= 30) or hour > 15:
         reporting = datetime.combine(
             data_ts.date(), time_comp) + timedelta(days=1)
         modifier = "bukas"

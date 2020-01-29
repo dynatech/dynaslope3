@@ -225,9 +225,10 @@ def get_subsurface_node_alerts(site_id, start_ts, latest_trigger_ts, alert_level
         tsm_node_alerts = []
         for sensor in tsm_sensors:
             sensor_node_alerts = sensor.node_alerts.filter(
-                DB.or_(na.disp_alert == alert_level, na.vel_alert == 3)) \
+                DB.or_(na.disp_alert == alert_level, na.vel_alert == alert_level)) \
                 .order_by(DB.desc(na.na_id)).filter(
                 start_ts <= na.ts, na.ts <= latest_trigger_ts).all()
+
             if sensor_node_alerts:  # If there are no node alerts on sensor, skip.
                 # If there is, remove duplicate node alerts. We only need the latest.
                 unique_list = []
@@ -368,7 +369,6 @@ def main(trigger, special_details=None):
     if trigger_source == 'subsurface':
         subsurface_node_alerts = get_subsurface_node_alerts(
             site_id, start_ts, latest_trigger_ts, alert_level)
-
         technical_info = get_subsurface_tech_info(
             subsurface_node_alerts)
 

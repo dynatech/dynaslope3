@@ -325,6 +325,7 @@ function SendMessageForm (props) {
                     sendButtonClickHandler={on_send_message_fn}
                     messageChangeHandler={handle_message_fn}
                     setComposedMessage={setComposedMessage}
+                    disableTemplateLoader={from_ewi_modal}
                 />
             </div>
                 

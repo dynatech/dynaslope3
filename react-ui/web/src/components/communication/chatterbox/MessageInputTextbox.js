@@ -24,7 +24,7 @@ function MessageInputTextbox (props) {
     const {
         limitRows, value, disableSend,
         messageChangeHandler, sendButtonClickHandler,
-        setComposedMessage
+        setComposedMessage, disableTemplateLoader
     } = props;
     const classes = useStyles();
     const limit = limitRows === undefined ? true : limitRows;
@@ -58,9 +58,17 @@ function MessageInputTextbox (props) {
                     >
                         <SendRounded />
                     </IconButton>
-                    <IconButton color="primary" aria-label="More options" onClick={set_function(true)}>
-                        <MoreVert />
-                    </IconButton>
+                    {
+                        !disableTemplateLoader && (
+                            <IconButton
+                                color="primary"
+                                aria-label="More options"
+                                onClick={set_function(true)}
+                            >
+                                <MoreVert />
+                            </IconButton>
+                        )
+                    }
                 </div>
             </div>
 

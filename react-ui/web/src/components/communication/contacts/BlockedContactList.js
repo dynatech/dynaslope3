@@ -1,15 +1,11 @@
-import React, {
-    useState, useEffect
-} from "react";
+import React from "react";
 
 import {
     Grid, Typography,
     List, ListItem, ListItemAvatar,
-    ListItemText, Avatar, Chip
+    ListItemText, Avatar
 } from "@material-ui/core";
-import { Person, Block } from "@material-ui/icons";
-
-import { getBlockedContacts } from "../ajax";
+import { Block } from "@material-ui/icons";
 
 
 function BlockedContactList (props) {
@@ -21,8 +17,7 @@ function BlockedContactList (props) {
         <List dense style={{ paddingTop: 0 }}>
             {
                 blocked_numbers.map(row => {
-                    const { reporter, mobile_number } = row;
-                    const { first_name, last_name } = reporter;
+                    const { mobile_number } = row;
                     const { mobile_id, sim_num } = mobile_number;
                     return (
                         <ListItem 

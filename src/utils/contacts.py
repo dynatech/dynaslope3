@@ -219,7 +219,8 @@ def get_contacts_per_site(site_ids=None,
         query = query.filter(Users.ewi_recipient == 1)
 
     schema_exclusions = ["emails", "teams",
-                         "landline_numbers", "ewi_restriction"]
+                         "landline_numbers", "ewi_restriction",
+                         "mobile_numbers.mobile_number.blocked_mobile"]
 
     if include_ewi_restrictions:
         # uer = UserEwiRestrictions
@@ -573,7 +574,7 @@ def remove_sites_with_ground_meas(
     """
     Function that remove site id with ground meas
     """
-    
+
     year = current_datetime.year
     month = current_datetime.month
     day = current_datetime.day
@@ -587,14 +588,16 @@ def remove_sites_with_ground_meas(
 
     if routine_reminder_time < current_datetime < routine_end_time:
         if routine_site_ids or extended_site_ids:
-            result = get_site_with_observation_and_remove(routine_reminder_time, timedelta_hour=4)
+            result = get_site_with_observation_and_remove(
+                routine_reminder_time, timedelta_hour=4)
 
             for site_id in result:
                 routine_site_ids.remove(site_id)
                 extended_site_ids.remove(site_id)
 
         if event_site_ids:
-            result = get_site_with_observation_and_remove(routine_reminder_time, timedelta_hour=1)
+            result = get_site_with_observation_and_remove(
+                routine_reminder_time, timedelta_hour=1)
 
             for site_id in result:
                 event_site_ids.remove(site_id)
@@ -609,8 +612,9 @@ def remove_sites_with_ground_meas(
 
         if one_thirty_reminder_time < current_datetime < one_thirty_end_time:
             reminder_time = one_thirty_reminder_time
-        
-        result = get_site_with_observation_and_remove(reminder_time, timedelta_hour=1)
+
+        result = get_site_with_observation_and_remove(
+            reminder_time, timedelta_hour=1)
 
         for site_id in result:
             event_site_ids.remove(site_id)
@@ -623,6 +627,7 @@ def remove_sites_with_ground_meas(
 
     return final_site_ids
 
+
 def get_site_with_observation_and_remove(reminder_time, timedelta_hour=1):
     run_down_ts = reminder_time - \
         timedelta(hours=timedelta_hour, minutes=30)
@@ -630,6 +635,7 @@ def get_site_with_observation_and_remove(reminder_time, timedelta_hour=1):
         MarkerObservations.ts.between(run_down_ts, reminder_time)).all()
 
     return mo_result
+
 
 def get_recipients_for_ground_meas(site_recipients):
     """
@@ -680,7 +686,8 @@ def get_site_ids(site_codes):
         site_ids.append(row.site_id)
 
     return site_ids
-    
+
+
 def get_blocked_numbers():
     """
     Function that gets blocked numbers
@@ -690,6 +697,7 @@ def get_blocked_numbers():
     result = BlockedMobileNumbersSchema(many=True).dump(query).data
 
     return result
+
 
 def save_blocked_number(data):
     """
@@ -702,8 +710,7 @@ def save_blocked_number(data):
     reason = data["reason"]
 
     insert_query = BlockedMobileNumbers(mobile_id=mobile_id, reason=reason,
-        reporter_id=reporter_id, ts=current_datetime)
+                                        reporter_id=reporter_id, ts=current_datetime)
     DB.session.add(insert_query)
-
 
     return True

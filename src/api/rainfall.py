@@ -3,7 +3,10 @@
 import json
 from datetime import time
 from flask import Blueprint, jsonify, request
-from src.utils.rainfall import get_rainfall_plot_data, get_all_site_rainfall_data
+from src.utils.rainfall import (
+    get_rainfall_plot_data, get_all_site_rainfall_data,
+    process_rainfall_information_message
+)
 
 RAINFALL_BLUEPRINT = Blueprint(
     "rainfall_blueprint", __name__)
@@ -41,11 +44,14 @@ def wrap_get_rainfall_plot_data(site_code, end_ts=None):
     plot_data = get_rainfall_plot_data(site_code, ts, days=7)
     return jsonify(plot_data)
 
+
 @RAINFALL_BLUEPRINT.route("/rainfall/get_all_site_rainfall_data", methods=["GET", "POST"])
 def get_all_site_rainfall_datas():
     data = request.get_json()
     try:
-        rain_data = get_all_site_rainfall_data(data)
+        rainfall_summary = get_all_site_rainfall_data(data)
+        rain_data = process_rainfall_information_message(
+            rainfall_summary, data)
         status = True
         message = "Rain information successfully loaded!"
     except Exception as err:

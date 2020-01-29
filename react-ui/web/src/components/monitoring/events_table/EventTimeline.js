@@ -118,7 +118,7 @@ function getColorBasedOnReleaseType (release_type) {
     return color;
 }
 
-
+// eslint-disable-next-line max-params
 function buildTimelineElements (timelineItems, bulletinHandler, site_code, site_id) {
     const temp = [];
     let key = 0;

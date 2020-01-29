@@ -315,7 +315,7 @@ def get_shift_end_info(end_ts, eos_dict):
 
         end_info = f"{part_a}- {con}"
 
-    shift_end = f"<b>SHIFT END:<br/>{datetime.strftime(end_ts, '%B %d, %Y, %I:%M %p')}</b>"
+    shift_end = f"<b>SHIFT END:<br/>{datetime.strftime(end_ts, '%B %d, %Y, %I:%M %p')}</b><br/>"
     end_info = shift_end + end_info
 
     return end_info

@@ -128,17 +128,19 @@ def process_rainfall_plot_data(rainfall_data):
     return plot_data
 
 
-def get_all_site_rainfall_data(data):
-    sites = data["site_details"]
-    as_of = data["date_time"]
-    is_express = data["is_express"]
-    site_codes_list = []
-    messages = []
+def get_all_site_rainfall_data(data=None):
+    site_codes_string = ''
+    as_of = datetime.now()
 
-    for row in sites:
-        site_codes_list.append(row["site_code"])
-    site_codes_list.sort()
-    site_codes_string = ','.join(site_codes_list)
+    if data:
+        sites = data["site_details"]
+        as_of = data["date_time"]
+        site_codes_list = []
+
+        for row in sites:
+            site_codes_list.append(row["site_code"])
+        site_codes_list.sort()
+        site_codes_string = ','.join(site_codes_list)
 
     rainfall_summary = rainfall_main(
         site_code=site_codes_string,
@@ -146,6 +148,14 @@ def get_all_site_rainfall_data(data):
         write_to_db=False, print_plot=False, save_plot=False,
         is_command_line_run=False)
 
+    return rainfall_summary
+
+
+def process_rainfall_information_message(rainfall_summary, data):
+    messages = []
+    sites = data["site_details"]
+    as_of = data["date_time"]
+    is_express = data["is_express"]
 
     decoded_data = json.loads(rainfall_summary)
     for row in decoded_data:
@@ -158,23 +168,29 @@ def get_all_site_rainfall_data(data):
         half_of_2yr_max = row["half of 2yr max"]
         three_day_cml = row["3D cml"]
         two_year_max = row["2yr max"]
-    
-        if one_day_cml != None:
+
+        if one_day_cml is not None:
             one_day = int(one_day_cml / half_of_2yr_max * 100)
             three_day = int(three_day_cml / two_year_max * 100)
 
-            one_day_percentage = "One-day percentage: " + str(one_day) + "%" + "\n"
-            one_day_cumulative = "One-day cumulative rainfall: " + str(one_day_cml) + " mm" + "\n"
-            one_day_threshold = "One-day rainfall threshold: " + str(half_of_2yr_max) + " mm" + "\n\n"
-            three_day_percentage = "Three-day percentage: " + str(three_day) + "%" + "\n"
-            three_day_cumulative = "Three-day cumulative rainfall: " + str(one_day_cml) + " mm" + "\n"
-            three_day_threshold = "Three-day rainfall threshold: " + str(two_year_max) + " mm" + "\n\n\n"
+            one_day_percentage = "One-day percentage: " + \
+                str(one_day) + "%" + "\n"
+            one_day_cumulative = "One-day cumulative rainfall: " + \
+                str(one_day_cml) + " mm" + "\n"
+            one_day_threshold = "One-day rainfall threshold: " + \
+                str(half_of_2yr_max) + " mm" + "\n\n"
+            three_day_percentage = "Three-day percentage: " + \
+                str(three_day) + "%" + "\n"
+            three_day_cumulative = "Three-day cumulative rainfall: " + \
+                str(one_day_cml) + " mm" + "\n"
+            three_day_threshold = "Three-day rainfall threshold: " + \
+                str(two_year_max) + " mm" + "\n\n\n"
             if is_express:
-                message = str("Rainfall Information for " + site_info + " as of <as_of> : \n" + one_day_percentage +
-                    one_day_threshold + three_day_percentage + three_day_threshold)
+                message = str("Rainfall Information for " + site_info + " as of <as_of> : \n" + one_day_percentage
+                              + one_day_threshold + three_day_percentage + three_day_threshold)
             else:
-                message = str("Rainfall Information for " + site_info + " as of <as_of> : \n" + one_day_cumulative +
-                    one_day_threshold + three_day_cumulative + three_day_threshold)
+                message = str("Rainfall Information for " + site_info + " as of <as_of> : \n" + one_day_cumulative
+                              + one_day_threshold + three_day_cumulative + three_day_threshold)
             data = {
                 "message": message
             }
@@ -182,7 +198,7 @@ def get_all_site_rainfall_data(data):
             data = {
                 "message": str("No data for " + site_info)
             }
-        
+
         messages.append(data)
 
     final_message = ""

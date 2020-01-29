@@ -14,6 +14,9 @@ class Config(object):
     # Put any config here
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JSON_SORT_KEYS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_recycle": 3600
+    }
 
 
 class DevelopmentConfig(Config):
@@ -51,8 +54,8 @@ APP_CONFIG = {
     "generated_alerts_path": f"{ROOT_PATH}/temp/alerts",
     "bulletin_save_path": f"{ROOT_PATH}/temp/bulletin",
     "charts_render_path": f"{ROOT_PATH}/temp/charts",
-    "url": "http://localhost:3000",
-    # "url": "http://192.168.150.110",
+    # "url": "http://192.168.150.167:3000",
+    "url": "http://192.168.150.110",
     "is_live_mode": False,
     "director_and_head_emails": ["rusolidum@phivolcs.dost.gov.ph", "asdaag48@gmail.com"],
     "dynaslope_groups": ["phivolcs-dynaslope@googlegroups.com", "phivolcs-senslope@googlegroups.com"],

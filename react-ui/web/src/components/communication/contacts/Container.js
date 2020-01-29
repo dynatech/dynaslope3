@@ -137,7 +137,6 @@ function IndividualContact (props) {
                 </Typography>
             </Grid>
 
-
             {
                 org !== null ? (
                     <Fragment>
@@ -326,7 +325,7 @@ function IndividualContact (props) {
     );
 }
 
-function BlockContact (props) {
+function BlockedContact (props) {
     const { chosenContact } = props;
     if (chosenContact.length === 0) {
         return (
@@ -344,15 +343,16 @@ function BlockContact (props) {
             </Grid>
         );
     }
+
     const { mobile_number, reporter, ts, reason } = chosenContact;
-    const { mobile_id, sim_num, user_details } = mobile_number;
+    const { sim_num, user_details } = mobile_number;
     const { first_name: reporter_first_name, last_name: reporter_last_name } = reporter;
     let contact_name = "No contact details";
     if (user_details !== null) {
         const { user: { first_name, last_name } } = user_details;
         contact_name = `${last_name}, ${first_name}`;
     }
-    const date_reported = moment(ts).format("MMMM D, YYYY hh:mm a");
+    const date_reported = moment(ts).format("MMMM D, YYYY, HH:mm:ss");
     return (
         <Grid
             container 
@@ -377,10 +377,13 @@ function BlockContact (props) {
             </Grid>
 
             <Grid item xs={12}>
-                <Typography variant="subtitle1">
-                    Details:
+                <Typography variant="h6" align="center">
+                    Details
                 </Typography>
-                <Typography variant="caption" display="block" gutterBottom>
+            </Grid>
+
+            <Grid item xs={12}>
+                <Typography variant="body1" align="center">
                     {contact_name}
                 </Typography>
             </Grid>
@@ -390,6 +393,24 @@ function BlockContact (props) {
             </Grid>
 
             <Grid item xs={12}>
+                <Typography variant="h6" align="center">
+                    Reason
+                </Typography>
+            </Grid>
+
+            <Grid item xs={12}>
+                <Typography variant="body2" align="center">
+                    <i>{reason}</i>
+                </Typography>
+            </Grid>
+
+            <Grid item xs={12}>
+                <Typography variant="body2" align="center">
+                    {date_reported}
+                </Typography>
+            </Grid>
+
+            {/* <Grid item xs={12}>
                 <Typography variant="subtitle1">
                     Reason:
                 </Typography>
@@ -399,20 +420,24 @@ function BlockContact (props) {
                 <Typography color="textSecondary" variant="caption" paragraph>
                     {`Date reported: ${date_reported}`}
                 </Typography>
-            </Grid>
+            </Grid> */}
 
             <Grid item xs={12} style={{ padding: "12px 4px" }} >
                 <Divider />
             </Grid>
 
             <Grid item xs={12}>
-                <Typography variant="subtitle1">
-                    Reporter:
+                <Typography variant="h6" align="center">
+                    Reporter
                 </Typography>
-                <Typography variant="caption" display="block" gutterBottom>
+            </Grid>
+
+            <Grid item xs={12}>
+                <Typography variant="body1" align="center">
                     {`${reporter_last_name}, ${reporter_first_name}`}
                 </Typography>
             </Grid>
+
             <Grid item xs={12} style={{ padding: "12px 4px" }} >
                 <Divider />
             </Grid>
@@ -552,7 +577,7 @@ function Container (props) {
 
         if (is_block_numbers_open) {
             return (
-                <BlockContact
+                <BlockedContact
                     chosenContact={blocked_chosen_contact}
                 />
             );
