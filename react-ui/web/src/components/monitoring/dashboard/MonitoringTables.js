@@ -794,7 +794,6 @@ function MonitoringTables (props) {
                 modalState={isShowingSendRoutineEWI}
                 textboxValue={ewi_message}
                 siteList={routine_site_id_list}
-                user_id={reporter_id_ct}
             />
         </div>
     );

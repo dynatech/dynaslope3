@@ -107,10 +107,13 @@ def group_by_date(releases_list):
     unique_release_dates = []
 
     unique_set = {}
+    un_ea_list = []
     index = -1
     for release in releases_list:
         ts = release.data_ts
         release_date = f"{ts.year}-{ts.month}-{ts.day}"
+        prev_date_entry = f"{ts.year}-{ts.month}-{ts.day + 1}"
+        ea_id = release.event_alert_id
         publishers = get_release_publisher_names(release)
         is_am_pm = check_if_ampm(ts.hour)
 
@@ -118,16 +121,21 @@ def group_by_date(releases_list):
         if release_date not in unique_set:
             # Create an index as reference where the release was
             # placed on the array.
-            index += 1
-            unique_set[release_date] = index
+            if prev_date_entry not in unique_set and un_ea_list not in un_ea_list:
+                index += 1
+                unique_set[release_date] = index
 
-            unique_release_dates.append({
-                "date": release_date,
-                "ampm": is_am_pm,
-                "data": [data_for_ui],
-                "mt": publishers["mt"],
-                "ct": publishers["ct"]
-            })
+                if is_am_pm == "PM":
+                    release_date = f"{ts.year}-{ts.month}-{ts.day - 1}"
+
+                unique_release_dates.append({
+                    "date": release_date,
+                    "ampm": is_am_pm,
+                    "data": [data_for_ui],
+                    "mt": publishers["mt"],
+                    "ct": publishers["ct"]
+                })
+                un_ea_list.append(ea_id)
         else:
             date_index = unique_set[release_date]
 

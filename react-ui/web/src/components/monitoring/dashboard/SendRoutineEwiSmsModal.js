@@ -6,7 +6,9 @@ import {
     Grid, CircularProgress, 
 } from "@material-ui/core";
 import { Close } from "@material-ui/icons";
+import { useSnackbar } from "notistack";
 
+import { getCurrentUser } from "../../sessions/auth";
 import MessageInputTextbox from "../../communication/chatterbox/MessageInputTextbox";
 
 import { sendRoutineEwiMessage } from "../../communication/ajax";
@@ -16,7 +18,7 @@ import { SlideTransition, FadeTransition } from "../../reusables/TransitionList"
 function SendRoutineMessageForm (props) {
     const {
         is_loading_recipients, textboxValue,
-        sendHandler
+        sendHandler, modalStateHandler
     } = props;
 
     return (
@@ -52,21 +54,60 @@ function SendRoutineMessageForm (props) {
 function SendRoutineEwiSmsModal (props) {
     const {
         fullScreen, modalStateHandler,
-        modalState, textboxValue, siteList,
-        user_id
+        modalState, textboxValue, siteList
     } = props;
 
     // const { release_id, site_code } = releaseDetail;
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
+    const snackBarActionFn = key => {
+        return (<Button
+            color="primary"
+            onClick={() => { closeSnackbar(key); }}
+        >
+            Dismiss
+        </Button>);
+    };
 
     const sendHandler = () => {
+        const cur_user = getCurrentUser();
         const input = {
             site_list: siteList,
-            user_id
+            user_id: cur_user.user_id
         };
+        modalStateHandler();
         sendRoutineEwiMessage(input, response => {
             console.log(response.message);
+
+            if (response.status) {
+                enqueueSnackbar(
+                    "EWI SMS Sent!",
+                    {
+                        variant: "success",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            } else {
+                enqueueSnackbar(
+                    response.message,
+                    {
+                        variant: "error",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+            }
         }, error_response => {
             console.log("error_response", error_response);
+            enqueueSnackbar(
+                "Error sending Routine EWI SMS...",
+                {
+                    variant: "error",
+                    autoHideDuration: 7000,
+                    action: snackBarActionFn
+                }
+            );
         });
 
     };

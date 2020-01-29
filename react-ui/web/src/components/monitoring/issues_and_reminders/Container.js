@@ -82,19 +82,23 @@ function getManipulationButtons (issue_and_reminder, data_handlers) {
 
 
 function processTableData (data, data_handlers) {
-    const processed = data.map(row => (
-        {
+    const processed = data.map(row => {
+        const expiration = row.ts_expiration === null ? "-" : row.ts_expiration;
+        const res_by = row.resolved_by === null ? "-" : row.resolved_by;
+        const resolution = row.resolution === null ? "-" : row.resolution;
+
+        return {
             ...row,
             // NOTE: PARKING SITE LIST DUE TO NEEDS MULTIPLE VALUES
             // site_list: prepareSiteAddress(),
             reporter: `${row.issue_reporter.first_name} ${row.issue_reporter.last_name}`,
             ts_posted: moment(row.ts_posted).format("DD MMMM YYYY, HH:mm:ss"),
-            ts_expiration: moment(row.ts_expiration).format("DD MMMM YYYY, HH:mm:ss"),
-            resolved_by: row.resolved_by,
-            resolution: row.resolution,
+            ts_expiration: expiration,
+            resolved_by: res_by,
+            resolution,
             actions: getManipulationButtons(row, data_handlers)
-        }
-    ));
+        };
+    });
 
     return processed;
 }
