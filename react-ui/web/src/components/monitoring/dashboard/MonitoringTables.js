@@ -449,11 +449,9 @@ function RoutineExpansionPanel (props) {
     const { 
         siteAlert, classes, expanded,
         handleExpansion, smsHandler,
-        keyName, type
+        keyName
     } = props;
-    const {
-        released_sites, unreleased_sites
-    } = siteAlert;
+    const { released_sites } = siteAlert;
 
     let adjusted_data_ts = released_sites[0].data_ts;
     adjusted_data_ts = format_ts(adjusted_data_ts);
@@ -643,7 +641,7 @@ function MonitoringTables (props) {
                 </Grid>
 
                 <Grid item xs={12}>
-                    <Typography className={classes.sectionHead} variant="h5">Latest Site Alerts</Typography>
+                    <Typography className={classes.sectionHead} variant="h5">Event Monitoring</Typography>
                 </Grid>
 
                 <Grid item xs={12} style={{ marginBottom: 22 }}>
@@ -677,7 +675,7 @@ function MonitoringTables (props) {
                 </Grid>
 
                 <Grid item xs={12}>
-                    <Typography className={classes.sectionHead} variant="h5">Sites under Extended Monitoring</Typography>
+                    <Typography className={classes.sectionHead} variant="h5">Extended Monitoring</Typography>
                 </Grid>
 
                 <Grid item xs={12} style={{ marginBottom: 22 }}>
@@ -719,7 +717,7 @@ function MonitoringTables (props) {
                         typeof routine_db_alerts.released_sites !== "undefined" && routine_db_alerts.released_sites.length > 0 && (
                             <Fragment>
                                 <Grid item xs={12}>
-                                    <Typography className={classes.sectionHead} variant="h5">Sites under Routine Monitoring</Typography>
+                                    <Typography className={classes.sectionHead} variant="h5">Routine Monitoring</Typography>
                                 </Grid>
                                 <Grid item xs={12} style={{ marginBottom: 22 }}>
                                     <RoutineExpansionPanel
@@ -742,7 +740,7 @@ function MonitoringTables (props) {
                 }
 
                 <Grid item xs={12}>
-                    <Typography className={classes.sectionHead} variant="h5">Sites with Due Alerts</Typography>
+                    <Typography className={classes.sectionHead} variant="h5">Overdue Event Monitoring</Typography>
                 </Grid>
 
                 <Grid item xs={12} style={{ marginBottom: 22 }}>

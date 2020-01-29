@@ -6,6 +6,7 @@ import ListItem from "@material-ui/core/ListItem";
 import ListItemText from "@material-ui/core/ListItemText";
 import ListItemAvatar from "@material-ui/core/ListItemAvatar";
 import Avatar from "@material-ui/core/Avatar";
+import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
 import { IconButton, Tooltip, makeStyles } from "@material-ui/core";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@material-ui/icons";
 import GenericAvatar from "../../../images/generic-user-icon.jpg";
 import GeneralDataTagModal from "../../widgets/GeneralDataTagModal";
+import { loadMoreMessages } from "../ajax";
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -237,8 +239,8 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
     const {
         convo_id,
         source, sms_msg: message,
-        ts_received, ts_written,
-        ts_sent, send_status, tags
+        ts, ts_sent, send_status,
+        tags
     } = message_row;
 
     const tag_object = {
@@ -248,8 +250,7 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
     };
 
     const is_you = source === "outbox";
-    let timestamp = is_you ? ts_written : ts_received;
-    timestamp = moment(timestamp).format("M/D/YYYY HH:mm");
+    const timestamp = moment(ts).format("M/D/YYYY HH:mm:ss");
 
     const avatar_component = <ListItemAvatar style={{ textAlign: "-webkit-center" }}>
         <Avatar alt="Remy Sharp" src={GenericAvatar} />
@@ -278,11 +279,11 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
                     {timestamp}
                 </div>
                 {
-                    ((send_status >= 0 && send_status < 5) || (send_status === null && ts_sent !== null)) && <RadioButtonUnchecked className={classes.sentIcon} />
+                    (send_status >= 0 && send_status < 5 && send_status !== null) && <RadioButtonUnchecked className={classes.sentIcon} />
                 }
                 {
                     send_status === 5 && (
-                        <BootstrapTooltip disableFocusListener title={ moment(ts_sent).format("M/D/YYYY HH:mm") }>
+                        <BootstrapTooltip disableFocusListener title={ moment(ts_sent).format("M/D/YYYY HH:mm:ss") }>
                             <CheckCircle color="primary" className={classes.sentIcon} />
                         </BootstrapTooltip>
                     )
@@ -311,12 +312,19 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
 function ChatThread (props) {
     const { message_list, mobileDetails } = props;
     const classes = useStyles();
+
+    const initial_messages = message_list.slice(0).reverse();
+
+    const [messages, setMessages] = useState(initial_messages);
     const [is_gdt_modal_open, set_is_gdt_modal_open] = useState(false);
     const [selected_message, setSelectedMessage] = useState("");
     const default_tag_obj = {
         id: "", source: "", tags: []
     };
+
     const [tag_object, update_tag_object] = useState(default_tag_obj);
+    const [message_batch, setMessageBatch] = useState(1);
+    const [loaded_messages, setLoadedMessages] = useState(initial_messages);
 
     const set_gdt_fn = (bool, obj = default_tag_obj, message) => () => {
         update_tag_object(obj);
@@ -325,20 +333,42 @@ function ChatThread (props) {
         // create API to save tag
     };
 
+    const onLoadMessageClick = () => {
+        const { mobile_id } = mobileDetails;
+        loadMoreMessages(mobile_id, message_batch, data => {
+            setLoadedMessages(data);
+            const reversed = data.slice(0).reverse();
+            setMessages(reversed.concat(messages));
+        });
+        setMessageBatch(message_batch + 1);
+    };
+
     return (
         <Fragment>
+            {
+                message_list.length === 0 && (
+                    <Typography variant="subtitle1" align="center">
+                        No conversation yet
+                    </Typography>
+                )
+            }
+
+            {
+                loaded_messages.length >= 20 && (
+                    <Button
+                        color="primary"
+                        size="small"
+                        fullWidth
+                        onClick={onLoadMessageClick}
+                    >
+                        <strong>Load more messages...</strong>
+                    </Button>
+                )
+            }
+                
             <List className={classes.root}>
                 {
-                    message_list.slice(0).reverse()
-                    .map(row => chatBubbleCreator(classes, row, set_gdt_fn))
-                }
-
-                {
-                    message_list.length === 0 && (
-                        <Typography variant="subtitle1" align="center">
-                            No conversation yet
-                        </Typography>
-                    )
+                    messages.map(row => chatBubbleCreator(classes, row, set_gdt_fn))
                 }
             </List>
 

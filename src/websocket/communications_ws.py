@@ -7,7 +7,6 @@ from flask import request
 from flask_socketio import join_room, leave_room
 from connection import SOCKETIO, DB
 from src.utils.extra import var_checker
-from config import APP_CONFIG
 
 from src.api.chatterbox import get_quick_inbox
 from src.utils.chatterbox import (
@@ -321,36 +320,41 @@ def process_ground_measurement_reminder(is_first_run, ground_meas_run):
         for row in recipients_group:
             recipients = row["recipients"]
             monitoring_type = row["type"]
-            site_ids = row["site_ids"]
+            site_recipients_dict = {}
 
             if recipients:
-                message = create_ground_measurement_reminder(monitoring_type, ts_now)
-                recipient_list = []
                 for recipient in recipients:
                     mobile_numbers = recipient["mobile_numbers"]
-                    recipient_list = recipient_list + mobile_numbers
+                    numbers_list = map(
+                        lambda x: x["mobile_number"], mobile_numbers)
+                    site_id = recipient["organizations"][0]["site"]["site_id"]
+                    site_recipients_dict.setdefault(
+                        site_id, []).extend(numbers_list)
 
-                outbox_id = insert_message_on_database({
-                    "sms_msg": message,
-                    "recipient_list": recipient_list
-                })
+                for site_id, site_recipients in site_recipients_dict.items():
+                    message = create_ground_measurement_reminder(
+                        site_id, monitoring_type, ts_now)
 
-                ts = datetime.now()
-                default_user_id = 2
+                    outbox_id = insert_message_on_database({
+                        "sms_msg": message,
+                        "recipient_list": site_recipients
+                    })
 
-                # Tag message
-                tag_details = {
-                    "outbox_id": outbox_id,
-                    "user_id": default_user_id,
-                    "ts": ts
-                }
+                    ts = datetime.now()
+                    default_user_id = 2
 
-                tag_id = 125 # NOTE: for refactoring, GroundMeasReminder number on sms_user_tags
-                insert_data_tag("smsoutbox_user_tags", tag_details, tag_id)
+                    # Tag message
+                    tag_details = {
+                        "outbox_id": outbox_id,
+                        "user_id": default_user_id,
+                        "ts": ts
+                    }
 
-                # Add narratives
-                narrative = f"Sent surficial ground data reminder for {monitoring_type} monitoring"
-                for site_id in site_ids:
+                    tag_id = 125  # NOTE: for refactoring, GroundMeasReminder id on sms_user_tags
+                    insert_data_tag("smsoutbox_user_tags", tag_details, tag_id)
+
+                    # Add narratives
+                    narrative = f"Sent surficial ground data reminder for {monitoring_type} monitoring"
                     event_id = find_narrative_event_id(ts, site_id)
                     write_narratives_to_db(
                         site_id, ts, narrative, 1, default_user_id, event_id=event_id)
@@ -362,6 +366,9 @@ def main():
     global MESSAGES
     global CONTACTS_USERS
     global CONTACTS_MOBILE
+
+    delete_sms_user_update()
+
     MESSAGES = get_inbox()
     CONTACTS_USERS = get_contacts(orientation="users")
     CONTACTS_MOBILE = get_recipients_option()

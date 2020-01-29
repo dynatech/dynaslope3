@@ -1,28 +1,21 @@
 import React, { Fragment, useState, useEffect } from "react";
-import { Route, Link } from "react-router-dom";
+import { Route } from "react-router-dom";
 
 import {
-    withStyles, Grid, Paper,
-    Typography
+    Paper, Typography
 } from "@material-ui/core";
 import MUIDataTable from "mui-datatables";
 import moment from "moment";
-import { green } from "@material-ui/core/colors";
-
-import Snackbar from "@material-ui/core/Snackbar";
-import IconButton from "@material-ui/core/IconButton";
-import CloseIcon from "@material-ui/icons/Close";
 
 import { getMOMsInstances } from "../ajax";
 
-import GeneralStyles from "../../../GeneralStyles";
 import BackToMainButton from "./BackToMainButton";
 import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
 import InsertMomsButton from "../../widgets/moms/InsertMomsButton";
 
 
 function formatTimestamp (ts) {
-    return moment(ts).format("D MMM YYYY, HH:mm");
+    return moment(ts).format("D MMMM YYYY, HH:mm");
 }
 
 function buildName (name) {
@@ -33,7 +26,7 @@ function buildName (name) {
 function processMomsReportData (moms) {
     const data = moms.map(report => {
         const {
-            moms_id, observance_ts, narrative: n_details, reporter, validator
+            observance_ts, narrative: n_details, reporter, validator
         } = report;
         const { narrative, timestamp: report_ts } = n_details;
         return [
@@ -46,7 +39,7 @@ function processMomsReportData (moms) {
 }
 
 function MomsInstancesPage (props) {
-    const { classes, history, width,
+    const { history,
         match: { 
             url, params: { site_code }
         }
@@ -80,7 +73,7 @@ function MomsInstancesPage (props) {
             const tbl_data = data.map(instance => {
                 const {
                     feature: { feature_type },
-                    feature_name, moms
+                    feature_name, moms, instance_id
                 } = instance;
 
                 const type = feature_type.charAt(0).toUpperCase() + feature_type.slice(1);
@@ -90,10 +83,8 @@ function MomsInstancesPage (props) {
                 if (typeof last_mom !== "undefined") {
                     const { observance_ts, op_trigger } = last_mom;
                     const ts = formatTimestamp(observance_ts);
-                    return_data = [type, feature_name, ts, op_trigger, instance];
+                    return_data = [type, feature_name, ts, op_trigger, instance_id];
                 } 
-                // const { observance_ts, op_trigger } = last_mom;
-                // const ts = formatTimestamp(observance_ts);
 
                 return return_data;    
             });
@@ -109,8 +100,6 @@ function MomsInstancesPage (props) {
 
     const [is_moms_modal_open, setMomsModal] = useState(false);
     const set_moms_modal_fn = bool => () => setMomsModal(bool);
-    // const [is_snackbar_notif_open, setSnackbarNotif] = useState(false);
-    // const set_snackbar_notif_fn = bool => () => setSnackbarNotif(bool);
 
     return (
         <Fragment>
@@ -136,8 +125,8 @@ function MomsInstancesPage (props) {
                         download: false,
                         responsive: "scrollMaxHeight",
                         onRowClick (data, meta, e) {
-                            const { instance_id } = data[4];
-                            history.push(`${url}/${instance_id}`);
+                            // const { instance_id } = data[4];
+                            history.push(`${url}/${data[4]}`);
                         }
                     }}
                     data={moms_features}
@@ -148,8 +137,6 @@ function MomsInstancesPage (props) {
                 {...props}
                 isOpen={is_moms_modal_open}
                 closeHandler={set_moms_modal_fn(false)}
-                // snackbarHandler={set_snackbar_notif_fn(true)}
-                // width={width}
             />
             
             <Route path={`${url}/:instance_id`} render={
@@ -208,4 +195,4 @@ function MomsReportsTable (props) {
     );
 }
 
-export default withStyles(GeneralStyles)(MomsInstancesPage);
+export default MomsInstancesPage;
