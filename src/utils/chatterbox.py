@@ -16,6 +16,7 @@ from src.models.inbox_outbox import (
 from src.models.users import Users
 from src.models.mobile_numbers import (
     UserMobiles, MobileNumbers, MobileNumbersSchema)
+
 from src.utils.contacts import get_mobile_numbers
 from src.utils.extra import var_checker
 
@@ -316,11 +317,4 @@ def get_search_results(obj):
 
     return search_results
 
-def get_rain_info_sites():
-    """
-    Function that get rain info
-    """
-
-
-    return ""
 

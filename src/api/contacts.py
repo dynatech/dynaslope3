@@ -11,7 +11,7 @@ from src.utils.contacts import (
     ewi_recipient_migration, get_contacts_per_site,
     get_ground_measurement_reminder_recipients,
     get_recipients_option, get_blocked_numbers,
-    save_blocked_number
+    save_blocked_number, get_all_sim_prefix
 )
 
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
@@ -211,3 +211,25 @@ def save_block_number():
     }
 
     return jsonify(feedback)
+
+@CONTACTS_BLUEPRINT.route("/contacts/sim_prefix", methods=["GET"])
+def sim_prefixes():
+    """
+    Function that gets sim prefixes
+    """
+    try:
+        data = get_all_sim_prefix()
+        status = True
+        message = "Successfully get all sim prefixes"
+    except Exception as err:
+        status = False
+        message = "Something went wrong, Please try again."
+        data = []
+    
+    feeback = {
+        "status": status,
+        "prefixes": data,
+        "message": message
+    }
+
+    return jsonify(feeback)

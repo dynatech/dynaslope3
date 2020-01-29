@@ -707,3 +707,13 @@ def save_blocked_number(data):
 
 
     return True
+
+def get_all_sim_prefix():
+    """
+    Function that gets sim prefixes
+    """
+
+    query = SimPrefixes.query.all()
+    result = SimPrefixesSchema(many=True).dump(query).data
+
+    return result

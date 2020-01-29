@@ -133,7 +133,6 @@ export function getBlockedContacts (callback) {
     axios.get(api_link)
     .then(response => {
         const { data } = response;
-        console.log(data);
         callback(data);
     })
     .catch(error => {
@@ -147,6 +146,19 @@ export function saveBlockedContact (input, callback) {
     .then(response => {
         const { data } = response;
         console.log("Save blocked contact data reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function getSimPrefixes (callback) {
+    const api_link = `${host}/api/contacts/sim_prefix`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
         callback(data);
     })
     .catch(error => {
