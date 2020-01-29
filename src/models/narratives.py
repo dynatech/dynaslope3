@@ -2,7 +2,7 @@ import datetime
 from connection import DB, MARSHMALLOW
 from marshmallow import fields
 from src.models.sites import SitesSchema
-from src.models.users import Users
+from src.models.users import Users, UsersSchema
 
 
 class Narratives(DB.Model):
@@ -42,6 +42,7 @@ class NarrativesSchema(MARSHMALLOW.ModelSchema):
     site_id = fields.Integer()
     user_id = fields.Integer()
     site = fields.Nested(SitesSchema)
+    user_details = fields.Nested(UsersSchema)
     timestamp = fields.DateTime("%Y-%m-%d %H:%M:%S")
 
     class Meta:

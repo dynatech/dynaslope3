@@ -3,6 +3,7 @@
 
 from datetime import datetime
 from flask import Blueprint, jsonify, request
+from connection import DB
 from src.models.inbox_outbox import SmsTagsSchema
 from src.utils.chatterbox import (
     get_quick_inbox, get_message_tag_options,
@@ -102,11 +103,18 @@ def wrap_send_routine_ewi_sms():
                 site2.site_id, datetime.now(), narrative,
                 1, user_id, event_id
             )
+            DB.session.commit()
 
-    response = {
-        "message": "success",
-        "status": True
-    }
+            response = {
+                "message": "success",
+                "status": True
+            }
+    except:
+        DB.session.rollback()
+        response = {
+            "message": "failed",
+            "status": False
+        }
 
     return jsonify(response)
 

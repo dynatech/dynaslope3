@@ -615,7 +615,7 @@ def get_unreleased_routine_sites(data_timestamp, only_site_code=True):
     for site_code in routine_sites:
         # This is with the assumption that you are using data_timestamp
         site_release = get_monitoring_releases_by_data_ts(site_code, data_timestamp)
-        # var_checker("site_release", site_release, True)
+
         if site_release:
             f_data_ts = datetime.strftime(site_release.data_ts, "%Y-%m-%d %H:%M:%S")
             f_rel_time = time.strftime(site_release.release_time, "%H:%M:%S")

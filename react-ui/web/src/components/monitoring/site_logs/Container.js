@@ -96,6 +96,7 @@ function processTableData (data) {
             actions: "---"
         }
     ));
+    console.log("processed", processed);
 
     return processed;
 }
@@ -278,6 +279,13 @@ function SiteLogs (props) {
             label: "Type",
             options: {
                 filter: true,
+            }
+        },
+        {
+            name: "user_details",
+            label: "Reporter",
+            options: {
+                filter: false,
             }
         },
         {
