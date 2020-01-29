@@ -4,6 +4,7 @@ Contains functions for getting and accesing monitoring-related tables only
 """
 import re
 from datetime import datetime, timedelta, time, date
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from connection import DB
 from src.models.analysis import AlertStatus
@@ -1190,6 +1191,19 @@ def write_moms_instances_to_db(instance_details):
     return return_data
 
 
+def search_single_letter_feature_name(feature_id):
+    """
+    TODO: This needs to be improved in the future. When characters reach Z, 
+    this code will not work properly anymore.
+    Limited to A-Z only. AA to be worked on.
+    """
+    mi = MomsInstances
+    instance_list = None
+    instance_list = mi.query.order_by(DB.desc(mi.feature_name)).filter(mi.feature_id == feature_id).filter(func.char_length(mi.feature_name) == 1).all()
+
+    return instance_list
+
+
 def search_if_feature_name_exists(site_id, feature_id, feature_name):
     """
     Sample
@@ -1276,14 +1290,23 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             else:
                 feature_id = moms_feature.feature_id
 
-            moms_instance = search_if_feature_name_exists(
-                site_id, feature_id, feature_name)
+            if feature_name:
+                moms_instance = search_if_feature_name_exists(
+                    site_id, feature_id, feature_name)
+            else:
+                # Create new feature name based on the latest letter in DB
+                feature_names_list = search_single_letter_feature_name(feature_id)
+
+                # Get feature names with only letters
+                # Already sorted descending so latest will be [0]
+                latest_instance = feature_names_list[0]
+                feature_name = chr(ord(latest_instance.feature_name) + 1)
 
             if not moms_instance:
                 instance_details = {
                     "site_id": site_id,
                     "feature_id": feature_id,
-                    "feature_name": moms_details["feature_name"]
+                    "feature_name": feature_name
                 }
                 moms_instance_id = write_moms_instances_to_db(instance_details)
             else:
