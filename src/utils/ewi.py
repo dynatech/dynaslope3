@@ -69,10 +69,10 @@ def create_ewi_message(release_id=None):
         release_id (Int) - by not providing a release_id, you are basically asking for a template.
         In this case, routine ewi sms template.
     """
-    greeting = "tanghali"
     address = "(site_location)"
     alert_level = 0
     data_ts = datetime.combine(date.today(), time(12, 0))
+    greeting = get_greeting(data_ts)
     ts_str = format_timestamp_to_string(data_ts)
     monitoring_status = 2
     is_onset = False
