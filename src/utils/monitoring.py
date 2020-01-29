@@ -342,7 +342,6 @@ def update_alert_status(as_details):
                     user_id=user_id
                 )
                 DB.session.add(alert_stat)
-                DB.session.commit()
 
                 stat_id = alert_stat.stat_id
                 print(f"New alert status written with ID: {stat_id}."
@@ -354,6 +353,8 @@ def update_alert_status(as_details):
                 DB.session.rollback()
                 # print("NO existing alert_status found. An ERROR has occurred.")
                 raise
+        
+        DB.session.commit()
     except Exception as err:
         DB.session.rollback()
         print(err)
