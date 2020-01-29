@@ -125,8 +125,7 @@ function LoadTemplateModal (props) {
         };
         getRainInformation(final_data, data => {
             const { status, message, ewi } = data;
-            const ewi_message = ewi.replace("<as_of>", as_of);
-            setComposedMessage(ewi_message);
+            setComposedMessage(ewi);
             if (status === true) {
                 clickHandler();
                 enqueueSnackbar(

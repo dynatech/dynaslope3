@@ -166,9 +166,9 @@ def process_rainfall_information_message(rainfall_summary, sites, as_of, is_expr
             if is_express:
                 rain_info = (f"{one_day_percentage} {three_day_percentage}")
             else:
-                rain_info = (f"{one_day_cumulative} {one_day_threshold} \n\n {three_day_cumulative} {three_day_threshold}")
+                rain_info = (f"{one_day_cumulative} {one_day_threshold} \n {three_day_cumulative} {three_day_threshold}")
 
-            message = (f"Rainfall Information for {site_info} as of <as_of> : \n {rain_info} ")
+            message = (f"Rainfall Information for {site_info} as of {as_of} : \n {rain_info} ")
             data = {
                 "message": message
             }
