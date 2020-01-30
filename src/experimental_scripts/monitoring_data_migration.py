@@ -8,7 +8,8 @@ from connection import DB
 from src.models.sites import Sites
 from src.models.monitoring_old import (
     OldMonitoringEvents, OldMonitoringManifestation,
-    OldMonitoringManifestationFeatures, OldUsers, OldMonitoringReleases
+    OldMonitoringManifestationFeatures, OldUsers, OldMonitoringReleases,
+    OldNarratives
 )
 from src.models.monitoring import *
 from src.models.narratives import Narratives
@@ -50,7 +51,9 @@ EVENT_STATUS = {
 
 
 def get_events():
-    return OldMonitoringEvents.query.order_by(
+    return OldMonitoringEvents.query.options(
+        DB.raiseload("site")
+    ).order_by(
         OldMonitoringEvents.event_start).all()
     # next .filter(DB.and_(OldMonitoringEvents.event_id > 1050, OldMonitoringEvents.event_id <= ? ))
     # return OldMonitoringEvents.query.filter(OldMonitoringEvents.site_id == 12).order_by(OldMonitoringEvents.event_start).all()
@@ -123,7 +126,9 @@ def insert_to_narratives_table(narrative, ts, site_id, event_id=None):
         site_id=site_id,
         event_id=event_id,
         timestamp=ts,
-        narrative=narrative
+        narrative=narrative,
+        type_id=1,
+        user_id=2
     )
 
     DB.session.add(narrative)
@@ -340,6 +345,11 @@ def main():
             )
 
             DB.session.add(new_event)
+
+        old_narratives = OldNarratives.query.options(DB.raiseload("*")).filter_by(event_id=event.event_id).all()
+        if old_narratives:
+            for row in old_narratives:
+                insert_to_narratives_table(row.narrative, row.timestamp, row.site_id, row.event_id)
 
         releases = event.releases.all()
         process_event_releases(releases, site_id, last_event_alert, ts_start_for_next_event)

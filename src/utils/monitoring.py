@@ -2,7 +2,9 @@
 Utility file for Monitoring Tables
 Contains functions for getting and accesing monitoring-related tables only
 """
+
 import re
+import traceback
 from datetime import datetime, timedelta, time, date
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
@@ -321,7 +323,7 @@ def update_alert_status(as_details):
                 alert_status_result.remarks = remarks
                 alert_status_result.user_id = user_id
 
-                stat_id = alert_status.stat_id
+                stat_id = alert_status_result.stat_id
 
                 print(
                     (f"Trigger ID [{trigger_id}] alert_status is updated as {alert_status} "
@@ -358,12 +360,13 @@ def update_alert_status(as_details):
                 raise
 
         # NOTE: refactor by directly sending messages
-        # row = SmsInboxUsers2(
-        #     mobile_id=31,
-        #     sms_msg=f"ACK {stat_id} {val_map[alert_status]} {remarks}",
-        #     gsm_id=2
-        # )
-        # DB.session.add(row)
+        # ALSO NOTE: Remove Sandbox from sms_msg when GSM 3 arrived
+        row = SmsInboxUsers2(
+            mobile_id=31,
+            sms_msg=f"Sandbox ACK {stat_id} {val_map[alert_status]} {remarks}",
+            gsm_id=2
+        )
+        DB.session.add(row)
 
         DB.session.commit()
     except Exception as err:
@@ -969,7 +972,6 @@ def format_events_table_data(events):
     """
     Organizes data required by the front end table
     """
-    mea = MonitoringEventAlerts
     event_data = []
     for event in events:
         if event.status == 2:
@@ -979,6 +981,14 @@ def format_events_table_data(events):
 
         # With the assumption that the event alerts are sorted DESC
         latest_event_alert = event.event_alerts[0]
+        str_validity = None
+        if event.validity:
+            str_validity = event.validity.strftime("%Y-%m-%d %H:%M:%S")
+        
+        str_ts_end = None
+        ts_end = latest_event_alert.ts_end
+        if ts_end:
+            str_ts_end = ts_end.strftime("%Y-%m-%d %H:%M:%S")
 
         event_dict = {
             "event_id": event.event_id,
@@ -989,12 +999,12 @@ def format_events_table_data(events):
             "barangay": event.site.barangay,
             "municipality": event.site.municipality,
             "province": event.site.province,
-            "event_start": event.event_start,
-            "validity": event.validity,
+            "event_start": event.event_start.strftime("%Y-%m-%d %H:%M:%S"),
+            "validity": str_validity,
             "entry_type": entry_type,
             "public_alert": latest_event_alert.public_alert_symbol.alert_symbol,
-            "ts_start": latest_event_alert.ts_start,
-            "ts_end": latest_event_alert.ts_end
+            "ts_start": latest_event_alert.ts_start.strftime("%Y-%m-%d %H:%M:%S"),
+            "ts_end": str_ts_end
         }
         event_data.append(event_dict)
     
@@ -1304,13 +1314,17 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
                 moms_instance = search_if_feature_name_exists(
                     site_id, feature_id, feature_name)
             else:
+                moms_instance = False
                 # Create new feature name based on the latest letter in DB
                 feature_names_list = search_single_letter_feature_name(feature_id)
 
-                # Get feature names with only letters
-                # Already sorted descending so latest will be [0]
-                latest_instance = feature_names_list[0]
-                feature_name = chr(ord(latest_instance.feature_name) + 1)
+                if feature_names_list:
+                    # Get feature names with only letters
+                    # Already sorted descending so latest will be [0]
+                    latest_instance = feature_names_list[0]
+                    feature_name = chr(ord(latest_instance.feature_name) + 1)
+                else:
+                    feature_name = "A"
 
             if not moms_instance:
                 instance_details = {
@@ -1361,6 +1375,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
     except Exception as err:
         DB.session.rollback()
         print(err)
+        print(traceback.format_exc())
         raise
 
     return return_data

@@ -42,9 +42,9 @@ def wrap_write_monitoring_moms_to_db(internal_json=None):
 
         DB.session.commit()
     except Exception as err:
-        print("YOWO", err)
+        print(err)
         DB.session.rollback()
-        return jsonify({"status": False, "message": err})
+        return jsonify({"status": False, "message": "failed"})
 
     return jsonify({"status": True, "message": "success"})
 

@@ -1188,11 +1188,15 @@ def get_event_timeline_data(event_id):
         public_alert_symbol = event_collection_data.event_alerts[0] \
             .public_alert_symbol
 
+        str_validity = None
+        if validity:
+            str_validity = datetime.strftime(validity, "%Y-%m-%d %H:%M:%S")
+
         event_details = {
             "event_start": datetime.strftime(
                 event_collection_data.event_start, "%Y-%m-%d %H:%M:%S"),
             "event_id": event_collection_data.event_id,
-            "validity": datetime.strftime(validity, "%Y-%m-%d %H:%M:%S"),
+            "validity": str_validity,
             "site_id": site.site_id,
             "site_code": site.site_code,
             "site_address": build_site_address(site),
@@ -1204,6 +1208,13 @@ def get_event_timeline_data(event_id):
         timeline_entries = []
 
         for event_alert in event_collection_data.event_alerts:
+            if event_collection_data.status == 1: # If routine, update validity to end_ts of event_alert
+                ts_end = event_alert.ts_end
+                str_validity = None
+                if ts_end:
+                    str_validity = datetime.strftime(ts_end, "%Y-%m-%d %H:%M:%S")
+                event_details.update({"validity": str_validity})
+
             for release in event_alert.releases:
                 data_ts = release.data_ts
                 timestamp = datetime.strftime(
@@ -1211,6 +1222,7 @@ def get_event_timeline_data(event_id):
 
                 release_ts = data_ts + timedelta(minutes=30)
                 release_type = "routine"
+                
                 if validity:
                     if release_ts < validity:
                         release_type = "latest"
@@ -1221,6 +1233,7 @@ def get_event_timeline_data(event_id):
                             release_type = "overdue"
                         else:
                             release_type = "extended"
+
                 trig_moms = "triggers.trigger_misc.moms_releases.moms_details"
                 rel_moms = "moms_releases.moms_details"
                 inst_site = "moms_instance.site"
@@ -1232,6 +1245,7 @@ def get_event_timeline_data(event_id):
                 alert_level = event_alert.public_alert_symbol.alert_level
                 ial = build_internal_alert_level(
                     alert_level, release.trigger_list)
+                
                 release_data.update({
                     "internal_alert_level": ial,
                     "is_onset": check_if_onset_release(event_alert=event_alert,

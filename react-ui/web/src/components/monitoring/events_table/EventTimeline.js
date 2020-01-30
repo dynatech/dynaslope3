@@ -375,7 +375,9 @@ function MonitoringEventTimeline (props) {
 
     const format_str = "MMMM Do YYYY, hh:mm A";
     const start_ts = moment(eventDetails.event_start).format(format_str);
-    const end_ts = moment(eventDetails.validity).format(format_str);
+
+    let end_ts = "PRESENT";
+    if (eventDetails.validity !== null) end_ts = moment(eventDetails.validity).format(format_str);
 
     return (
         <Grid container spacing={2}>
@@ -398,7 +400,7 @@ function MonitoringEventTimeline (props) {
                     variant="subtitle1"
                     align="center"
                 >
-                    {start_ts} to {end_ts}
+                    { `${start_ts} to ${end_ts}` }
                 </Typography>
             </Grid>
 

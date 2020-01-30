@@ -43,8 +43,8 @@ function prepareEventsArray (arr, sites_dict) {
             let final_event_start = null;
             let final_ts_end = "ROUTINE";
             
-            if (event_start !== "" && event_start !== null) final_event_start = moment(event_start).format("D MMMM YYYY, h:mm");
-            if (validity !== "" && validity !== null) final_ts_end = moment(validity).format("D MMMM YYYY, h:mm");
+            if (event_start !== "" && event_start !== null) final_event_start = moment(event_start).format("D MMMM YYYY, HH:mm");
+            if (validity !== "" && validity !== null) final_ts_end = moment(validity).format("D MMMM YYYY, HH:mm");
 
             let address = "";
             if (Object.keys(sites_dict).length) {

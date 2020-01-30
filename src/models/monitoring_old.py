@@ -225,15 +225,14 @@ class OldNarratives(DB.Model):
     __table_args__ = {"schema": "senslopedb"}
 
     id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+    site_id = DB.Column(DB.Integer, nullable=False)
     event_id = DB.Column(DB.Integer)
     timestamp = DB.Column(
         DB.DateTime, default=datetime.datetime.utcnow, nullable=False)
     narrative = DB.Column(DB.String(500), nullable=False)
 
     def __repr__(self):
-        return f"{self.timestamp, self.narrative}\n"
+        return f"{self.site_id, self.event_id, self.timestamp, self.narrative}\n"
 
 
 # Moved
