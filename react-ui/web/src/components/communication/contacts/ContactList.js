@@ -1,18 +1,11 @@
 import React from "react";
 
 import {
-    Button, Grid, Typography,
+    Grid, Typography,
     List, ListItem, ListItemAvatar,
-    ListItemText, ListItemSecondaryAction, IconButton,
-    Avatar, TextField, Hidden,
-    ListItemIcon, Chip, Drawer,
-    Paper, Divider, Slide,
-    Backdrop
+    ListItemText, Avatar, Chip
 } from "@material-ui/core";
-import { 
-    Create, Search,
-    Folder as FolderIcon, Delete as DeleteIcon,
-    Close, Person
+import { Person
 } from "@material-ui/icons";
 
 import { getUserOrganizations } from "../../../UtilityFunctions";
@@ -21,6 +14,7 @@ function ContactList (props) {
     const {
         contacts, onContactClickFn, classes
     } = props;
+
 
     return (
         <List dense style={{ paddingTop: 0 }}>
