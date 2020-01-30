@@ -128,7 +128,7 @@ def process_rainfall_plot_data(rainfall_data):
     return plot_data
 
 
-def get_all_site_rainfall_data(site_codes_string=None, end_ts=datetime.now()):
+def get_all_site_rainfall_data(site_codes_string='', end_ts=datetime.now()):
     rainfall_summary = rainfall_main(
         site_code=site_codes_string,
         end=end_ts, Print=False,
@@ -157,18 +157,26 @@ def process_rainfall_information_message(rainfall_summary, sites, as_of, is_expr
             one_day = int(one_day_cml / half_of_2yr_max * 100)
             three_day = int(three_day_cml / two_year_max * 100)
 
-            one_day_percentage = (f"One-day cumulative rainfall percentage: {str(one_day)}% \n")
-            one_day_cumulative = (f"One-day cumulative rainfall: {str(one_day_cml)} mm \n")
-            one_day_threshold = (f"One-day rainfall threshold: {str(half_of_2yr_max)} mm \n")
-            three_day_percentage = (f"Three-day cumulative rainfall percentage: {str(three_day)}% \n")
-            three_day_cumulative = (f"Three-day cumulative rainfall: {str(three_day_cml)} mm \n")
-            three_day_threshold = (f"Three-day rainfall threshold: {str(two_year_max)} mm \n")
+            one_day_percentage = (
+                f"One-day cumulative rainfall percentage: {str(one_day)}% \n")
+            one_day_cumulative = (
+                f"One-day cumulative rainfall: {str(one_day_cml)} mm \n")
+            one_day_threshold = (
+                f"One-day rainfall threshold: {str(half_of_2yr_max)} mm \n")
+            three_day_percentage = (
+                f"Three-day cumulative rainfall percentage: {str(three_day)}% \n")
+            three_day_cumulative = (
+                f"Three-day cumulative rainfall: {str(three_day_cml)} mm \n")
+            three_day_threshold = (
+                f"Three-day rainfall threshold: {str(two_year_max)} mm \n")
             if is_express:
                 rain_info = (f"{one_day_percentage} {three_day_percentage}")
             else:
-                rain_info = (f"{one_day_cumulative} {one_day_threshold} \n {three_day_cumulative} {three_day_threshold}")
+                rain_info = (
+                    f"{one_day_cumulative} {one_day_threshold} \n {three_day_cumulative} {three_day_threshold}")
 
-            message = (f"Rainfall Information for {site_info} as of {as_of} : \n {rain_info} ")
+            message = (
+                f"Rainfall Information for {site_info} as of {as_of} : \n {rain_info} ")
             data = {
                 "message": message
             }

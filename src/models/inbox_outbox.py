@@ -6,7 +6,7 @@ tables of smsinbox_users, smsoutbox_users and smsoutbox_user_status
 from datetime import datetime
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
-from src.models.users import UserMobileSchema
+from src.models.mobile_numbers import UserMobiles, UserMobilesSchema
 
 
 class SmsInboxUsers(DB.Model):
@@ -22,18 +22,38 @@ class SmsInboxUsers(DB.Model):
     ts_sms = DB.Column(DB.DateTime, default=datetime.utcnow())
     ts_stored = DB.Column(DB.DateTime, default=datetime.utcnow())
     mobile_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_3.user_mobile.mobile_id"))
+        DB.Integer, DB.ForeignKey("comms_db_3.user_mobiles.mobile_id"))
     sms_msg = DB.Column(DB.String(1000))
-    read_status = DB.Column(DB.Integer, nullable=False)
-    web_status = DB.Column(DB.Integer, nullable=False)
-    gsm_id = DB.Column(DB.Integer, nullable=False)
+    read_status = DB.Column(DB.Integer, default=0)
 
-    mobile_details = DB.relationship("UserMobile",
+    mobile_details = DB.relationship("UserMobiles",
                                      backref=DB.backref(
                                          "inbox_messages", lazy="dynamic"),
                                      lazy="select")
     sms_tags = DB.relationship(
         "SmsInboxUserTags", backref="inbox_message", lazy="subquery")
+
+    def __repr__(self):
+        return f"Type <{self.__class__.__name__}>"
+
+
+class SmsInboxUsers2(DB.Model):
+    """
+    Class representation of smsinbox_users table
+    """
+
+    __tablename__ = "smsinbox_users"
+    __bind_key__ = "comms_db"  # NOTE: transition thing
+    __table_args__ = {"schema": "comms_db"}
+
+    inbox_id = DB.Column(DB.Integer, primary_key=True)
+    ts_sms = DB.Column(DB.DateTime, default=datetime.utcnow())
+    ts_stored = DB.Column(DB.DateTime, default=datetime.utcnow())
+    mobile_id = DB.Column(DB.Integer)
+    sms_msg = DB.Column(DB.String(1000))
+    read_status = DB.Column(DB.Integer)
+    web_status = DB.Column(DB.Integer)
+    gsm_id = DB.Column(DB.Integer, nullable=False)
 
     def __repr__(self):
         return f"Type <{self.__class__.__name__}>"
@@ -139,7 +159,7 @@ class SmsOutboxUserStatus(DB.Model):
     outbox_id = DB.Column(
         DB.Integer, DB.ForeignKey("comms_db_3.smsoutbox_users.outbox_id"))
     mobile_id = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_3.user_mobile.mobile_id"))
+        DB.Integer, DB.ForeignKey("comms_db_3.user_mobiles.mobile_id"))
     ts_sent = DB.Column(DB.DateTime, default=None)
     send_status = DB.Column(DB.Integer, nullable=False, default=0)
     gsm_id = DB.Column(DB.Integer, nullable=False)
@@ -283,7 +303,7 @@ class SmsInboxUsersSchema(MARSHMALLOW.ModelSchema):
     """
 
     mobile_id = fields.Integer()
-    mobile_details = fields.Nested(UserMobileSchema)
+    mobile_details = fields.Nested(UserMobilesSchema)
     sms_tags = fields.Nested("SmsInboxUserTagsSchema",
                              many=True, exclude=["inbox_message"])
 

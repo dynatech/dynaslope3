@@ -48,7 +48,7 @@ def get_org_ids(scopes=None, org_names=None):
     return org_id_list
 
 
-def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None, only_ewi_recipients=False):
+def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True):
     """
     """
 
@@ -75,7 +75,12 @@ def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None, only_ew
         base_query = base_query.filter(Users.ewi_recipient == 1)
 
     # default is to get only active mobile numbers
-    mobile_numbers = base_query.filter(UserMobiles.status == 1).all()
+    if only_active_mobile_numbers:
+        status = 1
+    else:
+        status = 0
+
+    mobile_numbers = base_query.filter(UserMobiles.status == status).all()
 
     if return_schema:
         mobile_numbers = UserMobilesSchema(many=True).dump(mobile_numbers).data
@@ -94,7 +99,8 @@ def get_all_contacts(
     mobile_numbers = []
 
     if return_schema:
-        numbers_schema = get_mobile_numbers(return_schema, site_ids, org_ids)
+        numbers_schema = get_mobile_numbers(
+            return_schema, site_ids, org_ids, only_active_mobile_numbers=False)
 
         if orientation == "users":
             users_id = {}
@@ -288,11 +294,13 @@ def save_user_information(data):
     emails = data["emails"]
     ewi_recipient = data["ewi_recipient"]
     ewi_restriction = data["restriction"]
+    status = data["status"]
 
     if user_id == 0:
         insert_user = Users(
             first_name=first_name, last_name=last_name,
-            middle_name=middle_name, nickname=nickname, ewi_recipient=ewi_recipient, status=1)
+            middle_name=middle_name, nickname=nickname, ewi_recipient=ewi_recipient,
+            status=status)
 
         DB.session.add(insert_user)
         DB.session.flush()
@@ -300,12 +308,13 @@ def save_user_information(data):
 
         save_user_email(emails, user_id)
     else:
-        update = Users.query.get(user_id)
+        update = Users.query.options(DB.raiseload("*")).get(user_id)
         update.first_name = first_name
         update.last_name = last_name
         update.middle_name = middle_name
         update.nickname = nickname
         update.ewi_recipient = ewi_recipient
+        update.status = status
 
         save_user_email(emails, user_id)
 
@@ -496,16 +505,15 @@ def ewi_recipient_migration():
     """
     Function that migrate ewi recipient
     """
-    query = UserEwiStatus.query.filter(UserEwiStatus.status == 1).with_entities(
-        UserEwiStatus.users_id).distinct().all()
-    result = UserEwiStatusSchema(many=True).dump(query).data
+    result = UserEwiStatus.query.options(DB.raiseload("*")) \
+        .filter(UserEwiStatus.status == 1).with_entities(
+            UserEwiStatus.users_id).distinct().all()
     for row in result:
-        user_id = row["users_id"]
-        check_user = Users.query.filter(Users.user_id == user_id).first()
-        check_result = UsersSchema().dump(check_user).data
-        data_len = len(check_result)
-        if data_len > 0:
-            update = Users.query.get(user_id)
+        user_id = row.users_id
+        check_user = Users.query.options(DB.raiseload(
+            "*")).filter(Users.user_id == user_id).first()
+        if check_user:
+            update = Users.query.options(DB.raiseload("*")).get(user_id)
             update.ewi_recipient = 1
             print("User ID: " + str(user_id) + " UPDATED")
     DB.session.commit()
@@ -714,6 +722,7 @@ def save_blocked_number(data):
     DB.session.add(insert_query)
 
     return True
+
 
 def get_all_sim_prefix():
     """

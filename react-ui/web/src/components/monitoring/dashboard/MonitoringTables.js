@@ -256,6 +256,8 @@ function CandidateAlertsExpansionPanel (props) {
                         typeof unresolved_moms_list !== "undefined" && unresolved_moms_list.length > 0 && (
                             <Fragment>
                                 <Grid item xs={12} container spacing={1}>
+                                    <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
+                                    
                                     <Grid item xs={12}>
                                         <Typography variant="subtitle2" color="textPrimary">UNRESOLVED MOMS LIST</Typography>
                                     </Grid>
@@ -554,10 +556,6 @@ function MonitoringTables (props) {
             toggleSendEWI();
         });
     };
-
-    useEffect(() => {
-        console.log("reporter_id_ct", reporter_id_ct);
-    }, [reporter_id_ct]);
 
     const routineSmsHandler = site_id_list => temp => {
         getRoutineEWIMessage({}, data => {

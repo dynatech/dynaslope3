@@ -19,6 +19,7 @@ from src.models.monitoring import (
     BulletinTracker, MonitoringReleasePublishers, MonitoringTriggersMisc,
     EndOfShiftAnalysis)
 from src.models.sites import Seasons, RoutineSchedules, Sites
+from src.models.inbox_outbox import SmsInboxUsers2
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
     round_to_nearest_release_time)
@@ -320,6 +321,8 @@ def update_alert_status(as_details):
                 alert_status_result.remarks = remarks
                 alert_status_result.user_id = user_id
 
+                stat_id = alert_status.stat_id
+
                 print(
                     (f"Trigger ID [{trigger_id}] alert_status is updated as {alert_status} "
                      f"[{val_map[alert_status]}]. Remarks: \"{remarks}\""))
@@ -353,7 +356,15 @@ def update_alert_status(as_details):
                 DB.session.rollback()
                 # print("NO existing alert_status found. An ERROR has occurred.")
                 raise
-        
+
+        # NOTE: refactor by directly sending messages
+        # row = SmsInboxUsers2(
+        #     mobile_id=31,
+        #     sms_msg=f"ACK {stat_id} {val_map[alert_status]} {remarks}",
+        #     gsm_id=2
+        # )
+        # DB.session.add(row)
+
         DB.session.commit()
     except Exception as err:
         DB.session.rollback()

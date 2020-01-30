@@ -143,7 +143,8 @@ def communication_background_task():
                 print("")
         except Exception as err:
             print("")
-            print("Communication Thread Exception")
+            print("Communication Thread Exception:",
+                  datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             var_checker("Exception Detail", err, True)
             print(traceback.format_exc())
             DB.session.rollback()
@@ -281,11 +282,10 @@ def wrap_get_all_contacts():
 
 @SOCKETIO.on("update_all_contacts", namespace="/communications")
 def wrap_update_all_contacts():
-    sid = request.sid
     global CONTACTS_USERS
     CONTACTS_USERS = get_contacts(orientation="users")
     SOCKETIO.emit("receive_all_contacts", CONTACTS_USERS,
-                  room=sid, namespace="/communications")
+                  namespace="/communications")
 
 
 @SOCKETIO.on("get_all_mobile_numbers", namespace="/communications")

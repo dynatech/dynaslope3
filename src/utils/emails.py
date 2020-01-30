@@ -3,21 +3,26 @@ Utility file for Sending Emails
 """
 
 import smtplib
-from os.path import basename
 import ssl
 from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.utils import COMMASPACE, formatdate
 from src.utils.bulletin import render_monitoring_bulletin
 from src.utils.chart_rendering import render_charts
 from src.utils.extra import var_checker
 
+from config import APP_CONFIG
 
-SMTP_SERVER = "smtp.gmail.com"
-PORT = 587
-SENDER_EMAIL = "dynaslopeswat@gmail.com"
-PASSWORD = "dynaslopeswat"
+
+def get_email_credentials():
+    sender = APP_CONFIG["dev_email"]
+    password = APP_CONFIG["dev_password"]
+
+    if APP_CONFIG["is_live_mode"]:
+        sender = APP_CONFIG["monitoring_email"]
+        password = APP_CONFIG["monitoring_password"]
+
+    return sender, password
 
 
 def setup_connection():
@@ -26,9 +31,11 @@ def setup_connection():
     """
     context = ssl.create_default_context()
 
-    server = smtplib.SMTP(SMTP_SERVER, PORT)
+    sender, password = get_email_credentials()
+
+    server = smtplib.SMTP(APP_CONFIG["smtp_server"], APP_CONFIG["port"])
     server.starttls(context=context)
-    server.login(SENDER_EMAIL, PASSWORD)
+    server.login(sender, password)
     return server
 
 
@@ -111,7 +118,9 @@ def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=
                 user_id, site_code, charts, file_name)
             attachments.append(render_charts_response["file_path"])
 
-    body = prepare_body(SENDER_EMAIL, recipients, subject,
+    sender, _ = get_email_credentials()
+
+    body = prepare_body(sender, recipients, subject,
                         message, file_name, attachments)
     text = body.as_string()
 
@@ -121,7 +130,7 @@ def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=
         raise connection_err
 
     try:
-        server.sendmail(SENDER_EMAIL, recipients, text)
+        server.sendmail(sender, recipients, text)
     except Exception as send_error:
         raise send_error
     finally:

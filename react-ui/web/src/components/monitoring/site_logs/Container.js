@@ -87,16 +87,18 @@ function getManipulationButtons (narrative, data_handlers) {
 
 
 function processTableData (data) {
-    const processed = data.map(row => (
-        {
-            ...row,
+    const processed = data.map(row => {
+        const { narrative, user_details } = row;
+        const { last_name, first_name } = user_details;
+        return ({
+            narrative,
+            user_details: `${first_name} ${last_name}`,
             site_name: prepareSiteAddress(row.site, true, "start"),
             ts: moment(row.timestamp).format("DD MMMM YYYY, HH:mm:ss"),
             type: row.type_id,
             actions: "---"
-        }
-    ));
-    console.log("processed", processed);
+        });
+    });
 
     return processed;
 }
@@ -285,7 +287,7 @@ function SiteLogs (props) {
             name: "user_details",
             label: "Reporter",
             options: {
-                filter: false,
+                filter: false
             }
         },
         {

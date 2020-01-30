@@ -113,7 +113,8 @@ def monitoring_background_task():
 
         except Exception as err:
             print("")
-            print("Monitoring Thread Exception")
+            print("Monitoring Thread Exception",
+                  datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             var_checker("Exception Detail", err, True)
             print(traceback.format_exc())
             DB.session.rollback()

@@ -99,7 +99,7 @@ function IndividualContact (props) {
     } = props;
     const site_orgs = getUserOrganizations(chosenContact.user, true);
     const { sites, org } = site_orgs;
-    const { user: { landline_numbers, emails } } = chosenContact;
+    const { user: { status, landline_numbers, emails, ewi_recipient } } = chosenContact;
 
     return (
         <Grid
@@ -171,11 +171,43 @@ function IndividualContact (props) {
                 ) : (
                     <Grid item xs={12}>
                         <Typography color="textSecondary" variant="body2" align="center" paragraph>
-                                No affiliations saved
+                            No affiliations saved
                         </Typography>
                     </Grid>
                 )
             }
+
+            <Grid item xs={12} className={classes.insetDivider} >
+                <Divider />
+            </Grid>
+
+            <Grid item xs={12}>
+                <Typography variant="body1" align="center">
+                    <strong>Status</strong>
+                </Typography>
+            </Grid>
+
+            <Grid item xs={12}>
+                <Typography variant="body2" align="center">
+                    { status === 0 ? "Inactive" : "Active" }
+                </Typography>
+            </Grid>
+
+            <Grid item xs={12} className={classes.insetDivider} >
+                <Divider />
+            </Grid>
+
+            <Grid item xs={12}>
+                <Typography variant="body1" align="center">
+                    <strong>EWI Recipient</strong>
+                </Typography>
+            </Grid>
+
+            <Grid item xs={12}>
+                <Typography variant="body2" align="center">
+                    { ewi_recipient === 0 ? "No" : "Yes" }
+                </Typography>
+            </Grid>
 
             <Grid item xs={12} style={{ padding: "12px 4px" }} >
                 <Divider />
@@ -411,18 +443,6 @@ function BlockedContact (props) {
                 </Typography>
             </Grid>
 
-            {/* <Grid item xs={12}>
-                <Typography variant="subtitle1">
-                    Reason:
-                </Typography>
-                <Typography variant="caption" display="block" gutterBottom>
-                    {`${reason}`}
-                </Typography>
-                <Typography color="textSecondary" variant="caption" paragraph>
-                    {`Date reported: ${date_reported}`}
-                </Typography>
-            </Grid> */}
-
             <Grid item xs={12} style={{ padding: "12px 4px" }} >
                 <Divider />
             </Grid>
@@ -448,8 +468,9 @@ function BlockedContact (props) {
                     color="secondary" 
                     variant="contained"
                     startIcon={<PersonAdd />}
+                    disabled
                 >
-                    Unblock
+                    Unblock (soon)
                 </Button>
             </Grid>
         </Grid>
@@ -510,23 +531,13 @@ function Container (props) {
     };
 
     const onShowBlockedNumbers = () => {
-        if (is_block_numbers_open) {
-            setOpenBlockedNumbers(false);
-            setOpenSimPrefixes(false);
-        } else { 
-            setOpenBlockedNumbers(true);
-            setOpenSimPrefixes(false);
-        }
+        setOpenSimPrefixes(false);
+        setOpenBlockedNumbers(!is_block_numbers_open);
     };
 
     const onShowSimPrefixes = () => {
-        if (is_sim_prefixes_open) {
-            setOpenSimPrefixes(false);
-            setOpenBlockedNumbers(true);
-        } else { 
-            setOpenSimPrefixes(true); 
-            setOpenBlockedNumbers(false);
-        }
+        setOpenBlockedNumbers(false);
+        setOpenSimPrefixes(!is_sim_prefixes_open);
     };
 
     const { setIsReconnecting, sites } = useContext(GeneralContext);
@@ -637,13 +648,14 @@ function Container (props) {
             );
         }
         
-        return ( <ContactList 
+        return (<ContactList 
             {...props} 
             contacts={contacts_array}
             onContactClickFn={onContactClickFn}
             showBlockedNumbers={is_block_numbers_open}
         />);
     };
+
     return (
         <div className={classes.pageContentMargin}>
             <PageTitle
@@ -692,42 +704,13 @@ function Container (props) {
                                     </ListItemIcon>
                                     <ListItemText primary="Sim Prefixes" />
                                 </ListItem>
-                                {/* <ListItem button>
-                                    <ListItemIcon>
-                                        <Block />
-                                    </ListItemIcon>
-                                    <ListItemText primary="Arrange " />
-                                </ListItem> */}
                             </List>
                         </div>
                     </Grid>
                 </Hidden>
 
                 <Grid item xs={12} md={8} lg={5}>
-                    {ListContent()}
-                    {/* {
-                        is_sim_prefixes_open ? (
-                            <SimPrefixesList
-                                sim_prefixes={sim_prefixes_list}
-                            />
-                        ) : (<div />)
-                    }
-
-                    {
-                        is_block_numbers_open ? (
-                            <BlockedContactList
-                                blocked_numbers={blocked_number_array}
-                                onBlockContactClickFn={onBlockContactClickFn}
-                            />
-                        ) : (
-                            <ContactList 
-                                {...props} 
-                                contacts={contacts_array}
-                                onContactClickFn={onContactClickFn}
-                                showBlockedNumbers={is_block_numbers_open}
-                            />
-                        )
-                    } */}
+                    { ListContent() }
                 </Grid>
                 
                 <Hidden mdDown>

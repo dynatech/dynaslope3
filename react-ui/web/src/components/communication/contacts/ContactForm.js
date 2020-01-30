@@ -197,6 +197,7 @@ function ContactForm (props) {
     let initial_office = "";
     let initial_site = "";
     let initial_location = "";
+    let initial_status = 1;
     let initial_ewi_recipient = true;
     let initial_ewi_restriction = 0;
     const initial_save_button_state = false;
@@ -208,7 +209,7 @@ function ContactForm (props) {
     if (isEditMode) {
         const { mobile_numbers, user: {
             ewi_recipient, ewi_restriction, landline_numbers, emails, first_name,
-            last_name, middle_name, nickname, user_id, organizations
+            last_name, middle_name, nickname, user_id, organizations, status
         } } = chosenContact;
         initial_user_details = { first_name, last_name, middle_name, nickname, user_id };
         
@@ -234,10 +235,12 @@ function ContactForm (props) {
             new_data.sim_num = conformTextMask(new_data.sim_num);
             return new_data;
         });
+
         initial_mobiles = updated_mobile_numbers;
         initial_landlines = landline_numbers;
         initial_emails = emails;
         initial_ewi_recipient = ewi_recipient === 1;
+        initial_status = status === 1;
     }
 
     const scope_list = [
@@ -264,6 +267,7 @@ function ContactForm (props) {
     const [landline_nums, setLandlineNums] = useReducer(reducerFunction, initial_landlines);
     const [emails, setEmails] = useReducer(reducerFunction, initial_emails);
     const [is_ewi_recipient, setEwiRecipient] = useState(initial_ewi_recipient);
+    const [is_active, setIsActive] = useState(initial_status);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const [restriction, setRestriction] = useState(initial_ewi_restriction);
     const [save_button_state, setSaveButtonState] = useState(initial_save_button_state);
@@ -279,6 +283,7 @@ function ContactForm (props) {
     };
 
     const ewiRecipientHandler = event => setEwiRecipient(event.target.checked);
+    const isActiveHandler = event => setIsActive(event.target.checked);
 
     const snackBarActionFn = key => {
         return (<Button
@@ -331,13 +336,15 @@ function ContactForm (props) {
     const saveFunction = () => {
         const mobile_numbers = removeNumberMask(mobile_nums, "mobile");
         const landline_numbers = removeNumberMask(landline_nums, "landline");
-        const ewi_recipient = is_ewi_recipient === true ? 1 : 0;
+        const ewi_recipient = is_ewi_recipient ? 1 : 0;
+        const active = is_active ? 1 : 0;
         const final_data = {
             user: {
                 ...user_details,
                 emails,
                 ewi_recipient,
-                restriction
+                restriction,
+                active
             },
             affiliation: {
                 site,
@@ -522,8 +529,24 @@ function ContactForm (props) {
                     error={office === ""}
                 />
             </Grid>
+
+            <Grid item xs={6} style={{ textAlign: "center" }}>
+                <FormControl>
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={is_active}
+                                onChange={isActiveHandler}
+                                value="checkedA"
+                                color="primary"
+                            />
+                        }
+                        label="Active"
+                    />
+                </FormControl>
+            </Grid>
             
-            <Grid item xs={12} style={{ textAlign: "center" }}>
+            <Grid item xs={6} style={{ textAlign: "center" }}>
                 <FormControl>
                     <FormControlLabel
                         control={
