@@ -1,10 +1,12 @@
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect, useContext, Fragment } from "react";
 import moment from "moment";
 import MUIDataTable from "mui-datatables";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
-import { CircularProgress, Typography, Paper } from "@material-ui/core";
-import { withStyles, createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
-import { compose } from "recompose";
+import {
+    CircularProgress, Typography, Paper,
+    makeStyles
+} from "@material-ui/core";
+import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 import { Route, Switch, Link } from "react-router-dom";
 
 import MonitoringEventTimeline from "./EventTimeline";
@@ -12,15 +14,17 @@ import CustomSearchRender from "./CustomSearchRender";
 import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
-import { getMonitoringEvents, getSites } from "../ajax";
+import { GeneralContext } from "../../contexts/GeneralContext";
+import { getMonitoringEvents } from "../ajax";
 
 const filter_sites_option = [];
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
+    ...GeneralStyles(theme),
     eventTable: {
         minWidth: "900px"
     }
-});
+}));
 
 function prepareEventTimelineLink (url, event_id) {
     return (
@@ -77,9 +81,11 @@ const getMuiTheme = createMuiTheme({
 
 function MonitoringEventsTable (props) {
     const {
-        classes, width, location,
+        width, location,
         match: { url }
     } = props;
+
+    const classes = useStyles();
 
     const [data, setData] = useState([["Loading Data..."]]);
     const [page, setPage] = useState(0);
@@ -94,18 +100,18 @@ function MonitoringEventsTable (props) {
     const [search_str, setSearchString] = useState("");
     const [on_search_open, setOnSearchOpen] = useState(false);
 
+    const { sites } = useContext(GeneralContext);
+
     useEffect(() => {
-        getSites([], ret1 => {
-            const temp = {};
-            ret1.forEach(site => {
-                const address = prepareSiteAddress(site, true, "start");
-                const site_code = site.site_code.toUpperCase();
-                filter_sites_option.push(site_code);
-                temp[site_code] = { site_id: site.site_id, address };
-            });
-            setSitesDict(temp);
+        const temp = {};
+        sites.forEach(site => {
+            const address = prepareSiteAddress(site, true, "start");
+            const site_code = site.site_code.toUpperCase();
+            filter_sites_option.push(site_code);
+            temp[site_code] = { site_id: site.site_id, address };
         });
-    }, []);
+        setSitesDict(temp);
+    }, [sites]);
 
     useEffect(() => {
         // setTotalEventCount(setCount);
@@ -363,12 +369,4 @@ function MonitoringEventsTable (props) {
     );
 }
 
-export default compose(
-    withStyles(
-        (theme) => ({
-            ...GeneralStyles(theme),
-            ...styles(theme),
-        }),
-        { withTheme: true },
-    ), withWidth()
-)(MonitoringEventsTable);
+export default withWidth()(MonitoringEventsTable);

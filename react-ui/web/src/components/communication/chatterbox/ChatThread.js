@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import moment from "moment";
 
 import List from "@material-ui/core/List";
@@ -313,9 +313,7 @@ function ChatThread (props) {
     const { message_list, mobileDetails } = props;
     const classes = useStyles();
 
-    const initial_messages = message_list.slice(0).reverse();
-
-    const [messages, setMessages] = useState(initial_messages);
+    const [messages, setMessages] = useState([]);
     const [is_gdt_modal_open, set_is_gdt_modal_open] = useState(false);
     const [selected_message, setSelectedMessage] = useState("");
     const default_tag_obj = {
@@ -324,7 +322,13 @@ function ChatThread (props) {
 
     const [tag_object, update_tag_object] = useState(default_tag_obj);
     const [message_batch, setMessageBatch] = useState(1);
-    const [loaded_messages, setLoadedMessages] = useState(initial_messages);
+    const [loaded_messages, setLoadedMessages] = useState([]);
+
+    useEffect(() => {
+        const initial_messages = message_list.slice(0).reverse();
+        setMessages(initial_messages);
+        setLoadedMessages(initial_messages);
+    }, [message_list]);
 
     const set_gdt_fn = (bool, obj = default_tag_obj, message) => () => {
         update_tag_object(obj);

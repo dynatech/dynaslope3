@@ -1011,7 +1011,7 @@ def format_events_table_data(events):
     return event_data
 
 
-def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_count, search, status):
+def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_count, search, active_only=True):
     """
         Returns one or more row/s of narratives.
 
@@ -1038,6 +1038,9 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
 
     if search != "":
         base = base.filter(DB.or_(mea.ts_start.ilike("%" + search + "%"), mea.ts_end.ilike("%" + search + "%")))
+    
+    if active_only:
+        base = base.filter(Sites.active == 1)
 
     events = base.order_by(
         DB.desc(me.event_id)).all()[offset:limit]
@@ -1084,11 +1087,11 @@ def get_monitoring_events(event_id=None, include_test_sites=False):
 
     query = MonitoringEvents.query
 
-    if not include_test_sites:
-        query = query.join(Sites).filter(Sites.active == 1)
-
     # NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
     if event_id is None:
+        if not include_test_sites:
+            query = query.join(Sites).filter(Sites.active == 1)
+
         event = query.all()
     else:
         event = query.filter(

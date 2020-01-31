@@ -296,13 +296,14 @@ def wrap_get_monitoring_events(value=None):
             "include_count", default="false", type=str)
         site_ids = request.args.getlist("site_ids", type=int)
         entry_types = request.args.getlist("entry_types", type=int)
-        status = request.args.get("status", type=str)
+        active_only = request.args.get("active_only", default="true", type=str)
         search = request.args.get("search", default="", type=str)
 
+        active_only = active_only == "true"
         include_count = True if include_count.lower() == "true" else False
 
         return_data = get_monitoring_events_table(
-            offset, limit, site_ids, entry_types, include_count, search, status)
+            offset, limit, site_ids, entry_types, include_count, search, active_only)
     elif filter_type == "count":
         return_data = get_event_count()
     else:
