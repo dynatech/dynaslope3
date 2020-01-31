@@ -152,18 +152,15 @@ def update_data_tag(row_to_update, tag_details, tag_id):
     id_to_return = None
 
     try:
+        row_to_update.tag_id = tag_id
+        row_to_update.user_id = tag_details["user_id"]
+        row_to_update.ts = tag_details["ts"]
+
         if row_type == "SmsInboxUserTags":
             row_to_update.inbox_id = tag_details["inbox_id"]
-            row_to_update.tag_id = tag_id
-            row_to_update.user_id = tag_details["user_id"]
-            row_to_update.ts = tag_details["ts"]
             id_to_return = row_to_update.siu_tag_id
-
         elif row_type == "SmsOutboxUserTags":
-            row_to_update.inbox_id = tag_details["inbox_id"]
-            row_to_update.tag_id = tag_id
-            row_to_update.user_id = tag_details["user_id"]
-            row_to_update.ts = tag_details["ts"]
+            row_to_update.outbox_id = tag_details["outbox_id"]
             id_to_return = row_to_update.sou_tag_id
 
     except Exception as err:
