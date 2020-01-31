@@ -42,10 +42,10 @@ function getAlertDialog (chosen_site, open, handleClose, sites) {
         const { type, details } = trigger;
 
         if (type === "subsurface") {
-            rel_subsurface = details;
+            rel_subsurface = details.trigger_details;
         } else {
             const { alert_level, alert_symbol } = details;
-            const rain_gauge = type === "rainfall" && alert_level !== -1 ? ` (${details.rain_gauge})` : "";
+            const rain_gauge = type === "rainfall" && alert_level > 0 ? ` (${details.rain_gauge})` : "";
 
             rel_trigger_divs.push(
                 <Grid item xs={12} sm key={type}>

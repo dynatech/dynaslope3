@@ -1073,7 +1073,7 @@ def get_latest_monitoring_event_per_site(site_id):
     return event
 
 
-def get_monitoring_events(event_id=None):
+def get_monitoring_events(event_id=None, include_test_sites=False):
     """
     Returns event details with corresponding site details. Receives an event_id from flask request.
 
@@ -1082,11 +1082,16 @@ def get_monitoring_events(event_id=None):
     Note: From pubrelease.php getEvent
     """
 
+    query = MonitoringEvents.query
+
+    if not include_test_sites:
+        query = query.filter(Sites.active == 1)
+
     # NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
     if event_id is None:
-        event = MonitoringEvents.query.all()
+        event = query.all()
     else:
-        event = MonitoringEvents.query.filter(
+        event = query.filter(
             MonitoringEvents.event_id == event_id).first()
 
     return event
