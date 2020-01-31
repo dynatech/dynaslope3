@@ -600,8 +600,10 @@ def remove_sites_with_ground_meas(
                 routine_reminder_time, timedelta_hour=4)
 
             for site_id in result:
-                routine_site_ids.remove(site_id)
-                extended_site_ids.remove(site_id)
+                if site_id in routine_site_ids:
+                    routine_site_ids.remove(site_id)
+                if site_id in extended_site_ids:
+                    extended_site_ids.remove(site_id)
 
         if event_site_ids:
             result = get_site_with_observation_and_remove(
@@ -639,10 +641,12 @@ def remove_sites_with_ground_meas(
 def get_site_with_observation_and_remove(reminder_time, timedelta_hour=1):
     run_down_ts = reminder_time - \
         timedelta(hours=timedelta_hour, minutes=30)
+    # mo_result = MarkerObservations.query.with_entities(MarkerObservations.site_id).filter(
+    #     MarkerObservations.ts.between(run_down_ts, reminder_time)).all()
     mo_result = MarkerObservations.query.with_entities(MarkerObservations.site_id).filter(
         MarkerObservations.ts.between(run_down_ts, reminder_time)).all()
 
-    return mo_result
+    return [value for (value,) in mo_result]
 
 
 def get_recipients_for_ground_meas(site_recipients):
