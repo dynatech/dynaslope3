@@ -260,7 +260,7 @@ def get_ewi_recipients(site_ids=None, site_codes=None, alert_level=0):
             DB.subqueryload("organizations").joinedload(
                 "organization", innerjoin=True),
             DB.raiseload("*")
-    ).filter(Users.ewi_recipient == 1)
+    ).filter(Users.ewi_recipient == 1, Users.status == 1)
 
     if site_ids:
         query = query.filter(Sites.site_id.in_(site_ids))
@@ -668,7 +668,8 @@ def get_recipients_for_ground_meas(site_recipients):
                         "organization", innerjoin=True),
                     DB.raiseload("*")
                 ).filter(
-                    Users.ewi_recipient == 1, Sites.site_id.in_(site_ids),
+                    Users.status == 1, Users.ewi_recipient == 1,
+                    Sites.site_id.in_(site_ids),
                     UserOrganizations.org_id == 1, UserMobiles.status == 1
                 ).all()
 
