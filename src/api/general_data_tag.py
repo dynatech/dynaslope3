@@ -58,28 +58,28 @@ def handle_update_insert_tags():
                 tag_id=tag_id
             )
 
-        # Get tag description
-        # tag_description = get_tag_description(tag_id=tag_id, tag_type=tag_type)
         tag_description = get_tag_description(tag_id=tag_id)
         var_checker("tag_description", tag_description, True)
         # TODO: change tags when new tags came or use tag_ids
         if tag_description in ["#GroundMeas", "#GroundObs", "#EwiResponse"]:
             get_process_status_log(key="Writing narratives", status="request")
 
-            additional_data = contact_person
-            if tag_description in ["#GroundObs", "#EwiResponse"]:
-                additional_data += f" - {message}"
-
-            narrative = get_narrative_text(
-                narrative_type="sms_tagging", details={
-                    "tag": tag_description,
-                    "additional_data": additional_data
-                })
-            var_checker("narrative", narrative, True)
-
-            get_process_status_log(
-                "inserting narratives with provided site_id_list", "request")
             try:
+                additional_data = contact_person
+                if tag_description in ["#GroundObs", "#EwiResponse"]:
+                    additional_data += f" - {message}"
+
+                narrative = get_narrative_text(
+                    narrative_type="sms_tagging", details={
+                        "tag": tag_description,
+                        "additional_data": additional_data
+                    })
+
+                var_checker("narrative", narrative, True)
+
+                get_process_status_log(
+                    "inserting narratives with provided site_id_list", "request")
+
                 for site_id in site_id_list:
                     # TODO: Make sure that this would handle routine in the future.
                     event = get_latest_monitoring_event_per_site(site_id)

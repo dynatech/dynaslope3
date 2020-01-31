@@ -91,15 +91,18 @@ function GeneralDataTagModal (props) {
     const submitTagHandler = () => {
         const { id, source } = tagObject;
 
-        const user_organizations = mobileDetails.user_details.user.organizations;
+        let contact_person = null;
         const site_id_list = [];
-        user_organizations.forEach(org => {
-            console.log("org", org);
-            const { site: { site_id } } = org;
-            !site_id_list.includes(site_id) && site_id_list.push(site_id);
-        });
+        if (mobileDetails.user_details !== null) {
+            const user_organizations = mobileDetails.user_details.user.organizations;
+            user_organizations.forEach(org => {
+                console.log("org", org);
+                const { site: { site_id } } = org;
+                !site_id_list.includes(site_id) && site_id_list.push(site_id);
+            });
 
-        const contact_person = prepareContactPerson(mobileDetails);
+            contact_person = prepareContactPerson(mobileDetails);
+        }
         const var_key_id = source === "inbox" ? "inbox_id" : "outbox_id";
 
         // DELETE MISSING TAGS
@@ -119,13 +122,9 @@ function GeneralDataTagModal (props) {
             });
             const delete_payload = {
                 tag_type: `sms${source}_user_tags`,
-                contact_person,
                 tag_details: {
-                    user_id: getCurrentUser().user_id,
                     [var_key_id]: id,
-                    site_id_list,
-                    delete_tag_id_list,
-                    ts: moment().format("YYYY-MM-DD HH:mm:ss")
+                    delete_tag_id_list
                 }
             };
             console.log("delete_payload", delete_payload);
