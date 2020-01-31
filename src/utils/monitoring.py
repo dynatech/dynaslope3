@@ -1085,7 +1085,7 @@ def get_monitoring_events(event_id=None, include_test_sites=False):
     query = MonitoringEvents.query
 
     if not include_test_sites:
-        query = query.filter(Sites.active == 1)
+        query = query.join(Sites).filter(Sites.active == 1)
 
     # NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
     if event_id is None:
