@@ -310,7 +310,7 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
 }
 
 function ChatThread (props) {
-    const { message_list, mobileDetails } = props;
+    const { message_list, mobileDetails, setScrollToBottom } = props;
     const classes = useStyles();
 
     const [messages, setMessages] = useState([]);
@@ -328,6 +328,7 @@ function ChatThread (props) {
         const initial_messages = message_list.slice(0).reverse();
         setMessages(initial_messages);
         setLoadedMessages(initial_messages);
+        setScrollToBottom(true);
     }, [message_list]);
 
     const set_gdt_fn = (bool, obj = default_tag_obj, message) => () => {

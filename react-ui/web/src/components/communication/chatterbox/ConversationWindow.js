@@ -287,9 +287,10 @@ function ConversationWindow (props) {
     };
 
     const convo_end_ref = useRef(null);
+    const [scrollToBottom, setScrollToBottom] = useState(false);
     useEffect(() => {
         convo_end_ref.current.scrollIntoView();
-    });
+    }, [scrollToBottom]);
 
     return (
         <Fragment>
@@ -321,7 +322,7 @@ function ConversationWindow (props) {
                 { 
                     message_list === null
                         ? <div style={{ padding: "0 16px" }}><ChatLoader style={{ height: "100%" }} /></div>
-                        : <ChatThread message_list={message_list} mobileDetails={mobile_details} />
+                        : <ChatThread message_list={message_list} mobileDetails={mobile_details} setScrollToBottom={setScrollToBottom}/>
                 }
             </div>
 
