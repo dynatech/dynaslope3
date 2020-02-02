@@ -38,7 +38,7 @@ function SendEwiSmsMessageModal (props) {
                     </IconButton>
                 </div>
             </DialogTitle>
-            <DialogContent style={{ overflowY: "hidden" }}>
+            <DialogContent style={{ overflowY: "auto" }}>
                 <DialogContentText>
                     Early warning information recipients for this site is already pre-loaded. Add additional site-related contacts
                     if necessary. Use Chatterbox for non-site-related contacts.
