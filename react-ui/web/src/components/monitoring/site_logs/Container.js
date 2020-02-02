@@ -88,19 +88,22 @@ function processTableData (data) {
     const processed = data.map(row => {
         const {
             narrative, user_details, site_id,
-            user_id, id
+            user_id, id, type_id, event_id,
+            timestamp
         } = row;
         const { last_name, first_name } = user_details;
         return ({
             narrative,
             user_details: `${first_name} ${last_name}`,
             site_name: prepareSiteAddress(row.site, true, "start"),
-            ts: moment(row.timestamp).format("DD MMMM YYYY, HH:mm:ss"),
+            timestamp,
             type: row.type_id,
             actions: "---",
             site_id,
             user_id,
-            id
+            id,
+            type_id,
+            event_id
         });
     });
 
@@ -253,11 +256,14 @@ function SiteLogs (props) {
 
     const columns = [
         {
-            name: "ts",
+            name: "timestamp",
             label: "Timestamp",
             options: {
                 filter: false,
-                sort: false
+                sort: false,
+                customBodyRender: value => {
+                    return moment(value).format("DD MMMM YYYY, HH:mm:ss");
+                }
             }
         },
         {
