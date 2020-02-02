@@ -91,10 +91,9 @@ def get_bulletin_email_details(release_id):
     data_ts = bulletin_release_data.data_ts
     is_onset = first_data_ts == data_ts
 
-    # START BUILDING MAIL BODY
-    mail_body = prepare_base_email_body(
-        site_address, site_alert_level, data_ts)
-
+    # MAIL BODY
+    mail_body = ""
+    body_ts = data_ts
     if is_onset and p_a_level != 0:  # prevent onset from lowering to A0:
         onset_msg = prepare_onset_message(
             bulletin_release_data,
@@ -102,19 +101,20 @@ def get_bulletin_email_details(release_id):
             site_alert_level
         )
 
-        mail_body = f"{onset_msg}\n {mail_body}"
-
+        mail_body = f"{onset_msg}\n "
         file_time = data_ts
     else:
         file_time = round_to_nearest_release_time(data_ts, 4)
+        body_ts = file_time
+
+    mail_body = prepare_base_email_body(
+        site_address, site_alert_level, body_ts)
 
     # GET THE SUBJECT NOW
-    subject_ts = data_ts
-    if not is_onset:
-        subject_ts = round_to_nearest_release_time(data_ts, 4)
+
     subject = get_email_subject(mail_type="bulletin", details={
         "site_code": site.site_code,
-        "date": subject_ts.strftime("%d %b %Y").upper()
+        "date": data_ts.strftime("%d %b %Y").upper()
     })
 
     # GET THE FILENAME NOW

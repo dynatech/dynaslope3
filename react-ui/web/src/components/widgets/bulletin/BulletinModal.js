@@ -80,7 +80,7 @@ function BulletinModal (props) {
     };
 
     useEffect(() => {
-        if (typeof release_id !== "undefined") {
+        if (typeof release_id !== "undefined" && isOpenBulletinModal) {
             getBulletinEmailDetails(release_id, ret => {
                 const {
                     subject, recipients, mail_body,
@@ -89,15 +89,13 @@ function BulletinModal (props) {
                 } = ret;
 
                 setNarrativeDetails(tmp_nar);
-    
                 setMailRecipients(recipients);
-
                 setMailSubject(subject);
                 setMailContent(mail_body);
                 setFileName(filename);
             });
         }
-    }, [releaseDetail]);
+    }, [isOpenBulletinModal]);
 
     const downloadHandler = release_id_input => () => {
         downloadBulletin(release_id_input, ret => {
@@ -105,7 +103,14 @@ function BulletinModal (props) {
         });
     };
 
-    const closeHandler = () => setIsOpenBulletinModal(false);
+    const closeHandler = () => {
+        setIsOpenBulletinModal(false);
+        setNarrativeDetails({});
+        setMailRecipients([]);
+        setMailSubject("");
+        setMailContent("");
+        setFileName("");
+    };
 
     const handleSend = () => {
         const input = {
