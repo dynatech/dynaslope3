@@ -86,7 +86,7 @@ def get_eos_email_details(event_id, shift_ts_end):
         if APP_CONFIG["is_live_mode"]:
             # PRODUCTION
             recipients = APP_CONFIG["director_and_head_emails"]
-            recipients.append(APP_CONFIG["dynaslope_groups"])
+            recipients.extend(APP_CONFIG["dynaslope_groups"])
         else:
             # DEVELOPMENT
             recipients = [APP_CONFIG["dev_email"]]

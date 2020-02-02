@@ -23,10 +23,11 @@ def wrap_delete_narratives_from_db():
     """
     try:
         json_data = request.get_json()
-        var_checker("json_data", json_data, True)
+        # var_checker("json_data", json_data, True)
         status = delete_narratives_from_db(json_data["narrative_id"])
         DB.session.commit()
     except Exception as err:
+        status = "Failed"
         print(err)
 
     return status

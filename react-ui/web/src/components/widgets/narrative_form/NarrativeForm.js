@@ -1,4 +1,4 @@
-import React, { useEffect, useContext, useState } from "react";
+import React from "react";
 import {
     TextField, Grid, withStyles
 } from "@material-ui/core";
@@ -9,8 +9,6 @@ import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pi
 
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
-import { GeneralContext } from "../../contexts/GeneralContext";
-import { prepareSiteAddress } from "../../../UtilityFunctions";
 
 const styles = theme => ({
     inputGridContainer: {

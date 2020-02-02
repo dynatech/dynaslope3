@@ -51,7 +51,7 @@ class SmsInboxUsers2(DB.Model):
     ts_stored = DB.Column(DB.DateTime, default=datetime.utcnow())
     mobile_id = DB.Column(DB.Integer)
     sms_msg = DB.Column(DB.String(1000))
-    read_status = DB.Column(DB.Integer)
+    read_status = DB.Column(DB.Integer, default=0)
     web_status = DB.Column(DB.Integer)
     gsm_id = DB.Column(DB.Integer, nullable=False)
 

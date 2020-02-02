@@ -75,12 +75,10 @@ function getManipulationButtons (narrative, data_handlers) {
         <span>
             <IconButton tooltip="Edit" style={{ "float": "left" }} onClick={handleEdit}>
                 <Edit style={{ fontSize: 20 }}/>
+            </IconButton> 
+            <IconButton tooltip="Delete" style={{ "float": "left" }} onClick={handleDelete}>
+                <Delete style={{ fontSize: 20 }}/>
             </IconButton>
-            {narrative.type_id === 1 && ( 
-                <IconButton tooltip="Delete" style={{ "float": "left" }} onClick={handleDelete}>
-                    <Delete style={{ fontSize: 20 }}/>
-                </IconButton>
-            )}
         </span>        
     );
 }
@@ -88,7 +86,10 @@ function getManipulationButtons (narrative, data_handlers) {
 
 function processTableData (data) {
     const processed = data.map(row => {
-        const { narrative, user_details } = row;
+        const {
+            narrative, user_details, site_id,
+            user_id, id
+        } = row;
         const { last_name, first_name } = user_details;
         return ({
             narrative,
@@ -96,7 +97,10 @@ function processTableData (data) {
             site_name: prepareSiteAddress(row.site, true, "start"),
             ts: moment(row.timestamp).format("DD MMMM YYYY, HH:mm:ss"),
             type: row.type_id,
-            actions: "---"
+            actions: "---",
+            site_id,
+            user_id,
+            id
         });
     });
 

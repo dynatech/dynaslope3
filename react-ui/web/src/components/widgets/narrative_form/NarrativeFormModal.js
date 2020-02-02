@@ -79,6 +79,7 @@ function NarrativeFormModal (props) {
         });
         narrative_data.site_list = temp;
         narrative_data.timestamp = moment(narrative_data.timestamp).format("YYYY-MM-DD HH:mm:ss");
+        narrative_data.user_id = current_user.user_id;
         handleNarratives(narrative_data, ret => {
             console.log("ret", ret);
             closeHandler();

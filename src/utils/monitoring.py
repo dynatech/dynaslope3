@@ -362,7 +362,7 @@ def update_alert_status(as_details):
         # NOTE: refactor by directly sending messages
         # ALSO NOTE: Remove Sandbox from sms_msg when GSM 3 arrived
         row = SmsInboxUsers2(
-            mobile_id=31,
+            mobile_id=31, # Default for community phone
             sms_msg=f"Sandbox ACK {stat_id} {val_map[alert_status]} {remarks}",
             gsm_id=2
         )

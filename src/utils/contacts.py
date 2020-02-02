@@ -606,11 +606,13 @@ def remove_sites_with_ground_meas(
                     extended_site_ids.remove(site_id)
 
         if event_site_ids:
+            # NOTE: refactor na lang ito to query sites belonging
+            # to event_site_ids
             result = get_site_with_observation_and_remove(
                 routine_reminder_time, timedelta_hour=1)
-
             for site_id in result:
-                event_site_ids.remove(site_id)
+                if site_id in event_site_ids:
+                    event_site_ids.remove(site_id)
     else:
         routine_site_ids = []
         extended_site_ids = []
@@ -627,7 +629,8 @@ def remove_sites_with_ground_meas(
             reminder_time, timedelta_hour=1)
 
         for site_id in result:
-            event_site_ids.remove(site_id)
+            if site_id in event_site_ids:
+                event_site_ids.remove(site_id)
 
     final_site_ids = {
         "routine_site_ids": routine_site_ids,

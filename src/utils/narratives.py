@@ -37,6 +37,7 @@ def delete_narratives_from_db(narrative_id):
         # DB.session.commit()
         print(get_process_status_log("delete_narratives_from_db", "end"))
     except:
+        return "Failed"
         print(get_process_status_log("delete_narratives_from_db", "fail"))
         raise
 
@@ -56,7 +57,7 @@ def find_narrative_event_id(timestamp, site_id):
 
     event_alert = mea.query.options(DB.joinedload("event", innerjoin=True), DB.raiseload("*")) \
         .order_by(DB.desc(mea.event_alert_id)) \
-            .join(me).filter(filtering).filter(me.site_id == site_id) \
+        .join(me).filter(filtering).filter(me.site_id == site_id) \
         .first()
 
     if event_alert:
