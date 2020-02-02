@@ -77,7 +77,7 @@ def get_eos_email_details(event_id, shift_ts_end):
     # GET SUBJECT
     subject = get_email_subject(mail_type="eos", details={
         "site_code": site_code,
-        "date": datetime.strftime(event_start, "%e %b %Y").upper()
+        "date": datetime.strftime(event_start, "%d %b %Y").upper()
     })
 
     # GET RECIPIENTS
