@@ -3,7 +3,7 @@ API for handling bulletin email
 """
 
 from flask import Blueprint, jsonify
-from datetime import datetime
+from datetime import datetime, timedelta
 from config import APP_CONFIG
 from src.utils.emails import get_email_subject
 from src.utils.monitoring import get_monitoring_releases
@@ -109,9 +109,12 @@ def get_bulletin_email_details(release_id):
         file_time = round_to_nearest_release_time(data_ts, 4)
 
     # GET THE SUBJECT NOW
+    subject_ts = data_ts
+    if not is_onset:
+        subject_ts = round_to_nearest_release_time(data_ts, 4)
     subject = get_email_subject(mail_type="bulletin", details={
         "site_code": site.site_code,
-        "date": data_ts.strftime("%d %b %Y").upper()
+        "date": subject_ts.strftime("%d %b %Y").upper()
     })
 
     # GET THE FILENAME NOW
@@ -127,6 +130,9 @@ def get_bulletin_email_details(release_id):
     else:
         # NOTE to front-end. CHECK if TEST SERVER by using typeof object.
         recipients.append(APP_CONFIG["dev_email"])
+
+    var_checker("is_onset", is_onset)
+    var_checker("BULLETIN RECIPIENTS", recipients)
 
     # PERPARE THE NARRATIVE
 
