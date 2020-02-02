@@ -311,10 +311,15 @@ def execute_insert_ewi(insert_details):
     # Update the complete alert gen data
     # site_code = insert_details["site_code"].lower()
     # update_alert_gen(site_code=site_code)
+    generated_alerts = retrieve_data_from_memcache("GENERATED_ALERTS")
+    alerts_from_db = wrap_get_ongoing_extended_overdue_events()
     set_data_to_memcache(name="ALERTS_FROM_DB",
-                         data=wrap_get_ongoing_extended_overdue_events())
+                         data=alerts_from_db)
     set_data_to_memcache(name="CANDIDATE_ALERTS",
-                         data=candidate_alerts_generator.main())
+                         data=candidate_alerts_generator.main(
+                             generated_alerts_list=generated_alerts,
+                             db_alerts_dict=alerts_from_db
+                         ))
 
     emit_data("receive_alerts_from_db")
     emit_data("receive_candidate_alerts")
