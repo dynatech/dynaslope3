@@ -114,7 +114,7 @@ def get_bulletin_email_details(release_id):
 
     subject = get_email_subject(mail_type="bulletin", details={
         "site_code": site.site_code,
-        "date": data_ts.strftime("%d %b %Y").upper()
+        "date": first_data_ts.strftime("%d %b %Y").upper()
     })
 
     # GET THE FILENAME NOW
