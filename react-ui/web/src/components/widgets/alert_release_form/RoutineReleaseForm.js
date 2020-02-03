@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import MomentUtils from "@date-io/moment";
+import moment from "moment";
 import {
     Grid, Divider, makeStyles
 } from "@material-ui/core";
@@ -18,6 +19,7 @@ import Button from "@material-ui/core/Button";
 
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { CTContext } from "../../monitoring/dashboard/CTContext";
+import { getUnreleasedRoutineSites } from "./ajax";
 
 const useStyles = makeStyles(theme => ({
     inputGridContainer: {
@@ -51,6 +53,21 @@ const useStyles = makeStyles(theme => ({
     },
 }));
 
+function prepareSitesOption (arr) {
+    let temp = [];
+    if (arr.length > 0) {
+        temp = arr.map(site => {
+            const { 
+                site_code, site_id
+            } = site;
+    
+            const s_code = site_code.toUpperCase();
+            return { state: true, value: site_id, label: s_code, is_disabled: false };
+        });
+    }
+    return temp;
+}
+
 function not (a, b) {
     return a.filter(row => !b.some(x => x.value === row.value));
 }
@@ -69,7 +86,7 @@ function RoutineReleaseForm (comp_props) {
         a0SiteList, setA0SiteList,
         NDSiteList, setNDSiteList
     } = comp_props;
-
+    console.log(a0SiteList);
     const classes = useStyles();
     const { reporter_id_ct } = React.useContext(CTContext);
 
@@ -77,7 +94,7 @@ function RoutineReleaseForm (comp_props) {
     const [dataTimestamp, setDataTimestamp] = useState(null);
 
     useEffect(() => {
-        setDataTimestamp(routineData.data_ts);
+        // setDataTimestamp(routineData.data_ts);
         setFormReleaseTime(routineData.release_time);
     }, [routineData]);
 
@@ -85,9 +102,23 @@ function RoutineReleaseForm (comp_props) {
 
     const handleDateTime = key => value => {
         const temp = { ...routineData, [key]: value };
-        setDataTimestamp(value);
+        setDataTimestamp(moment(value).format("YYYY-MM-DD HH:mm:00"));
         setRoutineData(temp);
     };
+
+    useEffect(() => {
+        if (dataTimestamp != null) {
+            getUnreleasedRoutineSites(dataTimestamp, data => {
+                const { unreleased_sites } = data;
+                const temp = prepareSitesOption(unreleased_sites);
+                setA0SiteList({
+                    ...a0SiteList,
+                    site_id_list: temp
+                });
+            });
+        }
+    }, [dataTimestamp]);
+    
 
     const [checked, setChecked] = React.useState([]);
 
@@ -208,6 +239,7 @@ function RoutineReleaseForm (comp_props) {
                         mask="____/__/__ __:__"
                         clearable
                         disableFuture
+                        error={dataTimestamp === null}
                     />
                 </Grid>
 

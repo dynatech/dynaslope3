@@ -90,9 +90,19 @@ def wrap_get_unreleased_routine_sites(data_timestamp):
     if isinstance(data_timestamp, str):
         f_timestamp = datetime.strptime(data_timestamp, "%Y-%m-%d %H:%M:%S")
 
-    output = get_unreleased_routine_sites(f_timestamp, only_site_code=True)
+    output = get_unreleased_routine_sites(f_timestamp, only_site_code=False)
+    released_sites = output["released_sites"]
+    unreleased_sites = output["unreleased_sites"]
+    final_unreleased_sites = []
 
-    return json.dumps(output)
+    for unrelease in unreleased_sites:
+        unrelease_site_code = unrelease["site_code"]
+        for release in released_sites:
+            release_site_code = release["site_code"]
+            if(release_site_code != unrelease_site_code):
+                final_unreleased_sites.append(unrelease)
+                
+    return json.dumps({"unreleased_sites":final_unreleased_sites})
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_current_monitoring_summary_per_site/<site_id>", methods=["GET"])

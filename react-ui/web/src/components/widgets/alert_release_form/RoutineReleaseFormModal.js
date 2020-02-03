@@ -79,6 +79,7 @@ function RoutineReleaseFormModal (props) {
         });
     }, [sites]);
 
+
     useEffect(() => {
         if (typeof chosenCandidateAlert !== "undefined" && chosenCandidateAlert !== null && chosenCandidateAlert.general_status === "routine") {
             const copy = { ...chosenCandidateAlert };
@@ -108,10 +109,10 @@ function RoutineReleaseFormModal (props) {
             setEwiPayload({ ...ewiPayload });
         } else {
             setRoutineData({ ...initial_routine_data });
-            const temp = prepareSitesOption(sites);
+            // const temp = prepareSitesOption(sites);
             setA0SiteList({
                 ...a0SiteList,
-                site_id_list: temp
+                site_id_list: []
             });
             setNDSiteList({
                 ...NDSiteList,

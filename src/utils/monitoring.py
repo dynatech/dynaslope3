@@ -609,7 +609,10 @@ def get_routine_sites(timestamp=None, include_inactive=False, only_site_code=Tru
     routine_sites = []
     for group in result:
         for site in group.sites:
-            site_detail = site
+            site_detail = {
+                "site_id": site.site_id,
+                "site_code": site.site_code
+            }
             if only_site_code:
                 site_detail = site.site_code
 
@@ -626,7 +629,8 @@ def get_unreleased_routine_sites(data_timestamp, only_site_code=True):
 
     released_sites = []
     unreleased_sites = []
-    for site_code in routine_sites:
+    for site in routine_sites:
+        site_code = site["site_code"]
         # This is with the assumption that you are using data_timestamp
         site_release = get_monitoring_releases_by_data_ts(site_code, data_timestamp)
 
@@ -644,7 +648,7 @@ def get_unreleased_routine_sites(data_timestamp, only_site_code=True):
             }
             released_sites.append(temp)
         else:
-            unreleased_sites.append(site_code)
+            unreleased_sites.append(site)
 
     output = {
         "released_sites": released_sites,
