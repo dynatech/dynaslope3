@@ -409,7 +409,7 @@ def create_internal_alert(highest_public_alert, processed_triggers_list, current
     # Check if rainfall is active (included in current_trigger_alerts)
     try:
         rainfall_cta = current_trigger_alerts["rainfall"]
-        if rainfall_cta["alert_level"] == -2:
+        if rainfall_cta["alert_level"] == -2 and not rainfall_cta["has_positive_rainfall_trigger"]:
             internal_alert += rainfall_cta["alert_symbol"]
     except KeyError:
         pass
@@ -613,13 +613,16 @@ def get_processed_internal_alert_symbols(unique_positive_triggers_list, current_
         if current_trigger_alerts["rainfall"]["alert_level"] == 0 and \
             latest_rainfall_alert and is_end_of_validity:
             rain_trigger_index = next((index for (index, trig) in enumerate(updated_h_u_p_t_list) \
-                if trig.trigger_symbol.internal_alert_symbol.trigger_source == "rainfall"), None)
+                if trig.trigger_symbol.trigger_hierarchy.trigger_source == "rainfall"), None)
 
+            has_positive_rainfall_trigger = rain_trigger_index is not None
             rainfall_rx_symbol = get_rainfall_rx_symbol(rain_trigger_index)
-            updated_h_u_p_t_list[rain_trigger_index].trigger_symbol.internal_alert_symbol.alert_symbol = rainfall_rx_symbol
+            if has_positive_rainfall_trigger:
+                updated_h_u_p_t_list[rain_trigger_index].trigger_symbol.internal_alert_symbol.alert_symbol = rainfall_rx_symbol.capitalize()
 
             current_trigger_alerts["rainfall"]["alert_level"] = -2
             current_trigger_alerts["rainfall"]["alert_symbol"] = rainfall_rx_symbol
+            current_trigger_alerts["rainfall"]["has_positive_rainfall_trigger"] = has_positive_rainfall_trigger
 
     return updated_h_u_p_t_list, current_trigger_alerts
 
