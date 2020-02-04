@@ -705,6 +705,7 @@ class EarthquakeEventsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Analysis Earthquake Events class
     """
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     magnitude = fields.Decimal(as_string=True)
     depth = fields.Decimal(as_string=True)
     latitude = fields.Decimal(as_string=True)
@@ -752,6 +753,7 @@ class MarkerHistorySchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of MarkerHistory class
     """
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     marker_name = fields.Nested(
         "MarkerNamesSchema", many=True, exclude=("history",))
 
@@ -773,6 +775,7 @@ class MarkerObservationsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Analysis Marker Observations class
     """
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     site = fields.Nested("SitesSchema")
     marker_data = fields.Nested(
         "MarkerDataSchema", many=True, exclude=("marker_observation_report",))
@@ -800,7 +803,7 @@ class MarkerAlertsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of MarkerAlerts class
     """
-
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     marker = fields.Nested("Markers")
 
     class Meta:
@@ -812,6 +815,7 @@ class RainfallAlertsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of RainfallAlerts class
     """
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     class Meta:
         """Saves table class structure as schema model"""
         model = RainfallAlerts
@@ -830,6 +834,8 @@ class RainfallGaugesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of RainfallGauges class
     """
+    date_activated = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    date_deactivated = fields.DateTime("%Y-%m-%d %H:%M:%S")
     latitude = fields.Decimal(as_string=True)
     longitude = fields.Decimal(as_string=True)
 
@@ -888,6 +894,9 @@ class TSMAlertsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of TSMAlerts class
     """
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_updated = fields.DateTime("%Y-%m-%d %H:%M:%S")
+
     class Meta:
         """Saves table class structure as schema model"""
         model = TSMAlerts
@@ -925,7 +934,8 @@ class DataPresenceTSMSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of DataPresenceTSM class
     """
-
+    last_data = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_updated = fields.DateTime("%Y-%m-%d %H:%M:%S")
     tsm_sensor = fields.Nested(
         TSMSensorsSchema, exclude=("data_presence", "tsm_alert", "site",
                                    "node_alerts", "logger.data_presence"))
@@ -939,7 +949,8 @@ class DataPresenceLoggersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of DataPresenceLoggers class
     """
-
+    last_data = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_updated = fields.DateTime("%Y-%m-%d %H:%M:%S")
     logger_id = fields.Integer()
     logger = fields.Nested(
         LoggersSchema, exclude=("data_presence", "tsm_sensor", "logger_model"))

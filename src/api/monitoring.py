@@ -90,8 +90,8 @@ def wrap_get_unreleased_routine_sites(data_timestamp):
     if isinstance(data_timestamp, str):
         f_timestamp = datetime.strptime(data_timestamp, "%Y-%m-%d %H:%M:%S")
 
-    output = get_unreleased_routine_sites(f_timestamp, only_site_code=True)
-
+    output = get_unreleased_routine_sites(f_timestamp, only_site_code=False)
+                
     return json.dumps(output)
 
 

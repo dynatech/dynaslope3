@@ -626,25 +626,44 @@ def get_unreleased_routine_sites(data_timestamp, only_site_code=True):
 
     released_sites = []
     unreleased_sites = []
-    for site_code in routine_sites:
+    for site in routine_sites:
+        if only_site_code:
+            site_code = site
+        else:
+            site_code = site.site_code
+            site_id = site.site_id
+
         # This is with the assumption that you are using data_timestamp
         site_release = get_monitoring_releases_by_data_ts(site_code, data_timestamp)
 
+        temp = None
+        
         if site_release:
-            f_data_ts = datetime.strftime(site_release.data_ts, "%Y-%m-%d %H:%M:%S")
-            f_rel_time = time.strftime(site_release.release_time, "%H:%M:%S")
-            temp = {
-                "event_id": site_release.event_alert.event_id,
-                "event_alert_id": site_release.event_alert_id,
-                "release_id": site_release.release_id,
-                "site_code": site_code,
-                "site_id": site_release.event_alert.event.site_id,
-                "data_ts": f_data_ts,
-                "release_time": f_rel_time
-            }
+            if only_site_code:
+                temp = site_code
+            else:
+                f_data_ts = datetime.strftime(site_release.data_ts, "%Y-%m-%d %H:%M:%S")
+                f_rel_time = time.strftime(site_release.release_time, "%H:%M:%S")
+                temp = {
+                    "event_id": site_release.event_alert.event_id,
+                    "event_alert_id": site_release.event_alert_id,
+                    "release_id": site_release.release_id,
+                    "site_code": site_code,
+                    "site_id": site_release.event_alert.event.site_id,
+                    "data_ts": f_data_ts,
+                    "release_time": f_rel_time
+                }
             released_sites.append(temp)
         else:
-            unreleased_sites.append(site_code)
+            if only_site_code:
+                temp = site_code
+            else:
+                temp = {
+                    "site_id": site_id,
+                    "site_code": site_code
+                }
+            unreleased_sites.append(temp)
+
 
     output = {
         "released_sites": released_sites,
