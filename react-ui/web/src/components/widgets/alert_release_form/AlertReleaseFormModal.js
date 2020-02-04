@@ -231,7 +231,8 @@ function AlertReleaseFormModal (props) {
                 site_id, site_code, public_alert_level,
                 public_alert_symbol, release_details, trigger_list_arr,
                 has_ground_data, non_triggering_moms, internal_alert_level,
-                current_triggers_status: cts, saved_event_triggers
+                current_triggers_status: cts, saved_event_triggers,
+                to_extend_validity
             } = chosenCandidateAlert;
             const { data_ts, trigger_list_str } = release_details;
 
@@ -273,7 +274,8 @@ function AlertReleaseFormModal (props) {
                     publisher_ct_id: reporter_id_ct
                 },
                 trigger_list_arr: valid_triggers,
-                non_triggering_moms: final_non_trig_moms
+                non_triggering_moms: final_non_trig_moms,
+                to_extend_validity
             });
 
             const no_ground_data = !has_ground_data;
