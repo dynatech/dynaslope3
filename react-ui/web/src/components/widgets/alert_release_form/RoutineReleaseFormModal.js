@@ -11,6 +11,7 @@ import { sendWSMessage } from "../../../websocket/monitoring_ws";
 import { getCurrentUser } from "../../sessions/auth";
 import { CTContext } from "../../monitoring/dashboard/CTContext";
 import { GeneralContext } from "../../contexts/GeneralContext";
+import { getUnreleasedRoutineSites } from "./ajax";
 
 
 function prepareSitesOption (arr) {
@@ -66,6 +67,7 @@ function RoutineReleaseFormModal (props) {
     const [a0SiteList, setA0SiteList] = useState({ ...a0_list });
     const [NDSiteList, setNDSiteList] = useState({ ...nd_list });
     const [site_options, setSiteOptions] = useState([]);
+    const [dataTimestamp, setDataTimestamp] = useState(null);
 
     const disabled = (a0SiteList.site_id_list.length === 0 && NDSiteList.site_id_list.length === 0) || tmp_ct === "";
 
@@ -73,12 +75,25 @@ function RoutineReleaseFormModal (props) {
         setRoutineData({ ...initial_routine_data });
         const temp = prepareSitesOption(sites);
         setSiteOptions(temp);
-        setA0SiteList({
-            ...a0SiteList,
-            site_id_list: temp
-        });
     }, [sites]);
 
+    useEffect(() => {
+        if (dataTimestamp != null) {
+            getUnreleasedRoutineSites(dataTimestamp, data => {
+                const { unreleased_sites } = data;
+                const temp = prepareSitesOption(unreleased_sites);
+                setA0SiteList({
+                    ...a0SiteList,
+                    site_id_list: temp
+                });
+            });
+        } else {
+            setA0SiteList({
+                ...a0SiteList,
+                site_id_list: []
+            });
+        }
+    }, [dataTimestamp]);
 
     useEffect(() => {
         if (typeof chosenCandidateAlert !== "undefined" && chosenCandidateAlert !== null && chosenCandidateAlert.general_status === "routine") {
@@ -168,6 +183,8 @@ function RoutineReleaseFormModal (props) {
                         setA0SiteList={setA0SiteList}
                         NDSiteList={NDSiteList}
                         setNDSiteList={setNDSiteList}
+                        dataTimestamp={dataTimestamp}
+                        setDataTimestamp={setDataTimestamp}
                     />
                 </DialogContent>
                 <DialogActions>

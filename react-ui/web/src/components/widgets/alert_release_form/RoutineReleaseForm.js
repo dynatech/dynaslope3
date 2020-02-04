@@ -53,21 +53,6 @@ const useStyles = makeStyles(theme => ({
     },
 }));
 
-function prepareSitesOption (arr) {
-    let temp = [];
-    if (arr.length > 0) {
-        temp = arr.map(site => {
-            const { 
-                site_code, site_id
-            } = site;
-    
-            const s_code = site_code.toUpperCase();
-            return { state: true, value: site_id, label: s_code, is_disabled: false };
-        });
-    }
-    return temp;
-}
-
 function not (a, b) {
     return a.filter(row => !b.some(x => x.value === row.value));
 }
@@ -84,13 +69,13 @@ function RoutineReleaseForm (comp_props) {
     const {
         routineData, setRoutineData,
         a0SiteList, setA0SiteList,
-        NDSiteList, setNDSiteList
+        NDSiteList, setNDSiteList,
+        dataTimestamp, setDataTimestamp
     } = comp_props;
     const classes = useStyles();
     const { reporter_id_ct } = React.useContext(CTContext);
 
     const [form_release_time, setFormReleaseTime] = useState(null);
-    const [dataTimestamp, setDataTimestamp] = useState(null);
 
     useEffect(() => {
         setFormReleaseTime(routineData.release_time);
@@ -103,19 +88,6 @@ function RoutineReleaseForm (comp_props) {
         setDataTimestamp(moment(value).format("YYYY-MM-DD HH:mm:00"));
         setRoutineData(temp);
     };
-
-    useEffect(() => {
-        if (dataTimestamp != null) {
-            getUnreleasedRoutineSites(dataTimestamp, data => {
-                const { unreleased_sites } = data;
-                const temp = prepareSitesOption(unreleased_sites);
-                setA0SiteList({
-                    ...a0SiteList,
-                    site_id_list: temp
-                });
-            });
-        }
-    }, [dataTimestamp]);
     
 
     const [checked, setChecked] = React.useState([]);

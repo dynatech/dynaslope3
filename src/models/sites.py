@@ -63,7 +63,7 @@ class Seasons(DB.Model):
         TINYINT, DB.ForeignKey("commons_db.routine_schedules.sched_group_id"))
 
     sites = DB.relationship(
-        "Sites", backref=DB.backref("season_months", lazy="raise"), lazy="subquery")
+        "Sites", backref=DB.backref("season_months", lazy="raise"), lazy="subquery", order_by="Sites.site_code")
     routine_schedules = DB.relationship(
         "RoutineSchedules", backref=DB.backref("seasons", lazy="subquery"),
         uselist=True, lazy="subquery")
