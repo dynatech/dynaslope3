@@ -86,7 +86,6 @@ function RoutineReleaseForm (comp_props) {
         a0SiteList, setA0SiteList,
         NDSiteList, setNDSiteList
     } = comp_props;
-    console.log(a0SiteList);
     const classes = useStyles();
     const { reporter_id_ct } = React.useContext(CTContext);
 
@@ -94,7 +93,6 @@ function RoutineReleaseForm (comp_props) {
     const [dataTimestamp, setDataTimestamp] = useState(null);
 
     useEffect(() => {
-        // setDataTimestamp(routineData.data_ts);
         setFormReleaseTime(routineData.release_time);
     }, [routineData]);
 
