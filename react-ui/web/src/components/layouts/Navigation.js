@@ -1,14 +1,18 @@
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect, Fragment, useContext } from "react";
 import {
     AppBar, Tabs, Tab,
     MenuItem, MenuList,
     Popper, Paper, Grow, ClickAwayListener,
-    makeStyles,
+    makeStyles, Grid,
     Typography
 } from "@material-ui/core";
+import moment from "moment";
 import { Link } from "react-router-dom";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import ScreenDrawer from "./ScreenDrawer";
+import { 
+    getServerTime, receiveServerTime
+} from "../../websocket/misc_ws";
 
 const useStyles = makeStyles(theme => ({
     navBar: {
@@ -277,6 +281,7 @@ function Navigation (props) {
     const [last_clicked_tab, setLastClickedTab] = useState(null);
     const [popper_open, setPopperOpen] = useState(false);
     const [anchorEl, setAnchorE1] = useState(null);
+    const [server_time, setServerTime] = useState("Loading server time...");
 
     const tab = value === from_tab && last_clicked_tab !== null ? last_clicked_tab : value;
     const { sub } = navigation_labels[tab];
@@ -284,6 +289,14 @@ function Navigation (props) {
     useEffect(() => {
         setLastClickedTab(value);
     }, [value]);
+
+    useEffect(() => {
+        getServerTime();
+        receiveServerTime(data => {
+            const date_time = moment(data).format("ddd DD-MMM-YYYY HH:mm:ss");
+            setServerTime(date_time);
+        });
+    }, []);
 
     const handleTabChange = (event, val) => {
         setValue(val);
@@ -314,25 +327,39 @@ function Navigation (props) {
         <Fragment>
             <div className={classes.navBar}>
                 <AppBar position="fixed" color="default" className={classes.appBar}>
-                    <Tabs
-                        value={value}
-                        onChange={handleTabChange}
-                        indicatorColor="primary"
-                        textColor="primary"
-                        variant={isWidthUp("md", width) ? "standard" : "scrollable"}
-                        scrollButtons="on"
-                        centered={isWidthUp("md", width)}
-                    >
-                        {navigation_labels.map(({ main, key }) => 
-                            <Tab
-                                key={key}
-                                label={main}
-                                aria-owns={popper_open ? "monitoring-menu" : null}
-                                aria-haspopup="true"
-                                onClick={handleNavTabClick}
-                            />
-                        )}
-                    </Tabs>
+                    <Grid container spacing={0} alignItems="center">
+                        <Grid item xs={10}>
+                            <Tabs
+                                value={value}
+                                onChange={handleTabChange}
+                                indicatorColor="primary"
+                                textColor="primary"
+                                variant={isWidthUp("md", width) ? "standard" : "scrollable"}
+                                scrollButtons="on"
+                                centered={isWidthUp("md", width)}
+                            >
+                                {navigation_labels.map(({ main, key }) => 
+                                    <Tab
+                                        key={key}
+                                        label={main}
+                                        aria-owns={popper_open ? "monitoring-menu" : null}
+                                        aria-haspopup="true"
+                                        onClick={handleNavTabClick}
+                                    />
+                                )}
+                                {/* <Tab
+                                key="server_time"
+                                label={server_time}
+                                disabled
+                            /> */}
+                            </Tabs>
+                        </Grid>
+                        <Grid item xs={2}>
+                            <Typography variant="button">
+                                {server_time}
+                            </Typography>
+                        </Grid>
+                    </Grid>
                 </AppBar>
             </div>
 
