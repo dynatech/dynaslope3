@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import MomentUtils from "@date-io/moment";
+import moment from "moment";
 import {
     Grid, Divider, makeStyles
 } from "@material-ui/core";
@@ -18,6 +19,7 @@ import Button from "@material-ui/core/Button";
 
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { CTContext } from "../../monitoring/dashboard/CTContext";
+import { getUnreleasedRoutineSites } from "./ajax";
 
 const useStyles = makeStyles(theme => ({
     inputGridContainer: {
@@ -67,17 +69,15 @@ function RoutineReleaseForm (comp_props) {
     const {
         routineData, setRoutineData,
         a0SiteList, setA0SiteList,
-        NDSiteList, setNDSiteList
+        NDSiteList, setNDSiteList,
+        dataTimestamp, setDataTimestamp
     } = comp_props;
-
     const classes = useStyles();
     const { reporter_id_ct } = React.useContext(CTContext);
 
     const [form_release_time, setFormReleaseTime] = useState(null);
-    const [dataTimestamp, setDataTimestamp] = useState(null);
 
     useEffect(() => {
-        setDataTimestamp(routineData.data_ts);
         setFormReleaseTime(routineData.release_time);
     }, [routineData]);
 
@@ -85,9 +85,10 @@ function RoutineReleaseForm (comp_props) {
 
     const handleDateTime = key => value => {
         const temp = { ...routineData, [key]: value };
-        setDataTimestamp(value);
+        setDataTimestamp(moment(value).format("YYYY-MM-DD HH:mm:00"));
         setRoutineData(temp);
     };
+    
 
     const [checked, setChecked] = React.useState([]);
 
@@ -208,6 +209,7 @@ function RoutineReleaseForm (comp_props) {
                         mask="____/__/__ __:__"
                         clearable
                         disableFuture
+                        error={dataTimestamp === null}
                     />
                 </Grid>
 

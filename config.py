@@ -15,7 +15,8 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JSON_SORT_KEYS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_recycle": 3600
+        "pool_recycle": 3600,
+        "pool_size": 10
     }
 
 

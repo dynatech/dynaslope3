@@ -129,8 +129,8 @@ def process_totally_invalid_sites(totally_invalid_sites_list,
             generated_alert["ts"], "%Y-%m-%d %H:%M:%S")
         is_release_time = check_if_routine_extended_release_time(ts)
 
-        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                            site_code, extended))
+        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                            == site_code, extended))
         if is_in_extended_alerts:
             if is_release_time:
                 general_status = "extended"
@@ -289,10 +289,15 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
                     trigger_list_arr.append(trig_dict)
 
         # THIS IS THE BACKEND to_extend_validity.
+        try:
+            has_nd_rx_trigger = alert_entry["has_nd_rx_trigger"]
+        except:
+            has_nd_rx_trigger = False
+
         has_unresolved_moms = bool(
             formatted_alerts_for_ewi["unresolved_moms_list"])
         to_extend_validity = True if (
-            not alert_entry["has_ground_data"] or has_unresolved_moms) else False
+            not alert_entry["has_ground_data"] or has_unresolved_moms or has_nd_rx_trigger) else False
 
         try:
             saved_event_triggers = alert_entry["saved_event_triggers"]
@@ -456,6 +461,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             general_status = "onset"
 
             saved_event_triggers = []
+            has_nd_rx_trigger = False
 
             # If already existing in database, i.e. is released
             if site_db_alert:
@@ -466,11 +472,12 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 # saved_event_triggers = get_saved_event_triggers(
                 #     site_db_alert["event"]["event_id"])
                 saved_event_triggers = site_db_alert["latest_event_triggers"]
+                current_trigger_alerts = site_w_alert["current_trigger_alerts"]
 
                 for event_trigger in site_w_alert["event_triggers"]:
                     saved_trigger = next(filter(
-                        lambda x: x["internal_sym"]["internal_sym_id"]
-                        == event_trigger["internal_sym_id"],
+                        lambda x: x["internal_sym"]["internal_sym_id"] ==
+                        event_trigger["internal_sym_id"],
                         saved_event_triggers), None)
 
                     is_trigger_new = False
@@ -479,6 +486,17 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                             < datetime.strptime(
                                 event_trigger["ts_updated"], "%Y-%m-%d %H:%M:%S"):
                             is_trigger_new = True
+
+                        # Check if current released trigger is in
+                        # current trigger alert and is nd or rx
+                        cta_trigger = next(filter(
+                            lambda x: x["type"] == event_trigger["trigger_type"],
+                            current_trigger_alerts), None)
+                        if cta_trigger:
+                            cta_alert_level = cta_trigger["details"]["alert_level"]
+                            has_nd_rx_trigger = cta_alert_level < 0
+                            print(
+                                "trigger_type", event_trigger["trigger_type"], "to_extend", has_nd_rx_trigger)
                     else:
                         is_trigger_new = True
 
@@ -517,7 +535,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     "trigger_list_str": trigger_list_str,
                     "is_release_time": is_release_time,
                     "release_schedule": str(release_start_range),
-                    "saved_event_triggers": saved_event_triggers
+                    "saved_event_triggers": saved_event_triggers,
+                    "has_nd_rx_trigger": has_nd_rx_trigger
                 }
 
                 formatted_alert_entry = format_alerts_for_ewi_insert(
@@ -544,10 +563,10 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             not_a0_db_alerts_list = list(filter(
                 lambda x: x["public_alert_symbol"]["alert_level"] != 0, merged_db_alerts_list_copy))
 
-            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                              site_code, not_a0_db_alerts_list))
-            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                                site_code, extended))
+            is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                              == site_code, not_a0_db_alerts_list))
+            is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                                == site_code, extended))
 
             is_release_time = True
             site_wo_alert["alert_level"] = 0

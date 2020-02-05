@@ -566,7 +566,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     next_release_dt = dt + timedelta(hours=release_interval_hours)
     routine_extended_release_time = less_30_dt.time()
     if routine_extended_release_time <= run_ts.time() < next_release_dt.time():
-        routine = get_unreleased_routine_sites(less_30_dt, only_site_code=True)
+        routine = get_unreleased_routine_sites(less_30_dt, only_site_code=False)
 
     db_alerts = {
         "latest": latest,
@@ -626,25 +626,36 @@ def get_unreleased_routine_sites(data_timestamp, only_site_code=True):
 
     released_sites = []
     unreleased_sites = []
-    for site_code in routine_sites:
+    for site_detail in routine_sites:
+        temp = None
+        if only_site_code:
+            temp = site_detail
+            site_code = site_detail
+        else:
+            site_code = site_detail.site_code
+            temp = {
+                "site_id": site_detail.site_id,
+                "site_code": site_code
+            }
+
         # This is with the assumption that you are using data_timestamp
         site_release = get_monitoring_releases_by_data_ts(site_code, data_timestamp)
-
         if site_release:
-            f_data_ts = datetime.strftime(site_release.data_ts, "%Y-%m-%d %H:%M:%S")
-            f_rel_time = time.strftime(site_release.release_time, "%H:%M:%S")
-            temp = {
-                "event_id": site_release.event_alert.event_id,
-                "event_alert_id": site_release.event_alert_id,
-                "release_id": site_release.release_id,
-                "site_code": site_code,
-                "site_id": site_release.event_alert.event.site_id,
-                "data_ts": f_data_ts,
-                "release_time": f_rel_time
-            }
+            if not only_site_code:
+                f_data_ts = datetime.strftime(site_release.data_ts, "%Y-%m-%d %H:%M:%S")
+                f_rel_time = time.strftime(site_release.release_time, "%H:%M:%S")
+                temp = {
+                    "event_id": site_release.event_alert.event_id,
+                    "event_alert_id": site_release.event_alert_id,
+                    "release_id": site_release.release_id,
+                    "site_code": site_code,
+                    "site_id": site_release.event_alert.event.site_id,
+                    "data_ts": f_data_ts,
+                    "release_time": f_rel_time
+                }
             released_sites.append(temp)
         else:
-            unreleased_sites.append(site_code)
+            unreleased_sites.append(temp)
 
     output = {
         "released_sites": released_sites,
