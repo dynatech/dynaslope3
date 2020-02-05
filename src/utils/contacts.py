@@ -76,11 +76,9 @@ def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None, only_ew
 
     # default is to get only active mobile numbers
     if only_active_mobile_numbers:
-        status = 1
-    else:
-        status = 0
+        base_query = base_query.filter(UserMobiles.status == 1)
 
-    mobile_numbers = base_query.filter(UserMobiles.status == status).all()
+    mobile_numbers = base_query.all()
 
     if return_schema:
         mobile_numbers = UserMobilesSchema(many=True).dump(mobile_numbers).data
@@ -508,6 +506,7 @@ def ewi_recipient_migration():
     result = UserEwiStatus.query.options(DB.raiseload("*")) \
         .filter(UserEwiStatus.status == 1).with_entities(
             UserEwiStatus.users_id).distinct().all()
+
     for row in result:
         user_id = row.users_id
         check_user = Users.query.options(DB.raiseload(
