@@ -540,7 +540,7 @@ function MonitoringTables (props) {
     const [chosenReleaseDetail, setChosenReleaseDetail] = useState({});
     const [isOpenBulletinModal, setIsOpenBulletinModal] = useState(false);
     const { reporter_id_ct, setReporterIdCt, setCTFullName } = React.useContext(CTContext);
-    const [routine_site_id_list, setRoutineSiteIDList] = useState({});
+    const [routine_sites_list, setRoutineSitesList] = useState({});
     
     const handleExpansion = panel => (event, isExpanded) => {
         setExpanded(isExpanded ? panel : false);
@@ -557,9 +557,9 @@ function MonitoringTables (props) {
         });
     };
 
-    const routineSmsHandler = site_id_list => temp => {
+    const routineSmsHandler = released_sites => () => {
         getRoutineEWIMessage({}, data => {
-            setRoutineSiteIDList(site_id_list);
+            setRoutineSitesList(released_sites);
             setEWIMessage(data);
             toggleSendRoutineEWI();
         });
@@ -791,7 +791,7 @@ function MonitoringTables (props) {
                 modalStateHandler={toggleSendRoutineEWI} 
                 modalState={isShowingSendRoutineEWI}
                 textboxValue={ewi_message}
-                siteList={routine_site_id_list}
+                siteList={routine_sites_list}
             />
         </div>
     );
