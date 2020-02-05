@@ -117,7 +117,7 @@ def communication_background_task():
                 elif update_source == "blocked_numbers":
                     if inbox_index > -1:
                         del MESSAGES["inbox"][inbox_index]
-                elif update_source == "inbox_tag":
+                elif update_source == "inbox_tag" or update_source == "outbox_tag":
                     if inbox_index > -1:
                         msgs = get_latest_messages(mobile_id)
                         msgs_schema = get_messages_schema_dict(msgs)
