@@ -459,7 +459,7 @@ def get_formatted_shift_narratives(shift_narratives):
     narrative_string = "<strong>NARRATIVES:</strong><br />"
     for narrative in shift_narratives:
         narrative_string = narrative_string + \
-            str(narrative.timestamp) + " - " + \
+            str(narrative.timestamp.strftime("%B %d, %Y  %I:%M %p")) + " - " + \
             str(narrative.narrative) + " <br/>"
 
     return narrative_string
