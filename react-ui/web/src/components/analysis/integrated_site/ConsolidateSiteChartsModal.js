@@ -138,7 +138,7 @@ function ConsolidatedSiteChartsModal (props) {
                                 value="surficial"
                                 control={<Checkbox
                                     color="primary"
-                                    onClick={set_cboxes("subsurface")}
+                                    onClick={set_cboxes("surficial")}
                                     checked={chart_cboxes.surficial}
                                 />}
                                 label="Surficial"
