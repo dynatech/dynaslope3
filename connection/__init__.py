@@ -28,6 +28,7 @@ SOCKETIO = SocketIO(async_mode="gevent")
 
 MONITORING_WS_THREAD = None
 COMMUNICATION_WS_THREAD = None
+MISC_WS_THREAD = None
 THREAD_LOCK = Lock()
 
 MEMORY_CLIENT = memory
@@ -52,6 +53,13 @@ def start_ws_bg_task(module, background_task):
                 COMMUNICATION_WS_THREAD = Thread(target=background_task)
                 COMMUNICATION_WS_THREAD.setDaemon(True)
                 COMMUNICATION_WS_THREAD.start()
+    elif module == "misc":
+        global MISC_WS_THREAD
+        with THREAD_LOCK:
+            if MISC_WS_THREAD is None:
+                MISC_WS_THREAD = Thread(target=background_task)
+                MISC_WS_THREAD.setDaemon(True)
+                MISC_WS_THREAD.start()
 
 
 def create_app(config_name, skip_memcache=False, skip_websocket=False):
@@ -91,11 +99,13 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
         main as comms_ws_main,
         communication_background_task
     )
+    from src.websocket.misc_ws import server_time_background_task
 
     if not skip_websocket:
         start_ws_bg_task("monitoring", monitoring_background_task)
         comms_ws_main()  # outside from skip_websocket for now
         start_ws_bg_task("communication", communication_background_task)
+        start_ws_bg_task("misc", server_time_background_task)
 
     #####################################################
     # Import all created blueprint from each controller
