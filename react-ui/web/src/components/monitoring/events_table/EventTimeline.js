@@ -161,7 +161,7 @@ function buildTimelineElements (timelineItems, bulletinHandler, site_code, site_
             const {
                 release_time, data_ts, release_publishers,
                 triggers, is_onset, internal_alert_level,
-                moms_releases, release_id
+                moms_releases, release_id, comments
             } = item_data;
 
             const { release_type } = item;
@@ -260,7 +260,18 @@ function buildTimelineElements (timelineItems, bulletinHandler, site_code, site_
                                 </Fragment>
                             )
                         }
-                        
+                        {
+                            comments !== "" && (
+                                <Fragment>
+                                    <Grid item xs={12}><Divider /></Grid>
+                                    <Grid item xs={12} container justify="space-between">
+                                        <Typography variant="body2" style={{ color: card_color }}>
+                                        Comments: <strong>{comments}</strong>
+                                        </Typography>
+                                    </Grid>
+                                </Fragment>
+                            )
+                        }
                         <Grid item xs={12}><Divider /></Grid>
                         <Grid item xs={12} container justify="space-between" alignItems="center">
                             <Typography variant="body2" style={{ color: card_color }}>
