@@ -73,6 +73,8 @@ def get_bulletin_email_details(release_id):
     bulletin_release_data = get_monitoring_releases(
         release_id=release_id)  # TODO: Load options load_options="ewi_narrative"
     event_alert = bulletin_release_data.event_alert
+    # NOTE: mali ito kasi pag tumaas na ang alert, iba na yung na yung magiging first_data_ts
+    # which means gagawa siya ng bagong thread
     first_release = list(
         sorted(event_alert.releases, key=lambda x: x.data_ts))[0]
     event = event_alert.event
@@ -107,7 +109,7 @@ def get_bulletin_email_details(release_id):
         file_time = round_to_nearest_release_time(data_ts, 4)
         body_ts = file_time
 
-    mail_body = prepare_base_email_body(
+    mail_body += prepare_base_email_body(
         site_address, site_alert_level, body_ts)
 
     # GET THE SUBJECT NOW
