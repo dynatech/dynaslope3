@@ -162,16 +162,6 @@ function Header (props) {
                         SOON
                     </Typography>
                 </MenuItem>
-                <MenuItem disabled onClick={handleClose}>
-                    My account
-                    <Typography
-                        component="span"
-                        variant="overline"
-                        style={{ paddingLeft: 4 }}
-                    >
-                        SOON
-                    </Typography>
-                </MenuItem>
                 <MenuItem onClick={onClickLogout}>Logout</MenuItem>
             </Menu>
         </div>

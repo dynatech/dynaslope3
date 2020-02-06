@@ -67,7 +67,7 @@ function CheckboxesGroup (props) {
                                             control={
                                                 <Checkbox
                                                     checked={status}
-                                                    onChange={changeHandler(value, setTriggersState)}
+                                                    onChange={changeHandler(value)}
                                                     value={value}
                                                     className={classes.checkboxes}
                                                     disabled={disabled}
