@@ -423,7 +423,7 @@ def process_no_data_triggers(trigger_list_str):
     if trigger_list_str:  # check if not None
         for match in re.findall(r"ND|.0", trigger_list_str):
             trigger_symbol = retrieve_data_from_memcache("internal_alert_symbols", {
-                "alert_symbol": match}, retrieve_one=True, retrieve_attr="trigger_symbol")
+                "alert_symbol": match.upper()}, retrieve_one=True, retrieve_attr="trigger_symbol")
             trigger_source = trigger_symbol["trigger_hierarchy"]["trigger_source"]
             trigger_source = "manifestation" if trigger_source == "moms" else trigger_source
             sources.add(trigger_source)
