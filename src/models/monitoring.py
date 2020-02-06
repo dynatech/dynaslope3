@@ -586,7 +586,7 @@ class EndOfShiftAnalysis(UserMixin, DB.Model):
     __table_args__ = {"schema": "ewi_db"}
 
     event_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_events.event_id"), nullable=False)
+        "ewi_db.monitoring_events.event_id"), primary_key=True, nullable=False)
     shift_start = DB.Column(DB.DateTime, primary_key=True, nullable=False)
     analysis = DB.Column(DB.String(1500))
 
