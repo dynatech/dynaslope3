@@ -244,13 +244,18 @@ def wrap_get_site_alert_details():
     var_checker("event_triggers: site_details", event_triggers, True)
 
     trigger_sources = []
+    alert_level = 0
     for temp in event_triggers:
         a = retrieve_data_from_memcache("internal_alert_symbols", {
             "internal_sym_id": temp[0]}, retrieve_one=True)
         source = a["trigger_symbol"]["trigger_hierarchy"]["trigger_source"]
+        event_alert_level = a["trigger_symbol"]["alert_level"]
+        if event_alert_level >= alert_level:
+            alert_level = event_alert_level
+            
         trigger_sources.append({
             "trigger_source": source,
-            "alert_level": 0
+            "alert_level": 0 #default
         })
 
     internal_alert_level = public_alert_level
@@ -258,6 +263,7 @@ def wrap_get_site_alert_details():
         internal_alert_level = f"{public_alert_level}-{trigger_list}"
 
     return jsonify({
+        "alert_level": alert_level,
         "internal_alert_level": internal_alert_level,
         "public_alert_level": public_alert_level,
         "trigger_list_str": trigger_list,
