@@ -740,7 +740,6 @@ def get_current_trigger_alert_conditions(release_op_triggers_list, surficial_mom
     for th in th_map:
         # Only entertain trigger sources who needs checking of data presence
         if th["data_presence"] != 0:
-
             # NOTE: LOUIE Handle data presence of routine (moms, surficial) (1 day)
             # If current TH is not found on rel triggers, trigger source is ND.
             source_id = th["source_id"]
@@ -942,9 +941,9 @@ def extract_positive_triggers_list(op_triggers_list):
 
 def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interval_hours, highest_public_alert):
     """
-    Get all operational triggers released within the four-hour window 
+    Get all operational triggers released within the four-hour window
     (when on heightened alert) or 1-day window (on alert 0, 12 MN onwards) or as defined
-    on dynamic variables, before release with exception for 
+    on dynamic variables, before release with exception for
     subsurface and rainfall triggers
     """
 
@@ -954,19 +953,24 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interva
     if highest_public_alert == 0:
         ts_compare = datetime.combine(query_ts_end.date(), time(0, 0))
     else:
-        ts_compare = round_to_nearest_release_time(query_ts_end, interval) - timedelta(hours=interval)
+        # added 30 minutes to timedelta to include data received after 3/7/11:30
+        ts_compare = round_to_nearest_release_time(query_ts_end, interval) \
+            - timedelta(hours=interval, minutes=30)
 
     release_op_triggers = op_triggers_query.filter(
-        ot.ts_updated >= ts_compare).distinct().all()
+        ot.ts_updated > ts_compare).distinct().all()
 
     on_run_triggers_list = retrieve_data_from_memcache(
-        "trigger_hierarchies", {"data_presence": 1}, retrieve_one=False, retrieve_attr="source_id")
+        "trigger_hierarchies", {"data_presence": 1},
+        retrieve_one=False, retrieve_attr="source_id")
 
     # Remove subsurface and rainfall triggers less than the actual query_ts_end
-    # Data presence for subsurface and rainfall is limited to the current runtime only (not within release interval hours)
+    # Data presence for subsurface and rainfall is limited to the 
+    # current runtime only (not within release interval hours)
     release_op_triggers_list = []
     for release_op_trig in release_op_triggers:
-        if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_list and release_op_trig.ts_updated < query_ts_end):
+        if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_list \
+            and release_op_trig.ts_updated < query_ts_end):
             release_op_triggers_list.append(release_op_trig)
 
     return release_op_triggers_list
@@ -978,7 +982,7 @@ def get_operational_triggers_within_monitoring_period(s_op_triggers_query, monit
     trigger from start of monitoring to end
 
     IMPORTANT: operational_triggers that has no data (alert_level = -1) is
-    not returned to standardize data presence identification (i.e. If no 
+    not returned to standardize data presence identification (i.e. If no
     table entry for a specific time interval, trigger is considered as
     no data.)
 
@@ -1144,6 +1148,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         has_positive_moms_trigger = False
         if highest_moms_alert > 0:
             has_positive_moms_trigger = True
+
+        print(site_moms_alerts_list, highest_moms_alert)
 
         unreleased_moms_list = []
         unresolved_moms_list = []
