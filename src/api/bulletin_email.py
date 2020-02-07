@@ -127,7 +127,7 @@ def get_bulletin_email_details(release_id):
     # GET THE RECIPIENTS NOW
     if APP_CONFIG["is_live_mode"]:
         recipients.extend(APP_CONFIG["director_and_head_emails"])
-        if is_onset:
+        if is_onset and p_a_level > 0:
             recipients.extend(APP_CONFIG["dynaslope_groups"])
     else:
         # NOTE to front-end. CHECK if TEST SERVER by using typeof object.
