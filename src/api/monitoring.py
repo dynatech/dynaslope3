@@ -255,7 +255,8 @@ def wrap_get_site_alert_details():
             
         trigger_sources.append({
             "trigger_source": source,
-            "alert_level": 0 #default
+            "alert_level": 0, #default
+            "internal_sym": a
         })
 
     internal_alert_level = public_alert_level
@@ -402,6 +403,7 @@ def create_release_details():
     """
 
     json_data = request.get_json()
+
     internal_alert_level = ""
     public_alert_level = ""
 
@@ -409,16 +411,20 @@ def create_release_details():
     current = json_data["current_trigger_list"]
     # latest is array
     latest = json_data["latest_trigger_list"]
+    has_no_ground_data = json_data["has_no_ground_data"]
 
     current = list(
-        sorted(current, key=lambda x: x["internal_sym"]["trigger_symbol"]["alert_level"], reverse=True))
+        sorted(current, key=lambda x: x["internal_sym"]["trigger_symbol"]["alert_level"],
+        reverse=True))
 
     counted_triggers_list = []
     trigger_source_list = []
 
+    highest_alert_from_latest = 0
     sorted_latest = list(
         sorted(latest, key=lambda x: x["alert_level"], reverse=True))
-    highest_alert_from_latest = sorted_latest[0]["alert_level"]
+    if sorted_latest:
+        highest_alert_from_latest = sorted_latest[0]["alert_level"]
 
     highest_alert_from_current = 0
     for row in current:
@@ -508,17 +514,32 @@ def create_release_details():
     sorted_by_hierarchy = list(
         sorted(counted_triggers_list, key=lambda x: x["hierarchy_id"]))
 
+    print(counted_triggers_list)
+
     trigger_list_final = ""
     for unique_trigger in sorted_by_hierarchy:
         trigger_list_final = trigger_list_final + unique_trigger["symbol"]
+
+    if has_no_ground_data:
+        nd_trig_hie = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": "internal"})
+        nd_internal_sym = retrieve_data_from_memcache(
+            "operational_trigger_symbols", {
+                "alert_level": -1,
+                "source_id": nd_trig_hie["source_id"]
+            }, retrieve_attr="internal_alert_symbol")
+        nd_symbol = nd_internal_sym["alert_symbol"]
+        trigger_list_final = f"{nd_symbol}-{trigger_list_final}"
 
     internal_alert_level = build_internal_alert_level(
         public_alert_level=public_alert_level,
         trigger_list=trigger_list_final
     )
 
-    public_alert_symbol = retrieve_data_from_memcache("public_alert_symbols", {
-        "alert_level": public_alert_level},
+    public_alert_symbol = retrieve_data_from_memcache(
+        "public_alert_symbols", {
+            "alert_level": public_alert_level
+        },
         retrieve_attr="alert_symbol")
 
     return jsonify({
@@ -529,7 +550,6 @@ def create_release_details():
     })
 
 
-# # def insert_ewi_release(release_details, publisher_details, trigger_details):
 def insert_ewi_release(monitoring_instance_details, release_details, publisher_details, trigger_list_arr=None, non_triggering_moms=None):
     """
     Initiates the monitoring_release write to db plus it's corresponding details.

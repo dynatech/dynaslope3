@@ -591,6 +591,7 @@ function AlertReleaseFormModal (props) {
         setGeneralData({ ...initial_general_data });
         setEwiPayload({});
         setAlert0(false);
+        setHasNoGroundData(false);
     };
 
     return (
@@ -631,7 +632,7 @@ function AlertReleaseFormModal (props) {
                                 {/* <Typography className={classes.instructions}>All steps completed</Typography> */}
                                 {/* <Button onClick={handleReset}>Reset</Button> */}
                                 <Button onClick={handleClose} color="primary">
-                                        Okay
+                                    Okay
                                 </Button>
                             </div>
                         ) : (
@@ -643,10 +644,10 @@ function AlertReleaseFormModal (props) {
                                 </Grid>
                                 <Grid item xs align="right">
                                     <Button onClick={handleClose} color="primary">
-                                            Cancel
+                                        Cancel
                                     </Button>
                                     <Button disabled={activeStep === 0} onClick={handleBack} className={classes.backButton}>
-                                            Back
+                                        Back
                                     </Button>
                                     <Button variant="contained" color="primary" onClick={handleNext} disabled={isNextBtnDisabled}>
                                         {activeStep === steps.length - 1 ? "Submit" : "Next"}
