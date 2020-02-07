@@ -842,8 +842,9 @@ def get_moms_and_surficial_window_ts(highest_public_alert, query_ts_end):
 
     if highest_public_alert > 0:
         window_ts = round_to_nearest_release_time(
-            # four hours in current
-            query_ts_end) - timedelta(hours=RELEASE_INTERVAL_HOURS) 
+            # RELEASE_INTERVAL_HOURS is four hours in current
+            # added 30 minutes on timedelta to include data received after 3/7/11:30
+            query_ts_end) - timedelta(hours=RELEASE_INTERVAL_HOURS, minutes=30)
     else:
         window_ts = datetime.combine(query_ts_end.date(), time(0, 0))
     return window_ts
