@@ -921,7 +921,8 @@ class DataPresenceRainGaugesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of DataPresenceRainGauges class
     """
-
+    last_data = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_updated = fields.DateTime("%Y-%m-%d %H:%M:%S")
     rain_gauge = fields.Nested(
         RainfallGaugesSchema, exclude=("data_presence",))
 

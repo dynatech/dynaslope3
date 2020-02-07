@@ -177,7 +177,7 @@ function TriggersInputForm (props) {
     const { 
         classes, triggersState, setTriggersState,
         setModalTitle, hasNoGroundData, setHasNoGroundData,
-        triggersReleased
+        triggersReleased, alert_level, setAlert0, isAlert0
     } = props;
 
     const {
@@ -189,9 +189,25 @@ function TriggersInputForm (props) {
     useEffect(() => {
         setModalTitle("Add triggers if not yet included in this release.");
     }, []);
-
+    
     return (
         <Fragment>
+            {
+                alert_level !== 0 && (
+                    <Grid item xs={12} className={isAlert0 ? classes.groupGridContainer : ""}>
+                        <FormControl component="fieldset" className={classes.formControl}>
+                            <FormLabel component="legend" className={classes.formLabel}>
+                                <span style={{ color: "#f50057" }}>Lower to Alert 0</span>
+                                <Switch
+                                    checked={isAlert0}
+                                    onChange={event => setAlert0(event.target.checked)}
+                                    value="has_no_ground_data"
+                                />
+                            </FormLabel>
+                        </FormControl>
+                    </Grid>
+                )
+            }
             {
                 !subs_switch_state && !surf_switch_state && !moms_switch_state && (
                     <Grid item xs={12} className={hasNoGroundData ? classes.groupGridContainer : ""}>
@@ -208,47 +224,52 @@ function TriggersInputForm (props) {
                     </Grid>
                 )
             }
+            {
+                isAlert0 === false && (
+                    <Fragment>
+                        <Grid item xs={12}>
+                            <Typography variant="h6" color="secondary">Ground-Related Triggers</Typography>
+                        </Grid>
+                        <SubsurfaceTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                            triggersReleased={triggersReleased}
+                        />
+                        <SurficialTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                            triggersReleased={triggersReleased}
+                        />
 
-            <Grid item xs={12}>
-                <Typography variant="h6" color="secondary">Ground-Related Triggers</Typography>
-            </Grid>
+                        <MomsTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                        />
 
-            <SubsurfaceTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-                triggersReleased={triggersReleased}
-            />
+                        <Grid item xs={12} style={{ paddingTop: 20 }}>
+                            <Typography variant="h6" color="secondary">Secondary Triggers</Typography>
+                        </Grid>
 
-            <SurficialTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-                triggersReleased={triggersReleased}
-            />
+                        <RainfallTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                            triggersReleased={triggersReleased}
+                        />
 
-            <MomsTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-            />
+                        <EarthquakeTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                        />
 
-            <Grid item xs={12} style={{ paddingTop: 20 }}>
-                <Typography variant="h6" color="secondary">Secondary Triggers</Typography>
-            </Grid>
+                        <OnDemandTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                        />
+                    </Fragment>
+                )
+            }
 
-            <RainfallTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-                triggersReleased={triggersReleased}
-            />
-
-            <EarthquakeTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-            />
-
-            <OnDemandTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-            />
+            
         </Fragment>
     );
 }
@@ -392,7 +413,9 @@ function AlertReleaseForm (comp_props) {
         setGeneralData, setInternalAlertLevel,
         internalAlertLevel, // setTriggerList,
         setPublicAlertLevel, isUpdatingRelease,
-        currentTriggersStatus, dBSavedTriggers
+        currentTriggersStatus, dBSavedTriggers,
+        siteCurrentAlertLevel, setSiteCurrentAlertLevel,
+        isAlert0, setAlert0
     } = comp_props;
     const classes = useStyles();
     const props = { classes, ...comp_props };
@@ -403,6 +426,7 @@ function AlertReleaseForm (comp_props) {
     const { ct_full_name: ctFullName } = React.useContext(CTContext);
 
     const [triggersReleased, setTriggersReleased] = useState([...currentTriggersStatus]);
+    // const [site_current_alert_level, setSiteCurrentAlertLevel] = useState(0);
 
     const changeState = (key, value) => {
         if (key === "siteId") {
@@ -415,14 +439,17 @@ function AlertReleaseForm (comp_props) {
                 //     ...generalData,
                 //     site_code
                 // });
+                console.log(ret);
                 const {
-                    internal_alert_level, public_alert_level, trigger_list_str,
-                    trigger_sources
+                    internal_alert_level, public_alert_level,
+                    trigger_list_str, trigger_sources,
+                    alert_level
                 } = ret;
                 setTriggersReleased(trigger_sources);
                 // setTriggerList(trigger_list_str);
                 setPublicAlertLevel(public_alert_level);
                 setInternalAlertLevel(internal_alert_level);
+                setSiteCurrentAlertLevel(alert_level);
             });
         } else {
             setGeneralData({ ...generalData, [key]: value });
@@ -455,7 +482,11 @@ function AlertReleaseForm (comp_props) {
                     changeState={changeState}
                 />;
             case 1:
-                return <TriggersInputForm {...props} triggersReleased={triggersReleased} />;
+                return <TriggersInputForm 
+                    {...props}
+                    triggersReleased={triggersReleased}
+                    alert_level={siteCurrentAlertLevel}
+                />;
             case 2:
                 return <SummaryForm {...props}
                     mtFullName={mtFullName}

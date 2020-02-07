@@ -204,6 +204,8 @@ function AlertReleaseFormModal (props) {
 
     const [hasNoGroundData, setHasNoGroundData] = useState(false);
     const [isUpdatingRelease, setIsUpdatingRelease] = useState(false);
+    const [site_current_alert_level, setSiteCurrentAlertLevel] = useState(0);
+    const [is_alert_0, setAlert0] = useState(false);
 
     const [triggers, setTriggers] = useReducer(alertTriggersReducer, { ...initial_triggers_data });
     // const [currentTriggerList, setCurrentTriggerList] = useReducer(alertTriggersReducer, { ...initial_triggers_data });
@@ -581,6 +583,7 @@ function AlertReleaseFormModal (props) {
         setChosenCandidateAlert(null);
         setGeneralData({ ...initial_general_data });
         setEwiPayload({});
+        setAlert0(false);
     };
 
     return (
@@ -608,6 +611,10 @@ function AlertReleaseFormModal (props) {
                         hasNoGroundData={hasNoGroundData} setHasNoGroundData={setHasNoGroundData}
                         currentTriggersStatus={current_triggers_status}
                         dBSavedTriggers={db_saved_triggers}
+                        siteCurrentAlertLevel={site_current_alert_level}
+                        setSiteCurrentAlertLevel={setSiteCurrentAlertLevel}
+                        isAlert0={is_alert_0}
+                        setAlert0={setAlert0}
                     />
                 </DialogContent>
                 <DialogActions>
