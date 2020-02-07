@@ -413,7 +413,7 @@ function AlertReleaseForm (comp_props) {
         setGeneralData, setInternalAlertLevel,
         internalAlertLevel, // setTriggerList,
         setPublicAlertLevel, isUpdatingRelease,
-        currentTriggersStatus, dBSavedTriggers,
+        currentTriggersStatus, setDBSavedTriggers,
         siteCurrentAlertLevel, setSiteCurrentAlertLevel,
         isAlert0, setAlert0
     } = comp_props;
@@ -433,12 +433,6 @@ function AlertReleaseForm (comp_props) {
             // get the current Internal alert level of site
             const input = { site_id: value.value };
             getLatestSiteRelease(input, ret => {
-                // const site = sites.find(o => o.site_id === value);
-                // const { site_code } = site;
-                // setGeneralData({
-                //     ...generalData,
-                //     site_code
-                // });
                 console.log(ret);
                 const {
                     internal_alert_level, public_alert_level,
@@ -446,7 +440,7 @@ function AlertReleaseForm (comp_props) {
                     alert_level
                 } = ret;
                 setTriggersReleased(trigger_sources);
-                // setTriggerList(trigger_list_str);
+                setDBSavedTriggers(trigger_sources);
                 setPublicAlertLevel(public_alert_level);
                 setInternalAlertLevel(internal_alert_level);
                 setSiteCurrentAlertLevel(alert_level);

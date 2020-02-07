@@ -24,6 +24,14 @@ const useStyles = makeStyles(theme => ({
     }
 }));
 
+
+function checkIfToExtendValidity (has_no_ground_data) {
+    // NOTE: add other extension parameters
+    // like g0, s0, etc.
+
+    return has_no_ground_data;
+}
+
 function prepareTriggers (triggers) {
     const trigger_list = [];
 
@@ -202,7 +210,7 @@ function AlertReleaseFormModal (props) {
     };
     const [generalData, setGeneralData] = useState({ ...initial_general_data });
 
-    const [hasNoGroundData, setHasNoGroundData] = useState(false);
+    const [has_no_ground_data, setHasNoGroundData] = useState(false);
     const [isUpdatingRelease, setIsUpdatingRelease] = useState(false);
     const [site_current_alert_level, setSiteCurrentAlertLevel] = useState(0);
     const [is_alert_0, setAlert0] = useState(false);
@@ -421,7 +429,6 @@ function AlertReleaseFormModal (props) {
     // THIS USEEFFECT CHECKS WHETHER NEXT BUTTON SHOULD BE ENABLED
     // CHECK IF INPUT HAS ENTRIES
     const [is_recomputing, setIsRecomputing] = useState(false);
-
     useEffect(() => {
         setIsNextBtnDisabled(true);
 
@@ -525,14 +532,13 @@ function AlertReleaseFormModal (props) {
             });
         } else if (activeStep === 1) {
             latest_trigger_list = prepareTriggers(triggers);
-            // current_trigger_list = prepareTriggers(currentTriggerList);
             current_trigger_list = db_saved_triggers;
 
             // PREPARE THE INTERNAL ALERT from BACKEND
-            const json_data = { latest_trigger_list, current_trigger_list };
+            const json_data = { latest_trigger_list, current_trigger_list, has_no_ground_data };
             console.log("JSON data for alert generation recomputation", json_data);
 
-            if (latest_trigger_list.length > 0) {
+            if (latest_trigger_list.length > 0 || has_no_ground_data) {
                 setIsRecomputing(true);
 
                 const final_arr = latest_trigger_list.filter(row => row.alert_level > 0);
@@ -553,7 +559,8 @@ function AlertReleaseFormModal (props) {
                             ...ewiPayload.release_details,
                             trigger_list_str
                         },
-                        trigger_list_arr: final_arr
+                        trigger_list_arr: final_arr,
+                        to_extend_validity: checkIfToExtendValidity(has_no_ground_data)
                     });
 
                     setIsRecomputing(false);
@@ -608,9 +615,9 @@ function AlertReleaseFormModal (props) {
                         // setTriggerList={setCurrentTriggerList}
                         setPublicAlertLevel={setPublicAlertLevel}
                         setModalTitle={setModalTitle} ewiPayload={ewiPayload}
-                        hasNoGroundData={hasNoGroundData} setHasNoGroundData={setHasNoGroundData}
+                        hasNoGroundData={has_no_ground_data} setHasNoGroundData={setHasNoGroundData}
                         currentTriggersStatus={current_triggers_status}
-                        dBSavedTriggers={db_saved_triggers}
+                        setDBSavedTriggers={setDBSavedTriggers}
                         siteCurrentAlertLevel={site_current_alert_level}
                         setSiteCurrentAlertLevel={setSiteCurrentAlertLevel}
                         isAlert0={is_alert_0}
