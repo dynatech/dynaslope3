@@ -1149,8 +1149,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         if highest_moms_alert > 0:
             has_positive_moms_trigger = True
 
-        print(site_moms_alerts_list, highest_moms_alert)
-
         unreleased_moms_list = []
         unresolved_moms_list = []
         unreleased_moms_list, unresolved_moms_list = \
