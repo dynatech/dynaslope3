@@ -950,7 +950,7 @@ def get_public_alert(site_id):
     result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(
         me).filter(me.site_id == site_id).first()
     if result:
-        result = result.public_alert_symbol.alert_symbol
+        result = result.public_alert_symbol
 
     return result
 

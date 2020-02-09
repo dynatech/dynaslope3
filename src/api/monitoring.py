@@ -234,8 +234,10 @@ def wrap_get_internal_alert_symbols():
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_site_alert_details", methods=["GET"])
 def wrap_get_site_alert_details():
+    # NOTE: Revisit this code, it doesn't make sense
     site_id = request.args.get('site_id', default=1, type=int)
-    public_alert_level = get_public_alert(site_id)
+    public_alert = get_public_alert(site_id)
+    public_alert_symbol = public_alert.alert_symbol
 
     latest_release = get_latest_release_per_site(site_id)
     trigger_list = latest_release.trigger_list
@@ -259,14 +261,15 @@ def wrap_get_site_alert_details():
             "internal_sym": a
         })
 
-    internal_alert_level = public_alert_level
-    if public_alert_level != "A0":
-        internal_alert_level = f"{public_alert_level}-{trigger_list}"
+    internal_alert_level = public_alert_symbol
+    if public_alert_symbol != "A0":
+        internal_alert_level = f"{public_alert_symbol}-{trigger_list}"
 
     return jsonify({
         "alert_level": alert_level,
         "internal_alert_level": internal_alert_level,
-        "public_alert_level": public_alert_level,
+        "public_alert_level": alert_level,
+        "public_alert_symbol": public_alert_symbol,
         "trigger_list_str": trigger_list,
         "trigger_sources": trigger_sources
     })
