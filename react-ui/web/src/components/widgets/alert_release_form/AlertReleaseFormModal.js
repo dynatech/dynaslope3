@@ -24,12 +24,22 @@ const useStyles = makeStyles(theme => ({
     }
 }));
 
-
-function checkIfToExtendValidity (has_no_ground_data) {
+function checkIfToExtendValidity (has_no_ground_data, triggers) {
     // NOTE: add other extension parameters
     // like g0, s0, etc.
+    const { rainfall } = triggers;
+    let is_rx_or_rain_nd = false;
 
-    return has_no_ground_data;
+    if (rainfall.switchState) {
+        // don't be confused na array ang triggers ng rainfall
+        // by design lang ito for easy implem of reducer pero
+        // isa lang talaga laman nito if switchState is true
+        rainfall.triggers.forEach(row => {
+            if (row.alert_level < 0) is_rx_or_rain_nd = true;
+        });
+    }
+
+    return has_no_ground_data || is_rx_or_rain_nd;
 }
 
 function prepareTriggers (triggers) {
@@ -562,7 +572,7 @@ function AlertReleaseFormModal (props) {
                         trigger_list_str
                     },
                     trigger_list_arr: final_arr,
-                    to_extend_validity: checkIfToExtendValidity(has_no_ground_data)
+                    to_extend_validity: checkIfToExtendValidity(has_no_ground_data, triggers)
                 });
 
                 setIsRecomputing(false);
@@ -617,6 +627,7 @@ function AlertReleaseFormModal (props) {
                         setDBSavedTriggers={setDBSavedTriggers}
                         siteCurrentAlertLevel={site_current_alert_level}
                         setSiteCurrentAlertLevel={setSiteCurrentAlertLevel}
+                        isAlert0={is_alert_0} setAlert0={setAlert0}
                     />
                 </DialogContent>
                 <DialogActions>
