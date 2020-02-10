@@ -62,6 +62,7 @@ def communication_background_task():
                 is_first_run, ground_meas_run)
 
             updates = get_sms_user_updates()
+            updates_len = len(updates)
             update_process_start = datetime.now()
 
             for row in updates:
@@ -136,9 +137,9 @@ def communication_background_task():
 
             update_process_end = datetime.now()
 
-            if updates:
+            if updates_len > 0:
                 print("")
-                print(f"COMMS UPDATE PROCESS LOOP (WS) {len(updates)} updates",
+                print(f"COMMS UPDATE PROCESS LOOP (WS) {updates_len} updates",
                       (update_process_end - update_process_start).total_seconds())
                 print("")
         except Exception as err:
