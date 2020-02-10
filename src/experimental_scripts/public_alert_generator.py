@@ -884,7 +884,7 @@ def extract_unique_positive_triggers(positive_triggers_list):
             trig_symbol.alert_level
         )
 
-        if not (tuple_entry in unique_pos_trig_set):
+        if not tuple_entry in unique_pos_trig_set:
             unique_pos_trig_set.add(tuple_entry)
             unique_positive_triggers_list.append(item)
 
@@ -901,17 +901,25 @@ def get_invalid_triggers(positive_triggers_list):
     """
 
     invalids_dict = {}
+    not_invalid_set = set()
     for item in positive_triggers_list:
         alert_status_entry = item.alert_status
+        status_validity = alert_status_entry.alert_status
 
-        if alert_status_entry and alert_status_entry.alert_status == -1:
+        if alert_status_entry:
             trigger_sym_id = item.trigger_sym_id
-            if trigger_sym_id in invalids_dict:
-                # Check for latest invalidation entries
-                if invalids_dict[trigger_sym_id].ts_ack < alert_status_entry.ts_ack:
+            # Check for latest invalidation entries
+            if status_validity == -1:
+                if trigger_sym_id in invalids_dict:
+                    pass
+                    # if alert_status_entry.ts_ack > invalids_dict[trigger_sym_id].ts_ack:
+                    #     invalids_dict[trigger_sym_id] = alert_status_entry
+                elif trigger_sym_id not in not_invalid_set:
                     invalids_dict[trigger_sym_id] = alert_status_entry
             else:
-                invalids_dict[trigger_sym_id] = alert_status_entry
+                not_invalid_set.add(trigger_sym_id)
+                if trigger_sym_id in invalids_dict:
+                    del invalids_dict[trigger_sym_id]
 
     return invalids_dict
 
