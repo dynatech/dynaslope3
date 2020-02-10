@@ -585,3 +585,16 @@ def save_eos_data_analysis():
     response = write_eos_data_analysis_to_db(event_id, shift_ts, analysis)
 
     return response["message"]
+
+@END_OF_SHIFT_BLUEPRINT.route("/end_of_shift/get_narrative/<shift_start>/<event_id>", methods=["GET"])
+def get_narrative_per_event_id(shift_start, event_id=None):
+    """
+    Get narrative per event id
+    """
+    start_ts = datetime.strptime(shift_start, "%Y-%m-%d %H:%M:%S")
+    end_ts = start_ts + timedelta(hours=13)
+
+    raw_narratives = get_eos_narratives(start_ts, end_ts, event_id)
+    narratives = get_formatted_shift_narratives(raw_narratives)
+
+    return jsonify(narratives)

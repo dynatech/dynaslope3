@@ -135,6 +135,7 @@ function EndOfShiftGenerator (props) {
         }
     };
 
+
     return (
         <Fragment>
             <MuiPickersUtilsProvider utils={MomentUtils}>

@@ -163,3 +163,20 @@ export function getBulletinEmailDetails (release_id, callback) {
 
     makeGETAxiosRequest(api_link, callback);
 }
+
+export function getNarrative (input, callback) {
+    const {
+        shift_ts, event_id
+    } = input;
+
+    const api_link = `${host}/api/end_of_shift/get_narrative/${shift_ts}/${event_id}`;
+    
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch(error => {
+        console.log(error);
+    });    
+}

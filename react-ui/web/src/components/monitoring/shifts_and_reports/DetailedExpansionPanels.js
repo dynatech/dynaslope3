@@ -18,7 +18,7 @@ import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
 import { react_host } from "../../../config";
 import { useInterval } from "../../../UtilityFunctions";
-import { saveEOSDataAnalysis, getEOSDetails, downloadEosCharts } from "../ajax";
+import { saveEOSDataAnalysis, getEOSDetails, downloadEosCharts, getNarrative } from "../ajax";
 import { sendEOSEmail } from "../../communication/mailbox/ajax";
 
 const useStyles = makeStyles(theme => ({
@@ -85,10 +85,12 @@ function prepareMailBody (mail_contents) {
     return `${shiftSummary}<br/><br/>${dataAnalysis}<br/><br/>${shiftNarratives}`;
 }
 
+
 function DetailedExpansionPanel (props) {
     const {
         data: eos_report, shiftStartTs, currentUser
     } = props;
+    console.log(shiftStartTs);
     const classes = useStyles();
     const {
         site_code, eos_head, shift_start_info,
@@ -101,9 +103,8 @@ function DetailedExpansionPanel (props) {
     const [dataAnalysis, setDataAnalysis] = useState(data_analysis);
     const [shiftNarratives, setShiftNarratives] = useState(narratives);
     const [clear_interval, setClearInterval] = useState(false);
-
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-
+    const [narrative_editor, setNarrativeEditor] = useState(null);
     const default_cbox = {
         rainfall: false, surficial: false
     };
@@ -293,6 +294,19 @@ function DetailedExpansionPanel (props) {
         });
     };
 
+
+
+    const refreshNarratives = () => {
+        const temp = {
+            shift_ts: shiftStartTs,
+            event_id
+        };
+        getNarrative(temp, site_narrative => {
+            setShiftNarratives(site_narrative);
+            narrative_editor.setData(site_narrative);
+        });
+    };
+
     const config = {
         toolbar: ["heading", "|", "bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "|", "undo", "redo"]
     };
@@ -305,12 +319,9 @@ function DetailedExpansionPanel (props) {
         { 
             label: "Data Analysis", value: dataAnalysis,
             key: "data_analysis", updateFn: setDataAnalysis
-        },
-        {
-            label: "Shift Narratives", value: shiftNarratives,
-            key: "shift_narratives", updateFn: setShiftNarratives
         }
     ];
+
 
     return (
         <ExpansionPanel>
@@ -368,7 +379,29 @@ function DetailedExpansionPanel (props) {
                                 </Grid>
                             </Fragment>
                         ))
+
                     }
+                    <Grid item xs={12}>
+                        <Typography variant="body1">
+                            <strong>Shift Narratives</strong>
+                        </Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                        <CKEditor
+                            editor={ClassicEditor}
+                            config={config}
+                            onInit={editor => {
+                                editor.setData(shiftNarratives);
+                                console.log(editor);
+                                setNarrativeEditor(editor);
+                                // editor.destroy();
+                            }}
+                            onChange={(event, editor) => {
+                                const data = editor.getData();
+                                setShiftNarratives(data);
+                            }}
+                        /> 
+                    </Grid>
                 </Grid>
             </ExpansionPanelDetails>
             <Divider />
@@ -380,7 +413,11 @@ function DetailedExpansionPanel (props) {
                 >
                     Download Charts
                 </Button>
-                <Button size="small" startIcon={<Refresh />}>
+                <Button
+                    size="small"
+                    startIcon={<Refresh />}
+                    onClick={refreshNarratives}
+                >
                     Refresh
                 </Button>
                 <Button

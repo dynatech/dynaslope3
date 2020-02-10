@@ -261,7 +261,7 @@ function buildTimelineElements (timelineItems, bulletinHandler, site_code, site_
                             )
                         }
                         {
-                            comments !== "" && (
+                            comments !== "" && comments !== null && (
                                 <Fragment>
                                     <Grid item xs={12}><Divider /></Grid>
                                     <Grid item xs={12} container justify="space-between">
