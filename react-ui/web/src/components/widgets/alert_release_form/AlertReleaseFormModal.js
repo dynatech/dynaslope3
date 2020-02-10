@@ -206,7 +206,8 @@ function AlertReleaseFormModal (props) {
         reporterIdMt: reporter_id_mt,
         comments: "",
         publicAlertSymbol: "",
-        publicAlertLevel: ""
+        publicAlertLevel: "",
+        triggerListStr: ""
     };
     const [generalData, setGeneralData] = useState({ ...initial_general_data });
 
@@ -216,7 +217,6 @@ function AlertReleaseFormModal (props) {
     const [is_alert_0, setAlert0] = useState(false);
 
     const [triggers, setTriggers] = useReducer(alertTriggersReducer, { ...initial_triggers_data });
-    // const [currentTriggerList, setCurrentTriggerList] = useReducer(alertTriggersReducer, { ...initial_triggers_data });
     const [db_saved_triggers, setDBSavedTriggers] = useState([]);
 
     const [current_triggers_status, setCurrentTriggersStatus] = useState([]);
@@ -535,42 +535,38 @@ function AlertReleaseFormModal (props) {
             current_trigger_list = db_saved_triggers;
 
             // PREPARE THE INTERNAL ALERT from BACKEND
-            const json_data = { latest_trigger_list, current_trigger_list, has_no_ground_data };
+            const json_data = {
+                latest_trigger_list, current_trigger_list, 
+                has_no_ground_data, is_alert_0
+            };
             console.log("JSON data for alert generation recomputation", json_data);
 
-            if (latest_trigger_list.length > 0 || has_no_ground_data) {
-                setIsRecomputing(true);
+            setIsRecomputing(true);
 
-                const final_arr = latest_trigger_list.filter(row => row.alert_level > 0);
+            const final_arr = latest_trigger_list.filter(row => row.alert_level > 0);
                 
-                createReleaseDetails(json_data, ret => {
-                    const {
-                        internal_alert_level, public_alert_level,
-                        trigger_list_str, public_alert_symbol
-                    } = ret;
-                    setPublicAlertLevel(public_alert_level);
-                    setInternalAlertLevel(internal_alert_level);
-                    setEwiPayload({
-                        ...ewiPayload,
-                        public_alert_level,
-                        public_alert_symbol,
-                        internal_alert_level,
-                        release_details: {
-                            ...ewiPayload.release_details,
-                            trigger_list_str
-                        },
-                        trigger_list_arr: final_arr,
-                        to_extend_validity: checkIfToExtendValidity(has_no_ground_data)
-                    });
-
-                    setIsRecomputing(false);
-                });
-            } else {
+            createReleaseDetails(json_data, ret => {
+                const {
+                    internal_alert_level, public_alert_level,
+                    trigger_list_str, public_alert_symbol
+                } = ret;
+                setPublicAlertLevel(public_alert_level);
+                setInternalAlertLevel(internal_alert_level);
                 setEwiPayload({
                     ...ewiPayload,
-                    trigger_list_arr: []
+                    public_alert_level,
+                    public_alert_symbol,
+                    internal_alert_level,
+                    release_details: {
+                        ...ewiPayload.release_details,
+                        trigger_list_str
+                    },
+                    trigger_list_arr: final_arr,
+                    to_extend_validity: checkIfToExtendValidity(has_no_ground_data)
                 });
-            }
+
+                setIsRecomputing(false);
+            });
         } else if (activeStep === (steps.length - 1)) {
             setModalTitle("");
             temp = ewiPayload;
@@ -612,8 +608,8 @@ function AlertReleaseFormModal (props) {
                         isUpdatingRelease={isUpdatingRelease}
                         triggersState={triggers} setTriggersState={setTriggers}
                         generalData={generalData} setGeneralData={setGeneralData}
-                        internalAlertLevel={internalAlertLevel} setInternalAlertLevel={setInternalAlertLevel}
-                        // setTriggerList={setCurrentTriggerList}
+                        internalAlertLevel={internalAlertLevel}
+                        setInternalAlertLevel={setInternalAlertLevel}
                         setPublicAlertLevel={setPublicAlertLevel}
                         setModalTitle={setModalTitle} ewiPayload={ewiPayload}
                         hasNoGroundData={has_no_ground_data} setHasNoGroundData={setHasNoGroundData}
@@ -621,16 +617,12 @@ function AlertReleaseFormModal (props) {
                         setDBSavedTriggers={setDBSavedTriggers}
                         siteCurrentAlertLevel={site_current_alert_level}
                         setSiteCurrentAlertLevel={setSiteCurrentAlertLevel}
-                        isAlert0={is_alert_0}
-                        setAlert0={setAlert0}
                     />
                 </DialogContent>
                 <DialogActions>
                     {
                         activeStep === steps.length ? (
                             <div>
-                                {/* <Typography className={classes.instructions}>All steps completed</Typography> */}
-                                {/* <Button onClick={handleReset}>Reset</Button> */}
                                 <Button onClick={handleClose} color="primary">
                                     Okay
                                 </Button>
@@ -639,7 +631,7 @@ function AlertReleaseFormModal (props) {
                             <Grid container spacing={1} justify="space-between">
                                 <Grid item xs style={{ display: chosenCandidateAlert === null ? "flex" : "none" }}>
                                     <Button onClick={setIsOpenRoutineModal} className={classes.backButton}>
-                                            Release Routine
+                                        Release Routine
                                     </Button>
                                 </Grid>
                                 <Grid item xs align="right">

@@ -29,8 +29,6 @@ import OnDemandTriggerGroup from "./OnDemandTriggerGroup";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 
-import { sites } from "../../../store";
-
 import { getLatestSiteRelease } from "./ajax";
 import { getCurrentUser } from "../../sessions/auth";
 import { CTContext } from "../../monitoring/dashboard/CTContext";
@@ -154,7 +152,6 @@ function GeneralInputForm (props) {
                     changeHandler={handleEventChange("reporterIdMt")}
                     value={reporterIdMt}
                     disabled
-                    // returnFullNameCallback={ret => setMTFullName(ret)}
                 />
             </Grid>
 
@@ -166,7 +163,6 @@ function GeneralInputForm (props) {
                     changeHandler={handleEventChange("reporterIdCt")}
                     value={reporterIdCt}
                     disabled
-                    // returnFullNameCallback={ret => setCTFullName(ret)}
                 />
             </Grid>
         </Fragment>
@@ -414,8 +410,7 @@ function AlertReleaseForm (comp_props) {
         internalAlertLevel, // setTriggerList,
         setPublicAlertLevel, isUpdatingRelease,
         currentTriggersStatus, setDBSavedTriggers,
-        siteCurrentAlertLevel, setSiteCurrentAlertLevel,
-        isAlert0, setAlert0
+        siteCurrentAlertLevel, setSiteCurrentAlertLevel
     } = comp_props;
     const classes = useStyles();
     const props = { classes, ...comp_props };
@@ -426,7 +421,6 @@ function AlertReleaseForm (comp_props) {
     const { ct_full_name: ctFullName } = React.useContext(CTContext);
 
     const [triggersReleased, setTriggersReleased] = useState([...currentTriggersStatus]);
-    // const [site_current_alert_level, setSiteCurrentAlertLevel] = useState(0);
 
     const changeState = (key, value) => {
         if (key === "siteId") {
@@ -436,8 +430,7 @@ function AlertReleaseForm (comp_props) {
                 console.log(ret);
                 const {
                     internal_alert_level, public_alert_level,
-                    trigger_list_str, trigger_sources,
-                    alert_level
+                    trigger_sources, alert_level
                 } = ret;
                 setTriggersReleased(trigger_sources);
                 setDBSavedTriggers(trigger_sources);
@@ -460,7 +453,6 @@ function AlertReleaseForm (comp_props) {
     };
 
     const getSteps = () => {
-        // return ["What are the release details?", "List the triggers.", "Add Comments and Description", "Review Release Summary"];
         return ["What are the release details?", "List the triggers.", "Add Comments and Review Release Summary"];
     };
     const steps = getSteps();

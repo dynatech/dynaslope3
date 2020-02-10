@@ -243,7 +243,6 @@ def wrap_get_site_alert_details():
     trigger_list = latest_release.trigger_list
     event_id = latest_release.event_alert.event.event_id
     event_triggers = get_saved_event_triggers(event_id)
-    var_checker("event_triggers: site_details", event_triggers, True)
 
     trigger_sources = []
     alert_level = 0
@@ -415,6 +414,7 @@ def create_release_details():
     # latest is array
     latest = json_data["latest_trigger_list"]
     has_no_ground_data = json_data["has_no_ground_data"]
+    is_alert_0 = json_data["is_alert_0"]
 
     current = list(
         sorted(current, key=lambda x: x["internal_sym"]["trigger_symbol"]["alert_level"],
@@ -430,35 +430,36 @@ def create_release_details():
         highest_alert_from_latest = sorted_latest[0]["alert_level"]
 
     highest_alert_from_current = 0
-    for row in current:
-        internal_sym = row["internal_sym"]
-        internal_alert_symbol = internal_sym["alert_symbol"]
-        trigger_symbol = internal_sym["trigger_symbol"]
-        alert_level = trigger_symbol["alert_level"]
-        source_id = trigger_symbol["source_id"]
-        trigger_hierarchy = trigger_symbol["trigger_hierarchy"]
-        trigger_source = trigger_hierarchy["trigger_source"]
-        hierarchy_id = trigger_hierarchy["hierarchy_id"]
+    if not is_alert_0:
+        for row in current:
+            internal_sym = row["internal_sym"]
+            internal_alert_symbol = internal_sym["alert_symbol"]
+            trigger_symbol = internal_sym["trigger_symbol"]
+            alert_level = trigger_symbol["alert_level"]
+            source_id = trigger_symbol["source_id"]
+            trigger_hierarchy = trigger_symbol["trigger_hierarchy"]
+            trigger_source = trigger_hierarchy["trigger_source"]
+            hierarchy_id = trigger_hierarchy["hierarchy_id"]
 
-        if highest_alert_from_current < alert_level:
-            highest_alert_from_current = alert_level
+            if highest_alert_from_current < alert_level:
+                highest_alert_from_current = alert_level
 
-        temp = {
-            "alert_level": alert_level,
-            "source": trigger_source,
-            "symbol": internal_alert_symbol,
-            "hierarchy_id": hierarchy_id
-        }
+            temp = {
+                "alert_level": alert_level,
+                "source": trigger_source,
+                "symbol": internal_alert_symbol,
+                "hierarchy_id": hierarchy_id
+            }
 
-        if source_id not in trigger_source_list:
-            trigger_source_list.append(source_id)
-            counted_triggers_list.append(temp)
-        else:
-            index = next((index for (index, d) in enumerate(
-                counted_triggers_list) if d["source"] == trigger_source))
-            if temp["alert_level"] > counted_triggers_list[index]["alert_level"]:
-                counted_triggers_list[index]["alert_level"] = temp["alert_level"]
-                counted_triggers_list[index]["symbol"] = temp["symbol"]
+            if source_id not in trigger_source_list:
+                trigger_source_list.append(source_id)
+                counted_triggers_list.append(temp)
+            else:
+                index = next((index for (index, d) in enumerate(
+                    counted_triggers_list) if d["source"] == trigger_source))
+                if temp["alert_level"] > counted_triggers_list[index]["alert_level"]:
+                    counted_triggers_list[index]["alert_level"] = temp["alert_level"]
+                    counted_triggers_list[index]["symbol"] = temp["symbol"]
 
     public_alert_level = highest_alert_from_latest if \
         highest_alert_from_latest > highest_alert_from_current \
@@ -517,8 +518,6 @@ def create_release_details():
     sorted_by_hierarchy = list(
         sorted(counted_triggers_list, key=lambda x: x["hierarchy_id"]))
 
-    print(counted_triggers_list)
-
     trigger_list_final = ""
     for unique_trigger in sorted_by_hierarchy:
         trigger_list_final = trigger_list_final + unique_trigger["symbol"]
@@ -532,7 +531,10 @@ def create_release_details():
                 "source_id": nd_trig_hie["source_id"]
             }, retrieve_attr="internal_alert_symbol")
         nd_symbol = nd_internal_sym["alert_symbol"]
-        trigger_list_final = f"{nd_symbol}-{trigger_list_final}"
+
+        trigger_list_final = nd_symbol
+        if public_alert_level != 0:
+            trigger_list_final += f"-{trigger_list_final}"
 
     internal_alert_level = build_internal_alert_level(
         public_alert_level=public_alert_level,
@@ -569,8 +571,9 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
 
         is_within_one_hour = ((datetime.now() - latest_release_data_ts).seconds / 3600) <= 1
         is_higher_alert = public_alert_level > latest_pa_level
+        is_same_data_ts = latest_release_data_ts == release_details["data_ts"]
 
-        if is_within_one_hour and not is_higher_alert:
+        if is_within_one_hour and is_same_data_ts and not is_higher_alert:
             # UPDATE STUFF
             var_checker("Inserting release", release_details, True)
             new_release = update_monitoring_release_on_db(
@@ -754,12 +757,14 @@ def insert_ewi(internal_json=None):
                 if site_monitoring_instance:
                     site_status = site_monitoring_instance.status
 
-                    is_site_under_extended = site_status == 2 and site_monitoring_instance.validity < datetime_data_ts
+                    is_site_under_extended = site_status == 2 and \
+                        site_monitoring_instance.validity < datetime_data_ts
 
                     if site_status == 1 and public_alert_level > 0:
                         # ONSET: Current status is routine and inserting an A1+ alert.
                         entry_type = 2
-                    # if current site is under extended and a new higher alert is released (hence new monitoring event)
+                    # if current site is under extended and a new higher alert
+                    # is released (hence new monitoring event)
                     elif is_site_under_extended and public_alert_level > 0:
                         entry_type = 2
                         site_status = 1  # this is necessary to make new monitoring event
@@ -925,28 +930,6 @@ def insert_ewi(internal_json=None):
                         }
                         event_alert_id = write_monitoring_event_alert_to_db(
                             event_alert_details)
-                    # elif release_time >= (validity + timedelta(hours=alert_extension_limit)):
-                    #     # elif release_time >= (validity + timedelta(days=3)):
-                    #     print("---END OF EXTENDED")
-                    #     print("---LOWER FINALLY")
-
-                    #     end_current_monitoring_event_alert(
-                    #         current_event_alert_id, datetime_data_ts)
-                    #     new_instance_details = {
-                    #         "event_details": {
-                    #             "site_id": site_id,
-                    #             "event_start": datetime_data_ts,
-                    #             "validity": None,
-                    #             "status": 1
-                    #         },
-                    #         "event_alert_details": {
-                    #             "pub_sym_id": pub_sym_id,
-                    #             "ts_start": datetime_data_ts
-                    #         }
-                    #     }
-                    #     instance_details = start_new_monitoring_instance(
-                    #         new_instance_details)
-                    #     event_alert_id = instance_details["event_alert_id"]
 
             # Append the chosen event_alert_id
             release_details["event_alert_id"] = event_alert_id
@@ -969,7 +952,8 @@ def insert_ewi(internal_json=None):
             print("Invalid!")
         else:
             raise Exception(
-                "CUSTOM: Entry type specified in form is undefined. Check entry type options in the back-end.")
+                f"CUSTOM: Entry type specified in form is undefined. "
+                f"Check entry type options in the back-end.")
 
         print(f"{get_system_time()} | Insert EWI Successful!")
         return_data = "success"
