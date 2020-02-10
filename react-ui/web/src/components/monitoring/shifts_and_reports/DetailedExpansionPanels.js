@@ -90,7 +90,6 @@ function DetailedExpansionPanel (props) {
     const {
         data: eos_report, shiftStartTs, currentUser
     } = props;
-    console.log(shiftStartTs);
     const classes = useStyles();
     const {
         site_code, eos_head, shift_start_info,
@@ -294,8 +293,6 @@ function DetailedExpansionPanel (props) {
         });
     };
 
-
-
     const refreshNarratives = () => {
         const temp = {
             shift_ts: shiftStartTs,
@@ -321,7 +318,6 @@ function DetailedExpansionPanel (props) {
             key: "data_analysis", updateFn: setDataAnalysis
         }
     ];
-
 
     return (
         <ExpansionPanel>
