@@ -904,9 +904,9 @@ def get_invalid_triggers(positive_triggers_list):
     not_invalid_set = set()
     for item in positive_triggers_list:
         alert_status_entry = item.alert_status
-        status_validity = alert_status_entry.alert_status
 
         if alert_status_entry:
+            status_validity = alert_status_entry.alert_status
             trigger_sym_id = item.trigger_sym_id
             # Check for latest invalidation entries
             if status_validity == -1:
