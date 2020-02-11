@@ -319,7 +319,8 @@ function prepareOptions (input, data, width, setEditModal, setChosenPointCopy, i
     let min_x = start_date;
     if (is_end_of_shift && data.length > 0) {
         const { data: meas_row } = data[0];
-        min_x = moment(meas_row[0].x);
+        if (meas_row.length > 0) min_x = moment(meas_row[0].x);
+            
     }
 
     return {
