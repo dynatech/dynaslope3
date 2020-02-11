@@ -532,9 +532,11 @@ def create_release_details():
             }, retrieve_attr="internal_alert_symbol")
         nd_symbol = nd_internal_sym["alert_symbol"]
 
-        trigger_list_final = nd_symbol
+        temp_final = nd_symbol
         if public_alert_level != 0:
-            trigger_list_final += f"-{trigger_list_final}"
+            temp_final += f"-{trigger_list_final}"
+        
+        trigger_list_final = temp_final
 
     internal_alert_level = build_internal_alert_level(
         public_alert_level=public_alert_level,
