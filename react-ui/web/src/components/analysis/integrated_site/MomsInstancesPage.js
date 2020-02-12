@@ -7,6 +7,7 @@ import {
 import MUIDataTable from "mui-datatables";
 import moment from "moment";
 
+import { common } from "@material-ui/core/colors";
 import { getMOMsInstances } from "../ajax";
 
 import BackToMainButton from "./BackToMainButton";
@@ -26,12 +27,12 @@ function buildName (name) {
 function processMomsReportData (moms) {
     const data = moms.map(report => {
         const {
-            observance_ts, narrative: n_details, reporter, validator
+            observance_ts, narrative: n_details, reporter, validator, op_trigger, remarks
         } = report;
         const { narrative, timestamp: report_ts } = n_details;
         return [
             formatTimestamp(observance_ts), narrative, formatTimestamp(report_ts),
-            buildName(reporter), buildName(validator)
+            buildName(reporter), buildName(validator), op_trigger, remarks
         ];
     });
 
@@ -153,7 +154,7 @@ function MomsInstancesPage (props) {
 
 function MomsReportsTable (props) {
     const { moms_data, match: { params: { instance_id } } } = props;
-    const columns = ["Observance Timestamp", "Narrative", "Report Timestamp", "Reporter", "Validator"];
+    const columns = ["Observance Timestamp", "Narrative", "Report Timestamp", "Reporter", "Validator", "Alert Level", "Remarks"];
 
     const instance_row = moms_data.find(row => row.instance_id === parseInt(instance_id, 10));
     let moms = [];
@@ -164,9 +165,8 @@ function MomsReportsTable (props) {
         const { feature: { feature_type }, feature_name } = instance_row;
         subtitle = `${feature_type} - ${feature_name}`;
     }
-
+   
     const moms_reports = processMomsReportData(moms);
-
     return (
         <Paper style={{ marginTop: 16 }}>
             <MUIDataTable

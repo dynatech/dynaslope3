@@ -538,8 +538,10 @@ def get_ground_measurement_reminder_recipients(current_datetime):
         site = row["event"]["site"]
         site_id = site["site_id"]
         site_code = site["site_code"]
+        alert_level = row["public_alert_symbol"]["alert_level"]
         if site_id not in event_site_ids:
-            event_site_ids.append(site_id)
+            if alert_level != 0:
+                event_site_ids.append(site_id)
 
         if site_code in routine_site_codes:
             routine_site_codes.remove(site_code)
@@ -616,7 +618,7 @@ def remove_sites_with_ground_meas(
         routine_site_ids = []
         extended_site_ids = []
 
-        # reminder_time = five_thirty_reminder_time
+        reminder_time = five_thirty_reminder_time
 
         if five_thirty_reminder_time < current_datetime < five_thirty_end_time:
             reminder_time = five_thirty_reminder_time
