@@ -41,7 +41,7 @@ def wrap_get_rainfall_plot_data(site_code, end_ts=None):
     if end_ts is None:
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
 
-    plot_data = get_rainfall_plot_data(site_code, ts, days=7)
+    plot_data = get_rainfall_plot_data(site_code, ts, days=3)
     return jsonify(plot_data)
 
 
@@ -60,7 +60,8 @@ def get_all_site_rainfall_datas():
         site_codes_list.sort()
         site_codes_string = ','.join(site_codes_list)
 
-        rainfall_summary = get_all_site_rainfall_data(site_codes_string=site_codes_string, end_ts=date_time)
+        rainfall_summary = get_all_site_rainfall_data(
+            site_codes_string=site_codes_string, end_ts=date_time)
         rain_data = process_rainfall_information_message(
             rainfall_summary, site_details, as_of, is_express)
         status = True
