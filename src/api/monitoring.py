@@ -91,7 +91,7 @@ def wrap_get_unreleased_routine_sites(data_timestamp):
         f_timestamp = datetime.strptime(data_timestamp, "%Y-%m-%d %H:%M:%S")
 
     output = get_unreleased_routine_sites(f_timestamp, only_site_code=False)
-                
+
     return json.dumps(output)
 
 
@@ -253,10 +253,10 @@ def wrap_get_site_alert_details():
         event_alert_level = a["trigger_symbol"]["alert_level"]
         if event_alert_level >= alert_level:
             alert_level = event_alert_level
-            
+
         trigger_sources.append({
             "trigger_source": source,
-            "alert_level": 0, #default
+            "alert_level": 0,  # default
             "internal_sym": a
         })
 
@@ -418,7 +418,7 @@ def create_release_details():
 
     current = list(
         sorted(current, key=lambda x: x["internal_sym"]["trigger_symbol"]["alert_level"],
-        reverse=True))
+               reverse=True))
 
     counted_triggers_list = []
     trigger_source_list = []
@@ -535,7 +535,7 @@ def create_release_details():
         temp_final = nd_symbol
         if public_alert_level != 0:
             temp_final += f"-{trigger_list_final}"
-        
+
         trigger_list_final = temp_final
 
     internal_alert_level = build_internal_alert_level(
@@ -571,7 +571,8 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
         latest_release_data_ts = latest_release.data_ts
         latest_pa_level = latest_release.event_alert.public_alert_symbol.alert_level
 
-        is_within_one_hour = ((datetime.now() - latest_release_data_ts).seconds / 3600) <= 1
+        is_within_one_hour = (
+            (datetime.now() - latest_release_data_ts).seconds / 3600) <= 1
         is_higher_alert = public_alert_level > latest_pa_level
         is_same_data_ts = latest_release_data_ts == release_details["data_ts"]
 
@@ -816,15 +817,15 @@ def insert_ewi(internal_json=None):
                                 "publisher_mt_id": json_data["reporter_id_mt"],
                                 "publisher_ct_id": json_data["reporter_id_ct"]
                             }
-
-                            var_checker("release_details", 5, True)
+                            # var_checker("release_details", 5, True)
 
                             instance_details = {
                                 "site_id": routine_site_id,
                                 "event_id": site_monitoring_instance.event_id,
                                 "public_alert_level": public_alert_level
                             }
-                            var_checker("instance_details", instance_details, True)
+                            # var_checker("instance_details",
+                            #             instance_details, True)
 
                             site_non_trig_moms = {}
                             try:
@@ -901,7 +902,7 @@ def insert_ewi(internal_json=None):
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
                         and current_event_alert.event.validity \
-                            == datetime_data_ts + timedelta(minutes=30):
+                == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
@@ -1224,11 +1225,12 @@ def get_event_timeline_data(event_id):
         timeline_entries = []
 
         for event_alert in event_collection_data.event_alerts:
-            if event_collection_data.status == 1: # If routine, update validity to end_ts of event_alert
+            if event_collection_data.status == 1:  # If routine, update validity to end_ts of event_alert
                 ts_end = event_alert.ts_end
                 str_validity = None
                 if ts_end:
-                    str_validity = datetime.strftime(ts_end, "%Y-%m-%d %H:%M:%S")
+                    str_validity = datetime.strftime(
+                        ts_end, "%Y-%m-%d %H:%M:%S")
                 event_details.update({"validity": str_validity})
 
             for release in event_alert.releases:
@@ -1238,7 +1240,7 @@ def get_event_timeline_data(event_id):
 
                 release_ts = data_ts + timedelta(minutes=30)
                 release_type = "routine"
-                
+
                 if validity:
                     if release_ts < validity:
                         release_type = "latest"
@@ -1261,7 +1263,7 @@ def get_event_timeline_data(event_id):
                 alert_level = event_alert.public_alert_symbol.alert_level
                 ial = build_internal_alert_level(
                     alert_level, release.trigger_list)
-                
+
                 release_data.update({
                     "internal_alert_level": ial,
                     "is_onset": check_if_onset_release(event_alert=event_alert,
