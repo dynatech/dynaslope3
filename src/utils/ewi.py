@@ -131,7 +131,7 @@ def create_ewi_message(release_id=None):
                     reporting_ts, date_only=True)
                 modifier = f"bukas, {reporting_date},"
 
-                day = (updated_data_ts - validity).days
+                day = (updated_data_ts.date() - validity.date()).days
 
                 if day == 0:
                     extended_day = "unang"

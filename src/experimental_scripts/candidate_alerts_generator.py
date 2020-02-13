@@ -495,8 +495,6 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                         if cta_trigger:
                             cta_alert_level = cta_trigger["details"]["alert_level"]
                             has_nd_rx_trigger = cta_alert_level < 0
-                            print(
-                                "trigger_type", event_trigger["trigger_type"], "to_extend", has_nd_rx_trigger)
                     else:
                         is_trigger_new = True
 
