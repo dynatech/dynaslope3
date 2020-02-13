@@ -126,14 +126,14 @@ def communication_background_task():
 
                 query_end = datetime.now()
 
-                delete_sms_user_update(row)
-
                 emit_data("receive_latest_messages")
 
                 print("")
                 print("GET MESSAGE ON MEMCACHE (WS)",
                       (query_end - query_start).total_seconds())
                 print("")
+
+            delete_sms_user_update(updates)
 
             update_process_end = datetime.now()
 
