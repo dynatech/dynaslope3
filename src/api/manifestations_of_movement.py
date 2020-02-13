@@ -76,19 +76,7 @@ def get_latest_alerts():
 @MOMS_BLUEPRINT.route("/manifestations_of_movement/get_moms_instances/<site_code>", methods=["GET"])
 def get_moms_instances(site_code):
     mi = MomsInstances
-    # mm = MonitoringMoms
-
-    # subquery = DB.session.query(mi.instance_id, DB.func.max(
-    #     mm.observance_ts).label("max_ts")).join(mm).join(Sites).filter(Sites.site_code == site_code).group_by(mi.instance_id).subquery("t2")
-
-    # query = DB.session.query(mm, mi).join(mi).join(subquery, DB.and_(
-    #     mm.observance_ts == subquery.c.max_ts, mi.instance_id == subquery.c.instance_id)).all()
-
-    # print("I'm aquery")
-    # print(aquery)
-
     query = mi.query.join(Sites).filter(Sites.site_code == site_code).all()
-
     result = MomsInstancesSchema(many=True, exclude=(
         "moms.moms_releases", )).dump(query).data
 
