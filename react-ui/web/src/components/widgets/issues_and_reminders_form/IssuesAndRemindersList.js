@@ -90,6 +90,7 @@ function IssuesAndReminderCard (props) {
         setToResolve(false);
         setIsOpenIssueReminderModal(true);
         setIsUpdateNeeded(true);
+
     };
     const handleResolve = () => {
         setCardModalOpen(false);
@@ -97,6 +98,10 @@ function IssuesAndReminderCard (props) {
         setIsOpenIssueReminderModal(true);
         setIsUpdateNeeded(true);
     };
+  
+
+  
+    
 
     return (
         <Dialog open={isCardModalOpen} maxWidth="sm">
@@ -225,6 +230,8 @@ function IssuesAndReminderList (props) {
     const [is_card_modal_open, setCardModalOpen] = useState(false);
     const [toResolve, setToResolve] = useState(false);
 
+
+
     useEffect(() => {
         receiveIssuesAndReminders(issues_and_reminders => {
             setHasActiveIssues(false);
@@ -238,6 +245,7 @@ function IssuesAndReminderList (props) {
                 const processed_i_n_r = includeSiteList(issues_and_reminders);
                 final_tile_data = prepareTileData(classes, processed_i_n_r, handleInfoExpand);
                 setHasActiveIssues(true);
+               
             }
 
             setTileData(final_tile_data);
@@ -247,10 +255,16 @@ function IssuesAndReminderList (props) {
     const handleInfoExpand = value => event => {
         setChosenIssueReminder(value);
         setCardModalOpen(true);
+       
+    };
+    const closeModal = () => {
+        setIsOpenIssueReminderModal(false);
     };
 
     return (
+        
         <Fragment>         
+          
             <GridList component="div" cellHeight="auto" className={`${classes.gridList} ${!has_active_issues && classes.hasNoIssues}`}>
                 {tile_data}
             </GridList>
@@ -266,11 +280,12 @@ function IssuesAndReminderList (props) {
             
             <IssuesAndReminderModal
                 isOpen={isOpenIssueReminderModal}
-                setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
-                setIsUpdateNeeded={setIsUpdateNeeded}
                 isUpdateNeeded={isUpdateNeeded}
                 chosenIssueReminder={chosenIssueReminder}
-                toResolve={toResolve}
+                setIsUpdateNeeded={setIsUpdateNeeded}
+                setToResolve={toResolve}
+                closeHandler ={closeModal}
+            
             />
         </Fragment>
     );

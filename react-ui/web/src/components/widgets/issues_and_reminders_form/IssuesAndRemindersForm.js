@@ -67,24 +67,20 @@ function IssuesAndReminderForm (props) {
     } = props;
 
     const {
-        iar_id, site_id_list, detail, ts_expiration,
-        resolution, is_event_entry, is_persistent
-    } = issueReminderData;
-
-    let default_radio_value = "general";
-    if (site_id_list !== null) {
-        if (site_id_list.length > 0) default_radio_value = "site";
-    }
-
+        iar_id, detail, ts_expiration,
+        resolution, is_event_entry, site_id_list
+    } = issueReminderData; 
+    const [default_radio_value, set_default_radio_value] = useState("general");
     const [radio_value, setRadioValue] = useState(default_radio_value);
-    const [is_general_iar, setIsGeneralIar] = useState(radio_value === "general");
+    const [is_general_iar, setIsGeneralIar] = useState(radio_value);
     const [is_event_checked, setIsEventChecked] = useState(false);
     const [is_persistent_checked, setIsPersistentChecked] = useState(false);
 
+    
     useEffect(() => {
         setIsEventChecked(is_event_entry); 
-        setIsPersistentChecked(is_persistent);
-
+        
+        
         if (iar_id !== "" && typeof iar_id !== "undefined") {
             const site_choices = site_id_list.map(site_id => {
                 return sites_option.filter(number => number.value === site_id).pop();
@@ -95,15 +91,32 @@ function IssuesAndReminderForm (props) {
                 site_id_list: site_choices
             });
         }
+        if (site_id_list !== null && typeof site_id_list !== "undefined" ) {
+            if (site_id_list.length > 0) {
+                set_default_radio_value("site");
+                setRadioValue("site");
+                setIsGeneralIar("site");    
+            } 
+            
+        }
+        if (ts_expiration === null) {
+            setIsPersistentChecked(true);
+        }
+        
     }, []);
-
+   
+   
     useEffect(() => {
     }, [issueReminderData]);
 
     const handleRadioChange = event => {
         const { target: { value } } = event;
+      
         setRadioValue(value);
-        setIsGeneralIar(value === "general");
+        setIsGeneralIar(value);
+
+        
+
     };
 
     const handleDateTime = key => value => {
@@ -173,12 +186,17 @@ function IssuesAndReminderForm (props) {
                                     control={<Radio color="primary" />}
                                     label="General issue/reminder"
                                     labelPlacement="end"
+                                    // checked = {is_by_general}
+                               
                                 />
                                 <FormControlLabel
                                     value="site"
                                     control={<Radio color="primary" />}
                                     label="Site-specific issue/reminder"
                                     labelPlacement="end"
+                                    // checked ={is_by_site}
+                                   
+                        
                                 />
                             </RadioGroup>
                         </Grid>
@@ -188,7 +206,7 @@ function IssuesAndReminderForm (props) {
                         </Grid>
 
                         {
-                            !is_general_iar && (
+                            is_general_iar === "site" && (
                                 <Fragment>
                                     <Grid item xs={12}>
                                         <DynaslopeSiteSelectInputForm 
@@ -212,10 +230,7 @@ function IssuesAndReminderForm (props) {
                                             label={
                                                 <div>
                                                 Related to current monitoring event <Tooltip
-                                                        title="Checking this will make the issue/reminder expire at the end of site(s) current monitoring event validity"
-                                                    >
-                                                    <strong>[?]</strong>
-                                                </Tooltip>
+                                                        title="Checking this will make the issue/reminder expire at the end of site(s) current monitoring event validity"><strong>[?]</strong></Tooltip>
                                                 </div>
                                             }
                                             className="primary"
@@ -280,6 +295,8 @@ function IssuesAndReminderForm (props) {
                                 rowsMax={6}
                                 fullWidth
                                 className={classes.textField}
+
+
                             // variant="filled"
                             />
                         </Grid>

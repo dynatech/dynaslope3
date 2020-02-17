@@ -32,22 +32,30 @@ const default_state = {
 function IssuesAndReminderModal (props) {
     const {
         fullScreen, isOpen,
-        setIsOpenIssueReminderModal, setIsUpdateNeeded,
+        closeHandler, setIsUpdateNeeded,
         chosenIssueReminder, isUpdateNeeded, toResolve
     } = props;
     const [issue_reminder_data, setIssueReminderData] = useState({});
-
+    
     useEffect(() => {
-        // if (isOpen && chosenIssueReminder.user_id === "") {
         if (isUpdateNeeded) {
-            setIssueReminderData(chosenIssueReminder);
+            const chosenData = chosenIssueReminder;
+            const get_site_id_list = chosenIssueReminder.postings.map(row => row.site_id);
+            const get_event_id = chosenIssueReminder.postings.map(row => row.event.event_id);
+            chosenData.site_id_list = get_site_id_list;
+            chosenData.is_event_entry = get_event_id;
+            setIssueReminderData(chosenData);
+            console.log(chosenData);
+
         } else {
             setIssueReminderData(default_state);
         }
     }, [isOpen, chosenIssueReminder]);
 
-    const closeHandler = () => setIsOpenIssueReminderModal(false);
-
+    const closeHandlerAction = () => { 
+        setIsUpdateNeeded(false);
+        closeHandler(false); 
+    };
     const handleSubmit = () => {
         const { resolution } = issue_reminder_data;
 
@@ -58,17 +66,16 @@ function IssuesAndReminderModal (props) {
                 ts_resolved: moment().format("YYYY-MM-DD HH:mm:ss"),
                 resolved_by: resolver_user_id
             });
-        }
-        handleIssuesAndReminders(issue_reminder_data, ret => {
-            // closeHandler();
-            // handleReset();
-            // setIsUpdateNeeded(!isUpdateNeeded);
-        });
-        closeHandler();
-        // handleReset();
-        setIsUpdateNeeded(!isUpdateNeeded);        
-    };
+            handleIssuesAndReminders(issue_reminder_data, ret => {
 
+              
+            });
+             
+            closeHandlerAction();     
+        }
+       
+    };
+    
     return (
         <Dialog
             fullWidth
@@ -90,7 +97,7 @@ function IssuesAndReminderModal (props) {
                 />
             </DialogContent>
             <DialogActions>
-                <Button onClick={closeHandler} color="primary">
+                <Button onClick={closeHandlerAction} color="primary">
                         Cancel
                 </Button>
                 <Button color="secondary" onClick={handleSubmit} disabled={false}>

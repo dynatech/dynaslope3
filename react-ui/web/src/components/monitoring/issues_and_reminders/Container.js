@@ -19,6 +19,7 @@ import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
 import IssueReminderModal from "../../widgets/issues_and_reminders_form/IssuesAndReminderModal";
 
+
 const sites_dict = {};
 
 const styles = theme => ({
@@ -54,11 +55,14 @@ const getMuiTheme = createMuiTheme({
 function getManipulationButtons (issue_and_reminder, data_handlers) {
     const { 
         setChosenIssueReminder, setIsOpenIssueReminderModal,
-        setIsOpenDeleteModal } = data_handlers;
+        setIsOpenDeleteModal, setIsUpdateNeeded } = data_handlers;
 
     const handleEdit = value => {
         setChosenIssueReminder(issue_and_reminder);
         setIsOpenIssueReminderModal(true);
+        setIsUpdateNeeded(true);
+
+        // alert(JSON.stringify(issue_and_reminder));
     };
 
     const handleDelete = value => {
@@ -67,6 +71,7 @@ function getManipulationButtons (issue_and_reminder, data_handlers) {
     };
 
     return (
+        
         <span>
             <IconButton tooltip="Edit" style={{ "float": "left" }} onClick={handleEdit}>
                 <Edit style={{ fontSize: 20 }}/>
@@ -77,7 +82,9 @@ function getManipulationButtons (issue_and_reminder, data_handlers) {
                 </IconButton>
             )}
         </span>        
+        
     );
+   
 }
 
 
@@ -86,7 +93,6 @@ function processTableData (data, data_handlers) {
         const expiration = row.ts_expiration === null ? "-" : row.ts_expiration;
         const res_by = row.resolved_by === null ? "-" : row.resolved_by;
         const resolution = row.resolution === null ? "-" : row.resolution;
-
         return {
             ...row,
             // NOTE: PARKING SITE LIST DUE TO NEEDS MULTIPLE VALUES
@@ -120,6 +126,7 @@ function IssuesAndReminders (props) {
 
     const [chosenIssueReminder, setChosenIssueReminder] = useState({});
     const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
+    const [isToResolve, setIsToResolve] = useState();
 
 
     useEffect(() => {
@@ -135,12 +142,13 @@ function IssuesAndReminders (props) {
 
         getIssuesAndReminders(input, ret => {
             const { issues_and_reminders, count: total } = ret;
+            
             const processed = processTableData(
                 issues_and_reminders, 
                 { 
                     setChosenIssueReminder, 
                     setIsOpenIssueReminderModal, isOpenIssueReminderModal,
-                    setIsOpenDeleteModal, isOpenDeleteModal
+                    setIsOpenDeleteModal, isOpenDeleteModal, setIsUpdateNeeded
                 });
             setTableData(processed);
             setCount(total);
@@ -149,18 +157,16 @@ function IssuesAndReminders (props) {
     }, [
         page, rowsPerPage, filters, 
         search_str, isUpdateNeeded, 
-        isOpenDeleteModal, 
-        isOpenIssueReminderModal
+        isOpenDeleteModal, isOpenIssueReminderModal
     ]);
 
     const handleBoolean = (data, bool) => () => {
         // NOTE: there was no need to use the bool for opening a modal or switch
+        
         if (data === "is_issue_reminder_modal_open") {
-            setIsOpenIssueReminderModal(!isOpenIssueReminderModal);
+            setIsOpenIssueReminderModal(bool);
+            setIsUpdateNeeded(bool);
         } 
-        // else if (data === "is_open_delete_modal") {
-        //     setIsOpenDeleteModal(!isOpenDeleteModal);
-        // }
     };
 
     const options = {
@@ -256,17 +262,7 @@ function IssuesAndReminders (props) {
                 filter: false,
             }
         },
-        // {
-        //     name: "site_name",
-        //     label: "Site",
-        //     options: {
-        //         filter: true,
-        //         filterList: typeof filter_list.site_name === "undefined" ? [] : filter_list.site_name,
-        //         filterOptions: {
-        //             names: filter_sites_option
-        //         }
-        //     }
-        // },
+
         {
             name: "detail",
             label: "Details",
@@ -364,18 +360,12 @@ function IssuesAndReminders (props) {
             <IssueReminderModal
                 isOpen={isOpenIssueReminderModal}
                 closeHandler={handleBoolean("is_issue_reminder_modal_open", false)}
-                setIsUpdateNeeded={setIsUpdateNeeded}
                 isUpdateNeeded={isUpdateNeeded}
+                setIsUpdateNeeded = {setIsUpdateNeeded}
                 chosenIssueReminder={chosenIssueReminder}
+                setIsToResolve = {isToResolve}
             />
-
-            {/* <DeleteNarrativeModal
-                isOpen={isOpenDeleteModal}
-                closeHandler={handleBoolean("is_open_delete_modal", false)}
-                chosenIssueReminder={chosenIssueReminder}
-                setIsUpdateNeeded={setIsUpdateNeeded}
-                isUpdateNeeded={isUpdateNeeded}
-            /> */}
+            
         </Fragment>
     );
 }

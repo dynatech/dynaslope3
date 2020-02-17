@@ -178,7 +178,6 @@ function Container (props) {
 
             <AlertReleaseFormModal
                 isOpen={isOpenReleaseModal}
-                closeHandler={handleBoolean("is_open_release_modal", false)}
                 setChosenCandidateAlert={setChosenCandidateAlert}
                 chosenCandidateAlert={chosenCandidateAlert}
                 alertsFromDbData={alertsFromDbData}
