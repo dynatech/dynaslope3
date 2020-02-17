@@ -76,7 +76,6 @@ function IssuesAndReminderForm (props) {
     const [is_event_checked, setIsEventChecked] = useState(false);
     const [is_persistent_checked, setIsPersistentChecked] = useState(false);
 
-    
     useEffect(() => {
         setIsEventChecked(is_event_entry); 
         
@@ -96,8 +95,7 @@ function IssuesAndReminderForm (props) {
                 set_default_radio_value("site");
                 setRadioValue("site");
                 setIsGeneralIar("site");    
-            } 
-            
+            }           
         }
         if (ts_expiration === null) {
             setIsPersistentChecked(true);
@@ -105,18 +103,13 @@ function IssuesAndReminderForm (props) {
         
     }, []);
    
-   
     useEffect(() => {
     }, [issueReminderData]);
 
     const handleRadioChange = event => {
         const { target: { value } } = event;
-      
         setRadioValue(value);
         setIsGeneralIar(value);
-
-        
-
     };
 
     const handleDateTime = key => value => {
@@ -186,7 +179,6 @@ function IssuesAndReminderForm (props) {
                                     control={<Radio color="primary" />}
                                     label="General issue/reminder"
                                     labelPlacement="end"
-                                    // checked = {is_by_general}
                                
                                 />
                                 <FormControlLabel
@@ -194,9 +186,7 @@ function IssuesAndReminderForm (props) {
                                     control={<Radio color="primary" />}
                                     label="Site-specific issue/reminder"
                                     labelPlacement="end"
-                                    // checked ={is_by_site}
-                                   
-                        
+                                          
                                 />
                             </RadioGroup>
                         </Grid>
@@ -295,9 +285,6 @@ function IssuesAndReminderForm (props) {
                                 rowsMax={6}
                                 fullWidth
                                 className={classes.textField}
-
-
-                            // variant="filled"
                             />
                         </Grid>
                     

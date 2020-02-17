@@ -99,10 +99,6 @@ function IssuesAndReminderCard (props) {
         setIsUpdateNeeded(true);
     };
   
-
-  
-    
-
     return (
         <Dialog open={isCardModalOpen} maxWidth="sm">
             <DialogTitle style={{ paddingBottom: 8 }}>
@@ -229,8 +225,6 @@ function IssuesAndReminderList (props) {
     });
     const [is_card_modal_open, setCardModalOpen] = useState(false);
     const [toResolve, setToResolve] = useState(false);
-
-
 
     useEffect(() => {
         receiveIssuesAndReminders(issues_and_reminders => {

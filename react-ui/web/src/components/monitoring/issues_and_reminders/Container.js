@@ -126,8 +126,6 @@ function IssuesAndReminders (props) {
 
     const [chosenIssueReminder, setChosenIssueReminder] = useState({});
     const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
-    const [isToResolve, setIsToResolve] = useState();
-
 
     useEffect(() => {
         setIsLoading(true);
@@ -363,7 +361,6 @@ function IssuesAndReminders (props) {
                 isUpdateNeeded={isUpdateNeeded}
                 setIsUpdateNeeded = {setIsUpdateNeeded}
                 chosenIssueReminder={chosenIssueReminder}
-                setIsToResolve = {isToResolve}
             />
             
         </Fragment>

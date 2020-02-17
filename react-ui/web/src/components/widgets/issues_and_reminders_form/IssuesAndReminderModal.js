@@ -66,11 +66,7 @@ function IssuesAndReminderModal (props) {
                 ts_resolved: moment().format("YYYY-MM-DD HH:mm:ss"),
                 resolved_by: resolver_user_id
             });
-            handleIssuesAndReminders(issue_reminder_data, ret => {
-
-              
-            });
-             
+            handleIssuesAndReminders(issue_reminder_data, ret => {});
             closeHandlerAction();     
         }
        

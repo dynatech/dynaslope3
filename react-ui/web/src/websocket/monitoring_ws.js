@@ -31,6 +31,7 @@ export function subscribeToWebSocket (reconnect_callback) {
 }
 
 export function sendWSMessage (key, data = null) {
+    connectToWebsocket();
     console.log("Payload: { key: data }", key, data);
     const payload = {
         data,
