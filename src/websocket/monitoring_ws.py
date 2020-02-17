@@ -178,8 +178,7 @@ def generate_alerts(site_code=None):
 
     # if not site_code:  # to be removed (for testing only)
     # site_code = ["agb", "umi"]
-    generated_alerts_json = public_alert_generator.main(
-        site_code="lun", is_test=True)
+    generated_alerts_json = public_alert_generator.main(site_code=site_code)
 
     return generated_alerts_json
 
