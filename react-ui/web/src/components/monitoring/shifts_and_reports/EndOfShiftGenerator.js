@@ -8,6 +8,7 @@ import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDatePicker } from "@material-ui/pickers";
 import DetailedExpansionPanels from "./DetailedExpansionPanels";
 import SelectInputForm from "../../reusables/SelectInputForm";
+import SelectSiteModal from "./SelectSiteModal";
 
 import { getEndOfShiftReports } from "../ajax";
 import { getCurrentUser } from "../../sessions/auth";
@@ -74,8 +75,9 @@ function createDateTime ({ label, value, id }, handleDateTime) {
     );
 }
 
+
 // eslint-disable-next-line max-params
-function prepareEOSRequest (start_ts, shift_time, setEosData, setIsLoading) {
+function prepareEOSRequest (start_ts, shift_time, setEosData) {
     const time = shift_time === "am" ? "07:30:00" : "19:30:00"; 
     const moment_start_ts = moment(start_ts).format(`YYYY-MM-DD ${time}`);
     const input = {
@@ -84,7 +86,6 @@ function prepareEOSRequest (start_ts, shift_time, setEosData, setIsLoading) {
 
     getEndOfShiftReports(input, ret => {
         setEosData(ret);
-        setIsLoading(false);
     });
 
     return moment_start_ts;
@@ -119,7 +120,11 @@ function EndOfShiftGenerator (props) {
     const [shift_time, setShiftTime] = useState(dt_hr >= 10 && dt_hr <= 22 ? "am" : "pm");
     const [isLoading, setIsLoading] = useState(false);
     const [eosData, setEosData] = useState(null);
+    const [selectedEosData, setSelectedEosData] = useState(null);
     const [shift_start_ts, setShiftStartTs] = useState(null);
+
+    const [is_modal_open, setModalOpen] = useState(false);
+    const set_modal_fn = bool => () => setModalOpen(bool);
 
     const current_user = getCurrentUser();
 
@@ -128,9 +133,11 @@ function EndOfShiftGenerator (props) {
     };
 
     const handleClick = key => event => {
-        setIsLoading(true);
         if (key === "generate_report") {
-            const ts = prepareEOSRequest(start_ts, shift_time, setEosData, setIsLoading);
+            setModalOpen(false);
+        } else {
+            setModalOpen(true);
+            const ts = prepareEOSRequest(start_ts, shift_time, setEosData);
             setShiftStartTs(ts);
         }
     };
@@ -181,7 +188,7 @@ function EndOfShiftGenerator (props) {
                             color="secondary"
                             size={isWidthDown("sm", width) ? "small" : "medium"}
                             onClick={
-                                handleClick("generate_report")
+                                handleClick("site_list")
                             }
                         >
                             Generate <ArrowForwardIos className={classes.button} />
@@ -192,7 +199,7 @@ function EndOfShiftGenerator (props) {
 
             <div className={classes.expansionPanelsGroup}>
                 {
-                    eosData === null && !isLoading && (
+                    selectedEosData === null && !isLoading && (
                         <EoSRNoData isStart />
                     )
                 }
@@ -203,9 +210,9 @@ function EndOfShiftGenerator (props) {
                     ) : (
                         <Paper>
                             {
-                                eosData !== null && (
-                                    eosData.length > 0 ? (
-                                        eosData.map((row, index) => (
+                                selectedEosData !== null && (
+                                    selectedEosData.length > 0 ? (
+                                        selectedEosData.map((row, index) => (
                                             <DetailedExpansionPanels 
                                                 data={row}
                                                 key={index}
@@ -224,6 +231,14 @@ function EndOfShiftGenerator (props) {
                
             </div>
             
+            <SelectSiteModal
+                isOpen={is_modal_open}
+                closeHandler={set_modal_fn(false)}
+                eosData={eosData}
+                setSelectedEosData={setSelectedEosData}
+                setModalOpen={setModalOpen}
+                setEosData={setEosData}
+            />
         </Fragment>
     );
 }
