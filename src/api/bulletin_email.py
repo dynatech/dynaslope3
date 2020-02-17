@@ -5,6 +5,7 @@ API for handling bulletin email
 from flask import Blueprint, jsonify
 from datetime import datetime, timedelta
 from config import APP_CONFIG
+from instance.config import EMAILS
 from src.utils.emails import get_email_subject
 from src.utils.monitoring import get_monitoring_releases
 from src.utils.sites import build_site_address
@@ -126,15 +127,15 @@ def get_bulletin_email_details(release_id):
 
     # GET THE RECIPIENTS NOW
     if APP_CONFIG["is_live_mode"]:
-        recipients.extend(APP_CONFIG["director_and_head_emails"])
+        recipients.extend(EMAILS["director_and_head_emails"])
         if is_onset and p_a_level > 0:
-            recipients.extend(APP_CONFIG["dynaslope_groups"])
+            recipients.extend(EMAILS["dynaslope_groups"])
     else:
         # NOTE to front-end. CHECK if TEST SERVER by using typeof object.
-        recipients.append(APP_CONFIG["dev_email"])
+        recipients.append(EMAILS["dev_email"])
 
-    var_checker("is_onset", is_onset)
-    var_checker("BULLETIN RECIPIENTS", recipients)
+    # var_checker("is_onset", is_onset)
+    # var_checker("BULLETIN RECIPIENTS", recipients)
 
     # PERPARE THE NARRATIVE
 
@@ -159,7 +160,7 @@ def get_bulletin_email_details(release_id):
             if len_recipients != (index + 1):
                 str_recipients = str_recipients + ", "
 
-    if is_onset:
+    if is_onset and p_a_level != 0:
         file_time = "onset " + file_time
     narrative = f"Sent {file_time} EWI BULLETIN to {str_recipients}"
 

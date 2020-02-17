@@ -158,8 +158,11 @@ def communication_background_task():
 def connect():
     sid = request.sid
     CLIENTS.append(sid)
-    print("Connected user: " + sid)
-    print(f"Current connected clients: {CLIENTS}")
+
+    print("")
+    print("User disconnected:", sid)
+    print(f"Current connected clients: {len(CLIENTS)}")
+    print("")
 
     SOCKETIO.emit("receive_latest_messages", MESSAGES,
                   room=sid, namespace="/communications")
@@ -172,7 +175,6 @@ def connect():
 @SOCKETIO.on("disconnect", namespace="/communications")
 def disconnect():
     sid = request.sid
-    print("In disconnect")
     CLIENTS.remove(sid)
 
     global ROOM_MOBILE_IDS
@@ -181,6 +183,11 @@ def disconnect():
             row["users"].remove(sid)
         except ValueError:
             pass
+
+    print("")
+    print("User disconnected:", sid)
+    print(f"Current connected clients: {len(CLIENTS)}")
+    print("")
 
 
 @SOCKETIO.on("get_latest_messages", namespace="/communications")
