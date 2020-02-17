@@ -117,9 +117,8 @@ function processShiftData (classes, select_by, raw_data) {
                 const {
                     general_status, site_code, 
                     public_alert_level, event_id,
-                    trigger_list_str
+                    internal_alert
                 } = second_row;
-                console.log("sec row", second_row);
 
                 const event_link = prepareEventTimelineLink(classes, event_id, site_code);
 
@@ -129,7 +128,7 @@ function processShiftData (classes, select_by, raw_data) {
                             <span className={classes.valueFont}>{event_link}</span>
                         </Typography>
                         <Typography variant="body2" className={classes.alignCenter}>
-                            <span className={classes.valueFont}>Alert {public_alert_level} ({trigger_list_str})</span>
+                            <span className={classes.valueFont}>Alert {public_alert_level} ({internal_alert})</span>
                         </Typography>
                         <Typography variant="body2" color="textSecondary" className={classes.alignCenter}>
                             Monitoring status: <span className={classes.valueFont}>{capitalizeFirstLetter(general_status)}</span>

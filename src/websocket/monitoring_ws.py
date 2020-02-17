@@ -134,8 +134,11 @@ def connect():
         clients = []
     clients.append(sid)
     set_data_to_memcache(name="CLIENTS", data=clients)
+
+    print("")
     print("Connected user: " + sid)
-    print(f"Current connected clients: {clients}")
+    print(f"Current connected clients: {len(clients)}")
+    print("")
 
     emit_data("receive_generated_alerts", sid=sid)
     emit_data("receive_alerts_from_db", sid=sid)
@@ -146,11 +149,16 @@ def connect():
 
 @SOCKETIO.on('disconnect', namespace='/monitoring')
 def disconnect():
-    print("In disconnect")
-    # CLIENTS.remove(request.sid)
+    sid = request.sid
+
     clients = retrieve_data_from_memcache("CLIENTS")
-    clients.remove(request.sid)
+    clients.remove(sid)
     set_data_to_memcache(name="CLIENTS", data=clients)
+
+    print("")
+    print("User disconnected:", sid)
+    print(f"Current connected clients: {len(clients)}")
+    print("")
 
 
 def generate_alerts(site_code=None):

@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request
 from connection import DB
 from config import APP_CONFIG
+from instance.config import EMAILS
 from src.models.monitoring import (
     MonitoringEventsSchema, EndOfShiftAnalysis
 )
@@ -85,11 +86,11 @@ def get_eos_email_details(event_id, shift_ts_end):
     if not recipients:
         if APP_CONFIG["is_live_mode"]:
             # PRODUCTION
-            recipients.extend(APP_CONFIG["director_and_head_emails"])
-            recipients.extend(APP_CONFIG["dynaslope_groups"])
+            recipients.extend(EMAILS["director_and_head_emails"])
+            recipients.extend(EMAILS["dynaslope_groups"])
         else:
             # DEVELOPMENT
-            recipients = [APP_CONFIG["dev_email"]]
+            recipients = [EMAILS["dev_email"]]
 
     # GET FILENAME
     datetime_ts = datetime.strptime(shift_ts_end, "%Y-%m-%d %H:%M:%S")
@@ -178,8 +179,8 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
                 trig_id_list.append(row.internal_sym_id)
 
         most_recent = get_monitoring_triggers(
-            event_id=event.event_id, ts_start=shift_start
-            - timedelta(hours=11, minutes=30),
+            event_id=event.event_id, ts_start=shift_start -
+            timedelta(hours=11, minutes=30),
             ts_end=shift_start, load_options="end_of_shift")
 
         eos_data = {
@@ -386,8 +387,8 @@ def process_eos_data_analysis(
                         f"{datetime.strftime(data[0].ts, '%B %d, %Y, %I:%M %p')}</b>. ")
                 surf += (f"Displacement of marker(s) from last data sending <b>"
                          f"({datetime.strftime(data[1].ts, '%B %d, %Y, %I:%M %p')}):</b> ")
-                surf += ", ".join(str("<b>" + x["marker_name"] +
-                                      " -> " + x["change"] + "</b>") for x in data_list)
+                surf += ", ".join(str("<b>" + x["marker_name"]
+                                      + " -> " + x["change"] + "</b>") for x in data_list)
 
         string += f"<br/>- Surficial data: {surf}"
 
@@ -585,3 +586,17 @@ def save_eos_data_analysis():
     response = write_eos_data_analysis_to_db(event_id, shift_ts, analysis)
 
     return response["message"]
+
+
+@END_OF_SHIFT_BLUEPRINT.route("/end_of_shift/get_narrative/<shift_start>/<event_id>", methods=["GET"])
+def get_narrative_per_event_id(shift_start, event_id=None):
+    """
+    Get narrative per event id
+    """
+    start_ts = datetime.strptime(shift_start, "%Y-%m-%d %H:%M:%S")
+    end_ts = start_ts + timedelta(hours=13)
+
+    raw_narratives = get_eos_narratives(start_ts, end_ts, event_id)
+    narratives = get_formatted_shift_narratives(raw_narratives)
+
+    return jsonify(narratives)

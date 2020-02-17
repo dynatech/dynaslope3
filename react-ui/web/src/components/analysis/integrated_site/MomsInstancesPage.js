@@ -26,12 +26,12 @@ function buildName (name) {
 function processMomsReportData (moms) {
     const data = moms.map(report => {
         const {
-            observance_ts, narrative: n_details, reporter, validator
+            observance_ts, narrative: n_details, reporter, validator, op_trigger, remarks
         } = report;
         const { narrative, timestamp: report_ts } = n_details;
         return [
             formatTimestamp(observance_ts), narrative, formatTimestamp(report_ts),
-            buildName(reporter), buildName(validator)
+            buildName(reporter), buildName(validator), remarks, op_trigger
         ];
     });
 
@@ -50,6 +50,11 @@ function MomsInstancesPage (props) {
     const columns = ["Type",
         {
             name: "Name",
+            options: {
+                filter: false
+            }
+        }, {
+            name: "Location",
             options: {
                 filter: false
             }
@@ -73,7 +78,8 @@ function MomsInstancesPage (props) {
             const tbl_data = data.map(instance => {
                 const {
                     feature: { feature_type },
-                    feature_name, moms, instance_id
+                    feature_name, moms, instance_id,
+                    location
                 } = instance;
 
                 const type = feature_type.charAt(0).toUpperCase() + feature_type.slice(1);
@@ -83,7 +89,7 @@ function MomsInstancesPage (props) {
                 if (typeof last_mom !== "undefined") {
                     const { observance_ts, op_trigger } = last_mom;
                     const ts = formatTimestamp(observance_ts);
-                    return_data = [type, feature_name, ts, op_trigger, instance_id];
+                    return_data = [type, feature_name, location, ts, op_trigger, instance_id];
                 } 
 
                 return return_data;    
@@ -92,7 +98,7 @@ function MomsInstancesPage (props) {
                 return item.length > 0;
             });
 
-            const sorted_data = final_tbl_data.sort((a, b) => b[3] - a[3]);
+            const sorted_data = final_tbl_data.sort((a, b) => b[4] - a[4]);
             setMOMsFeatures(sorted_data);
             setMOMsData(data);
         });
@@ -125,8 +131,8 @@ function MomsInstancesPage (props) {
                         download: false,
                         responsive: "scrollMaxHeight",
                         onRowClick (data, meta, e) {
-                            // const { instance_id } = data[4];
-                            history.push(`${url}/${data[4]}`);
+                            const instance_id = data[5];
+                            history.push(`${url}/${instance_id}`);
                         }
                     }}
                     data={moms_features}
@@ -153,7 +159,7 @@ function MomsInstancesPage (props) {
 
 function MomsReportsTable (props) {
     const { moms_data, match: { params: { instance_id } } } = props;
-    const columns = ["Observance Timestamp", "Narrative", "Report Timestamp", "Reporter", "Validator"];
+    const columns = ["Observance Timestamp", "Narrative", "Report Timestamp", "Reporter", "Validator", "Remarks", "Alert Level"];
 
     const instance_row = moms_data.find(row => row.instance_id === parseInt(instance_id, 10));
     let moms = [];
@@ -164,9 +170,8 @@ function MomsReportsTable (props) {
         const { feature: { feature_type }, feature_name } = instance_row;
         subtitle = `${feature_type} - ${feature_name}`;
     }
-
+   
     const moms_reports = processMomsReportData(moms);
-
     return (
         <Paper style={{ marginTop: 16 }}>
             <MUIDataTable

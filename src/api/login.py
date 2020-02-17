@@ -1,5 +1,6 @@
 """
 """
+
 import hashlib
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, jwt_required,
@@ -8,9 +9,7 @@ from flask_jwt_extended import (
 from flask import (
     Blueprint, jsonify, request
 )
-from src.models.users import (
-    Users, UserAccounts, UserAccountsSchema
-)
+from src.models.users import UserAccounts
 from connection import DB, JWT
 
 from src.utils.extra import var_checker
@@ -74,7 +73,7 @@ def __login_user():
     """
     """
     data = request.get_json()
-    print(data)
+    var_checker("User Logged-in:", data["username"], True)
     try:
         username = str(data["username"])  # "jdguevarra"
         password = str(data["password"])  # "jdguevarra101"

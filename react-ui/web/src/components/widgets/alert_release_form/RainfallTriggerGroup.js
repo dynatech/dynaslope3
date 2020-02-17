@@ -40,8 +40,9 @@ function RainfallRadioGroup (props) {
             { value: "-1", label: "No data (R0)" },
             { value: "-2", label: "Intermediate threshold (rx)" }
         );
-
-        if (temp.alert_level !== 1) { triggers_value.alert_level = temp.alert_level.toString(); }
+        
+        // !QUICK FIX MUNA SA PAGRERELEASE
+        // if (temp.alert_level !== 1) { triggers_value.alert_level = temp.alert_level.toString(); }
     }
 
     return (

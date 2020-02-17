@@ -6,23 +6,15 @@ NAMING CONVENTION
 - Name routes as /<controller_name>/<function_name>
 """
 
-import json
-import time
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
 from flask import Blueprint, jsonify, request
-from connection import DB, SOCKETIO
-from sqlalchemy import and_
-from src.models.monitoring import (MonitoringReleasesSchema)
 from src.utils.monitoring import (
     # GET functions
     get_monitoring_releases, build_internal_alert_level,
     get_release_publisher_names
 )
-from src.api.end_of_shift import (get_eos_data_analysis)
-from src.utils.extra import (
-    var_checker, retrieve_data_from_memcache,
-    get_process_status_log, get_system_time
-)
+from src.utils.extra import var_checker, round_to_nearest_release_time
+
 
 SHIFT_CHECKER_BLUEPRINT = Blueprint("shift_checker_blueprint", __name__)
 
@@ -38,7 +30,7 @@ def extract_unique_release_events(releases_list):
     for release in releases_list:
         event = release.event_alert.event
 
-        #NOTE: This function rejects all ROUTINE events
+        # NOTE: This function rejects all ROUTINE events
         if event.status != 2:
             continue
 
@@ -60,9 +52,11 @@ def prepare_data_for_ui(release):
     """
     event_alert = release.event_alert
     event = event_alert.event
-    public_alert_level = event_alert.public_alert_symbol.alert_level
-    public_alert_symbol = event_alert.public_alert_symbol.alert_symbol
-    internal_alert = build_internal_alert_level(public_alert_level, release.trigger_list)
+    pa_symbol = event_alert.public_alert_symbol
+    public_alert_level = pa_symbol.alert_level
+    public_alert_symbol = pa_symbol.alert_symbol
+    internal_alert = build_internal_alert_level(
+        public_alert_level, release.trigger_list)
 
     end_val_data_ts = event.validity - timedelta(minutes=30)
     if end_val_data_ts < release.data_ts:
@@ -81,7 +75,7 @@ def prepare_data_for_ui(release):
         "event_id": event.event_id,
         "release_id": release.release_id,
         "release_time": f"{release.release_time.hour}:{release.release_time.minute}",
-        "data_ts":  datetime.strftime(release.data_ts, "%Y-%m-%d %H:%M:%S"),
+        "data_ts": datetime.strftime(release.data_ts, "%Y-%m-%d %H:%M:%S"),
         "comments": release.comments
     }
 
@@ -94,7 +88,7 @@ def check_if_ampm(hour):
     if 8 <= hour and hour <= 19:
         is_am_pm = "AM"
     elif (20 <= hour and hour <= 23) or (0 <= hour and hour <= 7):
-    # else:
+        # else:
         is_am_pm = "PM"
 
     return is_am_pm
@@ -111,8 +105,9 @@ def group_by_date(releases_list):
     index = -1
     for release in releases_list:
         ts = release.data_ts
-        release_date = f"{ts.year}-{ts.month}-{ts.day}"
-        prev_date_entry = f"{ts.year}-{ts.month}-{ts.day + 1}"
+        release_date = ts.strftime("%Y-%m-%d")
+        prev_date_entry = (ts + timedelta(days=1)
+                           ).strftime("%Y-%m-%d")
         ea_id = release.event_alert_id
         publishers = get_release_publisher_names(release)
         is_am_pm = check_if_ampm(ts.hour)
@@ -126,7 +121,9 @@ def group_by_date(releases_list):
                 unique_set[release_date] = index
 
                 if is_am_pm == "PM":
-                    release_date = f"{ts.year}-{ts.month}-{ts.day - 1}"
+                    rounded_ts = round_to_nearest_release_time(ts)
+                    release_date = (rounded_ts - timedelta(days=1)
+                                    ).strftime("%Y-%m-%d")
 
                 unique_release_dates.append({
                     "date": release_date,
@@ -214,7 +211,9 @@ def wrap_get_shift_data():
         ts_start = json_input["ts_start"]
         ts_end = json_input["ts_end"]
 
-        releases_list = get_monitoring_releases(ts_start=ts_start, ts_end=ts_end, user_id=user_id, exclude_routine=True)
+        releases_list = get_monitoring_releases(
+            ts_start=ts_start, ts_end=ts_end,
+            user_id=user_id, exclude_routine=True)
     else:
         var_checker("NO SHIFTS", "no shifts", True)
 

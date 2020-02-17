@@ -29,8 +29,6 @@ import OnDemandTriggerGroup from "./OnDemandTriggerGroup";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 
-import { sites } from "../../../store";
-
 import { getLatestSiteRelease } from "./ajax";
 import { getCurrentUser } from "../../sessions/auth";
 import { CTContext } from "../../monitoring/dashboard/CTContext";
@@ -154,7 +152,6 @@ function GeneralInputForm (props) {
                     changeHandler={handleEventChange("reporterIdMt")}
                     value={reporterIdMt}
                     disabled
-                    // returnFullNameCallback={ret => setMTFullName(ret)}
                 />
             </Grid>
 
@@ -166,7 +163,6 @@ function GeneralInputForm (props) {
                     changeHandler={handleEventChange("reporterIdCt")}
                     value={reporterIdCt}
                     disabled
-                    // returnFullNameCallback={ret => setCTFullName(ret)}
                 />
             </Grid>
         </Fragment>
@@ -177,7 +173,7 @@ function TriggersInputForm (props) {
     const { 
         classes, triggersState, setTriggersState,
         setModalTitle, hasNoGroundData, setHasNoGroundData,
-        triggersReleased
+        triggersReleased, alert_level, setAlert0, isAlert0
     } = props;
 
     const {
@@ -189,9 +185,25 @@ function TriggersInputForm (props) {
     useEffect(() => {
         setModalTitle("Add triggers if not yet included in this release.");
     }, []);
-
+    
     return (
         <Fragment>
+            {
+                alert_level !== 0 && (
+                    <Grid item xs={12} className={isAlert0 ? classes.groupGridContainer : ""}>
+                        <FormControl component="fieldset" className={classes.formControl}>
+                            <FormLabel component="legend" className={classes.formLabel}>
+                                <span style={{ color: "#f50057" }}>Lower to Alert 0</span>
+                                <Switch
+                                    checked={isAlert0}
+                                    onChange={event => setAlert0(event.target.checked)}
+                                    value="has_no_ground_data"
+                                />
+                            </FormLabel>
+                        </FormControl>
+                    </Grid>
+                )
+            }
             {
                 !subs_switch_state && !surf_switch_state && !moms_switch_state && (
                     <Grid item xs={12} className={hasNoGroundData ? classes.groupGridContainer : ""}>
@@ -208,47 +220,52 @@ function TriggersInputForm (props) {
                     </Grid>
                 )
             }
+            {
+                isAlert0 === false && (
+                    <Fragment>
+                        <Grid item xs={12}>
+                            <Typography variant="h6" color="secondary">Ground-Related Triggers</Typography>
+                        </Grid>
+                        <SubsurfaceTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                            triggersReleased={triggersReleased}
+                        />
+                        <SurficialTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                            triggersReleased={triggersReleased}
+                        />
 
-            <Grid item xs={12}>
-                <Typography variant="h6" color="secondary">Ground-Related Triggers</Typography>
-            </Grid>
+                        <MomsTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                        />
 
-            <SubsurfaceTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-                triggersReleased={triggersReleased}
-            />
+                        <Grid item xs={12} style={{ paddingTop: 20 }}>
+                            <Typography variant="h6" color="secondary">Secondary Triggers</Typography>
+                        </Grid>
 
-            <SurficialTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-                triggersReleased={triggersReleased}
-            />
+                        <RainfallTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                            triggersReleased={triggersReleased}
+                        />
 
-            <MomsTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-            />
+                        <EarthquakeTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                        />
 
-            <Grid item xs={12} style={{ paddingTop: 20 }}>
-                <Typography variant="h6" color="secondary">Secondary Triggers</Typography>
-            </Grid>
+                        <OnDemandTriggerGroup
+                            triggersState={triggersState}
+                            setTriggersState={setTriggersState}
+                        />
+                    </Fragment>
+                )
+            }
 
-            <RainfallTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-                triggersReleased={triggersReleased}
-            />
-
-            <EarthquakeTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-            />
-
-            <OnDemandTriggerGroup
-                triggersState={triggersState}
-                setTriggersState={setTriggersState}
-            />
+            
         </Fragment>
     );
 }
@@ -392,7 +409,8 @@ function AlertReleaseForm (comp_props) {
         setGeneralData, setInternalAlertLevel,
         internalAlertLevel, // setTriggerList,
         setPublicAlertLevel, isUpdatingRelease,
-        currentTriggersStatus, dBSavedTriggers
+        currentTriggersStatus, setDBSavedTriggers,
+        siteCurrentAlertLevel, setSiteCurrentAlertLevel
     } = comp_props;
     const classes = useStyles();
     const props = { classes, ...comp_props };
@@ -409,20 +427,16 @@ function AlertReleaseForm (comp_props) {
             // get the current Internal alert level of site
             const input = { site_id: value.value };
             getLatestSiteRelease(input, ret => {
-                // const site = sites.find(o => o.site_id === value);
-                // const { site_code } = site;
-                // setGeneralData({
-                //     ...generalData,
-                //     site_code
-                // });
+                console.log(ret);
                 const {
-                    internal_alert_level, public_alert_level, trigger_list_str,
-                    trigger_sources
+                    internal_alert_level, public_alert_level,
+                    trigger_sources, alert_level
                 } = ret;
                 setTriggersReleased(trigger_sources);
-                // setTriggerList(trigger_list_str);
+                setDBSavedTriggers(trigger_sources);
                 setPublicAlertLevel(public_alert_level);
                 setInternalAlertLevel(internal_alert_level);
+                setSiteCurrentAlertLevel(alert_level);
             });
         } else {
             setGeneralData({ ...generalData, [key]: value });
@@ -439,7 +453,6 @@ function AlertReleaseForm (comp_props) {
     };
 
     const getSteps = () => {
-        // return ["What are the release details?", "List the triggers.", "Add Comments and Description", "Review Release Summary"];
         return ["What are the release details?", "List the triggers.", "Add Comments and Review Release Summary"];
     };
     const steps = getSteps();
@@ -455,7 +468,11 @@ function AlertReleaseForm (comp_props) {
                     changeState={changeState}
                 />;
             case 1:
-                return <TriggersInputForm {...props} triggersReleased={triggersReleased} />;
+                return <TriggersInputForm 
+                    {...props}
+                    triggersReleased={triggersReleased}
+                    alert_level={siteCurrentAlertLevel}
+                />;
             case 2:
                 return <SummaryForm {...props}
                     mtFullName={mtFullName}

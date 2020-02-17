@@ -242,11 +242,12 @@ def get_sms_user_updates():
     return results
 
 
-def delete_sms_user_update(row=None):
+def delete_sms_user_update(updates=None):
     """
     """
-    if row:
-        DB.session.delete(row)
+    if updates:
+        for row in updates:
+            DB.session.delete(row)
     else:
         SmsUserUpdates.query.delete()
 

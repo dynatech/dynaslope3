@@ -740,7 +740,6 @@ def get_current_trigger_alert_conditions(release_op_triggers_list, surficial_mom
     for th in th_map:
         # Only entertain trigger sources who needs checking of data presence
         if th["data_presence"] != 0:
-
             # NOTE: LOUIE Handle data presence of routine (moms, surficial) (1 day)
             # If current TH is not found on rel triggers, trigger source is ND.
             source_id = th["source_id"]
@@ -842,8 +841,9 @@ def get_moms_and_surficial_window_ts(highest_public_alert, query_ts_end):
 
     if highest_public_alert > 0:
         window_ts = round_to_nearest_release_time(
-            # four hours in current
-            query_ts_end) - timedelta(hours=RELEASE_INTERVAL_HOURS) 
+            # RELEASE_INTERVAL_HOURS is four hours in current
+            # added 30 minutes on timedelta to include data received after 3/7/11:30
+            query_ts_end) - timedelta(hours=RELEASE_INTERVAL_HOURS, minutes=30)
     else:
         window_ts = datetime.combine(query_ts_end.date(), time(0, 0))
     return window_ts
@@ -884,7 +884,7 @@ def extract_unique_positive_triggers(positive_triggers_list):
             trig_symbol.alert_level
         )
 
-        if not (tuple_entry in unique_pos_trig_set):
+        if not tuple_entry in unique_pos_trig_set:
             unique_pos_trig_set.add(tuple_entry)
             unique_positive_triggers_list.append(item)
 
@@ -901,17 +901,25 @@ def get_invalid_triggers(positive_triggers_list):
     """
 
     invalids_dict = {}
+    not_invalid_set = set()
     for item in positive_triggers_list:
         alert_status_entry = item.alert_status
 
-        if alert_status_entry and alert_status_entry.alert_status == -1:
+        if alert_status_entry:
+            status_validity = alert_status_entry.alert_status
             trigger_sym_id = item.trigger_sym_id
-            if trigger_sym_id in invalids_dict:
-                # Check for latest invalidation entries
-                if invalids_dict[trigger_sym_id].ts_ack < alert_status_entry.ts_ack:
+            # Check for latest invalidation entries
+            if status_validity == -1:
+                if trigger_sym_id in invalids_dict:
+                    pass
+                    # if alert_status_entry.ts_ack > invalids_dict[trigger_sym_id].ts_ack:
+                    #     invalids_dict[trigger_sym_id] = alert_status_entry
+                elif trigger_sym_id not in not_invalid_set:
                     invalids_dict[trigger_sym_id] = alert_status_entry
             else:
-                invalids_dict[trigger_sym_id] = alert_status_entry
+                not_invalid_set.add(trigger_sym_id)
+                if trigger_sym_id in invalids_dict:
+                    del invalids_dict[trigger_sym_id]
 
     return invalids_dict
 
@@ -941,9 +949,9 @@ def extract_positive_triggers_list(op_triggers_list):
 
 def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interval_hours, highest_public_alert):
     """
-    Get all operational triggers released within the four-hour window 
+    Get all operational triggers released within the four-hour window
     (when on heightened alert) or 1-day window (on alert 0, 12 MN onwards) or as defined
-    on dynamic variables, before release with exception for 
+    on dynamic variables, before release with exception for
     subsurface and rainfall triggers
     """
 
@@ -953,19 +961,24 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interva
     if highest_public_alert == 0:
         ts_compare = datetime.combine(query_ts_end.date(), time(0, 0))
     else:
-        ts_compare = round_to_nearest_release_time(query_ts_end, interval) - timedelta(hours=interval)
+        # added 30 minutes to timedelta to include data received after 3/7/11:30
+        ts_compare = round_to_nearest_release_time(query_ts_end, interval) \
+            - timedelta(hours=interval, minutes=30)
 
     release_op_triggers = op_triggers_query.filter(
-        ot.ts_updated >= ts_compare).distinct().all()
+        ot.ts_updated > ts_compare).distinct().all()
 
     on_run_triggers_list = retrieve_data_from_memcache(
-        "trigger_hierarchies", {"data_presence": 1}, retrieve_one=False, retrieve_attr="source_id")
+        "trigger_hierarchies", {"data_presence": 1},
+        retrieve_one=False, retrieve_attr="source_id")
 
     # Remove subsurface and rainfall triggers less than the actual query_ts_end
-    # Data presence for subsurface and rainfall is limited to the current runtime only (not within release interval hours)
+    # Data presence for subsurface and rainfall is limited to the 
+    # current runtime only (not within release interval hours)
     release_op_triggers_list = []
     for release_op_trig in release_op_triggers:
-        if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_list and release_op_trig.ts_updated < query_ts_end):
+        if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_list \
+            and release_op_trig.ts_updated < query_ts_end):
             release_op_triggers_list.append(release_op_trig)
 
     return release_op_triggers_list
@@ -977,7 +990,7 @@ def get_operational_triggers_within_monitoring_period(s_op_triggers_query, monit
     trigger from start of monitoring to end
 
     IMPORTANT: operational_triggers that has no data (alert_level = -1) is
-    not returned to standardize data presence identification (i.e. If no 
+    not returned to standardize data presence identification (i.e. If no
     table entry for a specific time interval, trigger is considered as
     no data.)
 

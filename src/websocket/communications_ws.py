@@ -62,6 +62,7 @@ def communication_background_task():
                 is_first_run, ground_meas_run)
 
             updates = get_sms_user_updates()
+            updates_len = len(updates)
             update_process_start = datetime.now()
 
             for row in updates:
@@ -125,8 +126,6 @@ def communication_background_task():
 
                 query_end = datetime.now()
 
-                delete_sms_user_update(row)
-
                 emit_data("receive_latest_messages")
 
                 print("")
@@ -134,11 +133,13 @@ def communication_background_task():
                       (query_end - query_start).total_seconds())
                 print("")
 
+            delete_sms_user_update(updates)
+
             update_process_end = datetime.now()
 
-            if updates:
+            if updates_len > 0:
                 print("")
-                print(f"COMMS UPDATE PROCESS LOOP (WS) {len(updates)} updates",
+                print(f"COMMS UPDATE PROCESS LOOP (WS) {updates_len} updates",
                       (update_process_end - update_process_start).total_seconds())
                 print("")
         except Exception as err:
@@ -157,8 +158,11 @@ def communication_background_task():
 def connect():
     sid = request.sid
     CLIENTS.append(sid)
-    print("Connected user: " + sid)
-    print(f"Current connected clients: {CLIENTS}")
+
+    print("")
+    print("User disconnected:", sid)
+    print(f"Current connected clients: {len(CLIENTS)}")
+    print("")
 
     SOCKETIO.emit("receive_latest_messages", MESSAGES,
                   room=sid, namespace="/communications")
@@ -171,7 +175,6 @@ def connect():
 @SOCKETIO.on("disconnect", namespace="/communications")
 def disconnect():
     sid = request.sid
-    print("In disconnect")
     CLIENTS.remove(sid)
 
     global ROOM_MOBILE_IDS
@@ -180,6 +183,11 @@ def disconnect():
             row["users"].remove(sid)
         except ValueError:
             pass
+
+    print("")
+    print("User disconnected:", sid)
+    print(f"Current connected clients: {len(CLIENTS)}")
+    print("")
 
 
 @SOCKETIO.on("get_latest_messages", namespace="/communications")

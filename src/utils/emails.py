@@ -12,15 +12,16 @@ from src.utils.chart_rendering import render_charts
 from src.utils.extra import var_checker
 
 from config import APP_CONFIG
+from instance.config import EMAILS
 
 
 def get_email_credentials():
-    sender = APP_CONFIG["dev_email"]
-    password = APP_CONFIG["dev_password"]
+    sender = EMAILS["dev_email"]
+    password = EMAILS["dev_password"]
 
     if APP_CONFIG["is_live_mode"]:
-        sender = APP_CONFIG["monitoring_email"]
-        password = APP_CONFIG["monitoring_password"]
+        sender = EMAILS["monitoring_email"]
+        password = EMAILS["monitoring_password"]
 
     return sender, password
 

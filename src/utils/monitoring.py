@@ -950,7 +950,7 @@ def get_public_alert(site_id):
     result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(
         me).filter(me.site_id == site_id).first()
     if result:
-        result = result.public_alert_symbol.alert_symbol
+        result = result.public_alert_symbol
 
     return result
 
@@ -1427,12 +1427,14 @@ def write_monitoring_earthquake_to_db(eq_details):
 def build_internal_alert_level(public_alert_level, trigger_list=None):
     """
     This function builds the internal alert string using a public alert level
-    and the provided trigger_list_str. 
+    and the provided trigger_list_str. Take note that trigger_list pertains
+    to the trigger_list column on monitoring_releases. May contain ND-<RED>
+    type of string.
 
     Args:
         trigger_list (String) - Used as the historical log of valid triggers
                     Can be set as "None" for A0
-        public_alert_level (Integer) - This will be used instead of 
+        public_alert_level (Integer) - This will be used instead of
                     pub_sym_id for building the Internal alert string
                     Can be set as none since this is optional
     """
