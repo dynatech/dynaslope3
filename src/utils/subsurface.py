@@ -196,7 +196,7 @@ def process_displacement_data(disp_group):
         converted.sort()
 
         for index, data in converted:
-            temp.append({"name": index + 1, "data": data})
+            temp.append({"name": index, "data": data})
 
             if index not in ts_per_node:
                 temp_2 = []
