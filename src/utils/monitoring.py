@@ -432,7 +432,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         run_ts = datetime.now()
 
     active_event_alerts = get_active_monitoring_events()
-
+    print(active_event_alerts)
     latest = []
     extended = []
     overdue = []

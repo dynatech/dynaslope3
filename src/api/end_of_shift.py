@@ -18,7 +18,7 @@ from src.models.monitoring import (
 from src.utils.monitoring import (
     get_monitoring_events, get_internal_alert_symbols, build_internal_alert_level,
     get_monitoring_releases, get_monitoring_triggers, check_if_has_moms_or_earthquake_trigger,
-    write_eos_data_analysis_to_db)
+    write_eos_data_analysis_to_db, get_active_monitoring_events)
 from src.utils.emails import get_email_subject
 from src.utils.narratives import get_narratives
 from src.utils.subsurface import get_site_subsurface_columns, check_if_subsurface_columns_has_data
@@ -119,6 +119,9 @@ def extract_unique_release_events(releases_list):
         # NOTE: This function rejects all ROUTINE events
         if event.status != 2:
             continue
+        
+        if release.data_ts + timedelta(minutes=30) > event.validity:
+            continue
 
         event_id = event.event_id
         if not event_id in unique_set:
@@ -159,7 +162,7 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
 
     # Get unique releases and segregate by site_code
     unique_release_dict_list = extract_unique_release_events(releases_list)
-
+    
     # Events List
     for unique_release_dict in unique_release_dict_list:
         releases_list = []
@@ -600,3 +603,24 @@ def get_narrative_per_event_id(shift_start, event_id=None):
     narratives = get_formatted_shift_narratives(raw_narratives)
 
     return jsonify(narratives)
+
+
+@END_OF_SHIFT_BLUEPRINT.route("/end_of_shift/get_active_events", methods=["GET"])
+def get_active_events():
+    """
+    Get active events
+    """
+
+    active_events = get_active_monitoring_events()
+    site_list = []
+    for row in active_events:
+        alert_level = row.public_alert_symbol.alert_level
+        # print()
+        # if alert_level is not 0:
+        # print(row.event.event_id)
+        site_list.append({
+            "site_id": row.event.site.site_id,
+            "site_code": row.event.site.site_code,
+            "alert_level": alert_level
+        })
+    return jsonify(site_list)
