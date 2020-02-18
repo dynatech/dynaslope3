@@ -119,7 +119,7 @@ def extract_unique_release_events(releases_list):
         # NOTE: This function rejects all ROUTINE events
         if event.status != 2:
             continue
-        
+
         if release.data_ts + timedelta(minutes=30) > event.validity:
             continue
 
@@ -162,7 +162,7 @@ def get_end_of_shift_data_list(shift_start, shift_end, event_id=None):
 
     # Get unique releases and segregate by site_code
     unique_release_dict_list = extract_unique_release_events(releases_list)
-    
+
     # Events List
     for unique_release_dict in unique_release_dict_list:
         releases_list = []
@@ -615,9 +615,6 @@ def get_active_events():
     site_list = []
     for row in active_events:
         alert_level = row.public_alert_symbol.alert_level
-        # print()
-        # if alert_level is not 0:
-        # print(row.event.event_id)
         site_list.append({
             "site_id": row.event.site.site_id,
             "site_code": row.event.site.site_code,

@@ -10,7 +10,7 @@ from datetime import datetime
 from src.models.issues_and_reminders import IssuesAndReminders, IssuesRemindersSitePostings
 from src.utils.monitoring import get_current_monitoring_instance_per_site
 from src.utils.extra import (
-    var_checker, retrieve_data_from_memcache, get_process_status_log,
+    var_checker, get_process_status_log,
 )
 
 
@@ -193,7 +193,7 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
 
     iar = IssuesAndReminders
     irp = IssuesRemindersSitePostings
-    # base = DB.session.query(iar)
+
     base = iar.query.options(joinedload(iar.postings).joinedload(
         irp.event)).filter(iar.resolution == None)
     return_data = None
