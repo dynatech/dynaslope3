@@ -85,17 +85,17 @@ def handle_update_insert_tags():
                     event = get_latest_monitoring_event_per_site(site_id)
                     var_checker("event", event, True)
 
-                    if event.status == 2:
-                        event_id = event.event_id
-                        narrative_id = write_narratives_to_db(
-                            site_id=site_id,
-                            timestamp=datetime.now(),
-                            narrative=narrative,
-                            type_id=1,
-                            user_id=user_id,
-                            event_id=event_id
-                        )
-                        print("narrative_id", narrative_id)
+                    event_id = event.event_id
+                    narrative_id = write_narratives_to_db(
+                        site_id=site_id,
+                        timestamp=datetime.now(),
+                        narrative=narrative,
+                        type_id=1,
+                        user_id=user_id,
+                        event_id=event_id
+                    )
+
+                    print("Narrative insert success", narrative_id)
             except Exception as err:
                 var_checker(
                     "error in writing narrative in insert tag api", err, True)
