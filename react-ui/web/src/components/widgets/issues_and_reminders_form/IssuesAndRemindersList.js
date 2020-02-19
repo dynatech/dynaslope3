@@ -77,7 +77,7 @@ function IssuesAndReminderCard (props) {
     const { 
         isCardModalOpen, chosenIssueReminder,
         setCardModalOpen, setIsOpenIssueReminderModal,
-        setToResolve, setIsUpdateNeeded
+        setToResolve, setIsIandRUpdateNeeded
     } = props;
     const { site_list, ts_posted, detail, issue_reporter } = chosenIssueReminder;
     const { first_name, last_name } = issue_reporter;
@@ -89,14 +89,14 @@ function IssuesAndReminderCard (props) {
         setCardModalOpen(false);
         setToResolve(false);
         setIsOpenIssueReminderModal(true);
-        setIsUpdateNeeded(true);
+        setIsIandRUpdateNeeded(true);
 
     };
     const handleResolve = () => {
         setCardModalOpen(false);
         setToResolve(true);
         setIsOpenIssueReminderModal(true);
-        setIsUpdateNeeded(true);
+        setIsIandRUpdateNeeded(true);
     };
   
     return (
@@ -210,7 +210,7 @@ function includeSiteList (issues_and_reminders) {
 function IssuesAndReminderList (props) {
     const {
         isOpenIssueReminderModal, setIsOpenIssueReminderModal,
-        isUpdateNeeded, setIsUpdateNeeded
+        isIandRUpdateNeeded, setIsIandRUpdateNeeded
     } = props;
 
     const classes = useStyles();
@@ -256,9 +256,7 @@ function IssuesAndReminderList (props) {
     };
 
     return (
-        
-        <Fragment>         
-          
+        <Fragment>
             <GridList component="div" cellHeight="auto" className={`${classes.gridList} ${!has_active_issues && classes.hasNoIssues}`}>
                 {tile_data}
             </GridList>
@@ -269,15 +267,15 @@ function IssuesAndReminderList (props) {
                 chosenIssueReminder={chosenIssueReminder}
                 setToResolve={setToResolve}
                 setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
-                setIsUpdateNeeded={setIsUpdateNeeded}
+                setIsIandRUpdateNeeded={setIsIandRUpdateNeeded}
             />
             
             <IssuesAndReminderModal
                 isOpen={isOpenIssueReminderModal}
-                isUpdateNeeded={isUpdateNeeded}
+                isIandRUpdateNeeded={isIandRUpdateNeeded}
                 chosenIssueReminder={chosenIssueReminder}
-                setIsUpdateNeeded={setIsUpdateNeeded}
-                setToResolve={toResolve}
+                setIsIandRUpdateNeeded={setIsIandRUpdateNeeded}
+                toResolve={toResolve}
                 closeHandler ={closeModal}
             
             />

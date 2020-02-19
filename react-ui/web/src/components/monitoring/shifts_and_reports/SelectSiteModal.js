@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
@@ -26,7 +26,6 @@ function processCheckboxValues (props) {
 
     return final_eos_data;
 }
-
 
 function SelectSiteModal (props) {
     const {
@@ -57,7 +56,6 @@ function SelectSiteModal (props) {
         no_sites = eosData.length === 0;
     }
 
-
     return (
         <div>
             <Dialog
@@ -67,8 +65,9 @@ function SelectSiteModal (props) {
                 maxWidth="sm"
                 aria-labelledby="form-dialog-title"
             >
-                <DialogTitle id="form-dialog-title">Select Site to Generate</DialogTitle>
+                <DialogTitle id="form-dialog-title">Generate End-of-Shift Report</DialogTitle>
                 <DialogContent>
+                    <DialogContentText>Select sites to create end-of-shift report.</DialogContentText>
                     {
                         eosData === null && (
                             <CircularProgress style={{

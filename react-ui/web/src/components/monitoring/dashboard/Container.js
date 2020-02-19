@@ -52,7 +52,7 @@ function Container (props) {
     const [chosenCandidateAlert, setChosenCandidateAlert] = useState(null);
 
     const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
-    const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
+    const [isIandRUpdateNeeded, setIsIandRUpdateNeeded] = useState(false);
 
     const [is_moms_modal_open, setMomsModal] = useState(false);
     const set_moms_modal_fn = bool => () => setMomsModal(bool);
@@ -78,7 +78,7 @@ function Container (props) {
     const handleBoolean = (data, bool) => () => {
         if (data === "is_open_release_modal") setIsOpenReleaseModal(bool);
         else if (data === "is_open_issues_modal") {
-            setIsUpdateNeeded(!bool);
+            setIsIandRUpdateNeeded(!bool);
             setIsOpenIssueReminderModal(bool);
         }
         else if (data === "is_routine_modal_open") setIsOpenRoutineModal(bool);
@@ -96,7 +96,6 @@ function Container (props) {
 
     const routineReleaseHandler = chosen_candidate => () => {
         setChosenCandidateAlert(chosen_candidate);
-        // setIsOpenReleaseModal(false);
         handleBoolean("is_open_release_modal", false)();
         handleBoolean("is_routine_modal_open", true)();
     };
@@ -145,8 +144,8 @@ function Container (props) {
                         <IssuesAndRemindersList 
                             isOpenIssueReminderModal={isOpenIssueReminderModal}
                             setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
-                            isUpdateNeeded={isUpdateNeeded}
-                            setIsUpdateNeeded={setIsUpdateNeeded}
+                            isIandRUpdateNeeded={isIandRUpdateNeeded}
+                            setIsIandRUpdateNeeded={setIsIandRUpdateNeeded}
                         />
                     </Grid>
                     
@@ -178,6 +177,7 @@ function Container (props) {
 
             <AlertReleaseFormModal
                 isOpen={isOpenReleaseModal}
+                closeHandler={handleBoolean("is_open_release_modal", false)}
                 setChosenCandidateAlert={setChosenCandidateAlert}
                 chosenCandidateAlert={chosenCandidateAlert}
                 alertsFromDbData={alertsFromDbData}

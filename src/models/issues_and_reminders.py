@@ -28,7 +28,7 @@ class IssuesAndReminders(UserMixin, DB.Model):
     ts_posted = DB.Column(DB.DateTime, nullable=False)
     ts_expiration = DB.Column(DB.DateTime)
     resolved_by = DB.Column(DB.Integer)
-    resolution = DB.Column(DB.String(360))
+    resolution = DB.Column(DB.String(500))
     ts_resolved = DB.Column(DB.DateTime)
 
     postings = DB.relationship(

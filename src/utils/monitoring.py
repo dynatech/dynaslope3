@@ -349,8 +349,8 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}."
-                      + f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}." +
+                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -1164,8 +1164,11 @@ def get_current_monitoring_instance_per_site(site_id):
         site_id - mandatory Integer parameter
     """
     event = MonitoringEvents
-    latest_event = event.query.order_by(DB.desc(event.event_id)).filter(
-        event.site_id == site_id).first()
+    latest_event = event.query.options(
+        DB.subqueryload("event_alerts").raiseload("releases"),
+        DB.joinedload("site", innerjoin=True).raiseload("*")
+    ).order_by(DB.desc(event.event_id)) \
+        .filter(event.site_id == site_id).first()
 
     return latest_event
 

@@ -51,18 +51,15 @@ const getMuiTheme = createMuiTheme({
     }
 });
 
-
 function getManipulationButtons (issue_and_reminder, data_handlers) {
     const { 
         setChosenIssueReminder, setIsOpenIssueReminderModal,
-        setIsOpenDeleteModal, setIsUpdateNeeded } = data_handlers;
+        setIsOpenDeleteModal, setIsIandRUpdateNeeded } = data_handlers;
 
     const handleEdit = value => {
         setChosenIssueReminder(issue_and_reminder);
         setIsOpenIssueReminderModal(true);
-        setIsUpdateNeeded(true);
-
-        // alert(JSON.stringify(issue_and_reminder));
+        setIsIandRUpdateNeeded(true);
     };
 
     const handleDelete = value => {
@@ -71,44 +68,22 @@ function getManipulationButtons (issue_and_reminder, data_handlers) {
     };
 
     return (
-        
         <span>
             <IconButton tooltip="Edit" style={{ "float": "left" }} onClick={handleEdit}>
                 <Edit style={{ fontSize: 20 }}/>
             </IconButton>
-            {issue_and_reminder.type_id === 1 && ( 
-                <IconButton tooltip="Delete" style={{ "float": "left" }} onClick={handleDelete}>
-                    <Delete style={{ fontSize: 20 }}/>
-                </IconButton>
-            )}
+            {
+                issue_and_reminder.type_id === 1 && ( 
+                    <IconButton tooltip="Delete" style={{ "float": "left" }} onClick={handleDelete}>
+                        <Delete style={{ fontSize: 20 }}/>
+                    </IconButton>
+                )
+            }
         </span>        
         
     );
    
 }
-
-
-function processTableData (data, data_handlers) {
-    const processed = data.map(row => {
-        const expiration = row.ts_expiration === null ? "-" : row.ts_expiration;
-        const res_by = row.resolved_by === null ? "-" : row.resolved_by;
-        const resolution = row.resolution === null ? "-" : row.resolution;
-        return {
-            ...row,
-            // NOTE: PARKING SITE LIST DUE TO NEEDS MULTIPLE VALUES
-            // site_list: prepareSiteAddress(),
-            reporter: `${row.issue_reporter.first_name} ${row.issue_reporter.last_name}`,
-            ts_posted: moment(row.ts_posted).format("DD MMMM YYYY, HH:mm:ss"),
-            ts_expiration: expiration,
-            resolved_by: res_by,
-            resolution,
-            actions: getManipulationButtons(row, data_handlers)
-        };
-    });
-
-    return processed;
-}
-
 
 function IssuesAndReminders (props) {
     const { classes, width } = props;
@@ -125,7 +100,8 @@ function IssuesAndReminders (props) {
     const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
 
     const [chosenIssueReminder, setChosenIssueReminder] = useState({});
-    const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
+    const [isIandRUpdateNeeded, setIsIandRUpdateNeeded] = useState(false);
+    const [toResolve, setToResolve] = useState(false);
 
     useEffect(() => {
         setIsLoading(true);
@@ -140,30 +116,21 @@ function IssuesAndReminders (props) {
 
         getIssuesAndReminders(input, ret => {
             const { issues_and_reminders, count: total } = ret;
-            
-            const processed = processTableData(
-                issues_and_reminders, 
-                { 
-                    setChosenIssueReminder, 
-                    setIsOpenIssueReminderModal, isOpenIssueReminderModal,
-                    setIsOpenDeleteModal, isOpenDeleteModal, setIsUpdateNeeded
-                });
-            setTableData(processed);
+            setTableData(issues_and_reminders);
             setCount(total);
             setIsLoading(false);
         });
     }, [
         page, rowsPerPage, filters, 
-        search_str, isUpdateNeeded, 
+        search_str, isIandRUpdateNeeded, 
         isOpenDeleteModal, isOpenIssueReminderModal
     ]);
 
     const handleBoolean = (data, bool) => () => {
         // NOTE: there was no need to use the bool for opening a modal or switch
-        
         if (data === "is_issue_reminder_modal_open") {
             setIsOpenIssueReminderModal(bool);
-            setIsUpdateNeeded(bool);
+            setIsIandRUpdateNeeded(bool);
         } 
     };
 
@@ -258,9 +225,11 @@ function IssuesAndReminders (props) {
             label: "Date Posted",
             options: {
                 filter: false,
+                customBodyRender: value => {
+                    return moment(value).format("DD MMMM YYYY, HH:mm:ss");
+                }
             }
         },
-
         {
             name: "detail",
             label: "Details",
@@ -273,6 +242,10 @@ function IssuesAndReminders (props) {
             label: "Reporter",
             options: {
                 filter: true,
+                customBodyRender: (value, { rowIndex }) => {
+                    const row = table_data[rowIndex];
+                    return `${row.issue_reporter.first_name} ${row.issue_reporter.last_name}`;
+                }
             }
         },
         {
@@ -280,7 +253,10 @@ function IssuesAndReminders (props) {
             label: "Posted Until",
             options: {
                 filter: false,
-                sort: false
+                sort: false,
+                customBodyRender: value => {
+                    return value === null ? "-" : moment(value).format("DD MMMM YYYY, HH:mm:ss");
+                }
             }
         },
         {
@@ -288,6 +264,9 @@ function IssuesAndReminders (props) {
             label: "Resolved By",
             options: {
                 filter: false,
+                customBodyRender: value => {
+                    return value === null ? "-" : value;
+                }
             }
         },
         {
@@ -295,6 +274,9 @@ function IssuesAndReminders (props) {
             label: "Resolution",
             options: {
                 filter: false,
+                customBodyRender: value => {
+                    return value === null ? "-" : value;
+                }
             }
         },
         {
@@ -302,7 +284,21 @@ function IssuesAndReminders (props) {
             label: "Actions",
             options: {
                 filter: false,
-                sort: false
+                sort: false,
+                customBodyRender: (value, { rowIndex }) => {
+                    const row = table_data[rowIndex];
+                    const { ts_expiration, resolution } = row;
+                    
+                    if (moment(ts_expiration).isAfter(moment()) || resolution !== null) {
+                        return "Finished";
+                    }
+
+                    return getManipulationButtons(row, { 
+                        setChosenIssueReminder, 
+                        setIsOpenIssueReminderModal, isOpenIssueReminderModal,
+                        setIsOpenDeleteModal, isOpenDeleteModal, setIsIandRUpdateNeeded
+                    });
+                }
             }
         }
     ];
@@ -358,11 +354,11 @@ function IssuesAndReminders (props) {
             <IssueReminderModal
                 isOpen={isOpenIssueReminderModal}
                 closeHandler={handleBoolean("is_issue_reminder_modal_open", false)}
-                isUpdateNeeded={isUpdateNeeded}
-                setIsUpdateNeeded = {setIsUpdateNeeded}
+                isIandRUpdateNeeded={isIandRUpdateNeeded}
+                setIsIandRUpdateNeeded = {setIsIandRUpdateNeeded}
                 chosenIssueReminder={chosenIssueReminder}
+                toResolve={toResolve}
             />
-            
         </Fragment>
     );
 }

@@ -100,6 +100,7 @@ def get_current_monitoring_summary_per_site(site_id):
     """
     Function dedicated to returning brief status of site
     """
+
     current_site_event = get_current_monitoring_instance_per_site(
         site_id=site_id)
     event_start = datetime.strftime(
@@ -901,7 +902,7 @@ def insert_ewi(internal_json=None):
                         event_alert_details)
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
-                        and current_event_alert.event.validity \
+                        and site_monitoring_instance.validity \
                 == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
@@ -910,7 +911,7 @@ def insert_ewi(internal_json=None):
                             # Just a safety measure in case we attached a False
                             # in Front-End
                             # NOTE: SHOULD BE ATTACHED VIA FRONT-END
-                            new_validity = current_event_alert.event.validity + \
+                            new_validity = site_monitoring_instance.validity + \
                                 timedelta(hours=no_data_hours_extension)
                             update_event_validity(new_validity, event_id)
                     except:

@@ -3,10 +3,8 @@
     Contains functions essential in accessing and saving into narratives table.
 """
 
-from connection import DB
-from sqlalchemy.orm import joinedload, raiseload, Load
 from datetime import datetime
-# from src.models.monitoring import IssuesAndReminders
+from connection import DB
 from src.models.issues_and_reminders import IssuesAndReminders, IssuesRemindersSitePostings
 from src.utils.monitoring import get_current_monitoring_instance_per_site
 from src.utils.extra import (
@@ -189,17 +187,23 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
             search (String)
             event_id (Integer)
     """
+
     print(get_process_status_log("get_issues_and_reminders", "start"))
 
     iar = IssuesAndReminders
-    irp = IssuesRemindersSitePostings
 
-    base = iar.query.options(joinedload(iar.postings).joinedload(
-        irp.event)).filter(iar.resolution == None)
+    postings = DB.joinedload("postings")
+    base = iar.query.options(
+        postings.joinedload("event").raiseload("*"),
+        postings.joinedload("site").raiseload("*")
+    )
     return_data = None
 
     if start and end:
         base = base.filter(iar.ts_posted.between(start, end))
+
+    if not include_expired:
+        base = base.filter(iar.resolution.is_(None))
 
     if not event_id:
         if search:
@@ -207,11 +211,14 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
 
         if not include_expired:
             base = base.filter(
-                DB.or_(iar.ts_expiration > datetime.now(), iar.ts_expiration == None))
+                DB.or_(
+                    iar.ts_expiration > datetime.now(),
+                    iar.ts_expiration.is_(None)
+                )
+            )
 
         issues_and_reminders = base.order_by(
             DB.desc(iar.ts_posted)).limit(limit).offset(offset).all()
-        DB.session.commit()
 
         if include_count:
             count = get_issues_count(base)
@@ -221,7 +228,6 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
     else:
         issues_and_reminders = base.order_by(
             DB.desc(iar.timestamp)).filter(iar.event_id == event_id).all()
-        DB.session.commit()
         return_data = issues_and_reminders
 
     print(get_process_status_log("get_issues_and_reminders", "end"))
