@@ -40,7 +40,7 @@ def get_org_ids(scopes=None, org_names=None):
         base = base.filter(orgs.scope in scopes)
 
     if org_names:
-        base = base.filter(orgs.org_name in org_names)
+        base = base.filter(orgs.name in org_names)
 
     org_ids = base.all()
 
