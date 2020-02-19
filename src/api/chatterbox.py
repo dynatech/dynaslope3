@@ -44,8 +44,7 @@ def wrap_send_routine_ewi_sms():
     json_data = request.get_json()
     site_list = json_data["site_list"]
     user_id = json_data["user_id"]
-
-    var_checker("site_list", site_list, True)
+    # var_checker("site_list", site_list, True)
 
     try:
         for site in site_list:
@@ -111,7 +110,7 @@ def wrap_send_routine_ewi_sms():
                 "status": True
             }
     except Exception as e:
-        print(e)
+        var_checker("ERROR: Releasing Routine EWI SMS", e, True)
         DB.session.rollback()
         response = {
             "message": "failed",
