@@ -28,10 +28,14 @@ from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue
 
 def get_org_ids(scopes=None, org_names=None):
     """
-    Returns org ids as need by other APIs
+        Returns org ids as need by other APIs
+
+        scopes (list):  list of scope e.g. [0, 1] 0 -> community, 1 -> barangay
+        org_names (list):  list of org_names e.g. ["lewc", "lgu"]
     """
     orgs = Organizations
-    base = orgs.query.order_by(DB.asc(orgs.scope))
+    base = orgs.query.options(DB.raiseload("*")) \
+        .order_by(DB.asc(orgs.scope))
 
     if scopes:
         base = base.filter(orgs.scope in scopes)
