@@ -1235,7 +1235,8 @@ def write_moms_instances_to_db(instance_details):
         moms_instance = MomsInstances(
             site_id=instance_details["site_id"],
             feature_id=instance_details["feature_id"],
-            feature_name=instance_details["feature_name"]
+            feature_name=instance_details["feature_name"],
+            location=instance_details["location"]
         )
         DB.session.add(moms_instance)
         DB.session.flush()
@@ -1372,7 +1373,8 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
                 instance_details = {
                     "site_id": site_id,
                     "feature_id": feature_id,
-                    "feature_name": feature_name
+                    "feature_name": feature_name,
+                    "location": moms_details["location"]
                 }
                 moms_instance_id = write_moms_instances_to_db(instance_details)
             else:
