@@ -110,7 +110,8 @@ def wrap_send_routine_ewi_sms():
                 "message": "success",
                 "status": True
             }
-    except:
+    except Exception as e:
+        print(e)
         DB.session.rollback()
         response = {
             "message": "failed",
