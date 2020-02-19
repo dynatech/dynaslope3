@@ -93,7 +93,7 @@ def wrap_send_routine_ewi_sms():
                 "ts": datetime.now()
             }
             tag_id = 18  # TODO: FOR REFACTORING, for #EwiMessage
-            insert_data_tag("sms_outbox_user_tags", tag_details, tag_id)
+            insert_data_tag("smsoutbox_user_tags", tag_details, tag_id)
 
             #############################
             # PREPARE ROUTINE NARRATIVE #
