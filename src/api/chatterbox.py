@@ -64,7 +64,7 @@ def wrap_send_routine_ewi_sms():
             # PREPARE RECIPIENT MOBILE IDS #
             ################################
             org_id_list = get_org_ids(
-                scopes=[0, 1, 2], org_names=["lgu", "lewc"])
+                scopes=[0, 1, 2])
             routine_recipients = get_contacts_per_site(
                 site_codes=[site_code], org_ids=org_id_list)
 
