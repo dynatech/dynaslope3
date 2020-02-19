@@ -34,8 +34,7 @@ def get_org_ids(scopes=None, org_names=None):
         org_names (list):  list of org_names e.g. ["lewc", "lgu"]
     """
     orgs = Organizations
-    base = orgs.query.options(DB.raiseload("*")) \
-        .order_by(DB.asc(orgs.scope))
+    base = orgs.query.order_by(DB.asc(orgs.scope))
 
     if scopes:
         base = base.filter(orgs.scope in scopes)
