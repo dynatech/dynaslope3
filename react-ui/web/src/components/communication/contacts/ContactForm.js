@@ -306,7 +306,6 @@ function ContactForm (props) {
                 setOffice("");
             }
         }
-        
     }, [scope]);
 
 
@@ -344,7 +343,7 @@ function ContactForm (props) {
                 emails,
                 ewi_recipient,
                 restriction,
-                active
+                status: active
             },
             affiliation: {
                 site,

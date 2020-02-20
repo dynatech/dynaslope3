@@ -2,6 +2,7 @@
 Contacts Functions Controller File
 """
 
+import traceback
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from connection import DB
@@ -44,13 +45,6 @@ def save_contact():
     message = ""
 
     try:
-        if data["value"] is not None:
-            data = data["value"]
-    except KeyError:
-        print("Value is defined.")
-        pass
-
-    try:
         print(data)
         user = data["user"]
         contact_numbers = data["contact_numbers"]
@@ -67,7 +61,7 @@ def save_contact():
         DB.session.rollback()
         message = "Something went wrong, Please try again"
         status = False
-        print(err)
+        print(traceback.format_exc())
 
     feedback = {
         "status": status,
@@ -155,6 +149,7 @@ def get_ground_meas_reminder_recipients():
 
     return jsonify(data)
 
+
 @CONTACTS_BLUEPRINT.route("/contacts/blocked_numbers", methods=["GET", "POST"])
 def get_all_blocked_numbers():
     """
@@ -174,6 +169,7 @@ def get_all_blocked_numbers():
 
     return jsonify(feedback)
 
+
 @CONTACTS_BLUEPRINT.route("/contacts/save_block_number", methods=["GET", "POST"])
 def save_block_number():
     """
@@ -185,13 +181,6 @@ def save_block_number():
 
     status = None
     message = ""
-
-    try:
-        if data["value"] is not None:
-            data = data["value"]
-    except KeyError:
-        print("Value is defined.")
-        pass
 
     try:
         print(data)
@@ -212,6 +201,7 @@ def save_block_number():
 
     return jsonify(feedback)
 
+
 @CONTACTS_BLUEPRINT.route("/contacts/sim_prefix", methods=["GET"])
 def sim_prefixes():
     """
@@ -225,7 +215,7 @@ def sim_prefixes():
         status = False
         message = "Something went wrong, Please try again."
         data = []
-    
+
     feeback = {
         "status": status,
         "prefixes": data,
