@@ -8,7 +8,7 @@ import {
     makeStyles, Button, Grid,
     Paper
 } from "@material-ui/core";
-import { InsertChart } from "@material-ui/icons";
+import { InsertChart, Event } from "@material-ui/icons";
 import withWidth, { isWidthDown } from "@material-ui/core/withWidth";
 import { Route, Switch, Link } from "react-router-dom";
 
@@ -24,6 +24,7 @@ import RainfallGraph from "./RainfallGraph";
 import SubsurfaceGraph from "./SubsurfaceGraph";
 import ConsolidatedSiteCharts from "./ConsolidatedSiteCharts";
 import ConsolidateSiteChartsModal from "./ConsolidateSiteChartsModal";
+import InsertEarthquakeModal from "./InsertEarthquakeModal";
 import EarthquakeContainer from "./EarthquakeContainer";
 import MomsInstancesPage from "./MomsInstancesPage";
 
@@ -72,8 +73,19 @@ const MyLoader = () => (
     </ContentLoader>
 );
 
-function CustomButtons (change_consolidate_modal_fn) {
+function CustomButtons (change_consolidate_modal_fn, open_eq_modal) {
     return <span>
+        <Button
+            aria-label="Insert Earthquake Event"
+            variant="contained" 
+            color="primary"
+            size="small" 
+            style={{ marginRight: 8 }}
+            onClick={open_eq_modal(true)}
+        >
+            <Event style={{ paddingRight: 4, fontSize: 20 }}/>
+                    Insert Earthquake Event
+        </Button>
         <Button
             aria-label="Consolidate by site"
             variant="contained" 
@@ -416,7 +428,9 @@ function Container (props) {
     ts_now = moment();
 
     const [is_consolidate_modal_open, setIsConsolidateModalOpen] = useState(false);
+    const [is_earthquake_modal, setisEarthquakeModalOpen] = useState(false);
     const change_consolidate_modal_fn = bool => () => setIsConsolidateModalOpen(bool);
+    const open_eq_modal = bool => () => setisEarthquakeModalOpen(bool);
 
     const [subsurface_data_presence, setSubsurfaceDataPresence] = useState([]);
     const [subsurface_dp_option, setSubsurfaceDpOption] = useState(null);
@@ -554,12 +568,16 @@ function Container (props) {
     ];
 
     const [eq_events, setEqEvents] = useState([]);
+    const [reload_eq_event, setReloadEqEvent] = useState(true);
     useEffect(() => {
-        getEarthquakeEvents(data => {
-            setEqEvents(data);
-        });
-    }, []);
-
+        if (reload_eq_event) {
+            getEarthquakeEvents(data => {
+                setEqEvents(data);
+            });
+            setReloadEqEvent(false);
+        }
+        // console.log("eq reloaded");
+    }, [reload_eq_event]);
     const [eq_alerts, setEqAlerts] = React.useState([]);
     const [eq_al_tbl_pagination, setEqAlTblPage] = React.useState({ limit: 5, offset: 0, count: 0 });
     const [is_first_pass, setFirstPass] = React.useState(true);
@@ -582,7 +600,7 @@ function Container (props) {
             <div className={classes.pageContentMargin}>
                 <PageTitle
                     title="Analysis | Site Data Analytics"
-                    customButtons={is_desktop && is_main_page ? CustomButtons(change_consolidate_modal_fn) : false}
+                    customButtons={is_desktop && is_main_page ? CustomButtons(change_consolidate_modal_fn, open_eq_modal) : false}
                 />
             </div>
 
@@ -758,6 +776,11 @@ function Container (props) {
                 isOpen={is_consolidate_modal_open}
                 clickHandler={change_consolidate_modal_fn(false)}
                 url={url}
+            />
+            <InsertEarthquakeModal
+                isOpen={is_earthquake_modal}
+                clickHandler = {open_eq_modal(false)}
+                setReloadEqEvent = {setReloadEqEvent}
             />
         </Fragment>
     );

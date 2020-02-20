@@ -15,6 +15,7 @@ from src.models.analysis import (
 from src.utils.surficial import get_surficial_data_presence
 from src.utils.chart_rendering import render_charts
 from src.utils.rainfall import get_all_site_rainfall_data
+from src.utils.earthquake import insert_earthquake_event_to_db
 
 ANALYSIS_BLUEPRINT = Blueprint("analysis_blueprint", __name__)
 
@@ -92,6 +93,24 @@ def get_earthquake_events():
     return jsonify(result)
 
 
+@ANALYSIS_BLUEPRINT.route("/analysis/insert_earthquake_event", methods=["POST"])
+def insert_earthquake_event():
+    """
+    """
+
+    data = request.get_json()
+    magnitude = data["magnitude"]
+    depth = data["depth"]
+    lat = data["lat"]
+    long = data["long"]
+    ts = data["timestamp"]
+    issuer = data["issued_by"]
+
+    insert_earthquake_event_to_db(magnitude, depth, lat, long, ts, issuer)
+
+    return jsonify(data)
+
+
 @ANALYSIS_BLUEPRINT.route("/analysis/get_earthquake_alerts", methods=["GET"])
 def get_earthquake_alerts():
     limit = request.args.get("limit", default=10, type=int)
@@ -116,6 +135,7 @@ def get_earthquake_alerts():
     # result = EarthquakeAlertsSchema(many=True).dump(query).data
 
     return jsonify(result)
+
 
 
 @ANALYSIS_BLUEPRINT.route("/analysis/save_chart_svg", methods=["POST"])
