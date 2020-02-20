@@ -19,7 +19,6 @@ import Button from "@material-ui/core/Button";
 
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { CTContext } from "../../monitoring/dashboard/CTContext";
-import { getUnreleasedRoutineSites } from "./ajax";
 
 const useStyles = makeStyles(theme => ({
     inputGridContainer: {
@@ -89,7 +88,6 @@ function RoutineReleaseForm (comp_props) {
         setRoutineData(temp);
     };
     
-
     const [checked, setChecked] = React.useState([]);
 
     const leftChecked = intersection(checked, a0SiteList.site_id_list);

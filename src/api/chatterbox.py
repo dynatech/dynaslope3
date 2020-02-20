@@ -44,8 +44,8 @@ def wrap_send_routine_ewi_sms():
     json_data = request.get_json()
     site_list = json_data["site_list"]
     user_id = json_data["user_id"]
-
-    var_checker("site_list", site_list, True)
+    nickname = json_data["nickname"]
+    # var_checker("site_list", site_list, True)
 
     try:
         for site in site_list:
@@ -58,12 +58,14 @@ def wrap_send_routine_ewi_sms():
             # PREPARE EWI MESSAGE #
             #######################
             ewi_message = create_ewi_message(release_id=release_id)
+            ewi_message += f" - {nickname} from PHIVOLCS-DYNASLOPE"
             # var_checker("ewi_message", ewi_message, True)
 
             ################################
             # PREPARE RECIPIENT MOBILE IDS #
             ################################
-            org_id_list = get_org_ids(scopes=[0, 1, 2, 3])
+            org_id_list = get_org_ids(
+                scopes=[0, 1, 2], org_names=["lgu", "lewc"])
             routine_recipients = get_contacts_per_site(
                 site_codes=[site_code], org_ids=org_id_list)
 
@@ -92,7 +94,7 @@ def wrap_send_routine_ewi_sms():
                 "ts": datetime.now()
             }
             tag_id = 18  # TODO: FOR REFACTORING, for #EwiMessage
-            insert_data_tag("sms_outbox_user_tags", tag_details, tag_id)
+            insert_data_tag("smsoutbox_user_tags", tag_details, tag_id)
 
             #############################
             # PREPARE ROUTINE NARRATIVE #
@@ -109,7 +111,8 @@ def wrap_send_routine_ewi_sms():
                 "message": "success",
                 "status": True
             }
-    except:
+    except Exception as e:
+        var_checker("ERROR: Releasing Routine EWI SMS", e, True)
         DB.session.rollback()
         response = {
             "message": "failed",

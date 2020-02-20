@@ -121,7 +121,7 @@ def create_ewi_message(release_id=None):
         if alert_level in [1, 2]:
             ground_reminder += f"{modifier} bago mag-{reporting_time}. "
         else:
-            clause = " para sa"
+            clause = "para sa"
             reason = " susunod na routine monitoring"
 
             reporting_str = ""

@@ -17,7 +17,7 @@ ISSUES_AND_REMINDERS_BLUEPRINT = Blueprint(
     "issues_and_reminders_blueprint", __name__)
 
 
-@ISSUES_AND_REMINDERS_BLUEPRINT.route("/issues_and_reminders/get_issues_reminders", methods=["GET"])
+# Function used in monitoring_ws
 def wrap_get_issue_reminder():
     issues = get_issues_and_reminders(
         include_count=False, include_expired=False)
@@ -62,7 +62,8 @@ def wrap_write_issue_reminder_to_db():
     return status
 
 
-@ISSUES_AND_REMINDERS_BLUEPRINT.route("/issues_and_reminders/get_issues_and_reminders", methods=["GET"])
+@ISSUES_AND_REMINDERS_BLUEPRINT.route(
+    "/issues_and_reminders/get_issues_and_reminders", methods=["GET"])
 @ISSUES_AND_REMINDERS_BLUEPRINT.route(
     "/issues_and_reminders/get_issues_and_reminders/<start>/<end>", methods=["GET"])
 def wrap_get_issues_and_reminders(start=None, end=None):

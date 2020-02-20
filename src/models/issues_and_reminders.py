@@ -28,11 +28,13 @@ class IssuesAndReminders(UserMixin, DB.Model):
     ts_posted = DB.Column(DB.DateTime, nullable=False)
     ts_expiration = DB.Column(DB.DateTime)
     resolved_by = DB.Column(DB.Integer)
-    resolution = DB.Column(DB.String(360))
+    resolution = DB.Column(DB.String(500))
     ts_resolved = DB.Column(DB.DateTime)
 
     postings = DB.relationship(
-        "IssuesRemindersSitePostings", backref=DB.backref("issue_and_reminder", lazy="joined"), lazy="subquery")
+        "IssuesRemindersSitePostings",
+        backref=DB.backref("issue_and_reminder", lazy="joined"),
+        lazy="subquery")
 
     # Louie - Relationship
     issue_reporter = DB.relationship(
@@ -62,9 +64,12 @@ class IssuesRemindersSitePostings(UserMixin, DB.Model):
         "ewi_db.monitoring_events.event_id"))
 
     event = DB.relationship(
-        "MonitoringEvents", backref=DB.backref("issues_reminders_site_posting", lazy="raise"), lazy="joined")
+        "MonitoringEvents",
+        backref=DB.backref("issues_reminders_site_posting", lazy="raise"),
+        lazy="joined")
     site = DB.relationship(
-        "Sites", backref=DB.backref("issues_reminders_site_posting", lazy="raise"), lazy="joined")
+        "Sites", backref=DB.backref("issues_reminders_site_posting", lazy="raise"),
+        lazy="joined")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> iar_p_id: {self.iar_p_id}"

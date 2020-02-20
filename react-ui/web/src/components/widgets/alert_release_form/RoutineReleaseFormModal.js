@@ -33,7 +33,8 @@ function prepareSitesOption (arr) {
 function RoutineReleaseFormModal (props) {
     const {
         fullScreen, isOpen,
-        closeHandler, chosenCandidateAlert
+        closeHandler, chosenCandidateAlert,
+        setChosenCandidateAlert
     } = props;
     const { user_id: reporter_id_mt } = getCurrentUser();
     const { reporter_id_ct: tmp_ct } = React.useContext(CTContext);
@@ -78,22 +79,28 @@ function RoutineReleaseFormModal (props) {
     }, [sites]);
 
     useEffect(() => {
-        if (dataTimestamp != null) {
-            getUnreleasedRoutineSites(dataTimestamp, data => {
-                const { unreleased_sites } = data;
-                const temp = prepareSitesOption(unreleased_sites);
+        if (chosenCandidateAlert === null) {
+            if (dataTimestamp !== null) {
+                getUnreleasedRoutineSites(dataTimestamp, data => {
+                    const { unreleased_sites } = data;
+                    const temp = prepareSitesOption(unreleased_sites);
+                    setA0SiteList({
+                        ...a0SiteList,
+                        site_id_list: temp
+                    });
+                });
+            } else {
                 setA0SiteList({
                     ...a0SiteList,
-                    site_id_list: temp
+                    site_id_list: []
                 });
-            });
-        } else {
-            setA0SiteList({
-                ...a0SiteList,
-                site_id_list: []
-            });
+                setNDSiteList({
+                    ...NDSiteList,
+                    site_id_list: []
+                });
+            }
         }
-    }, [dataTimestamp]);
+    }, [dataTimestamp, chosenCandidateAlert]);
 
     useEffect(() => {
         if (typeof chosenCandidateAlert !== "undefined" && chosenCandidateAlert !== null && chosenCandidateAlert.general_status === "routine") {
@@ -106,40 +113,30 @@ function RoutineReleaseFormModal (props) {
             };
 
             setRoutineData(temp);
+            setDataTimestamp(copy.data_ts);
 
-            const { routine_details: rd } = chosenCandidateAlert;
+            const { routine_details: rd } = { ...chosenCandidateAlert };
             rd.forEach(row => {
                 const { site_id_list, internal_alert_level } = row;
-
                 const site_list = site_options.filter(s => site_id_list.includes(s.value));
-                row.site_id_list = site_list;
+
+                const a_temp = {
+                    ...row,
+                    site_id_list: site_list
+                };
 
                 if (internal_alert_level === "A0") {
-                    setA0SiteList(row);
+                    setA0SiteList(a_temp);
                 } else {
-                    setNDSiteList(row);
+                    setNDSiteList(a_temp);
                 }
             });
 
             setEwiPayload({ ...ewiPayload });
-        } else {
-            setRoutineData({ ...initial_routine_data });
-            // const temp = prepareSitesOption(sites);
-            setA0SiteList({
-                ...a0SiteList,
-                site_id_list: []
-            });
-            setNDSiteList({
-                ...NDSiteList,
-                site_id_list: []
-            });
         }
-    // }, [chosenCandidateAlert, reporter_id_ct, site_options]);
     }, [chosenCandidateAlert, site_options]);
 
     const handleSubmit = () => {
-        console.log("Submitting data...", ewiPayload);
-
         const f_data_ts = moment(routineData.data_ts).format("YYYY-MM-DD HH:mm:ss");
         const f_rel_time = moment(routineData.release_time).format("HH:mm:ss");
 
@@ -152,15 +149,16 @@ function RoutineReleaseFormModal (props) {
                 { ...NDSiteList }
             ]
         };
-        console.log("temp_payload", temp_payload);
+        
+        console.log("Submitting data...", temp_payload);
         sendWSMessage("insert_ewi", temp_payload);
         closeHandler();
     };
 
     const handleClose = () => {
         closeHandler();
-        // setA0SiteList({ ...a0_list });
-        // setNDSiteList({ ...nd_list });
+        setChosenCandidateAlert(null);
+        setDataTimestamp(null);
     };
 
     return (
@@ -174,7 +172,8 @@ function RoutineReleaseFormModal (props) {
                 <DialogTitle id="form-dialog-title">Routine Release Form</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Routine Release Form
+                        Transfer site codes to their respective list if needed. Put sites with ground data on "A0 Sites" list
+                        while put sites without ground data on "ND Sites". 
                     </DialogContentText>
                     <RoutineReleaseForm
                         routineData={routineData}

@@ -482,7 +482,10 @@ function AlertReleaseForm (comp_props) {
                 />;
             case 3:
                 return (
-                    <Typography variant="body1">Early warning information released!</Typography>
+                    <Typography variant="body1">
+                        Early warning information released! Please wait for the dashboard to update or check the 
+                        site event timeline to confirm if EWI is released.
+                    </Typography>
                 );
             default:
                 return "Uknown stepIndex";

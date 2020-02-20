@@ -77,9 +77,8 @@ function IssuesAndReminderForm (props) {
     const [is_persistent_checked, setIsPersistentChecked] = useState(false);
 
     useEffect(() => {
-        setIsEventChecked(is_event_entry); 
-        
-        
+        setIsEventChecked(is_event_entry);
+
         if (iar_id !== "" && typeof iar_id !== "undefined") {
             const site_choices = site_id_list.map(site_id => {
                 return sites_option.filter(number => number.value === site_id).pop();
@@ -90,6 +89,7 @@ function IssuesAndReminderForm (props) {
                 site_id_list: site_choices
             });
         }
+        
         if (site_id_list !== null && typeof site_id_list !== "undefined" ) {
             if (site_id_list.length > 0) {
                 set_default_radio_value("site");
@@ -97,10 +97,10 @@ function IssuesAndReminderForm (props) {
                 setIsGeneralIar("site");    
             }           
         }
+        
         if (ts_expiration === null) {
             setIsPersistentChecked(true);
         }
-        
     }, []);
    
     useEffect(() => {

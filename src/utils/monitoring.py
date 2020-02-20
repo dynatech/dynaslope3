@@ -259,9 +259,9 @@ def get_saved_event_triggers(event_id):
     me = MonitoringEvents
     event_triggers = DB.session.query(
         mt.internal_sym_id, DB.func.max(mt.ts)) \
-            .join(mr).join(mea).join(me) \
-                .filter(me.event_id == event_id) \
-                    .group_by(mt.internal_sym_id).all()
+        .join(mr).join(mea).join(me) \
+        .filter(me.event_id == event_id) \
+        .group_by(mt.internal_sym_id).all()
 
     return event_triggers
 
@@ -349,8 +349,8 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}."
-                      + f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}." +
+                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -362,7 +362,7 @@ def update_alert_status(as_details):
         # NOTE: refactor by directly sending messages
         # ALSO NOTE: Remove Sandbox from sms_msg when GSM 3 arrived
         row = SmsInboxUsers2(
-            mobile_id=31, # Default for community phone
+            mobile_id=31,  # Default for community phone
             sms_msg=f"Sandbox ACK {stat_id} {val_map[alert_status]} {remarks}",
             gsm_id=2
         )
@@ -387,7 +387,7 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
     is_bulletin_sent = False
 
     if not is_onset_release or \
-        (is_onset_release and start_ts.hour % 3 and start_ts.minute == 30):
+            (is_onset_release and start_ts.hour % 3 and start_ts.minute == 30):
         # TODO: make this dynamic
         start_ts = start_ts + timedelta(minutes=30)
 
@@ -432,7 +432,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         run_ts = datetime.now()
 
     active_event_alerts = get_active_monitoring_events()
-
     latest = []
     extended = []
     overdue = []
@@ -456,7 +455,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             is_onset_release, event_id, data_ts)
 
         if data_ts.hour == 23 and release_time.hour < release_interval_hours:
-        # if data_ts.hour == 23 and release_time.hour < 4:
+            # if data_ts.hour == 23 and release_time.hour < 4:
             # rounded_data_ts = round_to_nearest_release_time(data_ts)
             str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
             str_release_time = str(release_time)
@@ -484,11 +483,13 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         all_event_triggers = get_monitoring_triggers(
             event_id=event_id,
             load_options="on_going_and_extended")
-        latest_triggers_per_kind = get_unique_triggers(trigger_list=all_event_triggers)
+        latest_triggers_per_kind = get_unique_triggers(
+            trigger_list=all_event_triggers)
         mts = MonitoringTriggersSchema(many=True, exclude=[
             "release", "trigger_misc.moms_releases.moms_details.narrative.site",
             "trigger_misc.moms_releases.moms_details.moms_instance.site"])
-        event_alert_data["latest_event_triggers"] = mts.dump(latest_triggers_per_kind).data
+        event_alert_data["latest_event_triggers"] = mts.dump(
+            latest_triggers_per_kind).data
 
         if run_ts <= validity:
             # On time release
@@ -500,7 +501,8 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             else:
                 # Get Next Day 00:00
                 next_day = validity + timedelta(days=1)
-                start = datetime(next_day.year, next_day.month, next_day.day, 0, 0, 0)
+                start = datetime(next_day.year, next_day.month,
+                                 next_day.day, 0, 0, 0)
                 # Day 3 is the 3rd 12-noon from validity
                 end = start + timedelta(days=extended_monitoring_days)
                 current = run_ts  # Production code is current time
@@ -561,12 +563,36 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                         pass
 
     # Currently 12; so data timestamp to get should be 30 minutes before
-    dt = datetime.combine(date.today(), time(hour=ROU_EXT_RELEASE_TIME, minute=0))
+    dt = datetime.combine(date.today(), time(
+        hour=ROU_EXT_RELEASE_TIME, minute=0))
     less_30_dt = dt - timedelta(minutes=30)
     next_release_dt = dt + timedelta(hours=release_interval_hours)
     routine_extended_release_time = less_30_dt.time()
+
     if routine_extended_release_time <= run_ts.time() < next_release_dt.time():
-        routine = get_unreleased_routine_sites(less_30_dt, only_site_code=False)
+        routine = get_unreleased_routine_sites(
+            less_30_dt, only_site_code=False)
+        unreleased_routine = routine["unreleased_sites"]
+        released_routine = routine["released_sites"]
+
+        merged_alerts = latest + overdue + extended
+        for row in merged_alerts:
+            sc = row["event"]["site"]["site_code"]
+
+            unreleased_index = next((index for (index, d) in enumerate(
+                unreleased_routine) if d["site_code"] == sc), -1)
+            if unreleased_index > -1:
+                del unreleased_routine[unreleased_index]
+
+            released_index = next((index for (index, d) in enumerate(
+                released_routine) if d["site_code"] == sc), -1)
+            if released_index > -1:
+                del released_routine[released_index]
+
+        routine = {
+            "unreleased_sites": unreleased_routine,
+            "released_sites": released_routine
+        }
 
     db_alerts = {
         "latest": latest,
@@ -622,7 +648,8 @@ def get_routine_sites(timestamp=None, include_inactive=False, only_site_code=Tru
 
 
 def get_unreleased_routine_sites(data_timestamp, only_site_code=True):
-    routine_sites = get_routine_sites(timestamp=data_timestamp, only_site_code=only_site_code)
+    routine_sites = get_routine_sites(
+        timestamp=data_timestamp, only_site_code=only_site_code)
 
     released_sites = []
     unreleased_sites = []
@@ -639,20 +666,22 @@ def get_unreleased_routine_sites(data_timestamp, only_site_code=True):
             }
 
         # This is with the assumption that you are using data_timestamp
-        site_release = get_monitoring_releases_by_data_ts(site_code, data_timestamp)
+        site_release = get_monitoring_releases_by_data_ts(
+            site_code, data_timestamp)
         if site_release:
             if not only_site_code:
-                f_data_ts = datetime.strftime(site_release.data_ts, "%Y-%m-%d %H:%M:%S")
-                f_rel_time = time.strftime(site_release.release_time, "%H:%M:%S")
-                temp = {
+                f_data_ts = datetime.strftime(
+                    site_release.data_ts, "%Y-%m-%d %H:%M:%S")
+                f_rel_time = time.strftime(
+                    site_release.release_time, "%H:%M:%S")
+                temp.update({
                     "event_id": site_release.event_alert.event_id,
                     "event_alert_id": site_release.event_alert_id,
                     "release_id": site_release.release_id,
-                    "site_code": site_code,
-                    "site_id": site_release.event_alert.event.site_id,
                     "data_ts": f_data_ts,
                     "release_time": f_rel_time
-                }
+                })
+
             released_sites.append(temp)
         else:
             unreleased_sites.append(temp)
@@ -721,13 +750,18 @@ def get_internal_alert_symbols(internal_sym_id=None):
                 InternalAlertSymbols.internal_sym_id == internal_sym_id).first()
             return_data = internal_symbol.alert_symbol
         else:
-            return_data = DB.session.query(InternalAlertSymbols, TriggerHierarchies.trigger_source).join(
+            return_data = DB.session.query(
+                InternalAlertSymbols,
+                TriggerHierarchies.trigger_source
+            ).join(
                 OperationalTriggerSymbols).join(TriggerHierarchies).all()
     except Exception as err:
         print(err)
         raise
 
     return return_data
+
+
 #############################################
 #   MONITORING_RELEASES RELATED FUNCTIONS   #
 #############################################
@@ -754,7 +788,7 @@ def get_monitoring_releases(
         release_id=None, ts_start=None, ts_end=None,
         event_id=None, user_id=None, exclude_routine=False,
         load_options=None
-        ):
+):
     """
     Returns monitoring_releases based on given parameters.
 
@@ -777,8 +811,9 @@ def get_monitoring_releases(
             .joinedload("site", innerjoin=True)
             .raiseload("*"),
             ea_load.joinedload("public_alert_symbol", innerjoin=True),
-            DB.subqueryload("release_publishers").joinedload("user_details", innerjoin=True) \
-                .raiseload("*"),
+            DB.subqueryload("release_publishers").joinedload(
+                "user_details", innerjoin=True)
+            .raiseload("*"),
             DB.raiseload("*")
         )
     elif load_options == "ewi_narrative":
@@ -840,7 +875,8 @@ def get_unique_triggers(trigger_list, reverse=True):
         elif isinstance(trigger, dict):
             internal_sym_id = trigger["internal_sym_id"]
         else:
-            raise TypeError("Trigger provided is neither a Dictionary nor Object!")
+            raise TypeError(
+                "Trigger provided is neither a Dictionary nor Object!")
 
         if not internal_sym_id in unique_triggers_set:
             unique_triggers_set.add(internal_sym_id)
@@ -870,8 +906,10 @@ def get_monitoring_triggers(
     elif load_options == "on_going_and_extended":
         base = base.options(
             DB.raiseload("release"),
-            DB.raiseload("trigger_misc.moms_releases.moms_details.narrative.site"),
-            DB.raiseload("trigger_misc.moms_releases.moms_details.moms_instance.site")
+            DB.raiseload(
+                "trigger_misc.moms_releases.moms_details.narrative.site"),
+            DB.raiseload(
+                "trigger_misc.moms_releases.moms_details.moms_instance.site")
         )
 
     if ts_start:
@@ -883,7 +921,8 @@ def get_monitoring_triggers(
     if event_id:
         base = base.join(mr).join(mea).join(me).filter(me.event_id == event_id)
     elif event_alert_id:
-        base = base.join(mr).join(mea).filter(mea.event_alert_id == event_alert_id)
+        base = base.join(mr).join(mea).filter(
+            mea.event_alert_id == event_alert_id)
     elif release_id:
         base = base.join(mr).filter(mr.release_id == release_id)
 
@@ -913,12 +952,12 @@ def check_if_has_moms_or_earthquake_trigger(event_id):
     sq = DB.session.query(DB.func.max(mt.ts).label("max_ts"), mt.internal_sym_id) \
         .join(ias).join(ots).join(th).join(mr).join(mea) \
         .filter(th.trigger_source.in_(["moms", "earthquake"])) \
-            .filter(mea.event_id == event_id) \
-            .group_by(mt.internal_sym_id).subquery()
+        .filter(mea.event_id == event_id) \
+        .group_by(mt.internal_sym_id).subquery()
     result = mt.query.options(DB.raiseload("*")).join(sq, DB.and_(
         mt.ts == sq.c.max_ts,
         mt.internal_sym_id == sq.c.internal_sym_id
-        )).all()
+    )).all()
 
     for row in result:
         symbol = retrieve_data_from_memcache(
@@ -995,7 +1034,7 @@ def format_events_table_data(events):
         str_validity = None
         if event.validity:
             str_validity = event.validity.strftime("%Y-%m-%d %H:%M:%S")
-        
+
         str_ts_end = None
         ts_end = latest_event_alert.ts_end
         if ts_end:
@@ -1018,7 +1057,7 @@ def format_events_table_data(events):
             "ts_end": str_ts_end
         }
         event_data.append(event_dict)
-    
+
     return event_data
 
 
@@ -1048,8 +1087,9 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
         base = base.filter(me.status.in_(entry_types))
 
     if search != "":
-        base = base.filter(DB.or_(mea.ts_start.ilike("%" + search + "%"), mea.ts_end.ilike("%" + search + "%")))
-    
+        base = base.filter(DB.or_(mea.ts_start.ilike(
+            "%" + search + "%"), mea.ts_end.ilike("%" + search + "%")))
+
     if active_only:
         base = base.filter(Sites.active == 1)
 
@@ -1062,7 +1102,7 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
         count = get_event_count(base)
         return_data = {
             "events": formatted_events,
-            "count":count
+            "count": count
         }
     else:
         return_data = formatted_events
@@ -1082,7 +1122,7 @@ def get_latest_monitoring_event_per_site(site_id):
 
     event = me.query.options(DB.raiseload("*")) \
         .order_by(DB.desc(MonitoringEvents.event_start)) \
-            .filter(MonitoringEvents.site_id == site_id).first()
+        .filter(MonitoringEvents.site_id == site_id).first()
 
     return event
 
@@ -1126,13 +1166,14 @@ def get_active_monitoring_events():
     # since SQLAlchemy interprets "is None" differently.
     active_events = mea.query.join(me) \
         .options(
-            DB.joinedload("event", innerjoin=True).joinedload("site", innerjoin=True) \
-                .raiseload("*"),
+            DB.joinedload("event", innerjoin=True).joinedload(
+                "site", innerjoin=True)
+        .raiseload("*"),
             DB.subqueryload("releases").raiseload("*"),
             DB.joinedload("public_alert_symbol").raiseload("*"),
             DB.raiseload("*")
-        ).order_by(DB.desc(mea.event_alert_id)) \
-            .filter(DB.and_(me.status == 2, mea.ts_end == None)).all()
+    ).order_by(DB.desc(mea.event_alert_id)) \
+        .filter(DB.and_(me.status == 2, mea.ts_end == None)).all()
 
     return active_events
 
@@ -1146,8 +1187,11 @@ def get_current_monitoring_instance_per_site(site_id):
         site_id - mandatory Integer parameter
     """
     event = MonitoringEvents
-    latest_event = event.query.order_by(DB.desc(event.event_id)).filter(
-        event.site_id == site_id).first()
+    latest_event = event.query.options(
+        DB.subqueryload("event_alerts").raiseload("releases"),
+        DB.joinedload("site", innerjoin=True).raiseload("*")
+    ).order_by(DB.desc(event.event_id)) \
+        .filter(event.site_id == site_id).first()
 
     return latest_event
 
@@ -1214,7 +1258,8 @@ def write_moms_instances_to_db(instance_details):
         moms_instance = MomsInstances(
             site_id=instance_details["site_id"],
             feature_id=instance_details["feature_id"],
-            feature_name=instance_details["feature_name"]
+            feature_name=instance_details["feature_name"],
+            location=instance_details["location"]
         )
         DB.session.add(moms_instance)
         DB.session.flush()
@@ -1238,7 +1283,8 @@ def search_single_letter_feature_name(feature_id):
     """
     mi = MomsInstances
     instance_list = None
-    instance_list = mi.query.order_by(DB.desc(mi.feature_name)).filter(mi.feature_id == feature_id).filter(func.char_length(mi.feature_name) == 1).all()
+    instance_list = mi.query.order_by(DB.desc(mi.feature_name)).filter(
+        mi.feature_id == feature_id).filter(func.char_length(mi.feature_name) == 1).all()
 
     return instance_list
 
@@ -1301,7 +1347,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             site_id=site_id,
             timestamp=observance_ts,
             narrative=narrative,
-            type_id=2, # NOTE: STATIC VALUE SET Event Narrative Type
+            type_id=2,  # NOTE: STATIC VALUE SET Event Narrative Type
             event_id=event_id,
             user_id=iomp
         )
@@ -1335,7 +1381,8 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             else:
                 moms_instance = False
                 # Create new feature name based on the latest letter in DB
-                feature_names_list = search_single_letter_feature_name(feature_id)
+                feature_names_list = search_single_letter_feature_name(
+                    feature_id)
 
                 if feature_names_list:
                     # Get feature names with only letters
@@ -1349,7 +1396,8 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
                 instance_details = {
                     "site_id": site_id,
                     "feature_id": feature_id,
-                    "feature_name": feature_name
+                    "feature_name": feature_name,
+                    "location": moms_details["location"]
                 }
                 moms_instance_id = write_moms_instances_to_db(instance_details)
             else:
@@ -1680,7 +1728,8 @@ def update_monitoring_release_on_db(release_to_update, release_details):
                 DB.session.delete(trig_misc.on_demand)
             if trig_misc.has_moms:
                 mmr = MonitoringMomsReleases
-                moms_release = MonitoringMomsReleases.query.filter(mmr.trig_misc_id == trig_misc.trig_misc_id)
+                moms_release = MonitoringMomsReleases.query.filter(
+                    mmr.trig_misc_id == trig_misc.trig_misc_id)
                 if moms_release:
                     if moms_release.moms_details:
                         DB.session.delete(moms_release.moms_details)

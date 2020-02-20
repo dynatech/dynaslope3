@@ -1,12 +1,12 @@
 """
 Contacts Functions Utility File
 """
+
 from datetime import datetime, timedelta
 from sqlalchemy.orm import joinedload
 from connection import DB
 from src.models.users import (
-    Users, UsersSchema,
-    UserEmails, UserLandlines,
+    Users, UserEmails, UserLandlines,
     UsersRelationship, UsersRelationshipSchema,
     UserEwiRestrictions
 )
@@ -21,23 +21,26 @@ from src.models.organizations import (
 )
 from src.models.gsm import SimPrefixes, SimPrefixesSchema
 from src.models.sites import Sites
-from src.models.user_ewi_status import UserEwiStatus, UserEwiStatusSchema
 from src.models.analysis import MarkerObservations
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
+from src.utils.extra import var_checker
 
 
 def get_org_ids(scopes=None, org_names=None):
     """
-    Returns org ids as need by other APIs
+        Returns org ids as need by other APIs
+
+        scopes (list):  list of scope e.g. [0, 1] 0 -> community, 1 -> barangay
+        org_names (list):  list of org_names e.g. ["lewc", "lgu"]
     """
     orgs = Organizations
-    base = orgs.query.order_by(DB.asc(orgs.scope))
+    base = orgs.query.options(DB.raiseload("*")).order_by(DB.asc(orgs.scope))
 
     if scopes:
-        base = base.filter(orgs.scope in scopes)
+        base = base.filter(orgs.scope.in_(scopes))
 
     if org_names:
-        base = base.filter(orgs.org_name in org_names)
+        base = base.filter(orgs.name.in_(org_names))
 
     org_ids = base.all()
 
@@ -215,7 +218,7 @@ def get_contacts_per_site(site_ids=None,
         query = query.filter(Sites.site_code.in_(site_codes))
 
     if org_ids:
-        query = query.join(UserOrganizations).filter(
+        query = query.filter(
             UserOrganizations.org_id.in_(org_ids)
         )
 

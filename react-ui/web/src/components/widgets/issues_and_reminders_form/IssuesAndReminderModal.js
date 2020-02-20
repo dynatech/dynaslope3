@@ -32,30 +32,30 @@ const default_state = {
 function IssuesAndReminderModal (props) {
     const {
         fullScreen, isOpen,
-        closeHandler, setIsUpdateNeeded,
-        chosenIssueReminder, isUpdateNeeded, toResolve
+        closeHandler, setIsIandRUpdateNeeded,
+        chosenIssueReminder, isIandRUpdateNeeded, toResolve
     } = props;
     const [issue_reminder_data, setIssueReminderData] = useState({});
     
     useEffect(() => {
-        if (isUpdateNeeded) {
+        if (isIandRUpdateNeeded) {
             const chosenData = chosenIssueReminder;
             const get_site_id_list = chosenIssueReminder.postings.map(row => row.site_id);
             const get_event_id = chosenIssueReminder.postings.map(row => row.event.event_id);
             chosenData.site_id_list = get_site_id_list;
-            chosenData.is_event_entry = get_event_id;
+            chosenData.is_event_entry = get_event_id.length > 0;
             setIssueReminderData(chosenData);
             console.log(chosenData);
-
         } else {
             setIssueReminderData(default_state);
         }
     }, [isOpen, chosenIssueReminder]);
 
-    const closeHandlerAction = () => { 
-        setIsUpdateNeeded(false);
-        closeHandler(false); 
+    const closeHandlerAction = () => {
+        setIsIandRUpdateNeeded(false);
+        closeHandler(false);
     };
+
     const handleSubmit = () => {
         const { resolution } = issue_reminder_data;
 
@@ -69,7 +69,6 @@ function IssuesAndReminderModal (props) {
             handleIssuesAndReminders(issue_reminder_data, ret => {});
             closeHandlerAction();     
         }
-       
     };
     
     return (
@@ -94,10 +93,10 @@ function IssuesAndReminderModal (props) {
             </DialogContent>
             <DialogActions>
                 <Button onClick={closeHandlerAction} color="primary">
-                        Cancel
+                    Cancel
                 </Button>
                 <Button color="secondary" onClick={handleSubmit} disabled={false}>
-                        Submit
+                    Submit
                 </Button>
             </DialogActions>
         </Dialog>
