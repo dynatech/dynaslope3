@@ -431,8 +431,9 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
     routine_extended_release_time = ROUTINE_EXTENDED_RELEASE_TIME
     release_interval_hours = RELEASE_INTERVAL_HOURS
 
-    routine_sites_list = list(map(
-        lambda x: x["site_code"], routine["unreleased_sites"]))
+    if routine:
+        routine_sites_list = list(map(
+            lambda x: x["site_code"], routine["unreleased_sites"]))
 
     # Get all latest and overdue from db alerts
     merged_db_alerts_list = latest + overdue
