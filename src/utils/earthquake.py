@@ -56,3 +56,16 @@ def get_earthquake_alerts(timestamp, site_id):
     earthquake_alerts = eq_a.query.join(eq_e).filter(eq_filter).all()
 
     return earthquake_alerts
+
+def insert_earthquake_event_to_db(mag, dep, lat, long, timestamp, issued_by):
+    try:
+        insert = EarthquakeEvents(ts=timestamp, magnitude=mag, depth=dep,
+                                  latitude=lat, longitude=long, issuer=issued_by, processed=0)
+        DB.session.add(insert)
+        DB.session.commit()
+        print("success")
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+
+    return insert

@@ -122,6 +122,17 @@ export function getEarthquakeEvents (callback) {
     });
 }
 
+export function insertEarthquakeEvent (input, callback) {
+    const api_link = `${host}/api/analysis/insert_earthquake_event`;
+    axios.post(api_link, input)
+    .then(response => {
+        callback(response);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function getEarthquakeAlerts (request, callback) {
     const { limit, offset } = request;
     const api_link = `${host}/api/analysis/get_earthquake_alerts`
