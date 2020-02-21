@@ -74,11 +74,11 @@ function SendRoutineEwiSmsModal (props) {
         };
         modalStateHandler();
         sendRoutineEwiMessage(input, response => {
-            console.log(response.message);
+            console.log(response);
 
             if (response.status) {
                 enqueueSnackbar(
-                    "EWI SMS Sent!",
+                    "Routine EWI SMS Sent!",
                     {
                         variant: "success",
                         autoHideDuration: 7000,
@@ -86,11 +86,12 @@ function SendRoutineEwiSmsModal (props) {
                     }
                 );
             } else {
+                const temp = response.site_ids.map(x => x.toUpperCase());
                 enqueueSnackbar(
-                    response.message,
+                    `Some problems occurred sending EWI SMS to ${temp.join(", ")}`,
                     {
                         variant: "error",
-                        autoHideDuration: 7000,
+                        persist: true,
                         action: snackBarActionFn
                     }
                 );
@@ -98,7 +99,7 @@ function SendRoutineEwiSmsModal (props) {
         }, error_response => {
             console.log("error_response", error_response);
             enqueueSnackbar(
-                "Error sending Routine EWI SMS...",
+                "Error sending routine EWI SMS...",
                 {
                     variant: "error",
                     autoHideDuration: 7000,

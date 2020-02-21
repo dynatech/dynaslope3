@@ -47,8 +47,14 @@ def wrap_send_routine_ewi_sms():
     nickname = json_data["nickname"]
     # var_checker("site_list", site_list, True)
 
-    try:
-        for site in site_list:
+    response = {
+        "message": "success",
+        "status": True,
+        "site_ids": []
+    }
+
+    for site in site_list:
+        try:
             site_code = site["site_code"]
             # site_id = site["site_id"]
             release_id = site["release_id"]
@@ -106,18 +112,12 @@ def wrap_send_routine_ewi_sms():
                 1, user_id, event_id
             )
             DB.session.commit()
-
-            response = {
-                "message": "success",
-                "status": True
-            }
-    except Exception as e:
-        var_checker("ERROR: Releasing Routine EWI SMS", e, True)
-        DB.session.rollback()
-        response = {
-            "message": "failed",
-            "status": False
-        }
+        except Exception as e:
+            var_checker("ERROR: Releasing Routine EWI SMS", e, True)
+            DB.session.rollback()
+            response["message"] = "failed",
+            response["status"] = False
+            response["site_ids"].append(site["site_code"])
 
     return jsonify(response)
 
