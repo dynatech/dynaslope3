@@ -44,6 +44,7 @@ def wrap_send_routine_ewi_sms():
     json_data = request.get_json()
     site_list = json_data["site_list"]
     user_id = json_data["user_id"]
+    nickname = json_data["nickname"]
     # var_checker("site_list", site_list, True)
 
     try:
@@ -57,6 +58,7 @@ def wrap_send_routine_ewi_sms():
             # PREPARE EWI MESSAGE #
             #######################
             ewi_message = create_ewi_message(release_id=release_id)
+            ewi_message += f" - {nickname} from PHIVOLCS-DYNASLOPE"
             # var_checker("ewi_message", ewi_message, True)
 
             ################################

@@ -182,7 +182,7 @@ function SendMessageForm (props) {
             });
         }
 
-        const formatted_message = `${composed_message} - ${current_user.first_name} from PHIVOLCS-DYNASLOPE`;
+        const formatted_message = `${composed_message} - ${current_user.nickname} from PHIVOLCS-DYNASLOPE`;
 
         const payload = {
             sms_msg: formatted_message,

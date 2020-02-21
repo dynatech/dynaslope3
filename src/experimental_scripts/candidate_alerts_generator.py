@@ -129,8 +129,8 @@ def process_totally_invalid_sites(totally_invalid_sites_list,
             generated_alert["ts"], "%Y-%m-%d %H:%M:%S")
         is_release_time = check_if_routine_extended_release_time(ts)
 
-        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
-                                            == site_code, extended))
+        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
+                                            site_code, extended))
         if is_in_extended_alerts:
             if is_release_time:
                 general_status = "extended"
@@ -420,6 +420,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
     latest = db_alerts_dict["latest"]
     extended = db_alerts_dict["extended"]
     overdue = db_alerts_dict["overdue"]
+    routine = db_alerts_dict["routine"]
 
     totally_invalid_sites_list = []
 
@@ -430,14 +431,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
     routine_extended_release_time = ROUTINE_EXTENDED_RELEASE_TIME
     release_interval_hours = RELEASE_INTERVAL_HOURS
 
-    routine_sites_list = []
-    if query_end_ts.hour == routine_extended_release_time.hour and \
-            query_end_ts.minute >= routine_extended_release_time.minute:
-        ts = round_to_nearest_release_time(
-            query_end_ts, release_interval_hours) - timedelta(minutes=30)
-        temp_sites = get_unreleased_routine_sites(ts)
-        # routine_sites_list = get_routine_sites(query_end_ts)
-        routine_sites_list = temp_sites["unreleased_sites"]
+    routine_sites_list = list(map(
+        lambda x: x["site_code"], routine["unreleased_sites"]))
 
     # Get all latest and overdue from db alerts
     merged_db_alerts_list = latest + overdue
@@ -476,8 +471,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 for event_trigger in site_w_alert["event_triggers"]:
                     saved_trigger = next(filter(
-                        lambda x: x["internal_sym"]["internal_sym_id"] ==
-                        event_trigger["internal_sym_id"],
+                        lambda x: x["internal_sym"]["internal_sym_id"]
+                        == event_trigger["internal_sym_id"],
                         saved_event_triggers), None)
 
                     is_trigger_new = False
@@ -682,10 +677,6 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
         has_routine_data = a0_routine_list or nd_routine_list
 
         if has_routine_data:
-            # try:
-            #     routine_data_ts = a0_routine_list[0]["ts"]
-            # except IndexError:
-            #     routine_data_ts = nd_routine_list[0]["ts"]
             routine_data_ts = current_routine_data_ts
 
             public_alert_symbol = retrieve_data_from_memcache(

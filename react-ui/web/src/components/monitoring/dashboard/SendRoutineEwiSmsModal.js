@@ -18,7 +18,7 @@ import { SlideTransition, FadeTransition } from "../../reusables/TransitionList"
 function SendRoutineMessageForm (props) {
     const {
         is_loading_recipients, textboxValue,
-        sendHandler, modalStateHandler
+        sendHandler
     } = props;
 
     return (
@@ -37,12 +37,8 @@ function SendRoutineMessageForm (props) {
                 <MessageInputTextbox
                     limitRows={false}
                     value={textboxValue}
-                    // value="composed_message"
-                    // disableSend={is_recipients_empty || is_message_empty}
                     disableSend={false}
                     sendButtonClickHandler={sendHandler}
-                    // messageChangeHandler={handle_message_fn}
-                    // sendButtonClickHandler={() => console.log("clicked send")}
                     messageChangeHandler={() => console.log("tried msg change")}
                 />
             </div>
@@ -70,10 +66,11 @@ function SendRoutineEwiSmsModal (props) {
     };
 
     const sendHandler = () => {
-        const cur_user = getCurrentUser();
+        const { user_id, nickname } = getCurrentUser();
         const input = {
             site_list: siteList,
-            user_id: cur_user.user_id
+            user_id,
+            nickname 
         };
         modalStateHandler();
         sendRoutineEwiMessage(input, response => {

@@ -568,9 +568,31 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     less_30_dt = dt - timedelta(minutes=30)
     next_release_dt = dt + timedelta(hours=release_interval_hours)
     routine_extended_release_time = less_30_dt.time()
+
     if routine_extended_release_time <= run_ts.time() < next_release_dt.time():
         routine = get_unreleased_routine_sites(
             less_30_dt, only_site_code=False)
+        unreleased_routine = routine["unreleased_sites"]
+        released_routine = routine["released_sites"]
+
+        merged_alerts = latest + overdue + extended
+        for row in merged_alerts:
+            sc = row["event"]["site"]["site_code"]
+
+            unreleased_index = next((index for (index, d) in enumerate(
+                unreleased_routine) if d["site_code"] == sc), -1)
+            if unreleased_index > -1:
+                del unreleased_routine[unreleased_index]
+
+            released_index = next((index for (index, d) in enumerate(
+                released_routine) if d["site_code"] == sc), -1)
+            if released_index > -1:
+                del released_routine[released_index]
+
+        routine = {
+            "unreleased_sites": unreleased_routine,
+            "released_sites": released_routine
+        }
 
     db_alerts = {
         "latest": latest,
@@ -652,15 +674,14 @@ def get_unreleased_routine_sites(data_timestamp, only_site_code=True):
                     site_release.data_ts, "%Y-%m-%d %H:%M:%S")
                 f_rel_time = time.strftime(
                     site_release.release_time, "%H:%M:%S")
-                temp = {
+                temp.update({
                     "event_id": site_release.event_alert.event_id,
                     "event_alert_id": site_release.event_alert_id,
                     "release_id": site_release.release_id,
-                    "site_code": site_code,
-                    "site_id": site_release.event_alert.event.site_id,
                     "data_ts": f_data_ts,
                     "release_time": f_rel_time
-                }
+                })
+
             released_sites.append(temp)
         else:
             unreleased_sites.append(temp)
@@ -729,7 +750,10 @@ def get_internal_alert_symbols(internal_sym_id=None):
                 InternalAlertSymbols.internal_sym_id == internal_sym_id).first()
             return_data = internal_symbol.alert_symbol
         else:
-            return_data = DB.session.query(InternalAlertSymbols, TriggerHierarchies.trigger_source).join(
+            return_data = DB.session.query(
+                InternalAlertSymbols,
+                TriggerHierarchies.trigger_source
+            ).join(
                 OperationalTriggerSymbols).join(TriggerHierarchies).all()
     except Exception as err:
         print(err)
@@ -741,7 +765,6 @@ def get_internal_alert_symbols(internal_sym_id=None):
 #############################################
 #   MONITORING_RELEASES RELATED FUNCTIONS   #
 #############################################
-
 
 def get_monitoring_releases_by_data_ts(site_code, data_ts):
     """

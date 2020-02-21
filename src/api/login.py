@@ -9,7 +9,7 @@ from flask_jwt_extended import (
 from flask import (
     Blueprint, jsonify, request
 )
-from src.models.users import UserAccounts
+from src.models.users import UserAccounts, UsersSchema
 from connection import DB, JWT
 
 from src.utils.extra import var_checker
@@ -99,11 +99,7 @@ def __login_user():
     return_obj = {
         "ok": True,
         "data": {
-            "user": {
-                "first_name": user.first_name,
-                "last_name": user.last_name,
-                "user_id": user.user_id
-            },
+            "user": UsersSchema().dump(user).data,
             "tokens": {
                 "access_token": access_token,
                 "refresh_token": refresh_token
