@@ -175,11 +175,6 @@ def extract_non_triggering_moms(unreleased_moms_list):
 
     non_triggering_moms = []
     try:
-        # cta_moms = next(iter(
-        #     filter(lambda x: x["type"] == "moms", unreleased_moms_list)), None)
-        # moms_list = cta_moms["moms_list"]
-        # non_triggering_moms = list(
-        #     filter(lambda x: x["op_trigger"] == 0, moms_list))
         non_triggering_moms = list(
             filter(lambda x: x["op_trigger"] == 0, unreleased_moms_list))
 
@@ -653,18 +648,18 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                     # Since there is a probabilitiy of site being in the site_w_alert,
                     # check totally invalid sites.
-                    invalid = next(
-                        filter(lambda x: x["site_code"] == site_code, totally_invalid_sites_list), None)
-                    if invalid:
-                        non_triggering_moms.extend(
-                            extract_non_triggering_moms(
-                                invalid["unreleased_moms_list"])
-                        )
+                    # invalid = next(
+                    #     filter(lambda x: x["site_code"] == site_code, totally_invalid_sites_list), None)
+                    # if invalid:
+                    #     non_triggering_moms.extend(
+                    #         extract_non_triggering_moms(
+                    #             invalid["unreleased_moms_list"])
+                    #     )
 
-                    if internal_alert == nd_internal_alert_sym:
-                        nd_routine_list.append(site_id)
-                    else:
-                        a0_routine_list.append(site_id)
+                    # if internal_alert == nd_internal_alert_sym:
+                    #     nd_routine_list.append(site_id)
+                    # else:
+                    #     a0_routine_list.append(site_id)
 
                     if non_triggering_moms:
                         routine_non_triggering_moms[site_id] = non_triggering_moms
