@@ -45,7 +45,7 @@ def save_contact():
     message = ""
 
     try:
-        print(data)
+        # print(data)
         user = data["user"]
         contact_numbers = data["contact_numbers"]
         affiliation = data["affiliation"]

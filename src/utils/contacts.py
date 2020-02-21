@@ -404,7 +404,7 @@ def save_user_affiliation(data, user_id):
     Function that save user affiliation
     """
     if data:
-        print(data)
+        # print(data)
         location = data["location"]
         site = data["site"]
         scope = data["scope"]
@@ -414,7 +414,6 @@ def save_user_affiliation(data, user_id):
         result = OrganizationsSchema(exclude=("users",)).dump(org_query).data
         org_id = result["org_id"]
 
-        user_organizations = []
         site_ids = []
         org_name = office
         modifier = ""
@@ -443,9 +442,6 @@ def save_user_affiliation(data, user_id):
                 site_ids.append(site.site_id)
 
         for site_id in site_ids:
-            user_organizations.append(
-                {"site_id": site_id, "org_id": org_id, "org_name": org_name})
-
             if scope == 5:
                 insert_org = UserOrganizations(
                     user_id=user_id,
@@ -453,15 +449,11 @@ def save_user_affiliation(data, user_id):
                     org_name=org_name,
                     org_id=org_id
                 )
-                DB.session.add(insert_org)
             else:
-                for row in user_organizations:
-                    site_id = row["site_id"]
-                    org_id = row["org_id"]
-                    org_name = row["org_name"]
-                    insert_org = UserOrganizations(
-                        user_id=user_id, site_id=site_id, org_name=org_name, org_id=org_id)
-                    DB.session.add(insert_org)
+                insert_org = UserOrganizations(
+                    user_id=user_id, site_id=site_id, org_name=org_name, org_id=org_id)
+
+            DB.session.add(insert_org)
 
     return True
 
