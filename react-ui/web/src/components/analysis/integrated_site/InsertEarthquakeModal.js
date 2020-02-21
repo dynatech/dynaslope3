@@ -118,7 +118,7 @@ function InsertEQevent (props) {
                                 ampm={false}
                                 placeholder="2010/01/01 00:00"
                                 format="YYYY/MM/DD HH:mm"
-                                mask="__/__/____ __:__"
+                                mask="____/__/__ __:__"
                                 clearable
                                 disableFuture
                             />
