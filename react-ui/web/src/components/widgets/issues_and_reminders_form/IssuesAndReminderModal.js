@@ -64,12 +64,12 @@ function IssuesAndReminderModal (props) {
 
         if (resolution !== "") {
             const resolver_user_id = getCurrentUser().user_id;
-            setIssueReminderData({
+            const temp = {
                 ...issue_reminder_data,
                 ts_resolved: moment().format("YYYY-MM-DD HH:mm:ss"),
                 resolved_by: resolver_user_id
-            });
-            handleIssuesAndReminders(issue_reminder_data, ret => {});
+            }; 
+            handleIssuesAndReminders(temp, ret => {});
             closeHandlerAction();     
         }
     };
