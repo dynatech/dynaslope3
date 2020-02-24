@@ -8,6 +8,7 @@ import {
     FormControlLabel, FormControl
 } from "@material-ui/core";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
+import { getCurrentUser } from "../../sessions/auth";
 
 // eslint-disable-next-line max-params
 function validate_trigger (site_code, trigger_id, trigger_ts, alert_status, remarks, user_id) {
@@ -30,7 +31,8 @@ const ValidationModal = props => {
     const { site, trigger_id, ts_updated } = data;
     const [triggerValidity, setTriggerValidity] = useState("");
     const [remarks, setRemarks] = useState("");
-    const validation_data = { site, trigger_id, ts_updated, triggerValidity, remarks, user_id: 1 };
+    const current_user = getCurrentUser();
+    const validation_data = { site, trigger_id, ts_updated, triggerValidity, remarks, user_id: current_user.user_id };
 
     function handleChange (event) {
         const trigger_validity = Number.parseInt(event.target.value, 10);
@@ -48,7 +50,7 @@ const ValidationModal = props => {
     }
 
     const handleOnClick = key => event => {
-        validate_trigger(site, trigger_id, ts_updated, triggerValidity, remarks, 1);
+        validate_trigger(site, trigger_id, ts_updated, triggerValidity, remarks, current_user.user_id);
         hide();
         setTriggerValidity("");
         setRemarks("");
