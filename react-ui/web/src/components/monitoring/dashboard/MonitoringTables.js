@@ -86,7 +86,8 @@ function CandidateAlertsExpansionPanel (props) {
 
     const { validity_status: vs } = alertData;
     let validity_status = "valid";
-    if (vs !== "undefined") {
+    if (typeof vs !== "undefined") {
+        console.log(vs);
         validity_status = vs;
     }
     
