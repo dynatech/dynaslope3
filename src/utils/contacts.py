@@ -8,7 +8,8 @@ from connection import DB
 from src.models.users import (
     Users, UserEmails, UserLandlines,
     UsersRelationship, UsersRelationshipSchema,
-    UserEwiRestrictions
+    UserEwiRestrictions,
+    UserMobile
 )
 from src.models.mobile_numbers import (
     UserMobiles, UserMobilesSchema,
@@ -357,9 +358,18 @@ def save_user_contact_numbers(data, user_id):
             sim_num = row["sim_num"]
             status = row["status"]
             if mobile_id == 0:
+                # NOTE: (DYNA 2.0) insert to UserMobile during transistion
+                # period. Change adding to MobileNumbers after full 3.0 implem
                 gsm_id = get_gsm_id_by_prefix(sim_num)
-                insert_mobile_number = MobileNumbers(
-                    sim_num=sim_num, gsm_id=gsm_id)
+                # insert_mobile_number = MobileNumbers(
+                #     sim_num=sim_num, gsm_id=gsm_id)
+                insert_mobile_number = UserMobile(
+                    user_id=2,
+                    sim_num=sim_num,
+                    priority=1,
+                    mobile_status=1,
+                    gsm_id=gsm_id
+                )
 
                 DB.session.add(insert_mobile_number)
                 DB.session.flush()

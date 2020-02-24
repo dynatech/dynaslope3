@@ -110,8 +110,8 @@ class UserMobile(DB.Model):
     Class representation of user mobile table
     """
     __tablename__ = "user_mobile"
-    __bind_key__ = "comms_db_3"
-    __table_args__ = {"schema": "comms_db_3"}
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": "comms_db"}
 
     mobile_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
