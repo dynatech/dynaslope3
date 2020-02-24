@@ -628,6 +628,7 @@ function AlertReleaseFormModal (props) {
                         siteCurrentAlertLevel={site_current_alert_level}
                         setSiteCurrentAlertLevel={setSiteCurrentAlertLevel}
                         isAlert0={is_alert_0} setAlert0={setAlert0}
+                        isAlertRecomputing={is_recomputing}
                     />
                 </DialogContent>
                 <DialogActions>

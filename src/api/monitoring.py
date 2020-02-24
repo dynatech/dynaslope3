@@ -239,6 +239,7 @@ def wrap_get_site_alert_details():
     site_id = request.args.get('site_id', default=1, type=int)
     public_alert = get_public_alert(site_id)
     public_alert_symbol = public_alert.alert_symbol
+    current_alert_level = public_alert.alert_level
 
     latest_release = get_latest_release_per_site(site_id)
     trigger_list = latest_release.trigger_list
@@ -247,22 +248,23 @@ def wrap_get_site_alert_details():
 
     trigger_sources = []
     alert_level = 0
-    for temp in event_triggers:
-        a = retrieve_data_from_memcache("internal_alert_symbols", {
-            "internal_sym_id": temp[0]}, retrieve_one=True)
-        source = a["trigger_symbol"]["trigger_hierarchy"]["trigger_source"]
-        event_alert_level = a["trigger_symbol"]["alert_level"]
-        if event_alert_level >= alert_level:
-            alert_level = event_alert_level
+    if current_alert_level > 0:
+        for temp in event_triggers:
+            a = retrieve_data_from_memcache("internal_alert_symbols", {
+                "internal_sym_id": temp[0]}, retrieve_one=True)
+            source = a["trigger_symbol"]["trigger_hierarchy"]["trigger_source"]
+            event_alert_level = a["trigger_symbol"]["alert_level"]
+            if event_alert_level >= alert_level:
+                alert_level = event_alert_level
 
-        trigger_sources.append({
-            "trigger_source": source,
-            "alert_level": 0,  # default
-            "internal_sym": a
-        })
+            trigger_sources.append({
+                "trigger_source": source,
+                "alert_level": 0,  # default
+                "internal_sym": a
+            })
 
     internal_alert_level = public_alert_symbol
-    if public_alert_symbol != "A0":
+    if alert_level > 0:
         internal_alert_level = f"{public_alert_symbol}-{trigger_list}"
 
     return jsonify({

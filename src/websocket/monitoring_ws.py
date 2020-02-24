@@ -177,8 +177,9 @@ def generate_alerts(site_code=None):
     """
 
     # if not site_code:  # to be removed (for testing only)
-    # site_code = ["agb", "umi"]
-    generated_alerts_json = public_alert_generator.main(site_code=site_code)
+    # site_code = ["agb", "bak", "cud", "ime"]
+    generated_alerts_json = public_alert_generator.main(
+        site_code=site_code)
 
     return generated_alerts_json
 
@@ -203,28 +204,35 @@ def update_alert_gen(site_code=None):
     print(get_process_status_log("Update Alert Generation", "start"))
     try:
         generated_alerts = retrieve_data_from_memcache("GENERATED_ALERTS")
-        site_gen_alert = generate_alerts(site_code)
+        json_generated_alerts = json.loads(generated_alerts)
 
+        site_gen_alert = generate_alerts(site_code)
+        gen_alert_index = None
         if site_code:
             load_site_gen_alert = json.loads(site_gen_alert)
             site_gen_alert = load_site_gen_alert.pop()
 
-        # Find the current entry for the site provided
-        json_generated_alerts = json.loads(generated_alerts)
-        gen_alert_row = next(
-            filter(lambda x: x["site_code"] == site_code, json_generated_alerts), None)
+            # Find the current entry for the site provided
+            gen_alert_index = next((index for (index, d) in enumerate(
+                json_generated_alerts) if d["site_code"] == site_code), -1)
 
-        if gen_alert_row:
+        if gen_alert_index > -1:
             # Replace rather update alertgen entry
-            gen_alert_index = json_generated_alerts.index(gen_alert_row)
             json_generated_alerts[gen_alert_index] = site_gen_alert
+        else:
+            json_generated_alerts = site_gen_alert
 
+        gen_alerts = json.dumps(json_generated_alerts)
         set_data_to_memcache(name="GENERATED_ALERTS",
-                             data=json.dumps(json_generated_alerts))
+                             data=gen_alerts)
+        alerts_from_db = wrap_get_ongoing_extended_overdue_events()
         set_data_to_memcache(name="ALERTS_FROM_DB",
-                             data=wrap_get_ongoing_extended_overdue_events())
+                             data=alerts_from_db)
         set_data_to_memcache(name="CANDIDATE_ALERTS",
-                             data=candidate_alerts_generator.main())
+                             data=candidate_alerts_generator.main(
+                                 generated_alerts_list=gen_alerts,
+                                 db_alerts_dict=alerts_from_db)
+                             )
     except Exception as err:
         print(err)
         raise

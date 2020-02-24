@@ -129,8 +129,8 @@ def process_totally_invalid_sites(totally_invalid_sites_list,
             generated_alert["ts"], "%Y-%m-%d %H:%M:%S")
         is_release_time = check_if_routine_extended_release_time(ts)
 
-        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                            site_code, extended))
+        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                            == site_code, extended))
         if is_in_extended_alerts:
             if is_release_time:
                 general_status = "extended"
@@ -242,6 +242,14 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         "non_triggering_moms": non_triggering_moms,
         "unresolved_moms_list": alert_entry["unresolved_moms_list"]
     }
+
+    try:
+        validity_status = alert_entry["validity_status"]
+    except KeyError:
+        validity_status = "valid"
+    formatted_alerts_for_ewi.update({
+        "validity_status": validity_status
+    })
 
     try:
         formatted_alerts_for_ewi = {
@@ -356,7 +364,7 @@ def fix_internal_alert(alert_entry, nd_internal_alert_sym):
 
         validity_status = "valid"
         if invalid_triggers:  # If there are invalid triggers, yet there are valid triggers.
-            validity_status = "partially_invalid"
+            validity_status = "partially invalid"
     else:
         trigger_list_str = "A1-"  # NOTE: just to signify invalid in dashboard at first glance
         validity_status = "invalid"
@@ -468,8 +476,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 for event_trigger in site_w_alert["event_triggers"]:
                     saved_trigger = next(filter(
-                        lambda x: x["internal_sym"]["internal_sym_id"]
-                        == event_trigger["internal_sym_id"],
+                        lambda x: x["internal_sym"]["internal_sym_id"] ==
+                        event_trigger["internal_sym_id"],
                         saved_event_triggers), None)
 
                     is_trigger_new = False
@@ -526,7 +534,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     "is_release_time": is_release_time,
                     "release_schedule": str(release_start_range),
                     "saved_event_triggers": saved_event_triggers,
-                    "has_nd_rx_trigger": has_nd_rx_trigger
+                    "has_nd_rx_trigger": has_nd_rx_trigger,
+                    "validity_status": validity_status
                 }
 
                 formatted_alert_entry = format_alerts_for_ewi_insert(
