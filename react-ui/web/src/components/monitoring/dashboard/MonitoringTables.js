@@ -87,7 +87,6 @@ function CandidateAlertsExpansionPanel (props) {
     const { validity_status: vs } = alertData;
     let validity_status = "valid";
     if (typeof vs !== "undefined") {
-        console.log(vs);
         validity_status = vs;
     }
     
@@ -113,7 +112,7 @@ function CandidateAlertsExpansionPanel (props) {
 
     let root_style = classes.alert0;
     if (validity_status === "invalid") root_style = classes.alert3;
-    else if (validity_status === "partially invalid") root_style = classes.alert2;
+    else if (validity_status === "partially valid") root_style = classes.alert2;
 
     return (
         <ExpansionPanel
