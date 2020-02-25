@@ -791,7 +791,32 @@ def insert_ewi(internal_json=None):
         if entry_type == 1:  # stands for routine
             # Mass release for routine sites.
 
-            routine_sets = json_data["routine_details"]
+            try:
+                routine_sets = json_data["routine_details"]
+            except KeyError:  # if released using alert release form manually
+                temp_site_id = json_data["site_id"]
+                routine_sets = [
+                    {
+                        **json_data,
+                        "site_id_list": [
+                            {"value": temp_site_id}
+                        ],
+                        **json_data["release_details"]
+                    }
+                ]
+                publishers = json_data["publisher_details"]
+                json_data.update({
+                    **json_data["release_details"],
+                    "data_timestamp": json_data["release_details"]["data_ts"],
+                    "reporter_id_mt": publishers["publisher_mt_id"],
+                    "reporter_id_ct": publishers["publisher_ct_id"]
+                })
+
+                temp = non_triggering_moms
+                non_triggering_moms = {}
+
+                if temp:
+                    non_triggering_moms[site_id] = temp
 
             for item in routine_sets:
                 site_id_list = item["site_id_list"]
@@ -905,7 +930,7 @@ def insert_ewi(internal_json=None):
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
                         and site_monitoring_instance.validity \
-                == datetime_data_ts + timedelta(minutes=30):
+                    == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 

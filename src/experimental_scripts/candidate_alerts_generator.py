@@ -113,13 +113,19 @@ def get_generated_alerts_list_from_file(filepath, filename):
 # Data processors #
 ###################
 def process_totally_invalid_sites(totally_invalid_sites_list,
-                                  extended, routine_sites_list, nd_internal_alert_sym):
+                                  extended, routine_sites_list,
+                                  nd_internal_alert_sym,
+                                  routine_non_triggering_moms):
     """
     Process all totally invalid sites for extended or routine
     """
 
+    global ROUTINE_EXTENDED_RELEASE_TIME
+    routine_extended_release_time = ROUTINE_EXTENDED_RELEASE_TIME
+
     a0_routine_list = []
     nd_routine_list = []
+    overdue_routine_list = []
     extended_list = []
 
     for generated_alert in totally_invalid_sites_list:
@@ -158,14 +164,23 @@ def process_totally_invalid_sites(totally_invalid_sites_list,
 
                 extended_list.append(formatted_alert_entry)
         elif site_code in routine_sites_list:
+            non_triggering_moms = extract_non_triggering_moms(
+                generated_alert["unreleased_moms_list"])
+            if non_triggering_moms:
+                routine_non_triggering_moms[site_id] = non_triggering_moms
+
             has_ground_data = generated_alert["has_ground_data"]
 
-            if has_ground_data:
-                a0_routine_list.append(site_id)
-            else:
-                nd_routine_list.append(site_id)
+            if ts.time() == routine_extended_release_time:
+                if has_ground_data:
+                    a0_routine_list.append(site_id)
+                else:
+                    nd_routine_list.append(site_id)
+            elif ts.time() > routine_extended_release_time:
+                overdue_routine_list.append(
+                    {"site_code": site_code, "site_id": site_id, "ts": generated_alert["ts"]})
 
-    return extended_list, a0_routine_list, nd_routine_list
+    return extended_list, a0_routine_list, nd_routine_list, overdue_routine_list
 
 
 def extract_non_triggering_moms(unreleased_moms_list):
@@ -555,24 +570,17 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
     a0_routine_list = []
     nd_routine_list = []
+    overdue_routine_list = []
     routine_non_triggering_moms = {}
 
     merged_db_alerts_list_copy = latest + overdue
 
-    current_routine_data_ts = None
     if without_alerts:
         for site_wo_alert in without_alerts:
             general_status = "routine"
             site_id = site_wo_alert["site_id"]
             site_code = site_wo_alert["site_code"]
             internal_alert = site_wo_alert["internal_alert"]
-            # not_a0_db_alerts_list = list(filter(
-            #     lambda x: x["public_alert_symbol"]["alert_level"] != 0, merged_db_alerts_list_copy))
-
-            # is_in_raised_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-            #                                   site_code, not_a0_db_alerts_list))
-            # is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-            #                                     site_code, extended))
 
             is_in_raised_alerts = next(
                 filter(lambda x: x["event"]["site"]["site_code"] == site_code,
@@ -624,73 +632,45 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     candidate_alerts_list.append(formatted_alert_entry)
             else:
                 if site_code in routine_sites_list:
-                    # TODO: Add an api checking if site has been released already or not.
-                    # Get sites havent released 11:30 release
                     ts = datetime.strptime(
                         site_wo_alert["ts"], "%Y-%m-%d %H:%M:%S")
 
-                    # add checker if released already
-
-                    # Check if site data entry on generated alerts is already
-                    # for release time
-                    if ts.time() == routine_extended_release_time:
-                        current_routine_data_ts = site_wo_alert["ts"]
-                        non_triggering_moms = extract_non_triggering_moms(
-                            site_wo_alert["unreleased_moms_list"])
-
-                        if internal_alert == nd_internal_alert_sym:
-                            nd_routine_list.append(site_id)
-                        else:
-                            a0_routine_list.append(site_id)
-
-                        if non_triggering_moms:
-                            routine_non_triggering_moms[site_id] = non_triggering_moms
-
-    if totally_invalid_sites_list:
-        for invalid_site in totally_invalid_sites_list:
-            if invalid_site["site_code"] in routine_sites_list:
-                site_code = invalid_site["site_code"]
-                site_id = invalid_site["site_id"]
-                internal_alert = invalid_site["internal_alert"]
-                ts = datetime.strptime(
-                    invalid_site["ts"], "%Y-%m-%d %H:%M:%S")
-
-                # Check if site data entry on generated alerts is already
-                # for release time
-                if ts.time() == routine_extended_release_time:
-                    current_routine_data_ts = invalid_site["ts"]
                     non_triggering_moms = extract_non_triggering_moms(
-                        invalid_site["unreleased_moms_list"])
-
-                    # Since there is a probabilitiy of site being in the site_w_alert,
-                    # check totally invalid sites.
-                    # invalid = next(
-                    #     filter(lambda x: x["site_code"] == site_code, totally_invalid_sites_list), None)
-                    # if invalid:
-                    #     non_triggering_moms.extend(
-                    #         extract_non_triggering_moms(
-                    #             invalid["unreleased_moms_list"])
-                    #     )
-
-                    # if internal_alert == nd_internal_alert_sym:
-                    #     nd_routine_list.append(site_id)
-                    # else:
-                    #     a0_routine_list.append(site_id)
+                        site_wo_alert["unreleased_moms_list"])
 
                     if non_triggering_moms:
                         routine_non_triggering_moms[site_id] = non_triggering_moms
 
-        extended_list, a0_list, nd_list = process_totally_invalid_sites(
-            totally_invalid_sites_list, extended, routine_sites_list, nd_internal_alert_sym)
+                    # Check if site data entry on generated alerts is already
+                    # for release time
+                    if ts.time() == routine_extended_release_time:
+                        if internal_alert == nd_internal_alert_sym:
+                            nd_routine_list.append(site_id)
+                        else:
+                            a0_routine_list.append(site_id)
+                    elif ts.time() > routine_extended_release_time:
+                        overdue_routine_list.append(
+                            {"site_code": site_code, "site_id": site_id, "ts": site_wo_alert["ts"]})
+
+    if totally_invalid_sites_list:
+        extended_list, a0_list, nd_list, overdue_list = process_totally_invalid_sites(
+            totally_invalid_sites_list, extended,
+            routine_sites_list, nd_internal_alert_sym,
+            routine_non_triggering_moms)
         candidate_alerts_list.extend(extended_list)
         a0_routine_list.extend(a0_list)
         nd_routine_list.extend(nd_list)
+        overdue_routine_list.extend(overdue_list)
 
     if routine_sites_list:
-        has_routine_data = a0_routine_list or nd_routine_list
+        has_routine_data = a0_routine_list or nd_routine_list or overdue_routine_list
 
         if has_routine_data:
-            routine_data_ts = current_routine_data_ts
+            if a0_routine_list or nd_routine_list:
+                routine_data_ts = datetime.strftime(datetime.combine(
+                    date.today(), routine_extended_release_time), "%Y-%m-%d %H:%M:%S")
+            else:
+                routine_data_ts = overdue_routine_list[0]["ts"]
 
             public_alert_symbol = retrieve_data_from_memcache(
                 "public_alert_symbols", {"alert_level": 0}, retrieve_attr="alert_symbol")
@@ -699,7 +679,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 "public_alert_level": 0,
                 "public_alert_symbol": public_alert_symbol,
                 "data_ts": routine_data_ts,
-                "is_release_time": True,
+                "is_release_time": bool(a0_routine_list or nd_routine_list),
                 "general_status": "routine",
                 "routine_details": [
                     {
@@ -714,6 +694,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                         "trigger_list_str": nd_internal_alert_sym
                     }
                 ],
+                "overdue_routine_list": overdue_routine_list,
                 "non_triggering_moms": routine_non_triggering_moms
             }
             candidate_alerts_list.append(routine_candidates)

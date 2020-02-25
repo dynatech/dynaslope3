@@ -249,8 +249,8 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
 
             if trigger_source == "moms":
                 if site_moms_alerts_list:
-                    recent_moms_details = list(filter(lambda x: x.observance_ts ==
-                                                      item.ts_updated, site_moms_alerts_list))
+                    recent_moms_details = list(filter(lambda x: x.observance_ts
+                                                      == item.ts_updated, site_moms_alerts_list))
                     # Get the highest triggering moms
                     sorted_moms_details = sorted(recent_moms_details,
                                                  key=lambda x: x.op_trigger, reverse=True)
@@ -267,9 +267,9 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                     moms_special_details = {
                         "tech_info": trigger_tech_info,
                         "moms_list": moms_list,
-                        "moms_list_notice": "Don't use this as data for " +
-                        "MonitoringMomsReleases. This might be incomplete. " +
-                        "Use moms from unreleased_moms_list instead."
+                        "moms_list_notice": "Don't use this as data for "
+                        + "MonitoringMomsReleases. This might be incomplete. "
+                        + "Use moms from unreleased_moms_list instead."
                     }
                     trigger_dict.update(moms_special_details)
 
@@ -496,8 +496,8 @@ def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
         if any(trig_source == trigger_source for trig_source in no_data_list):
             # If positive trigger is not within release time interval,
             # replace symbol to its respective ND symbol.
-            if not (ts_updated >= round_to_nearest_release_time(query_ts_end, interval)
-                    - timedelta(hours=interval)):
+            if not (ts_updated >= round_to_nearest_release_time(query_ts_end, interval) -
+                    timedelta(hours=interval)):
                 nd_row = retrieve_data_from_memcache(
                     "operational_trigger_symbols", {
                         "alert_level": -1,
@@ -926,14 +926,12 @@ def get_invalid_triggers(positive_triggers_list):
             if status_validity == -1:
                 if trigger_sym_id in invalids_dict:
                     pass
-                    # if alert_status_entry.ts_ack > invalids_dict[trigger_sym_id].ts_ack:
-                    #     invalids_dict[trigger_sym_id] = alert_status_entry
                 elif trigger_sym_id not in not_invalid_set:
                     invalids_dict[trigger_sym_id] = alert_status_entry
             else:
-                not_invalid_set.add(trigger_sym_id)
-                if trigger_sym_id in invalids_dict:
-                    del invalids_dict[trigger_sym_id]
+                if trigger_sym_id not in invalids_dict:
+                    not_invalid_set.add(trigger_sym_id)
+                    # del invalids_dict[trigger_sym_id]
 
     return invalids_dict
 
@@ -953,8 +951,8 @@ def extract_positive_triggers_list(op_triggers_list):
 
         # Filter for g0t alerts (surficial trending alerts for validation)
         # DYNAMIC: TH_MAP
-        g0t_filter = not (op_trig.alert_level ==
-                          1 and op_trig.source_id == surficial_source_id)
+        g0t_filter = not (op_trig.alert_level
+                          == 1 and op_trig.source_id == surficial_source_id)
         if op_trig.alert_level > 0 and g0t_filter:
             positive_triggers_list.append(op_trigger)
 
@@ -991,8 +989,8 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interva
     # current runtime only (not within release interval hours)
     release_op_triggers_list = []
     for release_op_trig in release_op_triggers:
-        if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_list and
-                release_op_trig.ts_updated < query_ts_end):
+        if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_list
+                and release_op_trig.ts_updated < query_ts_end):
             release_op_triggers_list.append(release_op_trig)
 
     return release_op_triggers_list
@@ -1019,7 +1017,10 @@ def get_operational_triggers_within_monitoring_period(s_op_triggers_query, monit
     """
 
     op_trigger_of_site = s_op_triggers_query.order_by(DB.desc(ot.ts)).filter(
-        and_(ot.ts_updated >= monitoring_start_ts, ot.ts <= query_ts_end)).join(ots).filter(ots.alert_level != -1)
+        and_(
+            ot.ts_updated >= monitoring_start_ts,
+            ot.ts <= query_ts_end
+        )).join(ots).filter(ots.alert_level != -1)
 
     return op_trigger_of_site
 
@@ -1339,8 +1340,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         # is no latest data
         minute = int(query_ts_start.strftime('%M'))
         if data_ts > query_ts_end or \
-            ((minute >= 45 or 15 <= minute and minute < 30)
-                and data_ts != query_ts_end):
+            ((minute >= 45 or 15 <= minute and minute < 30) and
+                data_ts != query_ts_end):
             data_ts = query_ts_end
 
         data_ts = str(data_ts)
