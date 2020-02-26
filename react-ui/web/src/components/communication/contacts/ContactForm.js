@@ -207,10 +207,8 @@ function ContactForm (props) {
     };
     
     if (isEditMode) {
-        const { mobile_numbers, user: {
-            ewi_recipient, ewi_restriction, landline_numbers, emails, first_name,
-            last_name, middle_name, nickname, user_id, organizations, status
-        } } = chosenContact;
+        const { mobile_numbers, ewi_recipient, ewi_restriction, landline_numbers, emails, first_name,
+            last_name, middle_name, nickname, user_id, organizations, status } = chosenContact;
         initial_user_details = { first_name, last_name, middle_name, nickname, user_id };
         
         if (organizations.length !== 0) {
@@ -231,7 +229,7 @@ function ContactForm (props) {
             }
         }
         const updated_mobile_numbers = mobile_numbers.map((row, index) => {
-            const new_data = JSON.parse(JSON.stringify(row));
+            const new_data = JSON.parse(JSON.stringify(row.mobile_number));
             new_data.sim_num = conformTextMask(new_data.sim_num);
             return new_data;
         });

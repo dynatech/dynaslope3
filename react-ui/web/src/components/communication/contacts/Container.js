@@ -97,10 +97,9 @@ function IndividualContact (props) {
         contact, chosenContact, setSlideOpen,
         classes, setContactFormForEdit 
     } = props;
-    const site_orgs = getUserOrganizations(chosenContact.user, true);
+    const site_orgs = getUserOrganizations(chosenContact.organizations, true);
     const { sites, org } = site_orgs;
-    const { user: { status, landline_numbers, emails, ewi_recipient } } = chosenContact;
-
+    const { status, emails, ewi_recipient, landline_numbers, mobile_numbers } = chosenContact;
     return (
         <Grid
             container 
@@ -232,27 +231,35 @@ function IndividualContact (props) {
             <Grid item xs={12}>
                 <List dense>
                     {
-                        chosenContact.mobile_numbers.map(num => (
-                            <ListItem key={num.mobile_id}>
-                                <ListItemAvatar>
-                                    <Avatar>
-                                        <PhoneAndroid />
-                                    </Avatar>
-                                </ListItemAvatar>
-                                <ListItemText
-                                    primary={`+${num.sim_num}`}
-                                    // secondary={`Priority: ${num.priority}`}
-                                />
-                                <ListItemSecondaryAction>
-                                    {/* <IconButton edge="end" aria-label="delete">
-                                        <DeleteIcon />
-                                    </IconButton> */}
+                        mobile_numbers.length === 0 ? (
+                            <Grid item xs={12}>
+                                <Typography color="textSecondary" variant="body2" align="center">
+                                    No mobile numbers saved
+                                </Typography>
+                            </Grid>
+                        ) : (
+                            mobile_numbers.map(num => (
+                                <ListItem key={num.mobile_number.mobile_id}>
+                                    <ListItemAvatar>
+                                        <Avatar>
+                                            <PhoneAndroid />
+                                        </Avatar>
+                                    </ListItemAvatar>
                                     <ListItemText
-                                        secondary={`Status: ${num.status === 0 ? "Inactive" : "Active"}`}
+                                        primary={`+${num.mobile_number.sim_num}`}
+                                        // secondary={`Priority: ${num.priority}`}
                                     />
-                                </ListItemSecondaryAction>
-                            </ListItem>
-                        ))
+                                    <ListItemSecondaryAction>
+                                        {/* <IconButton edge="end" aria-label="delete">
+                                            <DeleteIcon />
+                                        </IconButton> */}
+                                        <ListItemText
+                                            secondary={`Status: ${num.status === 0 ? "Inactive" : "Active"}`}
+                                        />
+                                    </ListItemSecondaryAction>
+                                </ListItem>
+                            ))
+                        )
                     }
                 </List>
             </Grid>
@@ -561,7 +568,8 @@ function Container (props) {
 
     useEffect(() => {
         const filtered = contacts.filter(row => {
-            const { user: { first_name, last_name } } = row;
+            // const { user: { first_name, last_name } } = row;
+            const { first_name, last_name } = row;
             const name = `${first_name} ${last_name}`;
             const pattern = new RegExp(`${search_str}`, "gi");
             return pattern.test(name);
@@ -591,9 +599,10 @@ function Container (props) {
     
     let contact = "";
     // eslint-disable-next-line no-prototype-builtins
-    if (chosen_contact.hasOwnProperty("user")) {
-        const { user } = chosen_contact;
-        const { first_name, last_name } = user;
+    if (chosen_contact.hasOwnProperty("user_id")) {
+        // const { user } = chosen_contact;
+        const { first_name, last_name } = chosen_contact;
+        // const { first_name, last_name } = user;
         contact = `${first_name} ${last_name}`;
     }
 

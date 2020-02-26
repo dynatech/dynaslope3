@@ -55,7 +55,6 @@ def get_org_ids(scopes=None, org_names=None):
 def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True):
     """
     """
-
     base_query = UserMobiles.query.join(Users) \
         .options(
             joinedload("user").subqueryload("organizations")
@@ -101,33 +100,8 @@ def get_all_contacts(
     mobile_numbers = []
 
     if return_schema:
-        numbers_schema = get_mobile_numbers(
-            return_schema, site_ids, org_ids, only_active_mobile_numbers=False)
-
-        if orientation == "users":
-            users_id = {}
-            mobile_numbers = []
-            for num in numbers_schema:
-                user_dict = num["user"]
-                user_id = user_dict["user_id"]
-                mobile_number_dict = {
-                    **num["mobile_number"],
-                    "priority": num["priority"],
-                    "status": num["status"]
-                }
-
-                if user_id in users_id.keys():
-                    key = users_id[user_id]
-                    mobile_numbers[key]["mobile_numbers"].append(
-                        mobile_number_dict)
-                else:
-                    mobile_numbers.append({
-                        "user": user_dict,
-                        "mobile_numbers": [mobile_number_dict]
-                    })
-                    users_id[user_id] = len(mobile_numbers) - 1
-        elif orientation == "mobile_numbers":
-            mobile_numbers = numbers_schema
+        mobile_numbers = get_recipients(
+            return_schema_format=return_schema, only_ewi_recipients=False, include_inactive_numbers=True, include_ewi_restrictions=True)
 
     query_end = datetime.now()
     print("GET CONTACTS RUNTIME: ", query_end - query_start)
@@ -201,49 +175,10 @@ def get_contacts_per_site(site_ids=None,
     """
     Function that get contacts per site
     """
-
-    query = UsersRelationship.query.join(
-        UserOrganizations).join(Sites).join(UserMobiles).options(
-            DB.subqueryload("mobile_numbers").joinedload(
-                "mobile_number", innerjoin=True),
-            DB.subqueryload("organizations").joinedload(
-                "site", innerjoin=True),
-            DB.subqueryload("organizations").joinedload(
-                "organization", innerjoin=True),
-            DB.raiseload("*"))
-
-    if site_ids:
-        query = query.filter(Sites.site_id.in_(site_ids))
-
-    if site_codes:
-        query = query.filter(Sites.site_code.in_(site_codes))
-
-    if org_ids:
-        query = query.filter(
-            UserOrganizations.org_id.in_(org_ids)
-        )
-
-    if only_ewi_recipients:
-        query = query.filter(Users.ewi_recipient == 1)
-
-    schema_exclusions = ["emails", "teams",
-                         "landline_numbers", "ewi_restriction",
-                         "mobile_numbers.mobile_number.blocked_mobile"]
-
-    if include_ewi_restrictions:
-        # uer = UserEwiRestrictions
-        query = query.options(DB.joinedload("ewi_restriction"))
-        schema_exclusions.remove("ewi_restriction")
-
-    if not include_inactive_numbers:
-        query = query.filter(UserMobiles.status == 1)
-
-    user_per_site_result = query.all()
-
-    if return_schema_format:
-        user_per_site_result = UsersRelationshipSchema(
-            many=True, exclude=schema_exclusions) \
-            .dump(user_per_site_result).data
+    user_per_site_result = get_recipients(site_ids,
+                                          site_codes, only_ewi_recipients,
+                                          include_ewi_restrictions, org_ids,
+                                          return_schema_format, include_inactive_numbers, joined=True)
 
     return user_per_site_result
 
@@ -562,7 +497,6 @@ def get_ground_measurement_reminder_recipients(current_datetime):
             routine_site_codes.remove(site_code)
 
     routine_site_ids = get_site_ids(routine_site_codes)
-
     final_site_ids = remove_sites_with_ground_meas(
         event_site_ids,
         extended_site_ids,
@@ -610,7 +544,7 @@ def remove_sites_with_ground_meas(
                     routine_site_ids.remove(site_id)
                 if site_id in extended_site_ids:
                     extended_site_ids.remove(site_id)
-
+        
         if event_site_ids:
             # NOTE: refactor na lang ito to query sites belonging
             # to event_site_ids
@@ -622,7 +556,6 @@ def remove_sites_with_ground_meas(
     else:
         routine_site_ids = []
         extended_site_ids = []
-
         reminder_time = five_thirty_reminder_time
 
         if five_thirty_reminder_time < current_datetime < five_thirty_end_time:
@@ -666,29 +599,9 @@ def get_recipients_for_ground_meas(site_recipients):
     for row in site_recipients:
         site_ids = row["site_ids"]
         user_per_site_result = []
-
+        org_ids = [1]
         if site_ids:
-            user_per_site_query = UsersRelationship.query \
-                .join(UserOrganizations) \
-                .join(Sites) \
-                .join(UserMobiles) \
-                .options(
-                    DB.subqueryload("mobile_numbers").joinedload(
-                        "mobile_number", innerjoin=True),
-                    DB.subqueryload("organizations").joinedload(
-                        "site", innerjoin=True),
-                    DB.subqueryload("organizations").joinedload(
-                        "organization", innerjoin=True),
-                    DB.raiseload("*")
-                ).filter(
-                    Users.status == 1, Users.ewi_recipient == 1,
-                    Sites.site_id.in_(site_ids),
-                    UserOrganizations.org_id == 1, UserMobiles.status == 1
-                ).all()
-
-            user_per_site_result = UsersRelationshipSchema(
-                many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction", "mobile_numbers.mobile_number.blocked_mobile"]
-            ).dump(user_per_site_query).data
+            user_per_site_result = get_recipients(site_ids=site_ids, org_ids=org_ids, joined=True)
 
         row["recipients"] = user_per_site_result
         feedback.append(row)
@@ -747,3 +660,55 @@ def get_all_sim_prefix():
     result = SimPrefixesSchema(many=True).dump(query).data
 
     return result
+
+def get_recipients(site_ids=None,
+                   site_codes=None, only_ewi_recipients=True,
+                   include_ewi_restrictions=False, org_ids=None,
+                   return_schema_format=True,
+                   include_inactive_numbers=False, joined=False):
+    """
+    Refactored function of getting recipients
+    """
+    query = UsersRelationship.query.options(
+                DB.subqueryload("mobile_numbers").joinedload("mobile_number").raiseload("*"),
+                DB.subqueryload("landline_numbers"),
+                DB.subqueryload("organizations").joinedload("organization").raiseload("*"),
+                DB.subqueryload("organizations").joinedload("site").raiseload("*"),
+                DB.subqueryload("emails"),
+                DB.raiseload("*")).order_by(UsersRelationship.last_name)
+
+    if joined:
+        query = query.join(UserOrganizations).join(Sites).join(UserMobiles)
+
+    schema_exclusions = ["teams", "ewi_restriction",
+                         "mobile_numbers.mobile_number.blocked_mobile"]
+
+    if site_ids:
+        query = query.filter(Sites.site_id.in_(site_ids))
+
+    if site_codes:
+        query = query.filter(Sites.site_code.in_(site_codes))
+
+    if org_ids:
+        query = query.filter(
+            UserOrganizations.org_id.in_(org_ids)
+        )
+
+    if only_ewi_recipients:
+        query = query.filter(UsersRelationship.ewi_recipient == 1)
+
+    if include_ewi_restrictions:
+        query = query.options(DB.joinedload("ewi_restriction"))
+        schema_exclusions.remove("ewi_restriction")
+
+    if not include_inactive_numbers:
+        query = query.filter(UserMobiles.status == 1)
+
+    user_per_site_result = query.all()
+
+    if return_schema_format:
+        user_per_site_result = UsersRelationshipSchema(
+            many=True, exclude=schema_exclusions) \
+            .dump(user_per_site_result).data
+
+    return user_per_site_result
