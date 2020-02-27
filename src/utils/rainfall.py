@@ -63,6 +63,7 @@ def process_rainfall_plot_data(rainfall_data):
     """
 
     raw_plot = rainfall_data["plot"]
+    raw_plot = sorted(raw_plot, key=lambda i: i["distance"])
     plot_data = []
 
     for gauge_data in raw_plot:
