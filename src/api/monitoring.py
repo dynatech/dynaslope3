@@ -626,7 +626,6 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     has_moms = False
 
                 elif trigger_type == "earthquake":
-                    info = ""
                     timestamp = release_details["data_ts"]
                     od_id = None
                     eq_id = write_monitoring_earthquake_to_db(
@@ -634,9 +633,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     has_moms = False
 
                 elif trigger_type == "moms":
-
                     moms_id_list = get_moms_id_list(trigger, site_id, event_id)
-
                     od_id = None
                     eq_id = None
                     has_moms = True
