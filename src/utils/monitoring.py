@@ -1461,7 +1461,7 @@ def write_monitoring_earthquake_to_db(eq_details):
         DB.session.add(earthquake)
         DB.session.flush()
 
-        new_eq_id = earthquake.od_id
+        new_eq_id = earthquake.eq_id
         return_data = new_eq_id
 
     except Exception as err:
