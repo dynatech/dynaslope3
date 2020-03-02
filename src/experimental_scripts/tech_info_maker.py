@@ -42,14 +42,14 @@ def get_on_demand_tech_info(on_demand_details):
 def get_earthquake_tech_info(earthquake_details):
     """
     """
-    # ea_id = earthquake_details["ea_id"]
-    magnitude = earthquake_details["magnitude"]
+
     latitude = earthquake_details["latitude"]
     longitude = earthquake_details["longitude"]
-    # distance = earthquake_details["distance"]
+    distance = earthquake_details["distance"]
+    critical_distance = earthquake_details["critical_distance"]
 
-    return f"An earthquake with Magnitude {magnitude} " + \
-        f"({latitude} N, {longitude} E) recorded."
+    return f"Site is {distance} km away from earthquake at " + \
+        f"{latitude} N, {longitude} E (inside critical radius of {critical_distance} km)"
 
 
 def get_moms_tech_info(moms_alert_details):
@@ -90,7 +90,7 @@ def get_moms_tech_info(moms_alert_details):
         feature = "features"
 
     day = " and ".join(moms_parts)
-    moms_tech_info = f"{multiple}{day} {feature} observed in site."
+    moms_tech_info = f"{multiple}{day} {feature} observed in site"
     return moms_tech_info
 
 
@@ -241,12 +241,6 @@ def get_subsurface_node_alerts(site_id, start_ts, latest_trigger_ts, alert_level
                 sensor_node_alerts = unique_list
 
                 tsm_node_alerts.extend(sensor_node_alerts)
-                # Save nodes to its own dictionary per sensor then put it in a list
-                # entry_dict = {
-                #     "logger_name": sensor.logger.logger_name,
-                #     "sensor_node_alerts": sensor_node_alerts
-                # }
-                # tsm_node_alerts.append(entry_dict)
     except:
         raise
 
@@ -324,26 +318,9 @@ def get_subsurface_tech_info(subsurface_node_alerts):
     """
     Sample
     """
-    ####
-    # NEW VERSION OF COMPARATOR AS ALTERNATIVE TO PANDAS DROP DUPLICATES
-
-    # s2_triggers = []
-    # s3_triggers = []
-    # for node_alert in subsurface_node_alerts:  # Most like two only
-    #     if node_alert.disp_alert == 2 or node_alert.vel_alert == 2:
-    #         s2_triggers.append(node_alert)
-    #     if node_alert.disp_alert == 3 or node_alert.vel_alert == 3:
-    #         s3_triggers.append(node_alert)
 
     subsurface_tech_info = formulate_subsurface_tech_info(
         subsurface_node_alerts)
-    # node_alert_group_list = [s2_triggers, s3_triggers]
-    # for index, node_alert_group in enumerate(node_alert_group_list):
-    #     if node_alert_group:
-    #         tech_info = formulate_subsurface_tech_info(node_alert_group)
-    #         # Commented the following code because according to Senior SRS, only the string is needed.
-    #         # subsurface_tech_info["L" + str(index+2)] = tech_info
-    #         subsurface_tech_info = tech_info
 
     return subsurface_tech_info
 
@@ -393,11 +370,11 @@ def main(trigger, special_details=None):
 
     elif trigger_source == 'earthquake':
         if not has_special_details:
-            earthquake_details = "COMING SOON..."
+            raise "No earthquake details saved"
         else:
             earthquake_details = special_details
-        technical_info = get_earthquake_tech_info(earthquake_details)
 
+        technical_info = get_earthquake_tech_info(earthquake_details)
     else:
         raise Exception("Something wrong in tech_info_maker")
 

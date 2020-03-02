@@ -281,10 +281,11 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                     eq_event = latest_eq_alert_data.eq_event
                     eq_details = {
                         "ea_id": latest_eq_alert_data.ea_id,
-                        "distance": str("%.6f" % latest_eq_alert_data.distance),
+                        "distance": str("%.2f" % latest_eq_alert_data.distance),
                         "magnitude": str("%.1f" % eq_event.magnitude),
-                        "latitude": str("%.6f" % eq_event.latitude),
-                        "longitude": str("%.6f" % eq_event.longitude)
+                        "latitude": str("%.2f" % eq_event.latitude),
+                        "longitude": str("%.2f" % eq_event.longitude),
+                        "critical_distance": str("%.2f" % eq_event.critical_distance)
                     }
 
                     trigger_tech_info = tech_info_maker.main(item, eq_details)
