@@ -258,14 +258,29 @@ class MonitoringMomsReleases(UserMixin, DB.Model):
     moms_id = DB.Column(DB.Integer, DB.ForeignKey(
         "ewi_db.monitoring_moms.moms_id"), nullable=False)
 
+    # trigger_misc = DB.relationship(
+    #     "MonitoringTriggersMisc", backref=DB.backref("moms_releases", lazy="dynamic"), lazy="select")
+
+    # moms_details = DB.relationship(
+    #     "MonitoringMoms", backref=DB.backref("moms_releases", lazy="select"), lazy="select")
+
+    # release = DB.relationship(
+    #     "MonitoringReleases", backref=DB.backref("monitoring_releases", lazy="select"), lazy="select")
+
     trigger_misc = DB.relationship(
-        "MonitoringTriggersMisc", backref=DB.backref("moms_releases", lazy="dynamic"), lazy="select")
+        "MonitoringTriggersMisc",
+        backref=DB.backref("moms_releases", lazy="dynamic"),
+        lazy="joined")
 
     moms_details = DB.relationship(
-        "MonitoringMoms", backref=DB.backref("moms_releases", lazy="select"), lazy="select")
+        "MonitoringMoms",
+        backref=DB.backref("moms_release", lazy="select"),
+        lazy="joined", innerjoin=True)
 
     release = DB.relationship(
-        "MonitoringReleases", backref=DB.backref("monitoring_releases", lazy="select"), lazy="select")
+        "MonitoringReleases",
+        backref=DB.backref("moms_releases", lazy="subquery"),
+        lazy="joined")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Moms Release ID: {self.moms_rel_id}"

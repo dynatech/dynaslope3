@@ -45,9 +45,8 @@ DT = datetime.combine(date.today(), time(
 ROUTINE_EXTENDED_RELEASE_TIME = DT.time()
 
 ##########################
-# Utility functions here
+# Utility functions here #
 ##########################
-
 
 def remove_for_lowering_sites(candidates, db_alerts_dict):
     """
@@ -245,15 +244,15 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
                             moms_list = moms_cta["details"]["moms_list"]
                             moms_trig_alert_level = trigger["alert_level"]
 
-                            # Get triggering moms from current_trigger_alerts->moms moms_list
-                            moms_list = list(
-                                filter(lambda x: x["op_trigger"] == moms_trig_alert_level, moms_list))
-
                             # Remove MOMS that have been released
                             unreleased_moms_list = extract_unreleased_moms(
                                 moms_list)
 
-                            trig_dict["moms_list"] = unreleased_moms_list
+                            # Get triggering moms from current_trigger_alerts->moms moms_list
+                            moms_list = list(
+                                filter(lambda x: x["op_trigger"] == moms_trig_alert_level, unreleased_moms_list))
+
+                            trig_dict["moms_list"] = moms_list
                             del trig_dict["moms_list_notice"]
 
                         trigger_list_arr.append(trig_dict)
@@ -386,12 +385,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     site_db_alert["event"]["event_id"])
 
                 for event_trigger in site_w_alert["event_triggers"]:
-                    var_checker("event_trigger", event_trigger, True)
-                    var_checker("saved_event_triggers", saved_event_triggers, True)
                     saved_trigger = next(filter(
                         lambda x: x[0] == event_trigger["internal_sym_id"], saved_event_triggers), None)
-
-                    var_checker("saved_trigger", saved_trigger, True)
 
                     is_trigger_new = False
                     if saved_trigger:
@@ -400,7 +395,6 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     else:
                         is_trigger_new = True
 
-                    var_checker("is_trigger_new", is_trigger_new, True)
                     event_trigger["is_trigger_new"] = is_trigger_new
 
                 db_latest_release_ts = datetime.strptime(
@@ -421,7 +415,6 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 # if incoming data_ts has not yet released:
                 is_new_release = db_latest_release_ts < site_alert_ts
-                var_checker("is_new_release", is_new_release, True)
 
                 if is_release_schedule_range and is_new_release:
                     is_release_time = True
@@ -635,6 +628,10 @@ def main(ts=None, generated_alerts_list=None):
     # Split site with alerts and site with no alerts
     with_alerts, without_alerts = separate_with_alerts_wo_alerts(
         generated_alerts_list)
+
+    var_checker("db_alerts_dict", db_alerts_dict, True)
+    var_checker("with_alerts", with_alerts, True)
+    var_checker("generated_alerts_list", generated_alerts_list, True)
 
     # PROCESS CANDIDATES
     candidate_alerts_list = process_candidate_alerts(

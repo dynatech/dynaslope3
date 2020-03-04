@@ -19,7 +19,9 @@ from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
     InternalAlertSymbolsSchema)
 from src.utils.narratives import (write_narratives_to_db)
-from src.api.manifestations_of_movement import (wrap_get_event_moms, get_latest_site_moms_alerts)
+from src.api.manifestations_of_movement import (
+    wrap_get_event_moms, get_latest_site_moms_alerts,
+    get_latest_released_moms, get_critical_instances)
 from src.utils.monitoring import (
     get_monitoring_events, get_monitoring_releases,
     get_active_monitoring_events, get_current_monitoring_instance_per_site,
@@ -532,7 +534,6 @@ def write_monitoring_moms_releases_to_db(moms_id, trig_misc_id=None, release_id=
         raise
 
     print(f"{datetime.now()} | Monitoring Moms Releases written")
-    var_checker("moms_release", moms_release, True)
 
 
 def get_moms_id_list(moms_dictionary, site_id, event_id):
@@ -597,7 +598,6 @@ def update_event_validity(new_validity, event_id):
 
 # @MONITORING_BLUEPRINT.route("/monitoring/insert_ewi_release", methods=["POST"])
 
-
 # # def insert_ewi_release(release_details, publisher_details, trigger_details):
 def insert_ewi_release(monitoring_instance_details, release_details, publisher_details, trigger_list_arr=None, non_triggering_moms=None):
     """
@@ -605,8 +605,6 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
     """
     try:
         print("")
-
-        var_checker("trigger_list_arr", trigger_list_arr, True)
         new_release = write_monitoring_release_to_db(release_details)
         release_id = new_release
         site_id = monitoring_instance_details["site_id"]
@@ -960,8 +958,6 @@ def insert_ewi(internal_json=None):
                         event_alert_details).event_alert_id
 
                 elif pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30) or is_overdue:
-                    var_checker("validity ext", pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30), True)
-                    var_checker("is_overdue", is_overdue, True)
                     # This extends the validity of the event in cases where
                     # no ground data is available.
                     try:
@@ -988,9 +984,6 @@ def insert_ewi(internal_json=None):
                     print("---LOWERING")
                     release_time = round_to_nearest_release_time(
                         datetime_data_ts)
-
-                    var_checker("release_time", release_time, True)
-                    var_checker("validity", validity, True)
 
                     if release_time == validity:
                         # End of Heightened Alert
@@ -1187,7 +1180,6 @@ def insert_cbewsl_moms():
             int_sym = trigger["int_sym"]
             ots_row = retrieve_data_from_memcache(
                 "operational_trigger_symbols", {"alert_symbol": int_sym})
-            var_checker("ots_row", ots_row, True)
             try:
                 internal_sym_id = ots_row["internal_alert_symbol"]["internal_sym_id"]
                 internal_symbol = ots_row["internal_alert_symbol"]["alert_symbol"]
@@ -1258,9 +1250,7 @@ def insert_cbewsl_moms():
                         "publisher_ct_id": user_id,
                     },
                     "trigger_list_arr": trigger_list_arr
-                }
-
-                var_checker("internal_json_data", internal_json_data, True)                
+                }    
                 run_status = insert_ewi(internal_json_data)                
             except Exception as err:
                 # print("PROBLEM IN ALERT GEN IN CBEWS MOMS INSERT")
@@ -1278,21 +1268,27 @@ def insert_cbewsl_moms():
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_candidate_and_current_alerts", methods=["GET"])
 def get_candidate_and_current_alerts():
-    print(get_active_monitoring_events())
     releases = wrap_get_monitoring_releases_by_site_id()
     instance_ids = get_instance_ids(releases)
-    latest_releases_moms_per_instance = get_latest_site_moms_alerts(instance_ids)
+    latest_event_moms = get_latest_site_moms_alerts(instance_ids)
+    latest_released_moms = get_latest_released_moms(instance_ids)
+    critical_instance_ids = get_critical_instances(instance_ids)
+    #####
+    # NOTE: Latest event moms are all moms under the event. Not filtered if released or not
+    #####
     ret_val = {
         "releases": releases,
-        "latest_release_moms": latest_releases_moms_per_instance,
+        "latest_event_moms": latest_event_moms,
+        "latest_released_moms": latest_released_moms,
+        "critical_instance_ids": critical_instance_ids,
         "leo": json.loads(wrap_get_ongoing_extended_overdue_events()),
         "candidate_alert": candidate_alerts_generator.main(), # pakibura,
     }
 
     return jsonify(ret_val)
 
+
 def get_instance_ids(releases):
-    print(releases)
     moms_instance_ids = []
     releases_length = len(releases)
     if releases_length > 0:

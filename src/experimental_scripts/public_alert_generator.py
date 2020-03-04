@@ -630,14 +630,8 @@ def add_special_case_details(trigger_source, accessory_detail):
         site_moms_alerts_list = accessory_detail["site_moms_alerts_list"]
         surficial_moms_window_ts = accessory_detail["surficial_moms_window_ts"]
 
-        # NOTE: LOUIE
-        var_checker("site_moms_alerts_list", site_moms_alerts_list, True)
-
         current_moms_list = list(filter(
             lambda x: x.observance_ts >= surficial_moms_window_ts, site_moms_alerts_list))
-
-        # NOTE: LOUIE
-        var_checker("current_moms_list", current_moms_list, True)
 
         if current_moms_list:
             current_moms_list_data = MONITORING_MOMS_SCHEMA.dump(
@@ -1081,9 +1075,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         highest_public_alert = get_highest_public_alert(
             positive_triggers_list)
 
-        var_checker("HPA", highest_public_alert, True)
-        var_checker("TTR", positive_triggers_list, True)
-
         release_op_triggers_list = extract_release_op_triggers(
             op_triggers_query, query_ts_end, release_interval_hours, highest_public_alert)
 
@@ -1112,9 +1103,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         has_positive_moms_trigger = False
         if highest_moms_alert > 0:
             has_positive_moms_trigger = True
-
-        # NOTE: LOUIE
-        var_checker("site_moms_alerts_list", site_moms_alerts_list, True)
 
         unresolved_moms_list = []
         if site_moms_alerts_list and has_positive_moms_trigger:
@@ -1212,9 +1200,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             # NOTE: for us to lower
             # if has_positive_moms_trigger and not has_unresolved_moms:
             #     has_no_ground_alert = False
-
-            var_checker("ground alert", ground_alert_level, True)
-            var_checker("has no ground alert", has_no_ground_alert, True)
+            
             if is_end_of_validity:
                 # Checks all lowering conditions before lowering
                 if is_rainfall_rx or (is_within_alert_extension_limit and has_no_ground_alert) \
@@ -1243,8 +1229,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ######################
         # START OF AN EVENT! #
         ######################
-        var_checker("monitoring_type", monitoring_type, True)
-        var_checker("positive_triggers_list", positive_triggers_list, True)
         
         if monitoring_type != "event" and positive_triggers_list:
             ts_onset = min(positive_triggers_list,

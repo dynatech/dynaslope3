@@ -11,6 +11,7 @@ from src.models.monitoring import (
 from src.utils.sites import get_sites_data
 
 from src.utils.monitoring import get_event_moms
+from src.utils.extra import var_checker
 
 
 MOMS_BLUEPRINT = Blueprint("moms_blueprint", __name__)
@@ -40,6 +41,66 @@ def get_latest_alerts():
     return jsonify(sites_data)
 
 
+def get_critical_instances(instance_id_list):
+    """
+    """
+    moms = MonitoringMoms
+    mi = MomsInstances
+    critical_ids = []
+    unique_instances = []
+    unique_moms_instance_set = set({})
+
+    moms_list = moms.query.order_by(DB.desc(moms.observance_ts)).join(mi).filter(mi.instance_id.in_(instance_id_list)).filter(moms.op_trigger == 3).all()
+
+    for site_moms in moms_list:
+        instance_id = site_moms.instance_id
+        if not instance_id in unique_moms_instance_set:
+            critical_ids.append(instance_id)
+            unique_moms_instance_set.add(instance_id)
+
+    return critical_ids
+
+
+def get_latest_released_moms(instance_id_list):
+    """
+    REturns only the latest moms that ARE RELEASED
+    """
+    moms = MonitoringMoms
+    mi = MomsInstances
+    released_moms = []
+    unique_instances = []
+    unique_moms_instance_set = set({})
+
+    try:
+        moms_list = moms.query.order_by(DB.desc(moms.observance_ts)).join(mi).filter(mi.instance_id.in_(instance_id_list)).all()
+
+        for site_moms in moms_list:
+            instance_id = site_moms.instance_id
+
+            moms_data = None
+            # if moms not yet released or attached
+            # to any trigger or release
+            if site_moms.moms_release or site_moms.op_trigger == 0:
+                if not instance_id in unique_moms_instance_set:
+                    moms_data = MonitoringMomsSchema().dump(site_moms).data
+                    released_moms.append(moms_data)
+
+                    # if site_moms.op_trigger > 0:
+                    #     if moms_data is None:
+                    #         moms_data = MonitoringMomsSchema(exclude=MOMS_SCHEMA_EXCLUSION) \
+                    #             .dump(site_moms).data
+                    #     unresolved_moms_list.append(moms_data)
+
+                    unique_moms_instance_set.add(instance_id)
+
+    except Exception as err:
+        print(err)
+        raise
+    
+
+    return released_moms
+
+
 # @MOMS_BLUEPRINT.route("/manifestations_of_movement/get_latest_site_moms_alerts", methods=["GET", "POST"])
 def get_latest_site_moms_alerts(instance_id_list):
     """
@@ -66,8 +127,14 @@ def get_latest_site_moms_alerts(instance_id_list):
         if instance_id not in unique_instance_ids:
             unique_instance_ids.add(instance_id)
             unique_instances.append(item)
-
+    
     data = MonitoringMomsSchema(many=True, exclude=("moms_releases",)).dump(unique_instances).data
+
+    for entry in data:
+        if len(entry["moms_release"]):
+            entry["is_moms_released"] = True
+        else:
+            entry["is_moms_released"] = False
 
     return data
 

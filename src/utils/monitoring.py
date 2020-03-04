@@ -446,12 +446,14 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                 if day <= 0:
                     latest.append(event_alert_data)
                     print("ENTERED LAT")
-                elif day > 0 and day < extended_monitoring_days:
+                elif day > 0 and day <= extended_monitoring_days:
                     event_alert_data["day"] = day
                     extended.append(event_alert_data)
                     print("ENTERED EXT")
                 else:
-                    # NOTE: Make an API call to end an event when extended is finished? based on old code
+                    # NOTE: HOWEVER -> Meron ng update sa insert_ewi
+                    # part ng last extended release. No need to put this here.
+                    # print("FINISH EVENT")
                     print("FINISH EVENT")
 
     db_alerts = {
@@ -951,6 +953,21 @@ def search_if_feature_exists(feature_type):
     return moms_feat
 
 
+def update_operational_trigger(ot_details):
+    var_checker("UPDATE OT", ot_details, True)
+
+
+def search_if_moms_exists(site_id, ts):
+    # moms_result = moms.query.filter(DB.and_(moms.site_id == site_id, moms.observance_ts == moms_ts)).first()
+    ots = OperationalTriggers
+    moms_result = ots.query.filter(DB.and_(ots.site_id == site_id, ots.trigger_sym_id in [10, 17, 18], ots.ts_updated == ts)).first()
+
+    if moms_result:
+        return True
+    else:
+        return False
+
+
 def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
     """
     Insert a moms report to db regardless of attached to release or prior to release.
@@ -1027,8 +1044,13 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             "source_id": source_id
         }, retrieve_attr="trigger_sym_id")
 
-        write_operational_trigger(
-            observance_ts, site_id, trigger_sym_id, observance_ts)
+        if search_if_moms_exists(50, observance_ts):
+            update_operational_trigger(
+                {"test": 1}
+            )
+        else:
+            write_operational_trigger(
+                observance_ts, site_id, trigger_sym_id, observance_ts)
 
         var_checker("new_moms", new_moms, True)
         DB.session.add(new_moms)
