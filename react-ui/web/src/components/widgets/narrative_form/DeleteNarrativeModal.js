@@ -48,7 +48,7 @@ function DeleteNarrativeModal (props) {
                         <Button onClick={closeHandler} color="primary">
                             Cancel
                         </Button>
-                        <Button variant="contained" color="primary" onClick={handleDeleteClick} disabled={false}>
+                        <Button variant="contained" color="secondary" onClick={handleDeleteClick} disabled={false}>
                             Confirm
                         </Button>
                     </div>
