@@ -35,6 +35,7 @@ def prepare_onset_message(release_data, address, site_alert_level):
     Subset function of get_bulletin_email_body.
     Prepares the onset message.
     """
+
     onset_msg = ""
     release_triggers = release_data.triggers
 
@@ -42,11 +43,10 @@ def prepare_onset_message(release_data, address, site_alert_level):
                                        key=lambda x: x.internal_sym.trigger_symbol.alert_level,
                                        reverse=True)))
 
-    trigger_ts = highest_trigger.ts
-    f_trig_ts = datetime.strftime(trigger_ts, "%B %e, %Y, %I:%M %p")
+    f_data_ts = datetime.strftime(release_data.data_ts, "%B %e, %Y, %I:%M %p")
     cause = highest_trigger.internal_sym.bulletin_trigger.first().cause
 
-    onset_msg = f"As of {f_trig_ts}, {address} is under {site_alert_level} based on {cause}."
+    onset_msg = f"As of {f_data_ts}, {address} is under {site_alert_level} based on {cause}."
 
     return onset_msg
 
