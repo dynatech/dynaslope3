@@ -21,6 +21,7 @@ import {
 } from "../../../websocket/communications_ws";
 import { mobileUserFormatter } from "./MessageList";
 import { sendMessage } from "../ajax";
+import { getCurrentUser } from "../../sessions/auth";
 
 const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
@@ -183,6 +184,8 @@ function ConversationWindow (props) {
     } = props;
     const classes = useStyles();
 
+    const current_user = getCurrentUser();
+
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
     const [conversation_details, setConversationDetails] = useState({
@@ -243,8 +246,10 @@ function ConversationWindow (props) {
     const on_send_message_fn = () => {
         const { mobile_id: m_id, gsm_id } = mobile_details;
 
+        const formatted_message = `${composed_message} - ${current_user.nickname} from PHIVOLCS-DYNASLOPE`;
+
         const payload = {
-            sms_msg: composed_message,
+            sms_msg: formatted_message,
             recipient_list: [
                 {
                     mobile_id: m_id,
