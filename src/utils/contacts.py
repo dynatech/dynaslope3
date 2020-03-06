@@ -117,7 +117,7 @@ def get_recipients_option(site_ids=None, site_codes=None,
 
     mobile_numbers = get_mobile_numbers(
         site_ids=site_ids, org_ids=org_ids, only_ewi_recipients=only_ewi_recipients)
-    result = UserMobilesSchema(many=True, exclude=["landline_numbers", "emails"]) \
+    result = UserMobilesSchema(many=True, exclude=["mobile_number.blocked_mobile", "landline_numbers", "emails"]) \
         .dump(mobile_numbers).data
 
     recipients_options = []
@@ -171,14 +171,16 @@ def get_contacts_per_site(site_ids=None,
                           site_codes=None, only_ewi_recipients=True,
                           include_ewi_restrictions=False, org_ids=None,
                           return_schema_format=True,
-                          include_inactive_numbers=False):
+                          include_inactive_numbers=False,
+                          include_inactive_users=False):
     """
     Function that get contacts per site
     """
     user_per_site_result = get_recipients(site_ids,
                                           site_codes, only_ewi_recipients,
                                           include_ewi_restrictions, org_ids,
-                                          return_schema_format, include_inactive_numbers, joined=True)
+                                          return_schema_format, include_inactive_numbers,
+                                          include_inactive_users, joined=True)
 
     return user_per_site_result
 
@@ -665,7 +667,10 @@ def get_recipients(site_ids=None,
                    site_codes=None, only_ewi_recipients=True,
                    include_ewi_restrictions=False, org_ids=None,
                    return_schema_format=True,
-                   include_inactive_numbers=False, joined=False):
+                   include_inactive_numbers=False,
+                   order_by_scope=False,
+                   include_inactive_users=False,
+                   joined=False):
     """
     Refactored function of getting recipients
     """
@@ -675,14 +680,14 @@ def get_recipients(site_ids=None,
                 DB.subqueryload("organizations").joinedload("organization").raiseload("*"),
                 DB.subqueryload("organizations").joinedload("site").raiseload("*"),
                 DB.subqueryload("emails"),
-                DB.raiseload("*")).order_by(UsersRelationship.last_name)
+                DB.raiseload("*"))
 
     if joined:
-        query = query.join(UserOrganizations).join(Sites).join(UserMobiles)
+        query = query.join(UserOrganizations).join(Sites).join(Organizations).join(UserMobiles)
 
     schema_exclusions = ["teams", "ewi_restriction",
                          "mobile_numbers.mobile_number.blocked_mobile"]
-
+ 
     if site_ids:
         query = query.filter(Sites.site_id.in_(site_ids))
 
@@ -704,6 +709,14 @@ def get_recipients(site_ids=None,
     if not include_inactive_numbers:
         query = query.filter(UserMobiles.status == 1)
 
+    if not include_inactive_users:
+        query = query.filter(UsersRelationship.status == 1)
+
+    if order_by_scope:
+        query = query.order_by(Organizations.scope)
+    else:
+        query = query.order_by(UsersRelationship.last_name)
+    
     user_per_site_result = query.all()
 
     if return_schema_format:
