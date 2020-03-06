@@ -73,9 +73,7 @@ function NarrativeFormModal (props) {
     useEffect( () => {
         const args = narrative_data.narrative !== "" && narrative_data.site_list !== null;
         args ? setIsDisabled(false) : setIsDisabled(true);
-        
     }, [narrative_data]);
-
 
     const handleSubmit = () => {
         
@@ -96,8 +94,6 @@ function NarrativeFormModal (props) {
                 closeFn();        
             }
         });
-        
-
     };
 
     const handleReset = () => {
@@ -164,5 +160,4 @@ function NarrativeFormModal (props) {
         </div>
     );
 }
-
 export default withMobileDialog()(NarrativeFormModal);

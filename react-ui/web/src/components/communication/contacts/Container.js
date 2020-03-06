@@ -87,7 +87,6 @@ function prepareGeographicalList (data, category) {
         const selection = unique.map(x => ({ id: x, label: x })); 
         list = [...selection];
     }
-
     return list;
 }
 
@@ -240,12 +239,8 @@ export function IndividualContact (props) {
                                 </ListItemAvatar>
                                 <ListItemText
                                     primary={`+${num.sim_num}`}
-                                    // secondary={`Priority: ${num.priority}`}
                                 />
                                 <ListItemSecondaryAction>
-                                    {/* <IconButton edge="end" aria-label="delete">
-                                        <DeleteIcon />
-                                    </IconButton> */}
                                     <ListItemText
                                         secondary={`Status: ${num.status === 0 ? "Inactive" : "Active"}`}
                                     />
@@ -287,17 +282,10 @@ export function IndividualContact (props) {
                                         <ListItemText
                                             primary={`+${num.landline_num}`}
                                         />
-                                        {/* <ListItemSecondaryAction>
-                                    <ListItemText
-                                        secondary={`Priority: ${num.priority}`}
-                                    />
-                                </ListItemSecondaryAction> */}
                                     </ListItem>
                                 ))
                             }
-                        </List>
-                    )
-                }
+                        </List>)}
             </Grid>
 
             <Grid item xs={12} className={classes.insetDivider} >
@@ -334,9 +322,7 @@ export function IndividualContact (props) {
                                     </ListItem>
                                 ))
                             }
-                        </List>
-                    )
-                }
+                        </List>)}
             </Grid>
 
             <Grid item xs={12} style={{ padding: "12px 4px" }} >
@@ -486,12 +472,8 @@ const SearchBar = ({ search_str, setSearchStr, inputProps }) => (
         InputProps={inputProps}
         value={search_str}
         onChange={event => setSearchStr(event.target.value)}  
-    />
-    
+    /> 
 );
-
-
-    
 
 function Container (props) {
     const { classes } = props;
@@ -511,7 +493,6 @@ function Container (props) {
     const [municipalities, setMunicipalities] = useState([]);
     const [provinces, setProvinces] = useState([]);
     const [regions, setRegions] = useState([]);
-
 
     const [modal_state, set_modal_state] = useState(false);
     const onContactClickFn = React.useCallback(row => () => {
@@ -546,22 +527,19 @@ function Container (props) {
     };
 
     const modal_handler = (event) =>{   
-        !modal_state ? set_modal_state(true) : set_modal_state(false);
+        set_modal_state(!modal_state);
     };
 
     const { setIsReconnecting, sites } = useContext(GeneralContext);
     useEffect(() => {
         subscribeToWebSocket("contacts", setIsReconnecting);
-
         receiveAllContacts(data => {
             setContacts(data);
             if (data.length > 0) setChosenContact(data[0]);
             setContactsArray(data);
         });
-
         return () => removeReceiveAllContacts();
     }, []);
-
 
     useEffect(() => {
         setMunicipalities(prepareGeographicalList(sites, "municipality"));
@@ -569,20 +547,14 @@ function Container (props) {
         setRegions(prepareGeographicalList(sites, "region"));
     }, [sites]);
 
-
-
     useEffect(() => {
         const filtered = contacts.filter(row => {
             const { user: { first_name, last_name } } = row;
             const name = `${first_name} ${last_name}`;
             const pattern = new RegExp(`${search_str}`, "gi");
-
-            return pattern.test(name);
-            
+            return pattern.test(name);          
         });
-        setContactsArray(filtered);
-        
-        
+        setContactsArray(filtered); 
     }, [search_str]);
 
     useEffect(() => {
@@ -615,7 +587,6 @@ function Container (props) {
     const set_modal_fn = (key, bool) => () => {
         set_modal_state(bool);
     };
-
 
     const PaperDialogContent = is_form_open => {
         if (is_form_open) return (
@@ -650,8 +621,6 @@ function Container (props) {
         );
     };
 
-
-
     const ListContent = () => {
         if (is_sim_prefixes_open) {
             return (
@@ -677,14 +646,12 @@ function Container (props) {
             showBlockedNumbers={is_block_numbers_open}
         />);
     };
-
     
     return (
         <div className={classes.pageContentMargin}>
             <PageTitle
                 title="Communications | Contacts" 
             />
-
             <Grid container spacing={4}>
                 <Hidden mdUp>
                     <Grid item xs={12} className={classes.sticky} style={{ paddingBottom: 0 }}>
@@ -703,9 +670,6 @@ function Container (props) {
                                 </InputAdornment> 
                             }}
                         /> }
-            
-                       
-
                     </Grid>
                 </Hidden>
 
@@ -726,16 +690,10 @@ function Container (props) {
                                             </IconButton>                  
                                         </InputAdornment> 
                                     }}
-                                /> }
-                                
-                               
+                                /> }            
                             </Grid>
                           
-                            
-                          
                             <List component="nav" aria-label="main">
-                              
-                                
                                 <ListItem button onClick={() => setContactForm(true)}>
                                     <ListItemIcon>
                                         <PersonAdd />
@@ -789,7 +747,6 @@ function Container (props) {
                             )
                         }
                     </Grid>
-
                     <Backdrop open={is_contact_form_open} style={{ zIndex: 1 }} />
                 </Hidden>
 
