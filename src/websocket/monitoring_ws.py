@@ -109,7 +109,8 @@ def monitoring_background_task():
                 rainfall_data = execute_get_all_site_rainfall_data()
                 set_data_to_memcache(name="RAINFALL_DATA",
                                      data=rainfall_data)
-                emit_data("receive_rainfall_data")
+                SOCKETIO.emit("receive_rainfall_data", rainfall_data,
+                              namespace="/monitoring")
 
         except Exception as err:
             print("")
