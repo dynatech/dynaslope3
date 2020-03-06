@@ -101,7 +101,11 @@ def get_all_contacts(
 
     if return_schema:
         mobile_numbers = get_recipients(
-            return_schema_format=return_schema, only_ewi_recipients=False, include_inactive_numbers=True, include_ewi_restrictions=True)
+            return_schema_format=return_schema,
+            only_ewi_recipients=False,
+            include_inactive_numbers=True,
+            include_ewi_restrictions=True,
+            include_inactive_users=True)
 
     query_end = datetime.now()
     print("GET CONTACTS RUNTIME: ", query_end - query_start)
@@ -291,44 +295,44 @@ def save_user_contact_numbers(data, user_id):
 
     if mobile_numbers_len > 0:
         for row in mobile_numbers:
-            mobile_id = row["mobile_id"]
-            sim_num = row["sim_num"]
+            mobile_id = row["mobile_number"]["mobile_id"]
+            sim_num = row["mobile_number"]["sim_num"]
             status = row["status"]
+
             if mobile_id == 0:
-                # NOTE: (DYNA 2.0) insert to UserMobile during transistion
-                # period. Change adding to MobileNumbers after full 3.0 implem
-                gsm_id = get_gsm_id_by_prefix(sim_num)
-                # insert_mobile_number = MobileNumbers(
-                #     sim_num=sim_num, gsm_id=gsm_id)
-                insert_mobile_number = UserMobile(
-                    user_id=2,
-                    sim_num=sim_num,
-                    priority=1,
-                    mobile_status=1,
-                    gsm_id=gsm_id
-                )
+                check_sim_num = MobileNumbers.query.filter_by(
+                    sim_num=sim_num).first()
 
-                DB.session.add(insert_mobile_number)
-                DB.session.flush()
+                if check_sim_num is None:
+                    # NOTE: (DYNA 2.0) insert to UserMobile during transistion
+                    # period. Change adding to MobileNumbers after full 3.0 implem
+                    gsm_id = get_gsm_id_by_prefix(sim_num)
+                    # insert_mobile_number = MobileNumbers(
+                    #     sim_num=sim_num, gsm_id=gsm_id)
+                    insert_mobile_number = UserMobile(
+                        user_id=2,
+                        sim_num=sim_num,
+                        priority=1,
+                        mobile_status=1,
+                        gsm_id=gsm_id
+                    )
 
-                last_inserted_mobile_id = insert_mobile_number.mobile_id
-                insert_user_mobile = UserMobiles(
-                    user_id=user_id, mobile_id=last_inserted_mobile_id, status=status)
+                    DB.session.add(insert_mobile_number)
+                    DB.session.flush()
 
-                DB.session.add(insert_user_mobile)
+                    last_inserted_mobile_id = insert_mobile_number.mobile_id
+                    insert_user_mobile = UserMobiles(
+                        user_id=user_id, mobile_id=last_inserted_mobile_id, status=status)
+
+                    DB.session.add(insert_user_mobile)
             else:
                 update_mobile = MobileNumbers.query.get(mobile_id)
                 update_mobile.sim_num = sim_num
                 update_mobile.gsm_id = get_gsm_id_by_prefix(sim_num)
-                check_user_mobile = UserMobiles.query.filter(
-                    UserMobiles.mobile_id == mobile_id).first()
-                result = UserMobilesSchema(
-                    exclude=("user", "mobile_number")).dump(check_user_mobile).data
 
-                if not result:
-                    insert_user_mobile = UserMobiles(
-                        user_id=user_id, mobile_id=mobile_id, status=status)
-                    DB.session.add(insert_user_mobile)
+                update_user_mobile = UserMobiles.query.filter_by(
+                    user_id=user_id, mobile_id=mobile_id).first()
+                update_user_mobile.status = status
 
     if landline_number_len > 0:
         for row in landline_numbers:
