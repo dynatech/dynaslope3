@@ -349,8 +349,8 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}." +
-                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}."
+                      + f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -1951,7 +1951,7 @@ def is_rain_surficial_subsurface_trigger(alert_symbol):
     return flag
 
 
-def check_if_onset_release(event_alert_id=None, release_id=None, data_ts=None, event_alert=None):
+def check_if_onset_release(event_alert_id=None, release_id=None, data_ts=None, event_alert=None, check_if_lowering=False):
     """
     """
 
@@ -1964,14 +1964,15 @@ def check_if_onset_release(event_alert_id=None, release_id=None, data_ts=None, e
     else:
         mea = event_alert
 
-    # releases are ordered by descreasing order by default
+    # releases are ordered by decreasing order by default
     first_release = mea.releases[-1].release_id
     is_onset = True
     is_first_release_but_release_time = first_release == release_id and \
         data_ts.hour % RELEASE_INTERVAL_HOURS == RELEASE_INTERVAL_HOURS - \
         1 and data_ts.minute == 30
+
     if first_release != release_id or (
-            is_first_release_but_release_time):
+            is_first_release_but_release_time and not check_if_lowering):
         is_onset = False
 
     return is_onset

@@ -336,8 +336,13 @@ def process_bulletin_responses(pub_sym_id, alert_level, validity, data_ts, is_on
         # TODO: isinsin pa ang returning of bulletin recommendations
         recommended = bulletin_response["recommended"].split("/")
         res = recommended[2]
-        if is_onset:  # TODO: don't use onset in checking, compare validity and data_ts
-            res = recommended[0]
+
+        if validity is not None:
+            days = (data_ts.date() - validity.date()).days
+            if days <= 0:
+                res = recommended[0]
+            elif days <= 2:
+                res = recommended[1]
 
         bulletin_response["lewc_lgu"] = res
         bulletin_response["recommended"] = res
@@ -459,50 +464,60 @@ def create_monitoring_bulletin(release_id):
     release_id = int(release_id)
     release = get_monitoring_releases(release_id=release_id)
     event_alert = release.event_alert
-    event_alert_id = event_alert.event_alert_id
     event = event_alert.event
     site = event.site
     data_ts = release.data_ts
     pub_sym_id = event_alert.pub_sym_id
     alert_level = event_alert.public_alert_symbol.alert_level
+    saved_validity = event.validity
 
-    is_onset = check_if_onset_release(event_alert_id, release_id, data_ts)
+    is_onset = check_if_onset_release(
+        event_alert=event_alert, release_id=release_id,
+        data_ts=data_ts)
     updated_data_ts = data_ts
     if not is_onset:
         updated_data_ts = data_ts + timedelta(minutes=30)
 
     bulletin_control_code = f"{site.site_code.upper()}-{data_ts.year}-{release.bulletin_number}"
 
-    event_id = event_alert.event_id
-    trigger_list = get_monitoring_triggers(
-        event_id=event_id, ts_end=data_ts)
-    most_recent_trigger_ts = trigger_list[0].ts
-
-    grouped_triggers = {}
-    for row in trigger_list:
-        grouped_triggers.setdefault(row.internal_sym_id, []).append(row)
-
     trigger_list_str = release.trigger_list
-    computed_validity = compute_event_validity(
-        most_recent_trigger_ts, alert_level)
-    final_validity = computed_validity
 
+    computed_validity = None
+    formatted_validity = ""
+    grouped_triggers = {}
     if alert_level > 0:  # validity is not needed in A0 bulletin
+        event_id = event_alert.event_id
+        trigger_list = get_monitoring_triggers(
+            event_id=event_id, ts_end=data_ts)
+        most_recent_trigger_ts = trigger_list[0].ts
+
+        for row in trigger_list:
+            grouped_triggers.setdefault(row.internal_sym_id, []).append(row)
+
+        computed_validity = compute_event_validity(
+            most_recent_trigger_ts, alert_level)
+        final_validity = computed_validity
+
         if computed_validity <= updated_data_ts:
             if re.search(r"ND|.0|[Rr]x", trigger_list_str):
                 final_validity = updated_data_ts + \
                     timedelta(hours=NO_DATA_HOURS_EXTENSION)
 
+        formatted_validity = format_timestamp_to_string(final_validity)
+
     internal_sym_id_list = grouped_triggers.keys()
     int_sym_objects, has_ground_trigger = prepare_symbols_list(
         internal_sym_id_list)
 
-    formatted_validity = format_timestamp_to_string(final_validity)
     alert_description_group = process_alert_description(
         alert_level, int_sym_objects, formatted_validity)
 
+    response_validity = computed_validity
+    if alert_level == 0:
+        response_validity = saved_validity
+
     bulletin_response = process_bulletin_responses(
-        pub_sym_id, alert_level, computed_validity, data_ts, is_onset)
+        pub_sym_id, alert_level, response_validity, updated_data_ts, is_onset)
 
     prepared_triggers = []
     if alert_level > 0:  # triggers not needed in A0 bulletin
