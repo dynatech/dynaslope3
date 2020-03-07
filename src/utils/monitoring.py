@@ -349,8 +349,8 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}."
-                      + f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}." +
+                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -1167,11 +1167,10 @@ def get_active_monitoring_events():
     active_events = mea.query.join(me) \
         .options(
             DB.joinedload("event", innerjoin=True).joinedload(
-                "site", innerjoin=True)
-        .raiseload("*"),
+                "site", innerjoin=True).raiseload("*"),
             DB.subqueryload("releases").raiseload("*"),
-            DB.joinedload("public_alert_symbol").raiseload("*"),
-            DB.raiseload("*")
+            DB.joinedload("public_alert_symbol").raiseload("*")
+            # DB.raiseload("*")
     ).order_by(DB.desc(mea.event_alert_id)) \
         .filter(DB.and_(me.status == 2, mea.ts_end == None)).all()
 
