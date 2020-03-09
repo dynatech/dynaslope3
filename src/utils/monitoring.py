@@ -349,8 +349,8 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}." +
-                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}."
+                      + f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -440,7 +440,17 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         event = event_alert.event
         validity = event.validity
         event_id = event.event_id
-        latest_release = event_alert.releases[0]
+
+        # Did this because of weird bug when releasing EWI
+        # simulataneously where .releases becomes raised
+        # on subsequent release
+        try:
+            latest_release = event_alert.releases[0]
+        except:
+            latest_release = MonitoringReleases.query \
+                .options(DB.raiseload("*")) \
+                .filter_by(event_alert=event_alert.event_alert_id) \
+                .order_by(MonitoringReleases.data_ts).first()
 
         # NOTE: LOUIE This formats release time to have date instead of time only
         data_ts = latest_release.data_ts
@@ -1169,8 +1179,8 @@ def get_active_monitoring_events():
             DB.joinedload("event", innerjoin=True).joinedload(
                 "site", innerjoin=True).raiseload("*"),
             DB.subqueryload("releases").raiseload("*"),
-            DB.joinedload("public_alert_symbol").raiseload("*")
-            # DB.raiseload("*")
+            DB.joinedload("public_alert_symbol").raiseload("*"),
+            DB.raiseload("*")
     ).order_by(DB.desc(mea.event_alert_id)) \
         .filter(DB.and_(me.status == 2, mea.ts_end == None)).all()
 
