@@ -449,7 +449,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         except:
             latest_release = MonitoringReleases.query \
                 .options(DB.raiseload("*")) \
-                .filter_by(event_alert=event_alert.event_alert_id) \
+                .filter_by(event_alert_id=event_alert.event_alert_id) \
                 .order_by(MonitoringReleases.data_ts).first()
 
         # NOTE: LOUIE This formats release time to have date instead of time only
