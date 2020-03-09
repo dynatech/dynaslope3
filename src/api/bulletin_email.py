@@ -76,10 +76,11 @@ def get_bulletin_email_details(release_id):
     event_alert = bulletin_release_data.event_alert
     # NOTE: mali ito kasi pag tumaas na ang alert, iba na yung na yung magiging first_data_ts
     # which means gagawa siya ng bagong thread
-    first_release = list(
+    first_ea_release = list(
         sorted(event_alert.releases, key=lambda x: x.data_ts))[0]
     event = event_alert.event
     event_id = event.event_id
+    event_start = event.event_start
 
     # Get data needed to prepare base message
     site = event.site
@@ -90,9 +91,9 @@ def get_bulletin_email_details(release_id):
     data_ts = bulletin_release_data.data_ts
 
     # Get data needed to see if onset
-    first_data_ts = first_release.data_ts
+    first_ea_data_ts = first_ea_release.data_ts
     data_ts = bulletin_release_data.data_ts
-    is_onset = first_data_ts == data_ts
+    is_onset = first_ea_data_ts == data_ts
 
     # MAIL BODY
     mail_body = ""
@@ -114,10 +115,9 @@ def get_bulletin_email_details(release_id):
         site_address, site_alert_level, body_ts)
 
     # GET THE SUBJECT NOW
-
     subject = get_email_subject(mail_type="bulletin", details={
         "site_code": site.site_code,
-        "date": first_data_ts.strftime("%d %b %Y").upper()
+        "date": event_start.strftime("%d %b %Y").upper()
     })
 
     # GET THE FILENAME NOW
