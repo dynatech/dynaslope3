@@ -33,8 +33,7 @@ function capitalizeFirstLetter (str, every_word = false) {
     return capitalize(str);
 }
 
-function getUserOrganizations (user, return_grouped = false) {
-    const { organizations } = user;
+function getUserOrganizations (organizations, return_grouped = false) {
     let org = null;
     const sites = organizations.map(row => {
         const { site, org_name } = row;

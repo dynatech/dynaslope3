@@ -12,10 +12,14 @@ from src.utils.contacts import (
     ewi_recipient_migration, get_contacts_per_site,
     get_ground_measurement_reminder_recipients,
     get_recipients_option, get_blocked_numbers,
-    save_blocked_number, get_all_sim_prefix
+    save_blocked_number, get_all_sim_prefix,
+    get_mobile_numbers, get_recipients
 )
 
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
+from src.utils.sites import get_sites_data
+from src.utils.users import get_users_categorized_by_org
+from src.models.users import UsersSchema
 
 
 CONTACTS_BLUEPRINT = Blueprint("contacts_blueprint", __name__)
@@ -129,7 +133,7 @@ def wrap_get_recipients_option(site_code=None):
         ]:
             if key in data:
                 temp[key] = data[key]
-
+    
     data = get_recipients_option(site_ids=temp["site_ids"],
                                  site_codes=temp["site_codes"],
                                  only_ewi_recipients=temp["only_ewi_recipients"],
@@ -223,3 +227,32 @@ def sim_prefixes():
     }
 
     return jsonify(feeback)
+
+
+@CONTACTS_BLUEPRINT.route("/contacts/get_contact_prioritization", methods=["GET"])
+def get_contact_prioritization():
+    """
+    Function that get contact prioritization
+    """
+    users = get_recipients(joined=True, order_by_scope=True)
+    
+    all_sites_stakeholders = {}
+    for user in users:
+        organizations = user["organizations"]
+        for org in organizations:
+            site = org["site"]["site_code"]
+            org_name = org["organization"]["name"]
+            scope = org["organization"]["scope"]
+            primary_contact = org["primary_contact"]
+            user_org_id = org["user_org_id"]
+            data = {"org_name": org_name,
+                    "scope": scope,
+                    "primary_contact": primary_contact,
+                    "contact_person": user,
+                    "user_org_id": user_org_id}
+            if site not in all_sites_stakeholders:
+                all_sites_stakeholders[site] = [data]
+            else:
+                all_sites_stakeholders[site].append(data)
+
+    return jsonify(all_sites_stakeholders)

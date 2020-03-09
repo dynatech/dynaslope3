@@ -40,6 +40,7 @@ class UserOrganizations(DB.Model):
         DB.Integer, DB.ForeignKey("commons_db.sites.site_id"))
     org_name = DB.Column(DB.String(45))
     org_id = DB.Column(DB.Integer, DB.ForeignKey("commons_db.organizations.org_id"))
+    primary_contact = DB.Column(DB.Integer, nullable=True)
 
     site = DB.relationship(
         Sites, backref=DB.backref("user", lazy="select"),

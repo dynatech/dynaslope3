@@ -20,10 +20,8 @@ function ContactList (props) {
         <List dense style={{ paddingTop: 0 }}>
             {
                 contacts.map(row => {
-                    const { user } = row;
-                    const { user_id, first_name, last_name } = user;
-                    const orgs = getUserOrganizations(user);
-
+                    const { user_id, first_name, last_name, organizations } = row;
+                    const orgs = getUserOrganizations(organizations);
                     return (
                         <ListItem 
                             button
