@@ -25,7 +25,7 @@ set_data_to_memcache(name="ALERTS_FROM_DB", data=json.dumps({
     "latest": [], "extended": [], "overdue": [], "routine": {}
 }))
 set_data_to_memcache(name="ISSUES_AND_REMINDERS", data=json.dumps([]))
-set_data_to_memcache(name="RAINFALL_DATA", data=json.dumps([]))
+set_data_to_memcache(name="RAINFALL_SUMMARY", data=json.dumps([]))
 
 
 def emit_data(keyword, sid=None):
@@ -39,7 +39,7 @@ def emit_data(keyword, sid=None):
     elif keyword == "receive_issues_and_reminders":
         data_to_emit = retrieve_data_from_memcache("ISSUES_AND_REMINDERS")
     elif keyword == "receive_rainfall_data":
-        data_to_emit = retrieve_data_from_memcache("RAINFALL_DATA")
+        data_to_emit = retrieve_data_from_memcache("RAINFALL_SUMMARY")
 
     # var_checker("data_list", data_list, True)
     if sid:
@@ -68,7 +68,7 @@ def monitoring_background_task():
                                      data=wrap_get_issue_reminder())
 
                 rainfall_data = execute_get_all_site_rainfall_data()
-                set_data_to_memcache(name="RAINFALL_DATA",
+                set_data_to_memcache(name="RAINFALL_SUMMARY",
                                      data=rainfall_data)
 
                 emit_data("receive_generated_alerts")
@@ -107,10 +107,9 @@ def monitoring_background_task():
             # Update rainfall summary data
             elif datetime.now().minute in [15, 45]:
                 rainfall_data = execute_get_all_site_rainfall_data()
-                set_data_to_memcache(name="RAINFALL_DATA",
+                set_data_to_memcache(name="RAINFALL_SUMMARY",
                                      data=rainfall_data)
-                SOCKETIO.emit("receive_rainfall_data", rainfall_data,
-                              namespace="/monitoring")
+                emit_data("receive_rainfall_data")
 
         except Exception as err:
             print("")
@@ -374,7 +373,7 @@ def execute_update_db_alert_ewi_sent_status(alert_db_group, site_id, ewi_group):
 
 
 def execute_get_all_site_rainfall_data():
-    return get_all_site_rainfall_data()
+    return get_all_site_rainfall_data(end_ts=datetime.now())
 
 
 @SOCKETIO.on("message", namespace="/monitoring")
