@@ -948,7 +948,7 @@ def insert_ewi(internal_json=None):
                     release_time = round_to_nearest_release_time(
                         datetime_data_ts)
 
-                    if release_time == validity:
+                    if release_time >= validity:
                         # End of Heightened Alert
                         end_current_monitoring_event_alert(
                             current_event_alert_id, datetime_data_ts)
