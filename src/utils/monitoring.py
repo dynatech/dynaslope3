@@ -447,10 +447,11 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         try:
             latest_release = event_alert.releases[0]
         except:
-            latest_release = MonitoringReleases.query \
+            event_alert.releases = MonitoringReleases.query \
                 .options(DB.raiseload("*")) \
                 .filter_by(event_alert_id=event_alert.event_alert_id) \
-                .order_by(MonitoringReleases.data_ts).first()
+                .order_by(DB.desc(MonitoringReleases.data_ts)).all()
+            latest_release = event_alert.releases[0]
 
         # NOTE: LOUIE This formats release time to have date instead of time only
         data_ts = latest_release.data_ts
@@ -2017,6 +2018,10 @@ def get_next_ground_data_reporting(data_ts, is_onset=False, is_alert_0=False, in
 
     if include_modifier:
         return reporting, modifier
+
+    print("data_ts", data_ts)
+    print("is_onset", is_onset)
+    print("reporting", reporting)
     return reporting
 
 
