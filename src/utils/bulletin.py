@@ -517,7 +517,7 @@ def create_monitoring_bulletin(release_id):
         response_validity = saved_validity
 
     bulletin_response = process_bulletin_responses(
-        pub_sym_id, alert_level, response_validity, updated_data_ts, is_onset)
+        pub_sym_id, alert_level, response_validity, data_ts, is_onset)
 
     prepared_triggers = []
     if alert_level > 0:  # triggers not needed in A0 bulletin
