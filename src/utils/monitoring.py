@@ -1177,11 +1177,11 @@ def get_active_monitoring_events():
     # since SQLAlchemy interprets "is None" differently.
     active_events = mea.query.join(me) \
         .options(
+            DB.subqueryload("releases").raiseload("*"),
             DB.joinedload("event", innerjoin=True).joinedload(
                 "site", innerjoin=True).raiseload("*"),
-            DB.subqueryload("releases").raiseload("*"),
-            DB.joinedload("public_alert_symbol").raiseload("*"),
-            DB.raiseload("*")
+            DB.joinedload("public_alert_symbol").raiseload("*")
+            # DB.raiseload("*")
     ).order_by(DB.desc(mea.event_alert_id)) \
         .filter(DB.and_(me.status == 2, mea.ts_end == None)).all()
 
