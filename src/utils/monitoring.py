@@ -1690,7 +1690,7 @@ def start_new_monitoring_instance(new_instance_details):
     Returns event alert ID for use in releases
     """
     try:
-        print(new_instance_details)
+        # print(new_instance_details)
         event_details = new_instance_details["event_details"]
         event_alert_details = new_instance_details["event_alert_details"]
 
@@ -2019,9 +2019,6 @@ def get_next_ground_data_reporting(data_ts, is_onset=False, is_alert_0=False, in
     if include_modifier:
         return reporting, modifier
 
-    print("data_ts", data_ts)
-    print("is_onset", is_onset)
-    print("reporting", reporting)
     return reporting
 
 

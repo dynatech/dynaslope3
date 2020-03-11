@@ -484,7 +484,10 @@ function RoutineExpansionPanel (props) {
             // expandIcon={<ExpandMoreIcon />}
                 aria-controls={`${keyName}bh-content`}
                 id={`${keyName}bh-header`}
-                classes={{ content: classes.expansionPanelSummaryContent }}
+                classes={{
+                    content: classes.expansionPanelSummaryContent,
+                    root: classes.alert0
+                }}
             >
                 {
                     ["ROUTINE", adjusted_data_ts].map((elem, i) => (

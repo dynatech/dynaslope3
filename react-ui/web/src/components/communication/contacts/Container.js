@@ -479,7 +479,7 @@ const SearchBar = ({ search_str, setSearchStr, inputProps }) => (
         hiddenLabel 
         fullWidth
         variant="outlined"
-        placeholder="Juan Dela Cruz"
+        placeholder="Type contact name"
         InputProps={inputProps}
         value={search_str}
         onChange={event => setSearchStr(event.target.value)}  
@@ -659,6 +659,20 @@ function Container (props) {
             showBlockedNumbers={is_block_numbers_open}
         />);
     };
+
+    const SearchComp = <SearchBar search_str={search_str} setSearchStr={setSearchStr}
+        inputProps={{ 
+            endAdornment: <InputAdornment position="end">
+                <IconButton  
+                    aria-controls="sortContacts" 
+                    aria-haspopup="true" 
+                    onClick={modal_handler} 
+                    color="primary">
+                    <Sort/> 
+                </IconButton>                  
+            </InputAdornment> 
+        }}
+    />;
     
     return (
         <div className={classes.pageContentMargin}>
@@ -668,21 +682,7 @@ function Container (props) {
             <Grid container spacing={4}>
                 <Hidden mdUp>
                     <Grid item xs={12} className={classes.sticky} style={{ paddingBottom: 0 }}>
-                       
-                        { <SearchBar search_str={search_str} setSearchStr={setSearchStr}
-                            inputProps={{ 
-                                endAdornment: <InputAdornment position="end">
-                                   
-                                    <IconButton  
-                                        aria-controls="sortContacts" 
-                                        aria-haspopup="true" 
-                                        onClick={modal_handler} 
-                                        color="primary">
-                                        <Sort/> 
-                                    </IconButton>                  
-                                </InputAdornment> 
-                            }}
-                        /> }
+                        {SearchComp}
                     </Grid>
                 </Hidden>
 
@@ -690,20 +690,7 @@ function Container (props) {
                     <Grid item md={4} lg={3}>
                         <div >
                             <Grid>
-                                { <SearchBar search_str={search_str} setSearchStr={setSearchStr}
-                                    inputProps={{ 
-                                        endAdornment: <InputAdornment position="end">
-                                            <IconButton  
-                                                aria-controls="sortContacts" 
-                                                aria-haspopup="true" 
-                                                onClick={modal_handler} 
-                                                color="primary">
-                                                <Search/> 
-
-                                            </IconButton>                  
-                                        </InputAdornment> 
-                                    }}
-                                /> }            
+                                {SearchComp}            
                             </Grid>
                           
                             <List component="nav" aria-label="main">

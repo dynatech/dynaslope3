@@ -83,7 +83,7 @@ function SearchContactsModal (props) {
 
             const population = contactsArray;
             filtered = population.filter(row => {
-                const { user: { organizations } } = row;
+                const { organizations } = row;
                 let org_id = null;
                 if (organizations.length !== 0) 
                     // eslint-disable-next-line prefer-destructuring
@@ -103,7 +103,7 @@ function SearchContactsModal (props) {
 
             filtered = [];
             population.forEach(row => {
-                const { user: { organizations } } = row;
+                const { organizations } = row;
                 organizations.every(value => {
                     const { site: { site_code } } = value;
                     if (site_codes.includes(site_code)) {
@@ -114,9 +114,9 @@ function SearchContactsModal (props) {
                 });
             });
         }
+
         if (filtered.length > 0) set_results(filtered);
         else set_results(null);
-
     }, [organization, sites]);
 
     const ListContent = () => {
@@ -160,6 +160,14 @@ function SearchContactsModal (props) {
                 </DialogContentText>
 
                 <div style={{ margin: "24px 0" }}>
+                    <DynaslopeSiteSelectInputForm
+                        value={sites}
+                        changeHandler={value => setSites(value)}
+                        isMulti
+                    />     
+                </div>
+
+                <div style={{ margin: "24px 0" }}>
                     <SelectMultipleWithSuggest
                         label="Organizations"
                         options={org_options}
@@ -171,21 +179,14 @@ function SearchContactsModal (props) {
                         isMulti
                     />
                 </div>
+
+                {ListContent()}
                 
-                <div style={{ margin: "24px 0" }}>
-                    <DynaslopeSiteSelectInputForm
-                        value={sites}
-                        changeHandler={value => setSites(value)}
-                        isMulti
-                    />     
-                </div>
-                {ListContent()}    
                 {
                     !isMobile && <div style={{ height: 240 }} />
                 }    
             </DialogContent>
             <DialogActions>
-                {/* <Button onClick={compound_fn} color="primary" /> */}
                 <Button onClick={modalStateHandler}>
                     Close
                 </Button>
