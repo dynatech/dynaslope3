@@ -387,7 +387,7 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
     is_bulletin_sent = False
 
     if not is_onset_release or \
-            (is_onset_release and start_ts.hour % 3 and start_ts.minute == 30):
+            (is_onset_release and start_ts.hour % 4 == 3 and start_ts.minute == 30):
         # TODO: make this dynamic
         start_ts = start_ts + timedelta(minutes=30)
 
