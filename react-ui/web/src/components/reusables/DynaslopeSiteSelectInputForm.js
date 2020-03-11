@@ -14,28 +14,20 @@ export function prepareSitesOption (arr, to_include_address, isFromSiteLogs) {
         if (to_include_address) address = prepareSiteAddress(site, true, "start");
 
         // check sites if on-event
+        let color = "black";
         if (typeof isFromSiteLogs !== "undefined" && isFromSiteLogs !== null) {
-            let fcolor = "";
-            const { latest, extended, routine, overdue } = isFromSiteLogs[0];
-            let latest_db_alerts = [];
-            let extended_db_alerts = [];
-            let overdue_db_alerts = [];
-            let routine_db_alerts = [];
-            latest_db_alerts = latest;
-            extended_db_alerts = extended;
-            overdue_db_alerts = overdue;
-            routine_db_alerts = routine;
-            if (latest_db_alerts.includes(site_code.toLowerCase())) fcolor = "red";
-            if (extended_db_alerts.includes(site_code.toLowerCase())) fcolor = "orange";
-            if (typeof routine_db_alerts.released_sites !== "undefined" && routine_db_alerts.length > 0) 
-            {
-                if (routine_db_alerts.includes(site_code.toLowerCase())) fcolor = "gold"; 
-            }
-            if (overdue_db_alerts.includes(site_code.toLowerCase())) fcolor = "red"; 
+            const { latest, extended, overdue } = isFromSiteLogs;
+            const merged_latest = [...latest, ...overdue];
+            const sc = site_code.toLowerCase();
 
-            return { value: site_id, label: address, data: site, color: fcolor };
+            const is_ev = merged_latest.find(x => x.event.site.site_code === sc);
+            const is_ex = extended.find(x => x.event.site.site_code === sc);
+            
+            if (is_ev) color = "red";
+            if (is_ex) color = "green";
         }
-        return { value: site_id, label: address, data: site, color: "black" };
+
+        return { value: site_id, label: address, data: site, color };
     });
 }
 

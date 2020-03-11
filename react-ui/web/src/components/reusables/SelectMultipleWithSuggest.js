@@ -178,10 +178,10 @@ function Menu (props) {
 
 function SelectMultipleWithSuggest (props) {
     const {
-        classes, theme, changeHandler,
+        classes, changeHandler,
         options, value, label, placeholder,
         renderDropdownIndicator, openMenuOnClick, isMulti,
-        isDisabled, isClearable, hasAlternativeChipLabel, isEvent
+        isDisabled, isClearable, hasAlternativeChipLabel
     } = props;
 
     const selectStyles = {
@@ -215,19 +215,6 @@ function SelectMultipleWithSuggest (props) {
         components.DropdownIndicator = () => null;
         components.IndicatorSeparator = () => null;
     }
-
-
-
-    // const h_a_c_l = hasAlternativeChipLabel === undefined ? false : hasAlternativeChipLabel;
-    // if (h_a_c_l) {
-    //     const mv_comp = props => (
-    //         <components.MultiValue {...props}>
-    //             {props.data.chipLabel}
-    //         </components.MultiValue>
-    //     );
-
-    //     components.MultiValue = mv_comp;
-    // }
 
     return (
         <div className={classes.root}>

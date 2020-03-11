@@ -39,6 +39,9 @@ const styles = theme => ({
             fontSize: "1.2rem"
         }
     },
+    extended: {
+        backgroundColor: "green"
+    },
     alert0: {
         backgroundColor: "#EEEEEE"
     },

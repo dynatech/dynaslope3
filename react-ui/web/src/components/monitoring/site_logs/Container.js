@@ -5,7 +5,7 @@ import React, {
 
 import {
     Paper, LinearProgress, Checkbox, InputLabel,
-    withStyles, Dialog, DialogContent, FormControl,
+    makeStyles, Dialog, DialogContent, FormControl,
     Button, IconButton, ListItemText, Select, MenuItem,
     ListItemIcon
 } from "@material-ui/core";
@@ -15,7 +15,6 @@ import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 
 import moment from "moment";
 import MUIDataTable from "mui-datatables";
-import { compose } from "recompose";
 
 import CustomSearchRender from "./CustomSearchRender";
 import { getNarratives } from "../ajax";
@@ -29,23 +28,33 @@ import {
     subscribeToWebSocket, unsubscribeToWebSocket, receiveAlertsFromDB
 } from "../../../websocket/monitoring_ws";
 
-const styles = theme => ({
-    inputGridContainer: {
-        margin: "12px 0",
-        [theme.breakpoints.down("sm")]: {
-            margin: "0 0"
+const useStyles = makeStyles(theme => {
+    const gen = GeneralStyles(theme);
+    return {
+        ...gen,
+        inputGridContainer: {
+            margin: "12px 0",
+            [theme.breakpoints.down("sm")]: {
+                margin: "0 0"
+            }
+        },
+        buttonGrid: {
+            textAlign: "right",
+            [theme.breakpoints.down("sm")]: {
+                textAlign: "right"
+            }
+        },
+        button: {
+            fontSize: 16,
+            paddingLeft: 8
+        },
+        alert3: {
+            ...gen.alert3,
+            "&:hover *": {
+                color: "#222222 !important"
+            },
         }
-    },
-    buttonGrid: {
-        textAlign: "right",
-        [theme.breakpoints.down("sm")]: {
-            textAlign: "right"
-        }
-    },
-    button: {
-        fontSize: 16,
-        paddingLeft: 8
-    }
+    }; 
 });
 
 const getMuiTheme = createMuiTheme({
@@ -87,7 +96,6 @@ function getManipulationButtons (narrative, data_handlers) {
     );
 }
 
-
 function processTableData (data) {
     const processed = data.map(row => {
         const {
@@ -113,20 +121,10 @@ function processTableData (data) {
 
     return processed;
 }
-const ITEM_HEIGHT = 48;
-const ITEM_PADDING_TOP = 8;
-const MenuProps = {
-    PaperProps: {
-        style: {
-            maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-            width: 250,
-        },
-    },
-};
-
 
 function SiteLogs (props) {
-    const { classes, width } = props;
+    const { width } = props;
+    const classes = useStyles();
     const [table_data, setTableData] = useState([]);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -147,7 +145,6 @@ function SiteLogs (props) {
 
     const { sites } = useContext(GeneralContext);
 
-    const [activeSites, setActiveSites] = useState([]);
     const filter_sites_option = [];
     const sites_dict = {};
 
@@ -157,6 +154,14 @@ function SiteLogs (props) {
         sites_dict[site_code] = site.site_id;
     });
 
+    // useEffect(() => {
+    //     sites.forEach(site => {
+    //         const site_code = site.site_code.toUpperCase();
+    //         filter_sites_option.push(site_code);
+    //         sites_dict[site_code] = site.site_id;
+    //     });
+    // }, [alertsFromDbData]);
+
     useEffect(() => {
         subscribeToWebSocket(setIsReconnecting);
         receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
@@ -164,17 +169,6 @@ function SiteLogs (props) {
             unsubscribeToWebSocket();
         };
     }, []);
-
-    useEffect( () => {
-        if (alertsFromDbData !== null) {
-            const { latest, routine, extended, overdue } = alertsFromDbData;
-            const latest_event = latest.map(val => { return val.event.site.site_code; });
-            const overdue_event = overdue.map(val => { return val.event.site.site_code; });
-            const extended_event = extended.map(val => { return val.event.site.site_code; });
-            const active = [{ latest: latest_event, overdue: overdue_event, extended: extended_event, routine }]; 
-            setActiveSites(active);
-        }
-    }, [alertsFromDbData]);
 
     useEffect(() => {
         setIsLoading(true);
@@ -203,6 +197,7 @@ function SiteLogs (props) {
             setIsOpenDeleteModal(!isOpenDeleteModal);
         }
     };
+
     const options = {
         textLabels: {
             body: {
@@ -311,18 +306,21 @@ function SiteLogs (props) {
                 filterType: "custom",
                 filterList: typeof filter_list.site_name === "undefined" ? [] : filter_list.site_name,
                 filterOptions: {
-                    logic: (location, filterss) => {
+                    logic (location, filterss) {
                         if (filterss.length) return !filterss.includes(location);
                         return false;
                     },
                     // eslint-disable-next-line max-params
-                    display: (filterList, onChange, index, column) => {
+                    display (filterList, onChange, index, column) {
+                        const { latest, extended, overdue } = alertsFromDbData;
+                        const merged_latest = [...latest, ...overdue];
+
                         return (
                             <FormControl>
                                 <InputLabel>Site</InputLabel>
                                 <Select
                                     multiple
-                                    MenuProps= {MenuProps}
+                                    // MenuProps= {MenuProps}
                                     value={filterList[index]}
                                     renderValue={selected => selected.join(", ")}
                                     onChange={event => {
@@ -331,53 +329,30 @@ function SiteLogs (props) {
                                         onChange(filterList[index], index, column);
                                     }}
                                 >
-                                    {filter_sites_option.map(site => {
-                                        let color = "";
-                                        let icon = "";    
-                                        let type = "";       
-                                        const { latest, extended, routine, overdue } = activeSites[0];
-                                        let latest_db_alerts = [];
-                                        let extended_db_alerts = [];
-                                        let overdue_db_alerts = [];
-                                        let routine_db_alerts = [];
-                                        latest_db_alerts = latest;
-                                        extended_db_alerts = extended;
-                                        overdue_db_alerts = overdue;
-                                        routine_db_alerts = routine;
-                                        if (latest_db_alerts.includes(site.toLowerCase())) {
-                                            color = "red";
-                                            type = "event";
-                                            icon = <Warning style={{ color: "red" }}/>;
-                                        }
-                                        if (extended_db_alerts.includes(site.toLowerCase())) {
-                                            color = "";
-                                            type = "extended";
-                                            icon = <Warning style={{ color: "yellow" }}/>;
-                                        }
-                                        if (typeof routine_db_alerts.released_sites !== "undefined" && routine_db_alerts.length > 0) {
-                                            if (routine_db_alerts.includes(site.toLowerCase())) {
-                                                color = "red";
-                                                type = "routine";
-                                                icon = <Warning style={{ color: "red" }}/>;
-                                            } }
-                                        if (overdue_db_alerts.includes(site.toLowerCase())) {
-                                            color = "red";
-                                            type = "overdue";
-                                            icon = <Warning style={{ color: "red" }}/>;
-                                        }
+                                    {
+                                        filter_sites_option.map(site_code => {
+                                            const sc = site_code.toLowerCase();
+                                            const is_ev = merged_latest.find(x => x.event.site.site_code === sc);
+                                            const is_ex = extended.find(x => x.event.site.site_code === sc);
+                                            
+                                            let color = classes.alert0;
+                                            if (is_ev) { color = classes.alert3; }
+                                            if (is_ex) { color = classes.extended; }
 
-                                        
-                                        return (
-                                            <MenuItem key={site} value={site}>
-                                                <Checkbox
-                                                    color="primary"
-                                                    checked={filterList[index].indexOf(site) > -1}
-                                                />
-                                                <ListItemText primary={site} secondary={type} style = {{ color }} />
-                                                <ListItemIcon>{icon}</ListItemIcon>
-                                            </MenuItem>
-                                        );
-                                    })}
+                                            const icon = is_ev || is_ex ? <ListItemIcon><Warning/></ListItemIcon> : "";
+
+                                            return (
+                                                <MenuItem key={site_code} value={site_code} className={color}>
+                                                    <Checkbox
+                                                        color="primary"
+                                                        checked={filterList[index].indexOf(site_code) > -1}
+                                                    />
+                                                    <ListItemText primary={site_code} />
+                                                    { icon }
+                                                </MenuItem>
+                                            );
+                                        })
+                                    }
                                 </Select>
                             </FormControl>
                         );
@@ -480,7 +455,7 @@ function SiteLogs (props) {
                 setIsUpdateNeeded={setIsUpdateNeeded}
                 isUpdateNeeded={isUpdateNeeded}
                 chosenNarrative={chosenNarrative}
-                isFromSiteLogs={activeSites}
+                isFromSiteLogs={alertsFromDbData}
                 isEditMode={isEditMode}
             />
 
@@ -495,12 +470,4 @@ function SiteLogs (props) {
     );
 }
 
-export default compose(
-    withStyles(
-        (theme) => ({
-            ...GeneralStyles(theme),
-            ...styles(theme),
-        }),
-        { withTheme: true },
-    ), withWidth()
-)(SiteLogs);
+export default withWidth()(SiteLogs);

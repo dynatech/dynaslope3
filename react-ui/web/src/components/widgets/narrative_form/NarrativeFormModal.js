@@ -142,8 +142,11 @@ function NarrativeFormModal (props) {
                     </DialogContentText>
 
                     <NarrativeForm
-                        narrativeData={narrative_data} setNarrativeData={setNarrativeData}
-                        siteList={site_list} setSiteList={setSiteList} isFromSiteLogs = {isFromSiteLogs}
+                        narrativeData={narrative_data}
+                        setNarrativeData={setNarrativeData}
+                        siteList={site_list}
+                        setSiteList={setSiteList}
+                        isFromSiteLogs={isFromSiteLogs}
                     />
                 </DialogContent>
                 <DialogActions>
