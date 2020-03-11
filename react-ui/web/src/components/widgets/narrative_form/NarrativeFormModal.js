@@ -28,7 +28,8 @@ function NarrativeFormModal (props) {
     const {
         fullScreen, isOpen,
         closeHandler, setIsUpdateNeeded,
-        chosenNarrative, isUpdateNeeded, isFromSiteLogs
+        chosenNarrative, isUpdateNeeded, isEditMode,
+        isFromSiteLogs
     } = props;
 
     const current_user = getCurrentUser();
@@ -45,7 +46,7 @@ function NarrativeFormModal (props) {
 
     const [site_list, setSiteList] = useState(null);
     const [narrative_data, setNarrativeData] = useState(initial_data);
-    
+    const [isDisabled, setIsDisabled] = useState(true);
     const { sites } = useContext(GeneralContext);
     const site_options = prepareSitesOption(sites, true);
 
@@ -70,8 +71,13 @@ function NarrativeFormModal (props) {
             setNarrativeData(default_narr_data);
         }
     }, [chosenNarrative]);
+    useEffect( () => {
+        const args = narrative_data.narrative !== "" && narrative_data.site_list !== null;
+        args ? setIsDisabled(false) : setIsDisabled(true);
+    }, [narrative_data]);
 
     const handleSubmit = () => {
+        
         const temp = [];
         site_list.forEach(({ value }) => {
             // Value is site_id
@@ -82,14 +88,27 @@ function NarrativeFormModal (props) {
         narrative_data.user_id = current_user.user_id;
         handleNarratives(narrative_data, ret => {
             console.log("ret", ret);
-            closeHandler();
+           
             handleReset();
             setIsUpdateNeeded(!isUpdateNeeded);
+            if (isEditMode) {
+                closeFn();        
+            }
         });
-
     };
 
     const handleReset = () => {
+        setNarrativeData({
+            narrative_id: null,
+            // timestamp: moment().format("YYYY-MM-DD HH:mm"),
+            narrative: "",
+            user_id: current_user.user_id,
+            event_id: "",
+            type_id: 1
+        });
+        setSiteList(site_list);
+    };
+    const handleFullReset = () => {
         setNarrativeData({
             narrative_id: null,
             timestamp: moment().format("YYYY-MM-DD HH:mm"),
@@ -102,8 +121,8 @@ function NarrativeFormModal (props) {
     };
 
     const closeFn = () => {
-        closeHandler();
-        handleReset();
+        closeHandler(); 
+        handleFullReset();
     };
 
     return (
@@ -132,9 +151,9 @@ function NarrativeFormModal (props) {
                         <Button onClick={closeFn} color="primary">
                             Cancel
                         </Button>
-                        <Button onClick={handleReset}>Reset</Button>
-                        <Button variant="contained" color="primary" onClick={handleSubmit} disabled={false}>
-                            Submit
+                        <Button onClick={handleFullReset} >Reset</Button>
+                        <Button variant="contained" color="primary" onClick={handleSubmit} disabled={isDisabled}>
+                            {isEditMode ? "Save Edits" : "Save & Add More"}
                         </Button>
                     </div>
                 </DialogActions>
@@ -142,5 +161,4 @@ function NarrativeFormModal (props) {
         </div>
     );
 }
-
 export default withMobileDialog()(NarrativeFormModal);
