@@ -41,9 +41,8 @@ function NarrativeForm (props) {
     const {
         classes, narrativeData,
         setNarrativeData, siteList,
-        setSiteList
+        setSiteList, isFromSiteLogs
     } = props;
-    
     const {
         narrative, timestamp, user_id
     } = narrativeData;
@@ -81,11 +80,13 @@ function NarrativeForm (props) {
                     <DynaslopeSiteSelectInputForm 
                         value={siteList}
                         changeHandler={update_site_value}
-                        isMulti                    
+                        isMulti
+                        isFromSiteLogs ={isFromSiteLogs}
+                                            
                     />
                 </Grid>
                 
-                <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
+                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
                     <DatePicker
                         required
                         autoOk
@@ -98,7 +99,11 @@ function NarrativeForm (props) {
                         mask="____-__-__"
                         clearable
                         disableFuture
+                        fullWidth
                     />
+                </Grid>
+
+                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
                     <TimePicker
                         required
                         autoOk
@@ -111,8 +116,10 @@ function NarrativeForm (props) {
                         mask="__:__"
                         clearable
                         disableFuture
+                        fullWidth
                     />
                 </Grid>
+
                 <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
                     <DynaslopeUserSelectInputForm
                         variant="standard"
@@ -123,6 +130,7 @@ function NarrativeForm (props) {
                         disabled
                     />
                 </Grid>
+
                 <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
                     <TextField
                         required
