@@ -105,9 +105,9 @@ function Control (props) {
 function Option (props) {
     const {
         innerRef, isFocused, isSelected,
-        innerProps, children
+        innerProps, children, data
     } = props;
-
+    const fcolor = data.color;
     return (
         <MenuItem
             buttonRef={innerRef}
@@ -115,6 +115,7 @@ function Option (props) {
             component="div"
             style={{
                 fontWeight: isSelected ? 500 : 400,
+                color: fcolor,
             }}
             {...innerProps}
         >
@@ -180,7 +181,7 @@ function SelectMultipleWithSuggest (props) {
         classes, theme, changeHandler,
         options, value, label, placeholder,
         renderDropdownIndicator, openMenuOnClick, isMulti,
-        isDisabled, isClearable, hasAlternativeChipLabel
+        isDisabled, isClearable, hasAlternativeChipLabel, isEvent
     } = props;
 
     const selectStyles = {
@@ -190,7 +191,8 @@ function SelectMultipleWithSuggest (props) {
             "& input": {
                 font: "inherit"
             }
-        })
+        }),
+   
     };
 
     const components = {
@@ -214,6 +216,8 @@ function SelectMultipleWithSuggest (props) {
         components.IndicatorSeparator = () => null;
     }
 
+
+
     // const h_a_c_l = hasAlternativeChipLabel === undefined ? false : hasAlternativeChipLabel;
     // if (h_a_c_l) {
     //     const mv_comp = props => (
@@ -224,11 +228,11 @@ function SelectMultipleWithSuggest (props) {
 
     //     components.MultiValue = mv_comp;
     // }
-    
+
     return (
         <div className={classes.root}>
             <NoSsr>
-                <Select
+                <Select 
                     classes={classes}
                     styles={selectStyles}
                     textFieldProps={{

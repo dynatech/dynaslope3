@@ -3,15 +3,39 @@ import SelectMultipleWithSuggest from "./SelectMultipleWithSuggest";
 import { prepareSiteAddress } from "../../UtilityFunctions";
 import { GeneralContext } from "../contexts/GeneralContext";
 
-export function prepareSitesOption (arr, to_include_address) {
+export function prepareSitesOption (arr, to_include_address, isFromSiteLogs) {
     return arr.map(site => {
         const { 
             site_code, site_id
         } = site;
 
         let address = site_code.toUpperCase();
+        
         if (to_include_address) address = prepareSiteAddress(site, true, "start");
-        return { value: site_id, label: address, data: site };
+
+        // check sites if on-event
+        if (typeof isFromSiteLogs !== "undefined" && isFromSiteLogs !== null) {
+            let fcolor = "";
+            const { latest, extended, routine, overdue } = isFromSiteLogs[0];
+            let latest_db_alerts = [];
+            let extended_db_alerts = [];
+            let overdue_db_alerts = [];
+            let routine_db_alerts = [];
+            latest_db_alerts = latest;
+            extended_db_alerts = extended;
+            overdue_db_alerts = overdue;
+            routine_db_alerts = routine;
+            if (latest_db_alerts.includes(site_code.toLowerCase())) fcolor = "red";
+            if (extended_db_alerts.includes(site_code.toLowerCase())) fcolor = "orange";
+            if (typeof routine_db_alerts.released_sites !== "undefined" && routine_db_alerts.length > 0) 
+            {
+                if (routine_db_alerts.includes(site_code.toLowerCase())) fcolor = "gold"; 
+            }
+            if (overdue_db_alerts.includes(site_code.toLowerCase())) fcolor = "red"; 
+
+            return { value: site_id, label: address, data: site, color: fcolor };
+        }
+        return { value: site_id, label: address, data: site, color: "black" };
     });
 }
 
@@ -19,12 +43,12 @@ function DynaslopeSiteSelectInputForm (props) {
     const { 
         value, changeHandler, isMulti,
         renderDropdownIndicator, includeAddressOnOptions,
-        returnSiteDataCallback
+        returnSiteDataCallback, isFromSiteLogs
     } = props;
     const { sites } = useContext(GeneralContext);
 
     const to_include_address = typeof includeAddressOnOptions === "undefined" ? true : includeAddressOnOptions;
-    const options = prepareSitesOption(sites, to_include_address);
+    const options = prepareSitesOption(sites, to_include_address, isFromSiteLogs);
 
     const is_multi = (typeof isMulti === "undefined") ? false : isMulti;
     const placeholder = is_multi ? "Select site(s)" : "Select site";

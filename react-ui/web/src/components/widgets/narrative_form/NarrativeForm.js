@@ -41,9 +41,8 @@ function NarrativeForm (props) {
     const {
         classes, narrativeData,
         setNarrativeData, siteList,
-        setSiteList
+        setSiteList, isFromSiteLogs
     } = props;
-    
     const {
         narrative, timestamp, user_id
     } = narrativeData;
@@ -80,7 +79,9 @@ function NarrativeForm (props) {
                     <DynaslopeSiteSelectInputForm 
                         value={siteList}
                         changeHandler={update_site_value}
-                        isMulti                    
+                        isMulti
+                        isFromSiteLogs ={isFromSiteLogs}
+                                            
                     />
                 </Grid>
                 <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
@@ -91,6 +92,7 @@ function NarrativeForm (props) {
                         changeHandler={handleEventChange("user_id")}
                         value={user_id}
                         disabled
+                        
                     />
                 </Grid>
                 <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
