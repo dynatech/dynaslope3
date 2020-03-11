@@ -28,7 +28,8 @@ function NarrativeFormModal (props) {
     const {
         fullScreen, isOpen,
         closeHandler, setIsUpdateNeeded,
-        chosenNarrative, isUpdateNeeded, isEditMode
+        chosenNarrative, isUpdateNeeded, isEditMode,
+        isFromSiteLogs
     } = props;
 
     const current_user = getCurrentUser();
@@ -141,8 +142,11 @@ function NarrativeFormModal (props) {
                     </DialogContentText>
 
                     <NarrativeForm
-                        narrativeData={narrative_data} setNarrativeData={setNarrativeData}
-                        siteList={site_list} setSiteList={setSiteList} 
+                        narrativeData={narrative_data}
+                        setNarrativeData={setNarrativeData}
+                        siteList={site_list}
+                        setSiteList={setSiteList}
+                        isFromSiteLogs={isFromSiteLogs}
                     />
                 </DialogContent>
                 <DialogActions>

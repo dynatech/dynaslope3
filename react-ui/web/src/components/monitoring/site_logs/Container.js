@@ -4,18 +4,17 @@ import React, {
 } from "react";
 
 import {
-    Paper, Typography, LinearProgress,
-    withStyles, Dialog, DialogContent,
-    Button, IconButton
+    Paper, LinearProgress, Checkbox, InputLabel,
+    makeStyles, Dialog, DialogContent, FormControl,
+    Button, IconButton, ListItemText, Select, MenuItem,
+    ListItemIcon
 } from "@material-ui/core";
-import { AddAlert, Edit, Delete } from "@material-ui/icons";
+import { AddAlert, Edit, Delete, Warning } from "@material-ui/icons";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 
 import moment from "moment";
-import MomentUtils from "@date-io/moment";
 import MUIDataTable from "mui-datatables";
-import { compose } from "recompose";
 
 import CustomSearchRender from "./CustomSearchRender";
 import { getNarratives } from "../ajax";
@@ -25,24 +24,37 @@ import NarrativeFormModal from "../../widgets/narrative_form/NarrativeFormModal"
 import DeleteNarrativeModal from "../../widgets/narrative_form/DeleteNarrativeModal";
 import { prepareSiteAddress } from "../../../UtilityFunctions";
 import { GeneralContext } from "../../contexts/GeneralContext";
+import { 
+    subscribeToWebSocket, unsubscribeToWebSocket, receiveAlertsFromDB
+} from "../../../websocket/monitoring_ws";
 
-const styles = theme => ({
-    inputGridContainer: {
-        margin: "12px 0",
-        [theme.breakpoints.down("sm")]: {
-            margin: "0 0"
+const useStyles = makeStyles(theme => {
+    const gen = GeneralStyles(theme);
+    return {
+        ...gen,
+        inputGridContainer: {
+            margin: "12px 0",
+            [theme.breakpoints.down("sm")]: {
+                margin: "0 0"
+            }
+        },
+        buttonGrid: {
+            textAlign: "right",
+            [theme.breakpoints.down("sm")]: {
+                textAlign: "right"
+            }
+        },
+        button: {
+            fontSize: 16,
+            paddingLeft: 8
+        },
+        alert3: {
+            ...gen.alert3,
+            "&:hover *": {
+                color: "#222222 !important"
+            },
         }
-    },
-    buttonGrid: {
-        textAlign: "right",
-        [theme.breakpoints.down("sm")]: {
-            textAlign: "right"
-        }
-    },
-    button: {
-        fontSize: 16,
-        paddingLeft: 8
-    }
+    }; 
 });
 
 const getMuiTheme = createMuiTheme({
@@ -84,7 +96,6 @@ function getManipulationButtons (narrative, data_handlers) {
     );
 }
 
-
 function processTableData (data) {
     const processed = data.map(row => {
         const {
@@ -111,9 +122,9 @@ function processTableData (data) {
     return processed;
 }
 
-
 function SiteLogs (props) {
-    const { classes, width } = props;
+    const { width } = props;
+    const classes = useStyles();
     const [table_data, setTableData] = useState([]);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -129,6 +140,8 @@ function SiteLogs (props) {
 
     const [chosenNarrative, setChosenNarrative] = useState({});
     const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
+    const [alertsFromDbData, setAlertsFromDbData] = useState(null);
+    const { setIsReconnecting } = useContext(GeneralContext);
 
     const { sites } = useContext(GeneralContext);
 
@@ -141,9 +154,24 @@ function SiteLogs (props) {
         sites_dict[site_code] = site.site_id;
     });
 
+    // useEffect(() => {
+    //     sites.forEach(site => {
+    //         const site_code = site.site_code.toUpperCase();
+    //         filter_sites_option.push(site_code);
+    //         sites_dict[site_code] = site.site_id;
+    //     });
+    // }, [alertsFromDbData]);
+
+    useEffect(() => {
+        subscribeToWebSocket(setIsReconnecting);
+        receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
+        return function cleanup () {
+            unsubscribeToWebSocket();
+        };
+    }, []);
+
     useEffect(() => {
         setIsLoading(true);
-
         const input = {
             include_count: true,
             limit: rowsPerPage, offset: page * rowsPerPage,
@@ -273,10 +301,62 @@ function SiteLogs (props) {
             name: "site_name",
             label: "Site",
             options: {
+                display: "true",
                 filter: true,
+                filterType: "custom",
                 filterList: typeof filter_list.site_name === "undefined" ? [] : filter_list.site_name,
                 filterOptions: {
-                    names: filter_sites_option
+                    logic (location, filterss) {
+                        if (filterss.length) return !filterss.includes(location);
+                        return false;
+                    },
+                    // eslint-disable-next-line max-params
+                    display (filterList, onChange, index, column) {
+                        const { latest, extended, overdue } = alertsFromDbData;
+                        const merged_latest = [...latest, ...overdue];
+
+                        return (
+                            <FormControl>
+                                <InputLabel>Site</InputLabel>
+                                <Select
+                                    multiple
+                                    // MenuProps= {MenuProps}
+                                    value={filterList[index]}
+                                    renderValue={selected => selected.join(", ")}
+                                    onChange={event => {
+                                        // eslint-disable-next-line no-param-reassign
+                                        filterList[index] = event.target.value;
+                                        onChange(filterList[index], index, column);
+                                    }}
+                                >
+                                    {
+                                        filter_sites_option.map(site_code => {
+                                            const sc = site_code.toLowerCase();
+                                            const is_ev = merged_latest.find(x => x.event.site.site_code === sc);
+                                            const is_ex = extended.find(x => x.event.site.site_code === sc);
+                                            
+                                            let color = classes.alert0;
+                                            if (is_ev) { color = classes.alert3; }
+                                            if (is_ex) { color = classes.extended; }
+
+                                            const icon = is_ev || is_ex ? <ListItemIcon><Warning/></ListItemIcon> : "";
+
+                                            return (
+                                                <MenuItem key={site_code} value={site_code} className={color}>
+                                                    <Checkbox
+                                                        color="primary"
+                                                        checked={filterList[index].indexOf(site_code) > -1}
+                                                    />
+                                                    <ListItemText primary={site_code} />
+                                                    { icon }
+                                                </MenuItem>
+                                            );
+                                        })
+                                    }
+                                </Select>
+                            </FormControl>
+                        );
+                    },
                 },
                 sort: false
             }
@@ -375,7 +455,8 @@ function SiteLogs (props) {
                 setIsUpdateNeeded={setIsUpdateNeeded}
                 isUpdateNeeded={isUpdateNeeded}
                 chosenNarrative={chosenNarrative}
-                isEditMode = {isEditMode}
+                isFromSiteLogs={alertsFromDbData}
+                isEditMode={isEditMode}
             />
 
             <DeleteNarrativeModal
@@ -389,12 +470,4 @@ function SiteLogs (props) {
     );
 }
 
-export default compose(
-    withStyles(
-        (theme) => ({
-            ...GeneralStyles(theme),
-            ...styles(theme),
-        }),
-        { withTheme: true },
-    ), withWidth()
-)(SiteLogs);
+export default withWidth()(SiteLogs);
