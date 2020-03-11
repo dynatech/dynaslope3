@@ -43,13 +43,13 @@ class BulletinTriggers(DB.Model):
     sms = DB.Column(DB.String(200))
 
     internal_sym = DB.relationship(
-        "InternalAlertSymbols", backref=DB.backref("bulletin_trigger", lazy="dynamic"), lazy="joined", innerjoin=True)
+        "InternalAlertSymbols", backref=DB.backref("bulletin_trigger", lazy="dynamic"),
+        lazy="joined", innerjoin=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> internal_sym_id: {self.internal_sym_id}"
                 f" description: {self.description} cause: {self.cause}"
                 f" template: {self.template} sms: {self.sms}")
-
 
 
 class BulletinResponsesSchema(MARSHMALLOW.ModelSchema):

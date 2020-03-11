@@ -573,6 +573,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
         latest_release = get_latest_release_per_site(site_id)
         latest_release_data_ts = latest_release.data_ts
         latest_pa_level = latest_release.event_alert.public_alert_symbol.alert_level
+        release_details["bulletin_number"] = latest_release.bulletin_number
 
         is_within_one_hour = (
             (datetime.now() - latest_release_data_ts).seconds / 3600) <= 1
@@ -586,6 +587,8 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                 latest_release, release_details)
             release_id = new_release
         else:
+            release_details["bulletin_number"] = update_bulletin_number(
+                site_id, 1)
             new_release = write_monitoring_release_to_db(release_details)
             release_id = new_release
 
@@ -831,7 +834,7 @@ def insert_ewi(internal_json=None):
                         if site_status == 1:
                             release_details = {
                                 "event_alert_id": site_monitoring_instance.event_alerts[0].event_alert_id,
-                                "bulletin_number": update_bulletin_number(routine_site_id, 1),
+                                # "bulletin_number": update_bulletin_number(routine_site_id, 1),
                                 "data_ts": json_data["data_timestamp"],
                                 "release_time": json_data["release_time"],
                                 "trigger_list_str": item["trigger_list_str"],
@@ -926,7 +929,7 @@ def insert_ewi(internal_json=None):
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
                         and site_monitoring_instance.validity \
-                    == datetime_data_ts + timedelta(minutes=30):
+                == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
@@ -961,8 +964,8 @@ def insert_ewi(internal_json=None):
             # Append the chosen event_alert_id
             release_details["event_alert_id"] = event_alert_id
             # Update bulletin number
-            release_details["bulletin_number"] = update_bulletin_number(
-                site_id, 1)
+            # release_details["bulletin_number"] = update_bulletin_number(
+            #     site_id, 1)
 
             instance_details = {
                 "site_id": site_id,

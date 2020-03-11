@@ -142,7 +142,7 @@ def create_ewi_message(release_id=None):
 
                 if day in [0, 1, 2]:
                     reason = f" {extended_day} araw ng 3-day extended monitoring"
-                    reporting_str = f"{modifier} bago mag-{reporting_time}"
+                    reporting_str = f"{modifier} bago mag-{reporting_time} "
 
             ground_reminder += f"{reporting_str}{clause}{reason}."
 

@@ -349,8 +349,8 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}." +
-                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}."
+                      + f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -440,7 +440,18 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         event = event_alert.event
         validity = event.validity
         event_id = event.event_id
-        latest_release = event_alert.releases[0]
+
+        # Did this because of weird bug when releasing EWI
+        # simulataneously where .releases becomes raised
+        # on subsequent release
+        try:
+            latest_release = event_alert.releases[0]
+        except:
+            event_alert.releases = MonitoringReleases.query \
+                .options(DB.raiseload("*")) \
+                .filter_by(event_alert_id=event_alert.event_alert_id) \
+                .order_by(DB.desc(MonitoringReleases.data_ts)).all()
+            latest_release = event_alert.releases[0]
 
         # NOTE: LOUIE This formats release time to have date instead of time only
         data_ts = latest_release.data_ts
@@ -1166,12 +1177,11 @@ def get_active_monitoring_events():
     # since SQLAlchemy interprets "is None" differently.
     active_events = mea.query.join(me) \
         .options(
-            DB.joinedload("event", innerjoin=True).joinedload(
-                "site", innerjoin=True)
-        .raiseload("*"),
             DB.subqueryload("releases").raiseload("*"),
-            DB.joinedload("public_alert_symbol").raiseload("*"),
-            DB.raiseload("*")
+            DB.joinedload("event", innerjoin=True).joinedload(
+                "site", innerjoin=True).raiseload("*"),
+            DB.joinedload("public_alert_symbol").raiseload("*")
+            # DB.raiseload("*")
     ).order_by(DB.desc(mea.event_alert_id)) \
         .filter(DB.and_(me.status == 2, mea.ts_end == None)).all()
 
@@ -1951,7 +1961,7 @@ def is_rain_surficial_subsurface_trigger(alert_symbol):
     return flag
 
 
-def check_if_onset_release(event_alert_id=None, release_id=None, data_ts=None, event_alert=None):
+def check_if_onset_release(event_alert_id=None, release_id=None, data_ts=None, event_alert=None, check_if_lowering=False):
     """
     """
 
@@ -1964,14 +1974,15 @@ def check_if_onset_release(event_alert_id=None, release_id=None, data_ts=None, e
     else:
         mea = event_alert
 
-    # releases are ordered by descreasing order by default
+    # releases are ordered by decreasing order by default
     first_release = mea.releases[-1].release_id
     is_onset = True
     is_first_release_but_release_time = first_release == release_id and \
         data_ts.hour % RELEASE_INTERVAL_HOURS == RELEASE_INTERVAL_HOURS - \
         1 and data_ts.minute == 30
+
     if first_release != release_id or (
-            is_first_release_but_release_time):
+            is_first_release_but_release_time and not check_if_lowering):
         is_onset = False
 
     return is_onset
@@ -2007,6 +2018,10 @@ def get_next_ground_data_reporting(data_ts, is_onset=False, is_alert_0=False, in
 
     if include_modifier:
         return reporting, modifier
+
+    print("data_ts", data_ts)
+    print("is_onset", is_onset)
+    print("reporting", reporting)
     return reporting
 
 

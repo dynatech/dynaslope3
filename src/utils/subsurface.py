@@ -23,7 +23,7 @@ def get_site_subsurface_columns(site_code, include_deactivated=False):
             site_id
     """
     sub_col = TSMSensors
-    filter_var = Loggers.logger_name.like("%" + str(site_code) + "%")
+    filter_var = Loggers.logger_name.like(str(site_code) + "%")
 
     query = sub_col.query.join(Loggers).options(
         DB.joinedload("logger").joinedload("logger_model").raiseload("*"),
@@ -249,7 +249,7 @@ def process_velocity_alerts_data(vel_alerts, ts_per_node):
                     array = [int_ts, arr["node_id"]]
                     velocity_alerts[index][trigger].append(array)
 
-        orientation = "downslope" if index == 0 else "latslope"
+        orientation = "downslope" if index == 0 else "across_slope"
         temp = {"orientation": orientation, "data": velocity_alerts[index]}
         ret_dict["velocity_alerts"].append(temp)
 

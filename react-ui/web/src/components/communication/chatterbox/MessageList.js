@@ -39,10 +39,10 @@ const useStyles = makeStyles(theme => ({
 
 export function mobileUserFormatter (user_details) {
     const { user } = user_details;
-    const { first_name, last_name } = user;
+    const { first_name, last_name, organizations } = user;
 
     const sender = `${first_name} ${last_name}`;
-    const orgs = getUserOrganizations(user);
+    const orgs = getUserOrganizations(organizations);
 
     return { sender, orgs };
 }
