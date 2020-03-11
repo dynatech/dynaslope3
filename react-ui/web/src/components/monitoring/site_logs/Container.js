@@ -58,11 +58,12 @@ const getMuiTheme = createMuiTheme({
 function getManipulationButtons (narrative, data_handlers) {
     const { 
         setChosenNarrative, setIsOpenNarrativeModal,
-        setIsOpenDeleteModal } = data_handlers;
+        setIsOpenDeleteModal, setIsEditMode } = data_handlers;
 
     const handleEdit = value => {
         setChosenNarrative(narrative);
         setIsOpenNarrativeModal(true);
+        setIsEditMode(true);
         console.log("Edit", narrative);
     };
 
@@ -124,6 +125,7 @@ function SiteLogs (props) {
     const [is_loading, setIsLoading] = useState(true);
     const [isOpenNarrativeModal, setIsOpenNarrativeModal] = useState(false);
     const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     const [chosenNarrative, setChosenNarrative] = useState({});
     const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
@@ -162,6 +164,7 @@ function SiteLogs (props) {
         // NOTE: there was no need to use the bool for opening a modal or switch
         if (data === "is_narrative_modal_open") {
             setIsOpenNarrativeModal(!isOpenNarrativeModal);
+            setIsEditMode(false);
         } else if (data === "is_open_delete_modal") {
             setIsOpenDeleteModal(!isOpenDeleteModal);
         }
@@ -311,7 +314,7 @@ function SiteLogs (props) {
                     return getManipulationButtons(row, { 
                         setChosenNarrative, 
                         setIsOpenNarrativeModal, isOpenNarrativeModal,
-                        setIsOpenDeleteModal, isOpenDeleteModal
+                        setIsOpenDeleteModal, isOpenDeleteModal, setIsEditMode, isEditMode
                     });
                 }
             }
@@ -372,6 +375,7 @@ function SiteLogs (props) {
                 setIsUpdateNeeded={setIsUpdateNeeded}
                 isUpdateNeeded={isUpdateNeeded}
                 chosenNarrative={chosenNarrative}
+                isEditMode = {isEditMode}
             />
 
             <DeleteNarrativeModal

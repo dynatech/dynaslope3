@@ -1,7 +1,6 @@
 import React, {
     Fragment, useState,
-    useEffect, useContext,
-    createContext
+    useEffect, useContext
 } from "react";
 
 import { withStyles } from "@material-ui/core/styles";
@@ -11,16 +10,15 @@ import {
     ListItemText, ListItemSecondaryAction, IconButton,
     Avatar, TextField, Hidden,
     ListItemIcon, Chip,
-    Paper, Divider, Slide,
-    Backdrop, Tooltip, AppBar,
+    Paper, Divider, Slide, 
+    Backdrop, Tooltip, AppBar, InputAdornment,
     Toolbar, Dialog
 } from "@material-ui/core";
 import { 
     Close, Call, Person, PersonAdd, ViewList,
-    Block, Edit, PhoneAndroid, MailOutline,
-    Phone, SimCard
+    Block, Edit, PhoneAndroid, MailOutline, 
+    Phone, SimCard, Sort, Search
 } from "@material-ui/icons";
-
 import moment from "moment";
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
@@ -36,6 +34,7 @@ import { SlideTransition } from "../../reusables/TransitionList";
 import ContactForm from "./ContactForm";
 import { GeneralContext } from "../../contexts/GeneralContext";
 import { getBlockedContacts, getSimPrefixes } from "../ajax";
+import SearchContactsModal from "./SearchContactsModal";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
@@ -85,14 +84,13 @@ function prepareGeographicalList (data, category) {
         list = [...municipalities];
     } else if (["province", "region"].includes(category)) {
         const unique = [...new Set(data.map(x => x[category]).sort())];
-        const selection = unique.map(x => ({ id: x, label: x }));
+        const selection = unique.map(x => ({ id: x, label: x })); 
         list = [...selection];
     }
-
     return list;
 }
 
-function IndividualContact (props) {
+export function IndividualContact (props) {
     const {
         contact, chosenContact, setSlideOpen,
         classes, setContactFormForEdit 
@@ -295,17 +293,10 @@ function IndividualContact (props) {
                                         <ListItemText
                                             primary={`+${num.landline_num}`}
                                         />
-                                        {/* <ListItemSecondaryAction>
-                                    <ListItemText
-                                        secondary={`Priority: ${num.priority}`}
-                                    />
-                                </ListItemSecondaryAction> */}
                                     </ListItem>
                                 ))
                             }
-                        </List>
-                    )
-                }
+                        </List>)}
             </Grid>
 
             <Grid item xs={12} className={classes.insetDivider} >
@@ -342,9 +333,7 @@ function IndividualContact (props) {
                                     </ListItem>
                                 ))
                             }
-                        </List>
-                    )
-                }
+                        </List>)}
             </Grid>
 
             <Grid item xs={12} style={{ padding: "12px 4px" }} >
@@ -484,17 +473,17 @@ function BlockedContact (props) {
     );
 }
 
-const SearchBar = ({ search_str, setSearchStr }) => (
-    <TextField
+const SearchBar = ({ search_str, setSearchStr, inputProps }) => (
+    <TextField  
         margin="dense"
-        hiddenLabel
+        hiddenLabel 
         fullWidth
         variant="outlined"
-        placeholder="Search"
-        inputProps={{ "aria-label": "search" }}
+        placeholder="Juan Dela Cruz"
+        InputProps={inputProps}
         value={search_str}
-        onChange={event => setSearchStr(event.target.value)}
-    />
+        onChange={event => setSearchStr(event.target.value)}  
+    /> 
 );
 
 function Container (props) {
@@ -516,6 +505,7 @@ function Container (props) {
     const [provinces, setProvinces] = useState([]);
     const [regions, setRegions] = useState([]);
 
+    const [modal_state, set_modal_state] = useState(false);
     const onContactClickFn = React.useCallback(row => () => {
         setChosenContact(row);
         setSlideOpen(true);
@@ -547,16 +537,18 @@ function Container (props) {
         setOpenSimPrefixes(!is_sim_prefixes_open);
     };
 
+    const modal_handler = (event) =>{   
+        set_modal_state(!modal_state);
+    };
+
     const { setIsReconnecting, sites } = useContext(GeneralContext);
     useEffect(() => {
         subscribeToWebSocket("contacts", setIsReconnecting);
-
         receiveAllContacts(data => {
             setContacts(data);
             if (data.length > 0) setChosenContact(data[0]);
             setContactsArray(data);
         });
-
         return () => removeReceiveAllContacts();
     }, []);
 
@@ -572,9 +564,9 @@ function Container (props) {
             const { first_name, last_name } = row;
             const name = `${first_name} ${last_name}`;
             const pattern = new RegExp(`${search_str}`, "gi");
-            return pattern.test(name);
+            return pattern.test(name);          
         });
-        setContactsArray(filtered);
+        setContactsArray(filtered); 
     }, [search_str]);
 
     useEffect(() => {
@@ -596,7 +588,6 @@ function Container (props) {
         });
     }, []);
 
-    
     let contact = "";
     // eslint-disable-next-line no-prototype-builtins
     if (chosen_contact.hasOwnProperty("user_id")) {
@@ -605,6 +596,10 @@ function Container (props) {
         // const { first_name, last_name } = user;
         contact = `${first_name} ${last_name}`;
     }
+
+    const set_modal_fn = (key, bool) => () => {
+        set_modal_state(bool);
+    };
 
     const PaperDialogContent = is_form_open => {
         if (is_form_open) return (
@@ -619,7 +614,7 @@ function Container (props) {
                 isFromChatterbox={false}
             /> 
         );
-
+       
         if (is_block_numbers_open) {
             return (
                 <BlockedContact
@@ -638,7 +633,7 @@ function Container (props) {
             />
         );
     };
-    
+
     const ListContent = () => {
         if (is_sim_prefixes_open) {
             return (
@@ -664,24 +659,53 @@ function Container (props) {
             showBlockedNumbers={is_block_numbers_open}
         />);
     };
-
+    
     return (
         <div className={classes.pageContentMargin}>
             <PageTitle
                 title="Communications | Contacts" 
             />
-
             <Grid container spacing={4}>
                 <Hidden mdUp>
                     <Grid item xs={12} className={classes.sticky} style={{ paddingBottom: 0 }}>
-                        { <SearchBar search_str={search_str} setSearchStr={setSearchStr} /> }
+                       
+                        { <SearchBar search_str={search_str} setSearchStr={setSearchStr}
+                            inputProps={{ 
+                                endAdornment: <InputAdornment position="end">
+                                   
+                                    <IconButton  
+                                        aria-controls="sortContacts" 
+                                        aria-haspopup="true" 
+                                        onClick={modal_handler} 
+                                        color="primary">
+                                        <Sort/> 
+                                    </IconButton>                  
+                                </InputAdornment> 
+                            }}
+                        /> }
                     </Grid>
                 </Hidden>
 
                 <Hidden smDown>
                     <Grid item md={4} lg={3}>
-                        <div className={classes.sticky}>
-                            { <SearchBar search_str={search_str} setSearchStr={setSearchStr} /> }
+                        <div >
+                            <Grid>
+                                { <SearchBar search_str={search_str} setSearchStr={setSearchStr}
+                                    inputProps={{ 
+                                        endAdornment: <InputAdornment position="end">
+                                            <IconButton  
+                                                aria-controls="sortContacts" 
+                                                aria-haspopup="true" 
+                                                onClick={modal_handler} 
+                                                color="primary">
+                                                <Search/> 
+
+                                            </IconButton>                  
+                                        </InputAdornment> 
+                                    }}
+                                /> }            
+                            </Grid>
+                          
                             <List component="nav" aria-label="main">
                                 <ListItem button onClick={() => setContactForm(true)}>
                                     <ListItemIcon>
@@ -736,7 +760,6 @@ function Container (props) {
                             )
                         }
                     </Grid>
-
                     <Backdrop open={is_contact_form_open} style={{ zIndex: 1 }} />
                 </Hidden>
 
@@ -773,6 +796,15 @@ function Container (props) {
                     </Dialog>
                 </Hidden>
             </Grid>
+
+            <SearchContactsModal
+                modalStateHandler={set_modal_fn("search", false)}
+                modalState={modal_state}
+                contactsArray = {contacts_array}
+                classes = {classes}
+                chosenContact = {chosen_contact}
+                setChosenContact= {setChosenContact}
+            />
         </div>
     );
 }
