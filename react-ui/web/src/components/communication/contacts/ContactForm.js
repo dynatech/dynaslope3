@@ -200,13 +200,14 @@ function ContactForm (props) {
     let initial_mobiles = [{
         mobile_number: { sim_num: "", mobile_id: 0 }, status: 1
     }];
+    
     let initial_landlines = [];
     let initial_emails = [];
     let initial_scope = 0;
     let initial_office = "";
     let initial_site = "";
     let initial_location = "";
-    let initial_status = 1;
+    let initial_status = true;
     let initial_ewi_recipient = true;
     let initial_ewi_restriction = 0;
     const initial_save_button_state = false;

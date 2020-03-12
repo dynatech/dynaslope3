@@ -729,3 +729,31 @@ def get_recipients(site_ids=None,
             .dump(user_per_site_result).data
 
     return user_per_site_result
+
+
+def save_primary(data):
+    """
+    Function that save primary contact
+    """
+    for contact in data:
+        is_primary_contact = contact["primary_contact"] == 1 and True or False
+        organizations = contact["contact_person"]["organizations"]
+
+        for organization in organizations:
+            user_org_id = organization["user_org_id"]
+            org_id = organization["organization"]["org_id"]
+            site_id = organization["site"]["site_id"]
+            update_query = UserOrganizations.query.get(user_org_id)
+            
+            if is_primary_contact:
+                update_query.primary_contact = 1
+
+                for other_users in UserOrganizations.query.filter(
+                        UserOrganizations.site_id == site_id).filter(
+                            UserOrganizations.org_id == org_id):
+                    if other_users.user_org_id != user_org_id:
+                        other_users.primary_contact = 0
+            else:
+                update_query.primary_contact = 0
+
+    return True
