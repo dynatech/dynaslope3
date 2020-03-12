@@ -377,6 +377,6 @@ def main():
 
     delete_sms_user_update()
 
-    # MESSAGES = get_inbox()
+    MESSAGES = get_inbox()
     CONTACTS_USERS = get_contacts(orientation="users")
     CONTACTS_MOBILE = get_recipients_option()
