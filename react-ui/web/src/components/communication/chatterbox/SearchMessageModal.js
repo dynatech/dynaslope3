@@ -18,16 +18,6 @@ const useStyles = makeStyles(theme => ({
     link: { textDecoration: "none" }
 }));
 
-// const sites_option = Sites.map(site => ({
-//     value: site.site_id,
-//     label: site.site_code.toUpperCase(),
-// }));
-
-// const orgs_option = Organizations.map(org => ({
-//     value: org,
-//     label: org.toUpperCase(),
-// }));
-
 function SearchMessageModal (props) {
     const {
         fullScreen, modalStateHandler,
