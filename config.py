@@ -58,7 +58,7 @@ APP_CONFIG = {
     "charts_render_path": f"{ROOT_PATH}/temp/charts",
     "logs_path": f"{ROOT_PATH}/logs",
     # "url": "http://192.168.150.167:3000",
-    "url": "https://dynaslope.phivolcs.dost.gov.ph",
+    "url": "http://dynaslope.phivolcs.dost.gov.ph",
     "is_live_mode": True,
     "smtp_server": "smtp.gmail.com",
     "port": 587
