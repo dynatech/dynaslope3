@@ -7,8 +7,8 @@ class SituationReport(DB.Model):
     Class representation of field_survey_logs table
     """
     __tablename__ = "situation_report"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     situation_report_id = DB.Column(DB.Integer, primary_key=True)
     timestamp = DB.Column(DB.String(45))

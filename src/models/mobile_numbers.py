@@ -16,8 +16,8 @@ class MobileNumbers(DB.Model):
     """
 
     __tablename__ = "mobile_numbers"
-    __bind_key__ = "comms_db_3"
-    __table_args__ = {"schema": "comms_db_3"}
+    __bind_key__ = "mia_comms_db_3"
+    __table_args__ = {"schema": "mia_comms_db_3"}
 
     mobile_id = DB.Column(SMALLINT, primary_key=True)
     sim_num = DB.Column(DB.String(30))
@@ -27,19 +27,20 @@ class MobileNumbers(DB.Model):
         return (f"Type <{self.__class__.__name__}> Mobile ID: {self.mobile_id}"
                 f" SIM Number: {self.sim_num} GSM ID: {self.gsm_id}")
 
+
 class UserMobiles(DB.Model):
     """
     Class representation of user_mobiles table
     """
 
     __tablename__ = "user_mobiles"
-    __bind_key__ = "comms_db_3"
-    __table_args__ = {"schema": "comms_db_3"}
+    __bind_key__ = "mia_comms_db_3"
+    __table_args__ = {"schema": "mia_comms_db_3"}
 
     user_id = DB.Column(SMALLINT, DB.ForeignKey(
-        "commons_db.users.user_id"), primary_key=True)
+        "mia_commons_db.users.user_id"), primary_key=True)
     mobile_id = DB.Column(SMALLINT, DB.ForeignKey(
-        "comms_db_3.mobile_numbers.mobile_id"), primary_key=True)
+        "mia_comms_db_3.mobile_numbers.mobile_id"), primary_key=True)
     priority = DB.Column(TINYINT)
     status = DB.Column(TINYINT, nullable=False)
 
@@ -62,16 +63,16 @@ class BlockedMobileNumbers(DB.Model):
     """
 
     __tablename__ = "blocked_mobile_numbers"
-    __bind_key__ = "comms_db_3"
-    __table_args__ = {"schema": "comms_db_3"}
+    __bind_key__ = "mia_comms_db_3"
+    __table_args__ = {"schema": "mia_comms_db_3"}
 
     mobile_id = DB.Column(SMALLINT, DB.ForeignKey(
-        "comms_db_3.mobile_numbers.mobile_id"), primary_key=True)
+        "mia_comms_db_3.mobile_numbers.mobile_id"), primary_key=True)
     reason = DB.Column(DB.String(500), nullable=False)
     reporter_id = DB.Column(SMALLINT, DB.ForeignKey(
-        "commons_db.users.user_id"))
+        "mia_commons_db.users.user_id"))
     ts = DB.Column(DB.DateTime, nullable=False)
-    
+
     reporter = DB.relationship(Users, backref=DB.backref(
         "blocked_mobile_numbers", lazy="raise"),
         lazy="joined", innerjoin=True)
@@ -111,6 +112,7 @@ class UserMobilesSchema(MARSHMALLOW.ModelSchema):
         """Saves table class structure as schema model"""
         model = UserMobiles
 
+
 class BlockedMobileNumbersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of BlockedNumbers class
@@ -118,9 +120,9 @@ class BlockedMobileNumbersSchema(MARSHMALLOW.ModelSchema):
 
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     reporter = fields.Nested("UsersSchema")
-    mobile_number = fields.Nested("MobileNumbersSchema", exclude=["blocked_mobile"])
+    mobile_number = fields.Nested(
+        "MobileNumbersSchema", exclude=["blocked_mobile"])
 
     class Meta:
         """Saves table class structure as schema model"""
         model = BlockedMobileNumbers
-

@@ -15,9 +15,9 @@ class Membership(UserMixin, DB.Model):
     __tablename__ = "membership"
     ###
     # __bind_key__ contains database name to access
-    # Not necessary if "senslopedb" because it is the default one
+    # Not necessary if "mia_senslopedb" because it is the default one
     ###
-    __bind_key__ = "comms_db_3"
+    __bind_key__ = "mia_comms_db_3"
 
     membership_id = DB.Column(DB.Integer, primary_key=True)
     user_fk_id = DB.Column(

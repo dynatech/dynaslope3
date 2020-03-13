@@ -6,8 +6,8 @@ class DynamicVariables(DB.Model):
     Class representation of narratives table
     """
     __tablename__ = "dynamic_variables"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     var_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     var_name = DB.Column(DB.String(50), nullable=False)

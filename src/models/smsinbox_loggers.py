@@ -5,7 +5,7 @@ from connection import DB, MARSHMALLOW
 class SmsInboxLoggers(DB.Model):
     __tablename__ = "smsinbox_loggers"
 
-    __bind_key__ = "comms_db_3"
+    __bind_key__ = "mia_comms_db_3"
 
     inbox_id = DB.Column(DB.Integer, primary_key=True)
     ts_sms = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)

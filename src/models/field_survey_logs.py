@@ -7,8 +7,8 @@ class FieldSurveyLog(DB.Model):
     Class representation of field_survey_logs table
     """
     __tablename__ = "field_survey_logs"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     field_survey_id = DB.Column(DB.Integer, primary_key=True)
     features = DB.Column(DB.String(1000))

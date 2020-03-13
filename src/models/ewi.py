@@ -8,11 +8,11 @@ class BulletinResponses(DB.Model):
     """
 
     __tablename__ = "bulletin_responses"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     pub_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.public_alert_symbols.pub_sym_id"), primary_key=True)
+        "mia_ewi_db.public_alert_symbols.pub_sym_id"), primary_key=True)
     recommended = DB.Column(DB.String(200))
     lewc_lgu = DB.Column(DB.String(200))
     community = DB.Column(DB.String(200))
@@ -32,11 +32,11 @@ class BulletinTriggers(DB.Model):
     """
 
     __tablename__ = "bulletin_triggers"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     internal_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.internal_alert_symbols.internal_sym_id"), primary_key=True)
+        "mia_ewi_db.internal_alert_symbols.internal_sym_id"), primary_key=True)
     description = DB.Column(DB.String(100))
     cause = DB.Column(DB.String(50))
     template = DB.Column(DB.String(100))

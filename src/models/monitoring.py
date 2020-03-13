@@ -18,12 +18,12 @@ class MonitoringEvents(UserMixin, DB.Model):
     """
 
     __tablename__ = "monitoring_events"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     event_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "mia_commons_db.sites.site_id"), nullable=False)
     event_start = DB.Column(DB.DateTime, nullable=False)
     validity = DB.Column(DB.DateTime)
     status = DB.Column(DB.String(20), nullable=False)
@@ -47,14 +47,14 @@ class MonitoringEventAlerts(UserMixin, DB.Model):
     """
 
     __tablename__ = "monitoring_event_alerts"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     event_alert_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     event_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_events.event_id"), nullable=False)
+        "mia_ewi_db.monitoring_events.event_id"), nullable=False)
     pub_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.public_alert_symbols.pub_sym_id"))
+        "mia_ewi_db.public_alert_symbols.pub_sym_id"))
     ts_start = DB.Column(
         DB.DateTime, default=datetime.datetime.utcnow, nullable=False)
     ts_end = DB.Column(DB.DateTime)
@@ -78,12 +78,12 @@ class MonitoringReleases(UserMixin, DB.Model):
     """
 
     __tablename__ = "monitoring_releases"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     release_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     event_alert_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_event_alerts.event_alert_id"), nullable=False)
+        "mia_ewi_db.monitoring_event_alerts.event_alert_id"), nullable=False)
     data_ts = DB.Column(
         DB.DateTime, default="0000-00-00 00:00:00", nullable=False)
     trigger_list = DB.Column(DB.String(45))
@@ -112,14 +112,14 @@ class MonitoringReleasePublishers(UserMixin, DB.Model):
     """
 
     __tablename__ = "monitoring_release_publishers"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     publisher_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     release_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_releases.release_id"), nullable=False)
+        "mia_ewi_db.monitoring_releases.release_id"), nullable=False)
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.users.user_id"), nullable=False)
+        "mia_commons_db.users.user_id"), nullable=False)
     role = DB.Column(DB.String(45))
 
     user_details = DB.relationship(
@@ -137,14 +137,14 @@ class MonitoringTriggers(UserMixin, DB.Model):
     """
 
     __tablename__ = "monitoring_triggers"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    release_id = DB.Column(DB.Integer, DB.ForeignKey("ewi_db.monitoring_releases.release_id"),
+    release_id = DB.Column(DB.Integer, DB.ForeignKey("mia_ewi_db.monitoring_releases.release_id"),
                            nullable=False)
     internal_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.internal_alert_symbols.internal_sym_id"), nullable=False)
+        "mia_ewi_db.internal_alert_symbols.internal_sym_id"), nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
     info = DB.Column(DB.String(360))
 
@@ -164,16 +164,16 @@ class MonitoringTriggersMisc(UserMixin, DB.Model):
     """
 
     __tablename__ = "monitoring_triggers_misc"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     trig_misc_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trigger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_triggers.trigger_id"), nullable=False)
+        "mia_ewi_db.monitoring_triggers.trigger_id"), nullable=False)
     od_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_on_demand.od_id"))
+        "mia_ewi_db.monitoring_on_demand.od_id"))
     eq_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_earthquake.eq_id"))
+        "mia_ewi_db.monitoring_earthquake.eq_id"))
     # Changed to has_moms to accommodate multiple moms
     has_moms = DB.Column(DB.Boolean)
 
@@ -195,15 +195,15 @@ class MonitoringOnDemand(UserMixin, DB.Model):
     """
 
     __tablename__ = "monitoring_on_demand"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     od_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     request_ts = DB.Column(DB.DateTime, nullable=False)
     narrative_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.narratives.id"))
+        "mia_commons_db.narratives.id"))
     reporter_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.users.user_id"), nullable=False)
+        "mia_commons_db.users.user_id"), nullable=False)
     tech_info = DB.Column(DB.String(500))
 
     reporter = DB.relationship(
@@ -228,8 +228,8 @@ class MonitoringEarthquake(UserMixin, DB.Model):
     """
 
     __tablename__ = "monitoring_earthquake"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     eq_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     magnitude = DB.Column(DB.Float(2, 1), nullable=False)
@@ -251,16 +251,16 @@ class MonitoringMomsReleases(UserMixin, DB.Model):
     """
 
     __tablename__ = "monitoring_moms_releases"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     moms_rel_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trig_misc_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_triggers_misc.trig_misc_id"))
+        "mia_ewi_db.monitoring_triggers_misc.trig_misc_id"))
     release_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_releases.release_id"))
+        "mia_ewi_db.monitoring_releases.release_id"))
     moms_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_moms.moms_id"), nullable=False)
+        "mia_ewi_db.monitoring_moms.moms_id"), nullable=False)
 
     trigger_misc = DB.relationship(
         "MonitoringTriggersMisc",
@@ -288,20 +288,20 @@ class MonitoringMoms(UserMixin, DB.Model):
     """
 
     __tablename__ = "monitoring_moms"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     moms_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     instance_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.moms_instances.instance_id"), nullable=False)
+        "mia_ewi_db.moms_instances.instance_id"), nullable=False)
     observance_ts = DB.Column(DB.DateTime, nullable=False)
     reporter_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.users.user_id"), nullable=False)
+        "mia_commons_db.users.user_id"), nullable=False)
     remarks = DB.Column(DB.String(500), nullable=False)
     narrative_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.narratives.id"), nullable=False)
+        "mia_commons_db.narratives.id"), nullable=False)
     validator_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.users.user_id"), nullable=False)
+        "mia_commons_db.users.user_id"), nullable=False)
     op_trigger = DB.Column(DB.Integer, nullable=False)
 
     narrative = DB.relationship(
@@ -336,14 +336,14 @@ class MomsInstances(UserMixin, DB.Model):
     """
 
     __tablename__ = "moms_instances"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     instance_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "mia_commons_db.sites.site_id"), nullable=False)
     feature_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.moms_features.feature_id"), nullable=False)
+        "mia_ewi_db.moms_features.feature_id"), nullable=False)
     feature_name = DB.Column(DB.String(45))
     location = DB.Column(DB.String(500))
 
@@ -365,8 +365,8 @@ class MomsFeatures(UserMixin, DB.Model):
     """
 
     __tablename__ = "moms_features"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     feature_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     feature_type = DB.Column(DB.String(45), nullable=False)
@@ -383,12 +383,12 @@ class MomsFeatureAlerts(UserMixin, DB.Model):
     """
 
     __tablename__ = "moms_feature_alerts"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     feature_alert_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     feature_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.moms_features.feature_id"), nullable=False)
+        "mia_ewi_db.moms_features.feature_id"), nullable=False)
     alert_level = DB.Column(DB.Integer)
     description = DB.Column(DB.String(500))
 
@@ -406,8 +406,8 @@ class PublicAlertSymbols(UserMixin, DB.Model):
     """
 
     __tablename__ = "public_alert_symbols"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     pub_sym_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     alert_symbol = DB.Column(DB.String(5), nullable=False)
@@ -428,15 +428,15 @@ class OperationalTriggers(UserMixin, DB.Model):
     """
 
     __tablename__ = "operational_triggers"
-    __bind_key__ = "senslopedb"
-    __table_args__ = {"schema": "senslopedb"}
+    __bind_key__ = "mia_senslopedb"
+    __table_args__ = {"schema": "mia_senslopedb"}
 
     trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "mia_commons_db.sites.site_id"), nullable=False)
     trigger_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.operational_trigger_symbols.trigger_sym_id"), nullable=False)
+        "mia_ewi_db.operational_trigger_symbols.trigger_sym_id"), nullable=False)
     ts_updated = DB.Column(DB.DateTime, nullable=False)
 
     site = DB.relationship(
@@ -459,14 +459,14 @@ class OperationalTriggersSync(UserMixin, DB.Model):
     """
 
     __tablename__ = "operational_triggers_sync"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     update_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trigger_id = DB.Column(DB.Integer, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "mia_commons_db.sites.site_id"), nullable=False)
     trigger_sym_id = DB.Column(DB.Integer, nullable=False)
     ts_updated = DB.Column(DB.DateTime, nullable=False)
 
@@ -483,17 +483,17 @@ class OperationalTriggersSync(UserMixin, DB.Model):
 #     """
 
 #     __tablename__ = "operational_triggers"
-#     __bind_key__ = "senslopedb"
-#     __table_args__ = {"schema": "senslopedb"}
+#     __bind_key__ = "mia_senslopedb"
+#     __table_args__ = {"schema": "mia_senslopedb"}
 
 #     trigger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
 #     ts = DB.Column(DB.DateTime, nullable=False)
 #     site_id = DB.Column(DB.Integer, nullable=False)
 #     trigger_sym_id = DB.Column(DB.Integer, nullable=False)
     # site_id = DB.Column(DB.Integer, DB.ForeignKey(
-    #     "commons_db.sites.site_id"), nullable=False)
+    #     "mia_commons_db.sites.site_id"), nullable=False)
     # trigger_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-    #     "ewi_db.operational_trigger_symbols.trigger_sym_id"), nullable=False)
+    #     "mia_ewi_db.operational_trigger_symbols.trigger_sym_id"), nullable=False)
     # ts_updated = DB.Column(DB.DateTime, nullable=False)
 
     # site = DB.relationship(
@@ -516,15 +516,15 @@ class OperationalTriggerSymbols(UserMixin, DB.Model):
     """
 
     __tablename__ = "operational_trigger_symbols"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     trigger_sym_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     alert_level = DB.Column(DB.Integer, nullable=False)
     alert_symbol = DB.Column(DB.String(2), nullable=False)
     alert_description = DB.Column(DB.String(100), nullable=False)
     source_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.trigger_hierarchies.source_id"), nullable=False)
+        "mia_ewi_db.trigger_hierarchies.source_id"), nullable=False)
 
     trigger_hierarchy = DB.relationship(
         "TriggerHierarchies", backref="trigger_symbols", lazy="joined", innerjoin=True)  # lazy="select")
@@ -542,8 +542,8 @@ class TriggerHierarchies(UserMixin, DB.Model):
     """
 
     __tablename__ = "trigger_hierarchies"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     source_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     trigger_source = DB.Column(DB.String(20))
@@ -565,13 +565,13 @@ class InternalAlertSymbols(UserMixin, DB.Model):
     """
 
     __tablename__ = "internal_alert_symbols"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     internal_sym_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     alert_symbol = DB.Column(DB.String(4), nullable=False)
     trigger_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.operational_trigger_symbols.trigger_sym_id"), nullable=False)
+        "mia_ewi_db.operational_trigger_symbols.trigger_sym_id"), nullable=False)
     alert_description = DB.Column(DB.String(120))
 
     trigger_symbol = DB.relationship(
@@ -591,11 +591,11 @@ class EndOfShiftAnalysis(UserMixin, DB.Model):
     """
 
     __tablename__ = "end_of_shift_analysis"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     event_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_events.event_id"), primary_key=True, nullable=False)
+        "mia_ewi_db.monitoring_events.event_id"), primary_key=True, nullable=False)
     shift_start = DB.Column(DB.DateTime, primary_key=True, nullable=False)
     analysis = DB.Column(DB.String(1500))
 
@@ -613,15 +613,15 @@ class PublicAlerts(UserMixin, DB.Model):
     """
 
     __tablename__ = "public_alerts"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     public_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), nullable=False)
+        "mia_commons_db.sites.site_id"), nullable=False)
     pub_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.public_alert_symbols.pub_sym_id"), nullable=False)
+        "mia_ewi_db.public_alert_symbols.pub_sym_id"), nullable=False)
     ts_updated = DB.Column(DB.DateTime, nullable=False)
 
     site = DB.relationship(
@@ -644,8 +644,8 @@ class BulletinTracker(UserMixin, DB.Model):
     """
 
     __tablename__ = "bulletin_tracker"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     site_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     bulletin_number = DB.Column(DB.Integer, nullable=False)

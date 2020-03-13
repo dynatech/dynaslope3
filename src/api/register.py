@@ -51,11 +51,11 @@ def insert_pending_account(data):
         DB.session.add(insert_account)
         DB.session.commit()
 
-        name = first_name+" "+last_name
+        name = first_name + " " + last_name
         message = str("CBEWS-L Account Approval\n\n"
-                      "Name: "+name+"\n"
-                      "Mobile #: "+mobile_number+"\n"
-                      "Validation Code: "+validation_code+"\n"
+                      "Name: " + name + "\n"
+                      "Mobile #: " + mobile_number + "\n"
+                      "Validation Code: " + validation_code + "\n"
                       "Role: 1 for Public Account, 2 for Staff Account, 3 for Admin Account.\n\n"
                       "Reply: validate <validation_code> <role>\nExample: validate CBWS 2")
         write_message(
@@ -82,7 +82,7 @@ def forgot_password():
 
     if is_digit == False:
         print("username")
-        query = text("SELECT * FROM commons_db.user_accounts "
+        query = text("SELECT * FROM mia_commons_db.user_accounts "
                      "WHERE username = '" + str(key) + "'")
 
         result = DB.engine.execute(query)
@@ -91,7 +91,7 @@ def forgot_password():
             user_id = row["user_fk_id"]
             account_id = row["account_id"]
 
-        mobile_query = text("SELECT * FROM comms_db_3.user_mobile "
+        mobile_query = text("SELECT * FROM mia_comms_db_3.user_mobile "
                             "WHERE user_id = " + str(user_id))
 
         mobile_query_result = DB.engine.execute(mobile_query)
@@ -100,7 +100,7 @@ def forgot_password():
             mobile_id = row["mobile_id"]
     else:
         print("mobile")
-        query = text("SELECT * FROM comms_db_3.user_mobile "
+        query = text("SELECT * FROM mia_comms_db_3.user_mobile "
                      "WHERE sim_num = '" + str(key) + "'")
 
         result = DB.engine.execute(query)
@@ -109,7 +109,7 @@ def forgot_password():
             user_id = row["user_id"]
             mobile_id = row["mobile_id"]
 
-        user_account_query = text("SELECT * FROM commons_db.user_accounts "
+        user_account_query = text("SELECT * FROM mia_commons_db.user_accounts "
                                   "WHERE user_fk_id = '" + str(user_id) + "'")
 
         user_account_result = DB.engine.execute(user_account_query)
@@ -125,7 +125,7 @@ def forgot_password():
     DB.session.commit()
 
     message = str("CBEWS-L Account New Password\n\n"
-                  "You new password is : "+new_password)
+                  "You new password is : " + new_password)
 
     write_message(
         message=message, mobile_id=30)

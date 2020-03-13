@@ -7,8 +7,8 @@ class SensorMaintenance(DB.Model):
     Class representation of sensor_maintenance table
     """
     __tablename__ = "sensor_maintenance"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     sensor_maintenance_id = DB.Column(DB.Integer, primary_key=True)
     remarks = DB.Column(DB.String(455))
@@ -26,8 +26,8 @@ class HardwareMaintenance(DB.Model):
     Class representation of hardware_maintenance_logs table
     """
     __tablename__ = "hardware_maintenance_logs"
-    __bind_key__ = "senslopedb"
-    __table_args__ = {"schema": "senslopedb"}
+    __bind_key__ = "mia_senslopedb"
+    __table_args__ = {"schema": "mia_senslopedb"}
 
     hardware_maintenance_id = DB.Column(DB.Integer, primary_key=True)
     site_id = DB.Column(DB.Integer)

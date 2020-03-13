@@ -55,8 +55,8 @@ def get_last_sensor_maintenance():
 def get_report_by_date():
     data = request.get_json()
     date_selected = data["date_selected"]
-    query = text("SELECT * FROM commons_db.sensor_maintenance "
-                 "WHERE timestamp BETWEEN '"+date_selected+" 00:00:00' AND '"+date_selected+" 23:59:59'")
+    query = text("SELECT * FROM mia_commons_db.sensor_maintenance "
+                 "WHERE timestamp BETWEEN '" + date_selected + " 00:00:00' AND '" + date_selected + " 23:59:59'")
     result = DB.engine.execute(query)
     data = []
     for row in result:

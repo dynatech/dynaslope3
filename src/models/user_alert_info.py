@@ -5,7 +5,7 @@ from connection import DB, MARSHMALLOW
 class UserAlertInfo(DB.Model):
     __tablename__ = "user_alert_info"
 
-    __bind_key__ = "comms_db_3"
+    __bind_key__ = "mia_comms_db_3"
 
     uai_id = DB.Column(DB.Integer, primary_key=True)
     send_alert = DB.Column(DB.Integer, nullable=False)

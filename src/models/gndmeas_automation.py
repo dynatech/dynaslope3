@@ -7,8 +7,8 @@ class GndmeasAutomation(DB.Model):
     Class representation of gndmeas_automation table
     """
     __tablename__ = "gndmeas_automation"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __bind_key__ = "mia_ewi_db"
+    __table_args__ = {"schema": "mia_ewi_db"}
 
     automation_id = DB.Column(DB.Integer, primary_key=True)
     type = DB.Column(DB.String(45))

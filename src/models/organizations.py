@@ -12,8 +12,8 @@ class Organizations(DB.Model):
     """
 
     __tablename__ = "organizations"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     org_id = DB.Column(DB.Integer, primary_key=True)
     scope = DB.Column(DB.Integer, nullable=True)
@@ -30,16 +30,17 @@ class UserOrganizations(DB.Model):
     """
 
     __tablename__ = "user_organizations"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     user_org_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
+        DB.Integer, DB.ForeignKey("mia_commons_db.users.user_id"))
     site_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.sites.site_id"))
+        DB.Integer, DB.ForeignKey("mia_commons_db.sites.site_id"))
     org_name = DB.Column(DB.String(45))
-    org_id = DB.Column(DB.Integer, DB.ForeignKey("commons_db.organizations.org_id"))
+    org_id = DB.Column(DB.Integer, DB.ForeignKey(
+        "mia_commons_db.organizations.org_id"))
     primary_contact = DB.Column(DB.Integer, nullable=True)
 
     site = DB.relationship(
@@ -59,7 +60,8 @@ class OrganizationsSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Organizations class
     """
 
-    users = fields.Nested("UserOrganizationsSchema", many=True, exclude=["organization"])
+    users = fields.Nested("UserOrganizationsSchema",
+                          many=True, exclude=["organization"])
 
     class Meta:
         """Saves table class structure as schema model"""

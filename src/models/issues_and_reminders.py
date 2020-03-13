@@ -18,13 +18,13 @@ class IssuesAndReminders(UserMixin, DB.Model):
     """
 
     __tablename__ = "issues_and_reminders"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     iar_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     detail = DB.Column(DB.String(360))
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.users.user_id"), nullable=False)
+        "mia_commons_db.users.user_id"), nullable=False)
     ts_posted = DB.Column(DB.DateTime, nullable=False)
     ts_expiration = DB.Column(DB.DateTime)
     resolved_by = DB.Column(DB.Integer)
@@ -53,15 +53,15 @@ class IssuesRemindersSitePostings(UserMixin, DB.Model):
     """
 
     __tablename__ = "issues_reminders_site_postings"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     iar_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.issues_and_reminders.iar_id"), primary_key=True)
+        "mia_commons_db.issues_and_reminders.iar_id"), primary_key=True)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), primary_key=True)
+        "mia_commons_db.sites.site_id"), primary_key=True)
     event_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_events.event_id"))
+        "mia_ewi_db.monitoring_events.event_id"))
 
     event = DB.relationship(
         "MonitoringEvents",

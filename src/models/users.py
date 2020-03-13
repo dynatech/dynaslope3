@@ -15,8 +15,8 @@ class Users(DB.Model, UserMixin):
     Class representation of users table
     """
     __tablename__ = "users"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     user_id = DB.Column(DB.Integer, primary_key=True)
     salutation = DB.Column(DB.String(15))
@@ -73,8 +73,8 @@ class UsersRelationship(Users):
     Class representation of users relation in mobile and organization of users
     """
     __tablename__ = "users"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     organizations = DB.relationship(
         UserOrganizations, backref=DB.backref(
@@ -110,12 +110,12 @@ class UserMobile(DB.Model):
     Class representation of user mobile table
     """
     __tablename__ = "user_mobile"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "mia_comms_db"
+    __table_args__ = {"schema": "mia_comms_db"}
 
     mobile_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.users.user_id"), nullable=False)
+        "mia_commons_db.users.user_id"), nullable=False)
     sim_num = DB.Column(DB.String(30))
     priority = DB.Column(DB.Integer, nullable=False)
     mobile_status = DB.Column(DB.Integer, nullable=False)
@@ -131,14 +131,14 @@ class UserOrganization(DB.Model):
     """
 
     __tablename__ = "user_organization"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     org_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
+        DB.Integer, DB.ForeignKey("mia_commons_db.users.user_id"))
     fk_site_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.sites.site_id"))
+        DB.Integer, DB.ForeignKey("mia_commons_db.sites.site_id"))
     org_name = DB.Column(DB.String(45))
     scope = DB.Column(DB.Integer, nullable=True)
 
@@ -155,12 +155,12 @@ class UserLandlines(DB.Model):
     Class representation of user_landlines table
     """
     __tablename__ = "user_landlines"
-    __bind_key__ = "comms_db_3"
-    __table_args__ = {"schema": "comms_db_3"}
+    __bind_key__ = "mia_comms_db_3"
+    __table_args__ = {"schema": "mia_comms_db_3"}
 
     landline_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
+        DB.Integer, DB.ForeignKey("mia_commons_db.users.user_id"))
     landline_num = DB.Column(DB.String(30))
     remarks = DB.Column(DB.String(45))
 
@@ -173,8 +173,8 @@ class UserTeams(DB.Model):
     Class representation of user_teams table
     """
     __tablename__ = "user_teams"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     team_id = DB.Column(DB.Integer, primary_key=True)
     team_code = DB.Column(DB.String(20))
@@ -190,14 +190,14 @@ class UserTeamMembers(DB.Model):
     Class representation of user_team_members table
     """
     __tablename__ = "user_team_members"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     member_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
+        DB.Integer, DB.ForeignKey("mia_commons_db.users.user_id"))
     team_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.user_teams.team_id"))
+        DB.Integer, DB.ForeignKey("mia_commons_db.user_teams.team_id"))
 
     team = DB.relationship(
         "UserTeams", backref=DB.backref("team_members", lazy="joined", innerjoin=True), lazy="subquery")
@@ -212,12 +212,12 @@ class UserEmails(DB.Model):
     Class representation of user_teams table
     """
     __tablename__ = "user_emails"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     email_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
+        DB.Integer, DB.ForeignKey("mia_commons_db.users.user_id"))
     email = DB.Column(DB.String(45))
 
     def __repr__(self):
@@ -229,12 +229,12 @@ class UserAccounts(DB.Model):
     Class representation of user_teams table
     """
     __tablename__ = "user_accounts"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     account_id = DB.Column(DB.Integer, primary_key=True)
     user_fk_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
+        DB.Integer, DB.ForeignKey("mia_commons_db.users.user_id"))
     username = DB.Column(DB.String(45))
     password = DB.Column(DB.String(200))
     is_active = DB.Column(DB.Integer, nullable=True)
@@ -252,8 +252,8 @@ class PendingAccounts(DB.Model):
     Class representation of user_teams table
     """
     __tablename__ = "pending_accounts"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     pending_account_id = DB.Column(DB.Integer, primary_key=True)
     username = DB.Column(DB.String(45))
@@ -277,11 +277,11 @@ class UserEwiRestrictions(DB.Model):
     """
 
     __tablename__ = "user_ewi_restrictions"
-    __bind_key__ = "comms_db_3"
-    __table_args__ = {"schema": "comms_db_3"}
+    __bind_key__ = "mia_comms_db_3"
+    __table_args__ = {"schema": "mia_comms_db_3"}
 
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.users.user_id"), primary_key=True)
+        "mia_commons_db.users.user_id"), primary_key=True)
     alert_level = DB.Column(DB.Integer, nullable=False)
 
     def __repr__(self):

@@ -13,8 +13,8 @@ class UserEwiStatus(DB.Model, UserMixin):
     Class representation of users table
     """
     __tablename__ = "user_ewi_status"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": "comms_db"}
+    __bind_key__ = "mia_comms_db"
+    __table_args__ = {"schema": "mia_comms_db"}
 
     mobile_id = DB.Column(DB.Integer, primary_key=True)
     status = DB.Column(DB.Integer, nullable=True)

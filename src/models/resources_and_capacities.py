@@ -7,8 +7,8 @@ class ResourcesAndCapacities(DB.Model):
     Class representation of resources_and_capacities table
     """
     __tablename__ = "resources_and_capacities"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     resources_and_capacities_id = DB.Column(DB.Integer, primary_key=True)
     resource_and_capacity = DB.Column(DB.String(100))

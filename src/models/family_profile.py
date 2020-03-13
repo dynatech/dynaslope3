@@ -7,8 +7,8 @@ class FamilyProfile(DB.Model):
     Class representation of ewi_templates table
     """
     __tablename__ = "family_profile"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     family_profile_id = DB.Column(DB.Integer, primary_key=True)
     members_count = DB.Column(DB.Integer, nullable=False)
@@ -24,8 +24,8 @@ class RiskProfile(DB.Model):
     Class representation of ewi_templates table
     """
     __tablename__ = "risk_profile"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     risk_profile_id = DB.Column(DB.Integer, primary_key=True)
     entry = DB.Column(DB.String(1000))

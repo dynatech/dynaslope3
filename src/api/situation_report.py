@@ -50,8 +50,8 @@ def get_report_by_date():
         data = request.form
     date_selected = str(data["date_selected"])
 
-    query = text("SELECT * FROM commons_db.situation_report "
-                 "WHERE timestamp BETWEEN '"+date_selected+" 00:00:00' AND '"+date_selected+" 23:59:59'")
+    query = text("SELECT * FROM mia_commons_db.situation_report "
+                 "WHERE timestamp BETWEEN '" + date_selected + " 00:00:00' AND '" + date_selected + " 23:59:59'")
     result = DB.engine.execute(query)
     data = []
     for row in result:

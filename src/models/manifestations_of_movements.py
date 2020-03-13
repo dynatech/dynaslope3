@@ -7,8 +7,8 @@ class ManifestationsOfMovements(DB.Model):
     Class representation of manifestations_of_movements table
     """
     __tablename__ = "manifestations_of_movements"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __bind_key__ = "mia_commons_db"
+    __table_args__ = {"schema": "mia_commons_db"}
 
     moms_id = DB.Column(DB.Integer, primary_key=True)
     type_of_feature = DB.Column(DB.String(45))

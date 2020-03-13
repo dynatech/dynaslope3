@@ -261,7 +261,7 @@ def insert_message_on_database(obj):
     sms_msg = obj["sms_msg"]
     recipient_list = obj["recipient_list"]
 
-    # NOTE: pointed to comms_db orig until GSM 3
+    # NOTE: pointed to mia_comms_db orig until GSM 3
     new_msg = SmsOutboxUsers2(
         ts_written=datetime.now(),
         source="central",
@@ -273,12 +273,12 @@ def insert_message_on_database(obj):
 
     outbox_id = new_msg.outbox_id
 
-    # NOTE: pointed to comms_db orig until GSM 3
+    # NOTE: pointed to mia_comms_db orig until GSM 3
     for row in recipient_list:
         mobile_id = row["mobile_id"]
         gsm_id = row["gsm_id"]
 
-        # NOTE: pointed to comms_db orig until GSM 3
+        # NOTE: pointed to mia_comms_db orig until GSM 3
         new_status = SmsOutboxUserStatus2(
             outbox_id=outbox_id,
             mobile_id=mobile_id,
