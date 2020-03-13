@@ -11,6 +11,8 @@ monkey.patch_all()
 
 from connection import create_app, SOCKETIO
 
+ASSETS_DIR = os.path.dirname(os.path.abspath(__file__))
+
 PARSER = ArgumentParser(description="Run Dynaslope 3.0 Server")
 PARSER.add_argument(
     "-sm", "--skip_memcache", help="skip memcache initialization", action="store_true")
@@ -26,5 +28,7 @@ APP = create_app(CONFIG_NAME, skip_memcache=ARGS.skip_memcache,
 
 if __name__ == "__main__":
     print("Flask server is now running...")
+    context = ("/home/dynaslope/ssl/dynaslope.crt",
+               "/home/dynaslope/ssl/privatekey.key")
     SOCKETIO.run(APP, host='127.0.0.1', port=5000,
-                 debug=True, use_reloader=False)
+                 debug=True, use_reloader=False, ssl_context=context)
