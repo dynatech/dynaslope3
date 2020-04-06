@@ -94,8 +94,8 @@ export function getRainfallPlotData (input, callback) {
 }
 
 export function getSubsurfacePlotData (input, callback) {
-    const { subsurface_column, ts_end } = input;
-    const api_link = `${host}/api/subsurface/get_subsurface_plot_data/${subsurface_column}/${ts_end}`;
+    const { subsurface_column, ts_end, ts_start, hour_value } = input;
+    const api_link = `${host}/api/subsurface/get_subsurface_plot_data/${subsurface_column}/${ts_end}/${ts_start}/${hour_value}`;
 
     axios.get(api_link)
     .then(response => {

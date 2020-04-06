@@ -440,10 +440,17 @@ function SurficialGraph (props) {
         isEndOfShift
     } = props;
 
+    const [ selected, setSelected ] = useState("3 months");
+    const default_range_info = { label: "3 months", unit: "months", duration: 3 };
+    const [ selected_range_info, setSelectedRangeInfo ] = useState(default_range_info);
+    let { unit, duration } = selected_range_info;
     let ts_end = "";
     let dt_ts_end;
     if (typeof input !== "undefined") {
-        const { ts_end: te } = input;
+        const { ts_end: te, range_info } = input;
+        const { unit: conso_unit, duration: conso_duration } = range_info;
+        unit = conso_unit;
+        duration = conso_duration;
         ts_end = te;
         dt_ts_end = moment(te);
     } else {
@@ -457,10 +464,9 @@ function SurficialGraph (props) {
     const save_svg = typeof saveSVG === "undefined" ? false : saveSVG;
     const is_end_of_shift = typeof isEndOfShift === "undefined" ? false : isEndOfShift;
 
-    const ts_start = computeForStartTs(dt_ts_end, 3, "months");
-    
+    const ts_start = computeForStartTs(dt_ts_end, duration, unit);
     const chartRef = React.useRef(null);
-    const [timestamps, setTimestamps] = useState({ start: ts_start, end: ts_end });
+    const timestamps = { start: ts_start, end: ts_end };
     const [save_svg_now, setSaveSVGNow] = useState(false);
     const [to_redraw_chart, setRedrawChart] = useState(true);
     const [surficial_data, setSurficialData] = useState([]);
@@ -529,9 +535,9 @@ function SurficialGraph (props) {
                 }
             }, is_end_of_shift);
 
-            setRedrawChart(false);
+            setRedrawChart(true);
         }
-    }, [to_redraw_chart]);
+    }, [to_redraw_chart, selected_range_info, duration]);
 
     useEffect(() => {
         const { current: { chart } } = chartRef;
@@ -555,7 +561,12 @@ function SurficialGraph (props) {
     return (
         <Fragment>
             <div style={{ display: "flex", justifyContent: "space-between" }}>                
-                { !disable_back && <BackToMainButton {...props} /> }
+                { !disable_back && <BackToMainButton 
+                    {...props}
+                    selected={selected}
+                    setSelected={setSelected}
+                    setSelectedRangeInfo={setSelectedRangeInfo}
+                /> }
 
                 { surficial_data.length > 0 && !disable_marker_list && (
                     <ButtonGroup

@@ -50,6 +50,7 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
 
     filter_val (int or str): site_code or marker_id
     """
+    
     ts_order = request.args.get("order", default="asc", type=str)
     limit = request.args.get("limit", default=None, type=int)
     is_end_of_shift = request.args.get(

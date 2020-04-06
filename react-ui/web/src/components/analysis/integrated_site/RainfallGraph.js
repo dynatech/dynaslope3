@@ -254,6 +254,9 @@ function RainfallGraph (props) {
 
     const [rainfall_data, setRainfallData] = useState([]);
     const [processed_data, setProcessedData] = useState([]);
+    const [ selected, setSelected ] = useState("3 days");
+    const default_range_info = { label: "3 days", unit: "days", duration: 3 };
+    const [ selected_range_info, setSelectedRangeInfo ] = useState(default_range_info);
     const chartRefs = useRef([...Array(arr_num)].map(() => ({
         instantaneous: createRef(),
         cumulative: createRef()
@@ -267,8 +270,12 @@ function RainfallGraph (props) {
     let ts_end = "";
     let sc = "";
     let dt_ts_end;
+    let { unit, duration } = selected_range_info;
     if (typeof conso_input !== "undefined") {
-        const { ts_end: te } = conso_input;
+        const { ts_end: te, range_info } = conso_input;
+        const { unit: conso_unit, duration: conso_duration } = range_info;
+        unit = conso_unit;
+        duration = conso_duration;
         ts_end = te;
         dt_ts_end = moment(te);
         sc = site_code;
@@ -279,7 +286,7 @@ function RainfallGraph (props) {
         sc = rain_gauge.substr(0, 3);
     }
 
-    const ts_start = computeForStartTs(dt_ts_end, 3, "days");
+    const ts_start = computeForStartTs(dt_ts_end, duration, unit);
     const input = { ts_start, ts_end, site_code: sc };
 
     const default_options = {
@@ -288,6 +295,7 @@ function RainfallGraph (props) {
     };
 
     useEffect(() => {
+        setProcessedData([]);
         getRainfallPlotData(input, data => {
             let arr = data;
             if (typeof rain_gauge !== "undefined") {
@@ -295,7 +303,7 @@ function RainfallGraph (props) {
             }
             setRainfallData(arr);
         });
-    }, []);
+    }, [selected_range_info, duration]);
 
     useEffect(() => {
         const temp = [];
@@ -353,7 +361,12 @@ function RainfallGraph (props) {
     return (
         <Fragment>
             {
-                !disable_back && <BackToMainButton {...props} />
+                !disable_back && <BackToMainButton 
+                    {...props}
+                    selected={selected}
+                    setSelected={setSelected}
+                    setSelectedRangeInfo={setSelectedRangeInfo}
+                />
             }
 
             <div style={{ marginTop: 16 }}>
