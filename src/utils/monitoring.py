@@ -1306,7 +1306,11 @@ def search_if_feature_name_exists(site_id, feature_id, feature_name):
     mi = MomsInstances
     instance = None
     instance = mi.query.filter(
-        DB.and_(mi.site_id == site_id, mi.feature_name == feature_name, mi.feature_id == feature_id)).first()
+        DB.and_(
+            mi.site_id == site_id,
+            mi.feature_name == feature_name,
+            mi.feature_id == feature_id)
+    ).first()
 
     return instance
 

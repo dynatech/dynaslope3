@@ -80,12 +80,21 @@ function MomsInsertModal (props) {
 
             const moment_obs_ts = moment(observance_ts).format("YYYY-MM-DD HH:mm:ss");
             const current_user = getCurrentUser();
+            const { label: f_type } = feature_type;
+
+            let f_name = "None";
+            let instance_id = null;
+            if (f_type !== "None") {
+                const { value: val, label } = feature_name;
+                f_name = label === "(Add new instance)" ? null : label;
+                instance_id = val;
+            }
 
             return 	{
                 alert_level: alert_level.label,
-                instance_id: feature_name.value,
-                feature_name: feature_name.label === "(Add new instance)" ? null : feature_name.label,
-                feature_type: feature_type.label,
+                instance_id,
+                feature_name: f_name,
+                feature_type: f_type,
                 report_narrative: narrative,
                 observance_ts: moment_obs_ts,
                 remarks,
