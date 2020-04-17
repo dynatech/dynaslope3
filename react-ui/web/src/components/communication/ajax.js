@@ -179,3 +179,17 @@ export function loadMoreMessages (mobile_id, batch, callback) {
         console.error(error);
     });
 }
+
+export function resendMessage (outbox_status_id, callback) {
+    const api_link = `${host}/api/chatterbox/resend_message/${outbox_status_id}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("Resend message", data);
+        if (typeof callback !== "undefined") callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}

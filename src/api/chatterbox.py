@@ -8,7 +8,7 @@ from src.models.inbox_outbox import SmsTagsSchema
 from src.utils.chatterbox import (
     get_quick_inbox, get_message_tag_options,
     insert_message_on_database, get_latest_messages,
-    get_messages_schema_dict
+    get_messages_schema_dict, resend_message
 )
 from src.utils.ewi import create_ewi_message
 from src.utils.general_data_tag import insert_data_tag
@@ -228,3 +228,27 @@ def load_more_messages(mobile_id, batch):
     schema_msgs = get_messages_schema_dict(messages)
 
     return jsonify(schema_msgs)
+
+
+@CHATTERBOX_BLUEPRINT.route("/chatterbox/resend_message/<outbox_status_id>", methods=["GET"])
+def wrap_resend_message(outbox_status_id):
+    """
+    """
+
+    status = True
+    message = "Message resend success"
+
+    try:
+        resend_message(outbox_status_id)
+    except Exception as err:
+        print(err)
+
+        if hasattr(err, "message"):
+            error_msg = err.message
+        else:
+            error_msg = str(err)
+
+        status = False
+        message = error_msg
+
+    return jsonify({"status": status, "message": message})
