@@ -204,3 +204,17 @@ export function saveChartSVG (input, callback) {
         console.error(error);
     });
 }
+
+export function saveTagInformation (input, callback) {
+    const api_link = `${host}/api/rainfall/save_tag_information`;
+    
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save tag information", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}

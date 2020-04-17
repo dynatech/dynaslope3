@@ -2,7 +2,7 @@
 import React, { Fragment, useState } from "react";
 
 import { Button, IconButton, Menu, MenuItem, Tooltip } from "@material-ui/core";
-import { ArrowBackIos } from "@material-ui/icons";
+import { ArrowBackIos, LocalOffer } from "@material-ui/icons";
 import { isWidthDown } from "@material-ui/core/withWidth";
 
 const goBack = history => e => {
@@ -33,10 +33,14 @@ const hour_interval = [
 function BackToMainButton (props) {
     const { width, history, chartType,
         selected, setSelected, setSelectedRangeInfo,
-        selected_hour_interval, setSelectedHourInterval } = props;
+        selected_hour_interval, setSelectedHourInterval,
+        setTagInvalid } = props;
     const [ dateRangeAnchor, setDateRangeAnchor ] = useState(null);
     const [ hourIntervalAnchor, setHourIntervalAnchor ] = useState(null);
     const [ show_hour_interval, setShowHourInterval ] = useState(false);
+    const [ tag_invalid_button_color, setTagInvalidButtonColor ] = useState("primary");
+    const [ tag_invalid_button_text, setTagInvalidButtonText ] = useState("TAG INVALID");
+
     let default_label = "";
     if (selected_hour_interval) {
         const { label } = selected_hour_interval;
@@ -86,7 +90,8 @@ function BackToMainButton (props) {
                             size="small" 
                             aria-controls="simple-menu"
                             aria-haspopup="true"
-                            onClick={hourIntervalHandleClick}  
+                            onClick={hourIntervalHandleClick} 
+                            style={{ marginRight: 8 }}
                         >
                             {default_label}
                         </Button>
@@ -115,6 +120,35 @@ function BackToMainButton (props) {
                 
                     </Menu>
                 </Fragment>
+            );
+        }
+
+        return ("");
+    };
+
+    const startTagging = () => {
+        setTagInvalidButtonColor("secondary");
+        setTagInvalidButtonText("TAGGING INVALID");
+        setTagInvalid(true);
+        if (tag_invalid_button_color === "secondary") {
+            setTagInvalidButtonColor("primary");
+            setTagInvalidButtonText("TAG INVALID");
+            setTagInvalid(false);
+        }
+    };
+    
+    const TagInvalidRainfallButton = () => {
+        if (chartType === "rainfall") {
+            return (
+                <Button
+                    variant="contained"
+                    color={tag_invalid_button_color}
+                    size="small"
+                    startIcon={<LocalOffer />}
+                    onClick={startTagging} 
+                >
+                    {tag_invalid_button_text}
+                </Button>
             );
         }
 
@@ -168,6 +202,7 @@ function BackToMainButton (props) {
                 
             </Menu>
             {SubsurfaceHourInterval()}
+            {TagInvalidRainfallButton()}
         </Fragment>) : (<IconButton
             variant="contained"
             color="primary"

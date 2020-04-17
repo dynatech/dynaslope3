@@ -79,3 +79,17 @@ def get_all_site_rainfall_datas():
     }
 
     return jsonify(feedback)
+
+
+@RAINFALL_BLUEPRINT.route("/rainfall/save_tag_information", methods=["GET", "POST"])
+def save_tag_information():
+    """
+    api for saving invalid rainfal data info
+    """
+    data = request.get_json()
+    print(data)
+    feedback = {
+        "data": "sample data"
+    }
+
+    return jsonify(feedback)

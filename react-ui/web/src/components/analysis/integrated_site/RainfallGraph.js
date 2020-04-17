@@ -11,7 +11,7 @@ import * as moment from "moment";
 import { Grid, Paper, Hidden } from "@material-ui/core";
 import BackToMainButton from "./BackToMainButton";
 
-import { getRainfallPlotData, saveChartSVG } from "../ajax";
+import { getRainfallPlotData, saveChartSVG, saveTagInformation } from "../ajax";
 import { computeForStartTs } from "../../../UtilityFunctions";
 
 window.moment = moment;
@@ -66,6 +66,62 @@ function prepareRainfallData (set) {
     return { set, series_data, max_rval_data, null_processed };
 }
 
+function selectPointsByDrag (e) {
+    // Select points
+    Highcharts.each(this.series, (series) => {
+        Highcharts.each(series.points, (point) => {
+            if (point.x >= e.xAxis[0].min && point.x <= e.xAxis[0].max) {
+                point.select(true, true);
+            }
+        });
+    });
+
+    // Fire a custom event
+    Highcharts.fireEvent(this, "selectedpoints", { points: this.getSelectedPoints() });
+
+    return false; // Don't zoom
+}
+
+function selectedPoints (e) {
+    console.log("selectedPoints");
+    let DATA_POINT_SELECTED = null;
+    const datas = e.points;
+    const tagged_data = [];
+    let table_name = null;
+    datas.forEach((data) => {
+        let rain_source = null;
+
+        if (table_name == null) {
+            try {
+				    table_name = rain_source[2].toString().replace("<b>", "");
+            } catch (e) {
+                if (e instanceof TypeError) {
+                    rain_source = data.series.chart.renderer.cacheKeys[2].toString().split(" ");
+                    table_name = rain_source[2].toString().replace("<b>", "");
+                } else {
+                    // console.log("catching type errror");
+                }
+            }
+        }
+	    	
+        let timestamp = new Date(data.x);
+        timestamp = moment(timestamp).format("YYYY-MM-DD HH:mm:ss");
+        if (tagged_data.includes(timestamp) != true) {
+            tagged_data.push(timestamp);
+        }
+    });
+    DATA_POINT_SELECTED = {
+        table: table_name,
+        data_start: tagged_data[0],
+        data_end: tagged_data[tagged_data.length - 1]
+    };
+    console.log("DATA_POINT_SELECTED", DATA_POINT_SELECTED);
+}
+
+function unselectByClick () {
+    console.log("unselectByClick");
+}
+
 function prepareInstantaneousRainfallChartOption (row, input) {
     const { set, max_rval_data, null_processed } = row;
     const {
@@ -79,6 +135,11 @@ function prepareInstantaneousRainfallChartOption (row, input) {
             type: "column",
             zoomType: "x",
             panning: true,
+            // events: {
+            //     selection: selectPointsByDrag,
+            //     selectedpoints: selectedPoints,
+            //     click: unselectByClick
+            // },
             // height: 400,
             resetZoomButton: {
                 position: {
@@ -249,7 +310,7 @@ function RainfallGraph (props) {
         input: conso_input, disableBack, currentUser,
         saveSVG
     } = props;
-
+    
     const arr_num = typeof rain_gauge !== "undefined" ? 1 : 4;
 
     const [rainfall_data, setRainfallData] = useState([]);
@@ -263,6 +324,7 @@ function RainfallGraph (props) {
     })));
     const [get_svg, setGetSVGNow] = useState(false);
     const [svg_list, setSVGList] = useState([]);
+    const [tag_invalid, setTagInvalid] = useState(false);
 
     const disable_back = typeof disableBack === "undefined" ? false : disableBack;
     const save_svg = typeof saveSVG === "undefined" ? false : saveSVG;
@@ -280,7 +342,7 @@ function RainfallGraph (props) {
         dt_ts_end = moment(te);
         sc = site_code;
     } else {
-        const ts_now = moment();
+        const ts_now = moment("2019-06-30 00:00:00");
         ts_end = ts_now.format("YYYY-MM-DD HH:mm:ss");
         dt_ts_end = ts_now;
         sc = rain_gauge.substr(0, 3);
@@ -311,6 +373,7 @@ function RainfallGraph (props) {
             const data = prepareRainfallData(set);
             temp.push(data);
         });
+        
         if (temp.length > 0) setProcessedData(temp);
     }, [rainfall_data]);
 
@@ -325,6 +388,12 @@ function RainfallGraph (props) {
         });
         setOptions(temp);
         if (temp.length > 0 && save_svg) setGetSVGNow(true);
+
+        // for testing purpose only
+        const data_temp = {
+            data: "test"
+        };
+        saveTagInformation(data_temp, data => {});
     }, [processed_data]);
 
     useEffect(() => {
@@ -357,6 +426,10 @@ function RainfallGraph (props) {
             saveChartSVG(temp, data => {});
         }
     }, [svg_list]);
+
+    useEffect(() => {
+        console.log(tag_invalid);
+    }, [tag_invalid]);
     
     return (
         <Fragment>
@@ -366,43 +439,77 @@ function RainfallGraph (props) {
                     selected={selected}
                     setSelected={setSelected}
                     setSelectedRangeInfo={setSelectedRangeInfo}
+                    setTagInvalid={setTagInvalid}
                 />
             }
-
+            
             <div style={{ marginTop: 16 }}>
                 <Grid container spacing={4}>
                     {
-                        chartRefs.current.map((ref, i) => {
-                            let opt = { ...default_options };
-                            if (options.length > 0) {
-                                opt = options[i];
-                            }
+                        tag_invalid === false ? (
+                            chartRefs.current.map((ref, i) => {
+                                let opt = { ...default_options };
+                                if (options.length > 0) {
+                                    opt = options[i];
+                                }
 
-                            return (
-                                <Fragment key={i}>
-                                    <Grid item xs={12} md={6}>
-                                        <Paper>
-                                            <HighchartsReact
-                                                highcharts={Highcharts}
-                                                options={opt.instantaneous}
-                                                ref={ref.instantaneous}
-                                            />
-                                        </Paper>
-                                    </Grid>
+                                return (
+                                    <Fragment key={i}>
+                                        <Grid item xs={12} md={6}>
+                                            <Paper>
+                                                <HighchartsReact
+                                                    highcharts={Highcharts}
+                                                    options={opt.instantaneous}
+                                                    ref={ref.instantaneous}
+                                                />
+                                            </Paper>
+                                        </Grid>
 
-                                    <Grid item xs={12} md={6}>
-                                        <Paper>
-                                            <HighchartsReact
-                                                highcharts={Highcharts}
-                                                options={opt.cumulative}
-                                                ref={ref.cumulative}
-                                            />
-                                        </Paper>
-                                    </Grid>
-                                </Fragment>
-                            );
-                        })
+                                        <Grid item xs={12} md={6}>
+                                            <Paper>
+                                                <HighchartsReact
+                                                    highcharts={Highcharts}
+                                                    options={opt.cumulative}
+                                                    ref={ref.cumulative}
+                                                />
+                                            </Paper>
+                                        </Grid>
+                                    
+                                    </Fragment>
+                                );
+                            })
+                        ) : (
+                            chartRefs.current.map((ref, i) => {
+                                let opt = { ...default_options };
+                                if (options.length > 0) {
+                                    opt = options[i];
+                                }
+
+                                return (
+                                    <Fragment key={i}>
+                                        <Grid item xs={12} md={6}>
+                                            <Paper>
+                                                <HighchartsReact
+                                                    highcharts={Highcharts}
+                                                    options={opt.instantaneous}
+                                                    ref={ref.instantaneous}
+                                                />
+                                            </Paper>
+                                        </Grid>
+                                    
+                                    </Fragment>
+                                );
+                            })
+                        )
                     }
+                    {/* <Grid item xs={12} md={6}>
+                        <Paper>
+                            <HighchartsReact
+                                highcharts={Highcharts}
+                                options={default_options}
+                            />
+                        </Paper>
+                    </Grid> */}
                 </Grid>
             </div>
 
