@@ -351,6 +351,13 @@ function prepareOptions (input, data, width, setEditModal, setChosenPointCopy, i
             text: `${subtext}As of: <b>${moment(end_date).format("D MMM YYYY, HH:mm")}</b>`,
             style: { fontSize: "0.75rem" }
         },
+        legend: {
+            labelFormatter () {
+                const { userOptions: { marker_name: mn, in_use } } = this;
+                const name = in_use === 0 ? `${mn} (Defunct)` : mn;
+                return name;
+            }
+        },
         yAxis: {
             title: {
                 text: "<b>Displacement (cm)</b>"
@@ -607,17 +614,21 @@ function SurficialGraph (props) {
             />
 
             <Route path={`${url}/:marker_name`} render={
-                props => <SurficialTrendingGraphs 
+                props => {
+                    return "print here";
+                }
+            } />
+        </Fragment>
+    );
+}
+
+{ /* <SurficialTrendingGraphs 
                     {...props}
                     timestamps={timestamps}
                     siteCode={site_code}
                     hideTrending={hideTrending}
                     trendingData={trending_data}
                     setTrendingData={setTrendingData}
-                />} 
-            />
-        </Fragment>
-    );
-}
+                /> */ }
 
 export default withMobileDialog()(SurficialGraph);
