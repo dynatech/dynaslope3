@@ -84,8 +84,9 @@ function RoutineReleaseForm (comp_props) {
 
     const handleDateTime = key => value => {
         const temp = { ...routineData, [key]: value };
-        setDataTimestamp(moment(value).format("YYYY-MM-DD HH:mm:00"));
         setRoutineData(temp);
+
+        if (key === "data_ts") setDataTimestamp(moment(value).format("YYYY-MM-DD HH:mm:00"));
     };
     
     const [checked, setChecked] = React.useState([]);
@@ -200,7 +201,7 @@ function RoutineReleaseForm (comp_props) {
                         autoOk
                         label="Data timestamp"
                         value={dataTimestamp}
-                        onChange={handleDateTime("data_timestamp")}
+                        onChange={handleDateTime("data_ts")}
                         ampm={false}
                         placeholder="2010/01/01 00:00"
                         format="YYYY/MM/DD HH:mm"
