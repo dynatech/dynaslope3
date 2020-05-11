@@ -11,6 +11,7 @@ import {
 } from "@material-ui/icons";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import { savePrimaryContact, saveUpdatedPrimaryContact } from "../ajax";
+import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -48,28 +49,17 @@ const useStyles = makeStyles(theme => ({
 }));
 
 function createHeader (scope, org_name) {
-    let header = "";
-    let offices = "";
-    if (scope === 0) {
-        header = `Community ${org_name.toUpperCase()}`;
-        offices = `community_${org_name}`;
-    } else if (scope === 1) {
-        header = `Barangay ${org_name.toUpperCase()}`;
-        offices = `barangay_${org_name}`;
-    } else if (scope === 2) {
-        header = `Municipal ${org_name.toUpperCase()}`;
-        offices = `municipal_${org_name}`;
-    } else if (scope === 3) {
-        header = `Provincial ${org_name.toUpperCase()}`;
-        offices = `provincial_${org_name}`;
-    } else if (scope === 4) {
-        header = `Regional ${org_name.toUpperCase()}`;
-        offices = `regional_${org_name}`;
-    } else if (scope === 5) {
-        header = `National ${org_name.toUpperCase()}`;
-        offices = `national_${org_name}`;
-    }
+    let office = "";
 
+    if (scope === 0) office = "community";
+    else if (scope === 1) office = "barangay";
+    else if (scope === 2) office = "municipal";
+    else if (scope === 3) office = "provincial";
+    else if (scope === 4) office = "regional";
+    else if (scope === 5) office = "national";
+    
+    const header = `${capitalizeFirstLetter(office)} ${org_name.toUpperCase()}`;
+    const offices = `${office}_${org_name}`;
 
     return {
         header,
@@ -189,17 +179,16 @@ function AllContacts (props) {
     const [contact_per_org, setContactsPerOrg] = useState(initial_contact_per_org);
     const [checkbox_data, setCheckboxData] = useState([]);
     const [contacts_key, setContactKey] = useState([]);
-   
-    
+
     site_data.forEach((row, index) => {
-        const { org_name, contact_person, scope, primary_contact, user_org_id } = row;
+        const { org_name, scope } = row;
         const { offices } = createHeader(scope, org_name);
         const key = initial_contact_per_org[offices];
         if (key === undefined) {
-            initial_contact_per_org[offices] = [{ org_name, contact_person, scope, primary_contact, user_org_id }];
+            initial_contact_per_org[offices] = [row];
             orgs.push(offices);
         } else {
-            initial_contact_per_org[offices].push({ org_name, contact_person, scope, primary_contact, user_org_id });
+            initial_contact_per_org[offices].push(row);
         }
     });
 
@@ -230,17 +219,22 @@ function AllContacts (props) {
 
     return orgs.map((row, index) => {
         let contact_scope = null;
-
         let primary_contacts = [];
+
         contact_per_org[row].map((contact) => {
             const { org_name, contact_person, scope, primary_contact } = contact;
             const { header } = createHeader(scope, org_name);
             contact_scope = header;
             const { first_name, last_name } = contact_person;
             if (primary_contact === 1) {
-                primary_contacts.push(<Typography variant="body2" align="center" key={`${first_name}_${last_name}_${index + 1}`}>
-                    {first_name} {last_name}
-                </Typography>);
+                primary_contacts.push(
+                    <Typography 
+                        variant="body2" align="center"
+                        key={`${first_name}_${last_name}_${index + 1}`}
+                     >
+                        {first_name} {last_name}
+                    </Typography>
+                );
             }
             return primary_contacts;
         });
@@ -250,7 +244,6 @@ function AllContacts (props) {
         }
         
         return (
-            
             <Grid item xs={4} align="center" key={`contact_per_org_${index + 1}`}>
                 <Card className={classes.root} key={`contact_per_org_card_${index + 1}`}>
                     <CardContent key={`contact_per_org_content_${index + 1}`}>
@@ -260,7 +253,12 @@ function AllContacts (props) {
                         {primary_contacts}
                     </CardContent>
                     <CardActions>
-                        <Button size="small" color="primary" onClick={() => updatePrimary(row)}>Update Primary</Button>
+                        <Button 
+                            size="small" color="primary"
+                            onClick={() => updatePrimary(row)}
+                        >
+                            Update Primary
+                        </Button>
                     </CardActions>
                 </Card>
             </Grid>
