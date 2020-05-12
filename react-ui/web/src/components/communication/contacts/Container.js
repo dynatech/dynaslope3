@@ -533,15 +533,7 @@ function Container (props) {
     };
 
     const selectedTab = key => {
-        if (key === "active_numbers") {
-            setTabSelected("active_numbers");
-        } else if (key === "blocked_numbers") {
-            setTabSelected("blocked_numbers");
-        } else if (key === "sim_prefixes") {
-            setTabSelected("sim_prefixes");
-        } else if (key === "contact_prioritization") {
-            setTabSelected("contact_prioritization");
-        }
+       setTabSelected(key);
     };
 
     const modal_handler = (event) =>{   
@@ -598,7 +590,6 @@ function Container (props) {
         getSiteStakeHolders(data => {
             setSiteStakeholders(data);
         });
-
     }, []);
 
     let contact = "";
@@ -643,8 +634,6 @@ function Container (props) {
             );
         }
     };
-
-    
 
     const SearchComp = <SearchBar search_str={search_str} setSearchStr={setSearchStr}
         inputProps={{ 
@@ -783,8 +772,7 @@ function Container (props) {
                                         { PaperDialogContent() }
                                     </Paper>
                                 </Dialog>
-                            </Hidden> 
-                            
+                            </Hidden>
                         </Fragment>
                     )
                 }
@@ -838,8 +826,6 @@ function Container (props) {
                         </Grid>
                     )
                 }
-                     
-                
             </Grid>
 
             <SearchContactsModal
