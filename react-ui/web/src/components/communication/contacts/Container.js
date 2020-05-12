@@ -16,8 +16,9 @@ import {
 } from "@material-ui/core";
 import { 
     Close, Call, Person, PersonAdd, ViewList,
-    Block, Edit, PhoneAndroid, MailOutline, 
-    Phone, SimCard, Sort, Search
+    Block, Edit, PhoneAndroid, MailOutline,
+    Phone, SimCard, FormatListNumbered, Save,
+    Sort
 } from "@material-ui/icons";
 import moment from "moment";
 import GeneralStyles from "../../../GeneralStyles";
@@ -30,10 +31,11 @@ import { getUserOrganizations, prepareSiteAddress } from "../../../UtilityFuncti
 import ContactList from "./ContactList";
 import BlockedContactList from "./BlockedContactList";
 import SimPrefixesList from "./SimPrefixesList";
+import ContactPrioritization from "./ContactPrioritization";
 import { SlideTransition } from "../../reusables/TransitionList";
 import ContactForm from "./ContactForm";
 import { GeneralContext } from "../../contexts/GeneralContext";
-import { getBlockedContacts, getSimPrefixes } from "../ajax";
+import { getBlockedContacts, getSimPrefixes, getSiteStakeHolders } from "../ajax";
 import SearchContactsModal from "./SearchContactsModal";
 
 const styles = theme => {
@@ -93,10 +95,10 @@ function prepareGeographicalList (data, category) {
 export function IndividualContact (props) {
     const {
         contact, chosenContact, setSlideOpen,
-        classes, setContactFormForEdit 
+        classes, setContactFormForEdit, siteOrgs 
     } = props;
-    const site_orgs = getUserOrganizations(chosenContact.organizations, true);
-    const { sites, org } = site_orgs;
+    
+    const { sites, org } = siteOrgs;
     const { status, emails, ewi_recipient, landline_numbers, mobile_numbers } = chosenContact;
     return (
         <Grid
@@ -495,17 +497,20 @@ function Container (props) {
     const [is_contact_form_open, setContactFormOpen] = useState(false);
     const [is_block_numbers_open, setOpenBlockedNumbers] = useState(false);
     const [is_sim_prefixes_open, setOpenSimPrefixes] = useState(false);
+    const [is_contact_prioritization_open, setOpenContactPrioritization] = useState(false);
     const [is_edit_mode, setEditMode] = useState(false);
     const [search_str, setSearchStr] = useState("");
     const [ blocked_number_array, setBlockedNumberArray ] = useState([]);
     const [ blocked_chosen_contact, setBlockedChosenContact ] = useState([]);
     const [ sim_prefixes_list, setSimPrefixesList ] = useState([]);
+    const [ site_stakeholders, setSiteStakeholders ] = useState([]);
+    const [ tab_selected, setTabSelected ] = useState("active_numbers");
 
     const [municipalities, setMunicipalities] = useState([]);
     const [provinces, setProvinces] = useState([]);
     const [regions, setRegions] = useState([]);
 
-    const [modal_state, set_modal_state] = useState(false);
+    const [modal_state, setModalState] = useState(false);
     const onContactClickFn = React.useCallback(row => () => {
         setChosenContact(row);
         setSlideOpen(true);
@@ -527,18 +532,20 @@ function Container (props) {
         setContactFormOpen(bool);
     };
 
-    const onShowBlockedNumbers = () => {
-        setOpenSimPrefixes(false);
-        setOpenBlockedNumbers(!is_block_numbers_open);
-    };
-
-    const onShowSimPrefixes = () => {
-        setOpenBlockedNumbers(false);
-        setOpenSimPrefixes(!is_sim_prefixes_open);
+    const selectedTab = key => {
+        if (key === "active_numbers") {
+            setTabSelected("active_numbers");
+        } else if (key === "blocked_numbers") {
+            setTabSelected("blocked_numbers");
+        } else if (key === "sim_prefixes") {
+            setTabSelected("sim_prefixes");
+        } else if (key === "contact_prioritization") {
+            setTabSelected("contact_prioritization");
+        }
     };
 
     const modal_handler = (event) =>{   
-        set_modal_state(!modal_state);
+        setModalState(!modal_state);
     };
 
     const { setIsReconnecting, sites } = useContext(GeneralContext);
@@ -569,6 +576,7 @@ function Container (props) {
         setContactsArray(filtered); 
     }, [search_str]);
 
+
     useEffect(() => {
         getBlockedContacts(data => {
             const { status, blocked_numbers } = data;
@@ -586,23 +594,30 @@ function Container (props) {
                 setSimPrefixesList(prefixes);
             }
         });
+
+        getSiteStakeHolders(data => {
+            setSiteStakeholders(data);
+        });
+
     }, []);
 
     let contact = "";
+    let site_orgs = null;
     // eslint-disable-next-line no-prototype-builtins
     if (chosen_contact.hasOwnProperty("user_id")) {
         // const { user } = chosen_contact;
         const { first_name, last_name } = chosen_contact;
         // const { first_name, last_name } = user;
         contact = `${first_name} ${last_name}`;
+        site_orgs = getUserOrganizations(chosen_contact.organizations, true);
     }
 
     const set_modal_fn = (key, bool) => () => {
-        set_modal_state(bool);
+        setModalState(bool);
     };
 
-    const PaperDialogContent = is_form_open => {
-        if (is_form_open) return (
+    const PaperDialogContent = () => {
+        if (is_contact_form_open) return (
             <ContactForm 
                 municipalities={municipalities}
                 provinces={provinces}
@@ -614,51 +629,22 @@ function Container (props) {
                 isFromChatterbox={false}
             /> 
         );
-       
-        if (is_block_numbers_open) {
-            return (
-                <BlockedContact
-                    chosenContact={blocked_chosen_contact}
-                />
-            );
-        }
-
-        return (
-            <IndividualContact 
-                contact={contact}
-                chosenContact={chosen_contact}
-                setSlideOpen={setSlideOpen}
-                classes={classes}
-                setContactFormForEdit={setContactFormForEdit}
-            />
-        );
-    };
-
-    const ListContent = () => {
-        if (is_sim_prefixes_open) {
-            return (
-                <SimPrefixesList
-                    sim_prefixes={sim_prefixes_list}
-                />
-            );
-        }
-
-        if (is_block_numbers_open) {
-            return (
-                <BlockedContactList
-                    blocked_numbers={blocked_number_array}
-                    onBlockContactClickFn={onBlockContactClickFn}
-                />
-            );
-        }
         
-        return (<ContactList 
-            {...props} 
-            contacts={contacts_array}
-            onContactClickFn={onContactClickFn}
-            showBlockedNumbers={is_block_numbers_open}
-        />);
+        if (contact !== "") {
+            return (
+                <IndividualContact 
+                    contact={contact}
+                    chosenContact={chosen_contact}
+                    setSlideOpen={setSlideOpen}
+                    classes={classes}
+                    setContactFormForEdit={setContactFormForEdit}
+                    siteOrgs={site_orgs}
+                />
+            );
+        }
     };
+
+    
 
     const SearchComp = <SearchBar search_str={search_str} setSearchStr={setSearchStr}
         inputProps={{ 
@@ -694,31 +680,28 @@ function Container (props) {
                             </Grid>
                           
                             <List component="nav" aria-label="main">
-                                <ListItem button onClick={() => setContactForm(true)}>
+                                <ListItem button onClick={() => selectedTab("active_numbers")}>
                                     <ListItemIcon>
-                                        <PersonAdd />
+                                        <ViewList />
                                     </ListItemIcon>
-                                    <ListItemText primary="Add contact" />
+                                    <ListItemText primary="Active Contacts" />
                                 </ListItem>
-                                <ListItem button onClick={() => onShowBlockedNumbers(true)}>
+
+                                <ListItem button onClick={() => selectedTab("blocked_numbers")}>
                                     <ListItemIcon>
-                                        {
-                                            is_block_numbers_open ? (
-                                                <ViewList/>
-                                            ) : (
-                                                <Block/>
-                                            )
-                                        }
+                                        <Block />
                                     </ListItemIcon>
-                                    {
-                                        is_block_numbers_open ? (
-                                            <ListItemText primary="Show active numbers" />
-                                        ) : (
-                                            <ListItemText primary="Show blocked numbers" />
-                                        )
-                                    }
+                                    <ListItemText primary="Blocked Contacts" />
                                 </ListItem>
-                                <ListItem button onClick={() => onShowSimPrefixes(true)}>
+
+                                <ListItem button onClick={() => selectedTab("contact_prioritization")}>
+                                    <ListItemIcon>
+                                        <FormatListNumbered />
+                                    </ListItemIcon>
+                                    <ListItemText primary="Contact Prioritization" />
+                                </ListItem>
+
+                                <ListItem button onClick={() => selectedTab("sim_prefixes")}>
                                     <ListItemIcon>
                                         <SimCard />
                                     </ListItemIcon>
@@ -729,59 +712,134 @@ function Container (props) {
                     </Grid>
                 </Hidden>
 
-                <Grid item xs={12} md={8} lg={5}>
-                    { ListContent() }
-                </Grid>
-                
-                <Hidden mdDown>
-                    <Grid item lg={4}>
-                        {
-                            contact !== "" && (
-                                <Paper 
-                                    elevation={1}
-                                    style={{ padding: 16, zIndex: 2 }}
-                                    className={`${classes.sticky} ${is_contact_form_open && classes.overflow}`}
+                {
+                    tab_selected === "active_numbers" && (
+                        <Fragment>
+                            <Grid item xs={12} md={8} lg={5}>
+                                <Button
+                                    variant="contained"
+                                    style={{ marginTop: 10, marginBottom: 20 }}
+                                    color="primary"
+                                    onClick={() => setContactForm(true)}
+                                    className={classes.button}
+                                    startIcon={<PersonAdd />}
                                 >
-                                    { PaperDialogContent(is_contact_form_open) }
-                                </Paper>
-                            )
-                        }
-                    </Grid>
-                    <Backdrop open={is_contact_form_open} style={{ zIndex: 1 }} />
-                </Hidden>
+                                Add contact
+                                </Button>
+                                <ContactList 
+                                    {...props} 
+                                    contacts={contacts_array}
+                                    onContactClickFn={onContactClickFn}
+                                    showBlockedNumbers={is_block_numbers_open}
+                                />
+                            </Grid>
+                            
+                            <Hidden mdDown>
+                                <Grid item lg={4}>
+                                    {
+                                        contact !== "" && (
+                                            <Paper 
+                                                elevation={1}
+                                                style={{ padding: 16, zIndex: 2 }}
+                                                className={`${classes.sticky} ${is_contact_form_open && classes.overflow}`}
+                                            >
+                                                { PaperDialogContent() }
+                                            </Paper>
+                                        )
+                                    }
+                                </Grid>
 
-                <Hidden smDown lgUp>
-                    <Slide direction="left" in={is_slide_open} mountOnEnter unmountOnExit>
-                        <Paper 
-                            elevation={4}
-                            className={`${classes.paper} ${classes.overflow}`}
-                            style={{ padding: 24, zIndex: 2 }}
-                        >
-                            { PaperDialogContent(is_contact_form_open) }
-                        </Paper>
-                    </Slide>
+                                <Backdrop open={is_contact_form_open} style={{ zIndex: 1 }} />
+                            </Hidden>
+
+                            <Hidden smDown lgUp>
+                                <Slide direction="left" in={is_slide_open} mountOnEnter unmountOnExit>
+                                    <Paper 
+                                        elevation={4}
+                                        className={`${classes.paper} ${classes.overflow}`}
+                                        style={{ padding: 24, zIndex: 2 }}
+                                    >
+                                        { PaperDialogContent() }
+                                    </Paper>
+                                </Slide>
                         
-                    <Backdrop open={is_slide_open} style={{ zIndex: 1 }} />
-                </Hidden>
+                                <Backdrop open={is_slide_open} style={{ zIndex: 1 }} />
+                            </Hidden>
                 
-                <Hidden mdUp>
-                    <Dialog 
-                        fullScreen
-                        open={is_slide_open}
-                        TransitionComponent={SlideTransition}
-                    >
-                        <AppBar style={{ position: "relative" }}>
-                            <Toolbar>
-                                <IconButton edge="start" color="inherit" onClick={() => setContactForm(false)} aria-label="close">
-                                    <Close />
-                                </IconButton>
-                            </Toolbar>
-                        </AppBar>
-                        <Paper elevation={0} style={{ padding: 16 }}>
-                            { PaperDialogContent(is_contact_form_open) }
-                        </Paper>
-                    </Dialog>
-                </Hidden>
+                            <Hidden mdUp>
+                                <Dialog 
+                                    fullScreen
+                                    open={is_slide_open}
+                                    TransitionComponent={SlideTransition}
+                                >
+                                    <AppBar style={{ position: "relative" }}>
+                                        <Toolbar>
+                                            <IconButton edge="start" color="inherit" onClick={() => setContactForm(false)} aria-label="close">
+                                                <Close />
+                                            </IconButton>
+                                        </Toolbar>
+                                    </AppBar>
+                                    <Paper elevation={0} style={{ padding: 16 }}>
+                                        { PaperDialogContent() }
+                                    </Paper>
+                                </Dialog>
+                            </Hidden> 
+                            
+                        </Fragment>
+                    )
+                }
+
+                {
+                    tab_selected === "blocked_numbers" && (
+                        <Fragment>
+                            <Grid item xs={12} md={8} lg={5}>
+                                <BlockedContactList
+                                    blocked_numbers={blocked_number_array}
+                                    onBlockContactClickFn={onBlockContactClickFn}
+                                />
+                            </Grid>
+                            <Grid item lg={4}>
+                                <BlockedContact
+                                    chosenContact={blocked_chosen_contact}
+                                />
+                            </Grid>
+                        </Fragment>
+                    )
+                }
+
+                {
+                    tab_selected === "contact_prioritization" && (
+                        <Grid item xs={12} md={8} lg={9}>
+                            {
+                                site_stakeholders.length !== 0 && (
+                                    sites.map((row, index) => {
+                                        const { site_code, site_id, barangay, municipality, province } = row;
+                                        const site_label = `${site_code.toUpperCase()} (Brgy. ${barangay}, ${municipality}, ${province})`;
+                                        const site_data = site_stakeholders[site_code];
+                                        return (<ContactPrioritization
+                                            site_label={site_label}
+                                            site_id={site_id}
+                                            site_data={site_data}
+                                            key={index}
+                                        />);
+                                    })
+                                )
+                            }
+                        </Grid>
+                    )
+                }
+
+                {
+                    tab_selected === "sim_prefixes" && (
+                        <Grid item xs={12} md={4} lg={4}>
+                            <SimPrefixesList
+                                sim_prefixes={sim_prefixes_list}
+                            />
+                        </Grid>
+                    )
+                }
+                     
+                
             </Grid>
 
             <SearchContactsModal

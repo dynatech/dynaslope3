@@ -78,17 +78,12 @@ function SiteStakeholdersList (props) {
 
     useEffect(() => {
         getCommunityStaff(siteCode, ret => {
+            console.log(classes, ret);
             const comm_contacts_ui = prepareOrgList(classes, ret);
             setCommunityContacts(comm_contacts_ui);
         });
     }, []);
-
     return (
-        // <Paper className={classes.customPaper}>
-        //     <Typography variant="h6" color="primary">Site Stakeholders</Typography>
-        //     <Divider className={classes.Divider} />
-        //     {community_contacts}
-        // </Paper>
         <Fragment>
             <Grid item xs={12} align="center">
                 <Typography variant="h6" color="textPrimary">
