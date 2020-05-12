@@ -748,9 +748,8 @@ def save_primary(data):
             if is_primary_contact:
                 update_query.primary_contact = 1
 
-                for other_users in UserOrganizations.query.filter(
-                        UserOrganizations.site_id == site_id).filter(
-                            UserOrganizations.org_id == org_id):
+                for other_users in UserOrganizations.query.filter_by(
+                        site_id=site_id, org_id=org_id):
                     if other_users.user_org_id != user_org_id:
                         other_users.primary_contact = 0
             else:
