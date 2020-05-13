@@ -5,7 +5,8 @@ import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
     Button, withMobileDialog, IconButton,
-    makeStyles
+    makeStyles, FormControlLabel,
+    Checkbox
 } from "@material-ui/core";
 import { Link } from "react-router-dom";
 import { Close } from "@material-ui/icons";
@@ -70,6 +71,7 @@ function SearchMessageModal (props) {
 
     const [sites, setSites] = useState([]);
     const [organizations, setOrganizations] = useState([]);
+    const [only_ewi_recipients, setOnlyEwiRecipients] = useState(false);
 
     const compound_fn = () => {
         modalStateHandler();
@@ -132,17 +134,29 @@ function SearchMessageModal (props) {
                     />     
                 </div>
 
+                <div style={{ margin: "24px 0" }}>
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={only_ewi_recipients}
+                                onChange={x => setOnlyEwiRecipients(x.target.checked)}
+                                name="onlyEWIRecipients"
+                            />
+                        }
+                        label="Only EWI Recipients"
+                    />  
+                </div>
+
                 {
                     !isMobile && <div style={{ height: 240 }} />
                 }
-            
             </DialogContent>
             <DialogActions>
                 <Button onClick={compound_fn} color="primary">
                     <Link to={{
                         pathname: `${url}/search_results`,
                         state: {
-                            sites, organizations
+                            sites, organizations, only_ewi_recipients
                         }
                     }} className={classes.link}>
                         Search

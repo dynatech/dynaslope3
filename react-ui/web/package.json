@@ -2,7 +2,7 @@
   "name": "web-ui",
   "version": "0.1.0",
   "private": true,
-  "homepage": "http://dynaslope3.phivolcs.dost.gov.ph",
+  "homepage": "http://dynatech.github.io/dynaslope3-build",
   "dependencies": {
     "@ckeditor/ckeditor5-build-classic": "^15.0.0",
     "@ckeditor/ckeditor5-build-decoupled-document": "^15.0.0",
@@ -47,13 +47,16 @@
     "eslint-config-prettier": "^6.9.0",
     "eslint-plugin-prettier": "^3.1.2",
     "eslint-plugin-react": "^7.17.0",
+    "gh-pages": "^2.2.0",
     "npm-upgrade": "^2.0.1"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": "react-app"

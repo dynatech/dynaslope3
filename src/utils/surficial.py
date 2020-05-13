@@ -146,10 +146,11 @@ def get_surficial_data_last_ten_points(site_code, latest_ts_arr):
     return "column data"
 
 
-def get_surficial_markers(site_code=None, filter_in_use=None, get_complete_data=None):
+def get_surficial_markers(site_code=None, get_complete_data=None):
     """
 
     """
+
     filter_var = SiteMarkers.site_code == site_code
     markers = SiteMarkers.query.filter(
         filter_var).order_by(SiteMarkers.marker_name).all()
