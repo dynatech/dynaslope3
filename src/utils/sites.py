@@ -28,6 +28,7 @@ def get_sites_data(site_code=None, include_inactive=False, raise_load=False):
         else:
             site = final_query.filter_by(site_code=site_code).first()
 
+
     return site
 
 

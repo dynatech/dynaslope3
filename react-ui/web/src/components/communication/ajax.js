@@ -180,6 +180,34 @@ export function loadMoreMessages (mobile_id, batch, callback) {
     });
 }
 
+export function getSiteStakeHolders (callback) {
+    const api_link = `${host}/api/contacts/get_contact_prioritization`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("All Sites Stakeholders", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function saveUpdatedPrimaryContact (input, callback) {
+    const api_link = `${host}/api/contacts/save_primary_contact`;
+    
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save updated primary contact", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function resendMessage (outbox_status_id, callback) {
     const api_link = `${host}/api/chatterbox/resend_message/${outbox_status_id}`;
 
