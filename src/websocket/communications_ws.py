@@ -3,6 +3,7 @@
 
 import traceback
 from datetime import datetime
+import time
 from flask import request
 from flask_socketio import join_room, leave_room
 from connection import SOCKETIO, DB
@@ -23,11 +24,21 @@ from src.utils.chatterbox import (
 from src.utils.contacts import (
     get_all_contacts,
     get_recipients_option,
-    get_ground_measurement_reminder_recipients
+    get_ground_measurement_reminder_recipients,
+    get_site_ids
+    
 )
-from src.utils.ewi import create_ground_measurement_reminder
+from src.utils.ewi import create_ground_measurement_reminder, get_ground_data_noun
 from src.utils.general_data_tag import insert_data_tag
-from src.utils.narratives import write_narratives_to_db, find_narrative_event_id
+from src.utils.narratives import(
+    write_narratives_to_db, find_narrative_event_id
+)
+
+from src.utils.monitoring import get_ongoing_extended_overdue_events, get_routine_sites
+from src.utils.contacts import get_sites_with_ground_meas
+from src.utils.manifestations_of_movements import get_moms_report
+
+from src.models.monitoring import MonitoringEvents
 
 CLIENTS = []
 MESSAGES = {
@@ -55,9 +66,12 @@ def communication_background_task():
     inbox_messages_arr = MESSAGES["inbox"]
     is_first_run = False
     ground_meas_run = False
+    run_narrative = False
+
 
     while True:
         try:
+            process_narrative(run_narrative)
             is_first_run, ground_meas_run = process_ground_measurement_reminder(
                 is_first_run, ground_meas_run)
 
@@ -369,6 +383,67 @@ def process_ground_measurement_reminder(is_first_run, ground_meas_run):
 
     return is_first_run, ground_meas_run
 
+
+def process_narrative(run_narrative):
+    ts_now = datetime.now()
+    hour = ts_now.hour
+    minute = ts_now.minute
+    second = ts_now.second
+    is_routine = False
+    routine_site_ids = []
+    if hour in [7, 11, 15] and minute == 59 and second == 0:
+        run_narrative = True
+        if hour == 11 and minute == 59:
+            routine_sites = get_routine_sites(timestamp=ts_now, only_site_code=True)
+            routine_site_ids = get_site_ids(routine_sites)
+            if routine_site_ids:
+                is_routine = True
+
+    if run_narrative:
+        run_narrative = False
+        leo = get_ongoing_extended_overdue_events(ts_now)
+        latest = leo["latest"]
+        timestamp = ts_now.replace(minute=59, hour=11)
+        for row in latest:
+            event = row["event"]
+            site_id = event["site_id"]
+            event_id = event["event_id"]
+            alert_level = row["public_alert_symbol"]["alert_level"]
+            if alert_level != 0:
+                narrative, result = narrative_and_check_data(site_id, timestamp, 3, 59)
+                   
+                if not result:
+                    write_narratives_to_db(site_id, timestamp, narrative, 1, 2, event_id=event_id)
+
+                if is_routine:
+                    if site_id in routine_site_ids:
+                        routine_site_ids.remove(site_id)
+
+        if is_routine:
+            is_routine = False
+            me = MonitoringEvents
+            for site_id in routine_site_ids:
+                narrative, result = narrative_and_check_data(site_id, timestamp, 6, 59)
+                if not result:
+                    query = me.query.filter(
+                        me.site_id == site_id).filter(
+                            me.status == 1).order_by(DB.desc(me.event_id)).first()
+                    event_id = query.event_id
+                    write_narratives_to_db(site_id, timestamp, narrative, 1, 2, event_id=event_id)
+        
+
+def narrative_and_check_data(site_id, timestamp, hour, minute):
+    ground_meas_noun = get_ground_data_noun(site_id=site_id)
+    narrative = f"No {ground_meas_noun} received from community"
+
+    if ground_meas_noun == "ground measurement":
+        result = get_sites_with_ground_meas(timestamp,
+                                            timedelta_hour=hour, minute=minute, site_id=site_id)
+    else:
+        result = get_moms_report(timestamp,
+                                 timedelta_hour=hour, minute=hour, site_id=site_id)
+
+    return narrative, result
 
 def main():
     global MESSAGES

@@ -15,6 +15,7 @@ from src.models.monitoring import (
 from src.utils.sites import get_sites_data
 from src.utils.monitoring import write_monitoring_moms_to_db
 from src.utils.extra import var_checker
+from src.utils.manifestations_of_movements import get_moms_report
 
 MOMS_BLUEPRINT = Blueprint("moms_blueprint", __name__)
 
@@ -100,5 +101,11 @@ def get_moms_features(site_code=None):
             filtered = [d for d in instances if d["site_id"] == site_id]
 
             feature["instances"] = filtered
+
+    return jsonify(result)
+
+@MOMS_BLUEPRINT.route("/moms/get_test_data", methods=["GET"])
+def get_test_lang():
+    result = get_moms_report()
 
     return jsonify(result)
