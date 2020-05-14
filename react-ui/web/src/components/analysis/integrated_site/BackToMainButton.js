@@ -24,29 +24,27 @@ const date_range_options = [
 ];
 
 const hour_interval = [
-    { label: "4 hours", hour_value: "4" },
-    { label: "8 hours", hour_value: "8" },
-    { label: "12 hours", hour_value: "12" },
-    { label: "1 day", hour_value: "24" }
+    { label: "4 hours", hour_value: 4 },
+    { label: "8 hours", hour_value: 8 },
+    { label: "12 hours", hour_value: 12 },
+    { label: "1 day", hour_value: 24 }
 ];
 
 function BackToMainButton (props) {
     const { width, history, chartType,
         selected, setSelected, setSelectedRangeInfo,
-        selected_hour_interval, setSelectedHourInterval } = props;
-    const [ dateRangeAnchor, setDateRangeAnchor ] = useState(null);
-    const [ hourIntervalAnchor, setHourIntervalAnchor ] = useState(null);
-    const [ show_hour_interval, setShowHourInterval ] = useState(false);
+        selectedHourInterval, setSelectedHourInterval } = props;
+    const [ date_range_anchor, setDateRangeAnchor ] = useState(null);
+    const [ hour_interval_anchor, setHourIntervalAnchor ] = useState(null);
     let default_label = "";
-    if (selected_hour_interval) {
-        const { label } = selected_hour_interval;
+    if (selectedHourInterval ) {
+        const { label } = selectedHourInterval;
         default_label = label;
     }
 
     
     const dateRangeHandleClick = event => {
         setDateRangeAnchor(event.currentTarget);
-        setShowHourInterval(false);
     };
 
     const dateRangeHandleClose = () => {
@@ -58,7 +56,6 @@ function BackToMainButton (props) {
         setSelected(label);
         setSelectedRangeInfo(data);
         setDateRangeAnchor(null);
-        setShowHourInterval(true);
     };
 
     const hourIntervalHandleClick = event => {
@@ -75,50 +72,46 @@ function BackToMainButton (props) {
     };
     
     const SubsurfaceHourInterval = () => {
-        if (chartType === "subsurface" && show_hour_interval) {
             
-            return (
-                <Fragment>
-                    <Tooltip title="Select hour interval" arrow>
-                        <Button 
-                            variant="contained"
-                            color="primary"
-                            size="small" 
-                            aria-controls="simple-menu"
-                            aria-haspopup="true"
-                            onClick={hourIntervalHandleClick}  
-                        >
-                            {default_label}
-                        </Button>
-
-                    </Tooltip>
-                    <Menu
-                        id="simple-menu"
-                        anchorEl={hourIntervalAnchor}
-                        keepMounted
-                        open={Boolean(hourIntervalAnchor)}
-                        onClose={hourIntervalHandleClose} 
+        return (
+            <Fragment>
+                <Tooltip title="Select hour interval" arrow>
+                    <Button 
+                        variant="contained"
+                        color="primary"
+                        size="small" 
+                        aria-controls="simple-menu"
+                        aria-haspopup="true"
+                        onClick={hourIntervalHandleClick}  
                     >
-                        {
-                            hour_interval.map((row, index) => {
-                                const { label } = row;
-                                return (
-                                    <MenuItem
-                                        // eslint-disable-next-line react/no-array-index-key
-                                        key={`hour_interval_${index}`} 
-                                        onClick={() => hourIntervalSelected(row)}>
-                                        {label}
-                                    </MenuItem>
-                                );
-                            })
-                        }
-                
-                    </Menu>
-                </Fragment>
-            );
-        }
+                        {default_label}
+                    </Button>
 
-        return ("");
+                </Tooltip>
+                <Menu
+                    id="simple-menu"
+                    anchorEl={hour_interval_anchor}
+                    keepMounted
+                    open={Boolean(hour_interval_anchor)}
+                    onClose={hourIntervalHandleClose} 
+                >
+                    {
+                        hour_interval.map((row, index) => {
+                            const { label } = row;
+                            return (
+                                <MenuItem
+                                    // eslint-disable-next-line react/no-array-index-key
+                                    key={`hour_interval_${index}`} 
+                                    onClick={() => hourIntervalSelected(row)}>
+                                    {label}
+                                </MenuItem>
+                            );
+                        })
+                    }
+                
+                </Menu>
+            </Fragment>
+        );
     };
 
     return (
@@ -147,9 +140,9 @@ function BackToMainButton (props) {
             </Tooltip>
             <Menu
                 id="simple-menu"
-                anchorEl={dateRangeAnchor}
+                anchorEl={date_range_anchor}
                 keepMounted
-                open={Boolean(dateRangeAnchor)}
+                open={Boolean(date_range_anchor)}
                 onClose={dateRangeHandleClose} 
             >
                 {
@@ -167,7 +160,7 @@ function BackToMainButton (props) {
                 }
                 
             </Menu>
-            {SubsurfaceHourInterval()}
+            {chartType === "subsurface" && SubsurfaceHourInterval()}
         </Fragment>) : (<IconButton
             variant="contained"
             color="primary"

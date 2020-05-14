@@ -391,7 +391,7 @@ def process_narrative(run_narrative):
     second = ts_now.second
     is_routine = False
     routine_site_ids = []
-    if hour in [7, 11, 15] and minute == 59 and second == 0:
+    if hour in [7, 11, 13] and minute == 59 and second == 0:
         run_narrative = True
         if hour == 11 and minute == 59:
             routine_sites = get_routine_sites(timestamp=ts_now, only_site_code=True)
@@ -411,7 +411,7 @@ def process_narrative(run_narrative):
             alert_level = row["public_alert_symbol"]["alert_level"]
             if alert_level != 0:
                 narrative, result = narrative_and_check_data(site_id, timestamp, 3, 59)
-                   
+
                 if not result:
                     write_narratives_to_db(site_id, timestamp, narrative, 1, 2, event_id=event_id)
 
