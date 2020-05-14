@@ -403,7 +403,7 @@ def process_narrative(run_narrative):
         run_narrative = False
         leo = get_ongoing_extended_overdue_events(ts_now)
         latest = leo["latest"]
-        timestamp = ts_now.replace(minute=59, hour=11)
+        timestamp = ts_now.replace(minute=59)
         for row in latest:
             event = row["event"]
             site_id = event["site_id"]
