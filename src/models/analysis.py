@@ -49,6 +49,10 @@ class SiteMarkers(DB.Model):
     marker_name = DB.Column(DB.String(20))
     in_use = DB.Column(DB.Integer)
 
+    history = DB.relationship(
+        "MarkerHistory", backref=DB.backref("marker_copy", lazy="raise"),
+        lazy="subquery", primaryjoin="SiteMarkers.marker_id==foreign(MarkerHistory.marker_id)")
+
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
                 f" Site Code: {self.site_code} MarkerID: {self.marker_id}"
@@ -149,6 +153,10 @@ class MarkerHistory(DB.Model):
 
     marker = DB.relationship(
         "Markers", backref=DB.backref("marker_histories", lazy="dynamic"), lazy="subquery")
+    marker_name = DB.relationship(
+        "MarkerNames",
+        backref=DB.backref("history", lazy="raise", uselist=False),
+        lazy="joined", uselist=False)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> History ID: {self.history_id}"
@@ -169,9 +177,6 @@ class MarkerNames(DB.Model):
     history_id = DB.Column(DB.Integer, DB.ForeignKey(
         "senslopedb.marker_history.history_id"), nullable=False)
     marker_name = DB.Column(DB.String(20))
-
-    history = DB.relationship(
-        "MarkerHistory", backref="marker_names", lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Name ID: {self.name_id}"
@@ -723,12 +728,24 @@ class SiteMarkersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Site Markers class
     """
+
+    def __init__(self, *args, **kwargs):
+        self.include = kwargs.pop("include", None)
+        super().__init__(*args, **kwargs)
+
+    def _update_fields(self, *args, **kwargs):
+        super()._update_fields(*args, **kwargs)
+        if self.include:
+            for field_name in self.include:
+                self.fields[field_name] = self._declared_fields[field_name]
+
     site_id = fields.Integer()
     marker_id = fields.Integer()
 
     class Meta:
         """Saves table class structure as schema model"""
         model = SiteMarkers
+        exclude = ["history"]
 
 
 class MarkersSchema(MARSHMALLOW.ModelSchema):
@@ -816,6 +833,7 @@ class RainfallAlertsSchema(MARSHMALLOW.ModelSchema):
     Schema representation of RainfallAlerts class
     """
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
+
     class Meta:
         """Saves table class structure as schema model"""
         model = RainfallAlerts

@@ -3,7 +3,6 @@ import React, { Fragment, useState, useEffect } from "react";
 import Highcharts from "highcharts";
 import highchartsMore from "highcharts/highcharts-more";
 import HighchartsReact from "highcharts-react-official";
-import axios from "axios";
 import moment from "moment";
 
 import { Button, ButtonGroup, withStyles, IconButton, Paper } from "@material-ui/core";
@@ -328,6 +327,8 @@ function SurficialTrendingGraphs (props) {
     } = props;
     const chartRef = React.useRef(null);
     
+    const [has_trend, setHasTrend] = useState(true);
+    
     const input = {
         site_code, marker_name, 
         ts_end: timestamps.end,
@@ -341,10 +342,15 @@ function SurficialTrendingGraphs (props) {
                 current.chart.showLoading();
 
             getSurficialMarkerTrendingData(input, data => {
-                setTrendingData([...data]);
+                const { has_trend: ht, trending_data: td } = data;
 
                 if (current !== null) {
                     const { chart } = current;
+                    if (ht) {
+                        setTrendingData([...td]);
+                    } else {
+                        setHasTrend(false);
+                    }
                     chart.hideLoading();
                 }
             });
@@ -367,13 +373,17 @@ function SurficialTrendingGraphs (props) {
             </div>
 
             {
-                graph_components.map((graph, key) => (
-                    <div style={{ marginTop: 24 }} key={key}>
-                        <Paper>
-                            {graph}
-                        </Paper>
-                    </div>
-                ))
+                has_trend ? (
+                    graph_components.map((graph, key) => (
+                        <div style={{ marginTop: 24 }} key={key}>
+                            <Paper>
+                                {graph}
+                            </Paper>
+                        </div>
+                    ))
+                ) : (
+                    "No trend"
+                )
             }
         </Fragment>
     );

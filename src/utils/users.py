@@ -11,7 +11,7 @@ from src.models.users import (
     Users, UsersRelationship, UserMobile,
     UsersSchema, UsersRelationshipSchema
 )
-from src.models.organizations import UserOrganizations, Organizations
+from src.models.organizations import UserOrganizations, Organizations, UserOrganizationsSchema
 from src.utils.extra import var_checker
 
 PROP_DICT = {
@@ -22,7 +22,7 @@ PROP_DICT = {
 }
 
 
-def get_users_categorized_by_org(site_code=None):
+def get_users_categorized_by_org(site_code=None, return_schema=False):
     """
     """
     u_org = UserOrganizations
@@ -34,6 +34,9 @@ def get_users_categorized_by_org(site_code=None):
         base = base.join(Sites).filter(Sites.site_code == site_code)
 
     users_by_org = base.all()
+
+    if return_schema:
+        users_by_org = UserOrganizationsSchema(many=True).dump(users_by_org).data
 
     return users_by_org
 

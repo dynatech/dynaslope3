@@ -13,7 +13,8 @@ from src.utils.contacts import (
     get_ground_measurement_reminder_recipients,
     get_recipients_option, get_blocked_numbers,
     save_blocked_number, get_all_sim_prefix,
-    get_mobile_numbers, get_recipients
+    get_mobile_numbers, get_recipients,
+    save_primary
 )
 
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
@@ -256,3 +257,31 @@ def get_contact_prioritization():
                 all_sites_stakeholders[site].append(data)
 
     return jsonify(all_sites_stakeholders)
+
+@CONTACTS_BLUEPRINT.route("/contacts/save_primary_contact", methods=["GET", "POST"])
+def save_primary_contact():
+    """
+    Function that save primary_contact
+    """
+    data = request.get_json()
+    if data is None:
+        data = request.form
+
+    status = None
+    message = ""
+
+    try:
+        save_primary(data)
+        DB.session.commit()
+    except Exception as err:
+        DB.session.rollback()
+        print(err)
+        message = "Something went wrong, Please try again"
+        status = False
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+
+    return jsonify(data)

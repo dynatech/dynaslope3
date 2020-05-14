@@ -299,9 +299,11 @@ def get_search_results(obj):
 
     site_ids = obj["site_ids"]
     org_ids = obj["org_ids"]
+    only_ewi_recipients = obj["only_ewi_recipients"]
 
     contacts = get_mobile_numbers(
-        return_schema=True, site_ids=site_ids, org_ids=org_ids)
+        return_schema=True, site_ids=site_ids, org_ids=org_ids,
+        only_ewi_recipients=only_ewi_recipients)
 
     search_results = []
     for contact in contacts:
@@ -325,3 +327,16 @@ def get_search_results(obj):
         search_results.append(temp)
 
     return search_results
+
+
+def resend_message(outbox_status_id):
+    """
+    """
+
+    # NOTE: pointed to comms_db orig until GSM 3
+    row = SmsOutboxUserStatus2.query \
+        .filter_by(stat_id=outbox_status_id).first()
+
+    row.send_status = 0
+
+    DB.session.commit()

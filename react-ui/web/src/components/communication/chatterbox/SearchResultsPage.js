@@ -4,7 +4,7 @@ import React, {
 } from "react";
 
 import { 
-    IconButton, Typography, Divider,
+    IconButton, Typography,
     makeStyles, Button
 } from "@material-ui/core";
 import { ArrowBackIos } from "@material-ui/icons";
@@ -81,7 +81,7 @@ function SearchResultsPage (props) {
     } = props;
     const classes = useStyles();
     const { state: {
-        sites, organizations
+        sites, organizations, only_ewi_recipients
     } } = location;
 
     const [is_loading, setIsLoading] = useState(false);
@@ -97,7 +97,8 @@ function SearchResultsPage (props) {
 
             const input = {
                 site_ids: sites.map(s => s.value),
-                org_ids: organizations.map(o => o.value)
+                org_ids: organizations.map(o => o.value),
+                only_ewi_recipients
             };
 
             if (typeof socket !== "undefined") {

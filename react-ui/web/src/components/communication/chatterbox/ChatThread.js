@@ -10,12 +10,12 @@ import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
 import { IconButton, Tooltip, makeStyles } from "@material-ui/core";
 import {
-    TurnedIn, TurnedInNot,
+    TurnedIn, TurnedInNot, Refresh,
     RadioButtonUnchecked, CheckCircle, Cancel
 } from "@material-ui/icons";
 import GenericAvatar from "../../../images/generic-user-icon.jpg";
 import GeneralDataTagModal from "../../widgets/GeneralDataTagModal";
-import { loadMoreMessages } from "../ajax";
+import { loadMoreMessages, resendMessage } from "../ajax";
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -235,7 +235,8 @@ function BootstrapTooltip (props) {
     );
 }
 
-function chatBubbleCreator (classes, message_row, set_gdt_fn) {
+// eslint-disable-next-line max-params
+function chatBubbleCreator (classes, message_row, set_gdt_fn, on_resend_click) {
     const {
         convo_id,
         source, sms_msg: message,
@@ -299,9 +300,18 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
                 }
                 {
                     (send_status === -1 || send_status > 5) && (
-                        <BootstrapTooltip disableFocusListener title="UNSENT">
-                            <Cancel color="error" className={classes.sentIcon} />
-                        </BootstrapTooltip>
+                        <Fragment>
+                            <BootstrapTooltip disableFocusListener title="UNSENT">
+                                <Cancel color="error" className={classes.sentIcon} />
+                            </BootstrapTooltip>
+                            <BootstrapTooltip disableFocusListener title="Resend">
+                                <Refresh 
+                                    color="action"
+                                    className={classes.sentIcon}
+                                    onClick={() => on_resend_click(message_row)}
+                                />
+                            </BootstrapTooltip>
+                        </Fragment>
                     )
                 }
             </Fragment>
@@ -361,6 +371,17 @@ function ChatThread (props) {
         setMessageBatch(message_batch + 1);
     };
 
+    const onResendClick = message_row => {
+        const { convo_id } = message_row;
+        const temp = messages.map(row => {
+            if (row.convo_id === convo_id)
+                row.send_status = 0;
+            return row;
+        });
+        setMessages(temp);
+        resendMessage(convo_id);
+    };
+
     return (
         <Fragment>
             {
@@ -386,7 +407,7 @@ function ChatThread (props) {
                 
             <List className={classes.root}>
                 {
-                    messages.map(row => chatBubbleCreator(classes, row, set_gdt_fn))
+                    messages.map(row => chatBubbleCreator(classes, row, set_gdt_fn, onResendClick))
                 }
             </List>
 
