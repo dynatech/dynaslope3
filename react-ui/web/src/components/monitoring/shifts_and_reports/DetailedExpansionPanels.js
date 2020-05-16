@@ -74,17 +74,13 @@ function callSnackbar (enqueueSnackbar, snackBarActionFn, response) {
 
 function extractSelectedCharts (checkboxStatus) {
     const chart_list = Object.keys(checkboxStatus).filter(key => checkboxStatus[key] === true);
-
     return chart_list;
 }
 
 function prepareMailBody (mail_contents) {
-    
     const { shiftSummary, dataAnalysis, shiftNarratives } = mail_contents;
-
     return `${shiftSummary}<br/><br/>${dataAnalysis}<br/><br/>${shiftNarratives}`;
 }
-
 
 function DetailedExpansionPanel (props) {
     const {
@@ -160,8 +156,9 @@ function DetailedExpansionPanel (props) {
 
     const shift_ts_end = moment(shiftStartTs).add(12, "hours");
     const moment_validity = moment(validity);
-    const ts_end = moment_validity.isBefore(shift_ts_end) ?
-        moment_validity.add(30, "minutes") : moment(shift_ts_end).format("YYYY-MM-DD HH:mm:ss");
+    const ts_end = moment_validity.isBefore(shift_ts_end)
+        ? moment_validity.subtract(30, "minutes").format("YYYY-MM-DD HH:mm:ss")
+        : moment(shift_ts_end).format("YYYY-MM-DD HH:mm:ss");
 
     const rendering_url = `${react_host}/chart_rendering/${site_code}/${ts_end}`;
     const handleCheckboxEvent = value => event => {
