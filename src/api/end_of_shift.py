@@ -331,7 +331,7 @@ def process_eos_data_analysis(
         start_ts, event_id, subsurface_columns,
         has_markers, surficial_data, site_id):
     data_analysis = get_eos_data_analysis(start_ts, event_id)
-    data_analysis = None
+
     if not data_analysis:
         string = "<strong>DATA ANALYSIS:</strong><br />"
 
