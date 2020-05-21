@@ -6,18 +6,20 @@ import ExpansionPanel from "@material-ui/core/ExpansionPanel";
 import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
 import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
 import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
-
 import Typography from "@material-ui/core/Typography";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
+import Tooltip from "@material-ui/core/Tooltip";
 import { Grid, makeStyles } from "@material-ui/core";
-import { Refresh, SaveAlt, Send, Report } from "@material-ui/icons";
+import { Refresh, SaveAlt, Send, Info } from "@material-ui/icons";
+
 import CKEditor from "@ckeditor/ckeditor5-react";
 import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
 import { react_host } from "../../../config";
-import { useInterval } from "../../../UtilityFunctions";
+import { useInterval, remapCkeditorEnterKey } from "../../../UtilityFunctions";
 import { saveEOSDataAnalysis, getEOSDetails, downloadEosCharts, getNarrative } from "../ajax";
 import { sendEOSEmail } from "../../communication/mailbox/ajax";
 
@@ -96,6 +98,7 @@ function DetailedExpansionPanel (props) {
     const node_shift_summary = `${eos_head}<br/>${shift_start_info}<br/><br/>${shift_end_info}`;
     const [shiftSummary, setShiftSummary] = useState(node_shift_summary);
     const [dataAnalysis, setDataAnalysis] = useState(data_analysis);
+    const [analysis_char_count, setAnalysisCharCount] = useState(data_analysis.length);
     const [shiftNarratives, setShiftNarratives] = useState(narratives);
     const [clear_interval, setClearInterval] = useState(false);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -302,7 +305,7 @@ function DetailedExpansionPanel (props) {
     };
 
     const config = {
-        toolbar: ["heading", "|", "bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "|", "undo", "redo"]
+        toolbar: ["bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "|", "undo", "redo"]
     };
 
     const editors = [
@@ -315,6 +318,8 @@ function DetailedExpansionPanel (props) {
             key: "data_analysis", updateFn: setDataAnalysis
         }
     ];
+
+    const is_analysis_over_limit = analysis_char_count > 1500;
 
     return (
         <ExpansionPanel>
@@ -363,20 +368,48 @@ function DetailedExpansionPanel (props) {
                                         config={config}
                                         onInit={editor => {
                                             editor.setData(value);
+                                            remapCkeditorEnterKey(editor);
                                         }}
                                         onChange={(event, editor) => {
                                             const data = editor.getData();
+                                            if (label === "Data Analysis") {
+                                                setAnalysisCharCount(data.length);
+                                            }
                                             updateFn(data);
                                         }}
                                     />                                    
                                 </Grid>
+                                {
+                                    label === "Data Analysis" && (
+                                        <Grid 
+                                            container item xs={12}
+                                            justify="flex-end" alignItems="center"
+                                            style={{ color: is_analysis_over_limit ? "red" : "black" }}
+                                        >
+                                            <Tooltip 
+                                                title="Content of text area is formatted on the background using HTML. HTML elements are included in the character count."
+                                                placement="top"
+                                                interactive
+                                                arrow
+                                            >
+                                                <div><Info color="primary" fontSize="small"/>&nbsp;</div>
+                                            </Tooltip>
+                                            <Typography variant="caption" >
+                                                <strong>Character count (including HTML): {analysis_char_count}/1500</strong>
+                                            </Typography>        
+                                        </Grid>
+                                    )
+                                }
                             </Fragment>
                         ))
 
                     }
                     <Grid item xs={12}>
                         <Typography variant="body1">
-                            <strong>Shift Narratives</strong>
+                            <strong>Shift Narratives </strong>
+                        </Typography>
+                        <Typography variant="body2">
+                            <i>NOTE: It is recommended NOT to add narratives via this text box. Use Site Logs Form instead then click Refresh.</i>
                         </Typography>
                     </Grid>
                     <Grid item xs={12}>
@@ -385,7 +418,6 @@ function DetailedExpansionPanel (props) {
                             config={config}
                             onInit={editor => {
                                 editor.setData(shiftNarratives);
-                                console.log(editor);
                                 setNarrativeEditor(editor);
                                 // editor.destroy();
                             }}
@@ -418,6 +450,7 @@ function DetailedExpansionPanel (props) {
                     color="primary"
                     startIcon={<Send />}
                     onClick={handleSendEOS}
+                    disabled={is_analysis_over_limit}
                 >
                     Send
                 </Button>

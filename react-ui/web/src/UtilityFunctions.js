@@ -116,9 +116,25 @@ function useInterval (callback, delay, clear_interval = false) {
         return () => clearInterval(id);
     }, [delay, clear_interval]);
 }
+
+function remapCkeditorEnterKey (editor) {
+    editor.editing.view.document.on("enter", (evt, data) => {
+        if (data.isSoft) {
+            editor.execute("enter");
+        } else {
+            editor.execute("shiftEnter");
+        }
+
+        data.preventDefault();
+        evt.stop();
+        editor.editing.view.scrollToTheSelection();
+    }, { priority: "high" } );
+}
+
 export {
     prepareSiteAddress, capitalizeFirstLetter,
     getUserOrganizations, simNumFormatter,
     computeForStartTs, makePOSTAxiosRequest,
-    makeGETAxiosRequest, useInterval
+    makeGETAxiosRequest, useInterval,
+    remapCkeditorEnterKey
 };
