@@ -753,6 +753,7 @@ function Container (props) {
                         props => <SubsurfaceGraph 
                             {...props}
                             width={width}
+                            chartType="subsurface"
                         />} 
                     />
 
