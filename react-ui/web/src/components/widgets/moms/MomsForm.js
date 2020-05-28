@@ -22,7 +22,7 @@ function MomsInputFields (props) {
         setIsNoneEntrySelected,
         location, site_code
     } = props;
-
+    // console.log(props);
     const { moms, options } = moms_entry;
     const { feature_type } = moms;
     const is_none_entry = feature_type !== null && feature_type.label === "None";

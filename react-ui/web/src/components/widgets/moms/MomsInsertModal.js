@@ -3,7 +3,8 @@ import moment from "moment";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withMobileDialog
+    Button, withMobileDialog, Typography,
+    makeStyles, Grid, Box
 } from "@material-ui/core";
 
 import { useSnackbar } from "notistack";
@@ -15,15 +16,150 @@ import { sendWSMessage } from "../../../websocket/monitoring_ws";
 
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 
+const useStyles = makeStyles(theme => ({
+    form_message_style: {
+        color: "red",
+        fontStyle: "italic"
+    },
+    margin_left: {
+        marginLeft: 50
+    }
+}));
+
+function momsFormValidation (moms_entries) {
+    let has_duplicate_feature_name = false;
+    let has_duplicate_obs_ts = false;
+    const empty_fields = [];
+    const feature_name_collection = [];
+    const observance_ts_collection = [];
+    let form_messsage = "";
+    let button_state;
+    moms_entries.forEach((row, index) => {
+        const { moms } = row;
+        let { 
+            alert_level, feature_name, feature_type, narrative,
+            observance_ts, remarks, reporter, validator, location
+        } = moms;
+        
+        const moment_obs_ts = moment(observance_ts).format("YYYY-MM-DD HH:mm:00");
+
+        if (feature_type !== null) {
+            const { value: feature_type_value } = feature_type;
+            if (feature_type_value === 9) {
+                feature_name = "value";
+            }
+        }
+
+        if (feature_name !== null) {
+            const { value: feature_name_value } = feature_name;
+            if (feature_name_collection.includes(feature_name_value)) {
+                if (has_duplicate_feature_name === false) {
+                    has_duplicate_feature_name = true;
+                }
+            } else {
+                feature_name_collection.push(feature_name_value);
+            }
+            if (feature_name_value === 0) {
+                if (location === undefined) {
+                    location = "";
+                }
+            } else {
+                location = "value";
+            }
+        }
+        
+        if (has_duplicate_feature_name === true || moment_obs_ts !== "Invalid date") {
+            if (observance_ts_collection.includes(moment_obs_ts)) {
+                if (has_duplicate_obs_ts === false) {
+                    has_duplicate_obs_ts = true;
+                }
+            } else {
+                observance_ts_collection.push(moment_obs_ts);
+            }
+        } 
+
+        if (feature_type === null) {
+            if (!empty_fields.includes("feature type")) {
+                empty_fields.push("feature type");
+            }
+        }
+
+        if (feature_name === null) {
+            if (!empty_fields.includes("feature name")) {
+                empty_fields.push("feature name");
+            }
+        }  
+
+        if (location === "") {
+            if (!empty_fields.includes("location")) {
+                empty_fields.push("location");
+            }
+        }
+
+        if (alert_level === null) {
+            if (!empty_fields.includes("alert level")) {
+                empty_fields.push("alert level");
+            }
+        }
+
+        if (observance_ts === null) {
+            if (!empty_fields.includes("observance timestamp")) {
+                empty_fields.push("observance timestamp");
+            }
+        } 
+        
+        if (narrative === "") {
+            if (!empty_fields.includes("narrative")) {
+                empty_fields.push("narrative");
+            }
+        }
+
+        if (reporter === "") {
+            if (!empty_fields.includes("reporter")) {
+                empty_fields.push("reporter");
+            }
+        }
+
+        if (remarks === "") {
+            if (!empty_fields.includes("remarks")) {
+                empty_fields.push("remarks");
+            }
+        }
+
+        if (validator === "") {
+            if (!empty_fields.includes("validator")) {
+                empty_fields.push("validator");
+            }
+        }
+        
+    });
+
+    if (has_duplicate_feature_name === false) has_duplicate_obs_ts = false;
+    
+    if (empty_fields.length !== 0 || has_duplicate_obs_ts === true) {
+        button_state = true;
+        form_messsage = `Please input ${empty_fields.join(", ")} form(s). `;
+        if (has_duplicate_obs_ts) {
+            form_messsage += `Duplicate observance time for the same feature instance.`;
+        }
+    } else {
+        button_state = false;
+    }
+
+    return { button_state, form_messsage };
+}
+
 function MomsInsertModal (props) {
     const {
         fullScreen, isOpen,
         closeHandler, match
     } = props;
-
+    const classes = useStyles();
     const [site, setSite] = useState(null);
     const [site_code, setSiteCode] = useState(null);
     const [moms_entries, setMomsEntries] = useReducer(reducerFunction, []);
+    const [submit_button_state, setSubmitButtonState] = useState(false);
+    const [moms_form_message, setMomsFormMessage] = useState("");
 
     useEffect(() => {
         if (typeof match !== "undefined") {
@@ -67,6 +203,13 @@ function MomsInsertModal (props) {
             });
         }
     }, [site_code]);
+
+    useEffect(() => {
+        console.log(moms_entries);
+        const { button_state, form_messsage } = momsFormValidation(moms_entries);
+        setSubmitButtonState(button_state);
+        setMomsFormMessage(form_messsage);
+    }, [moms_entries]);
 
     const handleSubmit = () => {
         console.log("moms_entries", moms_entries);
@@ -174,13 +317,29 @@ function MomsInsertModal (props) {
                     />
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={closeHandler} color="primary">
-                        Cancel
-                    </Button>
-                    {/* <Button onClick={sample_fn} color="primary"> */}
-                    <Button onClick={handleSubmit} color="primary">
-                        Submit
-                    </Button>
+                    <Grid container spacing={0}>
+                        <Grid item xs={12} sm={8}>
+                            <Typography
+                                variant="caption"
+                                display="block"
+                                className={classes.form_message_style}
+                                gutterBottom>
+                                {moms_form_message}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                            <Button onClick={closeHandler} color="primary" >
+                                Cancel
+                            </Button>
+                            {/* <Button onClick={sample_fn} color="primary"> */}
+                            <Button 
+                                onClick={handleSubmit}
+                                color="primary"
+                                disabled={submit_button_state}>
+                                Submit
+                            </Button>
+                        </Grid>
+                    </Grid>
                 </DialogActions>
             </Dialog>
         </div>
