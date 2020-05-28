@@ -59,6 +59,10 @@ const navigation_labels = [
                 link: "/monitoring/logs"
             },
             {
+                label: "Shift Calendar",
+                link: "/monitoring/calendar"
+            },
+            {
                 label: "Quality Assurance",
                 link: "/monitoring/qa",
                 soon: true

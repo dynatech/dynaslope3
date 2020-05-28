@@ -11,7 +11,8 @@ from datetime import datetime, timedelta, time
 from flask import Blueprint, jsonify, request
 from connection import DB
 from src.models.monitoring import (
-    MonitoringEvents, MonitoringReleases, MonitoringEventAlerts)
+    MonitoringEvents, MonitoringReleases, 
+    MonitoringEventAlerts, MonShift, MonShiftSchema)
 from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
     InternalAlertSymbolsSchema, EndOfShiftAnalysisSchema)
@@ -1322,3 +1323,12 @@ def get_event_timeline_data(event_id):
         }
 
     return jsonify(timeline_data)
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_shifts")
+def get_monitoring_shifts():
+    """
+    """
+    shift_sched = MonShift.query.order_by(MonShift.ts.asc()).all()
+    result = MonShiftSchema(many=True).dump(shift_sched).data
+    data = json.dumps(result)
+    return data
