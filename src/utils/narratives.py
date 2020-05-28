@@ -189,3 +189,5 @@ def update_narratives_on_db(narrative_id, site_id, timestamp, narrative, type_id
 
 # def get_narratives_based_on_timestamps(start_time, end_time):
 #     print()
+
+
