@@ -1,5 +1,6 @@
 import io from "socket.io-client";
 import { host } from "../config";
+
 let socket;
 
 function connectToWebsocket () {
@@ -56,10 +57,10 @@ function receiveMonitoringShiftData (callback) {
 }
 export { 
     subscribeToMiscWebSocket,
-     connectToWebsocket, 
-     unsubscribeToMiscWebSocket, 
-     getServerTime, 
-     receiveServerTime, 
-     receiveMonitoringShiftData 
-    };
+    connectToWebsocket, 
+    unsubscribeToMiscWebSocket, 
+    getServerTime, 
+    receiveServerTime, 
+    receiveMonitoringShiftData 
+};
     

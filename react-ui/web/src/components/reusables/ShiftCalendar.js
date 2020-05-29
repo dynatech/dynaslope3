@@ -68,7 +68,7 @@ function ShiftsPanel (props) {
         if (ShiftData !== null || ShiftData !== "undefined") {
             const data = ShiftData.filter(row =>{
                 if (moment(row.ts) > moment().subtract({ hours: 12 })) {
-                    return row;}
+                    return row; }
                 return null;
             });
             setShifts(data);
@@ -76,15 +76,15 @@ function ShiftsPanel (props) {
     }, [ShiftData]);
 
     const shift_status = (ts => {
-        const now = new Date();
-        const shift_start = new Date(ts);
-        const shift_end = new Date(ts).addHours(12);
+        const now = moment();
+        const shift_start = moment(ts);
+        const shift_end = moment(ts).add({ hours: 12 });
         if (now > shift_start && shift_start <= shift_end) {
-            return "Current";}
-        if ( now.addHours(12) > shift_start) {
-            return "Next";}
-        if ( now.addHours(24) > shift_start) {
-            return shift_start.toLocaleDateString("en-US", options).toString();}
+            return "Current"; }
+        if ( now.add({ hours: 12 }) > shift_start) {
+            return "Next"; }
+        if ( now.add({ hours: 24 }) > shift_start) {
+            return shift_start.format("dddd, MMMM D, YYYY h:mm A"); }
         return null;
     });
 
@@ -156,7 +156,7 @@ export function ShiftsCalendar (props) {
         if (rows !== null || rows !== "undefined") {  
             const data = rows.filter(row =>{
                 if (moment(row.ts) > moment().subtract({ hours: 48 })) {
-                    return row;}
+                    return row; }
             });
             setShifts(data);
         }
@@ -195,12 +195,12 @@ export function ShiftsCalendar (props) {
         };
         const now = moment();
         if (now > moment(start) && moment() < moment(end)) {
-            newStyle.backgroundColor = "green";}
+            newStyle.backgroundColor = "green"; }
         if (now > moment(end)) {
-            newStyle.backgroundColor = "red";}
+            newStyle.backgroundColor = "red"; }
         if (moment(start).hours() > 19) {
             if (now > moment(start) && now < moment(start).add({ hours: 12 })) {
-                newStyle.backgroundColor = "green";}}
+                newStyle.backgroundColor = "green"; } }
         return {
             className: "",
             style: newStyle
