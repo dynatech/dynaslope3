@@ -382,9 +382,9 @@ function SubsurfaceGraph (props) {
     const default_range_info = { label: "3 days", unit: "days", duration: 3 };
     const [ selected_range_info, setSelectedRangeInfo ] = useState(default_range_info);
     const defaul_hour_interval = { label: "4 hours", hour_value: "4" };
-    const [ selected_hour_interval, setSelectedHourInterval ] = useState(defaul_hour_interval);
+    const [ selectedHourInterval , setSelectedHourInterval ] = useState(defaul_hour_interval);
     let { unit, duration } = selected_range_info;
-    const { hour_value } = selected_hour_interval;
+    const { hour_value } = selectedHourInterval ;
     if (typeof consolidated_input !== "undefined") {
         const { ts_end: te, tsm_sensor: tsm, range_info } = consolidated_input;
         const { unit: conso_unit, duration: conso_duration } = range_info;
@@ -428,7 +428,7 @@ function SubsurfaceGraph (props) {
             setProcessedData(processed);
 
         });
-    }, [timestamps, selected_hour_interval]);
+    }, [timestamps, selectedHourInterval ]);
 
     const [options, setOptions] = useState([{ title: { text: "Loading" } }]); 
     
@@ -447,7 +447,7 @@ function SubsurfaceGraph (props) {
         setOptions(temp);
         if (temp.length > 0 && save_svg) setGetSVGNow(true);
 
-    }, [processed_data, selected_hour_interval]);
+    }, [processed_data, selectedHourInterval ]);
 
     useEffect(() => {
         if (get_svg) {
@@ -485,7 +485,7 @@ function SubsurfaceGraph (props) {
                 selected={selected}
                 setSelected={setSelected}
                 setSelectedRangeInfo={setSelectedRangeInfo}
-                selected_hour_interval={selected_hour_interval}
+                selectedHourInterval ={selectedHourInterval }
                 setSelectedHourInterval={setSelectedHourInterval}
             /> 
             }

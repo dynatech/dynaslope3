@@ -256,7 +256,7 @@ def process_velocity_alerts_data(vel_alerts, ts_per_node):
     return ret_dict
 
 
-def get_subsurface_plot_data(column_name, end_ts, start_date=None, hour_value="4"):
+def get_subsurface_plot_data(column_name, end_ts, start_date=None, hour_value=4):
     """
     """
 

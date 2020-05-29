@@ -542,7 +542,7 @@ def remove_sites_with_ground_meas(
 
     if routine_reminder_time < current_datetime < routine_end_time:
         if routine_site_ids or extended_site_ids:
-            result = get_site_with_observation_and_remove(
+            result = get_sites_with_ground_meas(
                 routine_reminder_time, timedelta_hour=4)
 
             for site_id in result:
@@ -554,7 +554,7 @@ def remove_sites_with_ground_meas(
         if event_site_ids:
             # NOTE: refactor na lang ito to query sites belonging
             # to event_site_ids
-            result = get_site_with_observation_and_remove(
+            result = get_sites_with_ground_meas(
                 routine_reminder_time, timedelta_hour=1)
             for site_id in result:
                 if site_id in event_site_ids:
@@ -570,7 +570,7 @@ def remove_sites_with_ground_meas(
         if one_thirty_reminder_time < current_datetime < one_thirty_end_time:
             reminder_time = one_thirty_reminder_time
 
-        result = get_site_with_observation_and_remove(
+        result = get_sites_with_ground_meas(
             reminder_time, timedelta_hour=1)
 
         for site_id in result:
@@ -586,15 +586,19 @@ def remove_sites_with_ground_meas(
     return final_site_ids
 
 
-def get_site_with_observation_and_remove(reminder_time, timedelta_hour=1):
+def get_sites_with_ground_meas(reminder_time, timedelta_hour=1, minute=30, site_id=0):
     run_down_ts = reminder_time - \
-        timedelta(hours=timedelta_hour, minutes=30)
-    # mo_result = MarkerObservations.query.with_entities(MarkerObservations.site_id).filter(
-    #     MarkerObservations.ts.between(run_down_ts, reminder_time)).all()
-    mo_result = MarkerObservations.query.with_entities(MarkerObservations.site_id).filter(
-        MarkerObservations.ts.between(run_down_ts, reminder_time)).all()
+        timedelta(hours=timedelta_hour, minutes=minute)
+    
+    query = MarkerObservations.query.with_entities(MarkerObservations.site_id).filter(
+        MarkerObservations.ts.between(run_down_ts, reminder_time))
 
-    return [value for (value,) in mo_result]
+    if site_id != 0:
+        query = query.filter(MarkerObservations.site_id == site_id)
+
+    result = query.all()
+
+    return [value for (value,) in result]
 
 
 def get_recipients_for_ground_meas(site_recipients):
