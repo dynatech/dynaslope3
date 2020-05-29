@@ -17,7 +17,7 @@ import CircularAddButton from "../../reusables/CircularAddButton";
 import GeneralStyles from "../../../GeneralStyles";
 import { 
     subscribeToWebSocket, unsubscribeToWebSocket,
-    receiveGeneratedAlerts, receiveCandidateAlerts, receiveAlertsFromDB,
+    receiveGeneratedAlerts, receiveCandidateAlerts, receiveAlertsFromDB
 } from "../../../websocket/monitoring_ws";
 import { receiveMonitoringShiftData, unsubscribeToMiscWebSocket } from "../../../websocket/misc_ws";
 import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
@@ -26,7 +26,6 @@ import { GeneralContext } from "../../contexts/GeneralContext";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
-
     return {
         ...gen_style,
         tabBar: {
@@ -65,13 +64,11 @@ function Container (props) {
         receiveCandidateAlerts(candidate_alerts => setCandidateAlertsData(candidate_alerts));
         receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
         receiveMonitoringShiftData(shift_data => setMonitoringShifts(shift_data));
-       
         return function cleanup () {
             unsubscribeToWebSocket();
             unsubscribeToMiscWebSocket();
         };
     }, []);
-
 
     const handleTabSelected = chosen_tab => {
         setChosenTab(chosen_tab);
@@ -159,10 +156,7 @@ function Container (props) {
                             onSelect={handleTabSelected}
                             tabsArray={tabs_array}
                         />
-                        
-
-                        <div className={classes.tabBarContent}>
-                            
+                        <div className={classes.tabBarContent}>         
                             {chosenTab === 0 && (
                                 <MonitoringTables
                                     width={width}
@@ -177,7 +171,6 @@ function Container (props) {
                     </Grid>
                 </Grid>
             </div>
-
 
             { !is_desktop && <CircularAddButton clickHandler={handleBoolean("is_open_release_modal", true)} /> }
 
@@ -209,5 +202,4 @@ function Container (props) {
 
 
 }
-
 export default compose(withWidth(), withStyles(styles))(Container);

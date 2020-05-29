@@ -57,7 +57,6 @@ const useStyles = makeStyles((theme) => ({
         width: "100%",
     },
 }));
-
 // this function returns a component displaying cuurent shift and next 2 shifts
 function ShiftsPanel (props) {
     const { ShiftData } = props;
@@ -65,14 +64,11 @@ function ShiftsPanel (props) {
     const options = { timezone: "Asia/Hongkong", weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "numeric", hour12: true };
     const [futureShifts, setShifts] = useState([]);
 
-    useEffect(()=>{
-        
+    useEffect(()=>{    
         if (ShiftData !== null || ShiftData !== "undefined") {
-            
             const data = ShiftData.filter(row =>{
                 if (moment(row.ts) > moment().subtract({ hours: 12 })) {
-                    return row;
-                }
+                    return row;}
                 return null;
             });
             setShifts(data);
@@ -83,16 +79,12 @@ function ShiftsPanel (props) {
         const now = new Date();
         const shift_start = new Date(ts);
         const shift_end = new Date(ts).addHours(12);
-
         if (now > shift_start && shift_start <= shift_end) {
-            return "Current";
-        }
+            return "Current";}
         if ( now.addHours(12) > shift_start) {
-            return "Next";
-        }
+            return "Next";}
         if ( now.addHours(24) > shift_start) {
-            return shift_start.toLocaleDateString("en-US", options).toString();
-        }
+            return shift_start.toLocaleDateString("en-US", options).toString();}
         return null;
     });
 
@@ -120,8 +112,7 @@ function ShiftsPanel (props) {
                                 <Typography variant="button" >     
                                     <Box fontWeight="fontWeightBold" m={1}>
                                         { shift_status(row.ts)} 
-                                    </Box>   
-                                    
+                                    </Box>              
                                 </Typography>
                                 <Typography>        
                                     { row.iompmt} (MT)
@@ -157,18 +148,15 @@ export function ShiftsCalendar (props) {
     useEffect(()=>{
         subscribeToMiscWebSocket(setIsReconnecting);
         receiveMonitoringShiftData(shift_data => setRows(shift_data));
-
         return function cleanup () {
             unsubscribeToMiscWebSocket();
         };
     }, []);
     useEffect(()=>{
-        if (rows !== null || rows !== "undefined") {
-           
+        if (rows !== null || rows !== "undefined") {  
             const data = rows.filter(row =>{
                 if (moment(row.ts) > moment().subtract({ hours: 48 })) {
-                    return row;
-                }
+                    return row;}
             });
             setShifts(data);
         }
@@ -207,17 +195,12 @@ export function ShiftsCalendar (props) {
         };
         const now = moment();
         if (now > moment(start) && moment() < moment(end)) {
-            newStyle.backgroundColor = "green";
-        }
+            newStyle.backgroundColor = "green";}
         if (now > moment(end)) {
-            newStyle.backgroundColor = "red";
-        }
+            newStyle.backgroundColor = "red";}
         if (moment(start).hours() > 19) {
-            
             if (now > moment(start) && now < moment(start).add({ hours: 12 })) {
-                newStyle.backgroundColor = "green";
-            }
-        }
+                newStyle.backgroundColor = "green";}}
         return {
             className: "",
             style: newStyle
