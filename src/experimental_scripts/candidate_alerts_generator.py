@@ -25,12 +25,13 @@ from connection import create_app
 from config import APP_CONFIG
 from src.utils.extra import (
     retrieve_data_from_memcache, var_checker,
-    get_process_status_log)
-from src.api.monitoring import get_unreleased_routine_sites
-from src.utils.monitoring import (build_internal_alert_level,
-                                  get_ongoing_extended_overdue_events,
-                                  get_routine_sites, get_saved_event_triggers,
-                                  round_to_nearest_release_time)
+    get_process_status_log
+)
+from src.utils.monitoring import (
+    build_internal_alert_level,
+    get_ongoing_extended_overdue_events,
+    round_to_nearest_release_time
+)
 
 # Every how many hours per release
 RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
@@ -135,8 +136,8 @@ def process_totally_invalid_sites(totally_invalid_sites_list,
             generated_alert["ts"], "%Y-%m-%d %H:%M:%S")
         is_release_time = check_if_routine_extended_release_time(ts)
 
-        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                            site_code, extended))
+        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
+                                            == site_code, extended))
         if is_in_extended_alerts:
             if is_release_time:
                 general_status = "extended"
@@ -497,8 +498,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 for event_trigger in site_w_alert["event_triggers"]:
                     saved_trigger = next(filter(
-                        lambda x: x["internal_sym"]["internal_sym_id"]
-                        == event_trigger["internal_sym_id"],
+                        lambda x: x["internal_sym"]["internal_sym_id"] ==
+                        event_trigger["internal_sym_id"],
                         saved_event_triggers), None)
 
                     is_trigger_new = False

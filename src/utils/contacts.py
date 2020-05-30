@@ -550,7 +550,7 @@ def remove_sites_with_ground_meas(
                     routine_site_ids.remove(site_id)
                 if site_id in extended_site_ids:
                     extended_site_ids.remove(site_id)
-        
+
         if event_site_ids:
             # NOTE: refactor na lang ito to query sites belonging
             # to event_site_ids
@@ -611,7 +611,8 @@ def get_recipients_for_ground_meas(site_recipients):
         user_per_site_result = []
         org_ids = [1]
         if site_ids:
-            user_per_site_result = get_recipients(site_ids=site_ids, org_ids=org_ids, joined=True)
+            user_per_site_result = get_recipients(
+                site_ids=site_ids, org_ids=org_ids, joined=True)
 
         row["recipients"] = user_per_site_result
         feedback.append(row)
@@ -633,13 +634,17 @@ def get_site_ids(site_codes):
     return site_ids
 
 
-def get_blocked_numbers():
+def get_blocked_numbers(return_schema=True):
     """
     Function that gets blocked numbers
     """
+
     query = BlockedMobileNumbers.query.all()
 
-    result = BlockedMobileNumbersSchema(many=True).dump(query).data
+    if return_schema:
+        result = BlockedMobileNumbersSchema(many=True).dump(query).data
+    else:
+        result = query
 
     return result
 
@@ -648,6 +653,7 @@ def save_blocked_number(data):
     """
     Function that save block number
     """
+
     now = datetime.now()
     current_datetime = now.strftime("%Y-%m-%d %H:%M:%S")
     mobile_id = data["mobile_id"]
@@ -657,6 +663,10 @@ def save_blocked_number(data):
     insert_query = BlockedMobileNumbers(mobile_id=mobile_id, reason=reason,
                                         reporter_id=reporter_id, ts=current_datetime)
     DB.session.add(insert_query)
+
+    print("")
+    print(f"Blocked mobile ID {mobile_id} successfully")
+    print("")
 
     return True
 
@@ -671,6 +681,7 @@ def get_all_sim_prefix():
 
     return result
 
+
 def get_recipients(site_ids=None,
                    site_codes=None, only_ewi_recipients=True,
                    include_ewi_restrictions=False, org_ids=None,
@@ -683,19 +694,22 @@ def get_recipients(site_ids=None,
     Refactored function of getting recipients
     """
     query = UsersRelationship.query.options(
-                DB.subqueryload("mobile_numbers").joinedload("mobile_number").raiseload("*"),
-                DB.subqueryload("landline_numbers"),
-                DB.subqueryload("organizations").joinedload("organization").raiseload("*"),
-                DB.subqueryload("organizations").joinedload("site").raiseload("*"),
-                DB.subqueryload("emails"),
-                DB.raiseload("*"))
+        DB.subqueryload("mobile_numbers").joinedload(
+            "mobile_number").raiseload("*"),
+        DB.subqueryload("landline_numbers"),
+        DB.subqueryload("organizations").joinedload(
+            "organization").raiseload("*"),
+        DB.subqueryload("organizations").joinedload("site").raiseload("*"),
+        DB.subqueryload("emails"),
+        DB.raiseload("*"))
 
     if joined:
-        query = query.join(UserOrganizations).join(Sites).join(Organizations).join(UserMobiles)
+        query = query.join(UserOrganizations).join(
+            Sites).join(Organizations).join(UserMobiles)
 
     schema_exclusions = ["teams", "ewi_restriction",
                          "mobile_numbers.mobile_number.blocked_mobile"]
- 
+
     if site_ids:
         query = query.filter(Sites.site_id.in_(site_ids))
 
@@ -724,7 +738,7 @@ def get_recipients(site_ids=None,
         query = query.order_by(Organizations.scope)
     else:
         query = query.order_by(UsersRelationship.last_name)
-    
+
     user_per_site_result = query.all()
 
     if return_schema_format:
@@ -748,7 +762,7 @@ def save_primary(data):
             org_id = organization["organization"]["org_id"]
             site_id = organization["site"]["site_id"]
             update_query = UserOrganizations.query.get(user_org_id)
-            
+
             if is_primary_contact:
                 update_query.primary_contact = 1
 

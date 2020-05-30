@@ -49,11 +49,12 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
 
     filter_val (int or str): site_code or marker_id
     """
-    
+
     ts_order = request.args.get("order", default="asc", type=str)
     limit = request.args.get("limit", default=None, type=int)
     is_end_of_shift = request.args.get(
         "is_end_of_shift", default="false", type=str)
+    start_ts = None if start_ts == "None" else start_ts
 
     ieos = is_end_of_shift == "true"
     anchor = "marker_data"
@@ -93,8 +94,8 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
         print(marker_row.history)
         print(marker_row.history[0].marker_name)
 
-        data_set = list(filter(lambda x: x.marker_id
-                               == marker_id, surficial_data))
+        data_set = list(filter(lambda x: x.marker_id ==
+                               marker_id, surficial_data))
         marker_string_dict = {
             "marker_id": marker_id,
             "marker_name": marker_name,

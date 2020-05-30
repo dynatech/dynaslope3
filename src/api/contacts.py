@@ -134,7 +134,7 @@ def wrap_get_recipients_option(site_code=None):
         ]:
             if key in data:
                 temp[key] = data[key]
-    
+
     data = get_recipients_option(site_ids=temp["site_ids"],
                                  site_codes=temp["site_codes"],
                                  only_ewi_recipients=temp["only_ewi_recipients"],
@@ -188,7 +188,6 @@ def save_block_number():
     message = ""
 
     try:
-        print(data)
         save_blocked_number(data)
         message = "Successfully blocked mobile number!"
         status = True
@@ -236,7 +235,7 @@ def get_contact_prioritization():
     Function that get contact prioritization
     """
     users = get_recipients(joined=True, order_by_scope=True)
-    
+
     all_sites_stakeholders = {}
     for user in users:
         organizations = user["organizations"]
@@ -246,17 +245,20 @@ def get_contact_prioritization():
             scope = org["organization"]["scope"]
             primary_contact = org["primary_contact"]
             user_org_id = org["user_org_id"]
-            data = {"org_name": org_name,
-                    "scope": scope,
-                    "primary_contact": primary_contact,
-                    "contact_person": user,
-                    "user_org_id": user_org_id}
+            data = {
+                "org_name": org_name,
+                "scope": scope,
+                "primary_contact": primary_contact,
+                "contact_person": user,
+                "user_org_id": user_org_id
+            }
             if site not in all_sites_stakeholders:
                 all_sites_stakeholders[site] = [data]
             else:
                 all_sites_stakeholders[site].append(data)
 
     return jsonify(all_sites_stakeholders)
+
 
 @CONTACTS_BLUEPRINT.route("/contacts/save_primary_contact", methods=["GET", "POST"])
 def save_primary_contact():
