@@ -20,16 +20,13 @@ const useStyles = makeStyles(theme => ({
     form_message_style: {
         color: "red",
         fontStyle: "italic"
-    },
-    margin_left: {
-        marginLeft: 50
     }
 }));
 
 function momsFormValidation (moms_entries) {
     let has_duplicate_feature_name = false;
     let has_duplicate_obs_ts = false;
-    const empty_fields = [];
+    let empty_fields = new Set();
     const feature_name_collection = [];
     const observance_ts_collection = [];
     let form_messsage = "";
@@ -79,60 +76,44 @@ function momsFormValidation (moms_entries) {
         } 
 
         if (feature_type === null) {
-            if (!empty_fields.includes("feature type")) {
-                empty_fields.push("feature type");
-            }
+            empty_fields.add("feature type");
         }
 
         if (feature_name === null) {
-            if (!empty_fields.includes("feature name")) {
-                empty_fields.push("feature name");
-            }
+            empty_fields.add("feature name");
         }  
 
         if (location === "") {
-            if (!empty_fields.includes("location")) {
-                empty_fields.push("location");
-            }
+            empty_fields.add("location");
         }
 
         if (alert_level === null) {
-            if (!empty_fields.includes("alert level")) {
-                empty_fields.push("alert level");
-            }
+            empty_fields.add("alert level");
         }
 
         if (observance_ts === null) {
-            if (!empty_fields.includes("observance timestamp")) {
-                empty_fields.push("observance timestamp");
-            }
+            empty_fields.add("observance timestamp");
         } 
         
         if (narrative === "") {
-            if (!empty_fields.includes("narrative")) {
-                empty_fields.push("narrative");
-            }
+            empty_fields.add("narrative");
         }
 
         if (reporter === "") {
-            if (!empty_fields.includes("reporter")) {
-                empty_fields.push("reporter");
-            }
+            empty_fields.add("reporter");
         }
 
         if (remarks === "") {
-            if (!empty_fields.includes("remarks")) {
-                empty_fields.push("remarks");
-            }
+            empty_fields.add("remarks");
         }
 
         if (validator === "") {
-            if (!empty_fields.includes("validator")) {
-                empty_fields.push("validator");
-            }
+            empty_fields.add("validator");
         }
         
     });
+
+    empty_fields = [...empty_fields];
 
     if (has_duplicate_feature_name === false) has_duplicate_obs_ts = false;
     
@@ -323,7 +304,8 @@ function MomsInsertModal (props) {
                                 variant="caption"
                                 display="block"
                                 className={classes.form_message_style}
-                                gutterBottom>
+                                gutterBottom
+                                align="left">
                                 {moms_form_message}
                             </Typography>
                         </Grid>
