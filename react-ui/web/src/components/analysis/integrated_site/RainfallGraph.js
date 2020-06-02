@@ -10,6 +10,7 @@ import * as moment from "moment";
 
 import { Grid, Paper, Hidden } from "@material-ui/core";
 import BackToMainButton from "./BackToMainButton";
+import DateRangeSelector from "./DateRangeSelector";
 
 import { getRainfallPlotData, saveChartSVG } from "../ajax";
 import { computeForStartTs } from "../../../UtilityFunctions";
@@ -254,9 +255,8 @@ function RainfallGraph (props) {
 
     const [rainfall_data, setRainfallData] = useState([]);
     const [processed_data, setProcessedData] = useState([]);
-    const [ selected, setSelected ] = useState("3 days");
     const default_range_info = { label: "3 days", unit: "days", duration: 3 };
-    const [ selected_range_info, setSelectedRangeInfo ] = useState(default_range_info);
+    const [selected_range_info, setSelectedRangeInfo] = useState(default_range_info);
     const chartRefs = useRef([...Array(arr_num)].map(() => ({
         instantaneous: createRef(),
         cumulative: createRef()
@@ -287,7 +287,8 @@ function RainfallGraph (props) {
     }
 
     const ts_start = computeForStartTs(dt_ts_end, duration, unit);
-    const input = { ts_start, ts_end, site_code: sc };
+    const days_diff = dt_ts_end.diff(moment(ts_start, "YYYY-MM-DD HH:mm:ss"), "days");
+    const input = { days_diff, ts_start, ts_end, site_code: sc };
 
     const default_options = {
         cumulative: prepareCumulativeRainfallChartOption(default_data, input),
@@ -360,15 +361,20 @@ function RainfallGraph (props) {
     
     return (
         <Fragment>
-            {
-                !disable_back && <BackToMainButton 
-                    {...props}
-                    selected={selected}
-                    setSelected={setSelected}
-                    setSelectedRangeInfo={setSelectedRangeInfo}
-                />
-            }
+            <Grid container spacing={1} justify="space-between">
+                {
+                    !disable_back && <BackToMainButton 
+                        {...props}
+                    />
+                }
 
+                <DateRangeSelector
+                    selectedRangeInfo={selected_range_info}
+                    setSelectedRangeInfo={setSelectedRangeInfo}
+                    disableAll
+                />
+            </Grid>
+ 
             <div style={{ marginTop: 16 }}>
                 <Grid container spacing={4}>
                     {

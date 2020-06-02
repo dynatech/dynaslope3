@@ -68,7 +68,8 @@ function computeForStartTs (ts, duration = 7, unit = "days") {
     }
 
     const ts_format = "YYYY-MM-DD HH:mm:ss";
-    const ts_start = ts.subtract(duration, unit).format(ts_format);
+    const ts_start = ts.clone().subtract(duration, unit)
+    .format(ts_format);
     return ts_start;
 }
 

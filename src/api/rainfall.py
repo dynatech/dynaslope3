@@ -12,36 +12,43 @@ RAINFALL_BLUEPRINT = Blueprint(
     "rainfall_blueprint", __name__)
 
 
-@RAINFALL_BLUEPRINT.route("/rainfall/get_rainfall_data", methods=["GET", "POST"])
 @RAINFALL_BLUEPRINT.route("/rainfall/get_rainfall_data/<site_code>", methods=["GET", "POST"])
 @RAINFALL_BLUEPRINT.route("/rainfall/get_rainfall_data/<site_code>/<end_ts>", methods=["GET", "POST"])
-def get_rainfall_data(site_code=None, end_ts=None):
+@RAINFALL_BLUEPRINT.route("/rainfall/get_rainfall_data/<site_code>/<end_ts>/<days_diff>", methods=["GET", "POST"])
+def get_rainfall_data(site_code=None, end_ts=None, days_diff=3):
     """
     """
 
     sc = site_code
     ts = end_ts
+    days_diff = int(days_diff)
 
     if site_code is None:
         data = request.get_json()
         sc = data["site_code"]
         ts = data["date"]
+        try:
+            days_diff = data["days_diff"]
+        except AttributeError:
+            pass
 
-    rainfall_data = get_rainfall_plot_data(sc, ts, days=3)
+    rainfall_data = get_rainfall_plot_data(sc, ts, days=days_diff)
     return rainfall_data
 
 
 @RAINFALL_BLUEPRINT.route("/rainfall/get_rainfall_plot_data/<site_code>", methods=["GET", "POST"])
 @RAINFALL_BLUEPRINT.route("/rainfall/get_rainfall_plot_data/<site_code>/<end_ts>", methods=["GET", "POST"])
-def wrap_get_rainfall_plot_data(site_code, end_ts=None):
+@RAINFALL_BLUEPRINT.route("/rainfall/get_rainfall_plot_data/<site_code>/<end_ts>/<days_diff>", methods=["GET", "POST"])
+def wrap_get_rainfall_plot_data(site_code, end_ts=None, days_diff=3):
     """
     """
 
     ts = end_ts
+    days_diff = int(days_diff)
     if end_ts is None:
         ts = time.strftime("%Y-%m-%d %H:%M:%S")
 
-    plot_data = get_rainfall_plot_data(site_code, ts, days=3)
+    plot_data = get_rainfall_plot_data(site_code, ts, days=days_diff)
     return jsonify(plot_data)
 
 

@@ -6,12 +6,13 @@ import React, {
 import Highcharts from "highcharts";
 import HC_exporting from "highcharts/modules/exporting";
 import HighchartsReact from "highcharts-react-official";
-import { Grid, Paper, Hidden, CircularProgress } from "@material-ui/core";
+import { Grid, Paper, Hidden } from "@material-ui/core";
 import * as moment from "moment";
-import ContentLoader from "react-content-loader";
 import { isWidthDown } from "@material-ui/core/withWidth";
+
 import { getSubsurfacePlotData, saveChartSVG } from "../ajax";
 import BackToMainButton from "./BackToMainButton";
+import DateRangeSelector from "./DateRangeSelector";
 import { computeForStartTs } from "../../../UtilityFunctions";
 
 window.moment = moment;
@@ -378,13 +379,13 @@ function SubsurfaceGraph (props) {
     let ts_end = "";
     let dt_ts_end;
     let tsm_sensor = sensor;
-    const [ selected, setSelected ] = useState("3 days");
+
     const default_range_info = { label: "3 days", unit: "days", duration: 3 };
-    const [ selected_range_info, setSelectedRangeInfo ] = useState(default_range_info);
+    const [selected_range_info, setSelectedRangeInfo] = useState(default_range_info);
     const defaul_hour_interval = { label: "4 hours", hour_value: "4" };
-    const [ selectedHourInterval , setSelectedHourInterval ] = useState(defaul_hour_interval);
+    const [selected_hour_interval, setSelectedHourInterval] = useState(defaul_hour_interval);
+    
     let { unit, duration } = selected_range_info;
-    const { hour_value } = selectedHourInterval ;
     if (typeof consolidated_input !== "undefined") {
         const { ts_end: te, tsm_sensor: tsm, range_info } = consolidated_input;
         const { unit: conso_unit, duration: conso_duration } = range_info;
@@ -403,13 +404,13 @@ function SubsurfaceGraph (props) {
     const disable_back = typeof disableBack === "undefined" ? false : disableBack;
     const save_svg = typeof saveSVG === "undefined" ? false : saveSVG;
 
-    const [timestamps, setTimestamps] = useState({ start: ts_start, end: ts_end });
     const [processed_data, setProcessedData] = useState([]);
     const chartRefs = useRef([...Array(6)].map(() => createRef()));
     const [get_svg, setGetSVGNow] = useState(false);
     const [svg_list, setSVGList] = useState([]);
 
-    const input = { ts_end: timestamps.end, ts_start, subsurface_column: tsm_sensor, hour_value };
+    const { hour_value } = selected_hour_interval;
+    const input = { ts_end, ts_start, subsurface_column: tsm_sensor, hour_value };
     
     const is_desktop = isWidthDown(width, "sm");
     const default_options = { title: { text: "Loading" } };
@@ -426,14 +427,12 @@ function SubsurfaceGraph (props) {
                 processed.push(...temp);
             });
             setProcessedData(processed);
-
         });
-    }, [timestamps, selectedHourInterval ]);
+    }, [selected_range_info, selected_hour_interval]);
 
     const [options, setOptions] = useState([{ title: { text: "Loading" } }]); 
     
     useEffect(() => {
-        
         const temp = [];
         processed_data.forEach(data => {
             const { type } = data;
@@ -446,8 +445,7 @@ function SubsurfaceGraph (props) {
 
         setOptions(temp);
         if (temp.length > 0 && save_svg) setGetSVGNow(true);
-
-    }, [processed_data, selectedHourInterval ]);
+    }, [processed_data]);
 
     useEffect(() => {
         if (get_svg) {
@@ -477,18 +475,23 @@ function SubsurfaceGraph (props) {
         }
     }, [svg_list]);
 
-
     return (
         <Fragment>
-            { !disable_back && <BackToMainButton 
-                {...props}
-                selected={selected}
-                setSelected={setSelected}
-                setSelectedRangeInfo={setSelectedRangeInfo}
-                selectedHourInterval ={selectedHourInterval }
-                setSelectedHourInterval={setSelectedHourInterval}
-            /> 
-            }
+            <Grid container spacing={1} justify="space-between">
+                {
+                    !disable_back && <BackToMainButton 
+                        {...props}
+                    />
+                }
+
+                <DateRangeSelector
+                    isSubsurface
+                    selectedRangeInfo={selected_range_info}
+                    setSelectedRangeInfo={setSelectedRangeInfo}
+                    selectedHourInterval={selected_hour_interval}
+                    setSelectedHourInterval={setSelectedHourInterval}
+                />
+            </Grid>
 
             <div style={{ marginTop: 16 }}>
                 <Grid container spacing={4}>

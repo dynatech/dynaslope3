@@ -14,18 +14,21 @@ import {
     DialogTitle, DialogContent,
     DialogContentText, DialogActions, Grid,
     Typography, Divider, TextField, FormControl,
-    FormControlLabel, Radio, RadioGroup
+    FormControlLabel, Radio, RadioGroup,
+    Menu, MenuItem
 } from "@material-ui/core";
 import { ArrowDropDown } from "@material-ui/icons";
 import { isWidthDown } from "@material-ui/core/withWidth";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
+import MUIDataTable from "mui-datatables";
 
 import SurficialTrendingGraphs from "./SurficialTrendingGraphs";
 import BackToMainButton from "./BackToMainButton";
+import DateRangeSelector from "./DateRangeSelector";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 
 import { getSurficialPlotData, deleteSurficialData, updateSurficialData, saveChartSVG } from "../ajax";
-import { computeForStartTs } from "../../../UtilityFunctions";
+import { computeForStartTs, capitalizeFirstLetter } from "../../../UtilityFunctions";
 
 // init the module
 HC_exporting(Highcharts);
@@ -34,6 +37,82 @@ const hideTrending = history => e => {
     e.preventDefault();
     history.goBack();
 };
+
+function MarkerHistoryTable (props) {
+    const { markerInfo, markerName } = props;
+    const column_options = [
+        {
+            name: "ts",
+            label: "Timestamp",
+            options: {
+                filter: false,
+                customBodyRender (value) {
+                    return moment(value).format("D MMMM YYYY, HH:mm");
+                },
+                sortDirection: "desc"
+            }
+        },
+        {
+            name: "event",
+            label: "Event"
+        },
+        {
+            name: "m_name",
+            label: "Name",
+            options: {
+                filter: false
+            }
+        }
+    ];
+
+    const table_options = {
+        textLabels: {
+            body: {
+                noMatch: "No data"
+            }
+        },
+        selectableRows: "none",
+        rowsPerPage: 3,
+        rowsPerPageOptions: [],
+        print: false,
+        download: false,
+        viewColumns: false,
+        responsive: "scrollMaxHeight",
+        customSort (data, col_index, order) {
+            return data.sort((a, b) => {
+                if (col_index === 0) {
+                    return (
+                        moment(a.data[col_index]).isAfter(b.data[col_index]) 
+                            ? -1 : 1 
+                    ) * (order === "desc" ? 1 : -1); 
+                } 
+                
+                return (a.data[col_index] < b.data[col_index] ? -1 : 1 ) * (order === "desc" ? 1 : -1);
+            }); 
+        }
+    };
+
+    let table_data = [];
+    if (markerInfo) {
+        table_data = markerInfo.marker_history.map(x => {
+            const { ts, event, marker_name } = x;
+            const m_name = marker_name ? marker_name.marker_name : "---";
+            return {
+                event: capitalizeFirstLetter(event),
+                m_name, ts
+            };
+        });
+    }
+    
+    return (
+        <MUIDataTable
+            title={`Marker ${markerName} History`}
+            columns={column_options}
+            options={table_options}
+            data={table_data}
+        />
+    );
+}
 
 function UpdateDeleteModal (props) {
     const { 
@@ -306,9 +385,92 @@ function UpdateDeleteModal (props) {
     );
 }
 
+function SurficialMarkersButton (props) {
+    const {
+        width, url, selectedMarker,
+        surficialData
+    } = props;
+
+    const [anchor, setAnchor] = useState(null);
+
+    const onMenuClick = event => {
+        setAnchor(event.currentTarget);
+    };
+
+    const onMenuClose = () => {
+        setAnchor(null);
+    };
+
+    return (
+        <Fragment>
+            <ButtonGroup
+                variant="contained"
+                color="primary"
+                size="small"
+                aria-label="Site markers button group"
+                style={{ marginRight: 6 }}
+            >
+                <Button disabled style={{ color: "#000000" }}>Marker</Button>
+
+                {
+                    isWidthDown(width, "sm") && surficialData.length <= 5 ? (
+                        surficialData.map(marker => {
+                            const { marker_name, marker_id } = marker;
+                            return (
+                                <Button 
+                                    component={Link}
+                                    to={`${url}/${marker_name}`}
+                                    key={marker_id}
+                                >
+                                    {marker_name}
+                                </Button> 
+                            );
+                        })
+                    ) : (
+                        <Button
+                            color="primary"
+                            variant="contained"
+                            size="small"
+                            aria-controls="simple-menu"
+                            aria-haspopup="true"
+                            onClick={onMenuClick}
+                            endIcon={<ArrowDropDown />}
+                        >
+                            { selectedMarker || "" }
+                        </Button>
+                    )
+                }
+            </ButtonGroup>
+
+            <Menu
+                id="simple-menu"
+                anchorEl={anchor}
+                keepMounted
+                open={Boolean(anchor)}
+                onClose={onMenuClose} 
+            >
+                {
+                    surficialData.map(marker => {
+                        const { marker_name, marker_id } = marker;
+                        return (
+                            <MenuItem 
+                                component={Link}
+                                to={`${url}/${marker_name}`}
+                                key={marker_id}
+                                onClick={onMenuClose}
+                            >
+                                {marker_name}
+                            </MenuItem> 
+                        );
+                    })
+                }
+            </Menu>
+        </Fragment>
+    );
+}
+
 // eslint-disable-next-line max-params
 function prepareOptions (input, data, width, setEditModal, setChosenPointCopy, is_end_of_shift) {
-    const subtext = "";
     const { site_code, timestamps } = input;
     const { start, end } = timestamps;
     const start_date = moment(start, "YYYY-MM-DD HH:mm:ss");
@@ -316,11 +478,15 @@ function prepareOptions (input, data, width, setEditModal, setChosenPointCopy, i
 
     const font_size = isWidthDown(width, "sm") ? "1rem" : "0.90rem";
 
+    let subtitle = `As of: <b>${moment(end_date).format("D MMM YYYY, HH:mm")}</b>`;
+    if (!is_end_of_shift) {
+        subtitle += "<br/><i>Note: Click data points to access several options.</i>";
+    }
+
     let min_x = start_date;
-    if (is_end_of_shift && data.length > 0) {
+    if ((is_end_of_shift || start === "None") && data.length > 0) {
         const { data: meas_row } = data[0];
         if (meas_row.length > 0) min_x = moment(meas_row[0].x);
-            
     }
 
     return {
@@ -348,7 +514,7 @@ function prepareOptions (input, data, width, setEditModal, setChosenPointCopy, i
             spacingRight: 24
         },
         subtitle: {
-            text: `${subtext}As of: <b>${moment(end_date).format("D MMM YYYY, HH:mm")}</b>`,
+            text: subtitle,
             style: { fontSize: "0.75rem" }
         },
         legend: {
@@ -394,26 +560,28 @@ function prepareOptions (input, data, width, setEditModal, setChosenPointCopy, i
                 point: {
                     events: {
                         click () {
-                            const {
-                                data_id, x, y,
-                                mo_id,
-                                series: { name } 
-                            } = this;
+                            if (!is_end_of_shift) {
+                                const {
+                                    data_id, x, y,
+                                    mo_id,
+                                    series: { name } 
+                                } = this;
 
-                            const obj = {
-                                data_id,
-                                name,
-                                mo_id, 
-                                ts: moment(x),
-                                measurement: y,
-                            };
+                                const obj = {
+                                    data_id,
+                                    name,
+                                    mo_id, 
+                                    ts: moment(x),
+                                    measurement: y,
+                                };
 
-                            setChosenPointCopy(obj);
+                                setChosenPointCopy(obj);
 
-                            setEditModal({
-                                ...obj,
-                                is_open: true
-                            });
+                                setEditModal({
+                                    ...obj,
+                                    is_open: true
+                                });
+                            }
                         }
                     }
                 }
@@ -447,10 +615,11 @@ function SurficialGraph (props) {
         isEndOfShift
     } = props;
 
-    const [ selected, setSelected ] = useState("3 months");
+    const [selected_marker, setSelectedMarker] = useState(false);
     const default_range_info = { label: "3 months", unit: "months", duration: 3 };
-    const [ selected_range_info, setSelectedRangeInfo ] = useState(default_range_info);
+    const [selected_range_info, setSelectedRangeInfo] = useState(default_range_info);
     let { unit, duration } = selected_range_info;
+    
     let ts_end = "";
     let dt_ts_end;
     if (typeof input !== "undefined") {
@@ -496,15 +665,6 @@ function SurficialGraph (props) {
         is_open: false
     });
 
-    // useEffect(() => {
-    //     if (typeof input !== "undefined") {
-    //         console.log("input", input);
-    //         const { ts_end: te } = input;
-    //         setTimestamps({ end: te, start: computeForStartTs(moment(te)) });
-    //         // setRedrawChart(true);
-    //     }
-    // }, [input]);
-
     useEffect(() => {
         const { current } = chartRef;
         if (current !== null || to_redraw_chart)
@@ -520,25 +680,6 @@ function SurficialGraph (props) {
                     chart.hideLoading();
 
                     if (save_svg) setSaveSVGNow(true);
-                    
-                    const legend = chart.legend.group;
-                    const items = chart.legend.allItems;
-                    const item = items[items.length - 1];
-
-                    const fn = is_visible => {
-                        chart.series.forEach(s => {
-                            s.setVisible(is_visible, false);
-                        });
-                        chart.redraw();
-                    };
-
-                    const { height, width } = chart.legend.contentGroup.getBBox();
-                    const x = legend.translateX + item.legendGroup.translateX + width - 40;
-                    const y = legend.translateY + height - 20;
-                    chart.renderer.button("Show All", x, y, () => fn(true))
-                    .add();
-                    chart.renderer.button("Hide All", x + 75, y, () => fn(false))
-                    .add();
                 }
             }, is_end_of_shift);
 
@@ -561,59 +702,82 @@ function SurficialGraph (props) {
         }
     }, [save_svg_now]);
 
+    useEffect(() => {
+        const { current: { chart } } = chartRef;
+        if (selected_marker) {
+            chart.series.forEach(s => {
+                const bool = selected_marker === s.name;
+                s.setVisible(bool, false);
+            });
+            chart.redraw();
+            chart.reflow();
+        }
+    }, [selected_marker]);
+
     const input_obj = { site_code, timestamps };
     const options = prepareOptions(input_obj, surficial_data, width, setEditModal, setChosenPointCopy, is_end_of_shift);
     const graph_component = createSurficialGraph(options, chartRef);
 
     return (
         <Fragment>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>                
-                { !disable_back && <BackToMainButton 
-                    {...props}
-                    selected={selected}
-                    setSelected={setSelected}
-                    setSelectedRangeInfo={setSelectedRangeInfo}
-                /> }
+            <Grid 
+                container spacing={2} 
+                justify="space-between"
+                alignItems="stretch"
+            >
+                <Grid container item xs={12} style={{ marginBottom: 16 }}>
+                    {
+                        !disable_back && <Grid item sm><BackToMainButton {...props}/></Grid>
+                    }
 
-                { surficial_data.length > 0 && !disable_marker_list && (
-                    <ButtonGroup
-                        variant="contained"
-                        color="primary"
-                        size="small"
-                        aria-label="Site markers button group"
-                    >
-                        <Button disabled style={{ color: "#000000" }}>Marker</Button>
+                    <Grid item container sm justify="flex-end">
+                        { !disable_marker_list && surficial_data.length > 0 && (
+                            <SurficialMarkersButton
+                                width={width}
+                                url={url}
+                                selectedMarker={selected_marker}
+                                surficialData={surficial_data}
+                            />
+                        )}
 
-                        {
-                            isWidthDown(width, "sm") ? (surficial_data.map(marker => {
-                                const { marker_name, marker_id } = marker;
-                                return (
-                                    <Button 
-                                        component={Link}
-                                        to={`${url}/${marker_name}`}
-                                        key={marker_id}
-                                    >
-                                        {marker_name}
-                                    </Button> 
-                                );
-                            })) : (<Button
-                                color="primary"
-                                variant="contained"
-                                size="small"
-                                // aria-owns={open ? "menu-list-grow" : undefined}
-                                // aria-haspopup="true"
-                                // onClick={handleToggle}
-                            >
-                                <ArrowDropDown />
-                            </Button>)
+                        <DateRangeSelector
+                            selectedRangeInfo={selected_range_info}
+                            setSelectedRangeInfo={setSelectedRangeInfo}
+                        />
+                    </Grid>
+                </Grid>
+            
+                <Grid
+                    item xs={12}
+                    md={ selected_marker ? 7 : 12}
+                    lg={ selected_marker ? 8 : 12}
+                >
+                    <Paper elevation={2}>
+                        {graph_component}
+                    </Paper>
+                </Grid>
+            
+                <Route path={`${url}/:marker_name`} render={
+                    props => {
+                        const { match: { params: { marker_name } } } = props;
+                        setSelectedMarker(marker_name);
+
+                        let marker = null;
+                        if (surficial_data.length !== 0) {
+                            marker = surficial_data.find(x => x.marker_name === marker_name);
                         }
-                    </ButtonGroup> 
-                )}
-            </div>
 
-            <Paper style={{ marginTop: 24 }}>
-                {graph_component}
-            </Paper>
+                        return (
+                            <Grid item xs={12} md={5} lg={4}>
+                                <MarkerHistoryTable
+                                    markerInfo={marker}
+                                    markerName={marker_name}
+                                />
+                            </Grid>
+                        );
+                    }
+                } />
+            </Grid>
 
             <UpdateDeleteModal 
                 chosenPoint={chosen_point}
@@ -623,12 +787,6 @@ function SurficialGraph (props) {
                 siteCode={site_code}
                 setRedrawChart={setRedrawChart}
             />
-
-            <Route path={`${url}/:marker_name`} render={
-                props => {
-                    return "print here";
-                }
-            } />
         </Fragment>
     );
 }
