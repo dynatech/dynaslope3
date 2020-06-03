@@ -3,9 +3,9 @@ import React, { Fragment, useState, useEffect, useRef } from "react";
 import { 
     IconButton, Typography, Divider,
     Grid, Chip, makeStyles, Avatar,
-    Button
+    Button, Menu, MenuItem
 } from "@material-ui/core";
-import { KeyboardArrowLeft } from "@material-ui/icons";
+import { KeyboardArrowLeft, MoreVert, More } from "@material-ui/icons";
 
 import ContentLoader from "react-content-loader";
 import { useSnackbar } from "notistack";
@@ -22,6 +22,7 @@ import {
 import { mobileUserFormatter } from "./MessageList";
 import { sendMessage } from "../ajax";
 import { getCurrentUser } from "../../sessions/auth";
+import SaveContactModal from "./SaveContactModal";
 
 const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
@@ -110,18 +111,28 @@ const ChatLoader = props => {
     );
 };
   
-function recipientFormatter (mobile_details, classes) {
+function RecipientFormatter (props) {
+    const { mobile_details, classes, saveNumberModal } = props;
     const { user_details, sim_num } = mobile_details;
     const sim_number = simNumFormatter(sim_num);
     let sender = sim_number;
     let orgs = [];
-
+    const [ anchorEl, setAnchor ] = useState(null);
+    
     const is_unknown = user_details === null;
     if (!is_unknown) {
         const { sender: s, orgs: o } = mobileUserFormatter(user_details);
         sender = s;
         orgs = o;
     }
+
+    const handleClick = event => {
+        setAnchor(event.currentTarget);
+    };
+
+    const handleClose = () => {
+        setAnchor(null);
+    };
 
     return (
         <div style={{ display: "flex", alignItems: "center" }}>
@@ -134,9 +145,10 @@ function recipientFormatter (mobile_details, classes) {
                     container
                     spacing={0} 
                     justify="flex-start"
-                    alignItems="flex-end"
+                    alignItems="center"
                 >
-                    <Grid item className={classes.noFlexGrow}>
+
+                    <Grid item xs className={classes.noFlexGrow}>
                         <Typography 
                             variant="body1" 
                             style={{ marginRight: 8 }}
@@ -154,6 +166,43 @@ function recipientFormatter (mobile_details, classes) {
                             );
                         })
                     }
+                    {
+                        <Grid 
+                            item xs 
+                            style={{ 
+                                textAlign: "right",
+                                flexGrow: 1,
+                                flexBasis: "auto" 
+                            }}
+                        >
+                            {/* onClick={() => saveNumberModal()} */}
+                            <IconButton 
+                                size="small"
+                                aria-controls="simple-menu"
+                                aria-haspopup="true"
+                                onClick={handleClick}
+                            >
+                                <MoreVert/>
+                            </IconButton>
+                            <Menu
+                                id="simple-menu"
+                                anchorEl={anchorEl}
+                                keepMounted
+                                open={Boolean(anchorEl)}
+                                onClose={handleClose} 
+                            >
+                                <MenuItem
+                                    style={{ 
+                                        fontSize: 12
+                                    }}
+                                    key="save_unknown" 
+                                    onClick={() => saveNumberModal()}>
+                                Save Number
+                                </MenuItem>
+                            </Menu>
+                        </Grid>
+                    }
+                    
                 </Grid>
                 {
                     !is_unknown && (
@@ -165,6 +214,8 @@ function recipientFormatter (mobile_details, classes) {
                         </Typography>
                     )
                 }
+
+                
             </div>
         </div>
     );
@@ -183,11 +234,10 @@ function ConversationWindow (props) {
         messageCollection, socket
     } = props;
     const classes = useStyles();
-
     const current_user = getCurrentUser();
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-
+    const [open_save_contact_modal, setSaveContactModal] = useState(false);
     const [conversation_details, setConversationDetails] = useState({
         message_list: null,
         mobile_details: {}
@@ -291,6 +341,10 @@ function ConversationWindow (props) {
         });
     };
 
+    const saveNumberModal = () => {
+        setSaveContactModal(true);
+    };
+
     const convo_end_ref = useRef(null);
     const [scrollToBottom, setScrollToBottom] = useState(false);
     useEffect(() => {
@@ -318,7 +372,10 @@ function ConversationWindow (props) {
                                 <KeyboardArrowLeft className={classes.backIcon} />
                             </IconButton>
                      
-                            { recipientFormatter(mobile_details, classes) }
+                            { <RecipientFormatter 
+                                mobile_details={mobile_details}
+                                classes={classes} 
+                                saveNumberModal={saveNumberModal}/> }
                         </div>
                     </div>
             }
@@ -351,6 +408,12 @@ function ConversationWindow (props) {
             <div 
                 style={{ "float": "left", clear: "both" }}
                 ref={convo_end_ref} 
+            />
+
+            <SaveContactModal
+                open={open_save_contact_modal}
+                setSaveContactModal={setSaveContactModal}
+                mobileDetails={mobile_details}
             />
         </Fragment>
     );
