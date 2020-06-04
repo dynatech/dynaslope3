@@ -6,9 +6,10 @@
 from datetime import datetime
 from connection import DB
 from src.models.issues_and_reminders import IssuesAndReminders, IssuesRemindersSitePostings
-from src.utils.monitoring import get_current_monitoring_instance_per_site
+from src.models.monitoring import MonitoringEvents
+from src.utils.monitoring import get_latest_monitoring_event_per_site
 from src.utils.extra import (
-    var_checker, get_process_status_log,
+    var_checker, get_process_status_log
 )
 
 
@@ -28,7 +29,7 @@ def write_iar_transaction_entry(iar_id, is_event_entry, site_id=None):
     """
     event_id = None
     if is_event_entry:
-        event = get_current_monitoring_instance_per_site(site_id)
+        event = get_latest_monitoring_event_per_site(site_id)
         if event:
             event_id = event.event_id
 
@@ -191,6 +192,8 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
     print(get_process_status_log("get_issues_and_reminders", "start"))
 
     iar = IssuesAndReminders
+    iarp = IssuesRemindersSitePostings
+    me = MonitoringEvents
 
     postings = DB.joinedload("postings")
     base = iar.query.options(
@@ -210,9 +213,11 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
             base = base.filter(iar.detail.ilike("%" + search + "%"))
 
         if not include_expired:
+            ts_now = datetime.now()
+            base = base.join(iarp).join(me).filter(me.validity > ts_now)
             base = base.filter(
                 DB.or_(
-                    iar.ts_expiration > datetime.now(),
+                    iar.ts_expiration > ts_now,
                     iar.ts_expiration.is_(None)
                 )
             )

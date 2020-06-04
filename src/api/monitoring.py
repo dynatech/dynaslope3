@@ -23,17 +23,15 @@ from src.utils.monitoring import (
     get_moms_id_list, get_internal_alert_symbols,
     get_monitoring_events, get_active_monitoring_events,
     get_monitoring_releases, get_monitoring_events_table,
-    get_current_monitoring_instance_per_site, get_public_alert,
+    get_latest_monitoring_event_per_site, get_public_alert,
     get_ongoing_extended_overdue_events, get_max_possible_alert_level,
     get_latest_release_per_site, get_saved_event_triggers,
     get_monitoring_triggers, build_internal_alert_level,
-    get_monitoring_releases_by_data_ts, get_routine_sites,
-    get_unreleased_routine_sites,
+    get_monitoring_releases_by_data_ts, get_unreleased_routine_sites,
 
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
     compute_event_validity, round_to_nearest_release_time,
-    build_internal_alert_level,
 
     # Logic: Insert EWI specific
     is_new_monitoring_instance, start_new_monitoring_instance,
@@ -101,7 +99,7 @@ def get_current_monitoring_summary_per_site(site_id):
     Function dedicated to returning brief status of site
     """
 
-    current_site_event = get_current_monitoring_instance_per_site(
+    current_site_event = get_latest_monitoring_event_per_site(
         site_id=site_id)
     event_start = datetime.strftime(
         current_site_event.event_start, "%Y-%m-%d %H:%M:%S")
@@ -756,7 +754,7 @@ def insert_ewi(internal_json=None):
         if is_not_routine:
             try:
                 entry_type = 1  # Automatic, if entry_type 1, Mass ROUTINE Release
-                site_monitoring_instance = get_current_monitoring_instance_per_site(
+                site_monitoring_instance = get_latest_monitoring_event_per_site(
                     site_id)
 
                 if site_monitoring_instance:
@@ -826,7 +824,7 @@ def insert_ewi(internal_json=None):
                     var_checker("routine_site", routine_site, True)
 
                     routine_site_id = routine_site["value"]
-                    site_monitoring_instance = get_current_monitoring_instance_per_site(
+                    site_monitoring_instance = get_latest_monitoring_event_per_site(
                         routine_site_id)
                     if site_monitoring_instance:
                         site_status = site_monitoring_instance.status
@@ -1018,7 +1016,7 @@ def get_latest_cbewsl_ewi(site_id):
     latest release for the application.
 
     """
-    site_event = get_current_monitoring_instance_per_site(site_id)
+    site_event = get_latest_monitoring_event_per_site(site_id)
 
     latest_event_alert = site_event.event_alerts.order_by(
         DB.desc(MonitoringEventAlerts.ts_start)).first()

@@ -51,7 +51,9 @@ class SiteMarkers(DB.Model):
 
     history = DB.relationship(
         "MarkerHistory", backref=DB.backref("marker_copy", lazy="raise"),
-        lazy="subquery", primaryjoin="SiteMarkers.marker_id==foreign(MarkerHistory.marker_id)")
+        lazy="subquery", primaryjoin="SiteMarkers.marker_id==foreign(MarkerHistory.marker_id)",
+        order_by="desc(MarkerHistory.ts)"
+    )
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
@@ -772,11 +774,12 @@ class MarkerHistorySchema(MARSHMALLOW.ModelSchema):
     """
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     marker_name = fields.Nested(
-        "MarkerNamesSchema", many=True, exclude=("history",))
+        "MarkerNamesSchema", exclude=("history",))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = MarkerHistory
+        exclude = ["marker_copy"]
 
 
 class MarkerNamesSchema(MARSHMALLOW.ModelSchema):

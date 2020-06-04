@@ -623,12 +623,9 @@ def get_routine_sites(timestamp=None, include_inactive=False, only_site_code=Tru
     Utils counterpart of identifing the routine site per day.
     Returns "routine_sites" site_codes in a list as value.
 
-    E.g.:
-    {
-        "routine_sites": [
-            'bak', 'blc', 'cud', 'imu', 'ina'
-        ]
-    }
+    only_site_codes (bool) -    returns array of site codes if True
+                                ( e.g. ["bak", "blc"] )
+                                and array of site details if False
     """
     current_date = date.today()
 
@@ -1121,23 +1118,6 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
     return return_data
 
 
-def get_latest_monitoring_event_per_site(site_id):
-    """
-    Returns event details with corresponding site details. Receives an event_id from flask request.
-
-    Args: event_id
-
-    Note: From pubrelease.php getEvent
-    """
-    me = MonitoringEvents
-
-    event = me.query.options(DB.raiseload("*")) \
-        .order_by(DB.desc(MonitoringEvents.event_start)) \
-        .filter(MonitoringEvents.site_id == site_id).first()
-
-    return event
-
-
 def get_monitoring_events(event_id=None, include_test_sites=False):
     """
     Returns event details with corresponding site details. Receives an event_id from flask request.
@@ -1188,19 +1168,27 @@ def get_active_monitoring_events():
     return active_events
 
 
-def get_current_monitoring_instance_per_site(site_id):
+def get_latest_monitoring_event_per_site(site_id, raise_load=False):
     """
     This functions looks up at monitoring_events table and retrieves the current
     event details (whether it is a routine- or event-type)
 
     Args:
         site_id - mandatory Integer parameter
+        raise_load - do not load database relationships
     """
+
     event = MonitoringEvents
-    latest_event = event.query.options(
-        DB.subqueryload("event_alerts").raiseload("releases"),
-        DB.joinedload("site", innerjoin=True).raiseload("*")
-    ).order_by(DB.desc(event.event_id)) \
+
+    if raise_load:
+        query = event.query.options(DB.raiseload("*"))
+    else:
+        query = event.query.options(
+            DB.subqueryload("event_alerts").raiseload("releases"),
+            DB.joinedload("site", innerjoin=True).raiseload("*")
+        )
+
+    latest_event = query.order_by(DB.desc(event.event_id)) \
         .filter(event.site_id == site_id).first()
 
     return latest_event
