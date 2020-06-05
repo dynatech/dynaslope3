@@ -1,7 +1,9 @@
 """
 Organizations Model
 """
+
 from marshmallow import fields
+from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
 from src.models.sites import Sites
 
@@ -13,7 +15,7 @@ class Organizations(DB.Model):
 
     __tablename__ = "organizations"
     __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     org_id = DB.Column(DB.Integer, primary_key=True)
     scope = DB.Column(DB.Integer, nullable=True)
@@ -31,15 +33,16 @@ class UserOrganizations(DB.Model):
 
     __tablename__ = "user_organizations"
     __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     user_org_id = DB.Column(DB.Integer, primary_key=True)
     user_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.users.user_id"))
+        DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['commons_db']}.users.user_id"))
     site_id = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.sites.site_id"))
+        DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['commons_db']}.sites.site_id"))
     org_name = DB.Column(DB.String(45))
-    org_id = DB.Column(DB.Integer, DB.ForeignKey("commons_db.organizations.org_id"))
+    org_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['commons_db']}.organizations.org_id"))
     primary_contact = DB.Column(DB.Integer, nullable=True)
 
     site = DB.relationship(
@@ -59,7 +62,8 @@ class OrganizationsSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Organizations class
     """
 
-    users = fields.Nested("UserOrganizationsSchema", many=True, exclude=["organization"])
+    users = fields.Nested("UserOrganizationsSchema",
+                          many=True, exclude=["organization"])
 
     class Meta:
         """Saves table class structure as schema model"""
