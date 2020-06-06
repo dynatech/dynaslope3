@@ -33,6 +33,7 @@ gevent
 gevent-websocket
 flask-socketio
 img2pdf
+celery
 
 Analysis Scripts Library
 ------------------------

@@ -366,7 +366,8 @@ def wrap_get_active_monitoring_events():
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_ongoing_extended_overdue_events", methods=["GET"])
-def wrap_get_ongoing_extended_overdue_events():
+@MONITORING_BLUEPRINT.route("/monitoring/get_ongoing_extended_overdue_events/<ts>", methods=["GET"])
+def wrap_get_ongoing_extended_overdue_events(ts=None):
     """
     Gets active events and organizes them into the following categories:
         (a) Ongoing
@@ -374,7 +375,11 @@ def wrap_get_ongoing_extended_overdue_events():
         (c) Overdue
     For use in alerts_from_db in Candidate Alerts Generator
     """
-    ongoing_events = get_ongoing_extended_overdue_events()
+
+    if ts:
+        ts = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+
+    ongoing_events = get_ongoing_extended_overdue_events(run_ts=ts)
 
     return_data = []
     if ongoing_events:

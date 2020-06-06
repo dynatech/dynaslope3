@@ -31,7 +31,10 @@ def write_iar_transaction_entry(iar_id, is_event_entry, site_id=None):
     if is_event_entry:
         event = get_latest_monitoring_event_per_site(site_id)
         if event:
-            event_id = event.event_id
+            # NOTE: for further checking, only tag events not routine
+            # Check its effect on frontend (multiple sites)
+            if event.status == 2:
+                event_id = event.event_id
 
     new_issue = IssuesRemindersSitePostings(
         event_id=event_id,
@@ -175,7 +178,11 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_expiration
     return "success"
 
 
-def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site_ids=None, include_count=None, search=None, event_id=None, include_expired=None):
+def get_issues_and_reminders(
+    offset=None, limit=None, start=None, end=None,
+    site_ids=None, include_count=None, search=None,
+    event_id=None, include_expired=None
+):
     """
         Returns one or more row/s of narratives.
 
@@ -204,6 +211,10 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
 
     if start and end:
         base = base.filter(iar.ts_posted.between(start, end))
+    elif start:
+        base = base.filter(start < iar.ts_posted)
+    elif end:
+        base = base.filter(iar.ts_posted <= end)
 
     if not include_expired:
         base = base.filter(iar.resolution.is_(None))
@@ -214,11 +225,21 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
 
         if not include_expired:
             ts_now = datetime.now()
-            base = base.join(iarp).join(me).filter(me.validity > ts_now)
+            base = base.join(iarp, isouter=True).join(
+                me, isouter=True)
             base = base.filter(
                 DB.or_(
-                    iar.ts_expiration > ts_now,
-                    iar.ts_expiration.is_(None)
+                    DB.and_(
+                        DB.or_(
+                            iar.ts_expiration > ts_now,
+                            iar.ts_expiration.is_(None)
+                        ),
+                        iarp.event_id.is_(None)
+                    ),
+                    DB.and_(
+                        iarp.event_id.isnot(None),
+                        me.validity > ts_now
+                    )
                 )
             )
 
@@ -237,6 +258,23 @@ def get_issues_and_reminders(offset=None, limit=None, start=None, end=None, site
 
     print(get_process_status_log("get_issues_and_reminders", "end"))
     return return_data
+
+
+def get_nearest_issue_expiration(ts=None):
+    """
+    """
+
+    if not ts:
+        ts = datetime.now()
+
+    iar = IssuesAndReminders
+    result = iar.query.options(DB.raiseload("*")) \
+        .filter(iar.ts_expiration > ts,
+                iar.ts_expiration.isnot(None),
+                iar.ts_resolved.is_(None)) \
+        .order_by(iar.ts_expiration).limit(1).first()
+
+    return None if not result else result.ts_expiration
 
 
 def get_issues_count(q):
