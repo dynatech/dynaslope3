@@ -9,7 +9,8 @@ from flask import Blueprint, jsonify, request
 from connection import DB
 from src.models.analysis import SiteMarkersSchema, MarkerHistorySchema
 from src.utils.surficial import (
-    get_surficial_markers, get_surficial_data, delete_surficial_data
+    get_surficial_markers, get_surficial_data, delete_surficial_data,
+    create_new_marker, insert_marker_event, insert_new_marker_name
 )
 from analysis_scripts.analysis.surficial import markeralerts
 from src.utils.extra import var_checker
@@ -95,8 +96,8 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
         marker_history = MarkerHistorySchema(
             many=True).dump(marker_row.history).data
 
-        data_set = list(filter(lambda x: x.marker_id
-                               == marker_id, surficial_data))
+        data_set = list(filter(lambda x: x.marker_id ==
+                               marker_id, surficial_data))
         marker_string_dict = {
             "marker_id": marker_id,
             "marker_name": marker_name,
@@ -215,14 +216,70 @@ def wrap_delete_surficial_data():
     return jsonify(return_val)
 
 
-@SURFICIAL_BLUEPRINT.route("/surficial/get_surficial_marker_trending_data/<site_code>/<marker_name>/<ts>", methods=["GET"])
-def get_surficial_marker_trending_data(site_code, marker_name, ts):
+@SURFICIAL_BLUEPRINT.route("/surficial/insert_marker_event", methods=["POST"])
+def wrap_insert_marker_event():
     """
     """
 
-    site_id = 27
-    marker_id = 89
-    ts = "2019-11-20 08:00:00"
+    return_json = request.get_json()
+    event = return_json["event"]
+    ts = datetime.strptime(return_json["ts"], "%Y-%m-%d %H:%M:%S")
+    marker_id = return_json["marker_id"]
+
+    try:
+        if event not in ["add", "rename", "reposition", "decommission"]:
+            raise Exception(
+                "Only 'add', 'rename', 'reposition', 'decommission' allowed as events")
+
+        if event == "add":
+            marker = create_new_marker(return_json["site_code"])
+            marker_id = marker.marker_id
+
+        history = insert_marker_event(marker_id, ts, event)
+        history_id = history.history_id
+
+        if event in ["add", "rename"]:
+            insert_new_marker_name(history_id, return_json["marker_name"])
+
+        DB.session.commit()
+
+        message = "Successfully added marker event!"
+        status = "success"
+    except Exception as e:
+        DB.session.rollback()
+        message = f"Error encountered: {e}"
+        status = "error"
+        print(e)
+
+    return jsonify({
+        "message": message,
+        "status": status
+    })
+
+
+@SURFICIAL_BLUEPRINT.route("/surficial/get_surficial_marker_trending_data/<site_code>/<marker_name>/<ts>", methods=["GET"])
+def get_surficial_marker_trending_data(site_code, marker_name, ts):
+    """
+    Get trending data
+    """
+
+    # Sample Data
+    # site_id = 27
+    # marker_id = 89
+    # ts = "2019-11-20 08:00:00"
+
+    markers = get_surficial_markers(site_code=site_code)
+    marker_row = next(
+        (row for row in markers if row.marker_name == marker_name), None)
+
+    if marker_row:
+        marker_id = marker_row.marker_id
+        site_id = marker_row.site_id
+    else:
+        return json.dumps({
+            "status": "error",
+            "message": f"Marker name of Site {site_code.upper()} not existing."
+        })
 
     data = markeralerts.generate_surficial_alert(
         site_id=site_id, ts=ts, marker_id=marker_id, to_json=True)

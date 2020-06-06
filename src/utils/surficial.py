@@ -7,7 +7,8 @@ from datetime import datetime, timedelta
 from connection import DB
 from src.models.analysis import (
     SiteMarkers, MarkerData as md,
-    MarkerObservations as mo, MarkerAlerts as ma)
+    MarkerObservations as mo, MarkerAlerts as ma,
+    Markers, MarkerHistory, MarkerNames)
 from src.models.sites import Sites
 from src.utils.extra import (
     var_checker, round_to_nearest_release_time,
@@ -264,3 +265,43 @@ def update(column, key, table, data):
         except:
             print("There is a problem on fnx update.")
     return "Process Done"
+
+
+def create_new_marker(site_code=None):
+    if not site_code:
+        raise Exception("No site code given")
+
+    site = Sites.query.options(DB.raiseload("*")) \
+        .filter_by(site_code=site_code).first()
+
+    if not site:
+        raise Exception("Site code not found")
+
+    new = Markers(site_id=site.site_id, in_use=1)
+
+    DB.session.add(new)
+    DB.session.flush()
+
+    return new
+
+
+def insert_marker_event(marker_id, ts, event):
+    history = MarkerHistory(
+        marker_id=marker_id,
+        ts=ts,
+        event=event
+    )
+
+    DB.session.add(history)
+    DB.session.flush()
+
+    return history
+
+
+def insert_new_marker_name(history_id, marker_name):
+    name = MarkerNames(
+        history_id=history_id,
+        marker_name=marker_name
+    )
+
+    DB.session.add(name)

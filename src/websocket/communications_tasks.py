@@ -5,7 +5,7 @@ import traceback
 from datetime import datetime
 from flask import request
 from flask_socketio import join_room, leave_room
-from connection import SOCKETIO, DB
+from connection import SOCKETIO, DB, CELERY
 from src.utils.extra import (
     set_data_to_memcache, retrieve_data_from_memcache,
     var_checker
@@ -39,9 +39,8 @@ from src.utils.monitoring import get_ongoing_extended_overdue_events, get_routin
 from src.utils.contacts import get_sites_with_ground_meas
 from src.utils.manifestations_of_movements import get_moms_report
 
-
-set_data_to_memcache(name="CLIENTS", data=[])
-set_data_to_memcache(name="ROOM_MOBILED_IDS", data={})
+set_data_to_memcache(name="COMMS_CLIENTS", data=[])
+set_data_to_memcache(name="ROOM_MOBILE_IDS", data={})
 set_data_to_memcache(name="CB_MESSAGES", data={
     "inbox": [],
     "unsent": []
@@ -51,29 +50,40 @@ set_data_to_memcache(name="CONTACTS_MOBILE", data=[])
 set_data_to_memcache(name="BLOCKED_CONTACTS", data=[])
 
 
-def emit_data(keyword):
+def emit_data(keyword, sid=None):
     """
     """
 
     if keyword == "receive_latest_messages":
         data_to_emit = retrieve_data_from_memcache("CB_MESSAGES")
+    elif keyword == "receive_all_contacts":
+        data_to_emit = retrieve_data_from_memcache("CONTACTS_USERS")
+    elif keyword == "receive_all_mobile_numbers":
+        data_to_emit = retrieve_data_from_memcache("CONTACTS_MOBILE")
 
-    SOCKETIO.emit(keyword, data_to_emit, namespace="/communications")
+    if sid:
+        SOCKETIO.emit(keyword, data_to_emit, to=sid,
+                      namespace="/communications")
+    else:
+        SOCKETIO.emit(keyword, data_to_emit, namespace="/communications")
 
 
+@CELERY.task(name="communication_background_task", ignore_results=True)
 def communication_background_task():
+    """
+    """
+
+    print()
+    system_time = datetime.strftime(
+        datetime.now(), "%Y-%m-%d %H:%M:%S")
+    print(f"{system_time} | Communication Background Task Running...")
+
+    main()
     messages = retrieve_data_from_memcache("CB_MESSAGES")
     inbox_messages_arr = messages["inbox"]
-    is_first_run = False
-    ground_meas_run = False
-    run_narrative = False
 
     while True:
         try:
-            process_no_ground_data_narrative(run_narrative)
-            is_first_run, ground_meas_run = process_ground_measurement_reminder(
-                is_first_run, ground_meas_run)
-
             updates = get_sms_user_updates()
             updates_len = len(updates)
             update_process_start = datetime.now()
@@ -183,33 +193,26 @@ def update_mobile_id_room(mobile_id):
 @SOCKETIO.on("connect", namespace="/communications")
 def connect():
     sid = request.sid
-    clients = retrieve_data_from_memcache("CLIENTS")
+    clients = retrieve_data_from_memcache("COMMS_CLIENTS")
     clients.append(sid)
-    set_data_to_memcache(name="CONTACTS_USERS", data=clients)
+    set_data_to_memcache(name="COMMS_CLIENTS", data=clients)
 
     print("")
     print("Connected:", sid)
     print(f"Comms: {len(clients)}")
     print("")
 
-    messages = retrieve_data_from_memcache("CB_MESSAGES")
-    contacts_users = retrieve_data_from_memcache("CONTACTS_USERS")
-    contacts_mobile = retrieve_data_from_memcache("CONTACTS_MOBILE")
-
-    SOCKETIO.emit("receive_latest_messages", messages,
-                  room=sid, namespace="/communications")
-    SOCKETIO.emit("receive_all_contacts", contacts_users,
-                  room=sid, namespace="/communications")
-    SOCKETIO.emit("receive_all_mobile_numbers", contacts_mobile,
-                  room=sid, namespace="/communications")
+    emit_data("receive_latest_messages", sid)
+    emit_data("receive_all_contacts", sid)
+    emit_data("receive_all_mobile_numbers", sid)
 
 
 @SOCKETIO.on("disconnect", namespace="/communications")
 def disconnect():
     sid = request.sid
-    clients = retrieve_data_from_memcache("CLIENTS")
+    clients = retrieve_data_from_memcache("COMMS_CLIENTS")
     clients.remove(sid)
-    set_data_to_memcache(name="CONTACTS_USERS", data=clients)
+    set_data_to_memcache(name="COMMS_CLIENTS", data=clients)
 
     room_mobile_ids = retrieve_data_from_memcache("ROOM_MOBILE_IDS")
     for row in room_mobile_ids.values():
@@ -228,9 +231,7 @@ def disconnect():
 @SOCKETIO.on("get_latest_messages", namespace="/communications")
 def wrap_get_latest_messages():
     sid = request.sid
-    messages = retrieve_data_from_memcache("CB_MESSAGES")
-    SOCKETIO.emit("receive_latest_messages", messages,
-                  room=sid, namespace="/communications")
+    emit_data("receive_latest_messages", sid)
 
 
 @SOCKETIO.on("join_mobile_id_room", namespace="/communications")
@@ -271,7 +272,7 @@ def join_mobile_id_room(mobile_id):
                   room_mobile_ids[mobile_id]["details"], room=sid, namespace="/communications")
 
     print(f"Entered Room {mobile_id}: {sid}")
-    print(f"Open rooms: {room_mobile_ids.keys()}")
+    print(f"Open rooms: {list(room_mobile_ids.keys())}")
 
 
 @SOCKETIO.on("leave_mobile_id_room", namespace="/communications")
@@ -295,7 +296,7 @@ def leave_mobile_id_room(mobile_id):
     leave_room(mobile_id)
 
     print(f"Left Room {mobile_id}: {sid}")
-    print(f"Open rooms: {room_mobile_ids.keys()}")
+    print(f"Open rooms: {list(room_mobile_ids.keys())}")
 
 
 @SOCKETIO.on("get_search_results", namespace="/communications")
@@ -317,25 +318,20 @@ def send_message_to_db(payload):
 @SOCKETIO.on("get_all_contacts", namespace="/communications")
 def wrap_get_all_contacts():
     sid = request.sid
-    contacts_users = retrieve_data_from_memcache("CONTACTS_USERS")
-    SOCKETIO.emit("receive_all_contacts", contacts_users,
-                  room=sid, namespace="/communications")
+    emit_data("receive_all_contacts", sid)
 
 
 @SOCKETIO.on("update_all_contacts", namespace="/communications")
 def wrap_update_all_contacts():
     contacts_users = get_contacts(orientation="users")
-    set_data_to_memcache(name="CONTACTS_USERS", data="contacts_users")
-    SOCKETIO.emit("receive_all_contacts", contacts_users,
-                  namespace="/communications")
+    set_data_to_memcache(name="CONTACTS_USERS", data=contacts_users)
+    emit_data("receive_all_contacts")
 
 
 @SOCKETIO.on("get_all_mobile_numbers", namespace="/communications")
 def wrap_get_all_mobile_numbers():
     sid = request.sid
-    contacts_mobile = retrieve_data_from_memcache("CONTACTS_MOBILE")
-    SOCKETIO.emit("receive_all_mobile_numbers", contacts_mobile,
-                  room=sid, namespace="/communications")
+    emit_data("receive_all_mobile_numbers", sid)
 
 
 def get_inbox():
@@ -346,117 +342,116 @@ def get_contacts(orientation):
     return get_all_contacts(return_schema=True, orientation=orientation)
 
 
-def process_ground_measurement_reminder(is_first_run, ground_meas_run):
+@CELERY.task(name="ground_data_reminder_bg_task", ignore_results=True)
+def ground_data_reminder_bg_task():
+    """
+    """
+
     ts_now = datetime.now()
-    if ts_now.hour in [5, 9, 13] and ts_now.minute == 30:
-        if not is_first_run:
-            is_first_run = True
-            ground_meas_run = True
-    else:
-        ground_meas_run = False
-        is_first_run = False
+    recipients_group = get_ground_measurement_reminder_recipients(ts_now)
 
-    if ground_meas_run:
-        ground_meas_run = False
-        recipients_group = get_ground_measurement_reminder_recipients(ts_now)
+    for row in recipients_group:
+        recipients = row["recipients"]
+        monitoring_type = row["type"]
+        site_recipients_dict = {}
 
-        for row in recipients_group:
-            recipients = row["recipients"]
-            monitoring_type = row["type"]
-            site_recipients_dict = {}
+        if recipients:
+            for recipient in recipients:
+                mobile_numbers = recipient["mobile_numbers"]
+                numbers_list = map(
+                    lambda x: x["mobile_number"], mobile_numbers)
+                site_id = recipient["organizations"][0]["site"]["site_id"]
+                site_recipients_dict.setdefault(
+                    site_id, []).extend(numbers_list)
 
-            if recipients:
-                for recipient in recipients:
-                    mobile_numbers = recipient["mobile_numbers"]
-                    numbers_list = map(
-                        lambda x: x["mobile_number"], mobile_numbers)
-                    site_id = recipient["organizations"][0]["site"]["site_id"]
-                    site_recipients_dict.setdefault(
-                        site_id, []).extend(numbers_list)
+            for site_id, site_recipients in site_recipients_dict.items():
+                message = create_ground_measurement_reminder(
+                    site_id, monitoring_type, ts_now)
 
-                for site_id, site_recipients in site_recipients_dict.items():
-                    message = create_ground_measurement_reminder(
-                        site_id, monitoring_type, ts_now)
+                outbox_id = insert_message_on_database({
+                    "sms_msg": message,
+                    "recipient_list": site_recipients
+                })
 
-                    outbox_id = insert_message_on_database({
-                        "sms_msg": message,
-                        "recipient_list": site_recipients
-                    })
+                ts = datetime.now()
+                default_user_id = 2
 
-                    ts = datetime.now()
-                    default_user_id = 2
+                # Tag message
+                tag_details = {
+                    "outbox_id": outbox_id,
+                    "user_id": default_user_id,
+                    "ts": ts
+                }
 
-                    # Tag message
-                    tag_details = {
-                        "outbox_id": outbox_id,
-                        "user_id": default_user_id,
-                        "ts": ts
-                    }
+                tag_id = 10  # NOTE: for refactoring, GroundMeasReminder id on sms_tags
+                insert_data_tag("smsoutbox_user_tags", tag_details, tag_id)
 
-                    tag_id = 10  # NOTE: for refactoring, GroundMeasReminder id on sms_tags
-                    insert_data_tag("smsoutbox_user_tags", tag_details, tag_id)
-
-                    # Add narratives
-                    narrative = f"Sent surficial ground data reminder for {monitoring_type} monitoring"
-                    event_id = find_narrative_event_id(ts, site_id)
-                    write_narratives_to_db(
-                        site_id, ts, narrative, 1, default_user_id, event_id=event_id)
-
-    return is_first_run, ground_meas_run
+                # Add narratives
+                narrative = f"Sent surficial ground data reminder for {monitoring_type} monitoring"
+                event_id = find_narrative_event_id(ts, site_id)
+                write_narratives_to_db(
+                    site_id, ts, narrative, 1, default_user_id, event_id=event_id)
 
 
-def process_no_ground_data_narrative(run_narrative):
-    ts_now = datetime.now()
-    hour = ts_now.hour
-    minute = ts_now.minute
+@CELERY.task(name="no_ground_data_narrative_bg_task", ignore_results=True)
+def no_ground_data_narrative_bg_task():
+    """
+    """
 
-    is_routine = False
-    routine_sites = []
-    if hour in [7, 11, 13] and minute == 59:
-        run_narrative = True
-        if hour == 11 and minute == 59:
-            routine_sites = get_routine_sites(
-                timestamp=ts_now, only_site_code=False)
-            if routine_sites:
-                is_routine = True
+    ts = datetime.now()
+    events = get_ongoing_extended_overdue_events(ts)
+    latest_events = events["latest"]
 
-    if run_narrative:
-        run_narrative = False
-        leo = get_ongoing_extended_overdue_events(ts_now)
-        latest_events = leo["latest"]
-        timestamp = ts_now.replace(minute=59)
-        default_user_id = 2
+    routine_sites = None
+    if ts.hour == 11:
+        routine_sites = get_routine_sites(
+            timestamp=ts, only_site_code=False)
 
-        for row in latest_events:
-            event = row["event"]
-            site_id = event["site_id"]
-            event_id = event["event_id"]
-            alert_level = row["public_alert_symbol"]["alert_level"]
+    for row in latest_events:
+        event = row["event"]
+        site_id = event["site_id"]
+        event_id = event["event_id"]
+        alert_level = row["public_alert_symbol"]["alert_level"]
 
-            if alert_level != 0:
-                narrative, result = check_ground_data_and_prepare_narrative(
-                    site_id, timestamp, 3, 59)
+        if alert_level != 0:
+            process_no_ground_narrative_writing(ts, site_id, 3, event_id)
 
-                if not result:
-                    write_narratives_to_db(
-                        site_id, timestamp, narrative, 1, default_user_id, event_id=event_id)
+        if routine_sites:
+            index = next(index for index, site in enumerate(routine_sites)
+                         if site.site_id == site_id)
+            del routine_sites[index]
 
-                if is_routine:
-                    index = next(index for index, site in enumerate(routine_sites)
-                                 if site.site_id == site_id)
-                    del routine_sites[index]
+    if routine_sites:
+        extended_events = events["extended"]
+        merged = routine_sites + extended_events
 
-        if is_routine:
-            is_routine = False
-            for site in routine_sites:
-                site_id = site.site_id
-                narrative, result = check_ground_data_and_prepare_narrative(
-                    site_id, timestamp, 6, 59)
+        for row in merged:
+            try:
+                site_id = row.site_id
+                event_id = None
+            except AttributeError:
+                ev = row["event"]
+                site_id = ev["site_id"]
+                event_id = ev["event_id"]
 
-                if not result:
-                    event_id = find_narrative_event_id(ts_now, site_id)
-                    write_narratives_to_db(
-                        site_id, timestamp, narrative, 1, default_user_id, event_id=event_id)
+            process_no_ground_narrative_writing(ts, site_id, 6, event_id)
+
+
+def process_no_ground_narrative_writing(ts, site_id, timedelta_hour, event_id):
+    """
+    """
+
+    default_user_id = 2  # Dynaslope User
+
+    narrative, result = check_ground_data_and_prepare_narrative(
+        site_id, ts, timedelta_hour, 59)
+
+    if not result:
+        if not event_id:
+            event_id = find_narrative_event_id(ts, site_id)
+
+        write_narratives_to_db(
+            site_id, ts, narrative, 1, default_user_id, event_id=event_id)
 
 
 def check_ground_data_and_prepare_narrative(site_id, timestamp, hour, minute):
@@ -485,3 +480,7 @@ def main():
     set_data_to_memcache(name="CONTACTS_USERS", data=contacts_users)
     set_data_to_memcache(name="CONTACTS_MOBILE", data=contacts_mobile)
     set_data_to_memcache(name="BLOCKED_CONTACTS", data=blocked_contacts)
+
+    emit_data("receive_latest_messages")
+    emit_data("receive_all_contacts")
+    emit_data("receive_all_mobile_numbers")

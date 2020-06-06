@@ -131,15 +131,6 @@ function MomsInputFields (props) {
             </Grid>
 
             <Grid item xs={12} sm={6} md={6}>
-                {/* <SelectMultipleWithSuggest
-                    label="Reporter"
-                    options={options.reporter}
-                    value={moms.reporter}
-                    changeHandler={update_field("reporter")}
-                    placeholder="Select reporter"
-                    renderDropdownIndicator
-                    openMenuOnClick
-                /> */}
                 <DynaslopeUserSelectInputForm
                     variant="standard"
                     label="Reporter"
@@ -189,7 +180,6 @@ function MomsForm (props) {
     const select_site = typeof selectSite === "undefined" ? false : selectSite;
     const [isAddingNewInstance, setIsAddingNewInstance] = useState(false);
     const [isNoneEntrySelected, setIsNoneEntrySelected] = useState(false);
-    // const [site, setSite] = useState("");
 
     const addInstanceFn = () => setMomsEntries({ action: "ADD_INSTANCE" });
     const updateField = key => attribute => event => {
@@ -201,10 +191,12 @@ function MomsForm (props) {
             if (event.label === "(Add new instance)") setIsAddingNewInstance(true);
             else setIsAddingNewInstance(false);
         }
+
         if (group_1.includes(attribute)) {
             value = event;
         } else if (group_2.includes(attribute)) {
-            value = event.target.value;
+            const { value: v } = event.target;
+            value = v;
         }
 
         setMomsEntries({

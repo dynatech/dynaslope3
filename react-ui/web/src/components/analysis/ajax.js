@@ -63,14 +63,28 @@ export function updateSurficialData (input, callback) {
 }
 
 export function getSurficialMarkerTrendingData (input, callback) {
-    const { site_code, marker_name, ts_end } = input;
+    const { site_code, marker_name, ts } = input;
     const api_link = `${host}/api/surficial/get_surficial_marker_trending_data/` +
-        `${site_code}/${marker_name}/${ts_end}`;
+        `${site_code}/${marker_name}/${ts}`;
 
     axios.get(api_link)
     .then(response => {
         const { data } = response;
         console.log("Surficial Marker Trending Data", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function insertMarkerEvent (input, callback) {
+    const api_link = `${host}/api/surficial/insert_marker_event`;
+
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log(data);
         callback(data);
     })
     .catch(error => {

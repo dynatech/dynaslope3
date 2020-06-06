@@ -73,3 +73,6 @@ tmp/
 
 #Run.py
 run.py
+
+# Celery-related
+celerybeat-schedule.*

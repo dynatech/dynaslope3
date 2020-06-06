@@ -157,8 +157,18 @@ class DriverContainer:
         print("Succesfully rendered PDF...")
 
 
-BROWSER_DRIVER = DriverContainer()
-# atexit.register(BROWSER_DRIVER.cleanup())
+BROWSER_DRIVER = None
+
+
+def create_browser_driver_instance():
+    global BROWSER_DRIVER
+    BROWSER_DRIVER = DriverContainer()
+
+
+@atexit.register
+def teardown_browser_driver():
+    if BROWSER_DRIVER:
+        BROWSER_DRIVER.cleanup()
 
 
 def prepare_symbols_list(internal_sym_ids):

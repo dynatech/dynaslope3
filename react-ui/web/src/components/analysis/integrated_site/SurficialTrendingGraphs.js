@@ -5,9 +5,11 @@ import highchartsMore from "highcharts/highcharts-more";
 import HighchartsReact from "highcharts-react-official";
 import moment from "moment";
 
-import { Button, ButtonGroup, withStyles, IconButton, Paper } from "@material-ui/core";
+import {
+    Grid, Button, Paper, Divider, LinearProgress
+} from "@material-ui/core";
+import { ArrowDropUp } from "@material-ui/icons";
 
-import GeneralStyles from "../../../GeneralStyles";
 import { getSurficialMarkerTrendingData } from "../ajax";
 
 highchartsMore(Highcharts);
@@ -31,7 +33,7 @@ if (Highcharts.VMLRenderer) {
 }
 
 function prepareMarkerAccelerationVsTimeChartOption (data, timestamps, input) {
-    const { site_code, marker_name, end_date } = input;
+    const { site_code, marker_name, ts } = input;
     
     return {
         series: data,
@@ -52,7 +54,7 @@ function prepareMarkerAccelerationVsTimeChartOption (data, timestamps, input) {
             y: 22
         },
         subtitle: {
-            text: `Source: <b>Marker ${marker_name}</b><br/>As of: <b>${moment(end_date).format("D MMM YYYY, HH:mm")}</b>`,
+            text: `Source: <b>Marker ${marker_name}</b><br/>Timestamp: <b>${moment(ts).format("D MMM YYYY, HH:mm")}</b>`,
             style: { fontSize: "13px" }
         },
         xAxis: {
@@ -110,7 +112,7 @@ function prepareMarkerAccelerationVsTimeChartOption (data, timestamps, input) {
 }
 
 function prepareMarkerInterpolationChartOption (data, input) {
-    const { site_code, marker_name, end_date } = input;
+    const { site_code, marker_name, ts } = input;
     return {
         series: data,
         time: { timezoneOffset: -8 * 60 },
@@ -131,7 +133,7 @@ function prepareMarkerInterpolationChartOption (data, input) {
             y: 22
         },
         subtitle: {
-            text: `Source: <b>Marker ${marker_name}</b><br/>As of: <b>${moment(end_date).format("D MMM YYYY, HH:mm")}</b>`,
+            text: `Source: <b>Marker ${marker_name}</b><br/>Timestamp: <b>${moment(ts).format("D MMM YYYY, HH:mm")}</b>`,
             style: { fontSize: "13px" }
         },
         xAxis: {
@@ -171,7 +173,7 @@ function prepareMarkerInterpolationChartOption (data, input) {
 }
 
 function prepareMarkerAccelerationChartOption (data, input) {
-    const { site_code, marker_name, ts_end } = input;
+    const { site_code, marker_name, ts } = input;
     return {
         series: data,
         time: { timezoneOffset: -8 * 60 },
@@ -192,7 +194,7 @@ function prepareMarkerAccelerationChartOption (data, input) {
             y: 22
         },
         subtitle: {
-            text: `Source: <b>Marker ${marker_name}</b><br/>As of: <b>${moment(ts_end).format("D MMM YYYY, HH:mm")}</b>`,
+            text: `Source: <b>Marker ${marker_name}</b><br/>Timestamp: <b>${moment(ts).format("D MMM YYYY, HH:mm")}</b>`,
             style: { fontSize: "13px" }
         },
         xAxis: {
@@ -275,31 +277,23 @@ function processDatasetForPlotting (data) {
 
 function prepareOptions (input, data) {
     const options = [];
+    data.forEach((chart_data) => {
+        const { dataset_name } = chart_data;
+        const series = processDatasetForPlotting(chart_data);
 
-    if (data.length === 0) {
-        options[0] = {
-            chart: { type: "bar" },
-            series: []
-        };
-    } else {
-        data.forEach((chart_data) => {
-            const { dataset_name } = chart_data;
-            const series = processDatasetForPlotting(chart_data);
-
-            let option;
-            if (dataset_name === "velocity_acceleration") {
-                option = prepareMarkerAccelerationChartOption(series, input);
-            } else if (dataset_name === "displacement_interpolation") {
-                option = prepareMarkerInterpolationChartOption(series, input);
-            } else if (dataset_name === "velocity_acceleration_time") {
-                const index = series.findIndex(x => x.name === "Timestamps");
-                const series_copy = JSON.parse(JSON.stringify(series));
-                const [timestamps] = series_copy.splice(index, 1);
-                option = prepareMarkerAccelerationVsTimeChartOption(series_copy, timestamps.data, input);
-            }
-            options.push(option);
-        });
-    }
+        let option;
+        if (dataset_name === "velocity_acceleration") {
+            option = prepareMarkerAccelerationChartOption(series, input);
+        } else if (dataset_name === "displacement_interpolation") {
+            option = prepareMarkerInterpolationChartOption(series, input);
+        } else if (dataset_name === "velocity_acceleration_time") {
+            const index = series.findIndex(x => x.name === "Timestamps");
+            const series_copy = JSON.parse(JSON.stringify(series));
+            const [timestamps] = series_copy.splice(index, 1);
+            option = prepareMarkerAccelerationVsTimeChartOption(series_copy, timestamps.data, input);
+        }
+        options.push(option);
+    });
 
     return options;
 }
@@ -320,73 +314,101 @@ function createSurficialTrendingGraphs (input, trending_data, chartRef) {
 
 function SurficialTrendingGraphs (props) {
     const { 
-        classes, timestamps, hideTrending, history,
-        match: { url, params: { marker_name } },
-        siteCode: site_code, trendingData: trending_data,
-        setTrendingData
+        siteCode: site_code,
+        generateTrending,
+        setShowTrending, setGenerateTrending,
+        chosenPoint
     } = props;
     const chartRef = React.useRef(null);
-    
-    const [has_trend, setHasTrend] = useState(true);
-    
+    const [trending_data, setTrendingData] = useState([]);
+    const [graph_components, setGraphComponents] = useState([]);
+    const [loading, setLoading] = useState(false);
+
+    const { ts, name: marker_name } = chosenPoint;
     const input = {
-        site_code, marker_name, 
-        ts_end: timestamps.end,
-        ts_start: timestamps.start
+        site_code,
+        ts: moment(ts).format("YYYY-MM-DD HH:ss:mm"),
+        marker_name
     };
 
     useEffect(() => {
-        if (chartRef !== null) {
-            const { current } = chartRef;
-            if (current !== null)
-                current.chart.showLoading();
-
+        if (generateTrending) {
+            setLoading(true);
             getSurficialMarkerTrendingData(input, data => {
-                const { has_trend: ht, trending_data: td } = data;
-
-                if (current !== null) {
-                    const { chart } = current;
-                    if (ht) {
-                        setTrendingData([...td]);
-                    } else {
-                        setHasTrend(false);
-                    }
-                    chart.hideLoading();
-                }
+                const { has_trend, trending_data: td } = data;
+                const temp = has_trend ? [...td] : [];
+                setTrendingData(temp);
+                setGenerateTrending(false);
+                setLoading(false);
             });
         }
-    }, [marker_name]);
+    }, [generateTrending]);
 
-    const graph_components = createSurficialTrendingGraphs(input, trending_data, chartRef);
+    useEffect(() => {
+        if (trending_data.length !== 0) {
+            const gc = createSurficialTrendingGraphs(input, trending_data, chartRef);
+            setGraphComponents(gc);
+        }
+    }, [trending_data]);
 
     return (
         <Fragment>
-            <div style={{ textAlign: "right", marginTop: 24 }}>                
-                <Button
-                    variant="contained"
-                    onClick={hideTrending(history)}
-                    color="primary"
-                    size="small"
-                >
-                    Hide
-                </Button>
-            </div>
+            <Grid item xs={12}>
+                <Divider />
+            </Grid>
 
             {
-                has_trend ? (
-                    graph_components.map((graph, key) => (
-                        <div style={{ marginTop: 24 }} key={key}>
-                            <Paper>
-                                {graph}
-                            </Paper>
-                        </div>
-                    ))
+                loading ? (
+                    <Grid item xs={12} style={{ marginTop: 16 }}>
+                        <LinearProgress variant="query" style={{ height: 8 }}/>
+                    </Grid>
                 ) : (
-                    "No trend"
+                    <Fragment>
+                        <Grid container item xs={12} justify="flex-end">                
+                            <Button
+                                variant="contained"
+                                onClick={() => setShowTrending(false)}
+                                color="primary"
+                                size="small"
+                                endIcon={<ArrowDropUp />}
+                            >
+                                Hide
+                            </Button>
+                        </Grid>
+
+                        <Grid container item xs={12} justify="center" spacing={1}>
+                            {
+                                trending_data.length !== 0 ? (
+                                    graph_components.map((graph, key) => (
+                                        <Grid item xs={12} sm={6} key={key}>
+                                            <Paper>
+                                                {graph}
+                                            </Paper>
+                                        </Grid>
+                                    ))
+                                ) : (
+                                    <Paper
+                                        component={Grid}
+                                        container
+                                        item
+                                        alignItems="center"
+                                        justify="center"
+                                        style={{
+                                            height: "20vh", padding: 60,
+                                            background: "gainsboro",
+                                            border: "4px solid #CCCCCC"
+                                        }}
+                                    >
+                                        Selected data has no trend.
+                                    </Paper>
+                                )
+                            }
+                        </Grid>
+                    </Fragment>
                 )
             }
         </Fragment>
     );
 }
 
-export default withStyles(GeneralStyles)(SurficialTrendingGraphs);
+export default SurficialTrendingGraphs;

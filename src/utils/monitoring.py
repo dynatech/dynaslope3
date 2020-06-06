@@ -20,12 +20,12 @@ from src.models.monitoring import (
     MonitoringMoms, MomsInstances, MonitoringTriggersSchema,
     BulletinTracker, MonitoringReleasePublishers, MonitoringTriggersMisc,
     EndOfShiftAnalysis)
+from src.utils.narratives import write_narratives_to_db, get_narratives
 from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.models.inbox_outbox import SmsInboxUsers2
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
     round_to_nearest_release_time)
-from src.utils.narratives import write_narratives_to_db, get_narratives
 
 
 #####################################################
@@ -349,8 +349,8 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}."
-                      + f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}." +
+                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -436,6 +436,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     extended = []
     overdue = []
     routine = {}
+    has_shifted_sites_to_routine = False
     for event_alert in active_event_alerts:
         event = event_alert.event
         validity = event.validity
@@ -528,12 +529,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                     event_alert_data["day"] = day
                     extended.append(event_alert_data)
                 else:
-                    # TODO: Make an API call to end an event
-                    # when extended is finished? based on old code
-                    # NOTE: HOWEVER -> Meron ng update sa insert_ewi
-                    # part ng last extended release. No need to put this here.
-                    # print("FINISH EVENT")
-
                     monitoring_status = event_alert.event.status
                     if monitoring_status == 2:
                         routine_ts = round_down_data_ts(run_ts)
@@ -559,11 +554,11 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                                     "ts_start": routine_ts
                                 }
                             }
-                            instance_details = start_new_monitoring_instance(
-                                new_instance_details)
-
+                            start_new_monitoring_instance(new_instance_details)
                             # If no problem,
                             DB.session.commit()
+
+                            has_shifted_sites_to_routine = True
                         except Exception as err:
                             print(err)
                             DB.session.rollback()
@@ -574,7 +569,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                         pass
 
     # Currently 12; so data timestamp to get should be 30 minutes before
-    dt = datetime.combine(date.today(), time(
+    dt = datetime.combine(run_ts.date(), time(
         hour=ROU_EXT_RELEASE_TIME, minute=0))
     less_30_dt = dt - timedelta(minutes=30)
     next_release_dt = dt + timedelta(hours=release_interval_hours)
@@ -609,7 +604,8 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         "latest": latest,
         "extended": sorted(extended, key=lambda x: x["day"], reverse=True),
         "overdue": overdue,
-        "routine": routine
+        "routine": routine,
+        "has_shifted_sites_to_routine": has_shifted_sites_to_routine
     }
 
     script_end = datetime.now()
@@ -782,8 +778,12 @@ def get_monitoring_releases_by_data_ts(site_code, data_ts):
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
     si = Sites
-    return_data = mr.query.join(mea) \
-        .join(me).join(si).filter(
+
+    return_data = mr.query.options(
+        DB.joinedload("event_alert", innerjoin=True).
+        raiseload("*"), DB.raiseload("*")
+    ).join(mea).join(me).join(si) \
+        .filter(
             DB.and_(
                 si.site_code == site_code,
                 mr.data_ts == data_ts
