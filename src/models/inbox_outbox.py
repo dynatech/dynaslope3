@@ -20,8 +20,8 @@ class SmsInboxUsers(DB.Model):
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     inbox_id = DB.Column(DB.Integer, primary_key=True)
-    ts_sms = DB.Column(DB.DateTime, default=datetime.utcnow)
-    ts_stored = DB.Column(DB.DateTime, default=datetime.utcnow)
+    ts_sms = DB.Column(DB.DateTime, default=datetime.now)
+    ts_stored = DB.Column(DB.DateTime, default=datetime.now)
     mobile_id = DB.Column(
         DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['comms_db_3']}.user_mobiles.mobile_id"))
     sms_msg = DB.Column(DB.String(1000))
@@ -48,8 +48,8 @@ class SmsInboxUsers2(DB.Model):
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     inbox_id = DB.Column(DB.Integer, primary_key=True)
-    ts_sms = DB.Column(DB.DateTime, default=datetime.utcnow)
-    ts_stored = DB.Column(DB.DateTime, default=datetime.utcnow)
+    ts_sms = DB.Column(DB.DateTime, default=datetime.now)
+    ts_stored = DB.Column(DB.DateTime, default=datetime.now)
     mobile_id = DB.Column(DB.Integer)
     sms_msg = DB.Column(DB.String(1000))
     read_status = DB.Column(DB.Integer, default=0)
@@ -94,7 +94,7 @@ class SmsInboxUserTags(DB.Model):
         f"{SCHEMA_DICT['comms_db_3']}.sms_tags.tag_id"))
     user_id = DB.Column(
         DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['commons_db']}.users.user_id"))
-    ts = DB.Column(DB.DateTime, default=datetime.utcnow)
+    ts = DB.Column(DB.DateTime, default=datetime.now)
 
     tag = DB.relationship("SmsTags",
                           backref=DB.backref(
@@ -115,7 +115,7 @@ class SmsOutboxUsers(DB.Model):
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     outbox_id = DB.Column(DB.Integer, primary_key=True)
-    ts_written = DB.Column(DB.DateTime, default=datetime.utcnow)
+    ts_written = DB.Column(DB.DateTime, default=datetime.now)
     source = DB.Column(DB.String(45))
     sms_msg = DB.Column(DB.String(1000))
 
@@ -140,7 +140,7 @@ class SmsOutboxUsers2(DB.Model):
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     outbox_id = DB.Column(DB.Integer, primary_key=True)
-    ts_written = DB.Column(DB.DateTime, default=datetime.utcnow)
+    ts_written = DB.Column(DB.DateTime, default=datetime.now)
     source = DB.Column(DB.String(45))
     sms_msg = DB.Column(DB.String(1000))
 
@@ -206,7 +206,7 @@ class SmsOutboxUserTags(DB.Model):
         f"{SCHEMA_DICT['comms_db_3']}.sms_tags.tag_id"))
     user_id = DB.Column(
         DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['commons_db']}.users.user_id"))
-    ts = DB.Column(DB.DateTime, default=datetime.utcnow)
+    ts = DB.Column(DB.DateTime, default=datetime.now)
 
     tag = DB.relationship("SmsTags",
                           backref=DB.backref(

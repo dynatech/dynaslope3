@@ -79,7 +79,7 @@ class GsmCsqLogs(DB.Model):
     log_id = DB.Column(DB.Integer, primary_key=True)
     gsm_id = DB.Column(
         DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['comms_db_3']}.gsm_modules.gsm_id"))
-    ts = DB.Column(DB.DateTime, default=datetime.utcnow())
+    ts = DB.Column(DB.DateTime, default=datetime.now())
     csq_val = DB.Column(DB.Integer, nullable=True)
 
     def __repr__(self):

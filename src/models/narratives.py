@@ -22,7 +22,7 @@ class Narratives(DB.Model):
         f"{SCHEMA_DICT['commons_db']}.sites.site_id"), nullable=False)
     event_id = DB.Column(DB.Integer)
     timestamp = DB.Column(
-        DB.DateTime, default=datetime.datetime.utcnow, nullable=False)
+        DB.DateTime, default=datetime.datetime.now, nullable=False)
     narrative = DB.Column(DB.String(500), nullable=False)
     type_id = DB.Column(DB.Integer, nullable=False)
     user_id = DB.Column(DB.Integer, DB.ForeignKey(

@@ -8,8 +8,8 @@ class SmsInboxLoggers(DB.Model):
     __bind_key__ = "comms_db_3"
 
     inbox_id = DB.Column(DB.Integer, primary_key=True)
-    ts_sms = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
-    ts_stored = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
+    ts_sms = DB.Column(DB.DateTime, default=datetime.datetime.now)
+    ts_stored = DB.Column(DB.DateTime, default=datetime.datetime.now)
     mobile_id = DB.Column(
         DB.Integer, DB.ForeignKey("user_mobile.mobile_id"))
     sms_msg = DB.Column(DB.String(1000))

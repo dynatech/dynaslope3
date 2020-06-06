@@ -257,7 +257,7 @@ class MarkerAlerts(DB.Model):
 
     ma_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False,
-                   default=datetime.datetime.utcnow)
+                   default=datetime.datetime.now)
     marker_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['senslopedb']}.markers.marker_id"), nullable=False)
     displacement = DB.Column(DB.Float)

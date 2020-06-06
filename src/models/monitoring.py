@@ -56,7 +56,7 @@ class MonitoringEventAlerts(DB.Model):
     pub_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['ewi_db']}.public_alert_symbols.pub_sym_id"))
     ts_start = DB.Column(
-        DB.DateTime, default=datetime.datetime.utcnow, nullable=False)
+        DB.DateTime, default=datetime.datetime.now, nullable=False)
     ts_end = DB.Column(DB.DateTime)
 
     public_alert_symbol = DB.relationship(
