@@ -4,7 +4,7 @@ import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
     Button, withMobileDialog, Typography,
-    makeStyles, Grid, Box
+    makeStyles, Grid
 } from "@material-ui/core";
 
 import { useSnackbar } from "notistack";
@@ -31,12 +31,14 @@ function momsFormValidation (moms_entries) {
     const observance_ts_collection = [];
     let form_messsage = "";
     let button_state;
+
     moms_entries.forEach((row, index) => {
         const { moms } = row;
-        let { 
-            alert_level, feature_name, feature_type, narrative,
-            observance_ts, remarks, reporter, validator, location
+        const {
+            alert_level, feature_type, narrative,
+            observance_ts, remarks, reporter, validator
         } = moms;
+        let { feature_name, location } = moms;
         
         const moment_obs_ts = moment(observance_ts).format("YYYY-MM-DD HH:mm:00");
 
@@ -236,8 +238,6 @@ function MomsInsertModal (props) {
 
         console.log("PAYLOAD", payload);
 
-        // Write data to DB
-        // sendWSMessage("write_monitoring_moms_to_db", payload);
         closeHandler();
         insertMomsToDB(payload, response => {
             if (response.status) {
@@ -274,57 +274,54 @@ function MomsInsertModal (props) {
     };
 
     return (
-        <div>
-            <Dialog
-                fullWidth
-                fullScreen={fullScreen}
-                open={isOpen}
-                maxWidth="sm"
-                aria-labelledby="form-dialog-title"
-            >
-                <DialogTitle id="form-dialog-title">Insert Manifestation of Movement Form</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Provide manifestation of movement (MOMs) details to save information in our database.
-                    </DialogContentText>
+        <Dialog
+            fullWidth
+            fullScreen={fullScreen}
+            open={isOpen}
+            maxWidth="sm"
+            aria-labelledby="form-dialog-title"
+        >
+            <DialogTitle id="form-dialog-title">Insert Manifestation of Movement Form</DialogTitle>
+            <DialogContent>
+                <DialogContentText>
+                    Provide manifestation of movement (MOMs) details to save information in our database.
+                </DialogContentText>
 
-                    <MomsForm
-                        momsEntries={moms_entries}
-                        setMomsEntries={setMomsEntries}
-                        siteCode={site_code}
-                        site={site}
-                        setSite={setSite}
-                        selectSite
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Grid container spacing={0}>
-                        <Grid item xs={12} sm={8}>
-                            <Typography
-                                variant="caption"
-                                display="block"
-                                className={classes.form_message_style}
-                                gutterBottom
-                                align="left">
-                                {moms_form_message}
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={12} sm={4}>
-                            <Button onClick={closeHandler} color="primary" >
-                                Cancel
-                            </Button>
-                            {/* <Button onClick={sample_fn} color="primary"> */}
-                            <Button 
-                                onClick={handleSubmit}
-                                color="primary"
-                                disabled={submit_button_state}>
-                                Submit
-                            </Button>
-                        </Grid>
+                <MomsForm
+                    momsEntries={moms_entries}
+                    setMomsEntries={setMomsEntries}
+                    siteCode={site_code}
+                    site={site}
+                    setSite={setSite}
+                    selectSite
+                />
+            </DialogContent>
+            <DialogActions>
+                <Grid container spacing={0}>
+                    <Grid item xs={12} sm={8}>
+                        <Typography
+                            variant="caption"
+                            display="block"
+                            className={classes.form_message_style}
+                            gutterBottom
+                            align="left">
+                            {moms_form_message}
+                        </Typography>
                     </Grid>
-                </DialogActions>
-            </Dialog>
-        </div>
+                    <Grid item xs={12} sm={4}>
+                        <Button onClick={closeHandler} color="primary" >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={handleSubmit}
+                            color="primary"
+                            disabled={submit_button_state}>
+                            Submit
+                        </Button>
+                    </Grid>
+                </Grid>
+            </DialogActions>
+        </Dialog>
     );
 }
 
