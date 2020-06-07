@@ -17,7 +17,7 @@ class GndmeasAutomation(DB.Model):
     site_id = DB.Column(
         DB.Integer, DB.ForeignKey("sites.site_id"))
     altered_template = DB.Column(DB.Integer, nullable=False)
-    ts_release = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
+    ts_release = DB.Column(DB.DateTime, default=datetime.datetime.now)
     send_status = DB.Column(DB.Integer, nullable=False)
     modified = DB.Column(DB.Integer, nullable=False)
     automation_category_id = DB.Column(DB.Integer, nullable=False)

@@ -9,17 +9,18 @@ alert release bulletins.
 August 2019
 """
 
-from datetime import datetime, timedelta, time
+from datetime import timedelta
 from connection import DB
 # from run import APP
-from sqlalchemy import and_
 from src.models.analysis import (
-    RainfallAlerts as ra, MarkerAlerts as ma, MarkerHistory as mh,
-    NodeAlerts as na, TSMSensors as tsma)
-from src.models.monitoring import (MonitoringMoms as mm)
-from src.utils.rainfall import (get_rainfall_gauge_name)
-from src.utils.extra import var_checker, retrieve_data_from_memcache
+    RainfallAlerts as ra,
+    NodeAlerts as na,
+    TSMSensors as tsma)
+from src.models.monitoring import MonitoringMoms as mm
+from src.utils.rainfall import get_rainfall_gauge_name
+from src.utils.surficial import get_marker_alerts, get_surficial_markers
 from src.utils.monitoring import round_to_nearest_release_time
+from src.utils.extra import var_checker, retrieve_data_from_memcache
 
 
 # Every how many hours per release
@@ -42,14 +43,14 @@ def get_on_demand_tech_info(on_demand_details):
 def get_earthquake_tech_info(earthquake_details):
     """
     """
-    # ea_id = earthquake_details["ea_id"]
-    magnitude = earthquake_details["magnitude"]
+
     latitude = earthquake_details["latitude"]
     longitude = earthquake_details["longitude"]
-    # distance = earthquake_details["distance"]
+    distance = earthquake_details["distance"]
+    critical_distance = earthquake_details["critical_distance"]
 
-    return f"An earthquake with Magnitude {magnitude} " + \
-        f"({latitude} N, {longitude} E) recorded."
+    return f"Site is {distance} km away from earthquake at " + \
+        f"{latitude} N, {longitude} E (inside critical radius of {critical_distance} km)"
 
 
 def get_moms_tech_info(moms_alert_details):
@@ -90,7 +91,7 @@ def get_moms_tech_info(moms_alert_details):
         feature = "features"
 
     day = " and ".join(moms_parts)
-    moms_tech_info = f"{multiple}{day} {feature} observed in site."
+    moms_tech_info = f"{multiple}{day} {feature} observed in site"
     return moms_tech_info
 
 
@@ -111,46 +112,24 @@ def get_moms_alerts(site_id, latest_trigger_ts):
     return moms_alerts_list
 
 
-def formulate_surficial_tech_info(surficial_alert_detail):
-    """
-    Sample
-    """
-    tech_info = []
-    surficial_tech_info = ""
-    for item in surficial_alert_detail:
-        name = item.marker.marker_histories.order_by(
-            DB.desc(mh.ts)).first().marker_names[0].marker_name
-        disp = item.displacement
-        timestamp = '{:.2f}'.format(item.time_delta)
-        tech_info.append(
-            f"Marker {name}: {disp} cm difference in {timestamp} hours")
-
-        surficial_tech_info = '; '.join(tech_info)
-
-    return surficial_tech_info
-
-
-def get_surficial_alerts(site_id, latest_trigger_ts, alert_level):
-    """
-    Sample
-    Note: Please revise this to accomodate the changes in relationships of MarkerAlerts
-    """
-    surficial_alerts_list = []
-    surficial_alerts = ma.query.filter(
-        ma.ts == latest_trigger_ts, ma.alert_level == alert_level)
-    for item in surficial_alerts.all():
-        if item.marker.site_id == site_id:
-            surficial_alerts_list.append(item)
-
-    return surficial_alerts_list
-
-
-def get_surficial_tech_info(surficial_alert_details):
+def get_surficial_tech_info(surficial_alert_details, site_id):
     """
     g triggers or surficial triggers tech info
     """
-    surficial_tech_info = formulate_surficial_tech_info(
-        surficial_alert_details)
+
+    tech_info = []
+    surficial_tech_info = ""
+    markers = get_surficial_markers(site_id=site_id)
+    for item in surficial_alert_details:
+        name_row = next(
+            x for x in markers if x.marker_id == item.marker_id)
+        disp = item.displacement
+        timestamp = '{:.2f}'.format(item.time_delta)
+        tech_info.append(
+            f"Marker {name_row.marker_name}: {disp} cm difference in {timestamp} hours")
+
+        surficial_tech_info = '; '.join(tech_info)
+
     return surficial_tech_info
 
 
@@ -241,12 +220,6 @@ def get_subsurface_node_alerts(site_id, start_ts, latest_trigger_ts, alert_level
                 sensor_node_alerts = unique_list
 
                 tsm_node_alerts.extend(sensor_node_alerts)
-                # Save nodes to its own dictionary per sensor then put it in a list
-                # entry_dict = {
-                #     "logger_name": sensor.logger.logger_name,
-                #     "sensor_node_alerts": sensor_node_alerts
-                # }
-                # tsm_node_alerts.append(entry_dict)
     except:
         raise
 
@@ -324,26 +297,9 @@ def get_subsurface_tech_info(subsurface_node_alerts):
     """
     Sample
     """
-    ####
-    # NEW VERSION OF COMPARATOR AS ALTERNATIVE TO PANDAS DROP DUPLICATES
-
-    # s2_triggers = []
-    # s3_triggers = []
-    # for node_alert in subsurface_node_alerts:  # Most like two only
-    #     if node_alert.disp_alert == 2 or node_alert.vel_alert == 2:
-    #         s2_triggers.append(node_alert)
-    #     if node_alert.disp_alert == 3 or node_alert.vel_alert == 3:
-    #         s3_triggers.append(node_alert)
 
     subsurface_tech_info = formulate_subsurface_tech_info(
         subsurface_node_alerts)
-    # node_alert_group_list = [s2_triggers, s3_triggers]
-    # for index, node_alert_group in enumerate(node_alert_group_list):
-    #     if node_alert_group:
-    #         tech_info = formulate_subsurface_tech_info(node_alert_group)
-    #         # Commented the following code because according to Senior SRS, only the string is needed.
-    #         # subsurface_tech_info["L" + str(index+2)] = tech_info
-    #         subsurface_tech_info = tech_info
 
     return subsurface_tech_info
 
@@ -379,10 +335,10 @@ def main(trigger, special_details=None):
             rainfall_alerts)
 
     elif trigger_source == 'surficial':
-        surficial_alert_details = get_surficial_alerts(
+        surficial_alert_details = get_marker_alerts(
             site_id, latest_trigger_ts, alert_level)
         technical_info = get_surficial_tech_info(
-            surficial_alert_details)
+            surficial_alert_details, site_id)
 
     elif trigger_source == 'moms':
         if not has_special_details:
@@ -393,11 +349,11 @@ def main(trigger, special_details=None):
 
     elif trigger_source == 'earthquake':
         if not has_special_details:
-            earthquake_details = "COMING SOON..."
+            raise "No earthquake details saved"
         else:
             earthquake_details = special_details
-        technical_info = get_earthquake_tech_info(earthquake_details)
 
+        technical_info = get_earthquake_tech_info(earthquake_details)
     else:
         raise Exception("Something wrong in tech_info_maker")
 

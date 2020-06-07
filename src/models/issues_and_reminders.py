@@ -3,29 +3,26 @@ File containing class representation of
 Issues and Reminders tables
 """
 
-import datetime
-from flask_login import UserMixin
+from datetime import datetime
 from marshmallow import fields
+from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
-from src.models.monitoring import (MonitoringEvents, MonitoringEventsSchema)
-from src.models.sites import (Sites, SitesSchema)
-from src.models.users import (Users, UsersSchema)
 
 
-class IssuesAndReminders(UserMixin, DB.Model):
+class IssuesAndReminders(DB.Model):
     """
     Class representation of issues_and_reminders table
     """
 
     __tablename__ = "issues_and_reminders"
     __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     iar_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     detail = DB.Column(DB.String(360))
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.users.user_id"), nullable=False)
-    ts_posted = DB.Column(DB.DateTime, nullable=False)
+        f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
+    ts_posted = DB.Column(DB.DateTime, default=datetime.now, nullable=False)
     ts_expiration = DB.Column(DB.DateTime)
     resolved_by = DB.Column(DB.Integer)
     resolution = DB.Column(DB.String(500))
@@ -47,21 +44,21 @@ class IssuesAndReminders(UserMixin, DB.Model):
                 f" resolved_by: {self.resolved_by} resolution: {self.resolution}")
 
 
-class IssuesRemindersSitePostings(UserMixin, DB.Model):
+class IssuesRemindersSitePostings(DB.Model):
     """
     Class representation of earthquake_events table
     """
 
     __tablename__ = "issues_reminders_site_postings"
     __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     iar_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.issues_and_reminders.iar_id"), primary_key=True)
+        f"{SCHEMA_DICT['commons_db']}.issues_and_reminders.iar_id"), primary_key=True)
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "commons_db.sites.site_id"), primary_key=True)
+        f"{SCHEMA_DICT['commons_db']}.sites.site_id"), primary_key=True)
     event_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.monitoring_events.event_id"))
+        f"{SCHEMA_DICT['ewi_db']}.monitoring_events.event_id"))
 
     event = DB.relationship(
         "MonitoringEvents",

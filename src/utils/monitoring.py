@@ -20,12 +20,12 @@ from src.models.monitoring import (
     MonitoringMoms, MomsInstances, MonitoringTriggersSchema,
     BulletinTracker, MonitoringReleasePublishers, MonitoringTriggersMisc,
     EndOfShiftAnalysis)
+from src.utils.narratives import write_narratives_to_db, get_narratives
 from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.models.inbox_outbox import SmsInboxUsers2
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
     round_to_nearest_release_time)
-from src.utils.narratives import write_narratives_to_db, get_narratives
 
 
 #####################################################
@@ -387,7 +387,7 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
     is_bulletin_sent = False
 
     if not is_onset_release or \
-            (is_onset_release and start_ts.hour % 3 and start_ts.minute == 30):
+            (is_onset_release and start_ts.hour % 4 == 3 and start_ts.minute == 30):
         # TODO: make this dynamic
         start_ts = start_ts + timedelta(minutes=30)
 
@@ -436,11 +436,23 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     extended = []
     overdue = []
     routine = {}
+    has_shifted_sites_to_routine = False
     for event_alert in active_event_alerts:
         event = event_alert.event
         validity = event.validity
         event_id = event.event_id
-        latest_release = event_alert.releases[0]
+
+        # Did this because of weird bug when releasing EWI
+        # simulataneously where .releases becomes raised
+        # on subsequent release
+        try:
+            latest_release = event_alert.releases[0]
+        except:
+            event_alert.releases = MonitoringReleases.query \
+                .options(DB.raiseload("*")) \
+                .filter_by(event_alert_id=event_alert.event_alert_id) \
+                .order_by(DB.desc(MonitoringReleases.data_ts)).all()
+            latest_release = event_alert.releases[0]
 
         # NOTE: LOUIE This formats release time to have date instead of time only
         data_ts = latest_release.data_ts
@@ -517,12 +529,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                     event_alert_data["day"] = day
                     extended.append(event_alert_data)
                 else:
-                    # TODO: Make an API call to end an event
-                    # when extended is finished? based on old code
-                    # NOTE: HOWEVER -> Meron ng update sa insert_ewi
-                    # part ng last extended release. No need to put this here.
-                    # print("FINISH EVENT")
-
                     monitoring_status = event_alert.event.status
                     if monitoring_status == 2:
                         routine_ts = round_down_data_ts(run_ts)
@@ -548,11 +554,11 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                                     "ts_start": routine_ts
                                 }
                             }
-                            instance_details = start_new_monitoring_instance(
-                                new_instance_details)
-
+                            start_new_monitoring_instance(new_instance_details)
                             # If no problem,
                             DB.session.commit()
+
+                            has_shifted_sites_to_routine = True
                         except Exception as err:
                             print(err)
                             DB.session.rollback()
@@ -563,7 +569,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                         pass
 
     # Currently 12; so data timestamp to get should be 30 minutes before
-    dt = datetime.combine(date.today(), time(
+    dt = datetime.combine(run_ts.date(), time(
         hour=ROU_EXT_RELEASE_TIME, minute=0))
     less_30_dt = dt - timedelta(minutes=30)
     next_release_dt = dt + timedelta(hours=release_interval_hours)
@@ -598,7 +604,8 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         "latest": latest,
         "extended": sorted(extended, key=lambda x: x["day"], reverse=True),
         "overdue": overdue,
-        "routine": routine
+        "routine": routine,
+        "has_shifted_sites_to_routine": has_shifted_sites_to_routine
     }
 
     script_end = datetime.now()
@@ -612,12 +619,9 @@ def get_routine_sites(timestamp=None, include_inactive=False, only_site_code=Tru
     Utils counterpart of identifing the routine site per day.
     Returns "routine_sites" site_codes in a list as value.
 
-    E.g.:
-    {
-        "routine_sites": [
-            'bak', 'blc', 'cud', 'imu', 'ina'
-        ]
-    }
+    only_site_codes (bool) -    returns array of site codes if True
+                                ( e.g. ["bak", "blc"] )
+                                and array of site details if False
     """
     current_date = date.today()
 
@@ -774,8 +778,12 @@ def get_monitoring_releases_by_data_ts(site_code, data_ts):
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
     si = Sites
-    return_data = mr.query.join(mea) \
-        .join(me).join(si).filter(
+
+    return_data = mr.query.options(
+        DB.joinedload("event_alert", innerjoin=True).
+        raiseload("*"), DB.raiseload("*")
+    ).join(mea).join(me).join(si) \
+        .filter(
             DB.and_(
                 si.site_code == site_code,
                 mr.data_ts == data_ts
@@ -1110,23 +1118,6 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
     return return_data
 
 
-def get_latest_monitoring_event_per_site(site_id):
-    """
-    Returns event details with corresponding site details. Receives an event_id from flask request.
-
-    Args: event_id
-
-    Note: From pubrelease.php getEvent
-    """
-    me = MonitoringEvents
-
-    event = me.query.options(DB.raiseload("*")) \
-        .order_by(DB.desc(MonitoringEvents.event_start)) \
-        .filter(MonitoringEvents.site_id == site_id).first()
-
-    return event
-
-
 def get_monitoring_events(event_id=None, include_test_sites=False):
     """
     Returns event details with corresponding site details. Receives an event_id from flask request.
@@ -1166,31 +1157,38 @@ def get_active_monitoring_events():
     # since SQLAlchemy interprets "is None" differently.
     active_events = mea.query.join(me) \
         .options(
-            DB.joinedload("event", innerjoin=True).joinedload(
-                "site", innerjoin=True)
-        .raiseload("*"),
             DB.subqueryload("releases").raiseload("*"),
-            DB.joinedload("public_alert_symbol").raiseload("*"),
-            DB.raiseload("*")
+            DB.joinedload("event", innerjoin=True).joinedload(
+                "site", innerjoin=True).raiseload("*"),
+            DB.joinedload("public_alert_symbol").raiseload("*")
+            # DB.raiseload("*")
     ).order_by(DB.desc(mea.event_alert_id)) \
         .filter(DB.and_(me.status == 2, mea.ts_end == None)).all()
 
     return active_events
 
 
-def get_current_monitoring_instance_per_site(site_id):
+def get_latest_monitoring_event_per_site(site_id, raise_load=False):
     """
     This functions looks up at monitoring_events table and retrieves the current
     event details (whether it is a routine- or event-type)
 
     Args:
         site_id - mandatory Integer parameter
+        raise_load - do not load database relationships
     """
+
     event = MonitoringEvents
-    latest_event = event.query.options(
-        DB.subqueryload("event_alerts").raiseload("releases"),
-        DB.joinedload("site", innerjoin=True).raiseload("*")
-    ).order_by(DB.desc(event.event_id)) \
+
+    if raise_load:
+        query = event.query.options(DB.raiseload("*"))
+    else:
+        query = event.query.options(
+            DB.subqueryload("event_alerts").raiseload("releases"),
+            DB.joinedload("site", innerjoin=True).raiseload("*")
+        )
+
+    latest_event = query.order_by(DB.desc(event.event_id)) \
         .filter(event.site_id == site_id).first()
 
     return latest_event
@@ -1296,7 +1294,11 @@ def search_if_feature_name_exists(site_id, feature_id, feature_name):
     mi = MomsInstances
     instance = None
     instance = mi.query.filter(
-        DB.and_(mi.site_id == site_id, mi.feature_name == feature_name, mi.feature_id == feature_id)).first()
+        DB.and_(
+            mi.site_id == site_id,
+            mi.feature_name == feature_name,
+            mi.feature_id == feature_id)
+    ).first()
 
     return instance
 
@@ -1461,7 +1463,7 @@ def write_monitoring_earthquake_to_db(eq_details):
         DB.session.add(earthquake)
         DB.session.flush()
 
-        new_eq_id = earthquake.od_id
+        new_eq_id = earthquake.eq_id
         return_data = new_eq_id
 
     except Exception as err:
@@ -1680,7 +1682,7 @@ def start_new_monitoring_instance(new_instance_details):
     Returns event alert ID for use in releases
     """
     try:
-        print(new_instance_details)
+        # print(new_instance_details)
         event_details = new_instance_details["event_details"]
         event_alert_details = new_instance_details["event_alert_details"]
 
@@ -1951,7 +1953,7 @@ def is_rain_surficial_subsurface_trigger(alert_symbol):
     return flag
 
 
-def check_if_onset_release(event_alert_id=None, release_id=None, data_ts=None, event_alert=None):
+def check_if_onset_release(event_alert_id=None, release_id=None, data_ts=None, event_alert=None, check_if_lowering=False):
     """
     """
 
@@ -1964,14 +1966,15 @@ def check_if_onset_release(event_alert_id=None, release_id=None, data_ts=None, e
     else:
         mea = event_alert
 
-    # releases are ordered by descreasing order by default
+    # releases are ordered by decreasing order by default
     first_release = mea.releases[-1].release_id
     is_onset = True
     is_first_release_but_release_time = first_release == release_id and \
         data_ts.hour % RELEASE_INTERVAL_HOURS == RELEASE_INTERVAL_HOURS - \
         1 and data_ts.minute == 30
+
     if first_release != release_id or (
-            is_first_release_but_release_time):
+            is_first_release_but_release_time and not check_if_lowering):
         is_onset = False
 
     return is_onset
@@ -2007,6 +2010,7 @@ def get_next_ground_data_reporting(data_ts, is_onset=False, is_alert_0=False, in
 
     if include_modifier:
         return reporting, modifier
+
     return reporting
 
 

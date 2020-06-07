@@ -10,12 +10,12 @@ import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
 import { IconButton, Tooltip, makeStyles } from "@material-ui/core";
 import {
-    TurnedIn, TurnedInNot,
+    TurnedIn, TurnedInNot, Refresh,
     RadioButtonUnchecked, CheckCircle, Cancel
 } from "@material-ui/icons";
 import GenericAvatar from "../../../images/generic-user-icon.jpg";
 import GeneralDataTagModal from "../../widgets/GeneralDataTagModal";
-import { loadMoreMessages } from "../ajax";
+import { loadMoreMessages, resendMessage } from "../ajax";
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -235,7 +235,8 @@ function BootstrapTooltip (props) {
     );
 }
 
-function chatBubbleCreator (classes, message_row, set_gdt_fn) {
+// eslint-disable-next-line max-params
+function chatBubbleCreator (classes, message_row, set_gdt_fn, on_resend_click) {
     const {
         convo_id,
         source, sms_msg: message,
@@ -256,18 +257,23 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
         <Avatar alt="Remy Sharp" src={GenericAvatar} />
     </ListItemAvatar>;
 
-    const tag_icon = tags.length > 0 
+    const has_tag = tags.length > 0;
+    const tag_icon = has_tag
         ? <TurnedIn fontSize="small" color="primary" />
         : <TurnedInNot fontSize="small" color="primary" />;
+    
+    const tag_summary = tags.map(x => x.tag.tag).join(", ");
 
     const bubble_area = <ListItemText
         className={`${classes.chatBubble} ${is_you ? classes.chatBubbleSent : classes.chatBubbleReceived}`}
         primary={
             <Typography component="span" className={classes.chatMessage} variant="body2" color="textPrimary">
                 <span style={{ paddingRight: 6, zIndex: 1 }}>{message}</span>
-                <IconButton className={classes.tagButton} onClick={set_gdt_fn(true, tag_object, message)}>
-                    {tag_icon}
-                </IconButton>
+                <BootstrapTooltip disableFocusListener disableHoverListener={!has_tag} title={tag_summary}>
+                    <IconButton className={classes.tagButton} onClick={set_gdt_fn(true, tag_object, message)}>
+                        {tag_icon}
+                    </IconButton>
+                </BootstrapTooltip>
             </Typography>
         }
         secondary={
@@ -279,17 +285,34 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
                     {timestamp}
                 </div>
                 {
-                    (send_status >= 0 && send_status < 5 && send_status !== null) && <RadioButtonUnchecked className={classes.sentIcon} />
+                    (send_status >= 0 && send_status < 5 && send_status !== null) && (
+                        <BootstrapTooltip disableFocusListener title="SENDING">
+                            <RadioButtonUnchecked className={classes.sentIcon} />
+                        </BootstrapTooltip>
+                    )
                 }
                 {
                     send_status === 5 && (
-                        <BootstrapTooltip disableFocusListener title={ moment(ts_sent).format("M/D/YYYY HH:mm:ss") }>
+                        <BootstrapTooltip disableFocusListener title={ `SENT: ${moment(ts_sent).format("M/D/YYYY HH:mm:ss")}` }>
                             <CheckCircle color="primary" className={classes.sentIcon} />
                         </BootstrapTooltip>
                     )
                 }
                 {
-                    (send_status === -1 || send_status > 5) && <Cancel color="error" className={classes.sentIcon} />
+                    (send_status === -1 || send_status > 5) && (
+                        <Fragment>
+                            <BootstrapTooltip disableFocusListener title="UNSENT">
+                                <Cancel color="error" className={classes.sentIcon} />
+                            </BootstrapTooltip>
+                            <BootstrapTooltip disableFocusListener title="Resend">
+                                <Refresh 
+                                    color="action"
+                                    className={classes.sentIcon}
+                                    onClick={() => on_resend_click(message_row)}
+                                />
+                            </BootstrapTooltip>
+                        </Fragment>
+                    )
                 }
             </Fragment>
         }
@@ -348,6 +371,17 @@ function ChatThread (props) {
         setMessageBatch(message_batch + 1);
     };
 
+    const onResendClick = message_row => {
+        const { convo_id } = message_row;
+        const temp = messages.map(row => {
+            if (row.convo_id === convo_id)
+                row.send_status = 0;
+            return row;
+        });
+        setMessages(temp);
+        resendMessage(convo_id);
+    };
+
     return (
         <Fragment>
             {
@@ -373,7 +407,7 @@ function ChatThread (props) {
                 
             <List className={classes.root}>
                 {
-                    messages.map(row => chatBubbleCreator(classes, row, set_gdt_fn))
+                    messages.map(row => chatBubbleCreator(classes, row, set_gdt_fn, onResendClick))
                 }
             </List>
 

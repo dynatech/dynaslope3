@@ -145,133 +145,6 @@ const navigation_labels = [
     }
 ];
 
-// class Navigation extends PureComponent {
-//     constructor (props) {
-//         super(props);
-
-//         const { pathname } = window.location;
-//         const path = pathname.split("/")[1];
-//         const index = navigation_labels.findIndex(obj => obj.key === path);
-
-//         this.state = {
-//             value: index === -1 ? 0 : index,
-//             from_tab: null,
-//             last_clicked_tab: null,
-//             popper_open: false,
-//             anchorEl: null
-//         };
-//     }
-   
-//     const handleTabChange = event, value => {
-//         setValue(value);
-//     };
-
-//     const handleNavTabClick = event => { 
-//         const { value: old_value } = this.state;
-
-//         this.setState({
-//             popper_open: true,
-//             anchorEl: event.currentTarget,
-//             from_tab: old_value
-//         }, () => {
-//             const { value: updated_value } = this.state;
-//             this.setState({ last_clicked_tab: updated_value });
-//         });
-//     };
-
-//     handlePopperClickAway = event => {
-//         const { anchorEl, from_tab } = this.state; 
-
-//         if (anchorEl.contains(event.target)) {
-//             return;
-//         }
-        
-//         this.setState({ popper_open: false, value: from_tab });
-//     };
-
-//     handleMenuClick = event => {
-//         this.setState({ popper_open: false });
-//     }
-
-//     render () {
-//         const { width, classes, drawerHandler, drawer } = this.props;
-//         const {
-//             value, popper_open, anchorEl,
-//             from_tab, last_clicked_tab
-//         } = this.state;
-
-//         const index = value === from_tab && last_clicked_tab !== null ? last_clicked_tab : value;
-//         const { sub } = navigation_labels[index];
-    
-//         return (
-//             <Fragment>
-//                 <div className={classes.navBar}>
-//                     <AppBar position="fixed" color="default" className={classes.appBar}>
-//                         <Tabs
-//                             value={value}
-//                             onChange={this.const handleTabChange}
-//                            indicatorColosetValue(value);                  textColor="primary"
-//                             variant={isWidthUp("md", width) ? "standard" : "scrollable"}
-//                             scrollButtons="on"
-//                             centereconst d={isWidthUp("md", width)}
-//                         >
-//                             {navigation_labels.map(({ main, key }) => 
-//                                 <Tab
-//                                     key={key}
-//                                     label={main}
-//                                     aria-owns={popper_open ? "monitoring-menu" : null}
-//                                     aria-haspopup="true"
-//                                     onClick={this.handleNavTabClick}
-//                                 />
-//                             )}
-//                         </Tabs>
-//                     </AppBar>
-//                 </div>
-
-//                 <Popper
-//                     className={classes.popper}
-//                     open={popper_open}
-//                     anchorEl={anchorEl}
-//                     transition
-//                     disablePortal
-//                 >
-//                     {({ TransitionProps, placement }) => (
-//                         <Grow
-//                             {...TransitionProps}
-//                             id="monitoring-menu"
-//                             style={{ transformOrigin: placement === "bottom" ? "center top" : "center bottom" }}
-//                         >
-//                             <Paper>
-//                                 <ClickAwayListener onClickAway={this.handlePopperClickAway}>
-//                                     <MenuList>
-//                                         {
-//                                             sub.map(({ label, link }) =>
-//                                                 <Link to={link} key={label} className={classes.link}>
-//                                                     <MenuItem
-//                                                         onClick={this.handleMenuClick}
-//                                                     >
-//                                                         {label}
-//                                                     </MenuItem>
-//                                                 </Link> 
-//                                             )
-//                                         }
-//                                     </MenuList>
-//                                 </ClickAwayListener>
-//                             </Paper>
-//                         </Grow>
-//                     )}
-//                 </Popper>
-                
-//                 <ScreenDrawer
-//                     drawer={drawer}
-//                     drawerHandler={drawerHandler}
-//                     navigationLabels={navigation_labels}
-//                 />
-//             </Fragment>
-//         );
-//     }
-// }
-
 function Navigation (props) {
     const { width, drawerHandler, drawer } = props;
     const classes = useStyles();
@@ -351,14 +224,9 @@ function Navigation (props) {
                                         onClick={handleNavTabClick}
                                     />
                                 )}
-                                {/* <Tab
-                                key="server_time"
-                                label={server_time}
-                                disabled
-                            /> */}
                             </Tabs>
                         </Grid>
-                        <Grid item xs={2}>
+                        <Grid item xs={2} align="center">
                             <Typography variant="button">
                                 {server_time}
                             </Typography>

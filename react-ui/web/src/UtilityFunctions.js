@@ -33,8 +33,7 @@ function capitalizeFirstLetter (str, every_word = false) {
     return capitalize(str);
 }
 
-function getUserOrganizations (user, return_grouped = false) {
-    const { organizations } = user;
+function getUserOrganizations (organizations, return_grouped = false) {
     let org = null;
     const sites = organizations.map(row => {
         const { site, org_name } = row;
@@ -64,8 +63,13 @@ function simNumFormatter (sim_num) {
 }
 
 function computeForStartTs (ts, duration = 7, unit = "days") {
+    if (unit === "all") {
+        return "None";
+    }
+
     const ts_format = "YYYY-MM-DD HH:mm:ss";
-    const ts_start = ts.subtract(duration, unit).format(ts_format);
+    const ts_start = ts.clone().subtract(duration, unit)
+    .format(ts_format);
     return ts_start;
 }
 
@@ -117,9 +121,25 @@ function useInterval (callback, delay, clear_interval = false) {
         return () => clearInterval(id);
     }, [delay, clear_interval]);
 }
+
+function remapCkeditorEnterKey (editor) {
+    editor.editing.view.document.on("enter", (evt, data) => {
+        if (data.isSoft) {
+            editor.execute("enter");
+        } else {
+            editor.execute("shiftEnter");
+        }
+
+        data.preventDefault();
+        evt.stop();
+        editor.editing.view.scrollToTheSelection();
+    }, { priority: "high" } );
+}
+
 export {
     prepareSiteAddress, capitalizeFirstLetter,
     getUserOrganizations, simNumFormatter,
     computeForStartTs, makePOSTAxiosRequest,
-    makeGETAxiosRequest, useInterval
+    makeGETAxiosRequest, useInterval,
+    remapCkeditorEnterKey
 };

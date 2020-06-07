@@ -7,7 +7,8 @@ from datetime import datetime, timedelta
 from connection import DB
 from src.models.analysis import (
     SiteMarkers, MarkerData as md,
-    MarkerObservations as mo)
+    MarkerObservations as mo, MarkerAlerts as ma,
+    Markers, MarkerHistory, MarkerNames)
 from src.models.sites import Sites
 from src.utils.extra import (
     var_checker, round_to_nearest_release_time,
@@ -132,6 +133,27 @@ def get_surficial_data(
     return filtered_marker_data
 
 
+def get_marker_alerts(site_id, trigger_ts, alert_level=None):
+    """
+    """
+    surficial_alerts_list = []
+    surficial_alerts = ma.query.filter(
+        ma.ts == trigger_ts)
+
+    if alert_level:
+        surficial_alerts = surficial_alerts.filter(
+            ma.alert_level == alert_level)
+
+    if not surficial_alerts:
+        raise Exception("No marker alerts entry found")
+
+    for item in surficial_alerts.all():
+        if item.marker.site_id == site_id:
+            surficial_alerts_list.append(item)
+
+    return surficial_alerts_list
+
+
 def get_surficial_data_last_ten_timestamps(site_code, end_date):
     """
         Note: This should be solved by get_surficial_markers
@@ -146,11 +168,15 @@ def get_surficial_data_last_ten_points(site_code, latest_ts_arr):
     return "column data"
 
 
-def get_surficial_markers(site_code=None, filter_in_use=None, get_complete_data=None):
+def get_surficial_markers(site_code=None, site_id=None):
     """
 
     """
+
     filter_var = SiteMarkers.site_code == site_code
+    if site_id:
+        filter_var = SiteMarkers.site_id == site_id
+
     markers = SiteMarkers.query.filter(
         filter_var).order_by(SiteMarkers.marker_name).all()
 
@@ -239,3 +265,43 @@ def update(column, key, table, data):
         except:
             print("There is a problem on fnx update.")
     return "Process Done"
+
+
+def create_new_marker(site_code=None):
+    if not site_code:
+        raise Exception("No site code given")
+
+    site = Sites.query.options(DB.raiseload("*")) \
+        .filter_by(site_code=site_code).first()
+
+    if not site:
+        raise Exception("Site code not found")
+
+    new = Markers(site_id=site.site_id, in_use=1)
+
+    DB.session.add(new)
+    DB.session.flush()
+
+    return new
+
+
+def insert_marker_event(marker_id, ts, event):
+    history = MarkerHistory(
+        marker_id=marker_id,
+        ts=ts,
+        event=event
+    )
+
+    DB.session.add(history)
+    DB.session.flush()
+
+    return history
+
+
+def insert_new_marker_name(history_id, marker_name):
+    name = MarkerNames(
+        history_id=history_id,
+        marker_name=marker_name
+    )
+
+    DB.session.add(name)

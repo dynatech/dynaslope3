@@ -1,3 +1,7 @@
+"""
+"""
+
+from instance.config import SCHEMA_DICT
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
 
@@ -8,7 +12,7 @@ class GeneralDataReferences(DB.Model):
     """
     __tablename__ = "general_data_references"
     __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     tag_id = DB.Column(DB.Integer, primary_key=True)
     tag_name = DB.Column(DB.String(200))
@@ -24,13 +28,13 @@ class GeneralDataTag(DB.Model):
     """
     __tablename__ = "general_data_tag"
     __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     gintags_id = DB.Column(DB.Integer, primary_key=True)
     tag_id_fk = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.general_data_references.tag_id"))
+        DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['commons_db']}.general_data_references.tag_id"))
     tagger_eid_fk = DB.Column(
-        DB.Integer, DB.ForeignKey("comms_db_3.users.user_id"))
+        DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['comms_db_3']}.users.user_id"))
     table_element_id = DB.Column(DB.String(10))
     table_used = DB.Column(DB.String(45))
     timestamp = DB.Column(DB.String(45))
@@ -46,11 +50,11 @@ class GeneralDataTagManager(DB.Model):
     """
     __tablename__ = "general_data_tag_manager"
     __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     id = DB.Column(DB.Integer, primary_key=True)
     tag_id_fk = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.general_data_references.tag_id"))
+        DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['commons_db']}.general_data_references.tag_id"))
     description = DB.Column(DB.String(60))
     narrative_input = DB.Column(DB.String(100))
     last_update = DB.Column(DB.String(45))

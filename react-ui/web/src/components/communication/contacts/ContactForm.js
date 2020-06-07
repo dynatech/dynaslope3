@@ -57,10 +57,12 @@ function conformTextMask (mobile_number) {
 }
 
 function removeNumberMask (data, type) {
+    
     const altered_data = [];
     if (type === "mobile") {
         data.forEach((row, index) => {
-            row.sim_num = row.sim_num.replace(/[()+-\s]/g, "");
+            const { mobile_number } = row;
+            mobile_number.sim_num = mobile_number.sim_num.replace(/[()+-\s]/g, "");
             altered_data.push(row);
         });
     } else {
@@ -114,7 +116,7 @@ function contactFormValidation (user_details, contact_numbers, affiliation) {
     let button_state = null;
 
     mobile_nums.forEach((row, index) => {
-        const { sim_num } = row;
+        const { mobile_number: { sim_num } } = row;
         if (is_sim_num_invalid === false) {
             if (sim_num === "") { is_sim_num_invalid = true; }
             else { is_sim_num_invalid = sim_num.includes("x"); }
@@ -153,12 +155,13 @@ function reducerFunction (state, action) {
     const state_copy = [...state];
 
     let addend = {
-        mobile_id: 0, status: 1, has_delete: true
+        status: 1, has_delete: true
     };
+
     if (category === "email") {
         addend = "";
     } else if (category === "mobile") {
-        addend = { ...addend, sim_num: "" };
+        addend = { ...addend, mobile_number: { sim_num: "", mobile_id: 0 } };
     } else if (category === "landline") {
         addend = { ...addend, landline_num: "" };
     }
@@ -167,6 +170,12 @@ function reducerFunction (state, action) {
         case "UPDATE":
             if (category === "email") {
                 state_copy[payload.key] = payload.value;
+            } else if (category === "mobile") {
+                if (payload.data === "sim_num") {
+                    state_copy[payload.key].mobile_number[payload.data] = payload.value;
+                } else {
+                    state_copy[payload.key][payload.data] = payload.value;
+                }
             } else {
                 state_copy[payload.key][payload.data] = payload.value;
             }
@@ -189,15 +198,16 @@ function ContactForm (props) {
     } = props;
 
     let initial_mobiles = [{
-        mobile_id: 0, sim_num: "", status: 1
+        mobile_number: { sim_num: "", mobile_id: 0 }, status: 1
     }];
+    
     let initial_landlines = [];
     let initial_emails = [];
     let initial_scope = 0;
     let initial_office = "";
     let initial_site = "";
     let initial_location = "";
-    let initial_status = 1;
+    let initial_status = true;
     let initial_ewi_recipient = true;
     let initial_ewi_restriction = 0;
     const initial_save_button_state = false;
@@ -207,10 +217,8 @@ function ContactForm (props) {
     };
     
     if (isEditMode) {
-        const { mobile_numbers, user: {
-            ewi_recipient, ewi_restriction, landline_numbers, emails, first_name,
-            last_name, middle_name, nickname, user_id, organizations, status
-        } } = chosenContact;
+        const { mobile_numbers, ewi_recipient, ewi_restriction, landline_numbers, emails, first_name,
+            last_name, middle_name, nickname, user_id, organizations, status } = chosenContact;
         initial_user_details = { first_name, last_name, middle_name, nickname, user_id };
         
         if (organizations.length !== 0) {
@@ -221,7 +229,6 @@ function ContactForm (props) {
             const { site, location } = userAffiliation(scope, site_details);
             initial_site = site;
             initial_location = location;
-    
         }
 
         if (ewi_restriction !== null) {
@@ -232,7 +239,8 @@ function ContactForm (props) {
         }
         const updated_mobile_numbers = mobile_numbers.map((row, index) => {
             const new_data = JSON.parse(JSON.stringify(row));
-            new_data.sim_num = conformTextMask(new_data.sim_num);
+            const { mobile_number: { sim_num } } = new_data;
+            new_data.mobile_number.sim_num = conformTextMask(sim_num);
             return new_data;
         });
 
@@ -306,7 +314,6 @@ function ContactForm (props) {
                 setOffice("");
             }
         }
-        
     }, [scope]);
 
 
@@ -344,7 +351,7 @@ function ContactForm (props) {
                 emails,
                 ewi_recipient,
                 restriction,
-                active
+                status: active
             },
             affiliation: {
                 site,
@@ -589,7 +596,7 @@ function ContactForm (props) {
 
             {
                 mobile_nums.map((row, index) => {
-                    const { sim_num, status, has_delete } = row;
+                    const { mobile_number: { sim_num }, status, has_delete } = row;
                     const enable_delete = typeof has_delete !== "undefined";
                     let is_sim_num_invalid = true;
                     if (sim_num === "") {

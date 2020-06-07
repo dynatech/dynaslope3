@@ -1,16 +1,40 @@
 """
 Miscellaneous Web Socket
 """
-import json
-from flask import jsonify
+
 from datetime import datetime
-from connection import SOCKETIO
-from src.utils.extra import (
-    var_checker, get_system_time, get_process_status_log,
-    set_data_to_memcache, retrieve_data_from_memcache)
+from connection import SOCKETIO, CELERY
 from src.api.monitoring import get_monitoring_shifts
+from src.utils.extra import set_data_to_memcache, retrieve_data_from_memcache
+
 set_data_to_memcache(name="MONITORING_SHIFTS", data=get_monitoring_shifts())
 
+
+@CELERY.task(name="server_time_background_task", ignore_results=True)
+def server_time_background_task():
+    """
+    server time background task.
+    """
+
+    print()
+    system_time = datetime.strftime(
+        datetime.now(), "%Y-%m-%d %H:%M:%S")
+    print(f"{system_time} | Server Time Background Task Running...")
+
+    while True:
+        now = datetime.now()
+        server_time = now.strftime("%Y-%m-%d %H:%M:%S")
+        SOCKETIO.emit("receive_server_time", server_time, namespace="/misc")
+        SOCKETIO.sleep(0.5)
+    
+@SOCKETIO.on("connect", namespace="/misc")
+def connect():
+    """
+    on connect func()
+    """
+    emit_data("receive_monitoring_shifts")
+    
+    
 def emit_data(keyword, sid=None):
     data_to_emit = None
     if keyword == "receive_monitoring_shifts":
@@ -40,22 +64,4 @@ def get_shifts_background_task():
         except Exception as err:
             print(err)
         SOCKETIO.sleep(60)
-
-@SOCKETIO.on("get_server_time", namespace="/misc")
-def server_time_background_task():
-    """
-    server time background task.
-    """
-    while True:
-        now = datetime.now()
-        server_time = now.strftime("%Y-%m-%d %H:%M:%S")
-        SOCKETIO.emit("receive_server_time", server_time, namespace="/misc")
-        SOCKETIO.sleep(0.5)
-    
-@SOCKETIO.on("connect", namespace="/misc")
-def connect():
-    """
-    on connect func()
-    """
-    emit_data("receive_monitoring_shifts")
     

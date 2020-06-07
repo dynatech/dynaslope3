@@ -19,10 +19,14 @@ function MomsInputFields (props) {
         momsEntry: moms_entry,
         updateField: update_field,
         isAddingNewInstance: is_adding_new_instance,
+        setIsNoneEntrySelected,
         location, site_code
     } = props;
-
+    // console.log(props);
     const { moms, options } = moms_entry;
+    const { feature_type } = moms;
+    const is_none_entry = feature_type !== null && feature_type.label === "None";
+    setIsNoneEntrySelected(is_none_entry);
 
     return (
         <Grid container spacing={2}>
@@ -36,46 +40,50 @@ function MomsInputFields (props) {
                     renderDropdownIndicator
                     openMenuOnClick
                 />
-            </Grid> 
-            <Grid item xs={12} container spacing={1}>
-                <Tooltip 
-                    title="Feature names are auto-generated. To add new MOMs feature name, choose (Add new instance)"
-                    placement="top"
-                    interactive
-                >
-                    <Grid item xs={12} sm={6} md={6}>
-                        <SelectMultipleWithSuggest
-                            label="Feature Name"
-                            options={options.feature_name.options}
-                            isDisabled={options.feature_name.disabled}
-                            value={moms.feature_name}
-                            changeHandler={update_field("feature_name")}
-                            placeholder={options.feature_name.disabled ? "Disabled" : "Select feature name"}
-                            renderDropdownIndicator
-                            openMenuOnClick
-                        />
-                    </Grid>
-                </Tooltip>
-                {
-                    is_adding_new_instance && (
-                        <Grid item xs={12} sm={6} md={6}>
-                            <TextField
-                                label="Location"
-                                multiline
-                                rowsMax="2"
-                                placeholder="Enter location of new instance"
-                                value={location}
-                                onChange={update_field("location")}
-                                fullWidth
-                                InputLabelProps={{
-                                    shrink: true,
-                                }}
-                            />
-                        </Grid>
-                    )
-                }
             </Grid>
-
+            
+            {
+                !is_none_entry && (
+                    <Grid item xs={12} container spacing={1}>
+                        <Tooltip 
+                            title="Feature names are auto-generated. To add new MOMs feature name, choose (Add new instance)"
+                            placement="top"
+                            interactive
+                        >
+                            <Grid item xs={12} sm={6} md={6}>
+                                <SelectMultipleWithSuggest
+                                    label="Feature Name"
+                                    options={options.feature_name.options}
+                                    isDisabled={options.feature_name.disabled}
+                                    value={moms.feature_name}
+                                    changeHandler={update_field("feature_name")}
+                                    placeholder={options.feature_name.disabled ? "Disabled" : "Select feature name"}
+                                    renderDropdownIndicator
+                                    openMenuOnClick
+                                />
+                            </Grid>
+                        </Tooltip>
+                        {
+                            is_adding_new_instance && (
+                                <Grid item xs={12} sm={6} md={6}>
+                                    <TextField
+                                        label="Location"
+                                        multiline
+                                        rowsMax="2"
+                                        placeholder="Enter location of new instance"
+                                        value={location}
+                                        onChange={update_field("location")}
+                                        fullWidth
+                                        InputLabelProps={{
+                                            shrink: true,
+                                        }}
+                                    />
+                                </Grid>
+                            )
+                        }
+                    </Grid>
+                )
+            }
 
             <Grid item xs={12} sm={6} md={6}>
                 <SelectMultipleWithSuggest
@@ -123,15 +131,6 @@ function MomsInputFields (props) {
             </Grid>
 
             <Grid item xs={12} sm={6} md={6}>
-                {/* <SelectMultipleWithSuggest
-                    label="Reporter"
-                    options={options.reporter}
-                    value={moms.reporter}
-                    changeHandler={update_field("reporter")}
-                    placeholder="Select reporter"
-                    renderDropdownIndicator
-                    openMenuOnClick
-                /> */}
                 <DynaslopeUserSelectInputForm
                     variant="standard"
                     label="Reporter"
@@ -180,7 +179,7 @@ function MomsForm (props) {
 
     const select_site = typeof selectSite === "undefined" ? false : selectSite;
     const [isAddingNewInstance, setIsAddingNewInstance] = useState(false);
-    // const [site, setSite] = useState("");
+    const [isNoneEntrySelected, setIsNoneEntrySelected] = useState(false);
 
     const addInstanceFn = () => setMomsEntries({ action: "ADD_INSTANCE" });
     const updateField = key => attribute => event => {
@@ -192,10 +191,12 @@ function MomsForm (props) {
             if (event.label === "(Add new instance)") setIsAddingNewInstance(true);
             else setIsAddingNewInstance(false);
         }
+
         if (group_1.includes(attribute)) {
             value = event;
         } else if (group_2.includes(attribute)) {
-            value = event.target.value;
+            const { value: v } = event.target;
+            value = v;
         }
 
         setMomsEntries({
@@ -256,6 +257,7 @@ function MomsForm (props) {
                                                 momsEntry={entry}
                                                 updateField={updateField(key)}
                                                 isAddingNewInstance={isAddingNewInstance}
+                                                setIsNoneEntrySelected={setIsNoneEntrySelected}
                                                 site_code={siteCode}
                                             />
 
@@ -273,16 +275,20 @@ function MomsForm (props) {
                             }
                         </MuiPickersUtilsProvider>
 
-                        <div style={{ margin: "16px 0", textAlign: "right" }}>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                size="small"
-                                onClick={addInstanceFn}
-                            >
-                                Add MOMs Observation
-                            </Button>
-                        </div>
+                        {
+                            !isNoneEntrySelected && (
+                                <div style={{ margin: "16px 0", textAlign: "right" }}>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        size="small"
+                                        onClick={addInstanceFn}
+                                    >
+                                        Add MOMs Observation
+                                    </Button>
+                                </div>
+                            )
+                        }
                     </Fragment>
                 ) : (
                     <div style={{ height: 200 }} />

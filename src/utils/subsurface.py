@@ -23,7 +23,7 @@ def get_site_subsurface_columns(site_code, include_deactivated=False):
             site_id
     """
     sub_col = TSMSensors
-    filter_var = Loggers.logger_name.like("%" + str(site_code) + "%")
+    filter_var = Loggers.logger_name.like(str(site_code) + "%")
 
     query = sub_col.query.join(Loggers).options(
         DB.joinedload("logger").joinedload("logger_model").raiseload("*"),
@@ -249,19 +249,19 @@ def process_velocity_alerts_data(vel_alerts, ts_per_node):
                     array = [int_ts, arr["node_id"]]
                     velocity_alerts[index][trigger].append(array)
 
-        orientation = "downslope" if index == 0 else "latslope"
+        orientation = "downslope" if index == 0 else "across_slope"
         temp = {"orientation": orientation, "data": velocity_alerts[index]}
         ret_dict["velocity_alerts"].append(temp)
 
     return ret_dict
 
 
-def get_subsurface_plot_data(column_name, end_ts, start_date=None):
+def get_subsurface_plot_data(column_name, end_ts, start_date=None, hour_value=4):
+    """
     """
 
-    """
-
-    json_data = vcdgen(column_name, endTS=end_ts)
+    json_data = vcdgen(column_name, endTS=end_ts, startTS=start_date, hour_interval=int(hour_value))
+    # json_data = vcdgen(column_name, endTS="2019-01-15 13:07:14")
     data = json.loads(json_data)[0]  # return value pag dict
 
     column_position = process_column_position_data(data["c"])

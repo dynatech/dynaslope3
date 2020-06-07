@@ -14,9 +14,10 @@ from src.models.dynamic_variables import (
     DynamicVariables as dv, DynamicVariablesSchema as dvS)
 from src.models.analysis import (
     SiteMarkers as sm, SiteMarkersSchema as smS)
+from src.utils.extra import set_data_to_memcache
 
 
-def main(memory_client):
+def main():
     table_list = {
         "public_alert_symbols": (pas, pasS(many=True)),
         "operational_trigger_symbols": (ots, otsS(many=True)),
@@ -31,4 +32,5 @@ def main(memory_client):
     for key in table_list:
         table = table_list[key][0].query.all()
         table_data = table_list[key][1].dump(table).data
-        memory_client.set(f"D3_{key.upper()}", table_data)
+        set_data_to_memcache(
+            name=key.upper(), data=table_data, raise_if_empty=True)

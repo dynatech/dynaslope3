@@ -17,8 +17,8 @@ function InsertEQevent (props) {
     const {
         fullScreen, isOpen, clickHandler, setReloadEqEvent
     } = props;
-    const [eq_magnitude, set_magnitude] = useState("");
-    const [eq_depth, set_depth] = useState(0);
+    const [eq_magnitude, set_magnitude] = useState(null);
+    const [eq_depth, set_depth] = useState(null);
     const [eq_long, set_long] = useState(0);
     const [eq_lat, set_lat] = useState(0);
     const [ts, setTs] = useState(moment());
@@ -26,7 +26,6 @@ function InsertEQevent (props) {
     const [is_disable, set_is_disabled] = useState(true);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const { first_name, last_name } = getCurrentUser();
-    
 
     const snackBarActionFn = key => {
         return (<Button
@@ -87,6 +86,9 @@ function InsertEQevent (props) {
 
         clickHandler(false);
     };
+
+    const magnitude_err = (eq_magnitude > 10 || eq_magnitude <= 0) && eq_magnitude !== null;
+    const depth_err = eq_depth <= 0 && eq_magnitude !== null;
     
     return (
         <Dialog
@@ -116,7 +118,7 @@ function InsertEQevent (props) {
                                 ampm={false}
                                 placeholder="2010/01/01 00:00"
                                 format="YYYY/MM/DD HH:mm"
-                                mask="__/__/____ __:__"
+                                mask="____/__/__ __:__"
                                 clearable
                                 disableFuture
                             />
@@ -134,8 +136,8 @@ function InsertEQevent (props) {
                                     max: 10, min: 1
                                 } }}
                                 fullWidth
-                                helperText={ eq_magnitude > 10 ? "magnitide range:  0.1 - 10" : ""}
-                                error={eq_magnitude < 0 || eq_magnitude > 10}
+                                helperText={ magnitude_err ? "Insert magnitude from 0.1 to 10" : ""}
+                                error={magnitude_err}
                             />
                         </FormControl>
                     </Grid>
@@ -148,19 +150,9 @@ function InsertEQevent (props) {
                                 defaultValue=""
                                 onChange={event => set_depth(event.target.value)}
                                 type="number"
-                                fullWidth       
-                            />
-                        </FormControl>
-                    </Grid>
-
-                    <Grid item xs={6}>
-                        <FormControl component="fieldset" fullWidth>
-                            <TextField 
-                                required
-                                label="Longitude"
-                                type="number"
-                                defaultValue=""
-                                onChange={event => set_long(event.target.value)}
+                                fullWidth
+                                helperText={ depth_err ? "Positive numbers only" : ""}
+                                error={depth_err} 
                             />
                         </FormControl>
                     </Grid>
@@ -173,6 +165,18 @@ function InsertEQevent (props) {
                                 label="Latitude"
                                 defaultValue=""
                                 onChange={event => set_lat(event.target.value)}
+                            />
+                        </FormControl>
+                    </Grid>
+
+                    <Grid item xs={6}>
+                        <FormControl component="fieldset" fullWidth>
+                            <TextField 
+                                required
+                                label="Longitude"
+                                type="number"
+                                defaultValue=""
+                                onChange={event => set_long(event.target.value)}
                             />
                         </FormControl>
                     </Grid>

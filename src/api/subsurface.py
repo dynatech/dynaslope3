@@ -49,11 +49,12 @@ def wrap_get_subsurface_column_versions(site_column=None):
     return jsonify(site_column_version_data)
 
 
-@SUBSURFACE_BLUEPRINT.route("/subsurface/get_subsurface_plot_data/<column_name>/<end_ts>", methods=["GET"])
-def wrap_get_subsurface_plot_data(column_name, end_ts):
+@SUBSURFACE_BLUEPRINT.route("/subsurface/get_subsurface_plot_data/<column_name>/<end_ts>/<start_ts>/<hour_value>", methods=["GET"])
+def wrap_get_subsurface_plot_data(column_name, end_ts, start_ts, hour_value):
     """
     """
 
     data = get_subsurface_plot_data(
-        column_name=column_name, end_ts=end_ts)  # magta, 2017-06-09 19:30
+        column_name=column_name, end_ts=end_ts, start_date=start_ts, hour_value=hour_value)  # magta, 2017-06-09 19:30
+    
     return jsonify(data)

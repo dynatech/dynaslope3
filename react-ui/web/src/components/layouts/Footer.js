@@ -34,8 +34,8 @@ function Footer (props) {
         <AppBar position="static" className={classes.footer}>
             <Toolbar>
                 <Typography variant="subtitle2" color="inherit" className={classes.footerText} >
-                    4F PHIVOLCS Building, C. P. Garcia Avenue, UP Campus, Diliman, Quezon City 1011 <br />
-                    Tel. no. (02) 426-1458 loc. 152 to 153 | dynaslope.phivolcs@gmail.com <br />
+                    4F PHIVOLCS Building, C. P. Garcia Avenue, UP Campus, Diliman, Quezon City 1101 <br />
+                    Tel. no. (02) 8426-1468 loc. 401 & 403 | dynaslope.phivolcs@gmail.com <br />
                     www.facebook.com/dynaslopecommunity
                 </Typography>
             </Toolbar>

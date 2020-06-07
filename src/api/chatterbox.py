@@ -8,7 +8,7 @@ from src.models.inbox_outbox import SmsTagsSchema
 from src.utils.chatterbox import (
     get_quick_inbox, get_message_tag_options,
     insert_message_on_database, get_latest_messages,
-    get_messages_schema_dict
+    get_messages_schema_dict, resend_message
 )
 from src.utils.ewi import create_ewi_message
 from src.utils.general_data_tag import insert_data_tag
@@ -47,8 +47,14 @@ def wrap_send_routine_ewi_sms():
     nickname = json_data["nickname"]
     # var_checker("site_list", site_list, True)
 
-    try:
-        for site in site_list:
+    response = {
+        "message": "success",
+        "status": True,
+        "site_ids": []
+    }
+
+    for site in site_list:
+        try:
             site_code = site["site_code"]
             # site_id = site["site_id"]
             release_id = site["release_id"]
@@ -106,18 +112,12 @@ def wrap_send_routine_ewi_sms():
                 1, user_id, event_id
             )
             DB.session.commit()
-
-            response = {
-                "message": "success",
-                "status": True
-            }
-    except Exception as e:
-        var_checker("ERROR: Releasing Routine EWI SMS", e, True)
-        DB.session.rollback()
-        response = {
-            "message": "failed",
-            "status": False
-        }
+        except Exception as e:
+            var_checker("ERROR: Releasing Routine EWI SMS", e, True)
+            DB.session.rollback()
+            response["message"] = "failed",
+            response["status"] = False
+            response["site_ids"].append(site["site_code"])
 
     return jsonify(response)
 
@@ -228,3 +228,27 @@ def load_more_messages(mobile_id, batch):
     schema_msgs = get_messages_schema_dict(messages)
 
     return jsonify(schema_msgs)
+
+
+@CHATTERBOX_BLUEPRINT.route("/chatterbox/resend_message/<outbox_status_id>", methods=["GET"])
+def wrap_resend_message(outbox_status_id):
+    """
+    """
+
+    status = True
+    message = "Message resend success"
+
+    try:
+        resend_message(outbox_status_id)
+    except Exception as err:
+        print(err)
+
+        if hasattr(err, "message"):
+            error_msg = err.message
+        else:
+            error_msg = str(err)
+
+        status = False
+        message = error_msg
+
+    return jsonify({"status": status, "message": message})

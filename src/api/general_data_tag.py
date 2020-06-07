@@ -82,8 +82,9 @@ def handle_update_insert_tags():
 
                 for site_id in site_id_list:
                     # TODO: Make sure that this would handle routine in the future.
-                    event = get_latest_monitoring_event_per_site(site_id)
-                    var_checker("event", event, True)
+                    event = get_latest_monitoring_event_per_site(
+                        site_id, raise_load=True)
+                    # var_checker("event", event, True)
 
                     event_id = event.event_id
                     narrative_id = write_narratives_to_db(

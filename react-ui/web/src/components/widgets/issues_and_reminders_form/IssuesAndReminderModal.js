@@ -41,11 +41,14 @@ function IssuesAndReminderModal (props) {
         if (isIandRUpdateNeeded) {
             const chosenData = chosenIssueReminder;
             const get_site_id_list = chosenIssueReminder.postings.map(row => row.site_id);
-            const get_event_id = chosenIssueReminder.postings.map(row => row.event.event_id);
+            const event_ids = [];
+            chosenIssueReminder.postings.forEach(row => {
+                const { event: event_id } = row;
+                if (event_id !== null) event_ids.push(event_id);
+            });
             chosenData.site_id_list = get_site_id_list;
-            chosenData.is_event_entry = get_event_id.length > 0;
+            chosenData.is_event_entry = event_ids.length > 0;
             setIssueReminderData(chosenData);
-            console.log(chosenData);
         } else {
             setIssueReminderData(default_state);
         }
@@ -61,12 +64,12 @@ function IssuesAndReminderModal (props) {
 
         if (resolution !== "") {
             const resolver_user_id = getCurrentUser().user_id;
-            setIssueReminderData({
+            const temp = {
                 ...issue_reminder_data,
                 ts_resolved: moment().format("YYYY-MM-DD HH:mm:ss"),
                 resolved_by: resolver_user_id
-            });
-            handleIssuesAndReminders(issue_reminder_data, ret => {});
+            }; 
+            handleIssuesAndReminders(temp, ret => {});
             closeHandlerAction();     
         }
     };

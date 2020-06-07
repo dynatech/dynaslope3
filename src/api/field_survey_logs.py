@@ -7,7 +7,7 @@ from fpdf import FPDF
 import smtplib
 import os
 from flask import Blueprint, jsonify, request, url_for, send_from_directory
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 from connection import DB, SOCKETIO
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart

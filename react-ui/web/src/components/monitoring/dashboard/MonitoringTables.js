@@ -1,4 +1,4 @@
-import React, { Fragment, useState, useEffect } from "react";
+import React, { Fragment, useState } from "react";
 import {
     Grid, Typography,
     Divider, Button
@@ -83,6 +83,12 @@ function CandidateAlertsExpansionPanel (props) {
         general_status, is_release_time,
         unresolved_moms_list
     } = alertData;
+
+    const { validity_status: vs } = alertData;
+    let validity_status = "valid";
+    if (typeof vs !== "undefined") {
+        validity_status = vs;
+    }
     
     if (general_status === "routine") {
         const { data_ts, public_alert_symbol } = alertData;
@@ -104,6 +110,10 @@ function CandidateAlertsExpansionPanel (props) {
     site = site.toUpperCase();
     const gen_status = general_status.toUpperCase();
 
+    let root_style = classes.alert0;
+    if (validity_status === "invalid") root_style = classes.alert3;
+    else if (validity_status === "partially valid") root_style = classes.alert2;
+
     return (
         <ExpansionPanel
             key={`panel-${index + 1}`}
@@ -114,10 +124,13 @@ function CandidateAlertsExpansionPanel (props) {
                 // expandIcon={<ExpandMoreIcon />}
                 aria-controls={`panel${index}bh-content`}
                 id={`panel${index}bh-header`}
-                classes={{ content: classes.expansionPanelSummaryContent }}
+                classes={{
+                    content: classes.expansionPanelSummaryContent,
+                    root: root_style
+                }}
             >
                 {
-                    [site, ia_level, ts, gen_status].map((elem, i) => (
+                    [site, ts, validity_status.toUpperCase(), gen_status].map((elem, i) => (
                         <Typography
                             key={`candidate-column-${i + 1}`}
                             color="textSecondary"
@@ -330,6 +343,7 @@ function LatestSiteAlertsExpansionPanel (props) {
         event, internal_alert_level, releases,
         day, sent_statuses, public_alert_symbol
     } = siteAlert;
+    const { alert_level } = public_alert_symbol;
 
     const { is_sms_sent, is_bulletin_sent } = sent_statuses;
 
@@ -363,7 +377,10 @@ function LatestSiteAlertsExpansionPanel (props) {
                 // expandIcon={<ExpandMoreIcon />}
                 aria-controls={`${keyName}bh-content`}
                 id={`${keyName}bh-header`}
-                classes={{ content: classes.expansionPanelSummaryContent }}
+                classes={{
+                    content: classes.expansionPanelSummaryContent,
+                    root: classes[`alert${alert_level}`]
+                }}
             >
                 {
                     panel_headers.map((elem, i) => (
@@ -467,7 +484,10 @@ function RoutineExpansionPanel (props) {
             // expandIcon={<ExpandMoreIcon />}
                 aria-controls={`${keyName}bh-content`}
                 id={`${keyName}bh-header`}
-                classes={{ content: classes.expansionPanelSummaryContent }}
+                classes={{
+                    content: classes.expansionPanelSummaryContent,
+                    root: classes.alert0
+                }}
             >
                 {
                     ["ROUTINE", adjusted_data_ts].map((elem, i) => (

@@ -2,6 +2,7 @@
 Contacts Functions Controller File
 """
 
+import traceback
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from connection import DB
@@ -11,10 +12,15 @@ from src.utils.contacts import (
     ewi_recipient_migration, get_contacts_per_site,
     get_ground_measurement_reminder_recipients,
     get_recipients_option, get_blocked_numbers,
-    save_blocked_number, get_all_sim_prefix
+    save_blocked_number, get_all_sim_prefix,
+    get_mobile_numbers, get_recipients,
+    save_primary
 )
 
 from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
+from src.utils.sites import get_sites_data
+from src.utils.users import get_users_categorized_by_org
+from src.models.users import UsersSchema
 
 
 CONTACTS_BLUEPRINT = Blueprint("contacts_blueprint", __name__)
@@ -44,14 +50,7 @@ def save_contact():
     message = ""
 
     try:
-        if data["value"] is not None:
-            data = data["value"]
-    except KeyError:
-        print("Value is defined.")
-        pass
-
-    try:
-        print(data)
+        # print(data)
         user = data["user"]
         contact_numbers = data["contact_numbers"]
         affiliation = data["affiliation"]
@@ -67,7 +66,7 @@ def save_contact():
         DB.session.rollback()
         message = "Something went wrong, Please try again"
         status = False
-        print(err)
+        print(traceback.format_exc())
 
     feedback = {
         "status": status,
@@ -155,6 +154,7 @@ def get_ground_meas_reminder_recipients():
 
     return jsonify(data)
 
+
 @CONTACTS_BLUEPRINT.route("/contacts/blocked_numbers", methods=["GET", "POST"])
 def get_all_blocked_numbers():
     """
@@ -174,6 +174,7 @@ def get_all_blocked_numbers():
 
     return jsonify(feedback)
 
+
 @CONTACTS_BLUEPRINT.route("/contacts/save_block_number", methods=["GET", "POST"])
 def save_block_number():
     """
@@ -187,14 +188,6 @@ def save_block_number():
     message = ""
 
     try:
-        if data["value"] is not None:
-            data = data["value"]
-    except KeyError:
-        print("Value is defined.")
-        pass
-
-    try:
-        print(data)
         save_blocked_number(data)
         message = "Successfully blocked mobile number!"
         status = True
@@ -212,6 +205,7 @@ def save_block_number():
 
     return jsonify(feedback)
 
+
 @CONTACTS_BLUEPRINT.route("/contacts/sim_prefix", methods=["GET"])
 def sim_prefixes():
     """
@@ -225,7 +219,7 @@ def sim_prefixes():
         status = False
         message = "Something went wrong, Please try again."
         data = []
-    
+
     feeback = {
         "status": status,
         "prefixes": data,
@@ -233,3 +227,63 @@ def sim_prefixes():
     }
 
     return jsonify(feeback)
+
+
+@CONTACTS_BLUEPRINT.route("/contacts/get_contact_prioritization", methods=["GET"])
+def get_contact_prioritization():
+    """
+    Function that get contact prioritization
+    """
+    users = get_recipients(joined=True, order_by_scope=True)
+
+    all_sites_stakeholders = {}
+    for user in users:
+        organizations = user["organizations"]
+        for org in organizations:
+            site = org["site"]["site_code"]
+            org_name = org["organization"]["name"]
+            scope = org["organization"]["scope"]
+            primary_contact = org["primary_contact"]
+            user_org_id = org["user_org_id"]
+            data = {
+                "org_name": org_name,
+                "scope": scope,
+                "primary_contact": primary_contact,
+                "contact_person": user,
+                "user_org_id": user_org_id
+            }
+            if site not in all_sites_stakeholders:
+                all_sites_stakeholders[site] = [data]
+            else:
+                all_sites_stakeholders[site].append(data)
+
+    return jsonify(all_sites_stakeholders)
+
+
+@CONTACTS_BLUEPRINT.route("/contacts/save_primary_contact", methods=["GET", "POST"])
+def save_primary_contact():
+    """
+    Function that save primary_contact
+    """
+    data = request.get_json()
+    if data is None:
+        data = request.form
+
+    status = None
+    message = ""
+
+    try:
+        save_primary(data)
+        DB.session.commit()
+    except Exception as err:
+        DB.session.rollback()
+        print(err)
+        message = "Something went wrong, Please try again"
+        status = False
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+
+    return jsonify(data)

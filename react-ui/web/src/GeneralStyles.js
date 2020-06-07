@@ -1,3 +1,9 @@
+const phivolcs_red = "#FE0000";
+const dynaslope_blue = "#16526D";
+const dynaslope_orange = "#F8991D";
+const daag_yellow = "#FCEE27";
+const zarcon_red = "#991B1E";
+
 const styles = theme => ({
     dynaslopeLogo: {
         // width: 60,
@@ -31,6 +37,27 @@ const styles = theme => ({
         fontSize: "1.5rem",
         [theme.breakpoints.down("xs")]: {
             fontSize: "1.2rem"
+        }
+    },
+    extended: {
+        backgroundColor: "green"
+    },
+    alert0: {
+        backgroundColor: "#EEEEEE"
+    },
+    alert1: {
+        backgroundColor: daag_yellow
+    },
+    alert2: {
+        backgroundColor: dynaslope_orange,
+        "& *": {
+            color: "white !important"
+        }
+    },
+    alert3: {
+        backgroundColor: zarcon_red,
+        "& *": {
+            color: "white !important"
         }
     }
 });

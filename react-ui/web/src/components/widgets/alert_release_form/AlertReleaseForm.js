@@ -4,7 +4,7 @@ import MomentUtils from "@date-io/moment";
 import {
     TextField, Grid,
     FormControl, FormLabel, Switch,
-    Divider, makeStyles
+    Divider, makeStyles, CircularProgress
 } from "@material-ui/core";
 import {
     MuiPickersUtilsProvider,
@@ -274,7 +274,8 @@ function SummaryForm (props) {
     const {
         classes, handleEventChange,
         generalData, internalAlertLevel, setModalTitle,
-        mtFullName, ctFullName, ewiPayload
+        mtFullName, ctFullName, ewiPayload,
+        isAlertRecomputing
     } = props;
     const {
         siteId, dataTimestamp, releaseTime, comments
@@ -331,74 +332,84 @@ function SummaryForm (props) {
 
     return (
         <Fragment>
-            <Grid item xs={6} >
-                <Typography variant="body2" color="textSecondary">Site</Typography>
-                <Typography variant="body1" color="textPrimary">
-                    {siteId.label}
-                </Typography>
-            </Grid>
-            <Grid item xs={6} >
-                <Typography variant="body2" color="textSecondary">Alert Level</Typography>
-                <Typography variant="body1" color="textPrimary">
-                    {internalAlertLevel}
-                </Typography>
-            </Grid>
+            {
+                isAlertRecomputing ? (
+                    <Grid item xs={6}>
+                        <CircularProgress />
+                    </Grid>
+                ) : (
+                    <Fragment>
+                        <Grid item xs={6}>
+                            <Typography variant="body2" color="textSecondary">Site</Typography>
+                            <Typography variant="body1" color="textPrimary">
+                                {siteId.label}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="body2" color="textSecondary">Internal Alert</Typography>
+                            <Typography variant="body1" color="textPrimary">
+                                {internalAlertLevel}
+                            </Typography>
+                        </Grid>
 
-            <Grid item xs={6} >
-                <Typography variant="body2" color="textSecondary">Data Timestamp</Typography>
-                <Typography variant="body1" color="textPrimary">
-                    {data_ts}
-                </Typography>
-            </Grid>
-            <Grid item xs={6} >
-                <Typography variant="body2" color="textSecondary">Release Time</Typography>
-                <Typography variant="body1" color="textPrimary">
-                    {release_time}
-                </Typography>
-            </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="body2" color="textSecondary">Data Timestamp</Typography>
+                            <Typography variant="body1" color="textPrimary">
+                                {data_ts}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="body2" color="textSecondary">Release Time</Typography>
+                            <Typography variant="body1" color="textPrimary">
+                                {release_time}
+                            </Typography>
+                        </Grid>
 
-            <Grid item xs={6} >
-                <Typography variant="body2" color="textSecondary">MT Personnel</Typography>
-                <Typography variant="body1" color="textPrimary">
-                    {mtFullName}
-                </Typography>
-            </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="body2" color="textSecondary">MT Personnel</Typography>
+                            <Typography variant="body1" color="textPrimary">
+                                {mtFullName}
+                            </Typography>
+                        </Grid>
 
-            <Grid item xs={6} >
-                <Typography variant="body2" color="textSecondary">CT Personnel</Typography>
-                <Typography variant="body1" color="textPrimary">
-                    {ctFullName}
-                </Typography>
-            </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="body2" color="textSecondary">CT Personnel</Typography>
+                            <Typography variant="body1" color="textPrimary">
+                                {ctFullName}
+                            </Typography>
+                        </Grid>
 
-            <Grid item xs={12}>
-                <Divider className={classes.divider} /> 
-            </Grid>
+                        <Grid item xs={12}>
+                            <Divider className={classes.divider} /> 
+                        </Grid>
             
-            <Grid item xs={12} container spacing={1}>
-                <Grid item xs={12}>
-                    <Typography variant="button" color="textSecondary">Triggers</Typography>
-                </Grid>
-                <Grid item xs={12} container spacing={1} align="center">
-                    {triggers_display}
-                </Grid>
-            </Grid>
+                        <Grid item xs={12} container spacing={1}>
+                            <Grid item xs={12}>
+                                <Typography variant="button" color="textSecondary">Triggers</Typography>
+                            </Grid>
+                            <Grid item xs={12} container spacing={1} align="center">
+                                {triggers_display}
+                            </Grid>
+                        </Grid>
 
-            <Grid item xs={12}>
-                <Divider className={classes.divider} /> 
-            </Grid>
+                        <Grid item xs={12}>
+                            <Divider className={classes.divider} /> 
+                        </Grid>
 
-            <Grid item xs={12} className={classes.inputGridContainer}>
-                <TextField
-                    label="Comments"
-                    multiline
-                    rowsMax="2"
-                    placeholder="Enter additional comments necessary"
-                    value={comments}
-                    onChange={handleEventChange("comments")}
-                    fullWidth
-                />
-            </Grid>
+                        <Grid item xs={12} className={classes.inputGridContainer}>
+                            <TextField
+                                label="Comments"
+                                multiline
+                                rowsMax="2"
+                                placeholder="Enter additional comments necessary"
+                                value={comments}
+                                onChange={handleEventChange("comments")}
+                                fullWidth
+                            />
+                        </Grid>
+                    </Fragment>
+                )
+            }
         </Fragment>
     );
 }

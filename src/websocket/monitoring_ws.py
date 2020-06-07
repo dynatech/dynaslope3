@@ -24,7 +24,7 @@ set_data_to_memcache(name="ALERTS_FROM_DB", data=json.dumps({
     "latest": [], "extended": [], "overdue": [], "routine": {}
 }))
 set_data_to_memcache(name="ISSUES_AND_REMINDERS", data=json.dumps([]))
-set_data_to_memcache(name="RAINFALL_DATA", data=json.dumps([]))
+set_data_to_memcache(name="RAINFALL_SUMMARY", data=json.dumps([]))
 
 
 def emit_data(keyword, sid=None):
@@ -38,7 +38,7 @@ def emit_data(keyword, sid=None):
     elif keyword == "receive_issues_and_reminders":
         data_to_emit = retrieve_data_from_memcache("ISSUES_AND_REMINDERS")
     elif keyword == "receive_rainfall_data":
-        data_to_emit = retrieve_data_from_memcache("RAINFALL_DATA")
+        data_to_emit = retrieve_data_from_memcache("RAINFALL_SUMMARY")
 
     # var_checker("data_list", data_list, True)
     if sid:
@@ -67,7 +67,7 @@ def monitoring_background_task():
                                      data=wrap_get_issue_reminder())
 
                 rainfall_data = execute_get_all_site_rainfall_data()
-                set_data_to_memcache(name="RAINFALL_DATA",
+                set_data_to_memcache(name="RAINFALL_SUMMARY",
                                      data=rainfall_data)
 
                 emit_data("receive_generated_alerts")
@@ -106,7 +106,7 @@ def monitoring_background_task():
             # Update rainfall summary data
             elif datetime.now().minute in [15, 45]:
                 rainfall_data = execute_get_all_site_rainfall_data()
-                set_data_to_memcache(name="RAINFALL_DATA",
+                set_data_to_memcache(name="RAINFALL_SUMMARY",
                                      data=rainfall_data)
                 emit_data("receive_rainfall_data")
 
@@ -176,8 +176,9 @@ def generate_alerts(site_code=None):
     """
 
     # if not site_code:  # to be removed (for testing only)
-    # site_code = ["agb", "umi"]
-    generated_alerts_json = public_alert_generator.main(site_code=site_code)
+    # site_code = ["agb", "bak", "cud", "ime"]
+    generated_alerts_json = public_alert_generator.main(
+        site_code=site_code)
 
     return generated_alerts_json
 
@@ -202,28 +203,35 @@ def update_alert_gen(site_code=None):
     print(get_process_status_log("Update Alert Generation", "start"))
     try:
         generated_alerts = retrieve_data_from_memcache("GENERATED_ALERTS")
-        site_gen_alert = generate_alerts(site_code)
+        json_generated_alerts = json.loads(generated_alerts)
 
+        site_gen_alert = generate_alerts(site_code)
+        gen_alert_index = None
         if site_code:
             load_site_gen_alert = json.loads(site_gen_alert)
             site_gen_alert = load_site_gen_alert.pop()
 
-        # Find the current entry for the site provided
-        json_generated_alerts = json.loads(generated_alerts)
-        gen_alert_row = next(
-            filter(lambda x: x["site_code"] == site_code, json_generated_alerts), None)
+            # Find the current entry for the site provided
+            gen_alert_index = next((index for (index, d) in enumerate(
+                json_generated_alerts) if d["site_code"] == site_code), -1)
 
-        if gen_alert_row:
+        if gen_alert_index > -1:
             # Replace rather update alertgen entry
-            gen_alert_index = json_generated_alerts.index(gen_alert_row)
             json_generated_alerts[gen_alert_index] = site_gen_alert
+        else:
+            json_generated_alerts = site_gen_alert
 
+        gen_alerts = json.dumps(json_generated_alerts)
         set_data_to_memcache(name="GENERATED_ALERTS",
-                             data=json.dumps(json_generated_alerts))
+                             data=gen_alerts)
+        alerts_from_db = wrap_get_ongoing_extended_overdue_events()
         set_data_to_memcache(name="ALERTS_FROM_DB",
-                             data=wrap_get_ongoing_extended_overdue_events())
+                             data=alerts_from_db)
         set_data_to_memcache(name="CANDIDATE_ALERTS",
-                             data=candidate_alerts_generator.main())
+                             data=candidate_alerts_generator.main(
+                                 generated_alerts_list=gen_alerts,
+                                 db_alerts_dict=alerts_from_db)
+                             )
     except Exception as err:
         print(err)
         raise
@@ -364,7 +372,7 @@ def execute_update_db_alert_ewi_sent_status(alert_db_group, site_id, ewi_group):
 
 
 def execute_get_all_site_rainfall_data():
-    return get_all_site_rainfall_data()
+    return get_all_site_rainfall_data(end_ts=datetime.now())
 
 
 @SOCKETIO.on("message", namespace="/monitoring")

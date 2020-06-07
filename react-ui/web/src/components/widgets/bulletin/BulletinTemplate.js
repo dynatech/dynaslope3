@@ -501,7 +501,7 @@ function BulletinTemplate (props) {
 
                                     <Grid item xs={12}>
                                         <Typography variant="body2" className={classes.sectionHeader}>
-                                            <strong>HOUSEHOLDS AT RISK</strong>
+                                            <strong>ELEMENTS AT RISK</strong>
                                         </Typography>
                                     </Grid>
 

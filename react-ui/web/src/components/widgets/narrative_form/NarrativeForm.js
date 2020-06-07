@@ -5,7 +5,7 @@ import {
 
 // Form Related Imports
 import MomentUtils from "@date-io/moment";
-import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
+import { MuiPickersUtilsProvider, TimePicker, DatePicker } from "@material-ui/pickers";
 
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
@@ -41,13 +41,12 @@ function NarrativeForm (props) {
     const {
         classes, narrativeData,
         setNarrativeData, siteList,
-        setSiteList
+        setSiteList, isFromSiteLogs
     } = props;
-    
     const {
         narrative, timestamp, user_id
     } = narrativeData;
-
+    
     const handleDateTime = key => value => {
         setNarrativeData({
             ...narrativeData,
@@ -58,6 +57,7 @@ function NarrativeForm (props) {
     const update_site_value = value => {
         setSiteList(value);
     };
+
 
     const handleEventChange = key => event => {
         const { value } = event.target;
@@ -80,10 +80,47 @@ function NarrativeForm (props) {
                     <DynaslopeSiteSelectInputForm 
                         value={siteList}
                         changeHandler={update_site_value}
-                        isMulti                    
+                        isMulti
+                        isFromSiteLogs ={isFromSiteLogs}
+                                            
                     />
                 </Grid>
+                
                 <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                    <DatePicker
+                        required
+                        autoOk
+                        label="Date"
+                        value={timestamp}
+                        onChange={handleDateTime("timestamp")}
+                        ampm={false}
+                        placeholder="2020-01-01"
+                        format="YYYY-MM-DD"
+                        mask="____-__-__"
+                        clearable
+                        disableFuture
+                        fullWidth
+                    />
+                </Grid>
+
+                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                    <TimePicker
+                        required
+                        autoOk
+                        label="Time"
+                        value={timestamp}
+                        onChange={handleDateTime("timestamp")}
+                        ampm={false}
+                        placeholder="00:00"
+                        format="HH:mm"
+                        mask="__:__"
+                        clearable
+                        disableFuture
+                        fullWidth
+                    />
+                </Grid>
+
+                <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
                     <DynaslopeUserSelectInputForm
                         variant="standard"
                         label="Reporter"
@@ -93,21 +130,7 @@ function NarrativeForm (props) {
                         disabled
                     />
                 </Grid>
-                <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
-                    <KeyboardDateTimePicker
-                        required
-                        autoOk
-                        label="Timestamp"
-                        value={timestamp}
-                        onChange={handleDateTime("timestamp")}
-                        ampm={false}
-                        placeholder="2019-01-01 00:00"
-                        format="YYYY-MM-DD HH:mm"
-                        mask="____-__-__ __:__"
-                        clearable
-                        disableFuture
-                    />
-                </Grid>
+
                 <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
                     <TextField
                         required

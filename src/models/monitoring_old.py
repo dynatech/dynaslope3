@@ -108,7 +108,7 @@ class OldMonitoringTriggers(UserMixin, DB.Model):
                            nullable=False)
     trigger_type = DB.Column(DB.String(3), nullable=False)
     timestamp = DB.Column(DB.DateTime, nullable=False,
-                          default=datetime.datetime.utcnow)
+                          default=datetime.datetime.now)
     info = DB.Column(DB.String(360))
 
     # event = DB.relationship(
@@ -228,7 +228,7 @@ class OldNarratives(DB.Model):
     site_id = DB.Column(DB.Integer, nullable=False)
     event_id = DB.Column(DB.Integer)
     timestamp = DB.Column(
-        DB.DateTime, default=datetime.datetime.utcnow, nullable=False)
+        DB.DateTime, default=datetime.datetime.now, nullable=False)
     narrative = DB.Column(DB.String(500), nullable=False)
 
     def __repr__(self):
