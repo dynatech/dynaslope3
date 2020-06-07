@@ -785,8 +785,12 @@ def get_monitoring_releases_by_data_ts(site_code, data_ts):
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
     si = Sites
-    return_data = mr.query.join(mea) \
-        .join(me).join(si).filter(
+    
+    return_data = mr.query.options(
+        DB.joinedload("event_alert", innerjoin=True).
+        raiseload("*"), DB.raiseload("*")
+    ).join(mea).join(me).join(si) \
+        .filter(
             DB.and_(
                 si.site_code == site_code,
                 mr.data_ts == data_ts
