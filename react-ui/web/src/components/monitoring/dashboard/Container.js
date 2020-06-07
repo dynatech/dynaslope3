@@ -7,6 +7,7 @@ import { AddAlert, Warning } from "@material-ui/icons";
 
 import PageTitle from "../../reusables/PageTitle";
 import TabBar from "../../reusables/TabBar";
+import ShiftsPanel from "../../reusables/ShiftCalendar";
 import MonitoringTables from "./MonitoringTables";
 import GeneratedAlerts from "./GeneratedAlerts";
 import AlertReleaseFormModal from "../../widgets/alert_release_form/AlertReleaseFormModal";
@@ -18,13 +19,13 @@ import {
     subscribeToWebSocket, unsubscribeToWebSocket,
     receiveGeneratedAlerts, receiveCandidateAlerts, receiveAlertsFromDB
 } from "../../../websocket/monitoring_ws";
+import { receiveMonitoringShiftData, unsubscribeToMiscWebSocket } from "../../../websocket/misc_ws";
 import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
 import InsertMomsButton from "../../widgets/moms/InsertMomsButton";
 import { GeneralContext } from "../../contexts/GeneralContext";
 
 const styles = theme => {
     const gen_style = GeneralStyles(theme);
-
     return {
         ...gen_style,
         tabBar: {
@@ -45,36 +46,34 @@ function Container (props) {
     const { classes, width, history } = props;
     const [chosenTab, setChosenTab] = useState(0);
     const [generatedAlerts, setGeneratedAlerts] = useState(null);
+    const [monitoringShifts, setMonitoringShifts] = useState([]);
     const [candidateAlertsData, setCandidateAlertsData] = useState(null);
     const [alertsFromDbData, setAlertsFromDbData] = useState(null);
     const [isOpenReleaseModal, setIsOpenReleaseModal] = useState(false);
     const [isOpenRoutineModal, setIsOpenRoutineModal] = useState(false);
     const [chosenCandidateAlert, setChosenCandidateAlert] = useState(null);
-
     const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
     const [isIandRUpdateNeeded, setIsIandRUpdateNeeded] = useState(false);
-
     const [is_moms_modal_open, setMomsModal] = useState(false);
     const set_moms_modal_fn = bool => () => setMomsModal(bool);
-
     const { setIsReconnecting } = useContext(GeneralContext);
     
     useEffect(() => {
-        subscribeToWebSocket(setIsReconnecting);
-
+        subscribeToWebSocket(setIsReconnecting); 
         receiveGeneratedAlerts(generated_alerts => setGeneratedAlerts(generated_alerts));
         receiveCandidateAlerts(candidate_alerts => setCandidateAlertsData(candidate_alerts));
         receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
-
+        receiveMonitoringShiftData(shift_data => setMonitoringShifts(shift_data));
         return function cleanup () {
             unsubscribeToWebSocket();
+            unsubscribeToMiscWebSocket();
         };
     }, []);
 
     const handleTabSelected = chosen_tab => {
         setChosenTab(chosen_tab);
     };
-
+    
     const handleBoolean = (data, bool) => () => {
         if (data === "is_open_release_modal") setIsOpenReleaseModal(bool);
         else if (data === "is_open_issues_modal") {
@@ -141,6 +140,7 @@ function Container (props) {
             <div className={classes.tabBar}>
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={3}>
+                       
                         <IssuesAndRemindersList 
                             isOpenIssueReminderModal={isOpenIssueReminderModal}
                             setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
@@ -150,13 +150,13 @@ function Container (props) {
                     </Grid>
                     
                     <Grid item md={9}>
+                        <ShiftsPanel ShiftData={monitoringShifts}/>
                         <TabBar
                             chosenTab={chosenTab}
                             onSelect={handleTabSelected}
                             tabsArray={tabs_array}
                         />
-
-                        <div className={classes.tabBarContent}>
+                        <div className={classes.tabBarContent}>         
                             {chosenTab === 0 && (
                                 <MonitoringTables
                                     width={width}
@@ -171,7 +171,6 @@ function Container (props) {
                     </Grid>
                 </Grid>
             </div>
-
 
             { !is_desktop && <CircularAddButton clickHandler={handleBoolean("is_open_release_modal", true)} /> }
 
@@ -203,5 +202,4 @@ function Container (props) {
 
 
 }
-
 export default compose(withWidth(), withStyles(styles))(Container);

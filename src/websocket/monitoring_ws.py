@@ -15,9 +15,8 @@ from src.api.manifestations_of_movement import wrap_write_monitoring_moms_to_db
 from src.utils.rainfall import get_all_site_rainfall_data
 from src.utils.extra import (
     var_checker, get_system_time, get_process_status_log,
-    set_data_to_memcache, retrieve_data_from_memcache
-)
-
+    set_data_to_memcache, retrieve_data_from_memcache)
+    
 set_data_to_memcache(name="CLIENTS", data=[])
 set_data_to_memcache(name="GENERATED_ALERTS", data=json.dumps([]))
 set_data_to_memcache(name="CANDIDATE_ALERTS", data=json.dumps([]))
