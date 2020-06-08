@@ -189,9 +189,9 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     app.register_blueprint(
         RESOURCES_AND_CAPACITIES_BLUEPRINT, url_prefix="/api")
 
-    from src.api.field_survey_logs import FIELD_SURVEY_LOGS_BLUEPRINT
-    app.register_blueprint(
-        FIELD_SURVEY_LOGS_BLUEPRINT, url_prefix="/api")
+    # from src.api.field_survey_logs import FIELD_SURVEY_LOGS_BLUEPRINT
+    # app.register_blueprint(
+    #    FIELD_SURVEY_LOGS_BLUEPRINT, url_prefix="/api")
 
     from src.api.sensor_maintenance import SENSOR_MAINTENANCE_BLUEPRINT
     app.register_blueprint(
