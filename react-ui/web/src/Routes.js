@@ -12,7 +12,6 @@ import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_si
 import ChatterboxContainer from "./components/communication/chatterbox/Container";
 import ContactsContainer from "./components/communication/contacts/Container";
 import MailBoxContainer from "./components/communication/mailbox/MailBoxContainer";
-import { ShiftsCalendar } from "./components/reusables/ShiftCalendar";
 import SitesInformationContainer from "./components/community/site_information/SitesInformationContainer";
 
 
@@ -29,7 +28,6 @@ function RoutesCollection (props) {
             <Route path={`${url}monitoring/shifts_and_reports`} component={ShiftsAndReportsContainer} />
             <Route path={`${url}monitoring/issues_and_reminders`} component={IssuesAndReminders} />
             <Route path={`${url}monitoring/logs`} component={SiteLogsContainer} />
-            <Route path={`${url}monitoring/calendar`} component={ShiftsCalendar} />
             <Route path={`${url}monitoring`} render={() => <h3> Not yet created</h3>} />
 
             <Route path={`${url}analysis/sites`} component={IntegratedSiteAnalysisContainer} />

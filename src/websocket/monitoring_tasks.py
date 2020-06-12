@@ -53,8 +53,8 @@ def emit_data(keyword, sid=None):
         SOCKETIO.emit(keyword, data_to_emit, namespace="/monitoring")
 
 
-@CELERY.task(name="monitoring_background_task", ignore_results=True)
-def monitoring_background_task():
+@CELERY.task(name="alert_generation_background_task", ignore_results=True)
+def alert_generation_background_task():
     """
     """
 
@@ -62,7 +62,7 @@ def monitoring_background_task():
         print()
         system_time = datetime.strftime(
             datetime.now(), "%Y-%m-%d %H:%M:%S")
-        print(f"{system_time} | Monitoring Background Task Running...")
+        print(f"{system_time} | Alert Generation Background Task Running...")
 
         generated_alerts = generate_alerts()
         set_data_to_memcache(

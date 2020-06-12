@@ -11,8 +11,9 @@ from datetime import datetime, timedelta, time
 from flask import Blueprint, jsonify, request
 from connection import DB
 from src.models.monitoring import (
-    MonitoringEvents, MonitoringReleases, 
-    MonitoringEventAlerts, MonShift, MonShiftSchema)
+    MonitoringEvents, MonitoringReleases,
+    MonitoringEventAlerts, MonitoringShiftSchedule,
+    MonitoringShiftScheduleSchema)
 from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
     InternalAlertSymbolsSchema, EndOfShiftAnalysisSchema)
@@ -933,7 +934,7 @@ def insert_ewi(internal_json=None):
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
                         and site_monitoring_instance.validity \
-                == datetime_data_ts + timedelta(minutes=30):
+                    == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
@@ -1353,11 +1354,15 @@ def get_event_timeline_data(event_id):
 
     return jsonify(timeline_data)
 
-@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_shifts")
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_shifts", methods=["GET"])
 def get_monitoring_shifts():
     """
     """
-    shift_sched = MonShift.query.order_by(MonShift.ts.asc()).all()
-    result = MonShiftSchema(many=True).dump(shift_sched).data
+
+    shift_sched = MonitoringShiftSchedule.query.order_by(
+        MonitoringShiftSchedule.ts.asc()).all()
+    result = MonitoringShiftScheduleSchema(many=True).dump(shift_sched).data
     data = json.dumps(result)
+
     return data

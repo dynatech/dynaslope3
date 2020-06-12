@@ -13,6 +13,7 @@ function connectToWebsocket () {
     }
 
 }
+
 function subscribeToMiscWebSocket (reconnect_callback) {
     connectToWebsocket();
 
@@ -30,13 +31,8 @@ function subscribeToMiscWebSocket (reconnect_callback) {
     });
 }
 
-function unsubscribeToMiscWebSocket () {
-    socket.close();
-    socket = null;
-}
 function getServerTime () {
     connectToWebsocket();
-
     socket.emit("get_server_time");
 }
 
@@ -46,21 +42,32 @@ function receiveServerTime (callback) {
     });
 }
 
+function getMonitoringShifts () {
+    connectToWebsocket();
+    socket.emit("get_monitoring_shifts");
+}
+
 function receiveMonitoringShiftData (callback) {
     connectToWebsocket();
     socket.on("receive_monitoring_shifts", data => {
         const temp = JSON.parse(data);
-        console.log("SHIFTS: ", temp);
+        console.log("Monitoring Shifts:", temp);
         callback(temp);
     });
-    
 }
+
+function removeReceiveMonitoringShiftData () {
+    socket.removeListener("receive_monitoring_shifts");
+}
+
+
 export { 
     subscribeToMiscWebSocket,
     connectToWebsocket, 
-    unsubscribeToMiscWebSocket, 
     getServerTime, 
     receiveServerTime, 
-    receiveMonitoringShiftData 
+    receiveMonitoringShiftData,
+    getMonitoringShifts,
+    removeReceiveMonitoringShiftData
 };
     

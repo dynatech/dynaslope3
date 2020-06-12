@@ -114,7 +114,7 @@ function DateRangeSelector (props) {
 
     return (
         <div>
-            <Grid container justify="flex-end">
+            <Grid container item xs justify="flex-end">
                 {
                     is_subsurface && SubsurfaceHourInterval()
                 }

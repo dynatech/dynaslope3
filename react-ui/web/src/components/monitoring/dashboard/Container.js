@@ -1,30 +1,30 @@
 import React, { Fragment, useEffect, useState, useContext } from "react";
+
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
-import { withStyles } from "@material-ui/core/styles";
-import { compose } from "recompose";
-import { Button, Grid } from "@material-ui/core";
+import { Button, Grid, makeStyles } from "@material-ui/core";
 import { AddAlert, Warning } from "@material-ui/icons";
 
 import PageTitle from "../../reusables/PageTitle";
 import TabBar from "../../reusables/TabBar";
-import ShiftsPanel from "../../reusables/ShiftCalendar";
 import MonitoringTables from "./MonitoringTables";
 import GeneratedAlerts from "./GeneratedAlerts";
 import AlertReleaseFormModal from "../../widgets/alert_release_form/AlertReleaseFormModal";
 import RoutineReleaseFormModal from "../../widgets/alert_release_form/RoutineReleaseFormModal";
 import IssuesAndRemindersList from "../../widgets/issues_and_reminders_form/IssuesAndRemindersList";
 import CircularAddButton from "../../reusables/CircularAddButton";
+import MonitoringShiftsPanel from "../../widgets/monitoring_shifts/MonitoringShiftsPanel";
 import GeneralStyles from "../../../GeneralStyles";
 import { 
     subscribeToWebSocket, unsubscribeToWebSocket,
-    receiveGeneratedAlerts, receiveCandidateAlerts, receiveAlertsFromDB
+    receiveGeneratedAlerts, receiveCandidateAlerts,
+    receiveAlertsFromDB
 } from "../../../websocket/monitoring_ws";
-import { receiveMonitoringShiftData, unsubscribeToMiscWebSocket } from "../../../websocket/misc_ws";
+import { getMonitoringShifts, receiveMonitoringShiftData, removeReceiveMonitoringShiftData } from "../../../websocket/misc_ws";
 import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
 import InsertMomsButton from "../../widgets/moms/InsertMomsButton";
 import { GeneralContext } from "../../contexts/GeneralContext";
 
-const styles = theme => {
+const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
     return {
         ...gen_style,
@@ -35,7 +35,7 @@ const styles = theme => {
             marginTop: 30
         }
     };
-};
+});
 
 const tabs_array = [
     { label: "Monitoring Tables", href: "monitoring-tables" },
@@ -43,7 +43,9 @@ const tabs_array = [
 ];
 
 function Container (props) {
-    const { classes, width, history } = props;
+    const { width, history } = props;
+    const classes = useStyles();
+
     const [chosenTab, setChosenTab] = useState(0);
     const [generatedAlerts, setGeneratedAlerts] = useState(null);
     const [monitoringShifts, setMonitoringShifts] = useState([]);
@@ -59,14 +61,17 @@ function Container (props) {
     const { setIsReconnecting } = useContext(GeneralContext);
     
     useEffect(() => {
-        subscribeToWebSocket(setIsReconnecting); 
+        subscribeToWebSocket(setIsReconnecting);
+
         receiveGeneratedAlerts(generated_alerts => setGeneratedAlerts(generated_alerts));
         receiveCandidateAlerts(candidate_alerts => setCandidateAlertsData(candidate_alerts));
         receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
         receiveMonitoringShiftData(shift_data => setMonitoringShifts(shift_data));
+        getMonitoringShifts();
+
         return function cleanup () {
             unsubscribeToWebSocket();
-            unsubscribeToMiscWebSocket();
+            removeReceiveMonitoringShiftData();
         };
     }, []);
 
@@ -140,7 +145,6 @@ function Container (props) {
             <div className={classes.tabBar}>
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={3}>
-                       
                         <IssuesAndRemindersList 
                             isOpenIssueReminderModal={isOpenIssueReminderModal}
                             setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
@@ -150,7 +154,10 @@ function Container (props) {
                     </Grid>
                     
                     <Grid item md={9}>
-                        <ShiftsPanel ShiftData={monitoringShifts}/>
+                        <div style={{ marginBottom: 12 }}>
+                            <MonitoringShiftsPanel shiftData={monitoringShifts}/>
+                        </div>
+
                         <TabBar
                             chosenTab={chosenTab}
                             onSelect={handleTabSelected}
@@ -193,13 +200,10 @@ function Container (props) {
             <MomsInsertModal
                 isOpen={is_moms_modal_open}
                 closeHandler={set_moms_modal_fn(false)}
-                // snackbarHandler={set_snackbar_notif_fn(true)}
-                // width={width}
             />
-
         </Fragment>
     );
 
 
 }
-export default compose(withWidth(), withStyles(styles))(Container);
+export default withWidth()(Container);
