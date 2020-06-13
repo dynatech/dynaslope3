@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Fragment } from "react";
-import { Route, Link } from "react-router-dom";
+import { Route, Link, matchPath } from "react-router-dom";
 
 import Highcharts from "highcharts";
 import HC_exporting from "highcharts/modules/exporting";
@@ -71,11 +71,11 @@ function AddNewHistoryModal (props) {
     const [new_marker_name, setNewMarkerName] = useState("");
 
     const resetForm = () => {
-        setEvent("");
+        setIsOpen(false);
         setTs(null);
         setNewMarkerName("");
         setNmmValidation(null);
-        setIsOpen(false);
+        setEvent("");
     };
 
     const handleChange = e => {
@@ -915,7 +915,8 @@ function createSurficialGraph (options, chartRef) {
 
 function SurficialGraph (props) {
     const { 
-        width, match: { url, params: { site_code } },
+        width, location: { pathname },
+        match: { url, params: { site_code } },
         fullScreen, disableBack, disableMarkerList,
         saveSVG, input, currentUser,
         isEndOfShift
@@ -976,9 +977,14 @@ function SurficialGraph (props) {
     });
 
     useEffect(() => {
+        setRedrawChart(true);
+    }, [selected_range_info]);
+
+    useEffect(() => {
         const { current } = chartRef;
-        if (current !== null || to_redraw_chart)
+        if (current !== null || to_redraw_chart) {
             current.chart.showLoading();
+        }
 
         if (to_redraw_chart) {
             const f_input = { site_code, ...timestamps };
@@ -995,7 +1001,7 @@ function SurficialGraph (props) {
 
             setRedrawChart(false);
         }
-    }, [to_redraw_chart, selected_range_info, duration]);
+    }, [to_redraw_chart]);
 
     useEffect(() => {
         if (!historical_markers && surficial_data.length !== 0) {
@@ -1010,6 +1016,25 @@ function SurficialGraph (props) {
             setHistoricalMarkers(markers);
         }
     }, [historical_markers, surficial_data]);
+
+    useEffect(() => {
+        if (surficial_data.length !== 0) {
+            const match = matchPath(pathname, {
+                path: `${url}/:marker_name`,
+                exact: true
+            });
+
+            if (match) {
+                const { isExact, params: { marker_name } } = match;
+                if (isExact) {
+                    const temp = surficial_data.find(x => x.marker_name === marker_name);
+                    if (typeof temp !== "undefined") {
+                        setSelectedMarker(temp);
+                    }
+                }
+            }
+        }
+    }, [pathname, surficial_data]);
 
     useEffect(() => {
         const { current: { chart } } = chartRef;
@@ -1054,9 +1079,10 @@ function SurficialGraph (props) {
                         !disable_back && <Grid item sm><BackToMainButton {...props}/></Grid>
                     }
 
-                    <Grid item container sm justify="flex-end">
+                    <Grid item container xs justify="flex-end">
                         { !disable_marker_list && surficial_data.length > 0 && (
                             <SurficialMarkersButton
+                                {...props}
                                 width={width}
                                 url={url}
                                 selectedMarker={selected_marker}
@@ -1082,24 +1108,17 @@ function SurficialGraph (props) {
                         {graph_component}
                     </Paper>
                 </Grid>
+
             
                 <Route path={`${url}/:marker_name`} render={
                     props => {
                         const { match: { params: { marker_name } } } = props;
 
-                        let marker = null;
-                        if (surficial_data.length !== 0) {
-                            marker = surficial_data.find(x => x.marker_name === marker_name);
-                            if (typeof marker === "undefined") marker = null;
-                        }
-                        setSelectedMarker(marker);
-
-                        if (!marker) return "";
-
+                        if (!selected_marker) return "";
                         return (
                             <Grid item xs={12} md={5} lg={4}>
                                 <MarkerHistoryTable
-                                    markerInfo={marker}
+                                    markerInfo={selected_marker}
                                     markerName={marker_name}
                                 />
 

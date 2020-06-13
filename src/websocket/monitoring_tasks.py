@@ -368,8 +368,11 @@ def execute_insert_ewi(insert_details):
     emit_data("receive_alerts_from_db")
     emit_data("receive_candidate_alerts")
 
-    if alerts_from_db["has_shifted_sites_to_routine"]:
-        issues_and_reminder_bg_task.apply_async()
+    try:
+        if alerts_from_db["has_shifted_sites_to_routine"]:
+            issues_and_reminder_bg_task.apply_async()
+    except TypeError:
+        pass
 
     return status_log
 
