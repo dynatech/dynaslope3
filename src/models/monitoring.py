@@ -906,3 +906,36 @@ class EndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = EndOfShiftAnalysis
+
+
+class MonitoringShiftSchedule(DB.Model):
+    """
+    Class representation of users table
+    """
+    __tablename__ = "monshiftsched"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    ts = DB.Column(DB.String(), primary_key=True)
+    iompmt = DB.Column(DB.String(20))
+    iompct = DB.Column(DB.String(20))
+    oomps = DB.Column(DB.String(20))
+    oompmt = DB.Column(DB.String(20))
+    oompct = DB.Column(DB.String(20))
+
+    def __repr__(self):
+        return (f" iompmt: {self.iompmt}"
+                f" iompct: {self.iompct}"
+                f" oompmt: {self.oompmt}"
+                f" oompct: {self.oompct}"
+                f" oomps: {self.oomps}"
+                f" ts: {self.ts}")
+
+
+class MonitoringShiftScheduleSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Users class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MonitoringShiftSchedule

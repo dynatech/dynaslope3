@@ -78,7 +78,10 @@ def communication_background_task():
         datetime.now(), "%Y-%m-%d %H:%M:%S")
     print(f"{system_time} | Communication Background Task Running...")
 
-    main()
+    messages = retrieve_data_from_memcache("CB_MESSAGES")
+    if not messages:
+        initialize_comms_data()
+
     messages = retrieve_data_from_memcache("CB_MESSAGES")
     inbox_messages_arr = messages["inbox"]
 
@@ -87,6 +90,7 @@ def communication_background_task():
             updates = get_sms_user_updates()
             updates_len = len(updates)
             update_process_start = datetime.now()
+            to_update_unsent = False
 
             for row in updates:
                 query_start = datetime.now()
@@ -120,9 +124,7 @@ def communication_background_task():
                             mobile_id)
                         messages["inbox"][inbox_index]["messages"] = msgs_schema
 
-                    unsent_messages = get_formatted_unsent_messages()
-                    messages["unsent"] = unsent_messages
-
+                    to_update_unsent = True
                     update_mobile_id_room(mobile_id)
 
                     set_data_to_memcache(name="CB_MESSAGES", data=messages)
@@ -148,6 +150,12 @@ def communication_background_task():
 
             if updates:
                 delete_sms_user_update(updates)
+
+                if to_update_unsent:
+                    unsent_messages = get_formatted_unsent_messages()
+                    messages["unsent"] = unsent_messages
+                    set_data_to_memcache(name="CB_MESSAGES", data=messages)
+                    emit_data("receive_latest_messages")
 
             update_process_end = datetime.now()
 
@@ -468,8 +476,12 @@ def check_ground_data_and_prepare_narrative(site_id, timestamp, hour, minute):
     return narrative, result
 
 
-def main():
-    delete_sms_user_update()
+@CELERY.task(name="initialize_comms_data", ignore_results=True)
+def initialize_comms_data():
+    """
+    """
+
+    # delete_sms_user_update()
 
     messages = get_inbox()
     contacts_users = get_contacts(orientation="users")
