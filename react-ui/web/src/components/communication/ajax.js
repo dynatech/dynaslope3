@@ -194,14 +194,15 @@ export function getSiteStakeHolders (callback) {
     });
 }
 
-export function saveUpdatedPrimaryContact (input, callback) {
+export function saveUpdatedPrimaryContact (input, callback = null) {
     const api_link = `${host}/api/contacts/save_primary_contact`;
     
     axios.post(api_link, input)
     .then(response => {
         const { data } = response;
         console.log("Save updated primary contact", data);
-        callback(data);
+        if (callback !== null)
+            callback(data);
     })
     .catch(error => {
         console.error(error);

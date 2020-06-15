@@ -3,7 +3,6 @@ import React, {
     useEffect, useContext
 } from "react";
 
-import { withStyles } from "@material-ui/core/styles";
 import {
     Button, Grid, Typography,
     List, ListItem, ListItemAvatar,
@@ -12,22 +11,29 @@ import {
     ListItemIcon, Chip,
     Paper, Divider, Slide, 
     Backdrop, Tooltip, AppBar, InputAdornment,
-    Toolbar, Dialog
+    Toolbar, Dialog, Collapse,
+    makeStyles
 } from "@material-ui/core";
 import { 
     Close, Call, Person, PersonAdd, ViewList,
     Block, Edit, PhoneAndroid, MailOutline,
-    Phone, SimCard, FormatListNumbered, Save,
-    Sort
+    Phone, SimCard, FormatListNumbered,
+    Sort,
+    Star
 } from "@material-ui/icons";
+
 import moment from "moment";
+
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 import {
     subscribeToWebSocket, receiveAllContacts,
     removeReceiveAllContacts
 } from "../../../websocket/communications_ws";
-import { getUserOrganizations, prepareSiteAddress } from "../../../UtilityFunctions";
+import {
+    getUserOrganizations, prepareSiteAddress,
+    getUserContactPriority
+} from "../../../UtilityFunctions";
 import ContactList from "./ContactList";
 import BlockedContactList from "./BlockedContactList";
 import SimPrefixesList from "./SimPrefixesList";
@@ -38,7 +44,7 @@ import { GeneralContext } from "../../contexts/GeneralContext";
 import { getBlockedContacts, getSimPrefixes, getSiteStakeHolders } from "../ajax";
 import SearchContactsModal from "./SearchContactsModal";
 
-const styles = theme => {
+const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
     
     return {
@@ -57,7 +63,6 @@ const styles = theme => {
                 top: 48
             },
             backgroundColor: "white",
-            // borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
             zIndex: 1
         },
         noFlexGrow: { flexGrow: 0 },
@@ -65,19 +70,20 @@ const styles = theme => {
             position: "fixed",
             right: 0,
             top: 116,
-            height: "100%",
             width: 400
         },
         overflow: {
             overflowY: "auto",
-            height: 760,
+            height: "calc(100vh - 250px)",
             [theme.breakpoints.down("md")]: {
-                height: 570
+                height: "80vh"
             }
         },
-        insetDivider: { padding: "8px 70px !important" }
+        insetDivider: { padding: "8px 70px !important" },
+        nested: { paddingLeft: theme.spacing(4) },
+        hidden: { display: "none !important" }
     };
-};
+});
 
 function prepareGeographicalList (data, category) {
     let list = [];
@@ -95,7 +101,8 @@ function prepareGeographicalList (data, category) {
 export function IndividualContact (props) {
     const {
         contact, chosenContact, setSlideOpen,
-        classes, setContactFormForEdit, siteOrgs 
+        classes, setContactFormForEdit, siteOrgs,
+        isContactPriority
     } = props;
     
     const { sites, org } = siteOrgs;
@@ -140,15 +147,27 @@ export function IndividualContact (props) {
             {
                 org !== null ? (
                     <Fragment>
-                        <Grid item xs={12} style={{ textAlign: "center" }}>
-                            <Chip color="secondary" label={
-                                <Typography variant="body1">
-                                    { org.toUpperCase() }
-                                </Typography>
-                            } />
+                        <Grid item xs={12} container justify="center">
+                            <Tooltip 
+                                arrow
+                                disableFocusListener 
+                                disableHoverListener={!isContactPriority}
+                                title="Contact Priority"
+                                placement="top"
+                            >
+                                <Chip 
+                                    color="secondary"
+                                    label={
+                                        <Typography variant="body1">
+                                            { org.toUpperCase() }
+                                        </Typography>
+                                    }
+                                    icon={isContactPriority ? <Star style={{ color: "gold" }} /> : null}
+                                />
+                            </Tooltip>
                         </Grid>
 
-                        <Grid item xs={12} style={{ textAlign: "center" }}>
+                        <Grid item xs={12} container justify="center">
                             {
                                 sites.map(site => {
                                     const { site_code } = site;
@@ -357,7 +376,7 @@ export function IndividualContact (props) {
 }
 
 function BlockedContact (props) {
-    const { chosenContact } = props;
+    const { chosenContact, setSlideOpen } = props;
     if (chosenContact.length === 0) {
         return (
             <Grid
@@ -401,6 +420,14 @@ function BlockedContact (props) {
                 <Typography variant="h5" align="center">
                     {`+${sim_num}`}
                 </Typography>
+            </Grid>
+
+            <Grid item xs={1} >
+                <Hidden smDown lgUp>
+                    <IconButton onClick={() => setSlideOpen(false)}>
+                        <Close />
+                    </IconButton>
+                </Hidden>
             </Grid>
 
             <Grid item xs={12} style={{ padding: "12px 4px" }} >
@@ -489,22 +516,20 @@ const SearchBar = ({ search_str, setSearchStr, inputProps }) => (
 );
 
 function Container (props) {
-    const { classes } = props;
+    const classes = useStyles();
+    
     const [contacts, setContacts] = useState([]);
     const [contacts_array, setContactsArray] = useState([]);
     const [chosen_contact, setChosenContact] = useState({});
     const [is_slide_open, setSlideOpen] = useState(false);
     const [is_contact_form_open, setContactFormOpen] = useState(false);
-    const [is_block_numbers_open, setOpenBlockedNumbers] = useState(false);
-    const [is_sim_prefixes_open, setOpenSimPrefixes] = useState(false);
-    const [is_contact_prioritization_open, setOpenContactPrioritization] = useState(false);
     const [is_edit_mode, setEditMode] = useState(false);
     const [search_str, setSearchStr] = useState("");
-    const [ blocked_number_array, setBlockedNumberArray ] = useState([]);
-    const [ blocked_chosen_contact, setBlockedChosenContact ] = useState([]);
-    const [ sim_prefixes_list, setSimPrefixesList ] = useState([]);
-    const [ site_stakeholders, setSiteStakeholders ] = useState([]);
-    const [ tab_selected, setTabSelected ] = useState("active_numbers");
+    const [blocked_number_array, setBlockedNumberArray] = useState([]);
+    const [blocked_chosen_contact, setBlockedChosenContact] = useState([]);
+    const [sim_prefixes_list, setSimPrefixesList] = useState([]);
+    const [site_stakeholders, setSiteStakeholders] = useState([]);
+    const [tab_selected, setTabSelected] = useState("active_numbers");
 
     const [municipalities, setMunicipalities] = useState([]);
     const [provinces, setProvinces] = useState([]);
@@ -533,7 +558,7 @@ function Container (props) {
     };
 
     const selectedTab = key => {
-       setTabSelected(key);
+        setTabSelected(key);
     };
 
     const modal_handler = (event) =>{   
@@ -541,13 +566,16 @@ function Container (props) {
     };
 
     const { setIsReconnecting, sites } = useContext(GeneralContext);
+    const [get_contact_priotitization, setGetContactPrioritization] = useState(false);
     useEffect(() => {
-        subscribeToWebSocket("contacts", setIsReconnecting);
+        subscribeToWebSocket(setIsReconnecting);
         receiveAllContacts(data => {
             setContacts(data);
             if (data.length > 0) setChosenContact(data[0]);
             setContactsArray(data);
+            setGetContactPrioritization(true);
         });
+
         return () => removeReceiveAllContacts();
     }, []);
 
@@ -558,14 +586,16 @@ function Container (props) {
     }, [sites]);
 
     useEffect(() => {
-        const filtered = contacts.filter(row => {
-            // const { user: { first_name, last_name } } = row;
-            const { first_name, last_name } = row;
-            const name = `${first_name} ${last_name}`;
-            const pattern = new RegExp(`${search_str}`, "gi");
-            return pattern.test(name);          
-        });
-        setContactsArray(filtered); 
+        const { length } = search_str;
+        if (length > 2 ) {
+            const filtered = contacts.filter(row => {
+                const { first_name, last_name } = row;
+                const name = `${first_name} ${last_name}`;
+                const pattern = new RegExp(`${search_str}`, "gi");
+                return pattern.test(name);          
+            });
+            setContactsArray(filtered);
+        } else if (length === 0) setContactsArray(contacts);
     }, [search_str]);
 
 
@@ -586,21 +616,26 @@ function Container (props) {
                 setSimPrefixesList(prefixes);
             }
         });
-
-        getSiteStakeHolders(data => {
-            setSiteStakeholders(data);
-        });
     }, []);
+
+    useEffect(() => {
+        if (get_contact_priotitization) {
+            getSiteStakeHolders(data => {
+                setSiteStakeholders(data);
+            });
+            setGetContactPrioritization(false);
+        }
+    }, [get_contact_priotitization]);
 
     let contact = "";
     let site_orgs = null;
+    let is_priority = false;
     // eslint-disable-next-line no-prototype-builtins
     if (chosen_contact.hasOwnProperty("user_id")) {
-        // const { user } = chosen_contact;
-        const { first_name, last_name } = chosen_contact;
-        // const { first_name, last_name } = user;
+        const { first_name, last_name, organizations } = chosen_contact;
         contact = `${first_name} ${last_name}`;
-        site_orgs = getUserOrganizations(chosen_contact.organizations, true);
+        site_orgs = getUserOrganizations(organizations, true);
+        is_priority = getUserContactPriority(organizations);
     }
 
     const set_modal_fn = (key, bool) => () => {
@@ -630,6 +665,7 @@ function Container (props) {
                     classes={classes}
                     setContactFormForEdit={setContactFormForEdit}
                     siteOrgs={site_orgs}
+                    isContactPriority={is_priority}
                 />
             );
         }
@@ -663,74 +699,93 @@ function Container (props) {
 
                 <Hidden smDown>
                     <Grid item md={4} lg={3}>
-                        <div >
-                            <Grid>
-                                {SearchComp}            
-                            </Grid>
+                        <div className={classes.sticky}>
+                            {SearchComp}
                           
                             <List component="nav" aria-label="main">
-                                <ListItem button onClick={() => selectedTab("active_numbers")}>
+                                <ListItem 
+                                    button
+                                    onClick={() => selectedTab("active_numbers")}
+                                    selected={tab_selected === "active_numbers"}
+                                >
                                     <ListItemIcon>
                                         <ViewList />
                                     </ListItemIcon>
                                     <ListItemText primary="Active Contacts" />
                                 </ListItem>
 
-                                <ListItem button onClick={() => selectedTab("blocked_numbers")}>
+                                <Collapse in={tab_selected === "active_numbers"} timeout="auto" unmountOnExit>
+                                    <List component="div" disablePadding>
+                                        <ListItem 
+                                            button 
+                                            onClick={() => setContactForm(true)}
+                                            className={classes.nested}
+                                        >
+                                            <ListItemIcon>
+                                                <PersonAdd />
+                                            </ListItemIcon>
+                                            <ListItemText primary="Add Contact" />
+                                        </ListItem>
+                                    </List>
+                                </Collapse>
+
+                                <ListItem 
+                                    button 
+                                    onClick={() => selectedTab("blocked_numbers")}
+                                    selected={tab_selected === "blocked_numbers"}
+                                >
                                     <ListItemIcon>
                                         <Block />
                                     </ListItemIcon>
                                     <ListItemText primary="Blocked Contacts" />
                                 </ListItem>
 
-                                <ListItem button onClick={() => selectedTab("contact_prioritization")}>
+                                <ListItem
+                                    button
+                                    onClick={() => selectedTab("contact_prioritization")}
+                                    selected={tab_selected === "contact_prioritization"}
+                                >
                                     <ListItemIcon>
                                         <FormatListNumbered />
                                     </ListItemIcon>
                                     <ListItemText primary="Contact Prioritization" />
                                 </ListItem>
 
-                                <ListItem button onClick={() => selectedTab("sim_prefixes")}>
+                                <ListItem
+                                    button
+                                    onClick={() => selectedTab("sim_prefixes")}
+                                    selected={tab_selected === "sim_prefixes"}
+                                >
                                     <ListItemIcon>
                                         <SimCard />
                                     </ListItemIcon>
-                                    <ListItemText primary="Sim Prefixes" />
+                                    <ListItemText primary="SIM Prefixes" />
                                 </ListItem>
                             </List>
                         </div>
                     </Grid>
                 </Hidden>
 
-                {
-                    tab_selected === "active_numbers" && (
-                        <Fragment>
-                            <Grid item xs={12} md={8} lg={5}>
-                                <Button
-                                    variant="contained"
-                                    style={{ marginTop: 10, marginBottom: 20 }}
-                                    color="primary"
-                                    onClick={() => setContactForm(true)}
-                                    className={classes.button}
-                                    startIcon={<PersonAdd />}
-                                >
-                                Add contact
-                                </Button>
+                <Grid item xs={12} md={8} lg={9}>
+                    <Hidden xsUp={tab_selected !== "active_numbers"} implementation="css">
+                        <Grid container spacing={4}>
+                            <Grid item xs={12} lg={7}>
                                 <ContactList 
-                                    {...props} 
+                                    classes={classes}
                                     contacts={contacts_array}
                                     onContactClickFn={onContactClickFn}
-                                    showBlockedNumbers={is_block_numbers_open}
                                 />
                             </Grid>
                             
                             <Hidden mdDown>
-                                <Grid item lg={4}>
+                                <Grid item lg={5}>
                                     {
                                         contact !== "" && (
                                             <Paper 
                                                 elevation={1}
                                                 style={{ padding: 16, zIndex: 2 }}
-                                                className={`${classes.sticky} ${is_contact_form_open && classes.overflow}`}
+                                                className={`${classes.sticky} ${classes.overflow}`}
+                                                variant="outlined"
                                             >
                                                 { PaperDialogContent() }
                                             </Paper>
@@ -773,59 +828,113 @@ function Container (props) {
                                     </Paper>
                                 </Dialog>
                             </Hidden>
-                        </Fragment>
-                    )
-                }
-
-                {
-                    tab_selected === "blocked_numbers" && (
-                        <Fragment>
-                            <Grid item xs={12} md={8} lg={5}>
+                        </Grid>
+                    </Hidden>
+        
+                    <Hidden xsUp={tab_selected !== "blocked_numbers"} implementation="css">
+                        <Grid container spacing={4}>
+                            <Grid item xs={12} lg={7}>
                                 <BlockedContactList
                                     blocked_numbers={blocked_number_array}
                                     onBlockContactClickFn={onBlockContactClickFn}
                                 />
                             </Grid>
-                            <Grid item lg={4}>
-                                <BlockedContact
-                                    chosenContact={blocked_chosen_contact}
-                                />
-                            </Grid>
-                        </Fragment>
-                    )
-                }
 
-                {
-                    tab_selected === "contact_prioritization" && (
-                        <Grid item xs={12} md={8} lg={9}>
-                            {
-                                site_stakeholders.length !== 0 && (
-                                    sites.map((row, index) => {
-                                        const { site_code, site_id, barangay, municipality, province } = row;
-                                        const site_label = `${site_code.toUpperCase()} (Brgy. ${barangay}, ${municipality}, ${province})`;
-                                        const site_data = site_stakeholders[site_code];
-                                        return (<ContactPrioritization
-                                            site_label={site_label}
-                                            site_id={site_id}
-                                            site_data={site_data}
+                            <Hidden mdDown>
+                                <Grid item lg={5}>
+                                    <Paper 
+                                        elevation={1}
+                                        style={{ padding: 16, zIndex: 2 }}
+                                        className={classes.sticky}
+                                        variant="outlined"
+                                    >
+                                        <BlockedContact
+                                            chosenContact={blocked_chosen_contact}
+                                            setSlideOpen={setSlideOpen}
+                                        />
+                                    </Paper>
+                                </Grid>
+                            </Hidden>
+
+                            <Hidden smDown lgUp>
+                                <Slide direction="left" in={is_slide_open} mountOnEnter unmountOnExit>
+                                    <Paper 
+                                        elevation={4}
+                                        className={`${classes.paper} ${classes.overflow}`}
+                                        style={{ padding: 24, zIndex: 2 }}
+                                    >
+                                        <BlockedContact
+                                            chosenContact={blocked_chosen_contact}
+                                            setSlideOpen={setSlideOpen}
+                                        />
+                                    </Paper>
+                                </Slide>
+                        
+                                <Backdrop open={is_slide_open} style={{ zIndex: 1 }} />
+                            </Hidden>
+                
+                            <Hidden mdUp>
+                                <Dialog 
+                                    fullScreen
+                                    open={is_slide_open}
+                                    TransitionComponent={SlideTransition}
+                                >
+                                    <AppBar style={{ position: "relative" }}>
+                                        <Toolbar>
+                                            <IconButton edge="start" color="inherit" onClick={() => setContactForm(false)} aria-label="close">
+                                                <Close />
+                                            </IconButton>
+                                        </Toolbar>
+                                    </AppBar>
+                                    <Paper elevation={0} style={{ padding: 16 }}>
+                                        <BlockedContact
+                                            chosenContact={blocked_chosen_contact}
+                                            setSlideOpen={setSlideOpen}
+                                        />
+                                    </Paper>
+                                </Dialog>
+                            </Hidden>
+                        </Grid>
+                    </Hidden>
+
+                    <Hidden xsUp={tab_selected !== "contact_prioritization"} implementation="css">
+                        <Typography variant="body1" style={{ marginBottom: 12 }}>
+                            <strong><i>
+                                Note: Contact priority can only chosen from stakeholders that are EWI recipients.
+                            </i></strong>
+                        </Typography>
+
+                        {/* <ContactPrioritization
+                            siteStakeholders={site_stakeholders}
+                            sites={sites}
+                        /> */}
+                        
+                        {
+                            site_stakeholders.length !== 0 && (
+                                sites.map((row, index) => {
+                                    const { site_id, site_code } = row;
+                                    const site_label = prepareSiteAddress(row, true, "start");
+                                    const site_data = site_stakeholders[site_code];
+                                    
+                                    return (
+                                        <ContactPrioritization
+                                            siteLabel={site_label}
+                                            siteID={site_id}
+                                            siteData={site_data}
                                             key={index}
-                                        />);
-                                    })
-                                )
-                            }
-                        </Grid>
-                    )
-                }
+                                        />
+                                    );
+                                })
+                            )
+                        }
+                    </Hidden>
 
-                {
-                    tab_selected === "sim_prefixes" && (
-                        <Grid item xs={12} md={4} lg={4}>
-                            <SimPrefixesList
-                                sim_prefixes={sim_prefixes_list}
-                            />
-                        </Grid>
-                    )
-                }
+                    <Hidden xsUp={tab_selected !== "sim_prefixes"} implementation="css">
+                        <SimPrefixesList
+                            sim_prefixes={sim_prefixes_list}
+                        />
+                    </Hidden>
+                </Grid>
             </Grid>
 
             <SearchContactsModal
@@ -840,4 +949,4 @@ function Container (props) {
     );
 }
 
-export default withStyles(styles)(Container);
+export default Container;

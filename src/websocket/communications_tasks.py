@@ -78,9 +78,7 @@ def communication_background_task():
         datetime.now(), "%Y-%m-%d %H:%M:%S")
     print(f"{system_time} | Communication Background Task Running...")
 
-    messages = retrieve_data_from_memcache("CB_MESSAGES")
-    if not messages:
-        initialize_comms_data()
+    initialize_comms_data()
 
     messages = retrieve_data_from_memcache("CB_MESSAGES")
     inbox_messages_arr = messages["inbox"]
@@ -464,7 +462,7 @@ def process_no_ground_narrative_writing(ts, site_id, timedelta_hour, event_id):
 
 def check_ground_data_and_prepare_narrative(site_id, timestamp, hour, minute):
     ground_meas_noun = get_ground_data_noun(site_id=site_id)
-    narrative = f"No {ground_meas_noun} received from community"
+    narrative = f"No {ground_meas_noun} received from stakeholders"
 
     if ground_meas_noun == "ground measurement":
         result = get_sites_with_ground_meas(timestamp,
@@ -481,7 +479,7 @@ def initialize_comms_data():
     """
     """
 
-    # delete_sms_user_update()
+    delete_sms_user_update()
 
     messages = get_inbox()
     contacts_users = get_contacts(orientation="users")

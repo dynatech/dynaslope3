@@ -190,6 +190,13 @@ function reducerFunction (state, action) {
     }
 }
 
+function getOfficesList (scope) {
+    const office_list = offices_obj[scope];
+    const o = office_list.map(x => ({ id: x.toLowerCase(), label: x }));
+
+    return o;
+}
+
 function ContactForm (props) {
     const { 
         municipalities, provinces, regions,
@@ -205,6 +212,7 @@ function ContactForm (props) {
     let initial_emails = [];
     let initial_scope = 0;
     let initial_office = "";
+    let initial_office_list = [];
     let initial_site = "";
     let initial_location = "";
     let initial_status = true;
@@ -226,6 +234,7 @@ function ContactForm (props) {
             const site_details = organizations[0].site;
             initial_scope = scope;
             initial_office = name;
+            initial_office_list = getOfficesList(scope);
             const { site, location } = userAffiliation(scope, site_details);
             initial_site = site;
             initial_location = location;
@@ -269,7 +278,7 @@ function ContactForm (props) {
     const [scope, setScope] = useState(initial_scope);
     const [site, setSite] = useState(initial_site);
     const [location, setLocation] = useState(initial_location);
-    const [offices, setOffices] = useState([]);
+    const [offices, setOffices] = useState(initial_office_list);
     const [office, setOffice] = useState(initial_office);
     const [mobile_nums, setMobileNums] = useReducer(reducerFunction, initial_mobiles);
     const [landline_nums, setLandlineNums] = useReducer(reducerFunction, initial_landlines);
@@ -303,11 +312,10 @@ function ContactForm (props) {
     };
 
     useEffect(() => {
-        let office_list = [];
         if (scope !== "") {
-            office_list = offices_obj[scope];
-            const o = office_list.map(x => ({ id: x.toLowerCase(), label: x }));
+            const o = getOfficesList(scope);
             setOffices(o);
+
             if (!isEditMode) {
                 setSite("");
                 setLocation("");
@@ -317,15 +325,7 @@ function ContactForm (props) {
     }, [scope]);
 
 
-    const [final_obj, setFinalObj] = useState({});
-
     useEffect(() => {
-        setFinalObj({
-            user: {
-                ...user_details
-            }
-        });
-
         let button_state = true;
         const affiliation = {
             scope, site, office, location

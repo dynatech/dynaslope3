@@ -88,7 +88,7 @@ function Container (comp_props) {
     const { setIsReconnecting } = useContext(GeneralContext);
 
     useEffect(() => {
-        subscribeToWebSocket("chatterbox", setIsReconnecting);
+        subscribeToWebSocket(setIsReconnecting);
 
         receiveLatestMessages(data => {
             setMessagesCollection(data);
