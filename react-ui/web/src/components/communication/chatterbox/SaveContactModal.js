@@ -27,15 +27,13 @@ function SaveContactModal (props) {
         open, setSaveContactModal, mobileDetails
     } = props;
     const { sim_num, mobile_id } = mobileDetails;
-    
-    const mobile_numbers = [{
-        sim_num,
-        mobile_id,
+    const unknown_number = {
+        mobile_number: { sim_num, mobile_id },
         priority: 0,
         status: 1
-    }];
+    };
 
-    const user = {
+    const data = {
         emails: [],
         ewi_recipient: [],
         ewi_restriction: [],
@@ -45,9 +43,11 @@ function SaveContactModal (props) {
         middle_name: "",
         nickname: "",
         user_id: 0,
-        organizations: []
+        organizations: [],
+        status: 0,
+        mobile_numbers: [unknown_number]
     };
-    const initial_user_data = { mobile_numbers, user };
+    const initial_user_data = data;
     const is_from_chatterbox = true;
     const [reason, setReason] = useState("");
     const [is_edit_mode, setEditMode] = useState(true);
