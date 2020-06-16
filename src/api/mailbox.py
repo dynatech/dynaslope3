@@ -1,15 +1,14 @@
 """
 Contacts Functions Controller File
 """
-
+import os
 from flask import Blueprint, jsonify, request
-from src.utils.emails import send_mail, get_email_subject
+from src.utils.emails import send_mail, get_email_subject, allowed_file
 from src.utils.narratives import write_narratives_to_db
 from src.utils.extra import var_checker
-
+from config import APP_CONFIG
 
 MAILBOX_BLUEPRINT = Blueprint("mailbox_blueprint", __name__)
-
 
 @MAILBOX_BLUEPRINT.route("/mailbox/get_email_subject/<mail_type>/<site_code>/<date>", methods=["GET"])
 def wrap_get_email_subject(mail_type, site_code, date):
@@ -68,6 +67,21 @@ def wrap_send_email():
     })
 
 
+@MAILBOX_BLUEPRINT.route("/mailbox/upload_temp", methods=["POST"])
+def upload_temp_file():
+    """
+    uploads file to server @ temp<folder>/
+    """
+    if request.files:
+        files = request.files.getlist("files")
+        for file in files:
+            if file.filename == '':
+                print('No selected file')
+            if file and allowed_file(file.filename):
+                file.save(os.path.join(APP_CONFIG['attachment_path'], file.filename))
+    return "Success"
+
+
 @MAILBOX_BLUEPRINT.route("/mailbox/send_eos_email", methods=["POST"])
 def send_eos_email():
     """
@@ -83,9 +97,9 @@ def send_eos_email():
         eos_data = {
             "site_code": json_data["site_code"],
             "user_id": json_data["user_id"],
-            "charts": json_data["charts"]
+            "charts": json_data["charts"],
+            "attached_files":json_data["attach_file"]
         }
-
         send_mail(
             recipients=recipients,
             subject=subject,
