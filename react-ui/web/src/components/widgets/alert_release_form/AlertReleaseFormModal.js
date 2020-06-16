@@ -5,6 +5,8 @@ import {
     DialogContentText, DialogActions, Typography,
     Button, makeStyles, withMobileDialog, Grid
 } from "@material-ui/core";
+
+import { useSnackbar } from "notistack";
 import AlertReleaseForm from "./AlertReleaseForm";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
 import { createReleaseDetails, getMonitoringReleaseByDataTS } from "./ajax";
@@ -230,6 +232,7 @@ function AlertReleaseFormModal (props) {
     const [db_saved_triggers, setDBSavedTriggers] = useState([]);
 
     const [current_triggers_status, setCurrentTriggersStatus] = useState([]);
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
     useEffect(() => {
         const { dataTimestamp: input_data_ts, siteCode } = generalData;
@@ -508,6 +511,7 @@ function AlertReleaseFormModal (props) {
     const handleSubmit = () => {
         console.log("Submitting data...", ewiPayload);
         sendWSMessage("insert_ewi", ewiPayload);
+       
     };
 
     const handleNext = () => {
@@ -581,6 +585,16 @@ function AlertReleaseFormModal (props) {
             setModalTitle("");
             temp = ewiPayload;
             temp.release_details.comments = comments;
+           
+            
+            const process_key = enqueueSnackbar(
+                "Processing. . .",
+                {
+                    variant: "warning",
+                    persist: true
+                }
+            );
+            temp.process_key = process_key;
             setEwiPayload(temp);
             handleSubmit();
         }
