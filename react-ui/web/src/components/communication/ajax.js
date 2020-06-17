@@ -28,6 +28,19 @@ export function saveContact (input, callback) {
     });
 }
 
+export function attachMobileNumberToExistingUser (input, callback) {
+    const api_link = `${host}/api/contacts/attach_mobile_number_to_existing_user`;
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save contact data reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function getEWISMSRecipients (site_code, callback) {
     const api_link = `${host}/api/contacts/get_contacts_per_site/${site_code}`;
 

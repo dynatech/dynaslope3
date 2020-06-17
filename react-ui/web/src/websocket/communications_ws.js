@@ -71,6 +71,10 @@ function receiveMobileIDRoomUpdate (callback) {
     });
 }
 
+function removeReceiveMobileIDRoomUpdateListener () {
+    socket.removeListener("receive_mobile_id_room_update");
+}
+
 function receiveAllMobileNumbers (callback) {
     connectToWebsocket();
 
@@ -80,8 +84,8 @@ function receiveAllMobileNumbers (callback) {
     });
 }
 
-function removeReceiveMobileIDRoomUpdateListener () {
-    socket.removeListener("receive_mobile_id_room_update");
+function removeReceiveAllMobileNumbers () {
+    socket.removeListener("receive_all_mobile_numbers");
 }
 
 function receiveSearchResults (callback) {
@@ -112,5 +116,6 @@ export {
     receiveMobileIDRoomUpdate, removeReceiveMobileIDRoomUpdateListener,
     sendMessageToDB, receiveSearchResults, removeReceiveSearchResults,
     receiveAllMobileNumbers, receiveLatestMessages, receiveAllContacts,
-    removeReceiveAllContacts, removeReceiveLatestMessages, sendWSMessage
+    removeReceiveAllContacts, removeReceiveLatestMessages, sendWSMessage,
+    removeReceiveAllMobileNumbers
 };

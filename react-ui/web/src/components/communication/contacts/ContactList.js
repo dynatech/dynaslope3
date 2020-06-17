@@ -11,7 +11,7 @@ import { Person, Star } from "@material-ui/icons";
 import { getUserOrganizations, getUserContactPriority } from "../../../UtilityFunctions";
 
 const MemoizedItem = React.memo(props => {
-    const { classes, row, onContactClickFn } = props;
+    const { classes, row, index, onContactClickFn } = props;
 
     const { user_id, first_name, last_name, organizations } = row;
     const orgs = getUserOrganizations(organizations);
@@ -20,7 +20,7 @@ const MemoizedItem = React.memo(props => {
     return (
         <ListItem 
             button
-            onClick={onContactClickFn(row)}
+            onClick={onContactClickFn(row, index)}
             key={user_id}
         >
             <ListItemAvatar>
@@ -96,6 +96,7 @@ function ContactList (props) {
                 contacts.map((row, index) => {
                     return <MemoizedItem 
                         row={row}
+                        index={index}
                         onContactClickFn={onContactClickFn}
                         classes={classes}
                         key={`list-${index}`}

@@ -1,6 +1,6 @@
 import React, {
     Fragment, useState,
-    useEffect, useContext
+    useEffect, useContext, createContext
 } from "react";
 import { Button, Badge, makeStyles } from "@material-ui/core";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
@@ -19,7 +19,9 @@ import SearchResultsPage from "./SearchResultsPage";
 import { GeneralContext } from "../../contexts/GeneralContext"; 
 import {
     socket, subscribeToWebSocket, removeReceiveLatestMessages,
-    receiveAllMobileNumbers, receiveLatestMessages
+    receiveAllMobileNumbers, receiveLatestMessages,
+    removeReceiveAllMobileNumbers, receiveAllContacts,
+    removeReceiveAllContacts
 } from "../../../websocket/communications_ws";
 
 const useStyles = makeStyles(theme => {
@@ -61,6 +63,8 @@ const ListLoader = () => (
     </ContentLoader>
 );
 
+export const CommsContext = createContext();
+
 function Container (comp_props) {
     const { location, match: { url }, width } = comp_props;
     const classes = useStyles();
@@ -74,11 +78,11 @@ function Container (comp_props) {
     });
     const [tabs_array, setTabsArray] = useState([
         { label: "Inbox", href: "inbox" },
-        { label: "Unsent", href: "unsent" },
-        // { label: "Dynaslope", href: "dynaslope" }
+        { label: "Unsent", href: "unsent" }
     ]);
     const [search_results, setSearchResults] = useState([]);
     const [recipients_list, setRecipientsList] = useState([]);
+    const [contacts, setContacts] = useState([]);
 
     const set_modal_fn = (key, bool) => () => {
         if (key === "send") setIsOpenSendModal(bool);
@@ -113,7 +117,13 @@ function Container (comp_props) {
             setRecipientsList(data);
         });
 
-        return () => removeReceiveLatestMessages();
+        receiveAllContacts(data => setContacts(data));
+
+        return () => {
+            removeReceiveLatestMessages();
+            removeReceiveAllMobileNumbers();
+            removeReceiveAllContacts();
+        };
     }, []);
 
     const is_desktop = isWidthUp("md", width);
@@ -164,68 +174,37 @@ function Container (comp_props) {
                         </div>
 
                         <div className={`${classes.tabBar} ${classes.tabBarContent}`}>
-                            {
-                                // chosen_tab === 0 && (
-                                //     <MessageList
-                                //         width={width}
-                                //         url={url}
-                                //         messagesArr={message_collection.inbox}
-                                //  
-                                //     />
-                                // )
-                            }
+                            <CommsContext.Provider value={{ contacts }}>
+                                {
+                                    message_collection.inbox === null ? (
+                                        <div style={{ width: "100%" }}><ListLoader /></div>
+                                    ) : (
+                                        <MessageList
+                                            width={width}
+                                            url={url}
+                                            messagesArr={message_collection.inbox}
+                                            async
+                                            hidden={chosen_tab !== 0}
+                                            is_desktop={is_desktop}
+                                        />
+                                    )
+                                }
 
-                            {
-                                message_collection.inbox === null ? (
-                                    <div style={{ width: "100%" }}><ListLoader /></div>
-                                ) : (
-                                    <MessageList
-                                        width={width}
-                                        url={url}
-                                        messagesArr={message_collection.inbox}
-                                        async
-                                        hidden={chosen_tab !== 0}
-                                        is_desktop={is_desktop}
-                                    />
-                                )
-                            }
-
-                            {
-                                // chosen_tab === 1 && (
-                                //     <MessageList
-                                //         width={width}
-                                //         url={url}
-                                //         messagesArr={message_collection.unsent}
-                                //  
-                                //     />
-                                // )
-                            }
-
-                            {
-                                message_collection.unsent === null ? (
-                                    <div style={{ width: "100%" }}><ListLoader /></div>
-                                ) : (
-                                    <MessageList
-                                        width={width}
-                                        url={url}
-                                        messagesArr={message_collection.unsent}
-                                        async
-                                        hidden={chosen_tab !== 1}
-                                        is_desktop={is_desktop}
-                                    />
-                                )
-                            }
-
-                            {/* {
-                                chosen_tab === 2 && (
-                                    <MessageList
-                                        width={width}
-                                        url={url}
-                                        messagesArr={[]}
-         
-                                    />
-                                )
-                            } */}
+                                {
+                                    message_collection.unsent === null ? (
+                                        <div style={{ width: "100%" }}><ListLoader /></div>
+                                    ) : (
+                                        <MessageList
+                                            width={width}
+                                            url={url}
+                                            messagesArr={message_collection.unsent}
+                                            async
+                                            hidden={chosen_tab !== 1}
+                                            is_desktop={is_desktop}
+                                        />
+                                    )
+                                }
+                            </CommsContext.Provider>
                         </div>
 
                         { !is_desktop && <CircularAddButton clickHandler={set_modal_fn("send", true)} />}
@@ -261,14 +240,16 @@ function Container (comp_props) {
             } 
             />
 
-            <Route path={`${url}/:mobile_id`} render={
-                props => <ConversationWindow 
-                    {...props}
-                    messageCollection={message_collection}
-                    socket={socket}
+            <CommsContext.Provider value={{ contacts }}>
+                <Route path={`${url}/:mobile_id`} render={
+                    props => <ConversationWindow 
+                        {...props}
+                        messageCollection={message_collection}
+                        socket={socket}
+                    />
+                } 
                 />
-            } 
-            />
+            </CommsContext.Provider>
         </Switch>
     );
 

@@ -242,8 +242,10 @@ def save_user_information(data):
     if user_id == 0:
         insert_user = Users(
             first_name=first_name, last_name=last_name,
-            middle_name=middle_name, nickname=nickname, ewi_recipient=ewi_recipient,
-            status=status)
+            middle_name=middle_name, nickname=nickname,
+            ewi_recipient=ewi_recipient,
+            status=status
+        )
 
         DB.session.add(insert_user)
         DB.session.flush()
@@ -288,17 +290,20 @@ def save_user_contact_numbers(data, user_id):
     """
     Function that save user contact numbers
     """
+
     mobile_numbers = data["mobile_numbers"]
     landline_numbers = data["landline_numbers"]
     mobile_numbers_len = len(mobile_numbers)
     landline_number_len = len(landline_numbers)
 
+    mobile_ids = []
     if mobile_numbers_len > 0:
         for row in mobile_numbers:
             mobile_id = row["mobile_number"]["mobile_id"]
             sim_num = row["mobile_number"]["sim_num"]
             status = row["status"]
 
+            to_insert_user_mobiles = False
             if mobile_id == 0:
                 check_sim_num = MobileNumbers.query.filter_by(
                     sim_num=sim_num).first()
@@ -321,18 +326,34 @@ def save_user_contact_numbers(data, user_id):
                     DB.session.flush()
 
                     last_inserted_mobile_id = insert_mobile_number.mobile_id
-                    insert_user_mobile = UserMobiles(
-                        user_id=user_id, mobile_id=last_inserted_mobile_id, status=status)
+                else:
+                    last_inserted_mobile_id = check_sim_num.mobile_id
 
-                    DB.session.add(insert_user_mobile)
+                to_insert_user_mobiles = True
             else:
                 update_mobile = MobileNumbers.query.get(mobile_id)
                 update_mobile.sim_num = sim_num
                 update_mobile.gsm_id = get_gsm_id_by_prefix(sim_num)
+                last_inserted_mobile_id = mobile_id
 
                 update_user_mobile = UserMobiles.query.filter_by(
                     user_id=user_id, mobile_id=mobile_id).first()
-                update_user_mobile.status = status
+
+                if update_user_mobile:
+                    update_user_mobile.status = status
+                else:
+                    to_insert_user_mobiles = True
+
+            if to_insert_user_mobiles:
+                insert_user_mobile = UserMobiles(
+                    user_id=user_id,
+                    mobile_id=last_inserted_mobile_id,
+                    status=status
+                )
+
+                DB.session.add(insert_user_mobile)
+
+            mobile_ids.append(last_inserted_mobile_id)
 
     if landline_number_len > 0:
         for row in landline_numbers:
@@ -347,30 +368,41 @@ def save_user_contact_numbers(data, user_id):
                 update_landline = UserLandlines.query.get(landline_id)
                 update_landline.landline_num = landline_num
 
-    return True
+    return mobile_ids
 
 
 def save_user_affiliation(data, user_id):
     """
     Function that save user affiliation
+    NOTE: Improve this because it destroys and creates
+    new user_org rows every save
     """
+
     if data:
         # print(data)
         location = data["location"]
         site = data["site"]
         scope = data["scope"]
         office = data["office"]
-        org_query = Organizations.query.filter(
+
+        org = Organizations.query.options(DB.raiseload("*")).filter(
             Organizations.scope == scope, Organizations.name == office).first()
-        result = OrganizationsSchema(exclude=("users",)).dump(org_query).data
-        org_id = result["org_id"]
+        org_id = org.org_id
 
         site_ids = []
         org_name = office
         modifier = ""
 
-        UserOrganizations.query.filter(
-            UserOrganizations.user_id == user_id).delete()
+        uo_query = UserOrganizations.query.options(DB.raiseload("*")).filter(
+            UserOrganizations.user_id == user_id)
+
+        uo_row = uo_query.first()
+
+        primary_contact = None
+        if uo_row:
+            primary_contact = uo_row.primary_contact
+
+        uo_query.delete()
 
         if scope in (0, 1):
             site_ids.append(site["value"])
@@ -388,21 +420,23 @@ def save_user_affiliation(data, user_id):
             org_name = str(modifier + office)
 
         if scope not in (0, 1, 5):
-            result = Sites.query.filter(filter_var).all()
+            result = Sites.query.options(
+                DB.raiseload("*")).filter(filter_var).all()
             for site in result:
                 site_ids.append(site.site_id)
 
         for site_id in site_ids:
+            temp_id = site_id
             if scope == 5:
-                insert_org = UserOrganizations(
-                    user_id=user_id,
-                    site_id=0,
-                    org_name=org_name,
-                    org_id=org_id
-                )
-            else:
-                insert_org = UserOrganizations(
-                    user_id=user_id, site_id=site_id, org_name=org_name, org_id=org_id)
+                temp_id = 0
+
+            insert_org = UserOrganizations(
+                user_id=user_id,
+                site_id=temp_id,
+                org_name=org_name,
+                org_id=org_id,
+                primary_contact=primary_contact
+            )
 
             DB.session.add(insert_org)
 
@@ -413,6 +447,7 @@ def save_user_ewi_restriction(restriction, user_id):
     """
     Function that save user ewi restriction
     """
+
     if restriction != 0:
         UserEwiRestrictions.query.filter(
             UserEwiRestrictions.user_id == user_id).delete()
@@ -422,6 +457,20 @@ def save_user_ewi_restriction(restriction, user_id):
         DB.session.add(save_restriction_query)
 
     return True
+
+
+def attach_mobile_number_to_existing_user(mobile_id, user_id, status):
+    """
+    """
+
+    row = UserMobiles(
+        user_id=user_id,
+        mobile_id=mobile_id,
+        status=status
+    )
+
+    DB.session.add(row)
+    DB.session.commit()
 
 
 def get_gsm_id_by_prefix(mobile_number):
@@ -589,7 +638,7 @@ def remove_sites_with_ground_meas(
 def get_sites_with_ground_meas(reminder_time, timedelta_hour=1, minute=30, site_id=0):
     run_down_ts = reminder_time - \
         timedelta(hours=timedelta_hour, minutes=minute)
-    
+
     query = MarkerObservations.query.with_entities(MarkerObservations.site_id).filter(
         MarkerObservations.ts.between(run_down_ts, reminder_time))
 

@@ -13,14 +13,10 @@ from src.utils.contacts import (
     get_ground_measurement_reminder_recipients,
     get_recipients_option, get_blocked_numbers,
     save_blocked_number, get_all_sim_prefix,
-    get_mobile_numbers, get_recipients,
-    save_primary
+    get_recipients, save_primary, attach_mobile_number_to_existing_user
 )
-
-from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
-from src.utils.sites import get_sites_data
-from src.utils.users import get_users_categorized_by_org
-from src.models.users import UsersSchema
+from src.utils.chatterbox import insert_sms_user_update
+from src.websocket.communications_tasks import wrap_update_all_contacts
 
 
 CONTACTS_BLUEPRINT = Blueprint("contacts_blueprint", __name__)
@@ -56,14 +52,58 @@ def save_contact():
         affiliation = data["affiliation"]
 
         updated_user_id = save_user_information(user)
-        save_user_contact_numbers(contact_numbers, updated_user_id)
+        mobile_ids = save_user_contact_numbers(
+            contact_numbers, updated_user_id)
+
+        # NOTE: Improve this because it destroys and creates
+        # new user_org rows every save
         save_user_affiliation(affiliation, updated_user_id)
 
         message = "Successfully added new user"
         status = True
         DB.session.commit()
+
+        wrap_update_all_contacts()
+        for mobile_id in mobile_ids:
+            insert_sms_user_update(mobile_id=mobile_id,
+                                   update_source="contacts")
+
     except Exception as err:
         DB.session.rollback()
+        message = "Something went wrong, Please try again"
+        status = False
+        print(traceback.format_exc())
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+
+    return jsonify(feedback)
+
+
+@CONTACTS_BLUEPRINT.route("/contacts/attach_mobile_number_to_existing_user", methods=["POST"])
+def wrap_attach_mobile_number_to_existing_user():
+    """
+    """
+
+    data = request.get_json()
+
+    try:
+        mobile_id = data["mobile_id"]
+        user_id = data["user_id"]
+        status = data["status"]
+
+        attach_mobile_number_to_existing_user(
+            mobile_id=mobile_id, user_id=user_id, status=status)
+
+        message = "Successfully added new user"
+        status = True
+
+        wrap_update_all_contacts()
+        insert_sms_user_update(mobile_id=mobile_id,
+                               update_source="contacts")
+    except Exception as err:
         message = "Something went wrong, Please try again"
         status = False
         print(traceback.format_exc())

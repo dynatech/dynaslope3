@@ -1,5 +1,6 @@
 import React, {
-    useState, useEffect, useReducer, Fragment
+    useState, useEffect, useReducer,
+    Fragment, useContext
 } from "react";
 
 import {
@@ -19,7 +20,7 @@ import MaskedInput, { conformToMask } from "react-text-mask";
 import SelectInputForm from "../../reusables/SelectInputForm";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import { saveContact } from "../ajax";
-import { sendWSMessage } from "../../../websocket/communications_ws";
+import { GeneralContext } from "../../contexts/GeneralContext";
 
 const offices_obj = {
     "0": ["LEWC"],
@@ -33,6 +34,19 @@ const offices_obj = {
 const mobile_number_mask = ["(", "+", "6", "3", "9", ")", " ", /\d/, /\d/, "-", /\d/, /\d/, /\d/, "-", /\d/, /\d/, /\d/, /\d/];
 const conforming_mobile_mask = ["(", "+", /\d/, /\d/, /\d/, ")", " ", /\d/, /\d/, "-", /\d/, /\d/, /\d/, "-", /\d/, /\d/, /\d/, /\d/];
 
+function prepareGeographicalList (data, category) {
+    let list = [];
+    if (category === "municipality") {
+        const municipalities = data.map(({ municipality, province }) => ({ id: municipality, label: `${municipality}, ${province}` }));
+        list = [...municipalities];
+    } else if (["province", "region"].includes(category)) {
+        const unique = [...new Set(data.map(x => x[category]).sort())];
+        const selection = unique.map(x => ({ id: x, label: x })); 
+        list = [...selection];
+    }
+    return list;
+}
+
 function TextMaskCustom (props) {
     const { inputRef, mask, ...other } = props;
   
@@ -42,23 +56,20 @@ function TextMaskCustom (props) {
             ref={ref => {
                 inputRef(ref ? ref.inputElement : null);
             }}
-            mask={mask}
-            placeholderChar="x"
+            mask={mask} placeholderChar="x"
             showMask
-            keepCharPositions
         />
     );
 }
 
 function conformTextMask (mobile_number) {
     const { conformedValue } = conformToMask(mobile_number, conforming_mobile_mask);
-
     return conformedValue;
 }
 
 function removeNumberMask (data, type) {
-    
     const altered_data = [];
+    
     if (type === "mobile") {
         data.forEach((row, index) => {
             const { mobile_number } = row;
@@ -100,10 +111,7 @@ function userAffiliation (scope, site_details) {
         location = region;
     }
 
-    return {
-        site,
-        location
-    };
+    return { site, location };
 }
 
 function contactFormValidation (user_details, contact_numbers, affiliation) {
@@ -188,20 +196,21 @@ function reducerFunction (state, action) {
         default:
             break;
     }
+
+    return [];
 }
 
 function getOfficesList (scope) {
     const office_list = offices_obj[scope];
     const o = office_list.map(x => ({ id: x.toLowerCase(), label: x }));
-
     return o;
 }
 
 function ContactForm (props) {
-    const { 
-        municipalities, provinces, regions,
+    const {
         setContactForm, chosenContact, isEditMode,
-        setContactFormForEdit, handleClose, isFromChatterbox
+        setContactFormForEdit, handleClose, isFromChatterbox,
+        setSnackbarKey
     } = props;
 
     let initial_mobiles = [{
@@ -224,9 +233,12 @@ function ContactForm (props) {
         middle_name: "", nickname: "", user_id: 0
     };
     
-    if (isEditMode) {
-        const { mobile_numbers, ewi_recipient, ewi_restriction, landline_numbers, emails, first_name,
-            last_name, middle_name, nickname, user_id, organizations, status } = chosenContact;
+    if (isEditMode || isFromChatterbox) {
+        const {
+            mobile_numbers, ewi_recipient, ewi_restriction, landline_numbers,
+            emails, first_name, last_name, middle_name, nickname,
+            user_id, organizations, status 
+        } = chosenContact;
         initial_user_details = { first_name, last_name, middle_name, nickname, user_id };
         
         if (organizations.length !== 0) {
@@ -259,6 +271,11 @@ function ContactForm (props) {
         initial_ewi_recipient = ewi_recipient === 1;
         initial_status = status === 1;
     }
+
+    const { sites } = useContext(GeneralContext);
+    const municipalities = prepareGeographicalList(sites, "municipality");
+    const provinces = prepareGeographicalList(sites, "province");
+    const regions = prepareGeographicalList(sites, "region");
 
     const scope_list = [
         { id: 0, label: "Community" },
@@ -324,7 +341,6 @@ function ContactForm (props) {
         }
     }, [scope]);
 
-
     useEffect(() => {
         let button_state = true;
         const affiliation = {
@@ -337,8 +353,21 @@ function ContactForm (props) {
 
         button_state = contactFormValidation(user_details, contact_numbers, affiliation);
         setSaveButtonState(button_state);
+    }, [
+        user_details, mobile_nums, landline_nums,
+        scope, site, office, location
+    ]);
 
-    }, [user_details, mobile_nums, landline_nums, scope, site, office, location]);
+    const queueUpdatingSnackbar = () => {
+        if (!isFromChatterbox) {
+            const key = enqueueSnackbar(
+                "Updating contacts list...",
+                { variant: "warning", persist: true }
+            );
+        
+            setSnackbarKey(key);
+        }
+    };
 
     const saveFunction = () => {
         const mobile_numbers = removeNumberMask(mobile_nums, "mobile");
@@ -367,68 +396,54 @@ function ContactForm (props) {
         
         saveContact(final_data, data => {
             const { status, message } = data;
+            let variant;
             if (status === true) {
                 closeButtonFn();
-                sendWSMessage("update_all_contacts");
-                enqueueSnackbar(
-                    message,
-                    {
-                        variant: "success",
-                        autoHideDuration: 3000,
-                        action: snackBarActionFn
-                    }
-                );
-                enqueueSnackbar(
-                    "Updating contact list...",
-                    {
-                        variant: "warning",
-                        autoHideDuration: 3000,
-                        action: snackBarActionFn
-                    }
-                );
+                queueUpdatingSnackbar();
+                variant = "success";
             } else {
-                enqueueSnackbar(
-                    message,
-                    {
-                        variant: "error",
-                        autoHideDuration: 3000,
-                        action: snackBarActionFn
-                    }
-                );
+                variant = "error";
             }
+
+            enqueueSnackbar(
+                message,
+                {
+                    variant,
+                    autoHideDuration: 5000,
+                    action: snackBarActionFn
+                }
+            );
         });
     };
  
     return (
         <Grid
-            container 
-            spacing={1} 
-            alignItems="center"
-            justify="space-evenly"
+            container spacing={1} 
+            alignItems="center" justify="space-evenly"
         >
-            <Grid item xs={2} style={{ textAlign: "-webkit-center" }}>
-                <Avatar>
-                    <Person />
-                </Avatar>
-            </Grid>
+            {
+                !isFromChatterbox && <Fragment>
+                    <Grid item xs={2} style={{ textAlign: "-webkit-center" }}>
+                        <Avatar><Person /></Avatar>
+                    </Grid>
 
-            <Grid item xs={9}>
-                <Typography variant="h5" align="center">
-                    Contact Form
-                </Typography>
-            </Grid>
+                    <Grid item xs={9}>
+                        <Typography variant="h5" align="center">
+                            Contact Form
+                        </Typography>
+                    </Grid>
+    
+                    <Grid item xs={1} >
+                        <IconButton edge="start" onClick={closeButtonFn}>
+                            <Close />
+                        </IconButton>
+                    </Grid>
 
-           
-            <Grid item xs={1} >
-                <IconButton edge="start" onClick={closeButtonFn}>
-                    <Close />
-                </IconButton>
-            </Grid>
-
-
-            <Grid item xs={12} style={{ padding: "12px 4px" }} >
-                <Divider />
-            </Grid>
+                    <Grid item xs={12} style={{ padding: "12px 4px" }} >
+                        <Divider />
+                    </Grid>
+                </Fragment>
+            }
 
             <Grid item xs={12}>
                 <Typography variant="h6" align="center">
@@ -501,7 +516,6 @@ function ContactForm (props) {
                         <DynaslopeSiteSelectInputForm
                             value={site}
                             changeHandler={value => setSite(value)}
-                            // renderDropdownIndicator={false}
                         />
                     </Grid>
                 )
@@ -609,7 +623,6 @@ function ContactForm (props) {
                             <Grid item xs={7}>
                                 <FormControl fullWidth>
                                     <TextField
-                                        // className={classes.formControl}
                                         label="Mobile Number"
                                         value={sim_num}
                                         onChange={event => setMobileNums({
@@ -621,7 +634,6 @@ function ContactForm (props) {
                                             },
                                             category: "mobile"
                                         })}
-                                        id="formatted-numberformat-input"
                                         InputProps={{
                                             inputComponent: TextMaskCustom,
                                             inputProps: { mask: mobile_number_mask }
@@ -631,6 +643,7 @@ function ContactForm (props) {
                                     />
                                 </FormControl>
                             </Grid>
+
                             <Grid item xs={3} style={{ textAlign: "center" }}>
                                 <FormControlLabel
                                     style={{ margin: 0 }}
@@ -646,7 +659,6 @@ function ContactForm (props) {
                                                 },
                                                 category: "mobile"
                                             })}
-                                            // value="checkedB"
                                             color="primary"
                                         />
                                     }
@@ -673,8 +685,7 @@ function ContactForm (props) {
                                         <Grid item xs={2} />
                                     </Hidden>
                                 )
-                            }
-                            
+                            }        
                         </Fragment>
                     );
                 })
@@ -733,11 +744,9 @@ function ContactForm (props) {
                                             },
                                             category: "landline"
                                         })}
-                                        id="formatted-numberformat-input"
                                         InputProps={{
                                             inputComponent: TextMaskCustom,
                                             inputProps: { mask: [/\d/, /\d/, /\d/, "-", /\d/, /\d/, /\d/, /\d/] }
-                                            // startAdornment: <InputAdornment position="start">(+639)</InputAdornment>
                                         }}
                                         required
                                         error={is_landline_valid}
@@ -809,7 +818,6 @@ function ContactForm (props) {
                                             },
                                             category: "email"
                                         })}
-                                        id="formatted-numberformat-input"
                                     />
                                 </FormControl>
                             </Grid>
@@ -858,7 +866,7 @@ function ContactForm (props) {
                 >
                     Save
                 </Button>
-                <Button variant="contained" onClick={() => setContactFormForEdit(false)}>
+                <Button variant="contained" onClick={closeButtonFn}>
                     Cancel
                 </Button>
             </Grid>

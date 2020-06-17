@@ -18,11 +18,12 @@ import {
     Close, Call, Person, PersonAdd, ViewList,
     Block, Edit, PhoneAndroid, MailOutline,
     Phone, SimCard, FormatListNumbered,
-    Sort,
-    Star
+    Sort, Star
 } from "@material-ui/icons";
 
 import moment from "moment";
+import ContentLoader from "react-content-loader";
+import { useSnackbar } from "notistack";
 
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
@@ -83,22 +84,36 @@ const useStyles = makeStyles(theme => {
         nested: { paddingLeft: theme.spacing(4) },
         hidden: { display: "none !important" }
     };
+
 });
 
-function prepareGeographicalList (data, category) {
-    let list = [];
-    if (category === "municipality") {
-        const municipalities = data.map(({ municipality, province }) => ({ id: municipality, label: `${municipality}, ${province}` }));
-        list = [...municipalities];
-    } else if (["province", "region"].includes(category)) {
-        const unique = [...new Set(data.map(x => x[category]).sort())];
-        const selection = unique.map(x => ({ id: x, label: x })); 
-        list = [...selection];
-    }
-    return list;
-}
+const Loader = props => (
+    <ContentLoader
+        speed={2}
+        width={700}
+        height={350}
+        viewBox="0 0 700 350"
+        {...props}
+    >
+        <rect x="4" y="8" rx="3" ry="3" width="8" height="317" />
+        <rect x="7" y="317" rx="3" ry="3" width="669" height="8" />
+        <rect x="669" y="9" rx="3" ry="3" width="7" height="313" />
+        <rect x="5" y="8" rx="3" ry="3" width="669" height="7" />
+        <rect x="114" y="52" rx="6" ry="6" width="483" height="15" />
+        <circle cx="77" cy="60" r="15" />
+        <rect x="116" y="105" rx="6" ry="6" width="420" height="15" />
+        <circle cx="78" cy="113" r="15" />
+        <rect x="115" y="158" rx="6" ry="6" width="483" height="15" />
+        <circle cx="78" cy="166" r="15" />
+        <rect x="117" y="211" rx="6" ry="6" width="444" height="15" />
+        <circle cx="79" cy="219" r="15" />
+        <rect x="117" y="263" rx="6" ry="6" width="483" height="15" />
+        <circle cx="80" cy="271" r="15" />
+    </ContentLoader>
+);
+  
 
-export function IndividualContact (props) {
+function IndividualContact (props) {
     const {
         contact, chosenContact, setSlideOpen,
         classes, setContactFormForEdit, siteOrgs,
@@ -521,23 +536,25 @@ function Container (props) {
     const [contacts, setContacts] = useState([]);
     const [contacts_array, setContactsArray] = useState([]);
     const [chosen_contact, setChosenContact] = useState({});
+    const [chosen_contact_index, setChosenContactIndex] = useState(0);
+
     const [is_slide_open, setSlideOpen] = useState(false);
     const [is_contact_form_open, setContactFormOpen] = useState(false);
     const [is_edit_mode, setEditMode] = useState(false);
     const [search_str, setSearchStr] = useState("");
+
     const [blocked_number_array, setBlockedNumberArray] = useState([]);
     const [blocked_chosen_contact, setBlockedChosenContact] = useState([]);
     const [sim_prefixes_list, setSimPrefixesList] = useState([]);
     const [site_stakeholders, setSiteStakeholders] = useState([]);
-    const [tab_selected, setTabSelected] = useState("active_numbers");
 
-    const [municipalities, setMunicipalities] = useState([]);
-    const [provinces, setProvinces] = useState([]);
-    const [regions, setRegions] = useState([]);
+    const [tab_selected, setTabSelected] = useState("active_numbers");
+    const [snackbar_key, setSnackbarKey] = useState(null);
 
     const [modal_state, setModalState] = useState(false);
-    const onContactClickFn = React.useCallback(row => () => {
+    const onContactClickFn = React.useCallback((row, index) => () => {
         setChosenContact(row);
+        setChosenContactIndex(index);
         setSlideOpen(true);
     }, []);
 
@@ -565,25 +582,33 @@ function Container (props) {
         setModalState(!modal_state);
     };
 
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const { setIsReconnecting, sites } = useContext(GeneralContext);
     const [get_contact_priotitization, setGetContactPrioritization] = useState(false);
     useEffect(() => {
         subscribeToWebSocket(setIsReconnecting);
         receiveAllContacts(data => {
             setContacts(data);
-            if (data.length > 0) setChosenContact(data[0]);
+
+            let temp = {};
+            if (data.length > 0) temp = data[chosen_contact_index];
+
+            setChosenContact(temp);
             setContactsArray(data);
             setGetContactPrioritization(true);
+
+            if (snackbar_key !== null) {
+                closeSnackbar(snackbar_key);
+                setSnackbarKey(null);
+                enqueueSnackbar(
+                    "Loading contacts list successful!",
+                    { variant: "success", autoHideDuration: 5000 }
+                );
+            }
         });
 
         return () => removeReceiveAllContacts();
-    }, []);
-
-    useEffect(() => {
-        setMunicipalities(prepareGeographicalList(sites, "municipality"));
-        setProvinces(prepareGeographicalList(sites, "province"));
-        setRegions(prepareGeographicalList(sites, "region"));
-    }, [sites]);
+    }, [chosen_contact_index, snackbar_key]);
 
     useEffect(() => {
         const { length } = search_str;
@@ -597,7 +622,6 @@ function Container (props) {
             setContactsArray(filtered);
         } else if (length === 0) setContactsArray(contacts);
     }, [search_str]);
-
 
     useEffect(() => {
         getBlockedContacts(data => {
@@ -644,12 +668,10 @@ function Container (props) {
 
     const PaperDialogContent = () => {
         if (is_contact_form_open) return (
-            <ContactForm 
-                municipalities={municipalities}
-                provinces={provinces}
-                regions={regions}
+            <ContactForm
                 setContactForm={setContactForm}
                 chosenContact={chosen_contact}
+                setSnackbarKey={setSnackbarKey}
                 isEditMode={is_edit_mode}
                 setContactFormForEdit={setContactFormForEdit}
                 isFromChatterbox={false}
@@ -767,173 +789,176 @@ function Container (props) {
                 </Hidden>
 
                 <Grid item xs={12} md={8} lg={9}>
-                    <Hidden xsUp={tab_selected !== "active_numbers"} implementation="css">
-                        <Grid container spacing={4}>
-                            <Grid item xs={12} lg={7}>
-                                <ContactList 
-                                    classes={classes}
-                                    contacts={contacts_array}
-                                    onContactClickFn={onContactClickFn}
-                                />
-                            </Grid>
+                    {
+                        contacts.length === 0
+                            ? <div style={{ width: "100%" }}><Loader /></div>
+                            : (
+                                <Fragment>
+                                    <Hidden xsUp={tab_selected !== "active_numbers"} implementation="css">
+                                        <Grid container spacing={4}>
+                                            <Grid item xs={12} lg={7}>
+                                                <ContactList 
+                                                    classes={classes}
+                                                    contacts={contacts_array}
+                                                    onContactClickFn={onContactClickFn}
+                                                />
+                                            </Grid>
                             
-                            <Hidden mdDown>
-                                <Grid item lg={5}>
-                                    {
-                                        contact !== "" && (
-                                            <Paper 
-                                                elevation={1}
-                                                style={{ padding: 16, zIndex: 2 }}
-                                                className={`${classes.sticky} ${classes.overflow}`}
-                                                variant="outlined"
-                                            >
-                                                { PaperDialogContent() }
-                                            </Paper>
-                                        )
-                                    }
-                                </Grid>
+                                            <Hidden mdDown>
+                                                <Grid item lg={5}>
+                                                    {
+                                                        contact !== "" && (
+                                                            <Paper 
+                                                                elevation={1}
+                                                                style={{ padding: 16, zIndex: 2 }}
+                                                                className={`${classes.sticky} ${classes.overflow}`}
+                                                                variant="outlined"
+                                                            >
+                                                                { PaperDialogContent() }
+                                                            </Paper>
+                                                        )
+                                                    }
+                                                </Grid>
 
-                                <Backdrop open={is_contact_form_open} style={{ zIndex: 1 }} />
-                            </Hidden>
+                                                <Backdrop open={is_contact_form_open} style={{ zIndex: 1 }} />
+                                            </Hidden>
 
-                            <Hidden smDown lgUp>
-                                <Slide direction="left" in={is_slide_open} mountOnEnter unmountOnExit>
-                                    <Paper 
-                                        elevation={4}
-                                        className={`${classes.paper} ${classes.overflow}`}
-                                        style={{ padding: 24, zIndex: 2 }}
-                                    >
-                                        { PaperDialogContent() }
-                                    </Paper>
-                                </Slide>
+                                            <Hidden smDown lgUp>
+                                                <Slide direction="left" in={is_slide_open} mountOnEnter unmountOnExit>
+                                                    <Paper 
+                                                        elevation={4}
+                                                        className={`${classes.paper} ${classes.overflow}`}
+                                                        style={{ padding: 24, zIndex: 2 }}
+                                                    >
+                                                        { PaperDialogContent() }
+                                                    </Paper>
+                                                </Slide>
                         
-                                <Backdrop open={is_slide_open} style={{ zIndex: 1 }} />
-                            </Hidden>
+                                                <Backdrop open={is_slide_open} style={{ zIndex: 1 }} />
+                                            </Hidden>
                 
-                            <Hidden mdUp>
-                                <Dialog 
-                                    fullScreen
-                                    open={is_slide_open}
-                                    TransitionComponent={SlideTransition}
-                                >
-                                    <AppBar style={{ position: "relative" }}>
-                                        <Toolbar>
-                                            <IconButton edge="start" color="inherit" onClick={() => setContactForm(false)} aria-label="close">
-                                                <Close />
-                                            </IconButton>
-                                        </Toolbar>
-                                    </AppBar>
-                                    <Paper elevation={0} style={{ padding: 16 }}>
-                                        { PaperDialogContent() }
-                                    </Paper>
-                                </Dialog>
-                            </Hidden>
-                        </Grid>
-                    </Hidden>
+                                            <Hidden mdUp>
+                                                <Dialog 
+                                                    fullScreen
+                                                    open={is_slide_open}
+                                                    TransitionComponent={SlideTransition}
+                                                >
+                                                    <AppBar style={{ position: "relative" }}>
+                                                        <Toolbar>
+                                                            <IconButton edge="start" color="inherit" onClick={() => setContactForm(false)} aria-label="close">
+                                                                <Close />
+                                                            </IconButton>
+                                                        </Toolbar>
+                                                    </AppBar>
+                                                    <Paper elevation={0} style={{ padding: 16 }}>
+                                                        { PaperDialogContent() }
+                                                    </Paper>
+                                                </Dialog>
+                                            </Hidden>
+                                        </Grid>
+                                    </Hidden>
         
-                    <Hidden xsUp={tab_selected !== "blocked_numbers"} implementation="css">
-                        <Grid container spacing={4}>
-                            <Grid item xs={12} lg={7}>
-                                <BlockedContactList
-                                    blocked_numbers={blocked_number_array}
-                                    onBlockContactClickFn={onBlockContactClickFn}
-                                />
-                            </Grid>
+                                    <Hidden xsUp={tab_selected !== "blocked_numbers"} implementation="css">
+                                        <Grid container spacing={4}>
+                                            <Grid item xs={12} lg={7}>
+                                                <BlockedContactList
+                                                    blocked_numbers={blocked_number_array}
+                                                    onBlockContactClickFn={onBlockContactClickFn}
+                                                />
+                                            </Grid>
 
-                            <Hidden mdDown>
-                                <Grid item lg={5}>
-                                    <Paper 
-                                        elevation={1}
-                                        style={{ padding: 16, zIndex: 2 }}
-                                        className={classes.sticky}
-                                        variant="outlined"
-                                    >
-                                        <BlockedContact
-                                            chosenContact={blocked_chosen_contact}
-                                            setSlideOpen={setSlideOpen}
-                                        />
-                                    </Paper>
-                                </Grid>
-                            </Hidden>
+                                            <Hidden mdDown>
+                                                <Grid item lg={5}>
+                                                    <Paper 
+                                                        elevation={1}
+                                                        style={{ padding: 16, zIndex: 2 }}
+                                                        className={classes.sticky}
+                                                        variant="outlined"
+                                                    >
+                                                        <BlockedContact
+                                                            chosenContact={blocked_chosen_contact}
+                                                            setSlideOpen={setSlideOpen}
+                                                        />
+                                                    </Paper>
+                                                </Grid>
+                                            </Hidden>
 
-                            <Hidden smDown lgUp>
-                                <Slide direction="left" in={is_slide_open} mountOnEnter unmountOnExit>
-                                    <Paper 
-                                        elevation={4}
-                                        className={`${classes.paper} ${classes.overflow}`}
-                                        style={{ padding: 24, zIndex: 2 }}
-                                    >
-                                        <BlockedContact
-                                            chosenContact={blocked_chosen_contact}
-                                            setSlideOpen={setSlideOpen}
-                                        />
-                                    </Paper>
-                                </Slide>
+                                            <Hidden smDown lgUp>
+                                                <Slide direction="left" in={is_slide_open} mountOnEnter unmountOnExit>
+                                                    <Paper 
+                                                        elevation={4}
+                                                        className={`${classes.paper} ${classes.overflow}`}
+                                                        style={{ padding: 24, zIndex: 2 }}
+                                                    >
+                                                        <BlockedContact
+                                                            chosenContact={blocked_chosen_contact}
+                                                            setSlideOpen={setSlideOpen}
+                                                        />
+                                                    </Paper>
+                                                </Slide>
                         
-                                <Backdrop open={is_slide_open} style={{ zIndex: 1 }} />
-                            </Hidden>
+                                                <Backdrop open={is_slide_open} style={{ zIndex: 1 }} />
+                                            </Hidden>
                 
-                            <Hidden mdUp>
-                                <Dialog 
-                                    fullScreen
-                                    open={is_slide_open}
-                                    TransitionComponent={SlideTransition}
-                                >
-                                    <AppBar style={{ position: "relative" }}>
-                                        <Toolbar>
-                                            <IconButton edge="start" color="inherit" onClick={() => setContactForm(false)} aria-label="close">
-                                                <Close />
-                                            </IconButton>
-                                        </Toolbar>
-                                    </AppBar>
-                                    <Paper elevation={0} style={{ padding: 16 }}>
-                                        <BlockedContact
-                                            chosenContact={blocked_chosen_contact}
-                                            setSlideOpen={setSlideOpen}
-                                        />
-                                    </Paper>
-                                </Dialog>
-                            </Hidden>
-                        </Grid>
-                    </Hidden>
+                                            <Hidden mdUp>
+                                                <Dialog 
+                                                    fullScreen
+                                                    open={is_slide_open}
+                                                    TransitionComponent={SlideTransition}
+                                                >
+                                                    <AppBar style={{ position: "relative" }}>
+                                                        <Toolbar>
+                                                            <IconButton edge="start" color="inherit" onClick={() => setContactForm(false)} aria-label="close">
+                                                                <Close />
+                                                            </IconButton>
+                                                        </Toolbar>
+                                                    </AppBar>
+                                                    <Paper elevation={0} style={{ padding: 16 }}>
+                                                        <BlockedContact
+                                                            chosenContact={blocked_chosen_contact}
+                                                            setSlideOpen={setSlideOpen}
+                                                        />
+                                                    </Paper>
+                                                </Dialog>
+                                            </Hidden>
+                                        </Grid>
+                                    </Hidden>
 
-                    <Hidden xsUp={tab_selected !== "contact_prioritization"} implementation="css">
-                        <Typography variant="body1" style={{ marginBottom: 12 }}>
-                            <strong><i>
-                                Note: Contact priority can only chosen from stakeholders that are EWI recipients.
-                            </i></strong>
-                        </Typography>
-
-                        {/* <ContactPrioritization
-                            siteStakeholders={site_stakeholders}
-                            sites={sites}
-                        /> */}
+                                    <Hidden xsUp={tab_selected !== "contact_prioritization"} implementation="css">
+                                        <Typography variant="body1" style={{ marginBottom: 12 }}>
+                                            <strong><i>
+                                                Note: Contact priority can only be chosen from stakeholders that are currently active and EWI recipients.
+                                            </i></strong>
+                                        </Typography>
                         
-                        {
-                            site_stakeholders.length !== 0 && (
-                                sites.map((row, index) => {
-                                    const { site_id, site_code } = row;
-                                    const site_label = prepareSiteAddress(row, true, "start");
-                                    const site_data = site_stakeholders[site_code];
+                                        {
+                                            site_stakeholders.length !== 0 && (
+                                                sites.map((row, index) => {
+                                                    const { site_id, site_code } = row;
+                                                    const site_label = prepareSiteAddress(row, true, "start");
+                                                    const site_data = site_stakeholders[site_code];
                                     
-                                    return (
-                                        <ContactPrioritization
-                                            siteLabel={site_label}
-                                            siteID={site_id}
-                                            siteData={site_data}
-                                            key={index}
-                                        />
-                                    );
-                                })
-                            )
-                        }
-                    </Hidden>
+                                                    return (
+                                                        <ContactPrioritization
+                                                            siteLabel={site_label}
+                                                            siteID={site_id}
+                                                            siteData={site_data}
+                                                            key={index}
+                                                        />
+                                                    );
+                                                })
+                                            )
+                                        }
+                                    </Hidden>
 
-                    <Hidden xsUp={tab_selected !== "sim_prefixes"} implementation="css">
-                        <SimPrefixesList
-                            sim_prefixes={sim_prefixes_list}
-                        />
-                    </Hidden>
+                                    <Hidden xsUp={tab_selected !== "sim_prefixes"} implementation="css">
+                                        <SimPrefixesList
+                                            sim_prefixes={sim_prefixes_list}
+                                        />
+                                    </Hidden>
+                                </Fragment>
+                            )
+                    }
                 </Grid>
             </Grid>
 
