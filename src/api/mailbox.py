@@ -4,7 +4,8 @@ Contacts Functions Controller File
 
 from flask import Blueprint, jsonify, request
 from src.utils.emails import send_mail, get_email_subject
-from src.utils.narratives import write_narratives_to_db
+from src.utils.bulletin import write_bulletin_sending_narrative
+from src.websocket.monitoring_tasks import execute_update_db_alert_ewi_sent_status
 from src.utils.extra import var_checker
 
 
@@ -21,8 +22,8 @@ def wrap_get_email_subject(mail_type, site_code, date):
     return subject
 
 
-@MAILBOX_BLUEPRINT.route("/mailbox/send_email", methods=["POST"])
-def wrap_send_email():
+@MAILBOX_BLUEPRINT.route("/mailbox/send_bulletin_email", methods=["POST"])
+def send_bulletin_email():
     """
     Function that sends emails
     """
@@ -34,13 +35,12 @@ def wrap_send_email():
         mail_body = json_data["mail_body"]
         status = True
 
-        release_id = None
-        file_name = None
-        try:
-            release_id = json_data["release_id"]
-            file_name = json_data["file_name"]
-        except KeyError:
-            pass
+        release_id = json_data["release_id"]
+        file_name = json_data["file_name"]
+        site_id = json_data["site_id"]
+        alert_db_group = json_data["alert_db_group"]
+        sender_id = json_data["sender_id"]
+        narrative_details = json_data["narrative_details"]
 
         send_mail(
             recipients=recipients,
@@ -50,15 +50,20 @@ def wrap_send_email():
             bulletin_release_id=release_id
         )
 
-        response_msg = "Email sent!"
-        if release_id:
-            response_msg = "Bulletin email sent!"
+        write_bulletin_sending_narrative(
+            recipients, sender_id, site_id, narrative_details)
 
+        execute_update_db_alert_ewi_sent_status(
+            alert_db_group,
+            site_id, "bulletin"
+        )
+
+        response_msg = "Bulletin email succesfully sent!"
     except KeyError:
-        response_msg = "Bulletin email NOT sent... problem with keys."
+        response_msg = "Key error: Bulletin email sending unsuccessful..."
         status = False
     except Exception as err:
-        response_msg = "Bulletin email NOT sent... system/network issues."
+        response_msg = "System/Network issue: Bulletin email sending unsuccessful..."
         status = False
         var_checker("PROBLEM with Sending Bulletin", err, True)
 
@@ -73,6 +78,7 @@ def send_eos_email():
     """
     Function that sends emails
     """
+
     json_data = request.get_json()
 
     try:
@@ -95,7 +101,6 @@ def send_eos_email():
         )
 
         return "Success"
-
     except KeyError as err:
         print(err)
         return "Email NOT sent. Problem in input."

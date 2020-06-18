@@ -639,8 +639,9 @@ def get_sites_with_ground_meas(reminder_time, timedelta_hour=1, minute=30, site_
     run_down_ts = reminder_time - \
         timedelta(hours=timedelta_hour, minutes=minute)
 
-    query = MarkerObservations.query.with_entities(MarkerObservations.site_id).filter(
-        MarkerObservations.ts.between(run_down_ts, reminder_time))
+    query = MarkerObservations.query.with_entities(MarkerObservations.site_id) \
+        .options(DB.raiseload("*")).filter(
+            MarkerObservations.ts.between(run_down_ts, reminder_time))
 
     if site_id != 0:
         query = query.filter(MarkerObservations.site_id == site_id)
