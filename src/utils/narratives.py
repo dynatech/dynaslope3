@@ -140,7 +140,7 @@ def write_narratives_to_db(site_id, timestamp, narrative, type_id, user_id, even
     Returns narrative ID.
     """
 
-    print(get_process_status_log("write_narratives_to_db", "start"))
+    # print(get_process_status_log("write_narratives_to_db", "start"))
     try:
         narrative = Narratives(
             site_id=site_id,
@@ -159,7 +159,7 @@ def write_narratives_to_db(site_id, timestamp, narrative, type_id, user_id, even
         DB.session.rollback()
         raise
 
-    print(get_process_status_log("write_narratives_to_db", "end"))
+    # print(get_process_status_log("write_narratives_to_db", "end"))
 
     return new_narrative_id
 

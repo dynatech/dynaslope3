@@ -10,7 +10,11 @@ from src.utils.monitoring import (
     process_trigger_list)
 from src.utils.sites import build_site_address
 from src.utils.surficial import check_if_site_has_active_surficial_markers
-from src.utils.extra import retrieve_data_from_memcache, format_timestamp_to_string
+from src.utils.extra import (
+    retrieve_data_from_memcache, format_timestamp_to_string,
+    round_to_nearest_release_time
+)
+from src.utils.narratives import write_narratives_to_db
 
 BULLETIN_RESPONSES = retrieve_data_from_memcache("bulletin_responses")
 
@@ -209,3 +213,71 @@ def create_ground_measurement_reminder(site_id, monitoring_type, ts):
         "makikitang manipestasyon ng paggalaw ng lupa o iba pang pagbabago sa site. Salamat."
 
     return message
+
+
+def insert_ewi_sms_narrative(release_id, user_id, recipients):
+    """
+    """
+
+    release = get_monitoring_releases(
+        release_id=release_id, load_options="ewi_narrative")
+    data_ts = release.data_ts
+    event_alert = release.event_alert
+    public_alert_level = event_alert.public_alert_symbol.alert_level
+
+    event = event_alert.event
+    event_id = event.event_id
+    site_id = event.site_id
+    first_release = list(
+        sorted(event_alert.releases, key=lambda x: x.data_ts))[0]
+
+    # Get data needed to see if onset
+    first_data_ts = first_release.data_ts
+    is_onset = first_data_ts == data_ts and public_alert_level > 0
+
+    ewi_sms_detail = " onset"
+    if not is_onset:
+        release_hour = round_to_nearest_release_time(
+            data_ts, interval=4).strftime("%I%p")
+        ewi_sms_detail = f" {release_hour}"
+
+    formatted_recipients = format_recipients_for_narrative(recipients)
+    narrative = f"Sent{ewi_sms_detail} EWI SMS to {formatted_recipients}"
+
+    write_narratives_to_db(
+        site_id=site_id,
+        timestamp=datetime.now(),
+        narrative=narrative,
+        type_id=1,
+        user_id=user_id,
+        event_id=event_id
+    )
+
+
+def format_recipients_for_narrative(recipients):
+    """
+    """
+
+    my_set = set()
+    for row in recipients:
+        orgs = row["data"]["organizations"]
+
+        if orgs:
+            org = orgs[0]
+            temp = org["organization"]
+            name = temp["name"]
+            scope = temp["scope"]
+
+            pre = ""
+            if name == "lgu":
+                if scope == 1:
+                    pre = "B"
+                elif scope == 2:
+                    pre = "M"
+                elif scope == 3:
+                    pre = "P"
+
+            pre += name.upper()
+            my_set.add(pre)
+
+    return ', '.join(my_set)

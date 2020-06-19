@@ -1,49 +1,12 @@
 import React, { useState, Fragment, useEffect } from "react";
 import { useSnackbar } from "notistack";
-import moment from "moment";
 import { IconButton, Grid, Button, CircularProgress } from "@material-ui/core";
 import { AddBox } from "@material-ui/icons";
 import MessageInputTextbox from "./MessageInputTextbox";
 import SelectMultipleWithSuggest from "../../reusables/SelectMultipleWithSuggest";
 import QuickSelectModal from "./QuickSelectModal";
-import { 
-    getEWISMSRecipients, writeEwiNarrativeToDB,
-    getEwiSMSNarrative, sendMessage
-} from "../ajax";
+import { getEWISMSRecipients, sendMessage } from "../ajax";
 import { getCurrentUser } from "../../sessions/auth";
-import { sendWSMessage } from "../../../websocket/monitoring_ws";
-import { insertTagsAfterEWISms } from "../../widgets/ajax";
-
-function recipientsFormatterForNarrative (recipients) {
-    const orgs = new Map();
-
-    recipients.forEach(row => {
-        const { data: { organizations } } = row;
-
-        if (organizations.length > 0) {
-            const org = organizations[0];
-            const { organization: { name, scope } } = org;
-
-            let pre = "";
-            if (name === "lgu") {
-                switch (scope) {
-                    case 1:
-                        pre = "B"; break;
-                    case 2:
-                        pre = "M"; break;
-                    case 3:
-                        pre = "P"; break;
-                    default:
-                        break;
-                }
-            }
-
-            orgs.set(pre + name.toUpperCase());
-        }
-    });
-
-    return Array.from(orgs.keys()).join(", ");
-}
 
 function SendMessageForm (props) {
     const {
@@ -118,10 +81,6 @@ function SendMessageForm (props) {
                 setOptions(temp_ewi_recipients);
                 setRecipients(default_recipients);
                 setIsLoadingRecipients(false);
-
-                // TODO: pass chosen release for alert level
-                // if extended, lewc and blgu only
-                // if regular release, remove people with restrictions
             });
         }
     }, [siteCode]);
@@ -168,10 +127,14 @@ function SendMessageForm (props) {
         const recipient_list = [];
 
         if (from_ewi_modal) {
-            recipients.forEach(({ data: { mobile_numbers } }) => {
+            recipients.forEach(row => {
+                const { data } = row;
+                const { mobile_numbers } = data;
+
                 mobile_numbers.forEach(item => recipient_list.push({
                     mobile_id: item.mobile_number.mobile_id,
-                    gsm_id: item.mobile_number.gsm_id
+                    gsm_id: item.mobile_number.gsm_id,
+                    data
                 }));
             });
         } else {
@@ -184,10 +147,23 @@ function SendMessageForm (props) {
 
         const formatted_message = `${composed_message} - ${current_user.nickname} from PHIVOLCS-DYNASLOPE`;
 
-        const payload = {
+        let payload = {
             sms_msg: formatted_message,
-            recipient_list
+            recipient_list,
+            is_ewi: from_ewi_modal
         };
+
+        if (from_ewi_modal) {
+            const { site_id, type } = updateSentStatusObj;
+
+            payload = {
+                ...payload,
+                release_id: releaseId,
+                user_id: current_user.user_id,
+                site_id,
+                alert_db_group: type
+            };
+        }
 
         const loading_snackbar = enqueueSnackbar(
             "Sending EWI message...",
@@ -201,59 +177,23 @@ function SendMessageForm (props) {
 
         sendMessage(payload, response => {
             closeSnackbar(loading_snackbar);
+            const { message, status } = response;
+            let temp = message;
+            let variant;
 
-            if (from_ewi_modal && response.status) {
-                getEwiSMSNarrative(releaseId, ewi_sms_response => {
-                    const { narrative, site_list, event_id, type_id } = ewi_sms_response;
-                    const str = recipientsFormatterForNarrative(recipients);
-                    const f_narrative = `${narrative} ${str}`;
-                    const temp_nar = {
-                        type_id,
-                        site_list,
-                        event_id,
-                        narrative: f_narrative,
-                        user_id: current_user.user_id,
-                        timestamp: moment().format("YYYY-MM-DD HH:mm:ss")
-                    };
-
-                    writeEwiNarrativeToDB (temp_nar, () => {});
-                });
-
-                const payload = {
-                    user_id: getCurrentUser().user_id,
-                    outbox_id: response.outbox_id,
-                    ts: moment().format("YYYY-MM-DD HH:mm:ss")
-                };
-
-                insertTagsAfterEWISms(payload);
-
-                const { site_id, type } = updateSentStatusObj;
-                sendWSMessage("update_db_alert_ewi_sent_status", {
-                    alert_db_group: type,
-                    site_id,
-                    ewi_group: "sms"
-                });
-            }
-
-            if (response.status) {
-                enqueueSnackbar(
-                    "EWI SMS Sent!",
-                    {
-                        variant: "success",
-                        autoHideDuration: 7000,
-                        action: snackBarActionFn
-                    }
-                );
-            } else {
-                enqueueSnackbar(
-                    response.message,
-                    {
-                        variant: "error",
-                        autoHideDuration: 7000,
-                        action: snackBarActionFn
-                    }
-                );
-            }
+            if (status) {
+                variant = "success";
+                temp = "EWI SMS sent!";
+            } else variant = "error";
+            
+            enqueueSnackbar(
+                temp,
+                {
+                    variant,
+                    autoHideDuration: 7000,
+                    action: snackBarActionFn
+                }
+            );
         }, () => {
             enqueueSnackbar(
                 "Error sending EWI SMS...",

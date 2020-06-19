@@ -112,20 +112,6 @@ export function writeEwiNarrativeToDB (payload, callback) {
     });
 }
 
-export function getEwiSMSNarrative (release_id, callback) {
-    const api_link = `${host}/api/chatterbox/get_ewi_sms_narrative/${release_id}`;
-
-    axios.get(api_link)
-    .then(response => {
-        const { data } = response;
-        console.log("EWI recipients", data);
-        callback(data);
-    })
-    .catch(error => {
-        console.error(error);
-    });
-}
-
 export function getRecipientsList (payload, callback) {
     const api_link = `${host}/api/contacts/get_recipients_option`;
 

@@ -295,6 +295,15 @@ def insert_marker_event(marker_id, ts, event):
     DB.session.add(history)
     DB.session.flush()
 
+    # NOTE: Delete this in the future because
+    # marker status must depend on MarkerHistory
+    if event == "decommission":
+        row = Markers.query.options(DB.raiseload(
+            '*')).filter_by(marker_id=marker_id).first()
+        row.in_use = 0
+
+        DB.session.flush()
+
     return history
 
 
