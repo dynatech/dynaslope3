@@ -495,7 +495,7 @@ def initialize_comms_data():
     """
     """
 
-    # delete_sms_user_update()
+    delete_sms_user_update()
 
     messages = get_inbox()
     contacts_users = get_contacts(orientation="users")
