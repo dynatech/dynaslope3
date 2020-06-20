@@ -141,7 +141,6 @@ function GeneralDataTagModal (props) {
             const tag_id_list = new_tags.map(tag => {
                 return tag.value;
             });
-            
             const payload = {
                 tag_type: `sms${source}_user_tags`,
                 contact_person,
@@ -151,7 +150,8 @@ function GeneralDataTagModal (props) {
                     [var_key_id]: id,
                     tag_id_list,
                     site_id_list,
-                    ts
+                    ts: moment().format("YYYY-MM-DD HH:mm:ss"),
+                    ts_message: ts
                 }
             };
             console.log("PAYLOAD", payload);

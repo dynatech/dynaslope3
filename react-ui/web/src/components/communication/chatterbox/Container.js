@@ -4,7 +4,10 @@ import React, {
 } from "react";
 import { Route, Switch } from "react-router-dom";
 
-import { Button, Badge, makeStyles, IconButton } from "@material-ui/core";
+import { 
+    Button, Badge, makeStyles, IconButton,
+    Dialog, DialogTitle, DialogContent, Typography, Divider
+} from "@material-ui/core";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { Create, Search, Info } from "@material-ui/icons";
 
@@ -66,9 +69,31 @@ const ListLoader = () => (
     </ContentLoader>
 );
 
-// function ChatterboxInfoModal (props) {
+function ChatterboxInfoModal (props) {
+    const { modalState, modalStateHandler } = props;
     
-// }
+    return (
+        <Dialog onClose={modalStateHandler} aria-labelledby="simple-dialog-title" open={modalState}>
+            <DialogTitle id="simple-dialog-title">Chatterbox Information</DialogTitle>
+            <DialogContent>
+                <Typography variant="h6" gutterBottom>Inbox</Typography>
+                <Typography variant="body1" gutterBottom>
+                    Inbox tab contains the list of our contacts who recently sent a message to our server.
+                    The first contact in the list is the most recent message sender, and so on.
+                    Unlike a regular message list on a messaging app, outbound messages to our contacts do not affect
+                    the order of the list nor the appearance of a contact on the list (because our server send
+                    a lot of messages, especially when routine, that incoming messages might get unnoticed).
+                </Typography>
+                <Divider style={{ margin: "8px 0" }} />
+                <Typography variant="h6" gutterBottom>Unsent</Typography>
+                <Typography variant="body1" gutterBottom>
+                    Unsent tab displays conversation threads which contains unsent messages within one day span.
+                    Unsent messages refer to messages in the process of sending or messages with failed sending attempt.
+                </Typography>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 export const CommsContext = createContext();
 
@@ -138,12 +163,13 @@ function Container (comp_props) {
     const is_desktop = isWidthUp("md", width);
 
     const custom_buttons = <span>
-        {/* <IconButton 
+        <IconButton 
             color="primary"
             aria-label="Chatterbox info"
+            onClick={set_modal_fn("info", true)}
         >
             <Info fontSize="large" />
-        </IconButton> */}
+        </IconButton>
 
         <Button
             aria-label="Compose message"
@@ -238,10 +264,10 @@ function Container (comp_props) {
                             url={url}
                         />
 
-                        {/* <ChatterboxInfoModal
+                        <ChatterboxInfoModal
                             modalStateHandler={set_modal_fn("info", false)} 
                             modalState={is_open_info_modal}
-                        /> */}
+                        />
                     </Fragment>
                 )}
             />

@@ -328,7 +328,7 @@ function DetailedExpansionPanel (props) {
         };
         getNarrative(temp, site_narrative => {
             setShiftNarratives(site_narrative);
-            narrative_editor.setData(site_narrative);
+            // narrative_editor.setData(site_narrative);
         });
     };
 
@@ -489,7 +489,7 @@ function DetailedExpansionPanel (props) {
                     startIcon={<Refresh />}
                     onClick={refreshNarratives}
                 >
-                    Refresh
+                    Refresh Narratives
                 </Button>
                 <Button
                     size="small"
