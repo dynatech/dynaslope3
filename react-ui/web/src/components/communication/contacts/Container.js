@@ -586,7 +586,7 @@ function Container (props) {
     const { setIsReconnecting, sites } = useContext(GeneralContext);
     const [get_contact_priotitization, setGetContactPrioritization] = useState(false);
     useEffect(() => {
-        subscribeToWebSocket(setIsReconnecting);
+        subscribeToWebSocket(setIsReconnecting, "contacts");
         receiveAllContacts(data => {
             setContacts(data);
 

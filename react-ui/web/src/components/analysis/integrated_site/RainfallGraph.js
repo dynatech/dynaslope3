@@ -270,12 +270,8 @@ function RainfallGraph (props) {
     let ts_end = "";
     let sc = "";
     let dt_ts_end;
-    let { unit, duration } = selected_range_info;
     if (typeof conso_input !== "undefined") {
-        const { ts_end: te, range_info } = conso_input;
-        const { unit: conso_unit, duration: conso_duration } = range_info;
-        unit = conso_unit;
-        duration = conso_duration;
+        const { ts_end: te } = conso_input;
         ts_end = te;
         dt_ts_end = moment(te);
         sc = site_code;
@@ -286,6 +282,7 @@ function RainfallGraph (props) {
         sc = rain_gauge.substr(0, 3);
     }
 
+    const { unit, duration } = selected_range_info;
     const ts_start = computeForStartTs(dt_ts_end, duration, unit);
     const days_diff = dt_ts_end.diff(moment(ts_start, "YYYY-MM-DD HH:mm:ss"), "days");
     const input = { days_diff, ts_start, ts_end, site_code: sc };

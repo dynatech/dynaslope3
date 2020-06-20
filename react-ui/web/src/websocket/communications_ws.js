@@ -13,8 +13,16 @@ function connectToWebsocket () {
     }
 }
 
-function subscribeToWebSocket (reconnect_callback) {
+function subscribeToWebSocket (reconnect_callback, page) {
     connectToWebsocket();
+
+    if (page === "chatterbox") {
+        socket.emit("get_latest_messages");
+        socket.emit("get_all_mobile_numbers");
+        socket.emit("get_all_contacts");
+    } else if (page === "contacts") {
+        socket.emit("get_all_contacts");
+    }
 
     socket.on("reconnecting", () => {
         reconnect_callback(true);

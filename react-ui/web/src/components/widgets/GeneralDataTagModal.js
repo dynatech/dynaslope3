@@ -89,14 +89,13 @@ function GeneralDataTagModal (props) {
     const update_tags_fn = value => update_tags(value);
 
     const submitTagHandler = () => {
-        const { id, source } = tagObject;
+        const { id, source, ts } = tagObject;
 
         let contact_person = null;
         const site_id_list = [];
         if (mobileDetails.user_details !== null) {
             const user_organizations = mobileDetails.user_details.user.organizations;
             user_organizations.forEach(org => {
-                console.log("org", org);
                 const { site: { site_id } } = org;
                 !site_id_list.includes(site_id) && site_id_list.push(site_id);
             });
@@ -142,6 +141,7 @@ function GeneralDataTagModal (props) {
             const tag_id_list = new_tags.map(tag => {
                 return tag.value;
             });
+            
             const payload = {
                 tag_type: `sms${source}_user_tags`,
                 contact_person,
@@ -151,7 +151,7 @@ function GeneralDataTagModal (props) {
                     [var_key_id]: id,
                     tag_id_list,
                     site_id_list,
-                    ts: moment().format("YYYY-MM-DD HH:mm:ss")
+                    ts
                 }
             };
             console.log("PAYLOAD", payload);

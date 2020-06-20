@@ -276,7 +276,7 @@ function ConversationWindow (props) {
                 removeReceiveMobileIDRoomUpdateListener();
             }
         };
-    }, [socket]);
+    }, [socket, mobile_id]);
 
     let { mobile_details, message_list } = conversation_details;
 

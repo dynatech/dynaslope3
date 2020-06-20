@@ -2,11 +2,14 @@ import React, {
     Fragment, useState,
     useEffect, useContext, createContext
 } from "react";
-import { Button, Badge, makeStyles } from "@material-ui/core";
-import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { Route, Switch } from "react-router-dom";
-import { Create, Search } from "@material-ui/icons";
+
+import { Button, Badge, makeStyles, IconButton } from "@material-ui/core";
+import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
+import { Create, Search, Info } from "@material-ui/icons";
+
 import ContentLoader from "react-content-loader";
+
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 import MessageList from "./MessageList";
@@ -63,6 +66,10 @@ const ListLoader = () => (
     </ContentLoader>
 );
 
+// function ChatterboxInfoModal (props) {
+    
+// }
+
 export const CommsContext = createContext();
 
 function Container (comp_props) {
@@ -83,16 +90,18 @@ function Container (comp_props) {
     const [search_results, setSearchResults] = useState([]);
     const [recipients_list, setRecipientsList] = useState([]);
     const [contacts, setContacts] = useState([]);
+    const [is_open_info_modal, setIsOpenInfoModal] = useState(false);
 
     const set_modal_fn = (key, bool) => () => {
         if (key === "send") setIsOpenSendModal(bool);
         else if (key === "search") setIsOpenSearchModal(bool);
+        else if (key === "info") setIsOpenInfoModal(bool);
     };
 
     const { setIsReconnecting } = useContext(GeneralContext);
 
     useEffect(() => {
-        subscribeToWebSocket(setIsReconnecting);
+        subscribeToWebSocket(setIsReconnecting, "chatterbox");
 
         receiveLatestMessages(data => {
             setMessagesCollection(data);
@@ -129,6 +138,13 @@ function Container (comp_props) {
     const is_desktop = isWidthUp("md", width);
 
     const custom_buttons = <span>
+        {/* <IconButton 
+            color="primary"
+            aria-label="Chatterbox info"
+        >
+            <Info fontSize="large" />
+        </IconButton> */}
+
         <Button
             aria-label="Compose message"
             variant="contained" 
@@ -136,8 +152,8 @@ function Container (comp_props) {
             size="small" 
             style={{ marginRight: 8 }}
             onClick={set_modal_fn("send", true)}
+            startIcon={<Create/>}
         >
-            <Create style={{ paddingRight: 4, fontSize: 20 }}/>
             Compose
         </Button>
 
@@ -147,8 +163,8 @@ function Container (comp_props) {
             color="primary"
             size="small"
             onClick={set_modal_fn("search", true)}
+            startIcon={<Search />}
         >
-            <Search style={{ paddingRight: 4, fontSize: 20 }}/>
             Search
         </Button>
     </span>;
@@ -220,36 +236,43 @@ function Container (comp_props) {
                             modalState={is_open_search_modal}
                             setSearchResultsToEmpty={() => setSearchResults([])}
                             url={url}
-                        /> 
+                        />
+
+                        {/* <ChatterboxInfoModal
+                            modalStateHandler={set_modal_fn("info", false)} 
+                            modalState={is_open_info_modal}
+                        /> */}
                     </Fragment>
                 )}
             />
             
             <Route path={`${url}/search_results`} render={
-                props => <SearchResultsPage
-                    {...props}
-                    messageCollection={message_collection}
-                    socket={socket}
-                    url={url}
-                    width={width}
-                    is_desktop={is_desktop}
-                    searchResults={search_results}
-                    setSearchResults={setSearchResults}
-                    ListLoader={ListLoader}
-                />
+                props => <CommsContext.Provider value={{ contacts }}>
+                    <SearchResultsPage
+                        {...props}
+                        messageCollection={message_collection}
+                        socket={socket}
+                        url={url}
+                        width={width}
+                        is_desktop={is_desktop}
+                        searchResults={search_results}
+                        setSearchResults={setSearchResults}
+                        ListLoader={ListLoader}
+                    />
+                </CommsContext.Provider>
             } 
             />
 
-            <CommsContext.Provider value={{ contacts }}>
-                <Route path={`${url}/:mobile_id`} render={
-                    props => <ConversationWindow 
+            <Route path={`${url}/:mobile_id`} render={
+                props => <CommsContext.Provider value={{ contacts }}>
+                    <ConversationWindow 
                         {...props}
                         messageCollection={message_collection}
                         socket={socket}
                     />
-                } 
-                />
-            </CommsContext.Provider>
+                </CommsContext.Provider>
+            } 
+            />
         </Switch>
     );
 
