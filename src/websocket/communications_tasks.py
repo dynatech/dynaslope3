@@ -443,6 +443,7 @@ def no_ground_data_narrative_bg_task():
                          if site.site_id == site_id)
             del routine_sites[index]
 
+    processed_sites = []
     if routine_sites:
         extended_events = events["extended"]
         merged = routine_sites + extended_events
@@ -456,7 +457,9 @@ def no_ground_data_narrative_bg_task():
                 site_id = ev["site_id"]
                 event_id = ev["event_id"]
 
-            process_no_ground_narrative_writing(ts, site_id, 6, event_id)
+            if site_id not in processed_sites:
+                process_no_ground_narrative_writing(ts, site_id, 6, event_id)
+                processed_sites.append(site_id)
 
 
 def process_no_ground_narrative_writing(ts, site_id, timedelta_hour, event_id):
