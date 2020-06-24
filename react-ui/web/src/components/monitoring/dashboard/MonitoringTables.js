@@ -454,7 +454,7 @@ function LatestSiteAlertsExpansionPanel (props) {
                 <Button 
                     size="small" color="primary"
                     startIcon={<Description />}
-                    onClick={bulletinHandler({ release_id, site_code, site_id, type })}
+                    onClick={bulletinHandler({ release_id, site_code, site_id, type, is_bulletin_sent })}
                     endIcon={ is_bulletin_sent && <Done /> }
                 >
                     Bulletin
@@ -537,7 +537,7 @@ function RoutineExpansionPanel (props) {
                     onClick={smsHandler(released_sites)}
                     // endIcon={ is_sms_sent && <Done /> }
                 >
-                EWI SMS
+                    EWI SMS
                 </Button>
             </ExpansionPanelActions>
         </ExpansionPanel>
@@ -594,8 +594,6 @@ function MonitoringTables (props) {
         setChosenReleaseDetail(release);
         setIsOpenBulletinModal(true);
     };
-
-    const is_desktop = isWidthUp("md", width);
 
     let latest_db_alerts = [];
     let extended_db_alerts = [];

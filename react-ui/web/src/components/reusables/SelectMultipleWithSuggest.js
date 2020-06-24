@@ -1,7 +1,6 @@
 /* eslint-disable react/prop-types, react/jsx-handler-names */
 
 import React from "react";
-import PropTypes from "prop-types";
 import Select from "react-select";
 import { withStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";

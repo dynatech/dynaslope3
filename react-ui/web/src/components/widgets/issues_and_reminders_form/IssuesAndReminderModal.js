@@ -33,7 +33,8 @@ function IssuesAndReminderModal (props) {
     const {
         fullScreen, isOpen,
         closeHandler, setIsIandRUpdateNeeded,
-        chosenIssueReminder, isIandRUpdateNeeded, toResolve
+        chosenIssueReminder, isIandRUpdateNeeded, toResolve,
+        setToRefresh, toRefresh
     } = props;
     const [issue_reminder_data, setIssueReminderData] = useState({});
     
@@ -61,17 +62,24 @@ function IssuesAndReminderModal (props) {
 
     const handleSubmit = () => {
         const { resolution } = issue_reminder_data;
+        const ts_now = moment().format("YYYY-MM-DD HH:mm:ss");
+        let temp = {
+            ...issue_reminder_data,
+            ts_posted: ts_now
+        };
 
-        if (resolution !== "") {
+        if (resolution !== "" && resolution !== null) {
             const resolver_user_id = getCurrentUser().user_id;
-            const temp = {
+            temp = {
                 ...issue_reminder_data,
-                ts_resolved: moment().format("YYYY-MM-DD HH:mm:ss"),
+                ts_resolved: ts_now,
                 resolved_by: resolver_user_id
-            }; 
-            handleIssuesAndReminders(temp, ret => {});
-            closeHandlerAction();     
+            };   
         }
+
+        handleIssuesAndReminders(temp);
+        setToRefresh(!toRefresh);
+        closeHandlerAction();  
     };
     
     return (
@@ -85,8 +93,9 @@ function IssuesAndReminderModal (props) {
             <DialogTitle id="form-dialog-title">Issues and Reminder Form</DialogTitle>
             <DialogContent>
                 <DialogContentText>
-                        Provide information to the following fields.
+                    Provide information to the following fields.
                 </DialogContentText>
+
                 <IssuesAndReminderForm
                     issueReminderData={issue_reminder_data}
                     setIssueReminderData={setIssueReminderData}

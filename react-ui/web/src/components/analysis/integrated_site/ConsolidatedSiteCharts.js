@@ -13,9 +13,6 @@ function ConsolidatedSiteCharts (props) {
         match: { params: { site_code } },
         location
     } = props;
-    const [ selected, setSelected ] = useState("7 days");
-    const default_range_info = { label: "7 days", unit: "day", duration: 7 };
-    const [ selected_range_info, setSelectedRangeInfo ] = useState(default_range_info);
     const {
         site: site_data, ts_end,
         to_include, subsurface_columns
@@ -30,15 +27,10 @@ function ConsolidatedSiteCharts (props) {
         show_charts = { rainfall: true, surficial: true };
     }
 
-    const input = { site_code, ts_end: end_ts.format("YYYY-MM-DD HH:mm:ss"), range_info: selected_range_info };
+    const input = { site_code, ts_end: end_ts.format("YYYY-MM-DD HH:mm:ss") };
     return (
         <Fragment>
-            <BackToMainButton 
-                {...props}
-                selected={selected}
-                setSelected={setSelected}
-                setSelectedRangeInfo={setSelectedRangeInfo}
-            />
+            <BackToMainButton {...props} />
             
             <Grid container spacing={1}>
                 {

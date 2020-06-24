@@ -5,7 +5,7 @@ import {
     Grid, Chip, makeStyles, Avatar,
     Button, Menu, MenuItem
 } from "@material-ui/core";
-import { KeyboardArrowLeft, MoreVert, More } from "@material-ui/icons";
+import { KeyboardArrowLeft, MoreVert } from "@material-ui/icons";
 
 import ContentLoader from "react-content-loader";
 import { useSnackbar } from "notistack";
@@ -134,8 +134,13 @@ function RecipientFormatter (props) {
         setAnchor(null);
     };
 
+    const handleMenuClick = () => {
+        setAnchor(null);
+        saveNumberModal();
+    };
+
     return (
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <Grid container alignItems="center">
             <div style={{ marginRight: 12 }}>
                 <Avatar alt={sender} src={GenericAvatar} className={classes.bigAvatar} />
             </div>
@@ -148,7 +153,7 @@ function RecipientFormatter (props) {
                     alignItems="center"
                 >
 
-                    <Grid item xs className={classes.noFlexGrow}>
+                    <Grid item xs>
                         <Typography 
                             variant="body1" 
                             style={{ marginRight: 8 }}
@@ -165,45 +170,9 @@ function RecipientFormatter (props) {
                                 </Grid>
                             );
                         })
-                    }
-                    {
-                        <Grid 
-                            item xs 
-                            style={{ 
-                                textAlign: "right",
-                                flexGrow: 1,
-                                flexBasis: "auto" 
-                            }}
-                        >
-                            {/* onClick={() => saveNumberModal()} */}
-                            <IconButton 
-                                size="small"
-                                aria-controls="simple-menu"
-                                aria-haspopup="true"
-                                onClick={handleClick}
-                            >
-                                <MoreVert/>
-                            </IconButton>
-                            <Menu
-                                id="simple-menu"
-                                anchorEl={anchorEl}
-                                keepMounted
-                                open={Boolean(anchorEl)}
-                                onClose={handleClose} 
-                            >
-                                <MenuItem
-                                    style={{ 
-                                        fontSize: 12
-                                    }}
-                                    key="save_unknown" 
-                                    onClick={() => saveNumberModal()}>
-                                Save Number
-                                </MenuItem>
-                            </Menu>
-                        </Grid>
-                    }
-                    
+                    }        
                 </Grid>
+
                 {
                     !is_unknown && (
                         <Typography 
@@ -214,10 +183,53 @@ function RecipientFormatter (props) {
                         </Typography>
                     )
                 }
-
-                
             </div>
-        </div>
+
+            {
+                is_unknown && (
+                    <Grid 
+                        container item xs
+                        justify="flex-end"
+                    >
+                        <IconButton 
+                            size="small"
+                            aria-controls="simple-menu"
+                            aria-haspopup="true"
+                            onClick={handleClick}
+                        >
+                            <MoreVert/>
+                        </IconButton>
+                
+                        <Menu
+                            id="simple-menu"
+                            anchorEl={anchorEl}
+                            getContentAnchorEl={null}
+                            keepMounted
+                            open={Boolean(anchorEl)}
+                            onClose={handleClose} 
+                            anchorOrigin={{
+                                vertical: "bottom",
+                                horizontal: "center",
+                            }}
+                            transformOrigin={{
+                                vertical: "top",
+                                horizontal: "center",
+                            }}
+                        >
+                            <MenuItem
+                                style={{ 
+                                    fontSize: 12
+                                }}
+                                key="save_unknown" 
+                                onClick={handleMenuClick}
+                            >
+                                Save unknown number
+                            </MenuItem>
+                        </Menu>
+                    </Grid>
+                )
+            }
+        </Grid>
     );
 }
 
@@ -264,7 +276,7 @@ function ConversationWindow (props) {
                 removeReceiveMobileIDRoomUpdateListener();
             }
         };
-    }, [socket]);
+    }, [socket, mobile_id]);
 
     let { mobile_details, message_list } = conversation_details;
 
@@ -372,10 +384,10 @@ function ConversationWindow (props) {
                                 <KeyboardArrowLeft className={classes.backIcon} />
                             </IconButton>
                      
-                            { <RecipientFormatter 
+                            <RecipientFormatter 
                                 mobile_details={mobile_details}
                                 classes={classes} 
-                                saveNumberModal={saveNumberModal}/> }
+                                saveNumberModal={saveNumberModal}/>
                         </div>
                     </div>
             }

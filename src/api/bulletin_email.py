@@ -2,8 +2,8 @@
 API for handling bulletin email
 """
 
+from datetime import datetime
 from flask import Blueprint, jsonify
-from datetime import datetime, timedelta
 from config import APP_CONFIG
 from instance.config import EMAILS
 from src.utils.emails import get_email_subject
@@ -43,7 +43,9 @@ def prepare_onset_message(release_data, address, site_alert_level):
                                        key=lambda x: x.internal_sym.trigger_symbol.alert_level,
                                        reverse=True)))
 
-    f_data_ts = datetime.strftime(release_data.data_ts, "%B %e, %Y, %I:%M %p")
+    combined = datetime.combine(
+        release_data.data_ts.date(), release_data.release_time)
+    f_data_ts = datetime.strftime(combined, "%B %e, %Y, %I:%M %p")
     cause = highest_trigger.internal_sym.bulletin_trigger.first().cause
 
     onset_msg = f"As of {f_data_ts}, {address} is under {site_alert_level} based on {cause}."
@@ -66,6 +68,7 @@ def get_bulletin_email_details(release_id):
     Function for composing the email's recipients,
     subject, and mail body
     """
+
     recipients = []
     mail_body = ""
     subject = ""
@@ -74,8 +77,7 @@ def get_bulletin_email_details(release_id):
     bulletin_release_data = get_monitoring_releases(
         release_id=release_id)  # TODO: Load options load_options="ewi_narrative"
     event_alert = bulletin_release_data.event_alert
-    # NOTE: mali ito kasi pag tumaas na ang alert, iba na yung na yung magiging first_data_ts
-    # which means gagawa siya ng bagong thread
+
     first_ea_release = list(
         sorted(event_alert.releases, key=lambda x: x.data_ts))[0]
     event = event_alert.event
@@ -84,7 +86,6 @@ def get_bulletin_email_details(release_id):
 
     # Get data needed to prepare base message
     site = event.site
-    site_id = event.site_id
     site_address = build_site_address(site)
     p_a_level = event_alert.public_alert_symbol.alert_level
     site_alert_level = f"Alert {p_a_level}"
@@ -98,7 +99,7 @@ def get_bulletin_email_details(release_id):
     # MAIL BODY
     mail_body = ""
     body_ts = data_ts
-    if is_onset and p_a_level != 0:  # prevent onset from lowering to A0:
+    if is_onset and p_a_level != 0:  # prevent onset message from appearing on A0 lowering bulletin
         onset_msg = prepare_onset_message(
             bulletin_release_data,
             site_address,
@@ -106,7 +107,9 @@ def get_bulletin_email_details(release_id):
         )
 
         mail_body = f"{onset_msg}\n "
-        file_time = data_ts
+        body_ts = datetime.combine(
+            data_ts.date(), bulletin_release_data.release_time)
+        file_time = body_ts
     else:
         file_time = round_to_nearest_release_time(data_ts, 4)
         body_ts = file_time
@@ -134,51 +137,18 @@ def get_bulletin_email_details(release_id):
         # NOTE to front-end. CHECK if TEST SERVER by using typeof object.
         recipients.append(EMAILS["dev_email"])
 
-    # var_checker("is_onset", is_onset)
-    # var_checker("BULLETIN RECIPIENTS", recipients)
-
-    # PERPARE THE NARRATIVE
-
-    # Get MT Publisher
-    # TODO: Try to change this to the person who sent the bulletin
-    release_publishers = bulletin_release_data.release_publishers
-    ct_reporter = next(filter(lambda reporter: reporter.role
-                              == 'ct', release_publishers)).user_details
-
-    str_recipients = ""
-    len_recipients = len(recipients)
-    for index, recipient in enumerate(recipients):
-        if isinstance(recipients, str):
-            tmp_rcp = recipient
-            if tmp_rcp == "rusolidum@phivolcs.dost.gov.ph":
-                tmp_rcp = "RUS"
-            elif tmp_rcp == "asdaag48@gmail.com":
-                tmp_rcp = "ASD"
-
-            str_recipients = str_recipients + tmp_rcp
-
-            if len_recipients != (index + 1):
-                str_recipients = str_recipients + ", "
-
-    if is_onset and p_a_level != 0:
-        file_time = "onset " + file_time
-    narrative = f"Sent {file_time} EWI BULLETIN to {str_recipients}"
-
-    narrative_details = {
-        "site_list": [site_id],
-        "event_id": event_id,
-        "timestamp": datetime.now(),
-        "narrative": narrative,
-        "type_id": 1,
-        "user_id": ct_reporter.user_id
-    }
-
     bulletin_email_details = {
         "recipients": recipients,
         "mail_body": mail_body,
         "subject": subject,
         "file_name": filename,
-        "narrative_details": narrative_details
+        "narrative_details": {
+            "event_id": event_id,
+            "is_onset": is_onset,
+            "public_alert_level": p_a_level,
+            "event_id": event_id,
+            "file_time": file_time
+        }
     }
 
     return jsonify(bulletin_email_details)

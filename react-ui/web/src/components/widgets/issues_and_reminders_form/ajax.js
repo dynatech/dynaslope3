@@ -24,7 +24,7 @@ export function handleDelete (json_data, callback) {
 }
 
 
-export function handleIssuesAndReminders (json_data, callback) {
+export function handleIssuesAndReminders (json_data) {
     const temp = json_data;
     const { ts_posted, ts_expiration, site_id_list } = json_data;
     const temp_list = [];
@@ -41,10 +41,6 @@ export function handleIssuesAndReminders (json_data, callback) {
 
     // Make a websocket request
     sendWSMessage("write_issues_and_reminders", temp);
-
-    // Make an API request
-    // const api_link = `${host}/api/issues_and_reminders/write_issue_reminder_to_db`;
-    // makeAxiosRequest(temp, api_link, callback);
 }
 
 
@@ -72,8 +68,6 @@ export function getIssuesAndReminders (input, callback) {
         }    
         if (search_str !== "") api_link += `&search=${search_str}`;    
     }
-
-    console.log(api_link);
 
     axios.get(api_link)
     .then(response => {

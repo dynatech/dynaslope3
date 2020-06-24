@@ -78,9 +78,7 @@ def communication_background_task():
         datetime.now(), "%Y-%m-%d %H:%M:%S")
     print(f"{system_time} | Communication Background Task Running...")
 
-    messages = retrieve_data_from_memcache("CB_MESSAGES")
-    if not messages:
-        initialize_comms_data()
+    initialize_comms_data()
 
     messages = retrieve_data_from_memcache("CB_MESSAGES")
     inbox_messages_arr = messages["inbox"]
@@ -138,6 +136,14 @@ def communication_background_task():
                         name="BLOCKED_CONTACTS", data=blocked_contacts)
                 elif update_source == "inbox_tag" or update_source == "outbox_tag":
                     update_mobile_id_room(mobile_id)
+                elif update_source == "contacts":
+                    if inbox_index > -1:
+                        mobile_details = get_user_mobile_details(mobile_id)
+                        messages["inbox"][inbox_index]["mobile_details"] = mobile_details
+                        set_data_to_memcache(name="CB_MESSAGES", data=messages)
+
+                        update_mobile_id_room(
+                            mobile_id, update_contact=mobile_details)
 
                 query_end = datetime.now()
 
@@ -183,13 +189,16 @@ def check_if_blocked_contact(mobile_id):
     return is_blocked
 
 
-def update_mobile_id_room(mobile_id):
+def update_mobile_id_room(mobile_id, update_contact=False):
     room_mobile_ids = retrieve_data_from_memcache("ROOM_MOBILE_IDS")
     if mobile_id in room_mobile_ids.keys():
-        msgs = get_latest_messages(mobile_id)
-        msgs_schema = get_messages_schema_dict(msgs)
+        if update_contact:
+            room_mobile_ids[mobile_id]["details"]["mobile_details"] = update_contact
+        else:
+            msgs = get_latest_messages(mobile_id)
+            msgs_schema = get_messages_schema_dict(msgs)
 
-        room_mobile_ids[mobile_id]["details"]["messages"] = msgs_schema
+            room_mobile_ids[mobile_id]["details"]["messages"] = msgs_schema
 
         SOCKETIO.emit("receive_mobile_id_room_update",
                       room_mobile_ids[mobile_id]["details"],
@@ -219,7 +228,12 @@ def connect():
 def disconnect():
     sid = request.sid
     clients = retrieve_data_from_memcache("COMMS_CLIENTS")
-    clients.remove(sid)
+
+    try:
+        clients.remove(sid)
+    except ValueError:
+        print("Removed an unknown connection ID:", sid)
+
     set_data_to_memcache(name="COMMS_CLIENTS", data=clients)
 
     room_mobile_ids = retrieve_data_from_memcache("ROOM_MOBILE_IDS")
@@ -429,6 +443,7 @@ def no_ground_data_narrative_bg_task():
                          if site.site_id == site_id)
             del routine_sites[index]
 
+    processed_sites = []
     if routine_sites:
         extended_events = events["extended"]
         merged = routine_sites + extended_events
@@ -442,7 +457,9 @@ def no_ground_data_narrative_bg_task():
                 site_id = ev["site_id"]
                 event_id = ev["event_id"]
 
-            process_no_ground_narrative_writing(ts, site_id, 6, event_id)
+            if site_id not in processed_sites:
+                process_no_ground_narrative_writing(ts, site_id, 6, event_id)
+                processed_sites.append(site_id)
 
 
 def process_no_ground_narrative_writing(ts, site_id, timedelta_hour, event_id):
@@ -464,7 +481,7 @@ def process_no_ground_narrative_writing(ts, site_id, timedelta_hour, event_id):
 
 def check_ground_data_and_prepare_narrative(site_id, timestamp, hour, minute):
     ground_meas_noun = get_ground_data_noun(site_id=site_id)
-    narrative = f"No {ground_meas_noun} received from community"
+    narrative = f"No {ground_meas_noun} received from stakeholders"
 
     if ground_meas_noun == "ground measurement":
         result = get_sites_with_ground_meas(timestamp,
@@ -481,7 +498,7 @@ def initialize_comms_data():
     """
     """
 
-    # delete_sms_user_update()
+    delete_sms_user_update()
 
     messages = get_inbox()
     contacts_users = get_contacts(orientation="users")

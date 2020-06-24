@@ -76,3 +76,4 @@ run.py
 
 # Celery-related
 celerybeat-schedule.*
+celerybeat.*

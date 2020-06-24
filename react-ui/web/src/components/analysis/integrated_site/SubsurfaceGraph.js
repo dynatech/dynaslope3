@@ -385,12 +385,8 @@ function SubsurfaceGraph (props) {
     const defaul_hour_interval = { label: "4 hours", hour_value: "4" };
     const [selected_hour_interval, setSelectedHourInterval] = useState(defaul_hour_interval);
     
-    let { unit, duration } = selected_range_info;
     if (typeof consolidated_input !== "undefined") {
-        const { ts_end: te, tsm_sensor: tsm, range_info } = consolidated_input;
-        const { unit: conso_unit, duration: conso_duration } = range_info;
-        unit = conso_unit;
-        duration = conso_duration;
+        const { ts_end: te, tsm_sensor: tsm } = consolidated_input;
         ts_end = te;
         dt_ts_end = moment(te);
         tsm_sensor = tsm;
@@ -399,6 +395,8 @@ function SubsurfaceGraph (props) {
         ts_end = ts_now.format("YYYY-MM-DD HH:mm:ss");
         dt_ts_end = ts_now;
     }
+
+    const { unit, duration } = selected_range_info;
     const ts_start = computeForStartTs(dt_ts_end, duration, unit);
     
     const disable_back = typeof disableBack === "undefined" ? false : disableBack;
@@ -451,9 +449,12 @@ function SubsurfaceGraph (props) {
         if (get_svg) {
             const temp = [];
             chartRefs.current.forEach(ref => {
-                const { current: { chart } } = ref;
-                const svg = chart.getSVGForExport();
-                temp.push(svg);
+                const { current } = ref;
+                if (current !== null) {
+                    const { chart } = current;
+                    const svg = chart.getSVGForExport();
+                    temp.push(svg);
+                }
             });
             setSVGList(temp);
         }
@@ -520,6 +521,7 @@ function SubsurfaceGraph (props) {
                     {
                         options.map((option, i) => {
                             const chart_update = true;
+                            const ref = chartRefs.current[i];
                             return (
                                 <Grid item xs={12} md={6} key={i}>
                                     <Paper>
@@ -527,6 +529,7 @@ function SubsurfaceGraph (props) {
                                             highcharts={Highcharts}
                                             allowChartUpdate={chart_update}
                                             options={option}
+                                            ref={ref}
                                         />
                                     </Paper>
                                 </Grid>
