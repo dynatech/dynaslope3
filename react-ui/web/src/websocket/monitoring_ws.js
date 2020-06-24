@@ -53,7 +53,6 @@ export function unsubscribeToWebSocket () {
     socket = null;
 }
 
-
 // Receiver Callback Functions
 export function receiveIssuesAndReminders (callback) {
     connectToWebsocket();

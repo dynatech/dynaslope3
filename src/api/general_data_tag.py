@@ -89,7 +89,7 @@ def handle_update_insert_tags():
                     event_id = event.event_id
                     narrative_id = write_narratives_to_db(
                         site_id=site_id,
-                        timestamp=datetime.now(),
+                        timestamp=tag_details["ts_message"],
                         narrative=narrative,
                         type_id=1,
                         user_id=user_id,

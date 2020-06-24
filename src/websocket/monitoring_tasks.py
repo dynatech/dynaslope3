@@ -53,8 +53,8 @@ def emit_data(keyword, sid=None):
         SOCKETIO.emit(keyword, data_to_emit, namespace="/monitoring")
 
 
-@CELERY.task(name="monitoring_background_task", ignore_results=True)
-def monitoring_background_task():
+@CELERY.task(name="alert_generation_background_task", ignore_results=True)
+def alert_generation_background_task():
     """
     """
 
@@ -62,7 +62,7 @@ def monitoring_background_task():
         print()
         system_time = datetime.strftime(
             datetime.now(), "%Y-%m-%d %H:%M:%S")
-        print(f"{system_time} | Monitoring Background Task Running...")
+        print(f"{system_time} | Alert Generation Background Task Running...")
 
         generated_alerts = generate_alerts()
         set_data_to_memcache(
@@ -208,8 +208,9 @@ def generate_alerts(site_code=None):
     """
 
     # site_code = ["agb", "bak", "cud", "ime"]
+    is_test = not APP_CONFIG["is_live_mode"]
     generated_alerts_json = public_alert_generator.main(
-        site_code=site_code, is_test=APP_CONFIG["is_live_mode"])
+        site_code=site_code, is_test=is_test)
 
     return generated_alerts_json
 
@@ -368,8 +369,11 @@ def execute_insert_ewi(insert_details):
     emit_data("receive_alerts_from_db")
     emit_data("receive_candidate_alerts")
 
-    if alerts_from_db["has_shifted_sites_to_routine"]:
-        issues_and_reminder_bg_task.apply_async()
+    try:
+        if alerts_from_db["has_shifted_sites_to_routine"]:
+            issues_and_reminder_bg_task.apply_async()
+    except TypeError:
+        pass
 
     return status_log
 

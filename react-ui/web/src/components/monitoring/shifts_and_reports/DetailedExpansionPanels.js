@@ -12,13 +12,38 @@ import Divider from "@material-ui/core/Divider";
 import Tooltip from "@material-ui/core/Tooltip";
 import { Grid, makeStyles, Chip } from "@material-ui/core";
 import { Refresh, SaveAlt, Send, Info, Attachment } from "@material-ui/icons";
-import CKEditor from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+
+// import CKEditor from "@ckeditor/ckeditor5-react";
+// import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
 import { react_host } from "../../../config";
 import { useInterval, remapCkeditorEnterKey } from "../../../UtilityFunctions";
 import { saveEOSDataAnalysis, getEOSDetails, downloadEosCharts, getNarrative } from "../ajax";
 import { sendEOSEmail, uploadTempFile } from "../../communication/mailbox/ajax";
+
+const modules = {
+    toolbar: [
+        ["bold", "italic", "underline", "strike", "blockquote"],
+        [{ list: "ordered" }, { list: "bullet" }, 
+            { indent: "-1" }, { indent: "+1" }],
+        ["link"],
+        ["clean"]
+    ],
+    clipboard: {
+        // toggle to add extra line breaks when pasting HTML:
+        matchVisual: true, // originally false
+    }
+};
+
+const formats = [
+    "bold", "italic", "underline", "strike", "blockquote",
+    "list", "bullet", "indent",
+    "link"
+];
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -78,7 +103,12 @@ function extractSelectedCharts (checkboxStatus) {
 
 function prepareMailBody (mail_contents) {
     const { shiftSummary, dataAnalysis, shiftNarratives } = mail_contents;
-    return `${shiftSummary}<br/><br/>${dataAnalysis}<br/><br/>${shiftNarratives}`;
+    const f_summary = shiftSummary.replace(/<p>/g, "").replace(/<\/p>/g, "<br/>");
+    const f_analysis = dataAnalysis.replace(/<p>/g, "").replace(/<\/p>/g, "<br/>");
+    const f_narratives = shiftNarratives.replace(/<p>/g, "").replace(/<\/p>/g, "<br/>");
+    const template = `<p>${f_summary}</p><br/><p>${f_analysis}</p><br/><p>${f_narratives}</p>`;
+
+    return template;
 }
 
 function DetailedExpansionPanel (props) {
@@ -329,13 +359,13 @@ function DetailedExpansionPanel (props) {
         };
         getNarrative(temp, site_narrative => {
             setShiftNarratives(site_narrative);
-            narrative_editor.setData(site_narrative);
+            // narrative_editor.setData(site_narrative);
         });
     };
 
-    const config = {
-        toolbar: ["bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "|", "undo", "redo"]
-    };
+    // const config = {
+    //     toolbar: ["bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "|", "undo", "redo"]
+    // };
 
     const editors = [
         { 
@@ -392,7 +422,7 @@ function DetailedExpansionPanel (props) {
                                         NOTE: To change textarea height of CKEditor, change .ck-editor__editable 
                                         value on index.css on react-ui/web
                                     */ }
-                                    <CKEditor
+                                    {/* <CKEditor
                                         editor={ClassicEditor}
                                         config={config}
                                         onInit={editor => {
@@ -406,7 +436,18 @@ function DetailedExpansionPanel (props) {
                                             }
                                             updateFn(data);
                                         }}
-                                    />                                    
+                                    /> */}
+                                    <ReactQuill 
+                                        onChange={e => {
+                                            if (label === "Data Analysis") {
+                                                setAnalysisCharCount(e.length);
+                                            }
+                                            updateFn(e);
+                                        }}
+                                        defaultValue={value}
+                                        modules={modules}
+                                        formats={formats}
+                                    />
                                 </Grid>
                                 {
                                     label === "Data Analysis" && (
@@ -442,7 +483,7 @@ function DetailedExpansionPanel (props) {
                         </Typography>
                     </Grid>
                     <Grid item xs={12}>
-                        <CKEditor
+                        {/* <CKEditor
                             editor={ClassicEditor}
                             config={config}
                             onInit={editor => {
@@ -454,7 +495,14 @@ function DetailedExpansionPanel (props) {
                                 const data = editor.getData();
                                 setShiftNarratives(data);
                             }}
-                        /> 
+                        />  */}
+                        <ReactQuill 
+                            onChange={e => setShiftNarratives(e)}
+                            defaultValue={shiftNarratives}
+                            modules={modules}
+                            formats={formats}
+                            bounds=".app"
+                        />
                     </Grid>
                     <Grid item xs={12} >
         
@@ -504,7 +552,7 @@ function DetailedExpansionPanel (props) {
                     startIcon={<Refresh />}
                     onClick={refreshNarratives}
                 >
-                    Refresh
+                    Refresh Narratives
                 </Button>
                 <Button
                     size="small"

@@ -248,6 +248,7 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn, on_resend_click) {
         tags,
         source,
         id: message_row[`${source}_id`],
+        ts
     };
 
     const is_you = source === "outbox";

@@ -54,7 +54,8 @@ const getMuiTheme = createMuiTheme({
 function getManipulationButtons (issue_and_reminder, data_handlers) {
     const { 
         setChosenIssueReminder, setIsOpenIssueReminderModal,
-        setIsOpenDeleteModal, setIsIandRUpdateNeeded } = data_handlers;
+        setToResolve, setIsIandRUpdateNeeded
+    } = data_handlers;
 
     const handleEdit = value => {
         setChosenIssueReminder(issue_and_reminder);
@@ -64,25 +65,36 @@ function getManipulationButtons (issue_and_reminder, data_handlers) {
 
     const handleDelete = value => {
         setChosenIssueReminder(issue_and_reminder);
-        setIsOpenDeleteModal(true);
+        setToResolve(true);
     };
+
+    const { ts_resolved, ts_expiration } = issue_and_reminder;
+    const is_not_expired = moment().isBefore(ts_expiration) || ts_expiration === null;
+    const to_show_delete = (ts_resolved === null) && (is_not_expired || ts_expiration === null);
 
     return (
         <span>
-            <IconButton tooltip="Edit" style={{ "float": "left" }} onClick={handleEdit}>
-                <Edit style={{ fontSize: 20 }}/>
-            </IconButton>
             {
-                issue_and_reminder.type_id === 1 && ( 
+                is_not_expired && (
+                    <IconButton tooltip="Edit" style={{ "float": "left" }} onClick={handleEdit}>
+                        <Edit style={{ fontSize: 20 }}/>
+                    </IconButton>
+                )
+            }
+            
+            {
+                to_show_delete && ( 
                     <IconButton tooltip="Delete" style={{ "float": "left" }} onClick={handleDelete}>
                         <Delete style={{ fontSize: 20 }}/>
                     </IconButton>
                 )
             }
-        </span>        
-        
+
+            {
+                !is_not_expired && !to_show_delete && "Finished"
+            }
+        </span>          
     );
-   
 }
 
 function IssuesAndReminders (props) {
@@ -97,11 +109,12 @@ function IssuesAndReminders (props) {
     const [on_search_open, setOnSearchOpen] = useState(false);
     const [is_loading, setIsLoading] = useState(true);
     const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
-    const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
 
     const [chosenIssueReminder, setChosenIssueReminder] = useState({});
     const [isIandRUpdateNeeded, setIsIandRUpdateNeeded] = useState(false);
     const [toResolve, setToResolve] = useState(false);
+
+    const [to_refresh, setToRefresh] = useState(true);
 
     useEffect(() => {
         setIsLoading(true);
@@ -121,9 +134,8 @@ function IssuesAndReminders (props) {
             setIsLoading(false);
         });
     }, [
-        page, rowsPerPage, filters, 
-        search_str, isIandRUpdateNeeded, 
-        isOpenDeleteModal, isOpenIssueReminderModal
+        page, rowsPerPage, filters, search_str,
+        to_refresh
     ]);
 
     const handleBoolean = (data, bool) => () => {
@@ -296,7 +308,7 @@ function IssuesAndReminders (props) {
                     return getManipulationButtons(row, { 
                         setChosenIssueReminder, 
                         setIsOpenIssueReminderModal, isOpenIssueReminderModal,
-                        setIsOpenDeleteModal, isOpenDeleteModal, setIsIandRUpdateNeeded
+                        setToResolve, setIsIandRUpdateNeeded
                     });
                 }
             }
@@ -328,15 +340,13 @@ function IssuesAndReminders (props) {
                 />
             </div>
 
-            {
-                <Dialog open={is_loading} fullWidth>
-                    <DialogContent>
-                        <div style={{ flexGrow: 1 }}>
-                            <LinearProgress variant="query" color="secondary" />
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            }
+            <Dialog open={is_loading} fullWidth>
+                <DialogContent>
+                    <div style={{ flexGrow: 1 }}>
+                        <LinearProgress variant="query" color="secondary" />
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             <div className={classes.pageContentMargin}>
                 <Paper className={classes.paperContainer}>
@@ -358,6 +368,8 @@ function IssuesAndReminders (props) {
                 setIsIandRUpdateNeeded = {setIsIandRUpdateNeeded}
                 chosenIssueReminder={chosenIssueReminder}
                 toResolve={toResolve}
+                setToRefresh={setToRefresh}
+                toRefresh={to_refresh}
             />
         </Fragment>
     );

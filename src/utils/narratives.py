@@ -139,7 +139,8 @@ def write_narratives_to_db(site_id, timestamp, narrative, type_id, user_id, even
 
     Returns narrative ID.
     """
-    print(get_process_status_log("write_narratives_to_db", "start"))
+
+    # print(get_process_status_log("write_narratives_to_db", "start"))
     try:
         narrative = Narratives(
             site_id=site_id,
@@ -150,7 +151,7 @@ def write_narratives_to_db(site_id, timestamp, narrative, type_id, user_id, even
             user_id=user_id
         )
         DB.session.add(narrative)
-        DB.session.flush()
+        DB.session.commit()
 
         new_narrative_id = narrative.id
     except Exception as err:
@@ -158,7 +159,7 @@ def write_narratives_to_db(site_id, timestamp, narrative, type_id, user_id, even
         DB.session.rollback()
         raise
 
-    print(get_process_status_log("write_narratives_to_db", "end"))
+    # print(get_process_status_log("write_narratives_to_db", "end"))
 
     return new_narrative_id
 
@@ -189,5 +190,3 @@ def update_narratives_on_db(narrative_id, site_id, timestamp, narrative, type_id
 
 # def get_narratives_based_on_timestamps(start_time, end_time):
 #     print()
-
-

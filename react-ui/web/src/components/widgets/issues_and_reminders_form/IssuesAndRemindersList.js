@@ -231,7 +231,7 @@ function IssuesAndReminderList (props) {
             setHasActiveIssues(false);
             let final_tile_data = (
                 <Typography component="div" style={{ fontStyle: "italic", width: "auto", height: 0 }}>
-                   No active issues
+                    No active issues
                 </Typography>
             );
 

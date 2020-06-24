@@ -31,7 +31,6 @@ export const GeneralProvider = ({ children }) => {
         });
     }, []);
 
-
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const [key, setKey] = useState(null);
 

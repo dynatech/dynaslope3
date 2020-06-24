@@ -72,7 +72,7 @@ function DateRangeSelector (props) {
     const SubsurfaceHourInterval = () => {
         return (
             <Fragment>
-                <Tooltip title="Select hour interval" arrow>
+                <Tooltip title="Select time interval" arrow>
                     <Button 
                         variant="contained"
                         color="primary"
@@ -114,7 +114,7 @@ function DateRangeSelector (props) {
 
     return (
         <div>
-            <Grid container justify="flex-end">
+            <Grid container item xs justify="flex-end">
                 {
                     is_subsurface && SubsurfaceHourInterval()
                 }

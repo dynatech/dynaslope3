@@ -36,34 +36,6 @@ MEMORY_CLIENT = memory
 CELERY = None
 
 
-def start_ws_bg_task(module, background_task):
-    """
-    Start monitoring websocket background thread
-    """
-
-    if module == "monitoring":
-        global MONITORING_WS_THREAD
-        with THREAD_LOCK:
-            if MONITORING_WS_THREAD is None:
-                MONITORING_WS_THREAD = Thread(target=background_task)
-                MONITORING_WS_THREAD.setDaemon(True)
-                MONITORING_WS_THREAD.start()
-    elif module == "communication":
-        global COMMUNICATION_WS_THREAD
-        with THREAD_LOCK:
-            if COMMUNICATION_WS_THREAD is None:
-                COMMUNICATION_WS_THREAD = Thread(target=background_task)
-                COMMUNICATION_WS_THREAD.setDaemon(True)
-                COMMUNICATION_WS_THREAD.start()
-    elif module == "misc":
-        global MISC_WS_THREAD
-        with THREAD_LOCK:
-            if MISC_WS_THREAD is None:
-                MISC_WS_THREAD = Thread(target=background_task)
-                MISC_WS_THREAD.setDaemon(True)
-                MISC_WS_THREAD.start()
-
-
 def create_app(config_name, skip_memcache=False, enable_webdriver=False):
     """
     Instantiate Flask App variable and other related packages
@@ -102,11 +74,15 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
         set_memcache.main()
 
     from src.websocket.monitoring_tasks import (
-        monitoring_background_task, rainfall_summary_background_task,
+        alert_generation_background_task, rainfall_summary_background_task,
         issues_and_reminder_bg_task
     )
-    from src.websocket.communications_tasks import communication_background_task
-    from src.websocket.misc_ws import server_time_background_task
+    from src.websocket.communications_tasks import (
+        initialize_comms_data, communication_background_task
+    )
+    from src.websocket.misc_ws import (
+        server_time_background_task, monitoring_shift_background_task
+    )
 
     from src.utils.bulletin import create_browser_driver_instance
 
@@ -256,6 +232,11 @@ def create_celery(app):
         parser.add_argument(
             '-ec', "--enable_comms", action="store_true",
             help='Start communications background task',
+        )
+        parser.add_argument(
+            '-ic', "--initialize_comms", action="store_true",
+            help=(f'Initialize comms data. Use this to load '
+                  f'comms data without running communications backgound task.'),
         )
         parser.add_argument(
             '-er', "--enable_rainfall", action="store_true",

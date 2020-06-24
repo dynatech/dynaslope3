@@ -1,6 +1,6 @@
 """
 """
-import json
+
 from datetime import time
 from flask import Blueprint, jsonify, request
 from src.utils.rainfall import (

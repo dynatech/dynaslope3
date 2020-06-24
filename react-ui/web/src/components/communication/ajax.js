@@ -28,6 +28,19 @@ export function saveContact (input, callback) {
     });
 }
 
+export function attachMobileNumberToExistingUser (input, callback) {
+    const api_link = `${host}/api/contacts/attach_mobile_number_to_existing_user`;
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save contact data reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function getEWISMSRecipients (site_code, callback) {
     const api_link = `${host}/api/contacts/get_contacts_per_site/${site_code}`;
 
@@ -92,20 +105,6 @@ export function writeEwiNarrativeToDB (payload, callback) {
     .then(response => {
         const { data } = response;
         console.log("EWI SMS reponse", data);
-        callback(data);
-    })
-    .catch(error => {
-        console.error(error);
-    });
-}
-
-export function getEwiSMSNarrative (release_id, callback) {
-    const api_link = `${host}/api/chatterbox/get_ewi_sms_narrative/${release_id}`;
-
-    axios.get(api_link)
-    .then(response => {
-        const { data } = response;
-        console.log("EWI recipients", data);
         callback(data);
     })
     .catch(error => {
@@ -194,14 +193,15 @@ export function getSiteStakeHolders (callback) {
     });
 }
 
-export function saveUpdatedPrimaryContact (input, callback) {
+export function saveUpdatedPrimaryContact (input, callback = null) {
     const api_link = `${host}/api/contacts/save_primary_contact`;
     
     axios.post(api_link, input)
     .then(response => {
         const { data } = response;
         console.log("Save updated primary contact", data);
-        callback(data);
+        if (callback !== null)
+            callback(data);
     })
     .catch(error => {
         console.error(error);

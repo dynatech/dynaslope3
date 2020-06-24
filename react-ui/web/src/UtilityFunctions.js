@@ -58,6 +58,14 @@ function getUserOrganizations (organizations, return_grouped = false) {
     return sites;
 }
 
+function getUserContactPriority (organizations) {
+    let is_priority = false;
+    if (organizations.length > 0 ) {
+        is_priority = Boolean(organizations[0].primary_contact);
+    }
+    return is_priority;
+}
+
 function simNumFormatter (sim_num) {
     return sim_num[0] === "0" || sim_num.match(/[a-z]/i) ? sim_num : `+${sim_num}`;
 }
@@ -141,5 +149,5 @@ export {
     getUserOrganizations, simNumFormatter,
     computeForStartTs, makePOSTAxiosRequest,
     makeGETAxiosRequest, useInterval,
-    remapCkeditorEnterKey
+    remapCkeditorEnterKey, getUserContactPriority
 };

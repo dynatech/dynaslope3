@@ -102,9 +102,6 @@ function IssuesAndReminderForm (props) {
             setIsPersistentChecked(true);
         }
     }, []);
-   
-    useEffect(() => {
-    }, [issueReminderData]);
 
     const handleRadioChange = event => {
         const { target: { value } } = event;
@@ -219,7 +216,7 @@ function IssuesAndReminderForm (props) {
                                             }
                                             label={
                                                 <div>
-                                                Related to current monitoring event <Tooltip
+                                                    Related to current monitoring event <Tooltip
                                                         title="Checking this will make the issue/reminder expire at the end of site(s) current monitoring event validity"><strong>[?]</strong></Tooltip>
                                                 </div>
                                             }
@@ -229,6 +226,7 @@ function IssuesAndReminderForm (props) {
                                 </Fragment>
                             )
                         }
+                        
                         {
                             (is_general_iar || !is_event_checked) && (
                                 <Fragment>
