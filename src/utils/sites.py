@@ -4,7 +4,7 @@ Contains functions for getting and accesing Sites table only
 """
 
 from connection import DB
-from src.models.sites import Sites, SitesSchema
+from src.models.sites import Sites, SitesSchema, Seasons, SeasonsSchema
 
 
 def get_sites_data(site_code=None, include_inactive=False, raise_load=False):
@@ -118,4 +118,42 @@ def get_site_per(selector="province"):
     """
     # query = Sites.query().filter_by(selector)
 
+    return True
+
+def get_seasons():
+    """
+    """
+    query = Seasons.query.all()
+    result = SeasonsSchema(many=True, exclude=["routine_schedules", "sites"]).dump(query).data
+
+    return result
+
+def save_site_info(data):
+    """
+    """
+    site_code = data["current_site_code"]
+    purok = data["current_purok"]
+    sitio = data["current_sitio"]
+    barangay = data["current_barangay"]
+    municipality = data["current_municipality"]
+    province = data["current_province"]
+    region = data["current_region"]
+    psgc = data["current_psgc"]
+    is_active = data["current_is_active"]
+    households = data["current_households"]
+    season = data["current_season"]
+    site_id = data["site_id"]
+
+    update = Sites.query.get(site_id)
+    update.purok = purok
+    update.sitio = sitio
+    update.barangay = barangay
+    update.municipality = municipality
+    update.province = province
+    update.region = region
+    update.psgc = psgc
+    update.is_active = is_active
+    update.households = households
+    update.season = season
+    update.site_id = site_id
     return True

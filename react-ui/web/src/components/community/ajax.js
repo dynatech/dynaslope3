@@ -39,3 +39,27 @@ export function getSiteSeason (site_code, callback) {
         console.log(error);
     });
 }
+
+export function getSeasons (callback) {
+    axios.get(`${host}/api/sites/get_seasons`)
+    .then(response => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch(error => {
+        console.log(error);
+    });
+}
+
+export function saveSiteInformation (input, callback) {
+    const api_link = `${host}/api/sites/save_site_information`;
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save site info data reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
