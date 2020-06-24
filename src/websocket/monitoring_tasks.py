@@ -181,9 +181,13 @@ def connect():
 @SOCKETIO.on('disconnect', namespace='/monitoring')
 def disconnect():
     sid = request.sid
-
     clients = retrieve_data_from_memcache("MONITORING_CLIENTS")
-    clients.remove(sid)
+
+    try:
+        clients.remove(sid)
+    except ValueError:
+        print("Removed an unknown connection ID:", sid)
+
     set_data_to_memcache(name="MONITORING_CLIENTS", data=clients)
 
     print("")

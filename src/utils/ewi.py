@@ -195,10 +195,11 @@ def get_ground_data_noun(site_id):
     return g_data
 
 
-def create_ground_measurement_reminder(site_id, monitoring_type, ts):
+def create_ground_measurement_reminder(site_id, monitoring_type, ts, ground_data_noun=None):
     greeting = "umaga"
     hour = ts.hour
-    ground_data_noun = get_ground_data_noun(site_id)
+    if not ground_data_noun:
+        ground_data_noun = get_ground_data_noun(site_id)
 
     if hour == 5:
         dt_time = "07:30 AM"

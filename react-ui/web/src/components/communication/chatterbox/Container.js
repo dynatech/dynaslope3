@@ -76,18 +76,18 @@ function ChatterboxInfoModal (props) {
         <Dialog onClose={modalStateHandler} aria-labelledby="simple-dialog-title" open={modalState}>
             <DialogTitle id="simple-dialog-title">Chatterbox Information</DialogTitle>
             <DialogContent>
-                <Typography variant="h6" gutterBottom>Inbox</Typography>
-                <Typography variant="body1" gutterBottom>
-                    Inbox tab contains the list of our contacts who recently sent a message to our server.
-                    The first contact in the list is the most recent message sender, and so on.
-                    Unlike a regular message list on a messaging app, outbound messages to our contacts do not affect
-                    the order of the list nor the appearance of a contact on the list (because our server send
+                <Typography variant="h6" gutterBottom align="center">Inbox</Typography>
+                <Typography variant="body1" gutterBottom align="justify">
+                    &emsp;&emsp;Inbox tab contains the list of our contacts who recently sent a message to our server.
+                    The first contact in the list is the most recent message sender, and so on.<br/><br/>
+                    &emsp;&emsp;Unlike a regular message list on a messaging app, outbound messages to our contacts do not affect
+                    the order of the list nor the appearance of a contact on the list (because our server sends
                     a lot of messages, especially when routine, that incoming messages might get unnoticed).
                 </Typography>
                 <Divider style={{ margin: "8px 0" }} />
-                <Typography variant="h6" gutterBottom>Unsent</Typography>
-                <Typography variant="body1" gutterBottom>
-                    Unsent tab displays conversation threads which contains unsent messages within one day span.
+                <Typography variant="h6" gutterBottom align="center">Unsent</Typography>
+                <Typography variant="body1" gutterBottom align="justify">
+                    &emsp;&emsp;Unsent tab displays conversation threads which contains unsent messages within one day span.
                     Unsent messages refer to messages in the process of sending or messages with failed sending attempt.
                 </Typography>
             </DialogContent>

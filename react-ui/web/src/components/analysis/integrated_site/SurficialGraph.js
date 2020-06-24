@@ -1088,11 +1088,13 @@ function SurficialGraph (props) {
                                 setAddNewMarker={setAddNewMarker}
                             />
                         )}
-
-                        <DateRangeSelector
-                            selectedRangeInfo={selected_range_info}
-                            setSelectedRangeInfo={setSelectedRangeInfo}
-                        />
+                        
+                        <div>
+                            <DateRangeSelector
+                                selectedRangeInfo={selected_range_info}
+                                setSelectedRangeInfo={setSelectedRangeInfo}
+                            />
+                        </div>
                     </Grid>
                 </Grid>
             

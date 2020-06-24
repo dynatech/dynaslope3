@@ -113,52 +113,51 @@ function DateRangeSelector (props) {
     };
 
     return (
-        <div>
-            <Grid container item xs justify="flex-end">
-                {
-                    is_subsurface && SubsurfaceHourInterval()
-                }
+        <Grid container item xs justify="flex-end">
+            {
+                is_subsurface && SubsurfaceHourInterval()
+            }
 
-                <Tooltip title="Select date range" arrow>
-                    <Button 
-                        variant="contained"
-                        color="primary"
-                        size="small" 
-                        aria-controls="simple-menu"
-                        aria-haspopup="true"
-                        onClick={dateRangeHandleClick}
-                        style={{ marginRight: is_subsurface ? 8 : 0 }}
-                        endIcon={<ArrowDropDown />}
-                    >
-                        {selectedRangeInfo.label}
-                    </Button>
-                </Tooltip>
-
-                <Menu
-                    id="simple-menu"
-                    anchorEl={date_range_anchor}
-                    keepMounted
-                    open={Boolean(date_range_anchor)}
-                    onClose={dateRangeHandleClose} 
+            <Tooltip title="Select date range" arrow>
+                <Button 
+                    variant="contained"
+                    color="primary"
+                    size="small" 
+                    aria-controls="simple-menu"
+                    aria-haspopup="true"
+                    onClick={dateRangeHandleClick}
+                    style={{ marginRight: is_subsurface ? 8 : 0 }}
+                    endIcon={<ArrowDropDown />}
                 >
-                    {
-                        date_range_options.map((row, index) => {
-                            const { label, unit } = row;
-                            if (unit === "all" && disable_all) return null;
+                    {selectedRangeInfo.label}
+                </Button>
+            </Tooltip>
 
-                            return (
-                                <MenuItem
+            <Menu
+                id="simple-menu"
+                anchorEl={date_range_anchor}
+                keepMounted
+                open={Boolean(date_range_anchor)}
+                onClose={dateRangeHandleClose} 
+            >
+                {
+                    date_range_options.map((row, index) => {
+                        const { label, unit } = row;
+                        if (unit === "all" && disable_all) return null;
+
+                        return (
+                            <MenuItem
                                 // eslint-disable-next-line react/no-array-index-key
-                                    key={`date_range_${index}`} 
-                                    onClick={() => dateRangeSelected(row)}>
-                                    {label}
-                                </MenuItem>
-                            );
-                        })
-                    }
-                </Menu>
-            </Grid>
-        </div>
+                                key={`date_range_${index}`} 
+                                onClick={() => dateRangeSelected(row)}>
+                                {label}
+                            </MenuItem>
+                        );
+                    })
+                }
+            </Menu>
+        </Grid>
+
     );
 }
 
