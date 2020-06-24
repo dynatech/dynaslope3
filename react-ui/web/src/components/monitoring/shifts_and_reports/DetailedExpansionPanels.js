@@ -1,6 +1,5 @@
 import React, { useState, Fragment } from "react";
 import moment from "moment";
-
 import { useSnackbar } from "notistack";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
 import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
@@ -11,8 +10,8 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
 import Tooltip from "@material-ui/core/Tooltip";
-import { Grid, makeStyles } from "@material-ui/core";
-import { Refresh, SaveAlt, Send, Info } from "@material-ui/icons";
+import { Grid, makeStyles, Chip } from "@material-ui/core";
+import { Refresh, SaveAlt, Send, Info, Attachment } from "@material-ui/icons";
 
 // import CKEditor from "@ckeditor/ckeditor5-react";
 // import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
@@ -24,7 +23,7 @@ import CheckboxesGroup from "../../reusables/CheckboxGroup";
 import { react_host } from "../../../config";
 import { useInterval, remapCkeditorEnterKey } from "../../../UtilityFunctions";
 import { saveEOSDataAnalysis, getEOSDetails, downloadEosCharts, getNarrative } from "../ajax";
-import { sendEOSEmail } from "../../communication/mailbox/ajax";
+import { sendEOSEmail, uploadTempFile } from "../../communication/mailbox/ajax";
 
 const modules = {
     toolbar: [
@@ -131,6 +130,9 @@ function DetailedExpansionPanel (props) {
     const [clear_interval, setClearInterval] = useState(false);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const [narrative_editor, setNarrativeEditor] = useState(null);
+    const [attachedFiles, setAttachedFiles] = useState([]);
+    const formData = new FormData();
+
     const default_cbox = {
         rainfall: false, surficial: false
     };
@@ -214,6 +216,20 @@ function DetailedExpansionPanel (props) {
         </Button>);
     };
 
+    const handleUpload = () => {
+        const files = [];
+        if ( attachedFiles.length > 0) {
+            for (let i = 0; i < attachedFiles.length; i++) {       
+                formData.append("files", attachedFiles[i]);
+                files.push(attachedFiles[i].name);
+            }
+            uploadTempFile(formData, response => {
+                console.log(response);
+            });
+        }     
+        return files;      
+    };
+
     const handleSendEOS = () => {
         // Get the charts
         const file_name_ts = moment(ts_end).add(30, "minutes")
@@ -236,12 +252,10 @@ function DetailedExpansionPanel (props) {
         saveEOSDataAnalysis(temp, save_response => {
             console.log("save_response", save_response);
             // callSnackbar(enqueueSnackbar, snackBarActionFn, save_response);
-
             getEOSDetails(event_id, file_name_ts, eos_details => {
                 const { subject, file_name, recipients } = eos_details;
-    
                 const charts = extractSelectedCharts(checkboxStatus);
-    
+                const attach_file = handleUpload();
                 const input = {
                     mail_body: prepareMailBody({ shiftSummary, dataAnalysis, shiftNarratives }),
                     subject,
@@ -249,10 +263,11 @@ function DetailedExpansionPanel (props) {
                     file_name,
                     site_code,
                     user_id: currentUser.user_id,
-                    charts
+                    charts,
+                    attach_file,
                 };
         
-                sendEOSEmail(input, response => {
+                sendEOSEmail(input, response=> {
                     closeSnackbar(loading_snackbar);
                     console.log(response);
                     if (response === "Success") {
@@ -296,6 +311,7 @@ function DetailedExpansionPanel (props) {
         const input = {
             site_code, user_id: currentUser.user_id, charts, file_name: `${site_code}_chart.pdf`
         };
+
         downloadEosCharts(input, response => {
             const { message, file_response: { file_path, message: render_msg } } = response;
             console.log("response", render_msg);
@@ -320,7 +336,22 @@ function DetailedExpansionPanel (props) {
             }
         });
     };
+    
+    const handleFileChange = (event) => {
+        const fileData = attachedFiles.length > 0 ? attachedFiles : [];
+        const { files } = event.target;
+        for (let i = 0; i < files.length; i++) {
+            fileData.push(files.item(i));
+        }
+        setAttachedFiles([...fileData]);
+    };
 
+    const handleRemoveFile = index => () => {
+        const files = attachedFiles;
+        files.pop(files[index]);
+        setAttachedFiles([...files]);
+    };
+    
     const refreshNarratives = () => {
         const temp = {
             shift_ts: shiftStartTs,
@@ -473,10 +504,42 @@ function DetailedExpansionPanel (props) {
                             bounds=".app"
                         />
                     </Grid>
+                    <Grid item xs={12} >
+        
+                        <Typography variant="body1">
+                            <strong> Attachments</strong>
+                        </Typography>
+                        {
+                            attachedFiles.length > 0 
+                                ? attachedFiles.map( (file, index )=> {
+                                    return (
+                                        <Chip key={index} label={file.name} onDelete={handleRemoveFile(index)} color="primary" />
+                                    );
+                                })
+                                : <Typography variant="body2"><i>None</i></Typography>
+                        }
+                    </Grid>
                 </Grid>
+        
             </ExpansionPanelDetails>
             <Divider />
             <ExpansionPanelActions>
+                <input
+                    className={classes.input}
+                    style={{ display: "none" }}
+                    multiple
+                    type="file"
+                    onChange={handleFileChange}
+                    id="raised-button-file"
+                />
+                <label htmlFor="raised-button-file">
+                    <Button 
+                        startIcon={<Attachment />} 
+                        component="span" 
+                        className={classes.button}>
+                        {attachedFiles.length > 0 ? "Add more" : "Attach File"}
+                    </Button>
+                </label> 
                 <Button
                     size="small"
                     onClick={handleDownload}
