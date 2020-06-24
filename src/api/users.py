@@ -62,16 +62,18 @@ def wrap_get_community_users_by_site(site_code):
     return jsonify(community_users_data)
 
 
-@USERS_BLUEPRINT.route("/users/get_dynaslope_users/", defaults={"active_only": "true"}, methods=["GET"])
+@USERS_BLUEPRINT.route("/users/get_dynaslope_users/", methods=["GET"])
 @USERS_BLUEPRINT.route("/users/get_dynaslope_users/<string:active_only>", methods=["GET"])
-def wrap_get_dynaslope_users(active_only):
+@USERS_BLUEPRINT.route("/users/get_dynaslope_users/<string:active_only>/<string:include_contacts>", methods=["GET"])
+def wrap_get_dynaslope_users(active_only="true", include_contacts=False):
     """
     Route function that get all Dynaslope users
     """
     active_only = active_only == "true"
+    include_contacts = include_contacts == "true"
 
     output = get_dynaslope_users(
-        return_schema_format=True, active_only=active_only)
+        return_schema_format=True, active_only=active_only, include_contacts=include_contacts)
 
     return jsonify(output)
 

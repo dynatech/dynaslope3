@@ -89,6 +89,7 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
     if enable_webdriver:
         create_browser_driver_instance()
 
+<<<<<<< Updated upstream
     # from src.websocket.monitoring_ws import monitoring_background_task
     # from src.websocket.communications_ws import (
     #     main as comms_ws_main,
@@ -101,6 +102,13 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
     # comms_ws_main()  # outside from skip_websocket for now
     # start_ws_bg_task("communication", communication_background_task)
     # start_ws_bg_task("misc", server_time_background_task)
+=======
+    if not skip_websocket:
+        # start_ws_bg_task("monitoring", monitoring_background_task)
+        # comms_ws_main()  # outside from skip_websocket for now
+        # start_ws_bg_task("communication", communication_background_task)
+        start_ws_bg_task("misc", server_time_background_task)
+>>>>>>> Stashed changes
 
     #####################################################
     # Import all created blueprint from each controller

@@ -21,8 +21,12 @@ PROP_DICT = {
     "tea": "team"
 }
 
+<<<<<<< Updated upstream
 
 def get_users_categorized_by_org(site_code=None, return_schema=False):
+=======
+def get_users_categorized_by_org(site_code=None):
+>>>>>>> Stashed changes
     """
     """
     u_org = UserOrganizations
@@ -176,20 +180,31 @@ def get_users(
 #         return_jsonify_format=return_jsonify_format,
 #         user_group="dynaslope"
 #     )
-
 #     return users
 
 
-def get_dynaslope_users(active_only=True, return_schema_format=False):
+def get_dynaslope_users(active_only=True, return_schema_format=False, include_contacts=False):
     """
     Function that gets all Dynaslope users and related data
     """
 
     ur = UsersRelationship
+
     query = ur.query.options(
         DB.joinedload("account", innerjoin=True).raiseload("*"),
         DB.raiseload("*")
-    ).order_by(ur.last_name)
+    )
+
+    if include_contacts:
+        query = ur.query.options(
+        DB.joinedload("account", innerjoin=True).raiseload("*"),
+        DB.subqueryload("emails").raiseload("*"),
+        DB.subqueryload("mobile_numbers"). \
+            joinedload("mobile_number", innerjoin=True).raiseload("*"),
+        DB.raiseload("*")
+    )
+    
+    query = query.order_by(ur.last_name)
 
     if active_only:
         # Note use status in users instead of is_active in UserAccounts
@@ -198,9 +213,12 @@ def get_dynaslope_users(active_only=True, return_schema_format=False):
     result = query.all()
 
     if return_schema_format:
-        result = UsersRelationshipSchema(many=True, exclude=[
-            "mobile_numbers", "organizations", "ewi_restriction",
-            "teams", "landline_numbers", "emails"]).dump(result).data
+        exclude_list = [
+            "organizations", "ewi_restriction",
+            "teams", "landline_numbers", "mobile_numbers.mobile_number.blocked_mobile"]
+        if not include_contacts:
+            exclude_list.extend(["emails", "mobile_numbers"])
+        result = UsersRelationshipSchema(many=True, exclude=exclude_list).dump(result).data
 
     return result
 
