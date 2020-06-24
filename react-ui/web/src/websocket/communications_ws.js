@@ -13,12 +13,13 @@ function connectToWebsocket () {
     }
 }
 
-function subscribeToWebSocket (page, reconnect_callback) {
+function subscribeToWebSocket (reconnect_callback, page) {
     connectToWebsocket();
 
     if (page === "chatterbox") {
         socket.emit("get_latest_messages");
         socket.emit("get_all_mobile_numbers");
+        socket.emit("get_all_contacts");
     } else if (page === "contacts") {
         socket.emit("get_all_contacts");
     }
@@ -78,6 +79,10 @@ function receiveMobileIDRoomUpdate (callback) {
     });
 }
 
+function removeReceiveMobileIDRoomUpdateListener () {
+    socket.removeListener("receive_mobile_id_room_update");
+}
+
 function receiveAllMobileNumbers (callback) {
     connectToWebsocket();
 
@@ -87,8 +92,8 @@ function receiveAllMobileNumbers (callback) {
     });
 }
 
-function removeReceiveMobileIDRoomUpdateListener () {
-    socket.removeListener("receive_mobile_id_room_update");
+function removeReceiveAllMobileNumbers () {
+    socket.removeListener("receive_all_mobile_numbers");
 }
 
 function receiveSearchResults (callback) {
@@ -119,5 +124,6 @@ export {
     receiveMobileIDRoomUpdate, removeReceiveMobileIDRoomUpdateListener,
     sendMessageToDB, receiveSearchResults, removeReceiveSearchResults,
     receiveAllMobileNumbers, receiveLatestMessages, receiveAllContacts,
-    removeReceiveAllContacts, removeReceiveLatestMessages, sendWSMessage
+    removeReceiveAllContacts, removeReceiveLatestMessages, sendWSMessage,
+    removeReceiveAllMobileNumbers
 };

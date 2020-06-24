@@ -18,7 +18,7 @@ export function sendEmail (input, callback) {
 
 
 export function sendBulletinEmail (input, callback, err) {
-    const api_link = `${host}/api/mailbox/send_email`;
+    const api_link = `${host}/api/mailbox/send_bulletin_email`;
     makePOSTAxiosRequest(api_link, input, callback, err);
 }
 

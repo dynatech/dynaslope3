@@ -34,6 +34,7 @@ gevent-websocket
 flask-socketio
 img2pdf
 celery
+redis
 
 Analysis Scripts Library
 ------------------------

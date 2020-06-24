@@ -108,8 +108,10 @@ def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=
 
     attachments = []
     if bulletin_release_id:
-        attachments.append(render_monitoring_bulletin(
-            release_id=bulletin_release_id))
+        attachments.append(
+            render_monitoring_bulletin(
+                release_id=bulletin_release_id)
+        )
     elif eos_data:
         user_id = eos_data["user_id"]
         site_code = eos_data["site_code"]

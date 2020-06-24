@@ -651,7 +651,7 @@ function ClickPointModal (props) {
             <DialogContent>
                 <div style={{ textAlign: "center" }}>
                     <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
-                            Marker {name}
+                        Marker {name}
                     </Typography>
                     <Typography variant="body2">
                         Timestamp: {moment(chosen_ts).format("DD MMMM YYYY, HH:mm:ss")}
@@ -924,15 +924,12 @@ function SurficialGraph (props) {
 
     const default_range_info = { label: "3 months", unit: "months", duration: 3 };
     const [selected_range_info, setSelectedRangeInfo] = useState(default_range_info);
-    let { unit, duration } = selected_range_info;
+    const { unit, duration } = selected_range_info;
     
     let ts_end = "";
     let dt_ts_end;
     if (typeof input !== "undefined") {
-        const { ts_end: te, range_info } = input;
-        const { unit: conso_unit, duration: conso_duration } = range_info;
-        unit = conso_unit;
-        duration = conso_duration;
+        const { ts_end: te } = input;
         ts_end = te;
         dt_ts_end = moment(te);
     } else {

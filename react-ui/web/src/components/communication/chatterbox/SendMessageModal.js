@@ -1,20 +1,18 @@
-import React, { useState } from "react";
+import React from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
     Button, withMobileDialog, IconButton
 } from "@material-ui/core";
-import { Close, Message } from "@material-ui/icons";
+import { Close } from "@material-ui/icons";
 import SendMessageForm from "./SendMessageForm";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 
 function SendMessageModal (props) {
     const {
         fullScreen, modalStateHandler,
-        modalState, textboxValue,
-        recipientsList
+        modalState, recipientsList
     } = props;
-    const [message, setMessage] = useState("");
 
     return (
         <Dialog
@@ -46,7 +44,7 @@ function SendMessageModal (props) {
                 <div style={{ marginTop: 20 }}>
                     <SendMessageForm 
                         isMobile={fullScreen}
-                        textboxValue={message}
+                        textboxValue=""
                         recipientsList={recipientsList}
                         modalStateHandler={modalStateHandler}
                     />

@@ -139,7 +139,7 @@ function generateData (data_list, type, is_mobile) {
     let x = 0;
 
     data_list.forEach((row, i) => {
-        const { last_data, ts_updated, diff_days } = row;
+        const { last_data, ts_updated, diff_days, event_type } = row;
 
         let label;
         const value = row.presence;
@@ -167,7 +167,8 @@ function generateData (data_list, type, is_mobile) {
             type,
             ts_last_data: last_data,
             ts_updated,
-            diff_days
+            diff_days,
+            event_type
         };
         data.push(a);
         
@@ -246,7 +247,7 @@ function prepareOptions (is_mobile, type, data_list) {
             outside: true,
             formatter () {
                 const {
-                    label, type, value,
+                    label, type, value, event_type,
                     ts_last_data, ts_updated, diff_days
                 } = this.point;
                 const presence = value ? "With" : "No";
@@ -271,7 +272,8 @@ function prepareOptions (is_mobile, type, data_list) {
 
                 let str = `${type_label}: <b>${label}</b><br/>` + 
                 `Presence: <b>${presence} data</b><br/>` + 
-                `Last data timestamp: <b>${moment(ts_last_data).format(format_str)}</b>`;
+                `Last data timestamp: <b>${moment(ts_last_data).format(format_str)}</b><br/>` +
+                `Event type: <b>${event_type}</b>`;
 
                 if (type !== "surficial") {
                     str += `<br/>Last update timestamp: <b>${moment(ts_updated).format(format_str)}</b><br/>` +
@@ -475,6 +477,7 @@ function Container (props) {
 
     useEffect(() => {
         if (surficial_data_presence.length > 0) {
+            console.log(surficial_data_presence);
             const option = prepareOptions(!is_desktop, "surficial", surficial_data_presence);
             setSurficialDpOption(option);
         }

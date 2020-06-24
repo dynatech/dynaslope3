@@ -19,13 +19,23 @@ function MessageOptionsModal (props) {
         onClose();
     };
 
+    const handleSave = () => {
+        onClose();
+        setSaveContactModal(true);
+    };
+
+    const handleBlock = () => {
+        onClose();
+        setBlockModal(true);
+    };
+
     return (
         <Dialog onClose={handleClose} aria-labelledby="simple-dialog-title" open={open}>
             <DialogTitle id="simple-dialog-title">Message options</DialogTitle>
             <List>
                 {
                     isUnregistered && (
-                        <ListItem button onClick={() => setSaveContactModal(true)}>
+                        <ListItem button onClick={handleSave}>
                             <ListItemIcon>
                                 <SaveAlt />
                             </ListItemIcon>
@@ -33,7 +43,7 @@ function MessageOptionsModal (props) {
                         </ListItem>
                     )
                 }
-                <ListItem button onClick={() => setBlockModal(true)}>
+                <ListItem button onClick={handleBlock}>
                     <ListItemIcon>
                         <Block />
                     </ListItemIcon>

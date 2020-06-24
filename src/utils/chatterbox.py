@@ -258,6 +258,20 @@ def get_sms_user_updates():
     return results
 
 
+def insert_sms_user_update(mobile_id, update_source, pk_id=0):
+    """
+    """
+
+    row = SmsUserUpdates(
+        mobile_id=mobile_id,
+        update_source=update_source,
+        pk_id=pk_id
+    )
+
+    DB.session.add(row)
+    DB.session.commit()
+
+
 def delete_sms_user_update(updates=None):
     """
     """
