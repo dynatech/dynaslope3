@@ -12,11 +12,8 @@ import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_si
 import ChatterboxContainer from "./components/communication/chatterbox/Container";
 import ContactsContainer from "./components/communication/contacts/Container";
 import MailBoxContainer from "./components/communication/mailbox/MailBoxContainer";
-<<<<<<< Updated upstream
-=======
-import ProfilePage from "./components/member_profile/ProfileDetails";
->>>>>>> Stashed changes
 import SitesInformationContainer from "./components/community/site_information/SitesInformationContainer";
+
 import ProfileContainer from "./components/member_profile/Container";
 
 
@@ -45,7 +42,6 @@ function RoutesCollection (props) {
 
             <Route path={`${url}community/site_info`} component={SitesInformationContainer} />
             
-            <Route path={`${url}me`} component={ProfilePage} />
             <Route path={`${url}profile`} component={ProfileContainer} />
 
             <Route render={() => <h3> Not found</h3>} />
