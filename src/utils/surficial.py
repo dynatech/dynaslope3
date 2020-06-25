@@ -375,11 +375,12 @@ def create_new_marker(site_code=None):
     return new
 
 
-def insert_marker_event(marker_id, ts, event):
+def insert_marker_event(marker_id, ts, event, remarks):
     history = MarkerHistory(
         marker_id=marker_id,
         ts=ts,
-        event=event
+        event=event,
+        remarks=remarks
     )
 
     DB.session.add(history)

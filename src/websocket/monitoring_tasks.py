@@ -166,8 +166,10 @@ def connect():
     clients.append(sid)
     set_data_to_memcache(name="MONITORING_CLIENTS", data=clients)
 
+    ts = datetime.now()
+
     print("")
-    print("Connected:", sid)
+    print(str(ts), "Connected:", sid)
     print(f"Monitoring: {len(clients)}")
     print("")
 
@@ -190,8 +192,10 @@ def disconnect():
 
     set_data_to_memcache(name="MONITORING_CLIENTS", data=clients)
 
+    ts = datetime.now()
+
     print("")
-    print("Disconencted:", sid)
+    print(str(ts), "Disconencted:", sid)
     print(f"Monitoring: {len(clients)}")
     print("")
 

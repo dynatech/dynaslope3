@@ -16,7 +16,7 @@ import {
     Typography, Divider, TextField, FormControl,
     FormControlLabel, Radio, RadioGroup,
     Menu, MenuItem, List, ListItem,
-    ListItemIcon, ListItemText, Tooltip
+    ListItemIcon, ListItemText, Tooltip, TableRow, TableCell
 } from "@material-ui/core";
 import { ArrowDropDown, Edit, TrendingUp, Add } from "@material-ui/icons";
 import { isWidthDown } from "@material-ui/core/withWidth";
@@ -69,6 +69,7 @@ function AddNewHistoryModal (props) {
     const [event, setEvent] = useState("");
     const [ts, setTs] = useState(null);
     const [new_marker_name, setNewMarkerName] = useState("");
+    const [remarks, setRemarks] = useState("");
 
     const resetForm = () => {
         setIsOpen(false);
@@ -76,6 +77,7 @@ function AddNewHistoryModal (props) {
         setNewMarkerName("");
         setNmmValidation(null);
         setEvent("");
+        setRemarks("");
     };
 
     const handleChange = e => {
@@ -83,6 +85,7 @@ function AddNewHistoryModal (props) {
         setTs(null);
         setNewMarkerName("");
         setNmmValidation(null);
+        setRemarks("");
     };
 
     const [nmm_validation, setNmmValidation] = useState(null);
@@ -131,7 +134,8 @@ function AddNewHistoryModal (props) {
                 event: temp_event,
                 marker_id, 
                 ts: moment(temp_ts).format("YYYY-MM-DD HH:mm:ss"),
-                marker_name: new_marker_name
+                marker_name: new_marker_name,
+                remarks: remarks === "" ? null : remarks
             };
 
             insertMarkerEvent(input, data => {
@@ -247,6 +251,29 @@ function AddNewHistoryModal (props) {
                                 </Grid>
                             )
                         }
+                        
+                        {
+                            (event !== "" || addNewMarker) && (
+                                <Grid item xs={12} sm={12}>
+                                    <TextField
+                                        label="Remarks"
+                                        value={remarks}
+                                        onChange={x => 
+                                            setRemarks(x.target.value)
+                                        }
+                                        onBlur={handleBlur}
+                                        type="text"
+                                        multiline
+                                        rowsMax={3}
+                                        fullWidth
+                                        inputProps={{
+                                            maxLength: 1500
+                                        }}
+                                        placeholder="Input remarks"
+                                    />
+                                </Grid>
+                            )
+                        }
                     </Grid>
                 </FormControl>
 
@@ -314,6 +341,14 @@ function MarkerHistoryTable (props) {
             options: {
                 filter: false
             }
+        },
+        {
+            name: "remarks",
+            label: "Remarks",
+            options: {
+                filter: false,
+                display: false
+            }
         }
     ];
 
@@ -324,6 +359,19 @@ function MarkerHistoryTable (props) {
             }
         },
         selectableRows: "none",
+        expandableRows: true,
+        expandableRowsHeader: false,
+        renderExpandableRow: (row_data, rowMeta) => {
+            const col_span = row_data.length + 1;
+            const remarks = row_data[3];
+            return (
+                <TableRow>
+                    <TableCell colSpan={col_span} align="justify">
+                        <strong>Remarks:</strong> {remarks}
+                    </TableCell>
+                </TableRow>
+            );
+        },
         rowsPerPage: 3,
         rowsPerPageOptions: [],
         print: false,
@@ -347,11 +395,12 @@ function MarkerHistoryTable (props) {
     let table_data = [];
     if (markerInfo) {
         table_data = markerInfo.marker_history.map(x => {
-            const { ts, event, marker_name } = x;
+            const { ts, event, marker_name, remarks } = x;
             const m_name = marker_name ? marker_name.marker_name : "---";
             return {
                 event: capitalizeFirstLetter(event),
-                m_name, ts
+                m_name, ts,
+                remarks: remarks || "None"
             };
         });
     }

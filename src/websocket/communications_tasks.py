@@ -214,8 +214,10 @@ def connect():
     clients.append(sid)
     set_data_to_memcache(name="COMMS_CLIENTS", data=clients)
 
+    ts = datetime.now()
+
     print("")
-    print("Connected:", sid)
+    print(str(ts), "Connected:", sid)
     print(f"Comms: {len(clients)}")
     print("")
 
@@ -244,8 +246,10 @@ def disconnect():
             pass
     set_data_to_memcache(name="ROOM_MOBILE_IDS", data=room_mobile_ids)
 
+    ts = datetime.now()
+
     print("")
-    print("Disconencted:", sid)
+    print(str(ts), "Disconencted:", sid)
     print(f"Comms: {len(clients)}")
     print("")
 

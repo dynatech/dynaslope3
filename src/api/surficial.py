@@ -225,6 +225,7 @@ def wrap_insert_marker_event():
     event = return_json["event"]
     ts = datetime.strptime(return_json["ts"], "%Y-%m-%d %H:%M:%S")
     marker_id = return_json["marker_id"]
+    remarks = return_json["remarks"]
 
     try:
         if event not in ["add", "rename", "reposition", "decommission"]:
@@ -235,7 +236,7 @@ def wrap_insert_marker_event():
             marker = create_new_marker(return_json["site_code"])
             marker_id = marker.marker_id
 
-        history = insert_marker_event(marker_id, ts, event)
+        history = insert_marker_event(marker_id, ts, event, remarks)
         history_id = history.history_id
 
         if event in ["add", "rename"]:
