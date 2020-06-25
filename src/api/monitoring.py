@@ -716,7 +716,6 @@ def insert_ewi(internal_json=None):
     it means re-release.
     If it is different, create a new event.
     """
-    return_data = None
 
     print(get_process_status_log("insert", "start"))
 
@@ -991,13 +990,15 @@ def insert_ewi(internal_json=None):
                 f"Check entry type options in the back-end.")
 
         print(f"{get_system_time()} | Insert EWI Successful!")
-        return_data = "success"
+        message = "Insert EWI release successful!"
+        status = True
     except Exception as err:
         print(f"{get_system_time()} | Insert EWI FAILED!")
         print(err)
-        raise
+        message = "ERROR: Insert EWI release!"
+        status = False
 
-    return return_data
+    return {"message": message, "status": status}
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/create_bulletin/<release_id>", methods=["GET"])

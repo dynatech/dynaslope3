@@ -42,7 +42,7 @@ function RoutineReleaseFormModal (props) {
     const { sites } = useContext(GeneralContext);
 
     const [ewiPayload, setEwiPayload] = useState({});
-    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+    const { enqueueSnackbar } = useSnackbar();
 
     const initial_routine_data = {
         public_alert_symbol: "A0",
@@ -141,8 +141,8 @@ function RoutineReleaseFormModal (props) {
     const handleSubmit = () => {
         const f_data_ts = moment(routineData.data_ts).format("YYYY-MM-DD HH:mm:ss");
         const f_rel_time = moment(routineData.release_time).format("HH:mm:ss");
-        const process_key = enqueueSnackbar(
-            "Processing. . .",
+        const snackbar_key = enqueueSnackbar(
+            "Inserting Routine EWI release...",
             {
                 variant: "warning",
                 persist: true
@@ -157,7 +157,7 @@ function RoutineReleaseFormModal (props) {
                 { ...a0SiteList },
                 { ...NDSiteList }
             ],
-            process_key
+            snackbar_key
         };
         
         console.log("Submitting data...", temp_payload);
@@ -182,8 +182,8 @@ function RoutineReleaseFormModal (props) {
                 <DialogTitle id="form-dialog-title">Routine Release Form</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Transfer site codes to their respective list if needed. Put sites with ground data on "A0 Sites" list
-                        while put sites without ground data on "ND Sites". 
+                        Transfer site codes to their respective list if needed. Put sites with ground data on A0 Sites list
+                        while put sites without ground data on ND Sites. 
                     </DialogContentText>
                     <RoutineReleaseForm
                         routineData={routineData}

@@ -15,11 +15,11 @@ function DeleteNarrativeModal (props) {
     const { id: narrative_id, narrative } = chosenNarrative;
 
     const handleDeleteClick = () => {
+        closeHandler();
         const payload = {
             narrative_id
         };
         handleDelete(payload, ret => {
-            closeHandler();
             console.log("ret", ret);
             setIsUpdateNeeded(!isUpdateNeeded);
         });

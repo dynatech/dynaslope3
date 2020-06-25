@@ -335,6 +335,7 @@ function DetailedExpansionPanel (props) {
             event_id
         };
         getNarrative(temp, site_narrative => {
+            console.log(site_narrative);
             setShiftNarratives(site_narrative);
             // narrative_editor.setData(site_narrative);
         });
@@ -524,6 +525,7 @@ function DetailedExpansionPanel (props) {
                         />  */}
                         <ReactQuill 
                             onChange={e => setShiftNarratives(e)}
+                            value={shiftNarratives}
                             defaultValue={shiftNarratives}
                             modules={modules}
                             formats={formats}
