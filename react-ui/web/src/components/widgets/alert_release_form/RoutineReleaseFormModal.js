@@ -6,6 +6,7 @@ import {
     Button, withMobileDialog,
 } from "@material-ui/core";
 
+import { useSnackbar } from "notistack";
 import RoutineReleaseForm from "./RoutineReleaseForm";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
 import { getCurrentUser } from "../../sessions/auth";
@@ -41,6 +42,7 @@ function RoutineReleaseFormModal (props) {
     const { sites } = useContext(GeneralContext);
 
     const [ewiPayload, setEwiPayload] = useState({});
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
     const initial_routine_data = {
         public_alert_symbol: "A0",
@@ -139,6 +141,13 @@ function RoutineReleaseFormModal (props) {
     const handleSubmit = () => {
         const f_data_ts = moment(routineData.data_ts).format("YYYY-MM-DD HH:mm:ss");
         const f_rel_time = moment(routineData.release_time).format("HH:mm:ss");
+        const process_key = enqueueSnackbar(
+            "Processing. . .",
+            {
+                variant: "warning",
+                persist: true
+            }
+        );
 
         const temp_payload = {
             ...routineData,
@@ -147,7 +156,8 @@ function RoutineReleaseFormModal (props) {
             routine_details: [
                 { ...a0SiteList },
                 { ...NDSiteList }
-            ]
+            ],
+            process_key
         };
         
         console.log("Submitting data...", temp_payload);

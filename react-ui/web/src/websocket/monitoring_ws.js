@@ -102,3 +102,12 @@ export function receiveAllSiteRainfallData (callback) {
         callback(temp);
     });
 }
+
+export function receiveProcessKey (callback) {
+    connectToWebsocket();
+
+    socket.on("receive_process_key", data => {
+        const temp = JSON.parse(data);
+        callback(temp);
+    });
+}
