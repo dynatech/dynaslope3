@@ -33,7 +33,7 @@ set_data_to_memcache(name="ISSUES_AND_REMINDERS", data=json.dumps([]))
 set_data_to_memcache(name="RAINFALL_SUMMARY", data=json.dumps([]))
 
 
-def emit_data(keyword, sid=None):
+def emit_data(keyword, sid=None, process_key=None):
     data_to_emit = None
     if keyword == "receive_generated_alerts":
         data_to_emit = retrieve_data_from_memcache("GENERATED_ALERTS")
@@ -45,6 +45,8 @@ def emit_data(keyword, sid=None):
         data_to_emit = retrieve_data_from_memcache("ISSUES_AND_REMINDERS")
     elif keyword == "receive_rainfall_data":
         data_to_emit = retrieve_data_from_memcache("RAINFALL_SUMMARY")
+    elif keyword == "receive_process_key":
+        data_to_emit = process_key
 
     # var_checker("data_list", data_list, True)
     if sid:
@@ -360,6 +362,9 @@ def execute_insert_ewi(insert_details):
     # Prepare process status log
     status_log = get_process_status_log("insert_ewi", status)
 
+    process_key = insert_details["process_key"]
+    emit_data("receive_process_key", process_key=process_key)
+    
     generated_alerts = retrieve_data_from_memcache("GENERATED_ALERTS")
     alerts_from_db = wrap_get_ongoing_extended_overdue_events()
     set_data_to_memcache(name="ALERTS_FROM_DB",
