@@ -413,7 +413,7 @@ def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_del
     processed_sites = []
     if is_routine_extended_processing:
         extended_events = events["extended"]
-        merged = routine_sites + extended_events
+        merged = extended_events + routine_sites
 
         for row in merged:
             try:
@@ -493,6 +493,7 @@ def process_no_ground_narrative_writing(ts, site_id, timedelta_hour, event_id, m
         if not event_id:
             event_id = find_narrative_event_id(ts, site_id)
 
+        ts = ts.replace(minute=30)
         write_narratives_to_db(
             site_id, ts, narrative, 1, default_user_id, event_id=event_id)
 

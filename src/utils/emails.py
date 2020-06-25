@@ -3,6 +3,7 @@ Utility file for Sending Emails
 """
 
 import os
+import shutil
 import smtplib
 import ssl
 from email.mime.application import MIMEApplication
@@ -13,6 +14,7 @@ from src.utils.chart_rendering import render_charts
 from src.utils.extra import var_checker
 from config import APP_CONFIG
 from instance.config import EMAILS
+
 
 def get_email_credentials():
     sender = EMAILS["dev_email"]
@@ -74,25 +76,27 @@ def prepare_body(sender, recipients, subject, message, file_name=None, attachmen
     message = MIMEText(message, "html")
     body.attach(message)
 
-    for f in attachments or []:
-        file_type = f.rsplit('.', 1)[1].lower()
+    for file in attachments or []:
+        try:
+            file_type = file.rsplit('.', 1)[1].lower()
+        except AttributeError:
+            file_type = None
 
-        if file_type != "pdf":
-            with open(f, "rb") as fil:
-                part = MIMEApplication(
-                    fil.read(),
-                    Name=os.path.basename(f)
-                )
-            part['Content-Disposition'] = f"attachment; filename={os.path.basename(f)}"
-            body.attach(part)
-        else:
-            with open(f, "rb") as fil:
+        if file_type == "pdf":
+            with open(file, "rb") as fil:
                 part = MIMEApplication(
                     fil.read(),
                     Name=file_name
                 )
-            part["Content-Disposition"] = f"attachment; filename={file_name}"
-            body.attach(part)
+        else:
+            file_name = file.filename
+            part = MIMEApplication(
+                file.read(),
+                Name=file_name
+            )
+
+        part['Content-Disposition'] = f"attachment; filename={file_name}"
+        body.attach(part)
 
     return body
 
@@ -106,13 +110,17 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 
-def remove_file_from_temp(files):
+def remove_file_from_temp(path, file_name=None):
     """
     remove from from server/temp folder
     """
-    for file in files:
-        path = os.path.join(APP_CONFIG['attachment_path'], file)
+
+    if not file_name:
+        shutil.rmtree(path)
+    else:
+        path = os.path.join(path, file_name)
         os.remove(path)
+
     return "Removed"
 
 
@@ -131,7 +139,8 @@ def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=
     """
 
     attachments = []
-    to_remove = []
+    files = None
+    charts = None
     if bulletin_release_id:
         attachments.append(
             render_monitoring_bulletin(
@@ -141,18 +150,16 @@ def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=
         user_id = eos_data["user_id"]
         site_code = eos_data["site_code"]
         charts = eos_data["charts"]
-        extra_files = eos_data["attached_files"]
+        files = eos_data["attached_files"]
 
         if charts:
             render_charts_response = render_charts(
                 user_id, site_code, charts, file_name)
             attachments.append(render_charts_response["file_path"])
 
-        if extra_files:
-            for filename in extra_files:
-                temp_files = os.path.join(APP_CONFIG['attachment_path'], filename)
-                attachments.append(temp_files)
-                to_remove.append(temp_files)
+    if files:
+        for file in files:
+            attachments.append(file)
 
     sender, _ = get_email_credentials()
 
@@ -167,11 +174,16 @@ def send_mail(recipients, subject, message, file_name=None, bulletin_release_id=
 
     try:
         server.sendmail(sender, recipients, text)
-        remove_file_from_temp(to_remove)
+
+        if charts:
+            path = APP_CONFIG["charts_render_path"]
+            save_path = f"{path}/{user_id}/{site_code}"
+            remove_file_from_temp(save_path)
     except Exception as send_error:
         raise send_error
     finally:
         server.quit()
+
 
 if __name__ == "__main__":
     send_mail(["dynaslopeswat+1@gmail.com"], "Test subject", "Test message")

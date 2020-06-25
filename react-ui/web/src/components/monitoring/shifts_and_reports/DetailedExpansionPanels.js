@@ -10,7 +10,7 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
 import Tooltip from "@material-ui/core/Tooltip";
-import { Grid, makeStyles, Chip } from "@material-ui/core";
+import { Grid, makeStyles, Chip, Paper } from "@material-ui/core";
 import { Refresh, SaveAlt, Send, Info, Attachment } from "@material-ui/icons";
 
 // import CKEditor from "@ckeditor/ckeditor5-react";
@@ -21,9 +21,10 @@ import "react-quill/dist/quill.snow.css";
 
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
 import { react_host } from "../../../config";
-import { useInterval, remapCkeditorEnterKey } from "../../../UtilityFunctions";
-import { saveEOSDataAnalysis, getEOSDetails, downloadEosCharts, getNarrative } from "../ajax";
-import { sendEOSEmail, uploadTempFile } from "../../communication/mailbox/ajax";
+// import { useInterval, remapCkeditorEnterKey } from "../../../UtilityFunctions";
+import { useInterval } from "../../../UtilityFunctions";
+import { saveEOSDataAnalysis, downloadEosCharts, getNarrative } from "../ajax";
+import { sendEOSEmail } from "../../communication/mailbox/ajax";
 
 const modules = {
     toolbar: [
@@ -35,7 +36,7 @@ const modules = {
     ],
     clipboard: {
         // toggle to add extra line breaks when pasting HTML:
-        matchVisual: true, // originally false
+        matchVisual: false, // originally false
     }
 };
 
@@ -129,9 +130,8 @@ function DetailedExpansionPanel (props) {
     const [shiftNarratives, setShiftNarratives] = useState(narratives);
     const [clear_interval, setClearInterval] = useState(false);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-    const [narrative_editor, setNarrativeEditor] = useState(null);
+    // const [narrative_editor, setNarrativeEditor] = useState(null);
     const [attachedFiles, setAttachedFiles] = useState([]);
-    const formData = new FormData();
 
     const default_cbox = {
         rainfall: false, surficial: false
@@ -216,31 +216,7 @@ function DetailedExpansionPanel (props) {
         </Button>);
     };
 
-    const handleUpload = () => {
-        const files = [];
-        if ( attachedFiles.length > 0) {
-            for (let i = 0; i < attachedFiles.length; i++) {       
-                formData.append("files", attachedFiles[i]);
-                files.push(attachedFiles[i].name);
-            }
-            uploadTempFile(formData, response => {
-                console.log(response);
-            });
-        }     
-        return files;      
-    };
-
     const handleSendEOS = () => {
-        // Get the charts
-        const file_name_ts = moment(ts_end).add(30, "minutes")
-        .format("YYYY-MM-DD HH:mm:ss");
-
-        const temp = {
-            shift_ts: shiftStartTs,
-            event_id,
-            dataAnalysis
-        };
-
         const loading_snackbar = enqueueSnackbar(
             "Sending End-of-Shift Report...",
             {
@@ -249,61 +225,63 @@ function DetailedExpansionPanel (props) {
             }
         );
 
-        saveEOSDataAnalysis(temp, save_response => {
-            console.log("save_response", save_response);
-            // callSnackbar(enqueueSnackbar, snackBarActionFn, save_response);
-            getEOSDetails(event_id, file_name_ts, eos_details => {
-                const { subject, file_name, recipients } = eos_details;
-                const charts = extractSelectedCharts(checkboxStatus);
-                const attach_file = handleUpload();
-                const input = {
-                    mail_body: prepareMailBody({ shiftSummary, dataAnalysis, shiftNarratives }),
-                    subject,
-                    recipients,
-                    file_name,
-                    site_code,
-                    user_id: currentUser.user_id,
-                    charts,
-                    attach_file,
-                };
-        
-                sendEOSEmail(input, response=> {
-                    closeSnackbar(loading_snackbar);
-                    console.log(response);
-                    if (response === "Success") {
-                        enqueueSnackbar(
-                            "End-of-Shift Report Sent!",
-                            {
-                                variant: "success",
-                                autoHideDuration: 7000,
-                                action: snackBarActionFn
-                            }
-                        );
-                    } else {
-                        enqueueSnackbar(
-                            "Error sending End-of-Shift Report...",
-                            {
-                                variant: "error",
-                                autoHideDuration: 7000,
-                                action: snackBarActionFn
-                            }
-                        );
-                    }
-                }, () => {
-                    closeSnackbar(loading_snackbar); 
-                    enqueueSnackbar(
-                        "Error sending End-of-Shift Report...",
-                        {
-                            variant: "error",
-                            autoHideDuration: 7000,
-                            action: snackBarActionFn
-                        }
-                    );
-                });
-        
-                setClearInterval(true);
-            });
+        const form_data = new FormData();
+        const file_name_ts = moment(ts_end).add(30, "minutes")
+        .format("YYYY-MM-DD HH:mm:ss");
+        const charts = extractSelectedCharts(checkboxStatus);
+        charts.forEach(row => form_data.append("charts", row));
+
+        attachedFiles.forEach(row => {       
+            form_data.append("attached_files", row);
         });
+
+        const input = {
+            shift_ts: shiftStartTs,
+            event_id,
+            data_analysis: dataAnalysis,
+            file_name_ts,
+            mail_body: prepareMailBody({ shiftSummary, dataAnalysis, shiftNarratives }),
+            site_code,
+            user_id: currentUser.user_id,
+        };
+
+        // eslint-disable-next-line no-restricted-syntax
+        for (const key in input) {
+            // eslint-disable-next-line no-prototype-builtins
+            if (input.hasOwnProperty(key)) form_data.append(key, input[key]);
+        }
+
+        sendEOSEmail(form_data, response=> {
+            closeSnackbar(loading_snackbar);
+            console.log(response);
+            let message = "Error sending End-of-Shift Report...";
+            let variant = "error";
+            if (response === "Success") {
+                message = "End-of-Shift Report Sent!";
+                variant = "success";
+            }
+
+            enqueueSnackbar(
+                message,
+                {
+                    variant,
+                    autoHideDuration: 7000,
+                    action: snackBarActionFn
+                }
+            );
+        }, () => {
+            closeSnackbar(loading_snackbar); 
+            enqueueSnackbar(
+                "Error sending End-of-Shift Report...",
+                {
+                    variant: "error",
+                    autoHideDuration: 7000,
+                    action: snackBarActionFn
+                }
+            );
+        });
+
+        setClearInterval(true);
     };
 
     const handleDownload = () => {
@@ -337,13 +315,12 @@ function DetailedExpansionPanel (props) {
         });
     };
     
-    const handleFileChange = (event) => {
-        const fileData = attachedFiles.length > 0 ? attachedFiles : [];
+    const handleFileChange = event => {
         const { files } = event.target;
-        for (let i = 0; i < files.length; i++) {
-            fileData.push(files.item(i));
+        for (let i = 0; i < files.length; i += 1) {
+            attachedFiles.push(files.item(i));
         }
-        setAttachedFiles([...fileData]);
+        setAttachedFiles([...attachedFiles]);
     };
 
     const handleRemoveFile = index => () => {
@@ -398,6 +375,7 @@ function DetailedExpansionPanel (props) {
                             <strong>Charts</strong>
                         </Typography>
                     </Grid>
+                    
                     <Grid 
                         item xs={12} container
                         spacing={1} justify="space-around"
@@ -409,6 +387,53 @@ function DetailedExpansionPanel (props) {
                             checkboxStyle="primary"
                         />
                     </Grid>
+
+                    <Grid item xs={12} >
+                        <Typography variant="body1">
+                            <strong>Attachments</strong>
+                        </Typography>
+                    </Grid>
+
+                    <Grid item xs={12} container>
+                        <Grid item xs={12}>
+                            <Paper square style={{ 
+                                padding: "8px 12px", marginBottom: 12,
+                                background: "gainsboro", border: "4px solid #CCCCCC"
+                            }}>
+                                {
+                                    attachedFiles.length > 0 
+                                        ? attachedFiles.map( (file, index )=> {
+                                            return (
+                                                <Chip key={index} label={file.name} onDelete={handleRemoveFile(index)} color="primary" />
+                                            );
+                                        })
+                                        : <Typography variant="body2"><i>None</i></Typography>
+                                }
+                            </Paper>
+                        </Grid>
+                        <Grid item xs={12} container justify="flex-end">
+                            <input
+                                className={classes.input}
+                                style={{ display: "none" }}
+                                multiple
+                                type="file"
+                                onChange={handleFileChange}
+                                id="raised-button-file"
+                            />
+                            <label htmlFor="raised-button-file">
+                                <Button 
+                                    startIcon={<Attachment />} 
+                                    variant="contained"
+                                    component="span"
+                                    color="primary"
+                                    size="small"
+                                >
+                                    {attachedFiles.length > 0 ? "Add more" : "Attach File"}
+                                </Button>
+                            </label> 
+                        </Grid>
+                    </Grid>
+
                     {   
                         editors.map(({ label, value, key, updateFn }) => (
                             <Fragment key={key}>
@@ -472,8 +497,8 @@ function DetailedExpansionPanel (props) {
                                 }
                             </Fragment>
                         ))
-
                     }
+
                     <Grid item xs={12}>
                         <Typography variant="body1">
                             <strong>Shift Narratives </strong>
@@ -482,6 +507,7 @@ function DetailedExpansionPanel (props) {
                             <i>NOTE: It is recommended NOT to add narratives via this text box. Use Site Logs Form instead then click Refresh.</i>
                         </Typography>
                     </Grid>
+                    
                     <Grid item xs={12}>
                         {/* <CKEditor
                             editor={ClassicEditor}
@@ -504,42 +530,10 @@ function DetailedExpansionPanel (props) {
                             bounds=".app"
                         />
                     </Grid>
-                    <Grid item xs={12} >
-        
-                        <Typography variant="body1">
-                            <strong> Attachments</strong>
-                        </Typography>
-                        {
-                            attachedFiles.length > 0 
-                                ? attachedFiles.map( (file, index )=> {
-                                    return (
-                                        <Chip key={index} label={file.name} onDelete={handleRemoveFile(index)} color="primary" />
-                                    );
-                                })
-                                : <Typography variant="body2"><i>None</i></Typography>
-                        }
-                    </Grid>
                 </Grid>
-        
             </ExpansionPanelDetails>
             <Divider />
             <ExpansionPanelActions>
-                <input
-                    className={classes.input}
-                    style={{ display: "none" }}
-                    multiple
-                    type="file"
-                    onChange={handleFileChange}
-                    id="raised-button-file"
-                />
-                <label htmlFor="raised-button-file">
-                    <Button 
-                        startIcon={<Attachment />} 
-                        component="span" 
-                        className={classes.button}>
-                        {attachedFiles.length > 0 ? "Add more" : "Attach File"}
-                    </Button>
-                </label> 
                 <Button
                     size="small"
                     onClick={handleDownload}

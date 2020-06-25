@@ -5,11 +5,14 @@ import os
 from flask import Blueprint, jsonify, request
 from src.utils.emails import send_mail, get_email_subject, allowed_file
 from src.utils.bulletin import write_bulletin_sending_narrative
+from src.utils.monitoring import write_eos_data_analysis_to_db
+from src.api.end_of_shift import get_eos_email_details
 from src.websocket.monitoring_tasks import execute_update_db_alert_ewi_sent_status
 from src.utils.extra import var_checker
 from config import APP_CONFIG
 
 MAILBOX_BLUEPRINT = Blueprint("mailbox_blueprint", __name__)
+
 
 @MAILBOX_BLUEPRINT.route("/mailbox/get_email_subject/<mail_type>/<site_code>/<date>", methods=["GET"])
 def wrap_get_email_subject(mail_type, site_code, date):
@@ -83,7 +86,8 @@ def upload_temp_file():
             if file.filename == '':
                 print('No selected file')
             if file and allowed_file(file.filename):
-                file.save(os.path.join(APP_CONFIG['attachment_path'], file.filename))
+                file.save(os.path.join(
+                    APP_CONFIG['attachment_path'], file.filename))
     return "Success"
 
 
@@ -93,19 +97,30 @@ def send_eos_email():
     Function that sends emails
     """
 
-    json_data = request.get_json()
+    json_data = request.form
+    files = request.files.getlist("attached_files")
 
     try:
-        subject = json_data["subject"]
-        recipients = json_data["recipients"]
+        shift_ts = json_data["shift_ts"]
+        event_id = json_data["event_id"]
+        data_analysis = json_data["data_analysis"]
+        file_name_ts = json_data["file_name_ts"]
         mail_body = json_data["mail_body"]
-        file_name = json_data["file_name"]
+
+        write_eos_data_analysis_to_db(event_id, shift_ts, data_analysis)
+
+        temp = get_eos_email_details(event_id, file_name_ts, to_json=False)
+        recipients = temp["recipients"]
+        subject = temp["subject"]
+        file_name = temp["file_name"]
+
         eos_data = {
             "site_code": json_data["site_code"],
             "user_id": json_data["user_id"],
-            "charts": json_data["charts"],
-            "attached_files":json_data["attach_file"]
+            "charts": json_data.getlist("charts"),
+            "attached_files": files
         }
+
         send_mail(
             recipients=recipients,
             subject=subject,
