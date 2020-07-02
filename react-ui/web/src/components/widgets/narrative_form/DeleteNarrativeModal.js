@@ -10,7 +10,7 @@ function DeleteNarrativeModal (props) {
     const {
         fullScreen, isOpen,
         closeHandler, chosenNarrative, 
-        setIsUpdateNeeded, isUpdateNeeded
+        setIsUpdateNeeded
     } = props;
     const { id: narrative_id, narrative } = chosenNarrative;
 
@@ -21,7 +21,7 @@ function DeleteNarrativeModal (props) {
         };
         handleDelete(payload, ret => {
             console.log("ret", ret);
-            setIsUpdateNeeded(!isUpdateNeeded);
+            setIsUpdateNeeded(true);
         });
     };
 

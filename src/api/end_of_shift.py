@@ -450,7 +450,8 @@ def get_eos_narratives(start_timestamp, end_timestamp, event_id):
     end_timestamp = end_timestamp + timedelta(minutes=30)
 
     shift_narratives = get_narratives(
-        event_id=event_id, start=str(start_timestamp), end=str(end_timestamp))
+        event_id=event_id, start=str(start_timestamp),
+        end=str(end_timestamp), order="asc")
 
     return shift_narratives
 

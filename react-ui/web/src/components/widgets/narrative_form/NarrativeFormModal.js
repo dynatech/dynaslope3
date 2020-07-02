@@ -30,8 +30,8 @@ function NarrativeFormModal (props) {
     const {
         fullScreen, isOpen,
         closeHandler, setIsUpdateNeeded,
-        chosenNarrative, isUpdateNeeded, isEditMode,
-        isFromSiteLogs
+        chosenNarrative, isEditMode,
+        isFromSiteLogs, setSort, resetInput
     } = props;
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -39,7 +39,6 @@ function NarrativeFormModal (props) {
 
     const initial_data = {
         narrative_id: null,
-        // site_list: [],
         timestamp: moment().format("YYYY-MM-DD HH:mm"),
         narrative: "",
         user_id: current_user.user_id,
@@ -67,7 +66,6 @@ function NarrativeFormModal (props) {
 
             default_narr_data = {
                 narrative_id: id,
-                // site_list: [site_id],
                 timestamp, narrative,
                 user_id, event_id, type_id
             };
@@ -76,9 +74,9 @@ function NarrativeFormModal (props) {
     }, [chosenNarrative]);
     
     useEffect(() => {
-        const args = narrative_data.narrative !== "" && narrative_data.site_list !== null;
-        args ? setIsDisabled(false) : setIsDisabled(true);
-    }, [narrative_data]);
+        const bool = narrative_data.narrative === "" || site_list === null;
+        setIsDisabled(bool);
+    }, [narrative_data, site_list]);
 
     const handleSubmit = () => {
         setIsDisabled(true);
@@ -113,7 +111,9 @@ function NarrativeFormModal (props) {
                 }
             );
 
-            setIsUpdateNeeded(!isUpdateNeeded);
+            setSort({ order_by: "id", order: "desc" });
+            resetInput();
+            setIsUpdateNeeded(true);
             if (isEditMode) {
                 closeFn();        
             }
@@ -123,7 +123,6 @@ function NarrativeFormModal (props) {
     const handleReset = () => {
         setNarrativeData({
             narrative_id: null,
-            // timestamp: moment().format("YYYY-MM-DD HH:mm"),
             narrative: "",
             user_id: current_user.user_id,
             event_id: "",

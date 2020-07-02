@@ -5,8 +5,8 @@ function prepareSiteAddress (site_details, include_site_code = true, position = 
     const { purok, sitio, barangay, municipality, province, site_code } = site_details;
     let address = "";
 
-    if (sitio !== null) address = `Sitio ${sitio}, `;
-    if (purok !== null) address += `Purok ${purok}, `;
+    if (sitio !== null && sitio !== "") address = `Sitio ${sitio}, `;
+    if (purok !== null && purok !== "") address += `Purok ${purok}, `;
 
     address += `Brgy. ${barangay}, ${municipality}, ${province}`;
     if (include_site_code) {
