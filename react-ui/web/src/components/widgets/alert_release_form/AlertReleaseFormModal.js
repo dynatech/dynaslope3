@@ -512,6 +512,7 @@ function AlertReleaseFormModal (props) {
     const handleSubmit = () => {
         console.log("Submitting data...", ewiPayload);
         sendWSMessage("insert_ewi", ewiPayload);
+       
     };
 
     const handleNext = () => {
