@@ -515,6 +515,7 @@ def process_eos_list(start_ts, end_ts, eos_data_list):
             site_code=site_code)
 
         has_surficial_data = False
+        surficial_data = None
         if has_markers:
             surficial_data = get_surficial_data(site_code=site_code, ts_order="desc",
                                                 start_ts=start_ts, end_ts=end_ts,
