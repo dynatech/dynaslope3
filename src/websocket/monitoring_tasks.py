@@ -11,8 +11,7 @@ from connection import SOCKETIO, DB, CELERY
 from src.experimental_scripts import public_alert_generator, candidate_alerts_generator
 from src.api.monitoring import wrap_get_ongoing_extended_overdue_events, insert_ewi
 from src.utils.monitoring import update_alert_status
-from src.utils.issues_and_reminders import (
-    write_issue_reminder_to_db, get_nearest_issue_expiration)
+from src.utils.issues_and_reminders import get_nearest_issue_expiration
 from src.api.issues_and_reminders import wrap_get_issue_reminder
 from src.api.manifestations_of_movement import wrap_write_monitoring_moms_to_db
 from src.utils.rainfall import get_all_site_rainfall_data
@@ -301,40 +300,6 @@ def execute_write_monitoring_moms_to_db(moms_details):
     return json_ret
 
 
-def execute_write_issues_reminders(issues_and_reminders_details):
-    data = issues_and_reminders_details
-    try:
-        try:
-            postings = data["postings"]
-        except KeyError:
-            postings = None
-
-        result = write_issue_reminder_to_db(
-            iar_id=data["iar_id"],
-            detail=data["detail"],
-            user_id=data["user_id"],
-            ts_posted=data["ts_posted"],
-            ts_expiration=data["ts_expiration"],
-            resolved_by=data["resolved_by"],
-            resolution=data["resolution"],
-            ts_resolved=data["ts_resolved"],
-            site_id_list=data["site_id_list"],
-            is_event_entry=data["is_event_entry"],
-            postings=postings
-        )
-        if result == "success":
-            DB.session.commit()
-        else:
-            DB.session.rollback()
-    except:
-        DB.session.rollback()
-
-    # Prepare process status log
-    status_log = get_process_status_log("request_to_handle_iar", "end")
-
-    return status_log
-
-
 def execute_alert_status_validation(as_details):
     """
     Function used to prepare the whole validation
@@ -456,13 +421,6 @@ def handle_message(payload):
     elif key == "validate_trigger":
         print(get_process_status_log("validate_trigger", "request"))
         status = execute_alert_status_validation(data)
-        print(status)
-
-    elif key == "write_issues_and_reminders":
-        print(get_process_status_log("write_issue_reminder_to_db", "request"))
-        # var_checker("data", data, True)
-        status = execute_write_issues_reminders(data)
-        issues_and_reminder_bg_task.apply_async()
         print(status)
 
     elif key == "write_monitoring_moms_to_db":

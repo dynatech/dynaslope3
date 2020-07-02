@@ -1,6 +1,6 @@
 import React from "react";
 import {
-    TextField, Grid, withStyles
+    TextField, Grid, makeStyles
 } from "@material-ui/core";
 
 // Form Related Imports
@@ -10,7 +10,7 @@ import { MuiPickersUtilsProvider, TimePicker, DatePicker } from "@material-ui/pi
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     inputGridContainer: {
         marginTop: 6,
         marginBottom: 6
@@ -35,11 +35,12 @@ const styles = theme => ({
         marginTop: 1,
         marginBottom: 1,
     }
-});
+}));
 
 function NarrativeForm (props) {
+    const classes = useStyles();
     const {
-        classes, narrativeData,
+        narrativeData,
         setNarrativeData, siteList,
         setSiteList, isFromSiteLogs
     } = props;
@@ -153,4 +154,4 @@ function NarrativeForm (props) {
 }
 
 
-export default withStyles(styles)(NarrativeForm);
+export default NarrativeForm;

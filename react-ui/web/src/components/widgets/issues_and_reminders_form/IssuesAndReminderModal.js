@@ -8,7 +8,7 @@ import {
 
 import moment from "moment";
 
-import { handleIssuesAndReminders } from "./ajax";
+import { insertIssuesAndRemindersViaPost } from "./ajax";
 import IssuesAndReminderForm from "./IssuesAndRemindersForm";
 
 // Session Stuff
@@ -77,8 +77,11 @@ function IssuesAndReminderModal (props) {
             };   
         }
 
-        handleIssuesAndReminders(temp);
-        setToRefresh(!toRefresh);
+        insertIssuesAndRemindersViaPost(temp, data => {
+            if (data && typeof toRefresh !== "undefined") {
+                setToRefresh(!toRefresh);
+            }
+        });
         closeHandlerAction();  
     };
     
