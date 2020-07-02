@@ -17,7 +17,7 @@ import GeneralStyles from "../../../GeneralStyles";
 import { 
     subscribeToWebSocket, unsubscribeToWebSocket,
     receiveGeneratedAlerts, receiveCandidateAlerts,
-    receiveAlertsFromDB, receiveProcessKey
+    receiveAlertsFromDB, receiveEWIInsertResponse
 } from "../../../websocket/monitoring_ws";
 import { getMonitoringShifts, receiveMonitoringShiftData, removeReceiveMonitoringShiftData } from "../../../websocket/misc_ws";
 import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
@@ -69,12 +69,13 @@ function Container (props) {
         receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
         receiveMonitoringShiftData(shift_data => setMonitoringShifts(shift_data));
         getMonitoringShifts();
-        receiveProcessKey(process_key => {
-            closeSnackbar(process_key);
+        receiveEWIInsertResponse(response => {
+            const { snackbar_key, message, status } = response;
+            closeSnackbar(snackbar_key);
             enqueueSnackbar(
-                "EWI release successful!",
+                message,
                 {
-                    variant: "success",
+                    variant: status ? "success" : "error",
                     autoHideDuration: 3000
                 }
             );

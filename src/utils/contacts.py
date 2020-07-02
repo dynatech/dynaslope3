@@ -2,7 +2,7 @@
 Contacts Functions Utility File
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy.orm import joinedload
 from connection import DB
 from src.models.users import (
@@ -17,13 +17,10 @@ from src.models.mobile_numbers import (
     BlockedMobileNumbersSchema
 )
 from src.models.organizations import (
-    Organizations, OrganizationsSchema,
-    UserOrganizations
+    Organizations, UserOrganizations
 )
 from src.models.gsm import SimPrefixes, SimPrefixesSchema
 from src.models.sites import Sites
-from src.models.analysis import MarkerObservations
-from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 from src.utils.extra import var_checker
 
 
@@ -498,6 +495,7 @@ def ewi_recipient_migration():
     """
     Function that migrate ewi recipient
     """
+
     result = UserEwiStatus.query.options(DB.raiseload("*")) \
         .filter(UserEwiStatus.status == 1).with_entities(
             UserEwiStatus.users_id).distinct().all()
@@ -515,173 +513,12 @@ def ewi_recipient_migration():
     return True
 
 
-def get_ground_measurement_reminder_recipients(current_datetime):
-    """
-    Function that gets recipients for ground measurement reminder
-    """
+def get_ground_data_reminder_recipients(site_id):
+    org_ids = [1]
+    recipients = get_recipients(
+        site_ids=[site_id], org_ids=org_ids, joined=True)
 
-    leo = get_ongoing_extended_overdue_events(current_datetime)
-    routine_site_codes = get_routine_sites(current_datetime)
-    latest = leo["latest"]
-    extended = leo["extended"]
-    overdue = leo["overdue"]
-    latest = latest + overdue
-    event_site_ids = []
-    extended_site_ids = []
-
-    for row in latest:
-        site = row["event"]["site"]
-        site_id = site["site_id"]
-        site_code = site["site_code"]
-        alert_level = row["public_alert_symbol"]["alert_level"]
-        if site_id not in event_site_ids:
-            if alert_level != 0:
-                event_site_ids.append(site_id)
-
-        if site_code in routine_site_codes:
-            routine_site_codes.remove(site_code)
-
-    for row in extended:
-        site = row["event"]["site"]
-        site_id = site["site_id"]
-        site_code = site["site_code"]
-        if site_id not in extended_site_ids:
-            extended_site_ids.append(site_id)
-
-        if site_code in routine_site_codes:
-            routine_site_codes.remove(site_code)
-
-    routine_site_ids = get_site_ids(routine_site_codes)
-    final_site_ids = remove_sites_with_ground_meas(
-        event_site_ids,
-        extended_site_ids,
-        routine_site_ids,
-        current_datetime)
-
-    site_recipients = [
-        {"site_ids": final_site_ids["routine_site_ids"], "type": "routine"},
-        {"site_ids": final_site_ids["event_site_ids"], "type": "event"},
-        {"site_ids": final_site_ids["extended_site_ids"], "type": "extended"}
-    ]
-
-    feedback = get_recipients_for_ground_meas(site_recipients)
-
-    return feedback
-
-
-def remove_sites_with_ground_meas(
-        event_site_ids,
-        extended_site_ids,
-        routine_site_ids,
-        current_datetime):
-    """
-    Function that remove site id with ground meas
-    """
-
-    year = current_datetime.year
-    month = current_datetime.month
-    day = current_datetime.day
-
-    routine_reminder_time = datetime(year, month, day, 9, 30)
-    routine_end_time = datetime(year, month, day, 9, 35)
-    one_thirty_reminder_time = datetime(year, month, day, 13, 30)
-    one_thirty_end_time = datetime(year, month, day, 13, 35)
-    five_thirty_reminder_time = datetime(year, month, day, 5, 30)
-    five_thirty_end_time = datetime(year, month, day, 5, 35)
-
-    if routine_reminder_time < current_datetime < routine_end_time:
-        if routine_site_ids or extended_site_ids:
-            result = get_sites_with_ground_meas(
-                routine_reminder_time, timedelta_hour=4)
-
-            for site_id in result:
-                if site_id in routine_site_ids:
-                    routine_site_ids.remove(site_id)
-                if site_id in extended_site_ids:
-                    extended_site_ids.remove(site_id)
-
-        if event_site_ids:
-            # NOTE: refactor na lang ito to query sites belonging
-            # to event_site_ids
-            result = get_sites_with_ground_meas(
-                routine_reminder_time, timedelta_hour=1)
-            for site_id in result:
-                if site_id in event_site_ids:
-                    event_site_ids.remove(site_id)
-    else:
-        routine_site_ids = []
-        extended_site_ids = []
-        reminder_time = five_thirty_reminder_time
-
-        if five_thirty_reminder_time < current_datetime < five_thirty_end_time:
-            reminder_time = five_thirty_reminder_time
-
-        if one_thirty_reminder_time < current_datetime < one_thirty_end_time:
-            reminder_time = one_thirty_reminder_time
-
-        result = get_sites_with_ground_meas(
-            reminder_time, timedelta_hour=1)
-
-        for site_id in result:
-            if site_id in event_site_ids:
-                event_site_ids.remove(site_id)
-
-    final_site_ids = {
-        "routine_site_ids": routine_site_ids,
-        "event_site_ids": event_site_ids,
-        "extended_site_ids": extended_site_ids
-    }
-
-    return final_site_ids
-
-
-def get_sites_with_ground_meas(reminder_time, timedelta_hour=1, minute=30, site_id=0):
-    run_down_ts = reminder_time - \
-        timedelta(hours=timedelta_hour, minutes=minute)
-
-    query = MarkerObservations.query.with_entities(MarkerObservations.site_id) \
-        .options(DB.raiseload("*")).filter(
-            MarkerObservations.ts.between(run_down_ts, reminder_time))
-
-    if site_id != 0:
-        query = query.filter(MarkerObservations.site_id == site_id)
-
-    result = query.all()
-
-    return [value for (value,) in result]
-
-
-def get_recipients_for_ground_meas(site_recipients):
-    """
-    Function that get recipient per site
-    """
-    feedback = []
-    for row in site_recipients:
-        site_ids = row["site_ids"]
-        user_per_site_result = []
-        org_ids = [1]
-        if site_ids:
-            user_per_site_result = get_recipients(
-                site_ids=site_ids, org_ids=org_ids, joined=True)
-
-        row["recipients"] = user_per_site_result
-        feedback.append(row)
-
-    return feedback
-
-
-def get_site_ids(site_codes):
-    """
-    Function that gets site ids
-    """
-
-    sites = Sites.query.options(DB.raiseload(
-        "*")).filter(Sites.site_code.in_(site_codes)).all()
-    site_ids = []
-    for row in sites:
-        site_ids.append(row.site_id)
-
-    return site_ids
+    return recipients
 
 
 def get_blocked_numbers(return_schema=True):

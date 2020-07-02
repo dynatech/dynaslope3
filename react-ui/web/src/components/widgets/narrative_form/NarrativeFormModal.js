@@ -5,7 +5,9 @@ import {
     DialogContentText, DialogActions,
     Button, withMobileDialog
 } from "@material-ui/core";
-// import AlertReleaseForm from "./AlertReleaseForm";
+
+import { useSnackbar } from "notistack";
+
 import { handleNarratives } from "./ajax";
 import NarrativeForm from "./NarrativeForm";
 import { getCurrentUser } from "../../sessions/auth";
@@ -32,6 +34,7 @@ function NarrativeFormModal (props) {
         isFromSiteLogs
     } = props;
 
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const current_user = getCurrentUser();
 
     const initial_data = {
@@ -71,25 +74,45 @@ function NarrativeFormModal (props) {
             setNarrativeData(default_narr_data);
         }
     }, [chosenNarrative]);
-    useEffect( () => {
+    
+    useEffect(() => {
         const args = narrative_data.narrative !== "" && narrative_data.site_list !== null;
         args ? setIsDisabled(false) : setIsDisabled(true);
     }, [narrative_data]);
 
     const handleSubmit = () => {
-        
+        setIsDisabled(true);
+
+        const snackbar = enqueueSnackbar(
+            "Inserting site log...",
+            {
+                variant: "warning",
+                persist: true
+            }
+        );
+
         const temp = [];
         site_list.forEach(({ value }) => {
             // Value is site_id
             temp.push(value);
         });
+
         narrative_data.site_list = temp;
         narrative_data.timestamp = moment(narrative_data.timestamp).format("YYYY-MM-DD HH:mm:ss");
         narrative_data.user_id = current_user.user_id;
         handleNarratives(narrative_data, ret => {
             console.log("ret", ret);
-           
             handleReset();
+
+            closeSnackbar(snackbar);
+            enqueueSnackbar(
+                "Site log inserted successfully!",
+                {
+                    variant: "success",
+                    autoHideDuration: 3000
+                }
+            );
+
             setIsUpdateNeeded(!isUpdateNeeded);
             if (isEditMode) {
                 closeFn();        
@@ -108,6 +131,7 @@ function NarrativeFormModal (props) {
         });
         setSiteList(site_list);
     };
+
     const handleFullReset = () => {
         setNarrativeData({
             narrative_id: null,
@@ -154,8 +178,13 @@ function NarrativeFormModal (props) {
                         <Button onClick={closeFn} color="primary">
                             Cancel
                         </Button>
-                        <Button onClick={handleFullReset} >Reset</Button>
-                        <Button variant="contained" color="primary" onClick={handleSubmit} disabled={isDisabled}>
+                        <Button onClick={handleFullReset}>Reset</Button>
+                        <Button 
+                            variant="contained"
+                            color="primary"
+                            onClick={handleSubmit}
+                            disabled={isDisabled}
+                        >
                             {isEditMode ? "Save Edits" : "Save & Add More"}
                         </Button>
                     </div>

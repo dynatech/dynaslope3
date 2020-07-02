@@ -103,10 +103,10 @@ export function receiveAllSiteRainfallData (callback) {
     });
 }
 
-export function receiveProcessKey (callback) {
+export function receiveEWIInsertResponse (callback) {
     connectToWebsocket();
 
-    socket.on("receive_process_key", data => {
+    socket.on("receive_ewi_insert_response", data => {
         const temp = JSON.parse(data);
         callback(temp);
     });

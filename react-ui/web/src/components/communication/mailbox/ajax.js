@@ -26,3 +26,8 @@ export function sendEOSEmail (json_data, callback, err) {
     const api_link = `${host}/api/mailbox/send_eos_email`;
     makePOSTAxiosRequest(api_link, json_data, callback, err);
 }
+
+export function uploadTempFile (data, callback, err) {
+    const api_link = `${host}/api/mailbox/upload_temp`;
+    makePOSTAxiosRequest(api_link, data, callback, err);
+}

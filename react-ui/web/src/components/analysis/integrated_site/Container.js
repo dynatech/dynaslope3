@@ -82,9 +82,9 @@ function CustomButtons (change_consolidate_modal_fn, open_eq_modal) {
             size="small" 
             style={{ marginRight: 8 }}
             onClick={open_eq_modal(true)}
+            startIcon={<Event />}
         >
-            <Event style={{ paddingRight: 4, fontSize: 20 }}/>
-                    Insert Earthquake Event
+            Insert Earthquake Event
         </Button>
         <Button
             aria-label="Consolidate by site"
@@ -93,9 +93,9 @@ function CustomButtons (change_consolidate_modal_fn, open_eq_modal) {
             size="small" 
             style={{ marginRight: 8 }}
             onClick={change_consolidate_modal_fn(true)}
+            startIcon={<InsertChart />}
         >
-            <InsertChart style={{ paddingRight: 4, fontSize: 20 }}/>
-                    Consolidate by site
+            Consolidate by site
         </Button>
     </span>;
 }
@@ -142,16 +142,21 @@ function generateData (data_list, type, is_mobile) {
         const { last_data, ts_updated, diff_days, event_type } = row;
 
         let label;
+        let t_data;
         const value = row.presence;
         if (type === "surficial") {
             label = row.site_code;
+            t_data = label;
             if (!row.has_surficial_markers) label += "*";
         } else if (type === "rainfall") {
             label = row.rain_gauge.gauge_name;
+            t_data = label;
         } else if (type === "subsurface") {
             label = row.tsm_sensor.logger.logger_name;
+            t_data = label;
         } else {
             label = row.logger.logger_name;
+            t_data = label;
         }
 
         // const y = is_mobile ? i % 5 : i % 10;
@@ -163,7 +168,7 @@ function generateData (data_list, type, is_mobile) {
             y: 5 - x,
             value,
             label: label.toUpperCase(),
-            data: label,
+            data: t_data,
             type,
             ts_last_data: last_data,
             ts_updated,
@@ -272,12 +277,13 @@ function prepareOptions (is_mobile, type, data_list) {
 
                 let str = `${type_label}: <b>${label}</b><br/>` + 
                 `Presence: <b>${presence} data</b><br/>` + 
-                `Last data timestamp: <b>${moment(ts_last_data).format(format_str)}</b><br/>` +
-                `Event type: <b>${event_type}</b>`;
+                `Last data timestamp: <b>${moment(ts_last_data).format(format_str)}</b><br/>`;
 
                 if (type !== "surficial") {
                     str += `<br/>Last update timestamp: <b>${moment(ts_updated).format(format_str)}</b><br/>` +
                     `Days since last data: <b>${diff_days}</b><br/>`;
+                } else {
+                    str += `Event type: <b>${event_type}</b>`;
                 }
 
                 return str;
@@ -477,7 +483,6 @@ function Container (props) {
 
     useEffect(() => {
         if (surficial_data_presence.length > 0) {
-            console.log(surficial_data_presence);
             const option = prepareOptions(!is_desktop, "surficial", surficial_data_presence);
             setSurficialDpOption(option);
         }

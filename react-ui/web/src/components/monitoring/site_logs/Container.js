@@ -426,15 +426,13 @@ function SiteLogs (props) {
                 />
             </div>
 
-            {
-                <Dialog open={is_loading} fullWidth>
-                    <DialogContent>
-                        <div style={{ flexGrow: 1 }}>
-                            <LinearProgress variant="query" color="secondary" />
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            }
+            <Dialog open={is_loading} fullWidth>
+                <DialogContent>
+                    <div style={{ flexGrow: 1 }}>
+                        <LinearProgress variant="query" color="secondary" />
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             <div className={classes.pageContentMargin}>
                 <Paper className={classes.paperContainer}>

@@ -136,8 +136,8 @@ def process_totally_invalid_sites(totally_invalid_sites_list,
             generated_alert["ts"], "%Y-%m-%d %H:%M:%S")
         is_release_time = check_if_routine_extended_release_time(ts)
 
-        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"]
-                                            == site_code, extended))
+        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
+                                            site_code, extended))
         if is_in_extended_alerts:
             if is_release_time:
                 general_status = "extended"
@@ -316,7 +316,8 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         has_unresolved_moms = bool(
             formatted_alerts_for_ewi["unresolved_moms_list"])
         to_extend_validity = True if (
-            not alert_entry["has_ground_data"] or has_unresolved_moms or has_nd_rx_trigger) else False
+            not alert_entry["has_ground_data"] or
+            has_unresolved_moms or has_nd_rx_trigger) else False
 
         try:
             saved_event_triggers = alert_entry["saved_event_triggers"]
@@ -498,8 +499,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                 for event_trigger in site_w_alert["event_triggers"]:
                     saved_trigger = next(filter(
-                        lambda x: x["internal_sym"]["internal_sym_id"] ==
-                        event_trigger["internal_sym_id"],
+                        lambda x: x["internal_sym"]["internal_sym_id"]
+                        == event_trigger["internal_sym_id"],
                         saved_event_triggers), None)
 
                     is_trigger_new = False

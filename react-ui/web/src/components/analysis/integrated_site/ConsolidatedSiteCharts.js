@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React from "react";
 import moment from "moment";
 import { Grid } from "@material-ui/core";
 
@@ -29,38 +29,36 @@ function ConsolidatedSiteCharts (props) {
 
     const input = { site_code, ts_end: end_ts.format("YYYY-MM-DD HH:mm:ss") };
     return (
-        <Fragment>
-            <BackToMainButton {...props} />
-            
-            <Grid container spacing={1}>
-                {
-                    show_charts.rainfall && (
-                        <Grid item xs={12}>
-                            <RainfallGraph {...props} input={input} disableBack />
-                        </Grid>
-                    )
-                }
+        <Grid container spacing={1}>
+            <Grid item xs={12}><BackToMainButton {...props} /></Grid>
+
+            {
+                show_charts.rainfall && (
+                    <Grid item xs={12} style={{ marginBottom: 16 }}>
+                        <RainfallGraph {...props} input={input} disableBack />
+                    </Grid>
+                )
+            }
                 
-                {
-                    show_charts.surficial && (
-                        <Grid item xs={12}>
-                            <SurficialGraph {...props} input={input} disableBack />
-                        </Grid>
-                    )
-                }
+            {
+                show_charts.surficial && (
+                    <Grid item xs={12} style={{ marginBottom: 16 }}>
+                        <SurficialGraph {...props} input={input} disableBack />
+                    </Grid>
+                )
+            }
                 
-                {
-                    subsurface_cols.map(sc => {
-                        const temp = { ...input, tsm_sensor: sc };
-                        return (
-                            <Grid key={sc} item xs={12}>
-                                <SubsurfaceGraph {...props} input={temp} disableBack />
-                            </Grid>
-                        );
-                    })
-                }
-            </Grid>
-        </Fragment>
+            {
+                subsurface_cols.map(sc => {
+                    const temp = { ...input, tsm_sensor: sc };
+                    return (
+                        <Grid key={sc} item xs={12}>
+                            <SubsurfaceGraph {...props} input={temp} disableBack />
+                        </Grid>
+                    );
+                })
+            }
+        </Grid>
     );
 }
 

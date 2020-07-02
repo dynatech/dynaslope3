@@ -153,7 +153,8 @@ class MarkerHistory(DB.Model):
     marker_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['senslopedb']}.markers.marker_id"), nullable=False)
     ts = DB.Column(DB.DateTime)
-    event = DB.Column(DB.String(20))
+    event = DB.Column(DB.String(20), nullable=False)
+    remarks = DB.Column(DB.String(1500), default=None)
 
     marker = DB.relationship(
         "Markers", backref=DB.backref("marker_histories", lazy="dynamic"), lazy="subquery")

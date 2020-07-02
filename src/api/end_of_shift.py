@@ -67,7 +67,7 @@ def download_eos_charts():
 
 @END_OF_SHIFT_BLUEPRINT.route(
     "/end_of_shift/get_eos_email_details/<event_id>/<shift_ts_end>", methods=["GET"])
-def get_eos_email_details(event_id, shift_ts_end):
+def get_eos_email_details(event_id, shift_ts_end, to_json=True):
     """
     Returns the filename, recipients, and subject
     """
@@ -98,11 +98,16 @@ def get_eos_email_details(event_id, shift_ts_end):
 
     file_name = f"{site_code.upper()}_{formatted_ts_end}".upper() + ".pdf"
 
-    return jsonify({
+    ret_obj = {
         "file_name": file_name,
         "recipients": recipients,
         "subject": subject
-    })
+    }
+
+    if to_json:
+        return jsonify(ret_obj)
+
+    return ret_obj
 
 
 def extract_unique_release_events(releases_list):
@@ -510,6 +515,7 @@ def process_eos_list(start_ts, end_ts, eos_data_list):
             site_code=site_code)
 
         has_surficial_data = False
+        surficial_data = None
         if has_markers:
             surficial_data = get_surficial_data(site_code=site_code, ts_order="desc",
                                                 start_ts=start_ts, end_ts=end_ts,
