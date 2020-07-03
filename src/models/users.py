@@ -69,7 +69,6 @@ class UsersRelationship(Users):
     emails = DB.relationship(
         "UserEmails", backref=DB.backref("user", lazy="joined", innerjoin=True),
         lazy="subquery")
-
     # user_account relationship declared on UserAccounts
 
     def __repr__(self):
@@ -214,7 +213,7 @@ class UserAccounts(DB.Model):
     salt = DB.Column(DB.String(200))
 
     user = DB.relationship(Users, backref=DB.backref(
-        "account", lazy="raise", innerjoin=True), lazy="joined", uselist=False)
+        "account", lazy="raise", innerjoin=True, uselist=False), lazy="joined", uselist=False)
 
     def __repr__(self):
         return f"{self.email}"
@@ -266,6 +265,7 @@ class UsersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
     """
+
     class Meta:
         """Saves table class structure as schema model"""
         model = Users
@@ -276,6 +276,16 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users Relationships
     """
+
+    def __init__(self, *args, **kwargs):
+        self.include = kwargs.pop("include", None)
+        super().__init__(*args, **kwargs)
+
+    def _update_fields(self, *args, **kwargs):
+        super()._update_fields(*args, **kwargs)
+        if self.include:
+            for field_name in self.include:
+                self.fields[field_name] = self._declared_fields[field_name]
 
     mobile_numbers = fields.Nested(
         "UserMobilesSchema", many=True, exclude=("user",))
@@ -294,6 +304,9 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
 
     emails = fields.Nested(
         "UserEmailsSchema", many=True, exclude=("user",))
+
+    account = fields.Nested(
+        "UserAccountsSchema", many=False, exclude=("user",))
 
     class Meta:
         """Saves table class structure as schema model"""

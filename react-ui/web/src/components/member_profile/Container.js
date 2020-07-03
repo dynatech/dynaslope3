@@ -1,11 +1,13 @@
 import React, { useState, Fragment, useEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
-import { Grid, Hidden, IconButton } from "@material-ui/core";
+import { Grid, Hidden, IconButton, Button, CardActions } from "@material-ui/core";
 import Dialog from "@material-ui/core/Dialog";
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import CloseIcon from "@material-ui/icons/Close";
 import Slide from "@material-ui/core/Slide";
+import LockIcon from "@material-ui/icons/Lock";
+import { Link } from "react-router-dom";
 import { getCurrentUser } from "../sessions/auth";
 import MemberList from "./MemberList";
 import ProfilePage from "./ProfileDetails";
@@ -101,8 +103,18 @@ export default function ProfileContainer (props) {
                                     />
                                     <Hidden smDown>
                                         { isUser && 
-                                            <MyShifts/>
-                                        }
+                                        (
+                                            <div>
+                                                <CardActions>
+                                                    <Link to= "/profile/update" style={{ textDecoration: "none" }}>
+                                                        <Button size="small" startIcon={<LockIcon/>} color="primary">
+                                                            Change password
+                                                        </Button>
+                                                    </Link>
+                                                </CardActions>
+                                                {/* <MyShifts/> */}
+                                            </div>
+                                        )}
                                     </Hidden>
                                 </Grid>   
                             </Hidden>

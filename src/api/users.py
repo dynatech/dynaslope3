@@ -2,16 +2,18 @@
 Users Functions Controller File
 """
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from connection import DB
 from src.models.users import UsersSchema
 from src.models.organizations import Organizations, OrganizationsSchema
 from src.utils.users import (
-    get_dynaslope_users, get_community_users,
-    get_community_users_simple, get_users_categorized_by_org
+    get_dynaslope_users, get_community_users, update_user_details,
+    get_community_users_simple, get_users_categorized_by_org, update_account
 )
 from src.utils.extra import var_checker
-
+from src.utils.contacts import (save_user_contact_numbers, save_user_email,
+    save_user_information
+)
 USERS_BLUEPRINT = Blueprint("users_blueprint", __name__)
 
 
@@ -140,3 +142,41 @@ def get_organizations():
         .dump(orgs).data
 
     return jsonify(result)
+
+@USERS_BLUEPRINT.route("/users/update_account", methods=["POST"])
+def update_user_account():
+    """
+    """
+    json_data = request.get_json()
+    result = update_account(json_data)
+
+    return result
+
+@USERS_BLUEPRINT.route("/users/update_user_info", methods=["POST"])
+def update_user_info():
+    """
+    """
+    json_data = request.get_json()
+
+    try:
+        user_id = json_data["user_id"]
+        save_user_contact_numbers(json_data, user_id)
+        save_user_information(json_data)
+        # save_user_email(emails, user_id, emails_to_delete)
+
+        message = "Successfully updated user"
+        status = True
+        DB.session.commit()
+
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+        message = "Something went wrong, Please try again"
+        status = False
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+
+    return jsonify(feedback)

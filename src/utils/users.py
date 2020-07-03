@@ -3,16 +3,21 @@ Utility file for Users Table
 Contains functions for getting and accesing Users table
 and related tables
 """
-
+import hashlib
 from flask import jsonify
 from connection import DB
 from src.models.sites import Sites
 from src.models.users import (
-    Users, UsersRelationship, UserMobile,
-    UsersSchema, UsersRelationshipSchema
+    Users, UsersRelationship, UserMobile, UserEmails,
+    UsersSchema, UsersRelationshipSchema, UserEmailsSchema,
+    UserAccounts, UserAccountsSchema
+)
+from src.models.mobile_numbers import(
+    UserMobiles, UserMobilesSchema, MobileNumbers, MobileNumbersSchema
 )
 from src.models.organizations import UserOrganizations, Organizations, UserOrganizationsSchema
 from src.utils.extra import var_checker
+from src.utils.contacts import get_gsm_id_by_prefix
 
 PROP_DICT = {
     "mob": "mobile_numbers",
@@ -21,12 +26,7 @@ PROP_DICT = {
     "tea": "team"
 }
 
-<<<<<<< Updated upstream
-
-def get_users_categorized_by_org(site_code=None, return_schema=False):
-=======
 def get_users_categorized_by_org(site_code=None):
->>>>>>> Stashed changes
     """
     """
     u_org = UserOrganizations
@@ -140,6 +140,8 @@ def get_users(
             users_query = users_query.join(Sites)
             filter_list.append(Sites.site_code.in_(filter_by_site))
 
+            query(Sites, Users)
+
     if not include_inactive:
         filter_list.append(Users.status == 1)
 
@@ -215,10 +217,13 @@ def get_dynaslope_users(active_only=True, return_schema_format=False, include_co
     if return_schema_format:
         exclude_list = [
             "organizations", "ewi_restriction",
-            "teams", "landline_numbers", "mobile_numbers.mobile_number.blocked_mobile"]
+            "teams", "landline_numbers", 
+            "mobile_numbers.mobile_number.blocked_mobile"]
+        include_list = []
         if not include_contacts:
             exclude_list.extend(["emails", "mobile_numbers"])
-        result = UsersRelationshipSchema(many=True, exclude=exclude_list).dump(result).data
+            include_list = []
+        result = UsersRelationshipSchema(many=True, exclude=exclude_list, include=include_list).dump(result).data
 
     return result
 
@@ -298,3 +303,79 @@ def prepare_excludes(include_list):
 def login(data):
 
     return "wqewqewe"
+
+def update_account(data):
+    """
+    """
+    user_id = data["user_id"]
+    old_pass = data["old_password"]
+    new_pass = data["new_password"]
+    username = data["username"]
+
+    sha512 = hashlib.sha512()
+    sha512.update(old_pass.encode())
+    password = sha512.hexdigest()
+
+    user_account = UserAccounts.query.filter_by(user_fk_id=user_id, password=password).first()
+
+    if user_account:
+        enc = hashlib.sha512()
+        enc.update(new_pass.encode())
+        new_password = enc.hexdigest()
+
+        if username:
+            user_account.username = username
+        if password:
+            user_account.password = new_password
+        DB.session.commit()
+        return "success"
+    return "invalid"
+
+def update_user_details(data):
+    """
+    """
+    user_id = int(data["user_id"])
+    first_name = data["first_name"]
+    middle_name = data["middle_name"]
+    last_name = data["last_name"]
+    nickname = data["nickname"]
+    gender = data["sex"]
+
+    email_list = data["emails"]
+    emails = []
+    for email in email_list:
+        emails.append(email["email"])
+        print(email["email"])
+    try:
+        user = Users.query.filter_by(user_id=user_id).first()
+        if user:
+            user.first_name = first_name
+            user.middle_name = middle_name
+            user.last_name = last_name
+            user.nickname = nickname
+            user.sex = gender
+
+        has_email = UserEmails.query.filter_by(user_id=user_id).all()
+        if has_email:
+            for existing_email in has_email:
+                if str(existing_email) not in emails:
+                    UserEmails.query.filter_by(user_id=user_id, email=str(existing_email)).delete()
+                    DB.session.commit()
+                    print("deleted: ", existing_email)
+                else:
+                    for email in emails:
+                        if email not in str(existing_email):
+                            query = UserEmails(user_id=user_id, email=email)
+                            DB.session.add(query)
+                            DB.session.commit()
+                            print("added :", email)
+        if not has_email:
+            for email in emails:  
+                query = UserEmails(user_id=user_id, email=email)
+                DB.session.add(query)
+                DB.session.commit()
+       
+    except Exception as ex:
+        print(ex)
+        DB.session.rollback()
+    return "success"
