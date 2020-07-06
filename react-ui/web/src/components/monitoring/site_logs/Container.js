@@ -76,7 +76,7 @@ function getManipulationButtons (narrative, data_handlers) {
         setChosenNarrative(narrative);
         setIsOpenNarrativeModal(true);
         setIsEditMode(true);
-        console.log("Edit", narrative);
+        // console.log("Edit", narrative);
     };
 
     const handleDelete = value => {
@@ -103,10 +103,15 @@ function processTableData (data) {
             user_id, id, type_id, event_id,
             timestamp
         } = row;
-        const { last_name, first_name } = user_details;
+
+        let name = "---";
+        if (user_details !== null) {
+            const { last_name, first_name } = user_details;
+            name = `${first_name} ${last_name}`;
+        }
         return ({
             narrative,
-            user_details: `${first_name} ${last_name}`,
+            user_details: name,
             site_name: prepareSiteAddress(row.site, true, "start"),
             timestamp,
             type: row.type_id,
@@ -132,14 +137,15 @@ function SiteLogs (props) {
     const [filters, setFilters] = useState([]);
     const [filter_list, setFilterList] = useState([]);
     const [search_str, setSearchString] = useState("");
-    const [on_search_open, setOnSearchOpen] = useState(false);
+    const [sort, setSort] = useState({ order_by: "timestamp", order: "desc" });
+
     const [is_loading, setIsLoading] = useState(true);
     const [isOpenNarrativeModal, setIsOpenNarrativeModal] = useState(false);
     const [isOpenDeleteModal, setIsOpenDeleteModal] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
 
     const [chosenNarrative, setChosenNarrative] = useState({});
-    const [isUpdateNeeded, setIsUpdateNeeded] = useState(false);
+    const [isUpdateNeeded, setIsUpdateNeeded] = useState(true);
     const [alertsFromDbData, setAlertsFromDbData] = useState(null);
     const { setIsReconnecting } = useContext(GeneralContext);
 
@@ -154,39 +160,42 @@ function SiteLogs (props) {
         sites_dict[site_code] = site.site_id;
     });
 
-    // useEffect(() => {
-    //     sites.forEach(site => {
-    //         const site_code = site.site_code.toUpperCase();
-    //         filter_sites_option.push(site_code);
-    //         sites_dict[site_code] = site.site_id;
-    //     });
-    // }, [alertsFromDbData]);
-
     useEffect(() => {
         subscribeToWebSocket(setIsReconnecting);
         receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
+        
         return function cleanup () {
             unsubscribeToWebSocket();
         };
     }, []);
 
     useEffect(() => {
-        setIsLoading(true);
-        const input = {
-            include_count: true,
-            limit: rowsPerPage, offset: page * rowsPerPage,
-            filters,
-            search_str
-        };
+        if (isUpdateNeeded) {
+            setIsLoading(true);
+            const input = {
+                include_count: true,
+                limit: rowsPerPage, offset: page * rowsPerPage,
+                filters, search_str,
+                ...sort
+            };
 
-        getNarratives(input, ret => {
-            const { narratives, count: total } = ret;
-            const processed = processTableData(narratives);
-            setTableData(processed);
-            setCount(total);
-            setIsLoading(false);
-        });
-    }, [page, rowsPerPage, filters, search_str, isUpdateNeeded]);
+            getNarratives(input, ret => {
+                const { narratives, count: total } = ret;
+                const processed = processTableData(narratives);
+                setTableData(processed);
+                setCount(total);
+                setIsLoading(false);
+            });
+
+            setIsUpdateNeeded(false);
+        }
+    }, [page, rowsPerPage, filters, search_str, sort, isUpdateNeeded]);
+
+    const resetInput = (exclude_filters = false) => {
+        setPage(0);
+        if (!exclude_filters) setFilters([]);
+        setSearchString("");
+    };
 
     const handleBoolean = (data, bool) => () => {
         // NOTE: there was no need to use the bool for opening a modal or switch
@@ -227,9 +236,15 @@ function SiteLogs (props) {
             } else if (action === "resetFilters") {
                 setFilterList({});
                 setFilters([]);
-            } else if (action === "onSearchOpen") {
-                setOnSearchOpen(true);
             }
+            
+            const action_set = ["changePage", "changeRowsPerPage", "resetFilters"];
+            if (action_set.includes(action)) setIsUpdateNeeded(true);
+        },
+        onColumnSortChange (column, direction) {
+            const order = direction === "ascending" ? "asc" : "desc";
+            setSort({ order_by: column, order });
+            setIsUpdateNeeded(true);
         },
         onFilterChange (column, ret_filters) {
             const chosen_filters = [];
@@ -259,18 +274,16 @@ function SiteLogs (props) {
 
             if (is_empty) setFilterList({});
             setFilters(chosen_filters);
+            setIsUpdateNeeded(true);
         },
-        customSearchRender: (searchText, handleSearch, hideSearch, options) => {
-            let searchStr = searchText || "";
-
-            if (on_search_open) {
-                searchStr = search_str;
-                setOnSearchOpen(false);
-            }
+        // eslint-disable-next-line max-params
+        customSearchRender: (searchText, handleSearch, hideSearch, s_options) => {
+            const searchStr = searchText || "";
 
             const custom_on_hide_fn = () => {
                 hideSearch();
-                setOnSearchOpen(false);
+                setSearchString("");
+                setIsUpdateNeeded(true);
             };
 
             return (
@@ -278,8 +291,12 @@ function SiteLogs (props) {
                     searchText={searchText}
                     onSearch={handleSearch}
                     onHide={custom_on_hide_fn}
-                    options={options}
-                    onSearchClick={() => setSearchString(searchStr)}
+                    options={s_options}
+                    onSearchClick={() => {
+                        resetInput(true);
+                        setSearchString(searchStr);
+                        setIsUpdateNeeded(true);
+                    }}
                 />
             );
         }
@@ -287,11 +304,21 @@ function SiteLogs (props) {
 
     const columns = [
         {
+            name: "id",
+            label: "Log ID",
+            options: {
+                filter: false,
+                display: false,
+                sort: true
+            }
+        },
+        {
             name: "timestamp",
             label: "Timestamp",
             options: {
                 filter: false,
-                sort: false,
+                sort: true,
+                sortDirection: sort.order_by === "timestamp" ? sort.order : "none",
                 customBodyRender: value => {
                     return moment(value).format("DD MMMM YYYY, HH:mm:ss");
                 }
@@ -306,6 +333,7 @@ function SiteLogs (props) {
                 filterType: "custom",
                 filterList: typeof filter_list.site_name === "undefined" ? [] : filter_list.site_name,
                 filterOptions: {
+                    fullWidth: true,
                     logic (location, filterss) {
                         if (filterss.length) return !filterss.includes(location);
                         return false;
@@ -320,7 +348,6 @@ function SiteLogs (props) {
                                 <InputLabel>Site</InputLabel>
                                 <Select
                                     multiple
-                                    // MenuProps= {MenuProps}
                                     value={filterList[index]}
                                     renderValue={selected => selected.join(", ")}
                                     onChange={event => {
@@ -373,7 +400,7 @@ function SiteLogs (props) {
             name: "type",
             label: "Type",
             options: {
-                filter: true,
+                filter: true
             }
         },
         {
@@ -426,15 +453,13 @@ function SiteLogs (props) {
                 />
             </div>
 
-            {
-                <Dialog open={is_loading} fullWidth>
-                    <DialogContent>
-                        <div style={{ flexGrow: 1 }}>
-                            <LinearProgress variant="query" color="secondary" />
-                        </div>
-                    </DialogContent>
-                </Dialog>
-            }
+            <Dialog open={is_loading} fullWidth>
+                <DialogContent>
+                    <div style={{ flexGrow: 1 }}>
+                        <LinearProgress variant="query" color="secondary" />
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             <div className={classes.pageContentMargin}>
                 <Paper className={classes.paperContainer}>
@@ -453,10 +478,11 @@ function SiteLogs (props) {
                 isOpen={isOpenNarrativeModal}
                 closeHandler={handleBoolean("is_narrative_modal_open", false)}
                 setIsUpdateNeeded={setIsUpdateNeeded}
-                isUpdateNeeded={isUpdateNeeded}
                 chosenNarrative={chosenNarrative}
                 isFromSiteLogs={alertsFromDbData}
                 isEditMode={isEditMode}
+                setSort={setSort}
+                resetInput={resetInput}
             />
 
             <DeleteNarrativeModal
@@ -464,7 +490,6 @@ function SiteLogs (props) {
                 closeHandler={handleBoolean("is_open_delete_modal", false)}
                 chosenNarrative={chosenNarrative}
                 setIsUpdateNeeded={setIsUpdateNeeded}
-                isUpdateNeeded={isUpdateNeeded}
             />
         </Fragment>
     );

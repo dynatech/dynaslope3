@@ -1,6 +1,6 @@
 import React, { useState, useEffect, Fragment } from "react";
 import {
-    TextField, Grid, withStyles, Divider
+    TextField, Grid, makeStyles, Divider
 } from "@material-ui/core";
 
 // Form Related Imports
@@ -18,7 +18,7 @@ import { sites } from "../../../store";
 
 const sites_option = prepareSitesOption(sites);
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     inputGridContainer: {
         marginTop: 6,
         marginBottom: 6
@@ -56,15 +56,17 @@ const styles = theme => ({
         display: "flex",
         justifyContent: "space-evenly"
     }
-});
+}));
 
 
 function IssuesAndReminderForm (props) {
     const {
-        classes, issueReminderData,
+        issueReminderData,
         setIssueReminderData, fullScreen,
         toResolve
     } = props;
+
+    const classes = useStyles();
 
     const {
         iar_id, detail, ts_expiration,
@@ -230,7 +232,7 @@ function IssuesAndReminderForm (props) {
                         {
                             (is_general_iar || !is_event_checked) && (
                                 <Fragment>
-                                    <Grid item xs={12} md={6}>
+                                    <Grid item xs={12} md={6} container justify="center">
                                         <FormControlLabel
                                             key="is_persistent"
                                             control={
@@ -310,4 +312,4 @@ function IssuesAndReminderForm (props) {
 }
 
 
-export default withStyles(styles)(IssuesAndReminderForm);
+export default IssuesAndReminderForm;

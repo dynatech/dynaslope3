@@ -63,6 +63,7 @@ APP_CONFIG = {
     "generated_alerts_path": f"{ROOT_PATH}/temp/alerts",
     "bulletin_save_path": f"{ROOT_PATH}/temp/bulletin",
     "charts_render_path": f"{ROOT_PATH}/temp/charts",
+    "attachment_path": f"{ROOT_PATH}/temp/attachments",
     "logs_path": f"{ROOT_PATH}/logs",
     # "url": "http://192.168.150.167:3000",
     "url": "http://192.168.150.110",

@@ -228,13 +228,29 @@ function AllContacts (props) {
     }
 
     return orgs.map((row, index) => {
-        const { scope, org_name } = contact_per_org[row][0];
-        const { header: contact_scope } = createHeader(scope, org_name);
-        const primary_contact = contact_per_org[row].find(x => x.primary_contact === 1);
-        let primary = "No primary contact set";
-        if (typeof primary_contact !== "undefined") {
-            const { contact_person: { first_name, last_name } } = primary_contact;
-            primary = `${first_name} ${last_name}`;
+        let contact_scope = null;
+        let primary_contacts = [];
+
+        contact_per_org[row].map((contact) => {
+            const { org_name, contact_person, scope, primary_contact } = contact;
+            const { header } = createHeader(scope, org_name);
+            contact_scope = header;
+            const { first_name, last_name } = contact_person;
+            if (primary_contact === 1) {
+                primary_contacts.push(
+                    <Typography 
+                        variant="body2" align="center"
+                        key={`${first_name}_${last_name}_${index + 1}`}
+                    >
+                        {first_name} {last_name}
+                    </Typography>
+                );
+            }
+            return primary_contacts;
+        });
+
+        if (primary_contacts.length === 0) {
+            primary_contacts = <Typography variant="body2" align="center">No primary contact.</Typography>;
         }
         
         return (
@@ -244,7 +260,7 @@ function AllContacts (props) {
                         <Typography variant="subtitle2">
                             {contact_scope}
                         </Typography>
-                        <Typography variant="body1">{primary}</Typography>
+                        <Typography variant="body1">{primary_contacts}</Typography>
                     </CardContent>
                     <CardActions disableSpacing>
                         <Grid container justify="flex-end">

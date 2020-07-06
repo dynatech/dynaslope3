@@ -1,11 +1,15 @@
 {
   "name": "mia-3.0",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "homepage": "http://dynaslope.com",
   "dependencies": {
+<<<<<<< HEAD
     "@ckeditor/ckeditor5-build-classic": "^15.0.0",
 <<<<<<< Updated upstream
+=======
+    "@ckeditor/ckeditor5-build-classic": "^19.0.2",
+>>>>>>> a931aeaa65620e599e03b3d58b143500ce6251b5
     "@ckeditor/ckeditor5-react": "^2.1.0",
     "@date-io/moment": "^1.3.13",
     "@material-ui/core": "^4.10.1",
@@ -19,7 +23,7 @@
     "@material-ui/pickers": "^3.2.10",
     "axios": "^0.19.2",
     "ckeditor": "^4.12.1",
-    "highcharts": "^7.2.1",
+    "highcharts": "^8.1.2",
     "highcharts-export-server": "^2.0.28",
     "highcharts-react-official": "^2.2.2",
     "leaflet": "^1.6.0",

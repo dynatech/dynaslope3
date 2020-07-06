@@ -102,3 +102,12 @@ export function receiveAllSiteRainfallData (callback) {
         callback(temp);
     });
 }
+
+export function receiveEWIInsertResponse (callback) {
+    connectToWebsocket();
+
+    socket.on("receive_ewi_insert_response", data => {
+        const temp = JSON.parse(data);
+        callback(temp);
+    });
+}

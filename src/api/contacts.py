@@ -3,14 +3,13 @@ Contacts Functions Controller File
 """
 
 import traceback
-from datetime import datetime
 from flask import Blueprint, jsonify, request
 from connection import DB
 from src.utils.contacts import (
     get_all_contacts, save_user_information,
     save_user_contact_numbers, save_user_affiliation,
     ewi_recipient_migration, get_contacts_per_site,
-    get_ground_measurement_reminder_recipients,
+    get_ground_data_reminder_recipients,
     get_recipients_option, get_blocked_numbers,
     save_blocked_number, get_all_sim_prefix,
     get_recipients, save_primary, attach_mobile_number_to_existing_user
@@ -29,7 +28,6 @@ def wrap_get_all_contacts():
     """
 
     contacts = get_all_contacts(return_schema=True)
-
     return jsonify(contacts)
 
 
@@ -38,6 +36,7 @@ def save_contact():
     """
     Function that save and update contact
     """
+
     data = request.get_json()
     if data is None:
         data = request.form
@@ -129,6 +128,9 @@ def migrate_ewi_recipient():
 @CONTACTS_BLUEPRINT.route("/contacts/get_contacts_per_site", methods=["GET", "POST"])
 @CONTACTS_BLUEPRINT.route("/contacts/get_contacts_per_site/<site_code>", methods=["GET", "POST"])
 def wrap_get_contacts_per_site(site_code=None):
+    """
+    """
+
     temp = {
         "site_ids": [],
         "site_codes": [],
@@ -155,6 +157,9 @@ def wrap_get_contacts_per_site(site_code=None):
 @CONTACTS_BLUEPRINT.route("/contacts/get_recipients_option", methods=["GET", "POST"])
 @CONTACTS_BLUEPRINT.route("/contacts/get_recipients_option/<site_code>", methods=["GET", "POST"])
 def wrap_get_recipients_option(site_code=None):
+    """
+    """
+
     temp = {
         "site_ids": [],
         "org_ids": [],
@@ -183,15 +188,13 @@ def wrap_get_recipients_option(site_code=None):
     return jsonify(data)
 
 
-@CONTACTS_BLUEPRINT.route("/contacts/get_ground_meas_reminder_recipients", methods=["GET", "POST"])
-def get_ground_meas_reminder_recipients():
+@CONTACTS_BLUEPRINT.route("/contacts/get_ground_data_reminder_recipients/<site_id>", methods=["GET"])
+def get_ground_meas_reminder_recipients(site_id):
     """
     Function that get ground meas reminder recipients
     """
-    now = datetime.now()
-    # current_datetime = now.strftime("%Y-%m-%d %H:%M:%S")
-    data = get_ground_measurement_reminder_recipients(now)
 
+    data = get_ground_data_reminder_recipients(site_id)
     return jsonify(data)
 
 
@@ -200,6 +203,7 @@ def get_all_blocked_numbers():
     """
     Function that gets all blocked numbers
     """
+
     try:
         blocked_numbers = get_blocked_numbers()
         status = True
@@ -220,6 +224,7 @@ def save_block_number():
     """
     Function that save blocked number
     """
+
     data = request.get_json()
     if data is None:
         data = request.form
@@ -251,6 +256,7 @@ def sim_prefixes():
     """
     Function that gets sim prefixes
     """
+
     try:
         data = get_all_sim_prefix()
         status = True
@@ -274,6 +280,7 @@ def get_contact_prioritization():
     """
     Function that get contact prioritization
     """
+
     users = get_recipients(joined=True, order_by_scope=True)
 
     all_sites_stakeholders = {}
@@ -305,6 +312,7 @@ def save_primary_contact():
     """
     Function that save primary_contact
     """
+
     data = request.get_json()
     if data is None:
         data = request.form

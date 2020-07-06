@@ -26,8 +26,8 @@ from src.utils.chatterbox import (
 from src.utils.contacts import (
     get_all_contacts,
     get_recipients_option,
-    get_ground_measurement_reminder_recipients,
-    get_blocked_numbers
+    get_blocked_numbers,
+    get_ground_data_reminder_recipients
 )
 from src.utils.ewi import create_ground_measurement_reminder, get_ground_data_noun
 from src.utils.general_data_tag import insert_data_tag
@@ -36,7 +36,7 @@ from src.utils.narratives import(
 )
 
 from src.utils.monitoring import get_ongoing_extended_overdue_events, get_routine_sites
-from src.utils.contacts import get_sites_with_ground_meas
+from src.utils.surficial import get_sites_with_ground_meas
 from src.utils.manifestations_of_movements import get_moms_report
 
 set_data_to_memcache(name="COMMS_CLIENTS", data=[])
@@ -214,8 +214,10 @@ def connect():
     clients.append(sid)
     set_data_to_memcache(name="COMMS_CLIENTS", data=clients)
 
+    ts = datetime.now()
+
     print("")
-    print("Connected:", sid)
+    print(str(ts), "Connected:", sid)
     print(f"Comms: {len(clients)}")
     print("")
 
@@ -244,8 +246,10 @@ def disconnect():
             pass
     set_data_to_memcache(name="ROOM_MOBILE_IDS", data=room_mobile_ids)
 
+    ts = datetime.now()
+
     print("")
-    print("Disconencted:", sid)
+    print(str(ts), "Disconencted:", sid)
     print(f"Comms: {len(clients)}")
     print("")
 
@@ -369,50 +373,9 @@ def ground_data_reminder_bg_task():
     """
     """
 
-    ts_now = datetime.now()
-    recipients_group = get_ground_measurement_reminder_recipients(ts_now)
-
-    for row in recipients_group:
-        recipients = row["recipients"]
-        monitoring_type = row["type"]
-        site_recipients_dict = {}
-
-        if recipients:
-            for recipient in recipients:
-                mobile_numbers = recipient["mobile_numbers"]
-                numbers_list = map(
-                    lambda x: x["mobile_number"], mobile_numbers)
-                site_id = recipient["organizations"][0]["site"]["site_id"]
-                site_recipients_dict.setdefault(
-                    site_id, []).extend(numbers_list)
-
-            for site_id, site_recipients in site_recipients_dict.items():
-                message = create_ground_measurement_reminder(
-                    site_id, monitoring_type, ts_now)
-
-                outbox_id = insert_message_on_database({
-                    "sms_msg": message,
-                    "recipient_list": site_recipients
-                })
-
-                ts = datetime.now()
-                default_user_id = 2
-
-                # Tag message
-                tag_details = {
-                    "outbox_id": outbox_id,
-                    "user_id": default_user_id,
-                    "ts": ts
-                }
-
-                tag_id = 10  # NOTE: for refactoring, GroundMeasReminder id on sms_tags
-                insert_data_tag("smsoutbox_user_tags", tag_details, tag_id)
-
-                # Add narratives
-                narrative = f"Sent surficial ground data reminder for {monitoring_type} monitoring"
-                event_id = find_narrative_event_id(ts, site_id)
-                write_narratives_to_db(
-                    site_id, ts, narrative, 1, default_user_id, event_id=event_id)
+    ts = datetime.now()
+    process_ground_data(ts, routine_extended_hour=9, event_delta_hour=1,
+                        routine_delta_hour=4, process_fn=process_ground_data_reminder_sending)
 
 
 @CELERY.task(name="no_ground_data_narrative_bg_task", ignore_results=True)
@@ -421,11 +384,18 @@ def no_ground_data_narrative_bg_task():
     """
 
     ts = datetime.now()
+    process_ground_data(ts, routine_extended_hour=11, event_delta_hour=3,
+                        routine_delta_hour=6, process_fn=process_no_ground_narrative_writing)
+
+
+def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_delta_hour, process_fn):
     events = get_ongoing_extended_overdue_events(ts)
     latest_events = events["latest"]
 
+    is_routine_extended_processing = ts.hour == routine_extended_hour
+
     routine_sites = None
-    if ts.hour == 11:
+    if is_routine_extended_processing:
         routine_sites = get_routine_sites(
             timestamp=ts, only_site_code=False)
 
@@ -436,7 +406,8 @@ def no_ground_data_narrative_bg_task():
         alert_level = row["public_alert_symbol"]["alert_level"]
 
         if alert_level != 0:
-            process_no_ground_narrative_writing(ts, site_id, 3, event_id)
+            process_fn(
+                ts, site_id, event_delta_hour, event_id, "event")
 
         if routine_sites:
             index = next(index for index, site in enumerate(routine_sites)
@@ -444,53 +415,104 @@ def no_ground_data_narrative_bg_task():
             del routine_sites[index]
 
     processed_sites = []
-    if routine_sites:
+    if is_routine_extended_processing:
         extended_events = events["extended"]
-        merged = routine_sites + extended_events
+        merged = extended_events + routine_sites
 
         for row in merged:
             try:
                 site_id = row.site_id
                 event_id = None
+                monitoring_type = "routine"
             except AttributeError:
                 ev = row["event"]
                 site_id = ev["site_id"]
                 event_id = ev["event_id"]
+                monitoring_type = "extended"
 
             if site_id not in processed_sites:
-                process_no_ground_narrative_writing(ts, site_id, 6, event_id)
+                process_fn(
+                    ts, site_id, routine_delta_hour, event_id, monitoring_type)
                 processed_sites.append(site_id)
 
 
-def process_no_ground_narrative_writing(ts, site_id, timedelta_hour, event_id):
+def process_ground_data_reminder_sending(ts, site_id, timedelta_hour, event_id, monitoring_type):
     """
     """
 
-    default_user_id = 2  # Dynaslope User
-
-    narrative, result = check_ground_data_and_prepare_narrative(
-        site_id, ts, timedelta_hour, 59)
+    ground_data_noun, result = check_ground_data_and_return_noun(
+        site_id, ts, timedelta_hour, 30)
 
     if not result:
         if not event_id:
             event_id = find_narrative_event_id(ts, site_id)
 
+        recipients = get_ground_data_reminder_recipients(site_id)
+        site_recipients = []
+        for recipient in recipients:
+            mobile_numbers = recipient["mobile_numbers"]
+            numbers_list = map(
+                lambda x: x["mobile_number"], mobile_numbers)
+            site_recipients.extend(numbers_list)
+
+        message = create_ground_measurement_reminder(
+            site_id, monitoring_type, ts, ground_data_noun=ground_data_noun)
+
+        if site_recipients:
+            outbox_id = insert_message_on_database({
+                "sms_msg": message,
+                "recipient_list": site_recipients
+            })
+
+            ts = datetime.now()
+            default_user_id = 2
+
+            # Tag message
+            tag_details = {
+                "outbox_id": outbox_id,
+                "user_id": default_user_id,
+                "ts": ts
+            }
+
+            tag_id = 10  # NOTE: for refactoring, GroundMeasReminder id on sms_tags
+            insert_data_tag("smsoutbox_user_tags", tag_details, tag_id)
+
+            # Add narratives
+            narrative = f"Sent surficial ground data reminder for {monitoring_type} monitoring"
+            write_narratives_to_db(
+                site_id, ts, narrative, 1, default_user_id, event_id=event_id)
+
+
+def process_no_ground_narrative_writing(ts, site_id, timedelta_hour, event_id, monitoring_type=None):
+    """
+    """
+
+    default_user_id = 2  # Dynaslope User
+
+    ground_data_noun, result = check_ground_data_and_return_noun(
+        site_id, ts, timedelta_hour, 59)
+    narrative = f"No {ground_data_noun} received from stakeholders"
+
+    if not result:
+        if not event_id:
+            event_id = find_narrative_event_id(ts, site_id)
+
+        ts = ts.replace(minute=30)
         write_narratives_to_db(
             site_id, ts, narrative, 1, default_user_id, event_id=event_id)
 
 
-def check_ground_data_and_prepare_narrative(site_id, timestamp, hour, minute):
-    ground_meas_noun = get_ground_data_noun(site_id=site_id)
-    narrative = f"No {ground_meas_noun} received from stakeholders"
+def check_ground_data_and_return_noun(site_id, timestamp, hour, minute):
+    ground_data_noun = get_ground_data_noun(site_id=site_id)
 
-    if ground_meas_noun == "ground measurement":
+    if ground_data_noun == "ground measurement":
         result = get_sites_with_ground_meas(timestamp,
                                             timedelta_hour=hour, minute=minute, site_id=site_id)
     else:
         result = get_moms_report(timestamp,
                                  timedelta_hour=hour, minute=hour, site_id=site_id)
 
-    return narrative, result
+    return ground_data_noun, result
 
 
 @CELERY.task(name="initialize_comms_data", ignore_results=True)

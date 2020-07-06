@@ -3,7 +3,7 @@ import React, { Fragment, useEffect, useState, useContext } from "react";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { Button, Grid, makeStyles } from "@material-ui/core";
 import { AddAlert, Warning } from "@material-ui/icons";
-
+import { useSnackbar } from "notistack";
 import PageTitle from "../../reusables/PageTitle";
 import TabBar from "../../reusables/TabBar";
 import MonitoringTables from "./MonitoringTables";
@@ -17,7 +17,7 @@ import GeneralStyles from "../../../GeneralStyles";
 import { 
     subscribeToWebSocket, unsubscribeToWebSocket,
     receiveGeneratedAlerts, receiveCandidateAlerts,
-    receiveAlertsFromDB
+    receiveAlertsFromDB, receiveEWIInsertResponse
 } from "../../../websocket/monitoring_ws";
 import { getMonitoringShifts, receiveMonitoringShiftData, removeReceiveMonitoringShiftData } from "../../../websocket/misc_ws";
 import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
@@ -59,6 +59,7 @@ function Container (props) {
     const [is_moms_modal_open, setMomsModal] = useState(false);
     const set_moms_modal_fn = bool => () => setMomsModal(bool);
     const { setIsReconnecting } = useContext(GeneralContext);
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     
     useEffect(() => {
         subscribeToWebSocket(setIsReconnecting);
@@ -68,6 +69,17 @@ function Container (props) {
         receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
         receiveMonitoringShiftData(shift_data => setMonitoringShifts(shift_data));
         getMonitoringShifts();
+        receiveEWIInsertResponse(response => {
+            const { snackbar_key, message, status } = response;
+            closeSnackbar(snackbar_key);
+            enqueueSnackbar(
+                message,
+                {
+                    variant: status ? "success" : "error",
+                    autoHideDuration: 3000
+                }
+            );
+        });
 
         return function cleanup () {
             unsubscribeToWebSocket();

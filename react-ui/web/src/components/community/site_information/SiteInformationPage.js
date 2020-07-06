@@ -5,8 +5,11 @@ import React, {
 
 import {
     withStyles, Grid, Typography,
-    Divider
+    Divider, Button,
 } from "@material-ui/core";
+import { 
+    Edit
+} from "@material-ui/icons";
 import ContentLoader from "react-content-loader";
 
 import moment from "moment";
@@ -18,8 +21,9 @@ import SiteStakeholdersList from "./SiteStakeholdersList";
 // import SiteEventsTable from "./SiteEventsTable";
 import BackToMainButton from "./BackToMainButton";
 import { GeneralContext } from "../../contexts/GeneralContext";
-import { prepareSiteAddress, capitalizeFirstLetter } from "../../../UtilityFunctions";
-import { getSiteSeason } from "../ajax";
+import { prepareSiteAddress, capitalizeFirstLetter, monthSorter } from "../../../UtilityFunctions";
+import { getSiteSeason, getSeasons } from "../ajax";
+import EditSiteInformationModal from "./EditSiteInformationModal";
 
 const MyLoader = () => (
     <ContentLoader 
@@ -33,7 +37,6 @@ const MyLoader = () => (
         <rect x="18" y="80" rx="3" ry="3" width="350" height="22" />
     </ContentLoader>
 );
-  
 
 function SiteInformationPage (props) {
     const { 
@@ -46,7 +49,9 @@ function SiteInformationPage (props) {
 
     const [site, setSite] = useState(null);
     const [season_months, setSeasonMonths] = useState([]);
+    const [seasons, setSeasons] = useState([]);
     const [routine_schedule, setRoutineSchedule] = useState([]);
+    const [isOpenEditModal, setIsEditModal] = useState(false);
 
     // const [site_as_title, setSiteAsTitle] = useState("");
     // const [local_site_information, setLocalSiteInformation] = useState({});
@@ -80,6 +85,10 @@ function SiteInformationPage (props) {
 
     useEffect(() => {
         if (site !== null) {
+            getSeasons(data => {
+                setSeasons(data);
+            });
+
             getSiteSeason(site.site_code, data => {
                 const { season_months: sm } = data;
                 const { routine_schedules: rs } = sm;
@@ -111,6 +120,9 @@ function SiteInformationPage (props) {
                     else wet.push(key);
                 });
 
+                monthSorter(dry);
+                monthSorter(wet);
+
                 const list = [
                     { key: "dry", list: dry },
                     { key: "wet", list: wet }
@@ -121,11 +133,36 @@ function SiteInformationPage (props) {
         }
     }, [site]);
 
+    const editButtonAction = () => {
+        setIsEditModal(!isOpenEditModal);
+    };
+
     return (
         <Fragment>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <Grid 
+                container spacing={2} 
+                justify="space-between"
+                alignItems="stretch"
+            >
+                <Grid container item xs={12} style={{ marginBottom: 16 }}>
+                    <Grid item sm>
+                        <BackToMainButton {...props} width={width} />
+                    </Grid>
+                    <Grid item sm container justify="flex-end">
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            onClick={editButtonAction}
+                            startIcon={<Edit />}>
+                            Edit
+                        </Button>
+                    </Grid>
+                </Grid>
+            </Grid>
+            {/* <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <BackToMainButton {...props} width={width} />
-            </div>
+            </div> */}
 
             <Grid container spacing={2}>
                 {
@@ -143,7 +180,7 @@ function SiteInformationPage (props) {
                             <Grid item xs={12}>
                                 <Divider className={classes.divider}/>
                             </Grid>
-
+                            
                             <Grid item xs={6} container spacing={1}>
                                 <Grid item xs={12} align="center">
                                     <Typography variant="h6" color="textPrimary">
@@ -248,8 +285,6 @@ function SiteInformationPage (props) {
                             <Grid item xs={12} align="center">
                                 <SiteStakeholdersList siteCode={site.site_code} />
                             </Grid>
-            
-
                             {/* <Fragment>
                     <Grid item xs={12} sm={12} style={{ textAlign: "center", paddingTop: 20 }}>
                         <Fragment>
@@ -310,6 +345,12 @@ function SiteInformationPage (props) {
                     )
                 }
             </Grid>
+            <EditSiteInformationModal
+                isOpen={isOpenEditModal}
+                siteInformation={siteInformation}
+                editButtonAction={editButtonAction}
+                seasons={seasons}
+            />
         </Fragment>
     );
 }

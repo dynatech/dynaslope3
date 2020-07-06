@@ -3,10 +3,11 @@ Sites Functions Controller File
 """
 
 from flask import Blueprint, jsonify, request
+from connection import DB
 from src.utils.sites import (
     get_sites_data, get_site_events,
     get_all_geographical_selection_per_category,
-    get_site_season
+    get_site_season, get_seasons, save_site_info
 )
 from src.models.sites import SitesSchema
 from src.models.monitoring import MonitoringEventsSchema
@@ -82,3 +83,42 @@ def wrap_get_site_season(site_code=None):
 
     result = get_site_season(site_code, return_schema_format=True)
     return jsonify(result)
+
+
+@SITES_BLUEPRINT.route("/sites/get_seasons", methods=["GET"])
+def get_all_seasons():
+    """
+    """
+    seasons = get_seasons()
+
+    return jsonify(seasons)
+
+@SITES_BLUEPRINT.route("/sites/save_site_information", methods=["GET", "POST"])
+def save_site_information():
+    """
+    Function that save site information
+    """
+    data = request.get_json()
+    if data is None:
+        data = request.form
+
+    status = None
+    message = ""
+
+    try:
+        save_site_info(data)
+        DB.session.commit()
+        status = "success"
+        message = "Successfully saved site information!"
+    except Exception as err:
+        DB.session.rollback()
+        print(err)
+        message = "Something went wrong, Please try again"
+        status = "error"
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+
+    return jsonify(feedback)
