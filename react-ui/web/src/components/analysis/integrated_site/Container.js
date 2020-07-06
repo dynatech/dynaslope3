@@ -218,7 +218,7 @@ function prepareOptions (is_mobile, type, data_list) {
         chart: {
             type: "heatmap",
             // height: `${height }%`,
-            height: 600,
+            height: 700, // 600,
             spacingTop: 12,
             spacingRight: 18
         },
