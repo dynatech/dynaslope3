@@ -357,8 +357,9 @@ function formatRainfallSummaryData (data) {
     };
 }
 
-function prepareRainfallSummaryOption (rainfall_summary) {
+function prepareRainfallSummaryOption (rainfall_summary, ts) {
     const { site_codes, list_1d, list_3d } = rainfall_summary;
+    const ts_str = ts === null ? "---" : moment(ts).format("D MMM YYYY, HH:mm");
     
     return {
         chart: {
@@ -370,7 +371,7 @@ function prepareRainfallSummaryOption (rainfall_summary) {
             y: 20
         },
         subtitle: {
-            text: `As of: <b>${moment().format("D MMM YYYY, HH:mm")}</b><br>Note: Percentage capped at 100%`,
+            text: `As of: <b>${ts_str}</b><br>Note: Percentage capped at 100%`,
         },
         xAxis: {
             categories: site_codes,
@@ -530,8 +531,9 @@ function Container (props) {
         subscribeToWebSocket(setIsReconnecting);
 
         receiveAllSiteRainfallData(data => {
-            const obj = formatRainfallSummaryData(data);
-            const temp = prepareRainfallSummaryOption(obj);
+            const { rainfall_summary, ts } = data;
+            const obj = formatRainfallSummaryData(rainfall_summary);
+            const temp = prepareRainfallSummaryOption(obj, ts);
             setRainfallSummaryOption(temp);
         });
 
