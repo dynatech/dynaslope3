@@ -1,3 +1,7 @@
+"""
+Utility Codes for General Data Tag
+"""
+
 from connection import DB
 from src.utils.extra import var_checker
 from src.models.general_data_tag import GeneralDataTagManager
@@ -5,6 +9,9 @@ from src.models.inbox_outbox import SmsInboxUserTags, SmsOutboxUserTags, SmsTags
 
 
 def get_all_tag(tag_id=None):
+    """
+    """
+
     if tag_id is None:
         general_data_tag = GeneralDataTagManager.query.all()
     else:
@@ -44,17 +51,14 @@ def get_tag_description(tag_id):
     TODO: Revive the code above for it is the right code. 
     Please check the function getting the tag_options in the front end
     """
+
     s_t = SmsTags
-    var_checker("tag_id", tag_id, True)
-    var_checker("query", s_t.query.filter(s_t.tag_id == tag_id), True)
     sms_tag_row = s_t.query.filter(s_t.tag_id == tag_id).first()
 
     if sms_tag_row:
         tag = sms_tag_row.tag
     else:
         tag = "System Data Issue: No tag found on DB"
-
-    var_checker("sms_tag_row", sms_tag_row, True)
 
     return tag
 
@@ -148,6 +152,7 @@ def update_data_tag(row_to_update, tag_details, tag_id):
         tag_details (Dictionary) - Dictionary container details exclusive for
                             each tag table.
     """
+
     row_type = type(row_to_update).__name__
     id_to_return = None
 

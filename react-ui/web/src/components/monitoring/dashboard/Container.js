@@ -76,7 +76,7 @@ function Container (props) {
                 message,
                 {
                     variant: status ? "success" : "error",
-                    autoHideDuration: 3000
+                    autoHideDuration: 7000
                 }
             );
         });

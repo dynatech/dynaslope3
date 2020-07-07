@@ -46,7 +46,7 @@ function RoutineReleaseFormModal (props) {
 
     const initial_routine_data = {
         public_alert_symbol: "A0",
-        public_alert_level: "0",
+        public_alert_level: 0,
         data_ts: null,
         release_time: moment(),
         general_status: "routine",
@@ -139,7 +139,7 @@ function RoutineReleaseFormModal (props) {
     }, [chosenCandidateAlert, site_options]);
 
     const handleSubmit = () => {
-        const f_data_ts = moment(routineData.data_ts).format("YYYY-MM-DD HH:mm:ss");
+        const f_data_ts = moment(routineData.data_ts).format("YYYY-MM-DD HH:mm:00");
         const f_rel_time = moment(routineData.release_time).format("HH:mm:ss");
         const snackbar_key = enqueueSnackbar(
             "Inserting Routine EWI release...",
@@ -153,6 +153,7 @@ function RoutineReleaseFormModal (props) {
             ...routineData,
             data_timestamp: f_data_ts,
             release_time: f_rel_time,
+            reporter_id_ct: tmp_ct,
             routine_details: [
                 { ...a0SiteList },
                 { ...NDSiteList }
