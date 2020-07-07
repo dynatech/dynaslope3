@@ -148,7 +148,7 @@ function SiteInformationPage (props) {
                     <Grid item sm>
                         <BackToMainButton {...props} width={width} />
                     </Grid>
-                    <Grid item sm container justify="flex-end">
+                    {/* <Grid item sm container justify="flex-end">
                         <Button
                             variant="contained"
                             color="primary"
@@ -157,7 +157,7 @@ function SiteInformationPage (props) {
                             startIcon={<Edit />}>
                             Edit
                         </Button>
-                    </Grid>
+                    </Grid> */}
                 </Grid>
             </Grid>
             {/* <div style={{ display: "flex", justifyContent: "space-between" }}>

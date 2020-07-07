@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useContext } from "react";
-import moment from "moment";
+import React, { useState, useEffect } from "react";
 import {
     Dialog, DialogTitle, DialogContent,
-    DialogContentText, DialogActions,
-    Button, withMobileDialog
+    DialogActions, Button, withMobileDialog
 } from "@material-ui/core";
 import { useSnackbar } from "notistack";
-import EditSiteInformationForm from "./EdiSiteInformationForm";
+
+import EditSiteInformationForm from "./EditSiteInformationForm";
 import { saveSiteInformation } from "../ajax";
 
 function EditSiteInformationModal (props) {
