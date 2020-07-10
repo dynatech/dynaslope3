@@ -27,8 +27,10 @@ def get_users_categorized_by_org(site_code=None, return_schema=False):
     """
     u_org = UserOrganizations
     org = Organizations
+    users = UsersRelationship
 
-    base = u_org.query.join(org).order_by(DB.asc(org.scope))
+    base = u_org.query.join(org).join(UsersRelationship).order_by(
+        DB.asc(org.scope), DB.desc(users.status), DB.desc(u_org.primary_contact))
 
     if site_code:
         base = base.join(Sites).filter(Sites.site_code == site_code)
@@ -36,7 +38,8 @@ def get_users_categorized_by_org(site_code=None, return_schema=False):
     users_by_org = base.all()
 
     if return_schema:
-        users_by_org = UserOrganizationsSchema(many=True).dump(users_by_org).data
+        users_by_org = UserOrganizationsSchema(
+            many=True).dump(users_by_org).data
 
     return users_by_org
 

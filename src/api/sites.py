@@ -37,13 +37,25 @@ def wrap_get_sites_data(site_code=None):
 
     output = site_schema.dump(site).data
 
-    # NOTE: Add the Lat and Long
     if isinstance(output, list):
         for site in output:
-            site_logger_sample = get_loggers(
+            site_logger = get_loggers(
                 site_code=site["site_code"], many=False)
-            site["latitude"] = site_logger_sample.latitude
-            site["longitude"] = site_logger_sample.longitude
+
+            # NOTE: This is highly unlikely that a site
+            # doesn't have a logger because a site
+            # will not become a project site unless
+            # a logger is installed on-site thus this
+            # will only apply on test sites
+            # (Default coordinates: PHIVOLCS)
+            lat = 14.6521611
+            long = 121.0560429
+            if site_logger:
+                lat = site_logger.latitude
+                long = site_logger.longitude
+
+            site["latitude"] = lat
+            site["longitude"] = long
 
     return jsonify(output)
 
@@ -92,6 +104,7 @@ def get_all_seasons():
     seasons = get_seasons()
 
     return jsonify(seasons)
+
 
 @SITES_BLUEPRINT.route("/sites/save_site_information", methods=["GET", "POST"])
 def save_site_information():

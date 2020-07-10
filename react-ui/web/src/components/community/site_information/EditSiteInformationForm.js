@@ -1,21 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import {
-    Grid, Divider, makeStyles,
-    List, Card, CardHeader,
-    ListItem, ListItemText,
-    ListItemIcon, Checkbox,
-    Button, TextField, Typography,
+    Grid, Checkbox, TextField, Typography,
     FormControl, InputLabel, Select,
     MenuItem, Radio, RadioGroup,
     FormLabel, FormControlLabel
 } from "@material-ui/core";
 import { capitalizeFirstLetter, monthSorter } from "../../../UtilityFunctions";
-
-const useStyles = makeStyles(theme => ({
-    form_message_style: {
-        fontStyle: "italic"
-    }
-}));
 
 const region_list = [
     "I", "II", "III", "IV-A", "IV-B",
@@ -46,130 +36,180 @@ function arrangeSeasons (seasons, current_season) {
     return list;
 }
 
+function sanitizeData (data) {
+    const clean_data = {};
+    Object.keys(data).forEach(key => {
+        clean_data[key] = data[key].value;
+    });
+
+    return clean_data;
+}
+
+function getHelperText (field, value) {
+    if (value === "") return "Required field";
+
+    if (field === "site_code") {
+        if (value.length < 3) return "Site code must be three-lettered keyword";
+    }
+
+    return "";
+}
+
+function reducerFunction (state, action) {
+    const { type, field, value } = action;
+    const field_value = state[field];
+    const new_helper_text = getHelperText(field, value);
+    
+    let new_value = value;
+    if (["purok", "sitio", "households"].includes(field)) { new_value = value || null; }
+    if (field === "season") new_value = parseInt(value, 10);
+
+    switch (type) {
+        case "UPDATE":
+            return { ...state, [field]: {
+                ...field_value,
+                value: new_value,
+                helper_text: new_helper_text
+            } };
+        default:
+            return { ...state };
+    }
+}
+
+function initReducer (data) {
+    const new_data = {};
+    const not_required = ["sitio", "purok", "active", "site_id"];
+    Object.keys(data).forEach(key => {
+        new_data[key] = {
+            value: data[key],
+            helper_text: null,
+            required: !not_required.includes(key)
+        };
+    });
+
+    return new_data;
+}
+
 function EditSiteInformationForm (props) {
-    const { setSiteInformationData, siteInformation, seasons } = props;
-    const { 
-        active, barangay, households, municipality,
-        province, psgc, purok, region, season, site_code,
-        sitio, site_id
-    } = siteInformation;
-    const initial_purok = purok ? null : "";
-    const initial_sitio = sitio ? null : "";
-    const classes = useStyles();
-    const [current_season_preview, setCurrentSeasonPreview] = useState([]);
-    const [current_site_code, setCurrentSiteCode] = useState(site_code.toUpperCase());
-    const [current_purok, setCurrentPurok] = useState(initial_purok);
-    const [current_sitio, setCurrentSitio] = useState(initial_sitio);
-    const [current_barangay, setCurrentBarangay] = useState(barangay);
-    const [current_municipality, setCurrentMunicipality] = useState(municipality);
-    const [current_province, setCurrentProvince] = useState(province);
-    const [current_region, setCurrentRegion] = useState(region);
-    const [current_psgc, setCurrentPsgc] = useState(psgc);
-    const [current_is_active, setCurrentIsActive] = useState(active);
-    const [current_households, setCurrentHouseholds] = useState(households);
-    const [current_season, setCurrentSeason] = useState(season.toString());
-   
-    const isActiveHandler = event => setCurrentIsActive(event.target.checked);
-    const siteCodeHandler = event => {
-        const field_value = event.target.value;
-        setCurrentSiteCode(field_value.toUpperCase());
-    };
+    const {
+        siteInformation, setSiteInformationData,
+        seasons, setIsDisable
+    } = props;
+
+    const [site_data, dispatch] = useReducer(reducerFunction, siteInformation, initReducer);
+    const [seasonPreview, setSeasonPreview] = useState([]);
     
     const seasonChangeHandler = event => {
         const selected_season = event.target.value;
-        setCurrentSeason(selected_season);
+        dispatch({ type: "UPDATE", field: "season", value: selected_season });
         const arrangedSeasons = arrangeSeasons(seasons, selected_season);
-        setCurrentSeasonPreview(arrangedSeasons);
+        setSeasonPreview(arrangedSeasons);
     };
 
     useEffect(() => {
-        const new_data = { 
-            current_site_code, current_purok, current_sitio,
-            current_barangay, current_municipality, current_province,
-            current_region, current_psgc, current_is_active,
-            current_households, current_season, site_id
-        };
+        const is_disable_save = Object.keys(site_data).some(key => {
+            const { required, helper_text } = site_data[key];
+            return required && helper_text !== "" && helper_text !== null;
+        });
+        setIsDisable(is_disable_save);
+        setSiteInformationData(sanitizeData(site_data));
 
-        setSiteInformationData(new_data);
-    }, [current_site_code, current_purok, current_sitio,
-        current_barangay, current_municipality, current_province,
-        current_region, current_psgc, current_is_active,
-        current_households, current_season, site_id]);
+    }, [site_data]);
     
     useEffect(() => {
-        const arrangedSeasons = arrangeSeasons(seasons, current_season);
-        setCurrentSeasonPreview(arrangedSeasons);
-    }, [season]);
+        if (site_data.season.value !== null) {
+            const arrangedSeasons = arrangeSeasons(seasons, site_data.season.value);
+            setSeasonPreview(arrangedSeasons);
+        }
+    }, [site_data.season.value]);
 
     return (
         <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={6}>
+            <Grid item xs={12} sm={6}>
                 <TextField
                     label="Site code"
                     fullWidth
                     required
-                    value={current_site_code}
-                    onChange={siteCodeHandler}
                     inputProps={{
                         maxLength: 3
                     }}
-                    helperText={current_site_code === "" ? "Required field." : " "}
+                    value={site_data.site_code.value.toUpperCase()}
+                    onChange={e => dispatch({ type: "UPDATE", field: "site_code", value: e.target.value })}
+                    helperText={site_data.site_code.helper_text || ""}
+                    error={Boolean(site_data.site_code.helper_text)}
                 />
             </Grid>
+
             <Grid item xs={6}>
                 <TextField
                     label="Purok"
                     fullWidth
-                    value={current_purok}
-                    onChange={event => setCurrentPurok(event.target.value)}
+                    placeholder="Enter purok if available"
+                    InputLabelProps={{ shrink: true }}
+                    value={site_data.purok.value || ""}
+                    onChange={e => dispatch({ type: "UPDATE", field: "purok", value: e.target.value })}
                 />
             </Grid>
+
             <Grid item xs={6}>
                 <TextField
                     label="Sitio"
                     fullWidth
-                    value={current_sitio}
-                    onChange={event => setCurrentSitio(event.target.value)}
+                    placeholder="Enter sitio if available"
+                    InputLabelProps={{ shrink: true }}
+                    value={site_data.sitio.value || ""}
+                    onChange={e => dispatch({ type: "UPDATE", field: "sitio", value: e.target.value })}
                 />
             </Grid>
+
             <Grid item xs={6}>
                 <TextField
                     label="Barangay"
                     fullWidth
                     required
-                    value={current_barangay}
-                    onChange={event => setCurrentBarangay(event.target.value)}
-                    helperText={current_barangay === "" ? "Required field." : " "}
+                    value={site_data.barangay.value}
+                    onChange={e => dispatch({ type: "UPDATE", field: "barangay", value: e.target.value })}
+                    helperText={site_data.barangay.helper_text || ""}
+                    error={Boolean(site_data.barangay.helper_text)}
                 />
             </Grid>
+
             <Grid item xs={6}>
                 <TextField
                     label="Municipality"
                     fullWidth
                     required
-                    value={current_municipality}
-                    onChange={event => setCurrentMunicipality(event.target.value)}
-                    helperText={current_municipality === "" ? "Required field." : " "}
+                    value={site_data.municipality.value}
+                    onChange={e => dispatch({ type: "UPDATE", field: "municipality", value: e.target.value })}
+                    helperText={site_data.municipality.helper_text || ""}
+                    error={Boolean(site_data.municipality.helper_text)}
                 />
             </Grid>
+
             <Grid item xs={6}>
                 <TextField
                     label="Province"
                     fullWidth
                     required
-                    value={current_province}
-                    onChange={event => setCurrentProvince(event.target.value)}
-                    helperText={current_province === "" ? "Required field." : " "}
+                    value={site_data.province.value}
+                    onChange={e => dispatch({ type: "UPDATE", field: "province", value: e.target.value })}
+                    helperText={site_data.province.helper_text || ""}
+                    error={Boolean(site_data.province.helper_text)}
                 />
             </Grid>
+
             <Grid item xs={6}>
-                <FormControl required fullWidth>
+                <FormControl
+                    required fullWidth
+                    error={Boolean(site_data.region.helper_text)}
+                >
                     <InputLabel id="region">Region</InputLabel>
                     <Select
                         labelId="region-select-label"
                         id="region-select-id"
-                        value={current_region}
-                        onChange={event => setCurrentRegion(event.target.value)}
+                        required
+                        value={site_data.region.value}
+                        onChange={e => dispatch({ type: "UPDATE", field: "region", value: e.target.value })}
                     >
                         <MenuItem value="">
                             <em>None</em>
@@ -182,51 +222,56 @@ function EditSiteInformationForm (props) {
                     </Select>
                 </FormControl>
             </Grid>
+
             <Grid item xs={6}>
                 <TextField
                     label="PSGC"
                     fullWidth
                     type="number"
                     required
-                    value={current_psgc}
-                    onChange={event => setCurrentPsgc(event.target.value)}
-                    helperText={current_psgc === "" ? "Required field." : " "}
+                    value={site_data.psgc.value}
+                    onChange={e => dispatch({ type: "UPDATE", field: "psgc", value: e.target.value })}
+                    helperText={site_data.psgc.helper_text || ""}
+                    error={Boolean(site_data.psgc.helper_text)}
                 />
             </Grid>
+
             <Grid item xs={12}>
                 <TextField
                     label="Elements at Risk"
                     fullWidth
                     required
-                    value={current_households}
-                    onChange={event => setCurrentHouseholds(event.target.value)}
-                    helperText={current_households === "" ? "Required field." : " "}
+                    value={site_data.households.value || ""}
+                    onChange={e => dispatch({ type: "UPDATE", field: "households", value: e.target.value })}
+                    helperText={site_data.households.helper_text || ""}
+                    error={Boolean(site_data.households.helper_text)}
                 />
             </Grid>
-            <Grid item xs={6}>
+
+            <Grid item xs={6} container justify="center" alignItems="center">
                 <FormControl>
-                    <FormLabel component="legend">Active</FormLabel>
                     <FormControlLabel
                         control={
                             <Checkbox
-                                checked={current_is_active}
-                                onChange={isActiveHandler}
+                                checked={site_data.active.value}
+                                onChange={e => dispatch({ type: "UPDATE", field: "active", value: e.target.checked })}
                                 value="checkedA"
                                 color="primary"
                             />
                         }
-                        label="is Active?"
+                        label="Active site"
                     />
                 </FormControl>
             </Grid>
+
             <Grid item xs={6}>
-                <FormControl component="fieldset" className={classes.formControl}>
+                <FormControl component="fieldset" required error={Boolean(site_data.season.helper_text)}>
                     <FormLabel component="legend">Season</FormLabel>
                     <RadioGroup
                         row
                         aria-label="season_group"
                         name="season"
-                        value={current_season}
+                        value={site_data.season.value.toString()}
                         onChange={seasonChangeHandler}
                     >
                         {
@@ -244,17 +289,18 @@ function EditSiteInformationForm (props) {
                     </RadioGroup>
                 </FormControl>
             </Grid>
+            
             <Grid item container xs={12}>
                 {
-                    current_season_preview.map(row => {
+                    seasonPreview.map(row => {
                         const { key, list } = row;
 
                         return (
                             <Grid item xs={6} key={key}>
-                                <Typography variant="subtitle1" color="textSecondary">
+                                <Typography variant="subtitle1" color="textSecondary" align="center">
                                     { capitalizeFirstLetter(key) }
                                 </Typography>
-                                <Typography variant="subtitle1" color="textPrimary">
+                                <Typography variant="subtitle1" color="textPrimary" align="center">
                                     {
                                         list.map(l => capitalizeFirstLetter(l)).join(", ")
                                     }
@@ -263,28 +309,6 @@ function EditSiteInformationForm (props) {
                         );
                     })
                 }
-                {/* <Grid item xs={6}>
-                    <Typography
-                        variant="subtitle2"
-                        display="block"
-                        className={classes.form_message_style}
-                        gutterBottom
-                        align="center">
-                    qweqwewe
-                    </Typography>
-
-                </Grid>
-                <Grid item xs={6}>
-                    <Typography
-                        variant="subtitle2"
-                        display="block"
-                        className={classes.form_message_style}
-                        gutterBottom
-                        align="center">
-                    acsdasd
-                    </Typography>
-
-                </Grid> */}
             </Grid>
         </Grid>
     );

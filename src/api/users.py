@@ -24,8 +24,9 @@ def wrap_get_community_orgs_by_site(site_code):
 
     temp = {}
     for user_org in community_users:
-        scope = user_org.organization.scope
-        name = user_org.organization.name
+        u_o = user_org.organization
+        scope = u_o.scope
+        name = u_o.name
 
         key = name
         if name == "lgu":
@@ -37,6 +38,8 @@ def wrap_get_community_orgs_by_site(site_code):
                 key = "p" + name
 
         user_data = UsersSchema().dump(user_org.user).data
+        user_data["primary_contact"] = user_org.primary_contact
+
         if key not in temp:
             temp[key] = [user_data]
         else:

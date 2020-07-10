@@ -38,45 +38,6 @@ const useStyles = makeStyles(theme => {
     };
 });
 
-const MyLoader = () => (
-    <ContentLoader 
-        height={300}
-        width={684}
-        speed={1}
-        primaryColor="#f3f3f3"
-        secondaryColor="#ecebeb"
-        style={{ width: "100%" }}
-    >
-        <rect x="10" y="1" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="110" y="1" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="210" y="1" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="310" y="1" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="410" y="1" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="510" y="1" rx="0" ry="0" width="88.41" height="63" />
-
-        <rect x="10" y="80" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="110" y="80" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="210" y="80" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="310" y="80" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="410" y="80" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="510" y="80" rx="0" ry="0" width="88.41" height="63" />
-
-        <rect x="10" y="159" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="110" y="159" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="210" y="159" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="310" y="159" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="410" y="159" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="510" y="159" rx="0" ry="0" width="88.41" height="63" />
-
-        <rect x="10" y="238" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="110" y="238" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="210" y="238" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="310" y="238" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="410" y="238" rx="0" ry="0" width="88.41" height="63" />
-        <rect x="510" y="238" rx="0" ry="0" width="88.41" height="63" />
-    </ContentLoader>
-);
-
 const MapLoader = () => (
     <ContentLoader 
         height={300}
@@ -98,6 +59,8 @@ function SitesPerRegion (props) {
         <Grid item xs={12} container justify="center">
             {
                 sorted_regions.map(key => {
+                    const region = key !== "inactive" ? key.toUpperCase() : "Inactive Sites";
+                
                     return (
                         <Grid 
                             container justify="center"
@@ -109,7 +72,10 @@ function SitesPerRegion (props) {
                                 item xs={12} align="center"
                                 style={{ marginBottom: 4 }}
                             >
-                                { key !== "CAR" ? `Region ${key}` : key }
+                                { 
+                                    ["I", "V", "X"].includes(region.charAt(0)) && key !== "inactive"
+                                        ? `Region ${region}`
+                                        : region }
                             </Typography>
 
                             {
@@ -147,7 +113,7 @@ function Container (props) {
         match: { url }
     } = props;
 
-    const { sites } = useContext(GeneralContext);
+    const { all_sites_including_inactive: sites } = useContext(GeneralContext);
     const [hovered_site, setHoveredSite] = useState(null);
     const [site_map_data, setSiteMapData] = useState(null);
     const [sites_per_region, setSitesPerRegion] = useState(null);
@@ -157,9 +123,15 @@ function Container (props) {
             const smd = [];
             const spr = {};
             sites.forEach(site => {
-                const { region } = site;
-                if (!spr[region]) spr[region] = [];
-                spr[region].push(site);
+                const { region, active } = site;
+                
+                let key = region;
+                if (!active) {
+                    key = "inactive";
+                }
+
+                if (!spr[key]) spr[key] = [];
+                spr[key].push(site);
 
                 smd.push({
                     ...site,

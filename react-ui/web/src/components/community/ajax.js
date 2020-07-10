@@ -2,7 +2,7 @@ import axios from "axios";
 import { host } from "../../config";
 
 
-export function getCommunityStaff (site_code, callback) {
+export function getCommunityStakeholders (site_code, callback) {
     axios.get(`${host}/api/users/get_community_orgs_by_site/${site_code}`)
     .then(response => {
         const { data } = response;
@@ -15,17 +15,6 @@ export function getSiteSummary (site_id, callback) {
     .then(response => {
         const { data } = response;
         callback(data);
-    });
-}
-
-export function getAllSites (input, callback) {
-    axios.get(`${host}/api/sites/get_sites_data`)
-    .then(response => {
-        const { data } = response;
-        callback(data);
-    })
-    .catch(error => {
-        console.log(error);
     });
 }
 
