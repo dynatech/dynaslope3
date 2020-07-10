@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import Card from "@material-ui/core/Card";
 import CardContent from "@material-ui/core/CardContent";
@@ -23,6 +23,7 @@ import HighlightOffIcon from "@material-ui/icons/HighlightOff";
 // import MyShifts from "./UserShift";
 import { updateUserInfo } from "./ajax";
 import Dyna_Wall from "../../images/dyna_wall.jpg";
+import { GeneralContext } from "../contexts/GeneralContext";
 
 const useStyles = makeStyles({
     root: {
@@ -42,6 +43,7 @@ const useStyles = makeStyles({
     avatar: {
         width: 150,
         height: 150,
+        backgroundColor: "#f2f2f2"
     // border: '10px solid #f3f3f3'
     },
     avatarContainer: {
@@ -82,7 +84,6 @@ const Transition = React.forwardRef((props, ref) => {
 
 function TextMaskCustom (props) {
     const { inputRef, mask, ...other } = props;
-  
     return (
         <MaskedInput
             {...other}
@@ -95,12 +96,15 @@ function TextMaskCustom (props) {
     );
 }
 
+const profile_pic = "https://png.pngitem.com/pimgs/s/150-1503945_transparent-user-png-default-user-image-png-png.png";
+
 function ProfilePage (props) {
     const { selectedUserDetails, isUser } = props;
     const { first_name, nickname, middle_name, 
         sex, last_name, mobile_numbers, user_id, ewi_recipient, status,
         emails } = selectedUserDetails;
     const classes = useStyles();
+    const { setRefreshUser } = useContext(GeneralContext);
     const [isShiftOpen, setShiftopen] = useState(false);
     const [isEdit, setEdit] = useState(false);
     const [enteredEmail, setEnteredEmail] = useState("");
@@ -192,8 +196,10 @@ function ProfilePage (props) {
         updateUserInfo(json_data, response => {
             if (response.status) {
                 setEdit(false);
+                setRefreshUser(true);
             }
         });
+
     };
 
     const addMobile = () => {
@@ -285,9 +291,6 @@ function ProfilePage (props) {
             setEmails(updated_emails);            
         }
     };
-
-    const profile_pic = "https://thumbs.dreamstime.com/b/default-avatar-profile-icon-vector-user-image-179582665.jpg";
-
     return (
         <Grid container>
             <Grid item xs={12}>
@@ -316,10 +319,20 @@ function ProfilePage (props) {
                         { isUser && isEdit ? 
                             (
                                 <div>
-                                    <TextField value={fName} onChange={e => setFName(e.target.value)} label="First name"/>
-                                    <TextField value={mName} onChange={e => setMName(e.target.value)} label="Middle name"/>
-                                    <TextField value={lName} onChange={e => setLName(e.target.value)} label="Last name"/>
-                                    <TextField value={nickName} onChange={e => setNickName(e.target.value)} label="Nickname"/>
+                                    <Grid container spacing={2}>
+                                        <Grid md={3} xs={12}>
+                                            <TextField value={fName} onChange={e => setFName(e.target.value)} label="First name"/>
+                                        </Grid>
+                                        <Grid md={3} xs={12}>
+                                            <TextField value={mName} onChange={e => setMName(e.target.value)} label="Middle name"/>
+                                        </Grid>
+                                        <Grid md={3} xs={12}>
+                                            <TextField value={lName} onChange={e => setLName(e.target.value)} label="Last name"/>
+                                        </Grid>
+                                        <Grid md={3} xs={12}>
+                                            <TextField value={nickName} onChange={e => setNickName(e.target.value)} label="Nickname"/>
+                                        </Grid>
+                                    </Grid>
                                 </div>     
                             )
                             : 
@@ -370,15 +383,12 @@ function ProfilePage (props) {
                                                     primary={format_to_mask(sim)}
                                                     secondary={status === 0 ? "inactive" : "active"}
                                                 /> 
-
                                                 {isUser && isEdit &&
-                                                     (
-                                                         <Checkbox 
-                                                             onChange={e=> activate(sim, status)}
-                                                             checked={status !== 0}
-                                                             color="primary"
-                                                         />
-                                                     )
+                                                     (<Checkbox 
+                                                         onChange={e=> activate(sim, status)}
+                                                         checked={status !== 0}
+                                                         color="primary"
+                                                     />)
                                                 }
                                             </ListItem>
                                         );     
@@ -445,9 +455,6 @@ function ProfilePage (props) {
                                             </ListItemIcon>      
                                         </ListItem>          
                                     )}
-
-                                    <Divider/>
-
                                     { !isEdit && (
                                         <ListItem >
                                             <ListItemIcon>
@@ -475,41 +482,38 @@ function ProfilePage (props) {
                                     )}
                                 </List>
 
-                                { 
-                                    isEdit && isUser && (
-                                        <Button color="secondary" style={{ marginBottom: 2 }} variant="contained" onClick={saveEdit}>
-                                            save changes
-                                        </Button>
-                                    )
-                                }
+                                { isEdit && isUser && (
+                                    <Button color="secondary" style={{ marginBottom: 2 }} variant="contained" onClick={saveEdit}>
+                                        save changes
+                                    </Button>
+                                )}
                             </Grid>
                         </Grid>
                     </Paper>
-                    {
-                        isUser && (
-                            <Hidden mdUp>
-                                <Dialog fullScreen open={isShiftOpen} onClose={handleClose} TransitionComponent={Transition}>
-                                    <AppBar className={classes.appBar}>
-                                        <Toolbar>
-                                            <IconButton 
-                                                edge="end" 
-                                                color="inherit" 
-                                                onClick={handleClose} 
-                                                aria-label="close"
-                                            >
-                                                <CloseIcon />
-                                            </IconButton>
-                                            <Typography>My Monitoring Schedules</Typography>
-                                        </Toolbar>
-                                    </AppBar>
-                                    <Grid container spacing={2} >
-                                        <Grid item style={{ marginTop: 70 }} sm={12} xs={12}>
-                                            {/* <MyShifts /> */}
-                                        </Grid>
+                    { isUser && (
+                        <Hidden mdUp>
+                            <Dialog fullScreen open={isShiftOpen} onClose={handleClose} TransitionComponent={Transition}>
+                                <AppBar className={classes.appBar}>
+                                    <Toolbar>
+                                        <IconButton 
+                                            edge="end" 
+                                            color="inherit" 
+                                            onClick={handleClose} 
+                                            aria-label="close"
+                                        >
+                                            <CloseIcon />
+                                        </IconButton>
+                                        <Typography>My Monitoring Schedules</Typography>
+                                    </Toolbar>
+                                </AppBar>
+                                <Grid container spacing={2} >
+                                    <Grid item style={{ marginTop: 70 }} sm={12} xs={12}>
+                                        {/* <MyShifts /> */}
                                     </Grid>
-                                </Dialog>
-                            </Hidden>
-                        )}
+                                </Grid>
+                            </Dialog>
+                        </Hidden>
+                    )}
                 </Grid>
             </Grid>
         </Grid>

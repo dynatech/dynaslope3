@@ -233,19 +233,28 @@ def save_user_information(data):
     nickname = data["nickname"]
     emails = data["emails"]
     ewi_recipient = data["ewi_recipient"]
+    sex = data["sex"]
     status = data["status"]
+    salutation = ""
+    birthday = ""
+
+    if "birthday" in data:
+        birthday = data["birthday"]
+    if "salutaion" in data:
+        salutation = data["salutation"]
 
     if user_id == 0:
         insert_user = Users(
             first_name=first_name, last_name=last_name,
             middle_name=middle_name, nickname=nickname,
-            ewi_recipient=ewi_recipient,
-            status=status
+            ewi_recipient=ewi_recipient, birthday=birthday,
+            sex=sex, status=status, salutation=salutation
         )
 
         DB.session.add(insert_user)
         DB.session.flush()
         user_id = insert_user.user_id
+
     else:
         update = Users.query.options(DB.raiseload("*")).get(user_id)
         update.first_name = first_name
@@ -276,7 +285,7 @@ def save_user_email(emails, user_id, delete_list=None):
     Function that save user email
     """
     email_len = len(emails)
-    delete_len = len(delete_list)
+    
     if email_len > 0:
         for row in emails:
             row_type = type(row)
@@ -290,10 +299,12 @@ def save_user_email(emails, user_id, delete_list=None):
                 else:
                     update_email = UserEmails.query.get(row["email_id"])
                     update_email.email = row["email"]
-
-    if delete_len > 0:
-        for row in delete_list:
-            UserEmails.query.filter_by(user_id=user_id, email=row["email"]).delete()
+                    
+    if delete_list is not None:
+        delete_len = len(delete_list)
+        if delete_len > 0:
+            for row in delete_list:
+                UserEmails.query.filter_by(user_id=user_id, email=row["email"]).delete()
 
     return True
 
@@ -313,7 +324,6 @@ def save_user_contact_numbers(data, user_id):
             mobile_id = row["mobile_number"]["mobile_id"]
             sim_num = row["mobile_number"]["sim_num"]
             status = row["status"]
-
             to_insert_user_mobiles = False
             if mobile_id == 0:
                 check_sim_num = MobileNumbers.query.filter_by(

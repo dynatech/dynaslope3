@@ -8,6 +8,7 @@ import { getSites, getUsers, getOrganizations } from "./ajax";
 export const GeneralContext = createContext();
 
 export const GeneralProvider = ({ children }) => {
+    const [refreshUser, setRefreshUser] = useState(true);
     const [users, setUsers] = useState([]);
     const [sites, setSites] = useState([]);
     const [organizations, setOrganizations] = useState([]);
@@ -20,10 +21,14 @@ export const GeneralProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        getUsers(data => {
-            setUsers(data);
-        });
-    }, []);
+        if (refreshUser) {
+            getUsers(data => {
+                setUsers(data);
+                setRefreshUser(false);
+            });
+        }
+       
+    }, [refreshUser]);
 
     useEffect(() => {
         getOrganizations(data => {
@@ -66,6 +71,7 @@ export const GeneralProvider = ({ children }) => {
         sites,
         organizations,
         is_reconnecting,
+        setRefreshUser,
         setIsReconnecting
     };
 

@@ -16,6 +16,7 @@ import SitesInformationContainer from "./components/community/site_information/S
 
 import ProfileContainer from "./components/member_profile/Container";
 import ChangePassword from "./components/member_profile/ChangePassword";
+import CreateDynaUser from "./components/member_profile/CreateDynaUser";
 
 
 function RoutesCollection (props) {
@@ -44,6 +45,7 @@ function RoutesCollection (props) {
             <Route path={`${url}community/site_info`} component={SitesInformationContainer} />
             
             <Route path={`${url}profile/update`} component={ChangePassword} />
+            <Route path={`${url}profile/create`} component={CreateDynaUser} />
             <Route path={`${url}profile`} component={ProfileContainer} />
             
             <Route render={() => <h3> Not found</h3>} />

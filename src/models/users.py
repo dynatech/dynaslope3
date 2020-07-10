@@ -152,7 +152,7 @@ class UserTeams(DB.Model):
     team_code = DB.Column(DB.String(20))
     team_name = DB.Column(DB.String(20))
     remarks = DB.Column(DB.String(45))
-
+    
     def __repr__(self):
         return f"{self.team_code}"
 

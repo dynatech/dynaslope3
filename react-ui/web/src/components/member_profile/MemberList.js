@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
-
-import { Grid, ListItemText, List, ListItem, TextField
+import { Grid, ListItemText, List, ListItem, OutlinedInput
 } from "@material-ui/core";
-
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -63,9 +61,11 @@ const useStyles = makeStyles(theme => ({
     searchBox: {
         marginLeft: 10,
         width: "90%",
-    }
+    },
+    newUserBtn: {
+        marginTop: 10,
+    },
 }));
-
 
 function MemberList (props) {
     const { users, onMemberClickFn } = props;
@@ -96,34 +96,29 @@ function MemberList (props) {
             <Grid item md={6} xs={12} />
             <Grid container spacing={3}>
                 <Grid item md={6} xs={12}>
-                    <TextField 
+                    <OutlinedInput 
                         fullWidth 
-                        label="Search dynaslope member" 
-                        variant="outlined"
+                        placeholder="search..."
                         onChange={event => setSearchStr(event.target.value)} 
-                        className={classes.searchBox}/>
+                        className={classes.searchBox}
+                    />
                 </Grid>
                 <List aria-label="list" className={classes.list} >
-                    {
-                        usersList !== null && usersList.map( user => {
-                            const name = `${user.first_name } ${user.last_name}`;
-                            return (
-                                <ListItem 
-                                    button 
-                                    key={user.user_id} 
-                                    onClick={onMemberClickFn(user)}
-                                >
-                                    <ListItemText primary={name} />
-                                </ListItem>
-                            );
-                        })
-                    }
+                    {usersList !== null && usersList.map( user => {
+                        const name = `${user.first_name } ${user.last_name}`;
+                        return (
+                            <ListItem 
+                                button 
+                                key={user.user_id} 
+                                onClick={onMemberClickFn(user)}
+                            >
+                                <ListItemText primary={name} />
+                            </ListItem>
+                        );
+                    })}
                 </List>
             </Grid>
-
         </Grid>
-
-   
     );
 }
 export default MemberList;

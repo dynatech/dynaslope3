@@ -7,8 +7,9 @@ from connection import DB
 from src.models.users import UsersSchema
 from src.models.organizations import Organizations, OrganizationsSchema
 from src.utils.users import (
-    get_dynaslope_users, get_community_users, update_user_details,
-    get_community_users_simple, get_users_categorized_by_org, update_account
+    get_dynaslope_users, get_community_users,
+    get_community_users_simple, get_users_categorized_by_org, update_account,
+    create_account
 )
 from src.utils.extra import var_checker
 from src.utils.contacts import (save_user_contact_numbers, save_user_email,
@@ -152,6 +153,31 @@ def update_user_account():
 
     return result
 
+@USERS_BLUEPRINT.route("/users/create_dynaslope_user", methods=["POST"])
+def create_user():
+    """
+    """
+    json_data = request.get_json()
+    try:
+        user_id = save_user_information(json_data)
+        save_user_contact_numbers(json_data, user_id)
+        create_account(json_data, user_id)
+        message = "User successfully added"
+        status = True
+        DB.session.commit()
+
+    except Exception as ex:
+        print(ex)
+        DB.session.rollback()
+        message = "Something went wrong, Please try again"
+        status = False
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+    return jsonify(feedback)
+
 @USERS_BLUEPRINT.route("/users/update_user_info", methods=["POST"])
 def update_user_info():
     """
@@ -164,7 +190,7 @@ def update_user_info():
         save_user_information(json_data)
         # save_user_email(emails, user_id, emails_to_delete)
 
-        message = "Successfully updated user"
+        message = "User uccessfully updated"
         status = True
         DB.session.commit()
 

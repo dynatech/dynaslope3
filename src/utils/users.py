@@ -201,6 +201,7 @@ def get_dynaslope_users(active_only=True, return_schema_format=False, include_co
         query = ur.query.options(
         DB.joinedload("account", innerjoin=True).raiseload("*"),
         DB.subqueryload("emails").raiseload("*"),
+        DB.subqueryload("teams").raiseload("*"),
         DB.subqueryload("mobile_numbers"). \
             joinedload("mobile_number", innerjoin=True).raiseload("*"),
         DB.raiseload("*")
@@ -217,11 +218,11 @@ def get_dynaslope_users(active_only=True, return_schema_format=False, include_co
     if return_schema_format:
         exclude_list = [
             "organizations", "ewi_restriction",
-            "teams", "landline_numbers", 
+            "landline_numbers",
             "mobile_numbers.mobile_number.blocked_mobile"]
         include_list = []
         if not include_contacts:
-            exclude_list.extend(["emails", "mobile_numbers"])
+            exclude_list.extend(["emails", "mobile_numbers", "teams"])
             include_list = []
         result = UsersRelationshipSchema(many=True, exclude=exclude_list, include=include_list).dump(result).data
 
@@ -331,51 +332,25 @@ def update_account(data):
         return "success"
     return "invalid"
 
-def update_user_details(data):
+def create_account(data, user_id):
     """
     """
-    user_id = int(data["user_id"])
-    first_name = data["first_name"]
-    middle_name = data["middle_name"]
-    last_name = data["last_name"]
-    nickname = data["nickname"]
-    gender = data["sex"]
+    password = data["password"]
+    username = data["username"]
 
-    email_list = data["emails"]
-    emails = []
-    for email in email_list:
-        emails.append(email["email"])
-        print(email["email"])
-    try:
-        user = Users.query.filter_by(user_id=user_id).first()
-        if user:
-            user.first_name = first_name
-            user.middle_name = middle_name
-            user.last_name = last_name
-            user.nickname = nickname
-            user.sex = gender
+    sha512 = hashlib.sha512()
+    sha512.update(password.encode())
+    hashed_password = sha512.hexdigest()
 
-        has_email = UserEmails.query.filter_by(user_id=user_id).all()
-        if has_email:
-            for existing_email in has_email:
-                if str(existing_email) not in emails:
-                    UserEmails.query.filter_by(user_id=user_id, email=str(existing_email)).delete()
-                    DB.session.commit()
-                    print("deleted: ", existing_email)
-                else:
-                    for email in emails:
-                        if email not in str(existing_email):
-                            query = UserEmails(user_id=user_id, email=email)
-                            DB.session.add(query)
-                            DB.session.commit()
-                            print("added :", email)
-        if not has_email:
-            for email in emails:  
-                query = UserEmails(user_id=user_id, email=email)
-                DB.session.add(query)
-                DB.session.commit()
-       
-    except Exception as ex:
-        print(ex)
-        DB.session.rollback()
-    return "success"
+    user_account = UserAccounts.query.filter_by(user_fk_id=user_id, username=username).first()
+
+    if not user_account:
+        enc = hashlib.sha512()
+        enc.update(password.encode())
+        hashed_password = enc.hexdigest()
+        query = UserAccounts(username=username, password=hashed_password, \
+                        user_fk_id=user_id, is_active=1)
+        DB.session.add(query)
+        return True
+
+    return False
