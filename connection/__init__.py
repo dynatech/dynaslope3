@@ -14,6 +14,7 @@ from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 from flask_socketio import SocketIO
 from flask_jwt_extended import JWTManager
+from celery import Celery
 from connection import memory
 
 from config import APP_CONFIG
@@ -28,33 +29,14 @@ SOCKETIO = SocketIO(async_mode="gevent")
 
 MONITORING_WS_THREAD = None
 COMMUNICATION_WS_THREAD = None
+MISC_WS_THREAD = None
 THREAD_LOCK = Lock()
 
 MEMORY_CLIENT = memory
+CELERY = None
 
 
-def start_ws_bg_task(module, background_task):
-    """
-    Start monitoring websocket background thread
-    """
-
-    if module == "monitoring":
-        global MONITORING_WS_THREAD
-        with THREAD_LOCK:
-            if MONITORING_WS_THREAD is None:
-                MONITORING_WS_THREAD = Thread(target=background_task)
-                MONITORING_WS_THREAD.setDaemon(True)
-                MONITORING_WS_THREAD.start()
-    elif module == "communication":
-        global COMMUNICATION_WS_THREAD
-        with THREAD_LOCK:
-            if COMMUNICATION_WS_THREAD is None:
-                COMMUNICATION_WS_THREAD = Thread(target=background_task)
-                COMMUNICATION_WS_THREAD.setDaemon(True)
-                COMMUNICATION_WS_THREAD.start()
-
-
-def create_app(config_name, skip_memcache=False, skip_websocket=False):
+def create_app(config_name, skip_memcache=False, enable_webdriver=False):
     """
     Instantiate Flask App variable and other related packages
     """
@@ -80,22 +62,45 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     JWT.init_app(app)
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(minutes=30)
     CORS(app)
-    SOCKETIO.init_app(app, cors_allowed_origins="*")
+    SOCKETIO.init_app(app, cors_allowed_origins="*",
+                      message_queue=app.config["CELERY_BROKER_URL"][0])
+
+    global CELERY
+    CELERY = create_celery(app)
+    CELERY.autodiscover_tasks(["src.websocket", "src.api"], force=True)
 
     if not skip_memcache:
         from connection import set_memcache
-        set_memcache.main(MEMORY_CLIENT)
+        set_memcache.main()
 
-    from src.websocket.monitoring_ws import monitoring_background_task
-    from src.websocket.communications_ws import (
-        main as comms_ws_main,
-        communication_background_task
+    from src.websocket.monitoring_tasks import (
+        alert_generation_background_task, rainfall_summary_background_task,
+        issues_and_reminder_bg_task
+    )
+    from src.websocket.communications_tasks import (
+        initialize_comms_data, communication_background_task
+    )
+    from src.websocket.misc_ws import (
+        server_time_background_task, monitoring_shift_background_task
     )
 
-    if not skip_websocket:
-        start_ws_bg_task("monitoring", monitoring_background_task)
-        comms_ws_main()  # outside from skip_websocket for now
-        start_ws_bg_task("communication", communication_background_task)
+    from src.utils.bulletin import create_browser_driver_instance
+
+    if enable_webdriver:
+        create_browser_driver_instance()
+
+    # from src.websocket.monitoring_ws import monitoring_background_task
+    # from src.websocket.communications_ws import (
+    #     main as comms_ws_main,
+    #     communication_background_task
+    # )
+    # from src.websocket.misc_ws import server_time_background_task
+
+    # if not skip_websocket:
+    # start_ws_bg_task("monitoring", monitoring_background_task)
+    # comms_ws_main()  # outside from skip_websocket for now
+    # start_ws_bg_task("communication", communication_background_task)
+    # start_ws_bg_task("misc", server_time_background_task)
 
     #####################################################
     # Import all created blueprint from each controller
@@ -163,32 +168,32 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     from src.api.login import LOGIN_BLUEPRINT
     app.register_blueprint(LOGIN_BLUEPRINT, url_prefix="/api")
 
-    from src.api.register import REGISTER_BLUEPRINT
-    app.register_blueprint(REGISTER_BLUEPRINT, url_prefix="/api")
+    # from src.api.register import REGISTER_BLUEPRINT
+    # app.register_blueprint(REGISTER_BLUEPRINT, url_prefix="/api")
 
-    from src.api.family_profile import FAMILY_PROFILE_BLUEPRINT
-    app.register_blueprint(FAMILY_PROFILE_BLUEPRINT, url_prefix="/api")
+    # from src.api.family_profile import FAMILY_PROFILE_BLUEPRINT
+    # app.register_blueprint(FAMILY_PROFILE_BLUEPRINT, url_prefix="/api")
 
-    from src.api.risk_assessment_summary import RISK_ASSESSMENT_BLUEPRINT
-    app.register_blueprint(RISK_ASSESSMENT_BLUEPRINT, url_prefix="/api")
+    # from src.api.risk_assessment_summary import RISK_ASSESSMENT_BLUEPRINT
+    # app.register_blueprint(RISK_ASSESSMENT_BLUEPRINT, url_prefix="/api")
 
-    from src.api.hazard_data import HAZARD_DATA_BLUEPRINT
-    app.register_blueprint(HAZARD_DATA_BLUEPRINT, url_prefix="/api")
+    # from src.api.hazard_data import HAZARD_DATA_BLUEPRINT
+    # app.register_blueprint(HAZARD_DATA_BLUEPRINT, url_prefix="/api")
 
-    from src.api.resources_and_capacities import RESOURCES_AND_CAPACITIES_BLUEPRINT
-    app.register_blueprint(
-        RESOURCES_AND_CAPACITIES_BLUEPRINT, url_prefix="/api")
+    # from src.api.resources_and_capacities import RESOURCES_AND_CAPACITIES_BLUEPRINT
+    # app.register_blueprint(
+    #     RESOURCES_AND_CAPACITIES_BLUEPRINT, url_prefix="/api")
 
-    from src.api.field_survey_logs import FIELD_SURVEY_LOGS_BLUEPRINT
-    app.register_blueprint(
-        FIELD_SURVEY_LOGS_BLUEPRINT, url_prefix="/api")
+    # from src.api.field_survey_logs import FIELD_SURVEY_LOGS_BLUEPRINT
+    # app.register_blueprint(
+    #     FIELD_SURVEY_LOGS_BLUEPRINT, url_prefix="/api")
 
-    from src.api.sensor_maintenance import SENSOR_MAINTENANCE_BLUEPRINT
-    app.register_blueprint(
-        SENSOR_MAINTENANCE_BLUEPRINT, url_prefix="/api")
+    # from src.api.sensor_maintenance import SENSOR_MAINTENANCE_BLUEPRINT
+    # app.register_blueprint(
+    #     SENSOR_MAINTENANCE_BLUEPRINT, url_prefix="/api")
 
-    from src.api.situation_report import SITUATION_REPORT_BLUEPRINT
-    app.register_blueprint(SITUATION_REPORT_BLUEPRINT, url_prefix="/api")
+    # from src.api.situation_report import SITUATION_REPORT_BLUEPRINT
+    # app.register_blueprint(SITUATION_REPORT_BLUEPRINT, url_prefix="/api")
 
     from src.api.rainfall import RAINFALL_BLUEPRINT
     app.register_blueprint(RAINFALL_BLUEPRINT, url_prefix="/api")
@@ -206,3 +211,50 @@ def create_app(config_name, skip_memcache=False, skip_websocket=False):
     app.register_blueprint(SHIFT_CHECKER_BLUEPRINT, url_prefix="/api")
 
     return app
+
+
+def create_celery(app):
+    """
+    """
+
+    celery = Celery(
+        app.import_name,
+        backend=app.config['CELERY_RESULT_BACKEND'],
+        broker=app.config['CELERY_BROKER_URL']
+    )
+    celery.conf.update(app.config)
+
+    def add_preload_options(parser):
+        parser.add_argument(
+            '-eag', "--enable_alert_gen", action="store_true",
+            help='Start alert generation background task',
+        )
+        parser.add_argument(
+            '-ec', "--enable_comms", action="store_true",
+            help='Start communications background task',
+        )
+        parser.add_argument(
+            '-ic', "--initialize_comms", action="store_true",
+            help=(f'Initialize comms data. Use this to load '
+                  f'comms data without running communications backgound task.'),
+        )
+        parser.add_argument(
+            '-er', "--enable_rainfall", action="store_true",
+            help='Start rainfall summary background task',
+        )
+        parser.add_argument(
+            '-egd', "--enable_ground_data", action="store_true",
+            help='Start ground data reminder and no ground data sending background tasks',
+        )
+    celery.user_options['preload'].add(add_preload_options)
+
+    class ContextTask(celery.Task):
+        """
+        """
+
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return self.run(*args, **kwargs)
+
+    celery.Task = ContextTask
+    return celery
