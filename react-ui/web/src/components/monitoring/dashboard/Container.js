@@ -182,7 +182,6 @@ function Container (props) {
                                     candidateAlertsData={candidateAlertsData}
                                     alertsFromDbData={alertsFromDbData}
                                     releaseFormOpenHandler={releaseAlertHandler}
-                                    generatedAlerts={generatedAlerts}
                                     history={history}
                                 />
                             )}

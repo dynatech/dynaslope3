@@ -653,7 +653,7 @@ function RoutineExpansionPanel (props) {
 function MonitoringTables (props) {
     const {
         candidateAlertsData, alertsFromDbData, width,
-        releaseFormOpenHandler, history, generatedAlerts
+        releaseFormOpenHandler, history
     } = props;
 
     const classes = useStyles();
