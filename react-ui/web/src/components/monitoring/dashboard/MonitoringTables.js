@@ -117,7 +117,6 @@ function CandidateAlertsExpansionPanel (props) {
                     routine_a0.push(r_site[0]);
                 });
             }
-            
         });
         
     } else {
@@ -264,12 +263,12 @@ function CandidateAlertsExpansionPanel (props) {
                             ) 
                             : 
                             (
-                                <div>
-                                    <Grid item xs={12}>
+                                <div style={{ width: "100%" }}>
+                                    <Grid item xs={12} md={12}>
                                         <Typography variant="subtitle2" color="textPrimary">TRIGGERS</Typography>
                                     </Grid>
                        
-                                    <Grid item xs={12} container spacing={2} alignItems="center">
+                                    <Grid item xs={12} container spacing={2} alignItems="center" >
                                         {
                                             has_new_triggers ? (
                                                 trigger_arr.map((trigger, key) => {
@@ -307,7 +306,7 @@ function CandidateAlertsExpansionPanel (props) {
                                                     const to_show_validate_button = ["surficial", "rainfall", "subsurface"].includes(trigger_type) && to_validate;
 
                                                     return (
-                                                        <Fragment key={`trigger-${trigger_type}-${alert}`}>
+                                                        <Fragment key={`trigger-${trigger_type}-${alert}`} >
                                                             <Grid item xs align="center">
                                                                 <Typography variant="body1" color="textSecondary">Trigger</Typography>
                                                                 <Typography variant="body1" color="textPrimary">{alert}</Typography>
@@ -317,7 +316,6 @@ function CandidateAlertsExpansionPanel (props) {
                                                                 <Typography variant="body1" color="textSecondary">Trigger timestamp</Typography>
                                                                 <Typography variant="body1" color="textPrimary">{formatted_ts}</Typography>
                                                             </Grid>
-
                                                             {/* 
                                                     NOTE: Pwedeng ipakita, pwedeng hindi, commented out just in case need
                                                     <Grid item xs={6} align="center">
@@ -325,7 +323,6 @@ function CandidateAlertsExpansionPanel (props) {
                                                         <Typography variant="body1" color="textPrimary">{tech_info}</Typography>
                                                     </Grid> 
                                                 */}
-
                                                             <Grid item xs align={to_show_validate_button ? "flex-start" : "center"}>
                                                                 <Typography component="span" variant="body1" color="textSecondary" style={{ paddingRight: 8 }}>Status:</Typography>
                                                                 <Typography component="span" variant="body1" color="textPrimary">{trigger_validity}</Typography>
@@ -346,7 +343,6 @@ function CandidateAlertsExpansionPanel (props) {
                                                                     </Grid>
                                                                 )
                                                             }
-
                                                             <ValidationModal
                                                                 isShowing={isShowingValidation}
                                                                 data={validationDetails}
@@ -375,7 +371,6 @@ function CandidateAlertsExpansionPanel (props) {
                         
                     </Grid>
                         
-
                     {
                         typeof unresolved_moms_list !== "undefined" && unresolved_moms_list.length > 0 && (
                             <Fragment>
