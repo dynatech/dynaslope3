@@ -18,7 +18,7 @@ export const GeneralProvider = ({ children }) => {
     useEffect(() => {
         if (refresh_sites) {
             getSites(data => {
-                const active = data.filter(x => x.active === 1);
+                const active = data.filter(x => x.active);
                 setSites(active);
                 SetAllSites(data);
                 setRefreshSites(false);

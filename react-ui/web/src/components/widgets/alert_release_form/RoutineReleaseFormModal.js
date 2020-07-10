@@ -27,7 +27,8 @@ function prepareSitesOption (arr) {
             return { state: true, value: site_id, label: s_code, is_disabled: false };
         });
     }
-    return temp;
+    
+    return temp.sort((a, b) => a.site_id > b.site_id);
 }
 
 
