@@ -79,11 +79,6 @@ function prepareOrgList (classes, community_orgs) {
                     key={`staff_${user_index + 1}`}
                 >
                     <StyledBadge
-                        // overlap="circle"
-                        // anchorOrigin={{
-                        //     vertical: "bottom",
-                        //     horizontal: "right",
-                        // }}
                         badgeContent={primary_badge}
                     >
                         <Avatar 
@@ -137,6 +132,7 @@ function SiteStakeholdersList (props) {
 
     useEffect(() => {
         getCommunityStakeholders(siteCode, com_orgs => {
+            console.log(com_orgs);
             const comm_contacts_ui = prepareOrgList(classes, com_orgs);
             setCommunityContacts(comm_contacts_ui);
         });
