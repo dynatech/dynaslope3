@@ -3,7 +3,7 @@ import { makeGETAxiosRequest } from "../../UtilityFunctions";
 
 
 export function getSites (callback) {
-    const api_link = `${host}/api/sites/get_sites_data`;
+    const api_link = `${host}/api/sites/get_sites_data?include_inactive=true`;
     makeGETAxiosRequest(api_link, callback);
 }
 

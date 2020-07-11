@@ -239,17 +239,13 @@ def disconnect():
     set_data_to_memcache(name="COMMS_CLIENTS", data=clients)
 
     room_mobile_ids = retrieve_data_from_memcache("ROOM_MOBILE_IDS")
-    for row in room_mobile_ids.values():
-        try:
-            row["users"].remove(sid)
-        except ValueError:
-            pass
-    set_data_to_memcache(name="ROOM_MOBILE_IDS", data=room_mobile_ids)
+    for mobile_id in room_mobile_ids.keys():
+        leave_mobile_id_room(mobile_id, sid=sid)
 
     ts = datetime.now()
 
     print("")
-    print(str(ts), "Disconencted:", sid)
+    print(str(ts), "Disconected:", sid)
     print(f"Comms: {len(clients)}")
     print("")
 
@@ -302,18 +298,22 @@ def join_mobile_id_room(mobile_id):
 
 
 @SOCKETIO.on("leave_mobile_id_room", namespace="/communications")
-def leave_mobile_id_room(mobile_id):
+def leave_mobile_id_room(mobile_id, sid=None):
     """
         mobile_id (str):   variable is integer from origin but
                            converted to string on websocket
     """
 
     mobile_id = int(mobile_id)
-    sid = request.sid
+    if not sid:
+        sid = request.sid
 
     room_mobile_ids = retrieve_data_from_memcache("ROOM_MOBILE_IDS")
     if mobile_id in room_mobile_ids.keys():
-        room_mobile_ids[mobile_id]["users"].remove(sid)
+        try:
+            room_mobile_ids[mobile_id]["users"].remove(sid)
+        except ValueError:
+            pass
 
         if not room_mobile_ids[mobile_id]["users"]:
             del room_mobile_ids[mobile_id]

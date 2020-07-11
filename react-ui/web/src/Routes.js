@@ -12,7 +12,7 @@ import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_si
 import ChatterboxContainer from "./components/communication/chatterbox/Container";
 import ContactsContainer from "./components/communication/contacts/Container";
 import MailBoxContainer from "./components/communication/mailbox/MailBoxContainer";
-import SitesInformationContainer from "./components/community/site_information/SitesInformationContainer";
+import SitesInformationContainer from "./components/community/site_information/Container";
 
 import ProfileContainer from "./components/member_profile/Container";
 import ChangePassword from "./components/member_profile/ChangePassword";

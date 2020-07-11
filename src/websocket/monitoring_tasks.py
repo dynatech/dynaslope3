@@ -29,7 +29,9 @@ set_data_to_memcache(name="ALERTS_FROM_DB", data=json.dumps({
     "latest": [], "extended": [], "overdue": [], "routine": {}
 }))
 set_data_to_memcache(name="ISSUES_AND_REMINDERS", data=json.dumps([]))
-set_data_to_memcache(name="RAINFALL_SUMMARY", data=json.dumps([]))
+set_data_to_memcache(name="RAINFALL_SUMMARY", data=json.dumps({
+    "rainfall_summary": [], "ts": None
+}))
 
 
 def emit_data(keyword, sid=None, data=None):
@@ -99,9 +101,11 @@ def rainfall_summary_background_task():
 
     try:
         rainfall_data = execute_get_all_site_rainfall_data(
-            end_ts="2020-01-25 10:00:00")
+            end_ts=system_time)
+        data = {"rainfall_summary": json.loads(
+            rainfall_data), "ts": system_time}
         set_data_to_memcache(name="RAINFALL_SUMMARY",
-                             data=rainfall_data)
+                             data=json.dumps(data))
     except Exception as e:
         print(e)
 

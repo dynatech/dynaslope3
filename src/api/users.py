@@ -26,20 +26,20 @@ def wrap_get_community_orgs_by_site(site_code):
     community_users = get_users_categorized_by_org(site_code)
 
     temp = {}
+    scopes = ["Community", "Barangay", "Municipal",
+              "Provincial", "Regional", "National"]
     for user_org in community_users:
-        scope = user_org.organization.scope
-        name = user_org.organization.name
+        u_o = user_org.organization
+        scope = u_o.scope
+        name = u_o.name
 
         key = name
-        if name == "lgu":
-            if scope == 1:
-                key = "b" + name
-            elif scope == 2:
-                key = "m" + name
-            elif scope == 3:
-                key = "p" + name
+        if name != "lewc":
+            key = f"{scopes[scope]} {name}"
 
         user_data = UsersSchema().dump(user_org.user).data
+        user_data["primary_contact"] = user_org.primary_contact
+
         if key not in temp:
             temp[key] = [user_data]
         else:

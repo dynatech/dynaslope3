@@ -28,7 +28,6 @@ def get_sites_data(site_code=None, include_inactive=False, raise_load=False):
         else:
             site = final_query.filter_by(site_code=site_code).first()
 
-
     return site
 
 
@@ -64,7 +63,7 @@ def get_all_geographical_selection_per_category(category, include_inactive):
 
 def build_site_address(site_info):
     """
-    site_info (class):      Site class
+    site_info (class):  Site class
     """
 
     address = ""
@@ -112,48 +111,35 @@ def get_site_season(site_code=None, site_id=None, return_schema_format=True):
 
     return result
 
-def get_site_per(selector="province"):
-    """
-    Function that gets site per municipality, province, region
-    """
-    # query = Sites.query().filter_by(selector)
-
-    return True
 
 def get_seasons():
     """
     """
     query = Seasons.query.all()
-    result = SeasonsSchema(many=True, exclude=["routine_schedules", "sites"]).dump(query).data
+    result = SeasonsSchema(
+        many=True,
+        exclude=[
+            "routine_schedules", "sites"
+        ]
+    ).dump(query).data
 
     return result
+
 
 def save_site_info(data):
     """
     """
-    site_code = data["current_site_code"]
-    purok = data["current_purok"]
-    sitio = data["current_sitio"]
-    barangay = data["current_barangay"]
-    municipality = data["current_municipality"]
-    province = data["current_province"]
-    region = data["current_region"]
-    psgc = data["current_psgc"]
-    is_active = data["current_is_active"]
-    households = data["current_households"]
-    season = data["current_season"]
-    site_id = data["site_id"]
 
-    update = Sites.query.get(site_id)
-    update.purok = purok
-    update.sitio = sitio
-    update.barangay = barangay
-    update.municipality = municipality
-    update.province = province
-    update.region = region
-    update.psgc = psgc
-    update.is_active = is_active
-    update.households = households
-    update.season = season
-    update.site_id = site_id
+    update = Sites.query.get(data["site_id"])
+    update.purok = data["purok"]
+    update.sitio = data["sitio"]
+    update.barangay = data["barangay"]
+    update.municipality = data["municipality"]
+    update.province = data["province"]
+    update.region = data["region"]
+    update.psgc = data["psgc"]
+    update.active = data["active"]
+    update.households = data["households"]
+    update.season = data["season"]
+
     return True
