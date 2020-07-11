@@ -460,8 +460,9 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             data_ts, release_interval_hours)
         release_time = latest_release.release_time
 
-        # CHECK IF ONSET RELEASE (only one release)
-        is_onset_release = len(event_alert.releases) == 1
+        # CHECK IF ONSET RELEASE (only one release) and alert_level > 0
+        is_onset_release = len(
+            event_alert.releases) == 1 and event_alert.public_alert_symmbol.alert_level > 0
         # NOTE: CHECK NARRATIVE IF ALREADY SENT EWI SMS. if onset, do not add 30mins.
         sent_statuses = check_ewi_narrative_sent_status(
             is_onset_release, event_id, data_ts)
@@ -487,10 +488,13 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         event_alert_data["event"]["validity"] = str(datetime.strptime(
             event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
 
-        # NOTE: ADDING sent statuses
+        # Adding sent statuses on return object
         event_alert_data["sent_statuses"] = sent_statuses
+        event_alert_data["is_onset_release"] = is_onset_release
+        event_alert_data["prescribed_release_time"] = datetime.strftime(
+            rounded_data_ts, "%Y-%m-%d %H:%M:%S")
 
-        # NOTE: LOUIE SPECIAL intervention to add all triggers of the whole event.
+        # Special intervention to add all triggers of the whole event.
         # Bypassing the use of MonitoringEvent instead
         all_event_triggers = get_monitoring_triggers(
             event_id=event_id,
@@ -527,6 +531,8 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                     latest.append(event_alert_data)
                 elif day > 0 and day <= extended_monitoring_days:
                     event_alert_data["day"] = day
+                    event_alert_data["has_alert_release_today"] = current.date(
+                    ) == data_ts.date()
                     extended.append(event_alert_data)
                 else:
                     monitoring_status = event_alert.event.status
