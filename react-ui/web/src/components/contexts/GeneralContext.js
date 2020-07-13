@@ -11,6 +11,7 @@ import {
 export const GeneralContext = createContext();
 
 export const GeneralProvider = ({ children }) => {
+    const [refresh_users, setRefreshUser] = useState(true);
     const [refresh_sites, setRefreshSites] = useState(true);
     const [users, setUsers] = useState([]);
     const [sites, setSites] = useState([]);
@@ -31,11 +32,13 @@ export const GeneralProvider = ({ children }) => {
     }, [refresh_sites]);
 
     useEffect(() => {
-        getUsers(data => {
-            setUsers(data);
-            
-        });
-    }, []);
+        if (refresh_users) {
+            getUsers(data => {
+                setUsers(data);
+                setRefreshUser(false);
+            });
+        }
+    }, [refresh_users]);
 
     useEffect(() => {
         getOrganizations(data => {
@@ -87,6 +90,7 @@ export const GeneralProvider = ({ children }) => {
         organizations,
         is_reconnecting,
         setIsReconnecting,
+        setRefreshUser,
         setRefreshSites, 
         server_time
     };

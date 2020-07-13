@@ -8,7 +8,7 @@ export function getSites (callback) {
 }
 
 export function getUsers (callback) {
-    const api_link = `${host}/api/users/get_dynaslope_users`;
+    const api_link = `${host}/api/users/get_dynaslope_users/true/true`;
     makeGETAxiosRequest(api_link, callback);
 }
 

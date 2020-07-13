@@ -14,6 +14,7 @@ import { withStyles } from "@material-ui/core/styles";
 import PhivolcsDynaslopeLogo from "../../images/phivolcs-dynaslope-logo.png";
 import GeneralStyles from "../../GeneralStyles";
 import { logout, getCurrentUser } from "../sessions/auth";
+import { react_host } from "../../config";
 
 const styles = theme => ({
     root: {
@@ -81,6 +82,9 @@ function Header (props) {
     const handleClose = () => {
         setAnchorEl(null);
     };
+    const goToProfile = () => {
+        window.location.href = `${react_host}/profile`;
+    };
 
     const onClickLogout = () => {
         logout(() => {
@@ -90,7 +94,7 @@ function Header (props) {
     };
 
     const { first_name } = getCurrentUser();
-    
+
     return (
         <div className={classes.root}>
             <AppBar position="fixed" color="primary">
@@ -152,15 +156,8 @@ function Header (props) {
                 onClose={handleClose}
                 className={classes.menu}
             >
-                <MenuItem disabled onClick={handleClose}>
-                    Profile 
-                    <Typography
-                        component="span"
-                        variant="overline"
-                        style={{ paddingLeft: 4 }}
-                    >
-                        SOON
-                    </Typography>
+                <MenuItem onClick={goToProfile}>
+                    Profile
                 </MenuItem>
                 <MenuItem onClick={onClickLogout}>Logout</MenuItem>
             </Menu>

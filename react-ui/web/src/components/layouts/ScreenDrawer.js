@@ -15,6 +15,7 @@ import {
 import { withStyles } from "@material-ui/core/styles";
 import PhivolcsDynaslopeLogo from "../../images/phivolcs-dynaslope-logo.png";
 import GeneralStyles from "../../GeneralStyles";
+import { react_host } from "../../config";
 
 const styles = theme => ({
     list: {
@@ -47,6 +48,10 @@ const styles = theme => ({
     link: { textDecoration: "none" }
 });
 
+const goToProfile = () => {
+    window.location.href = `${react_host}/profile`;
+};
+
 class ScreenDrawer extends Component {
     state = {
         open: {}
@@ -62,6 +67,7 @@ class ScreenDrawer extends Component {
             }
         }));
     };
+    
 
     render () {
         const { classes, drawerHandler, drawer, navigationLabels } = this.props;
@@ -117,7 +123,7 @@ class ScreenDrawer extends Component {
                                 </ListItemIcon>
                                 <ListItemText primary="Notifications" />
                             </ListItem> */}
-                            <ListItem button>
+                            <ListItem button onClick={goToProfile}>
                                 <ListItemIcon>
                                     <AccountCircle />
                                 </ListItemIcon>
