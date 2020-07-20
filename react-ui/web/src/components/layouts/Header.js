@@ -88,6 +88,7 @@ function Header (props) {
     
     const onClickProfile = () => {
         history.push("/profile");
+        handleClose();
     };
 
     const onClickLogout = () => {
