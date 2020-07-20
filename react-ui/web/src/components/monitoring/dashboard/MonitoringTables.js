@@ -476,7 +476,7 @@ function LatestSiteAlertsExpansionPanel (props) {
         let notice = "";
         if (!has_alert_release_today) {
             notice = <Tooltip 
-                arrow title="No alert release for today yet!"
+                arrow title="Don't forget to release today's site alert for extended monitoring!"
             >
                 <Warning 
                     fontSize="small" style={{ marginLeft: 8 }} 
