@@ -29,6 +29,7 @@ import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInp
 import { CTContext } from "./CTContext";
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 import { ServerTimeContext } from "../../contexts/ServerTimeContext";
+import { GeneralContext } from "../../contexts/GeneralContext";
 
 const useStyles = makeStyles(theme => {
     const general_styles = GeneralStyles(theme);
@@ -79,6 +80,7 @@ function CandidateAlertsExpansionPanel (props) {
         isShowingValidation, toggleValidation, validationDetails
     } = props;
     const { sites } = useContext(GeneralContext);
+
     let site = "";
     let ts = "";
     let ia_level = "";
@@ -88,6 +90,7 @@ function CandidateAlertsExpansionPanel (props) {
         general_status, is_release_time,
         unresolved_moms_list
     } = alertData;
+
     const routine_a0 = [];
     const routine_nd = [];
     let routine_overdue = [];
@@ -121,8 +124,7 @@ function CandidateAlertsExpansionPanel (props) {
                     routine_a0.push(r_site[0]);
                 });
             }
-        });
-        
+        });   
     } else {
         const { 
             site_code, release_details, internal_alert_level,
@@ -187,8 +189,8 @@ function CandidateAlertsExpansionPanel (props) {
                     <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
 
                     <Grid item xs={12} container spacing={1}>
-                        { gen_status === "ROUTINE" ?
-                            (
+                        { 
+                            gen_status === "ROUTINE" ? (
                                 <Grid item xs={12} container spacing={2} justify="space-between">
                                     <Grid item container xs={12} md={12}>
                                         <Grid item xs={12}>
@@ -196,8 +198,8 @@ function CandidateAlertsExpansionPanel (props) {
                                                 <strong>A0</strong>
                                             </Typography>
                                         </Grid>
-                                        { routine_a0.length > 0 ? 
-                                            (
+                                        {
+                                            routine_a0.length > 0 ? (
                                                 routine_a0.map( row => {
                                                     return (
                                                         <Grid item md={1} xs={2} key={row.site_code} style={{ padding: 3 }} >
@@ -208,8 +210,7 @@ function CandidateAlertsExpansionPanel (props) {
                                                         </Grid>
                                                     );
                                                 })
-                                            ) : 
-                                            (
+                                            ) : (
                                                 <Typography variant="subtitle2">None</Typography>
                                             )
                                         }
@@ -221,8 +222,8 @@ function CandidateAlertsExpansionPanel (props) {
                                                 <strong>ND</strong>
                                             </Typography>
                                         </Grid>
-                                        { routine_nd.length > 0 && typeof routine_nd !== "undefined" ? 
-                                            ( 
+                                        {
+                                            routine_nd.length > 0 && typeof routine_nd !== "undefined" ? ( 
                                                 routine_nd.map( row => {
                                                     return (
                                                         <Grid item md={1} xs={2} key={row.site_id} style={{ padding: 3 }} >
@@ -233,40 +234,38 @@ function CandidateAlertsExpansionPanel (props) {
                                                         </Grid>
                                                     );
                                                 })
-                                            )
-                                            : 
-                                            (
+                                            ) : (
                                                 <Typography variant="subtitle2">None</Typography>
                                             )
                                         }
                                     </Grid>
                                     
-                                    <Grid item container xs={12} md={12} >
-                                        { routine_overdue.length > 0 && (
-                                            <Grid item xs={12} className={classes.routineSitesContainer}>
-                                            
-                                                <Typography variant="h6">
-                                                    <strong> Overdue</strong>
-                                                </Typography>
-                                            </Grid>
-                                        ) && (
-                                            routine_overdue.map( row => {
-                                                return (
-                                                    <Grid item md={1} xs={2} key={row.site_code} style={{ justifyItems: "center", padding: 3 }} >
-                                                        <Typography 
-                                                            variant="body1"> 
-                                                            {row.site_code.toUpperCase()}
+                                    <Grid item container xs={12} md={12}>
+                                        { 
+                                            routine_overdue.length > 0 && (
+                                                <Fragment>
+                                                    <Grid item xs={12} className={classes.routineSitesContainer}>
+                                                        <Typography variant="h6">
+                                                            <strong>Overdue</strong>
                                                         </Typography>
                                                     </Grid>
-                                                );
-                                            })
-                                        )
+
+                                                    {
+                                                        routine_overdue.map(row => (
+                                                            <Grid item md={1} xs={2} key={row.site_code} style={{ justifyItems: "center", padding: 3 }} >
+                                                                <Typography 
+                                                                    variant="body1"> 
+                                                                    {row.site_code.toUpperCase()}
+                                                                </Typography>
+                                                            </Grid>
+                                                        ))
+                                                    }
+                                                </Fragment>
+                                            )
                                         }
                                     </Grid>
                                 </Grid> 
-                            ) 
-                            : 
-                            (
+                            ) : (
                                 <div style={{ width: "100%" }}>
                                     <Grid item xs={12} md={12}>
                                         <Typography variant="subtitle2" color="textPrimary">TRIGGERS</Typography>
@@ -371,8 +370,8 @@ function CandidateAlertsExpansionPanel (props) {
                                         }
                                     </Grid>
                                 </div>
-                            )}
-                        
+                            )
+                        }
                     </Grid>
                         
                     {
