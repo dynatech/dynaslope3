@@ -332,7 +332,9 @@ function IndividualContact (props) {
                                     </ListItem>
                                 ))
                             }
-                        </List>)}
+                        </List>
+                    )
+                }
             </Grid>
 
             <Grid item xs={12} className={classes.insetDivider} >
@@ -369,7 +371,9 @@ function IndividualContact (props) {
                                     </ListItem>
                                 ))
                             }
-                        </List>)}
+                        </List>
+                    )
+                }
             </Grid>
 
             <Grid item xs={12} style={{ padding: "12px 4px" }} >

@@ -20,7 +20,7 @@ function EditSiteInformationModal (props) {
     const { setRefreshSites } = useContext(GeneralContext);
 
     const [site_information_data, setSiteInformationData] = useState(null);
-    const [is_disable, setIsDisable] = useState(true);
+    const [is_disabled, setIsDisabled] = useState(true);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
     const snackBarActionFn = key => {
@@ -70,7 +70,7 @@ function EditSiteInformationModal (props) {
                     siteInformation={siteInformation}
                     setSiteInformationData={setSiteInformationData}
                     seasons={seasons}
-                    setIsDisable={setIsDisable}
+                    setIsDisabled={setIsDisabled}
                 />
             </DialogContent>
             <DialogActions>
@@ -81,7 +81,7 @@ function EditSiteInformationModal (props) {
                 <Button
                     color="primary"
                     onClick={handleSubmit}
-                    disabled={is_disable}
+                    disabled={is_disabled}
                 >
                     Save
                 </Button>

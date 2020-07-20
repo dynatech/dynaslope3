@@ -4,7 +4,6 @@ import {
     Divider, Button
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
-import { isWidthUp } from "@material-ui/core/withWidth";
 import ContentLoader from "react-content-loader";
 
 import moment from "moment";
@@ -12,8 +11,13 @@ import moment from "moment";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
 import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
 import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
-import { Publish, Description, PhoneAndroid, Done, Timeline } from "@material-ui/icons";
 import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
+import Tooltip from "@material-ui/core/Tooltip";
+import {
+    Publish, Description, PhoneAndroid,
+    Done, Timeline, PanTool, Warning
+} from "@material-ui/icons";
+
 import GeneralStyles from "../../../GeneralStyles";
 import ValidationModal from "./ValidationModal";
 import useModal from "../../reusables/useModal";
@@ -24,7 +28,7 @@ import SendRoutineEwiSmsModal from "./SendRoutineEwiSmsModal";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { CTContext } from "./CTContext";
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
-import { GeneralContext } from "../../contexts/GeneralContext";
+import { ServerTimeContext } from "../../contexts/ServerTimeContext";
 
 const useStyles = makeStyles(theme => {
     const general_styles = GeneralStyles(theme);
@@ -447,9 +451,12 @@ function LatestSiteAlertsExpansionPanel (props) {
     } = props;
     const {
         event, internal_alert_level, releases,
-        day, sent_statuses, public_alert_symbol
+        day, sent_statuses, public_alert_symbol,
+        is_onset_release, prescribed_release_time,
+        has_alert_release_today
     } = siteAlert;
     const { alert_level } = public_alert_symbol;
+    const { server_time } = useContext(ServerTimeContext);
 
     const { is_sms_sent, is_bulletin_sent } = sent_statuses;
 
@@ -461,18 +468,47 @@ function LatestSiteAlertsExpansionPanel (props) {
     const validity_ts = format_ts(validity);
 
     const { release_id, data_ts, release_time } = releases[0];
-
-    const is_onset = releases.length === 1;
     let adjusted_data_ts = data_ts;
-    if (!is_onset) adjusted_data_ts = moment(data_ts).add(30, "minutes");
+    if (!is_onset_release) adjusted_data_ts = moment(data_ts).add(30, "minutes");
     adjusted_data_ts = format_ts(adjusted_data_ts);
 
     const panel_headers = [site_name, internal_alert_level];
     if (type === "extended") {
-        panel_headers.push(`Day ${day}`);
+        let notice = "";
+        if (!has_alert_release_today) {
+            notice = <Tooltip 
+                arrow title="No alert release for today yet!"
+            >
+                <Warning 
+                    fontSize="small" style={{ marginLeft: 8 }} 
+                    className={classes.dyna_error}
+                />
+            </Tooltip>;
+        }
+
+        const day_div = <span 
+            style={{ display: "flex", alignItems: "center" }}
+        >
+            Day {day}{notice}
+        </span>;
+        panel_headers.push(day_div);
     } else {
         panel_headers.push(adjusted_data_ts, release_time);
     }
+
+    let sms_end_icon = is_sms_sent ? <Done /> : "";
+    let bulletin_end_icon = is_bulletin_sent ? <Done /> : "";
+    const not_yet_sending_time = server_time !== null && moment(server_time).isBefore(prescribed_release_time) && !is_onset_release;
+    if (not_yet_sending_time) {
+        sms_end_icon = <PanTool />;
+        bulletin_end_icon = <PanTool />;
+    }
+
+    const tooltip_title_maker = ewi => {
+        if (not_yet_sending_time) return "Wait for EWI sending time";
+        if (sent_statuses[`is_${ewi.toLowerCase()}_sent`]) return `EWI ${ewi} sent!`;
+        return `Send EWI ${ewi}`;
+    };
 
     return (
         <ExpansionPanel
@@ -546,25 +582,37 @@ function LatestSiteAlertsExpansionPanel (props) {
                 >
                     Timeline
                 </Button>
-                <Button
-                    size="small" color="primary" 
-                    startIcon={<PhoneAndroid />}
-                    onClick={smsHandler({
-                        release_id, site_code, site_id,
-                        type, public_alert_symbol
-                    })}
-                    endIcon={ is_sms_sent && <Done /> }
+                <Tooltip 
+                    arrow
+                    title={tooltip_title_maker("SMS")}
                 >
-                    EWI SMS
-                </Button>
-                <Button 
-                    size="small" color="primary"
-                    startIcon={<Description />}
-                    onClick={bulletinHandler({ release_id, site_code, site_id, type, is_bulletin_sent })}
-                    endIcon={ is_bulletin_sent && <Done /> }
+                    <Button
+                        size="small" color="primary" 
+                        startIcon={<PhoneAndroid />}
+                        onClick={smsHandler({
+                            release_id, site_code, site_id,
+                            type, public_alert_symbol
+                        })}
+                        endIcon={sms_end_icon}
+                        className={not_yet_sending_time && classes.dyna_error}
+                    >
+                        EWI SMS
+                    </Button>
+                </Tooltip>
+                <Tooltip 
+                    arrow
+                    title={tooltip_title_maker("Bulletin")}
                 >
-                    Bulletin
-                </Button>
+                    <Button 
+                        size="small" color="primary"
+                        startIcon={<Description />}
+                        onClick={bulletinHandler({ release_id, site_code, site_id, type, is_bulletin_sent })}
+                        endIcon={bulletin_end_icon}
+                        className={not_yet_sending_time && classes.dyna_error}
+                    >
+                        Bulletin
+                    </Button>
+                </Tooltip>
             </ExpansionPanelActions>
         </ExpansionPanel>
     );
@@ -652,13 +700,12 @@ function RoutineExpansionPanel (props) {
 
 function MonitoringTables (props) {
     const {
-        candidateAlertsData, alertsFromDbData, width,
+        candidateAlertsData, alertsFromDbData,
         releaseFormOpenHandler, history
     } = props;
 
     const classes = useStyles();
     const [expanded, setExpanded] = useState(false);
-    // const { isShowing: isShowingValidation, toggle: toggleValidation } = useModal();
     const [isShowingValidation, setIsShowingValidation] = useState(false);
     const [validation_details, setValidationDetails] = useState({});
     const { isShowing: isShowingSendEWI, toggle: toggleSendEWI } = useModal();

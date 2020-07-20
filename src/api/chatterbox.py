@@ -8,7 +8,8 @@ from src.models.inbox_outbox import SmsTagsSchema
 from src.utils.chatterbox import (
     get_quick_inbox, get_message_tag_options,
     insert_message_on_database, get_latest_messages,
-    get_messages_schema_dict, resend_message
+    get_messages_schema_dict, resend_message,
+    get_formatted_unsent_messages
 )
 from src.utils.ewi import create_ewi_message, insert_ewi_sms_narrative
 from src.utils.general_data_tag import insert_data_tag
@@ -243,3 +244,12 @@ def wrap_resend_message(outbox_status_id):
         message = error_msg
 
     return jsonify({"status": status, "message": message})
+
+
+@CHATTERBOX_BLUEPRINT.route("/chatterbox/check_unsent_messages", methods=["GET"])
+def check_unsent_messages():
+    """
+    """
+
+    unsent_messages = get_formatted_unsent_messages()
+    return jsonify(unsent_messages)

@@ -287,7 +287,6 @@ def update_alert_gen(site_code=None):
     emit_data("receive_alerts_from_db")
     emit_data("receive_candidate_alerts")
     print(get_process_status_log("emitting updated alert gen data", "end"))
-
     print(get_process_status_log("update alert gen", "end"))
 
 
