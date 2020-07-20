@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Avatar from "@material-ui/core/Avatar";
 import Button from "@material-ui/core/Button";
-import CssBaseline from "@material-ui/core/CssBaseline";
 import TextField from "@material-ui/core/TextField";
 import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
 import Typography from "@material-ui/core/Typography";
@@ -11,9 +10,9 @@ import VisibilityIcon from "@material-ui/icons/Visibility";
 import VisibilityOffIcon from "@material-ui/icons/VisibilityOff";
 import { InputAdornment, IconButton } from "@material-ui/core";
 import VerifiedUserIcon from "@material-ui/icons/VerifiedUser";
+
 import { getCurrentUser } from "../sessions/auth";
 import { updateUserCredentials } from "./ajax";
-import { react_host } from "../../config";
 
 const useStyles = makeStyles((theme) => ({
     paper: {
@@ -45,8 +44,10 @@ const useStyles = makeStyles((theme) => ({
     }
 }));
 
-export default function ChangePassword (props) {
+export default function ChangePasswordForm (props) {
+    const { history } = props;
     const classes = useStyles();
+
     const [warningText, setWarningText] = useState("");
     const [username, setUsername] = useState("");
     const [pass1, setPass1] = useState("");
@@ -65,24 +66,22 @@ export default function ChangePassword (props) {
                 setWarningText("Enter your old password below"); 
                 setDisabled(false);
                 setColor("primary");
-            }
-            else {
-                setWarningText("password did not matched");
+            } else {
+                setWarningText("Passwords did not matched");
                 setDisabled(true);
                 setColor("error");
             } 
         } else {
-            setWarningText("password too short!!");
+            setWarningText("Password too short");
             setColor("error");
         }
+        
         if (pass1.length === 0 || pass2.length === 0) {
             setWarningText("");
         }
     }, [pass1, pass2]);
 
-    const handleClickShowPassword = () => {
-        !show ? setShow(true) : setShow(false);
-    };
+    const handleClickShowPassword = () => setShow(!show);
 
     const saveChanges = () => {
         const data = {
@@ -91,34 +90,33 @@ export default function ChangePassword (props) {
             new_password: pass1,
             old_password: old_pass,
         };
+        
         updateUserCredentials(data, response => {
             if (response === "success") {
                 setTitle("Account update success");
                 setSuccess(true);
             } else {
-                setTitle("Invalid old password");
                 setSuccess(false);
+                setWarningText("Invalid old password");
+                setColor("error");
             }
         });
     };
 
     const goToProfile = () => {
-        window.location.href = `${react_host}/profile`;
+        history.push("/profile");
     };
 
     return (
         <Container component="main" maxWidth="xs">
-            <CssBaseline />
             <div className={classes.paper}>
                 <Avatar className={ !success ? classes.avatar : classes.avatar_success}>
                     {success ? <VerifiedUserIcon/> : <LockOutlinedIcon />}
                 </Avatar>
-                <Typography 
-                    component="h1" 
-                    variant="h5"
-                >
+                <Typography component="h1">
                     {title}
                 </Typography>
+
                 <div className={ success ? classes.form_hide : classes.form_display}>
                     <TextField
                         variant="outlined"
@@ -139,16 +137,6 @@ export default function ChangePassword (props) {
                         label="New password"
                         id="password1"
                         onChange={e=> setPass1(e.target.value)}
-                    />
-
-                    <TextField
-                        variant="outlined"
-                        margin="normal"
-                        type={show ? "text" : "password"}
-                        fullWidth
-                        id="password2"
-                        label="Confirm new password"
-                        onChange={e=> setPass2(e.target.value)}
                         InputProps={{ endAdornment: (
                             <InputAdornment position="end">
                                 <IconButton
@@ -160,6 +148,16 @@ export default function ChangePassword (props) {
                             </InputAdornment>
                         )
                         }}
+                    />
+
+                    <TextField
+                        variant="outlined"
+                        margin="normal"
+                        type="password"
+                        fullWidth
+                        id="password2"
+                        label="Confirm new password"
+                        onChange={e=> setPass2(e.target.value)}
                     />
 
                     <Typography variant="body2" color={color}> 
@@ -192,6 +190,19 @@ export default function ChangePassword (props) {
                 >
                     {success ? "go to profile" : "save changes"}
                 </Button>
+
+                {
+                    !success && (
+                        <Button
+                            fullWidth
+                            variant="contained"
+                            color="primary"
+                            onClick={goToProfile}
+                        >
+                            Cancel
+                        </Button>
+                    )
+                }
             </div>       
         </Container>
     );

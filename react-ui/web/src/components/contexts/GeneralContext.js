@@ -4,9 +4,6 @@ import React, {
 } from "react";
 import { useSnackbar } from "notistack";
 import { getSites, getUsers, getOrganizations } from "./ajax";
-import { 
-    getServerTime, receiveServerTime
-} from "../../websocket/misc_ws";
 
 export const GeneralContext = createContext();
 
@@ -18,7 +15,6 @@ export const GeneralProvider = ({ children }) => {
     const [all_sites_including_inactive, SetAllSites] = useState([]);
     const [organizations, setOrganizations] = useState([]);
     const [is_reconnecting, setIsReconnecting] = useState(null);
-    const [server_time, setServerTime] = useState(null);
 
     useEffect(() => {
         if (refresh_sites) {
@@ -43,13 +39,6 @@ export const GeneralProvider = ({ children }) => {
     useEffect(() => {
         getOrganizations(data => {
             setOrganizations(data);
-        });
-    }, []);
-
-    useEffect(() => {
-        getServerTime();
-        receiveServerTime(ts => {
-            setServerTime(ts);
         });
     }, []);
 
@@ -91,8 +80,7 @@ export const GeneralProvider = ({ children }) => {
         is_reconnecting,
         setIsReconnecting,
         setRefreshUser,
-        setRefreshSites, 
-        server_time
+        setRefreshSites
     };
 
     return (

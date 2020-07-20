@@ -2,21 +2,21 @@ import React, { useState } from "react";
 import {
     AppBar, Toolbar, Typography,
     Menu, MenuItem, IconButton,
-    Badge, Button
+    Badge, Button, makeStyles,
 } from "@material-ui/core";
 import {
     Menu as MenuIcon,
     AccountCircle,
     Mail as MailIcon,
-    Notifications as NotificationsIcon
+    Notifications as NotificationsIcon,
+    ExitToApp
 } from "@material-ui/icons";
-import { withStyles } from "@material-ui/core/styles";
 import PhivolcsDynaslopeLogo from "../../images/phivolcs-dynaslope-logo.png";
 import GeneralStyles from "../../GeneralStyles";
 import { logout, getCurrentUser } from "../sessions/auth";
-import { react_host } from "../../config";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
+    ...GeneralStyles(theme),
     root: {
         width: "100%",
     },
@@ -66,24 +66,28 @@ const styles = theme => ({
     list: {
         width: 250,
     },
-    menu: { marginTop: 40 }
-});
+    menu: { marginTop: 40 },
+    icon: { paddingRight: theme.spacing(2) }
+}));
   
 function Header (props) {
     const {
-        classes, drawerHandler, history,
+        drawerHandler, history,
         onLogout
     } = props;
     const [anchorEl, setAnchorEl] = useState(null);
+    const classes = useStyles();
 
     const handleClick = event => {
         setAnchorEl(event.currentTarget);
     };
+    
     const handleClose = () => {
         setAnchorEl(null);
     };
-    const goToProfile = () => {
-        window.location.href = `${react_host}/profile`;
+    
+    const onClickProfile = () => {
+        history.push("/profile");
     };
 
     const onClickLogout = () => {
@@ -156,19 +160,15 @@ function Header (props) {
                 onClose={handleClose}
                 className={classes.menu}
             >
-                <MenuItem onClick={goToProfile}>
-                    Profile
+                <MenuItem onClick={onClickProfile}>
+                    <AccountCircle className={classes.icon} /> Profile
                 </MenuItem>
-                <MenuItem onClick={onClickLogout}>Logout</MenuItem>
+                <MenuItem onClick={onClickLogout}>
+                    <ExitToApp className={classes.icon} /> Logout
+                </MenuItem>
             </Menu>
         </div>
     );
 }
   
-export default withStyles(
-    (theme) => ({
-        ...GeneralStyles(theme),
-        ...styles(theme),
-    }),
-    { withTheme: true },
-)(Header);
+export default Header;

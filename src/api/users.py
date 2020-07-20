@@ -12,7 +12,8 @@ from src.utils.users import (
     create_account
 )
 from src.utils.extra import var_checker
-from src.utils.contacts import (save_user_contact_numbers, save_user_email,
+from src.utils.contacts import (
+    save_user_contact_numbers, save_user_email,
     save_user_information
 )
 USERS_BLUEPRINT = Blueprint("users_blueprint", __name__)
@@ -144,6 +145,7 @@ def get_organizations():
 
     return jsonify(result)
 
+
 @USERS_BLUEPRINT.route("/users/update_account", methods=["POST"])
 def update_user_account():
     """
@@ -152,6 +154,7 @@ def update_user_account():
     result = update_account(json_data)
 
     return result
+
 
 @USERS_BLUEPRINT.route("/users/create_dynaslope_user", methods=["POST"])
 def create_user():
@@ -178,6 +181,7 @@ def create_user():
     }
     return jsonify(feedback)
 
+
 @USERS_BLUEPRINT.route("/users/update_user_info", methods=["POST"])
 def update_user_info():
     """
@@ -186,19 +190,20 @@ def update_user_info():
 
     try:
         user_id = json_data["user_id"]
-        save_user_contact_numbers(json_data, user_id)
         save_user_information(json_data)
+        save_user_contact_numbers(json_data, user_id)
         # save_user_email(emails, user_id, emails_to_delete)
 
-        message = "User uccessfully updated"
-        status = True
+        message = "User successfully updated!"
+        status = "success"
         DB.session.commit()
 
     except Exception as err:
         print(err)
         DB.session.rollback()
-        message = "Something went wrong, Please try again"
-        status = False
+
+        message = "Something went wrong. Kindly report."
+        status = "error"
 
     feedback = {
         "status": status,

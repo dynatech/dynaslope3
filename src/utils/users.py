@@ -26,6 +26,7 @@ PROP_DICT = {
     "tea": "team"
 }
 
+
 def get_users_categorized_by_org(site_code=None):
     """
     """
@@ -202,14 +203,16 @@ def get_dynaslope_users(active_only=True, return_schema_format=False, include_co
 
     if include_contacts:
         query = ur.query.options(
-        DB.joinedload("account", innerjoin=True).raiseload("*"),
-        DB.subqueryload("emails").raiseload("*"),
-        DB.subqueryload("teams").raiseload("*"),
-        DB.subqueryload("mobile_numbers"). \
-            joinedload("mobile_number", innerjoin=True).raiseload("*"),
-        DB.raiseload("*")
-    )
-    
+            DB.joinedload("account", innerjoin=True).raiseload("*"),
+            DB.subqueryload("emails").raiseload("*"),
+            DB.subqueryload("teams").joinedload(
+                "team", innerjoin=True).raiseload("*"),
+            DB.subqueryload("mobile_numbers").
+            joinedload("mobile_number", innerjoin=True).lazyload(
+                "blocked_mobile"),
+            DB.raiseload("*")
+        )
+
     query = query.order_by(ur.last_name)
 
     if active_only:
@@ -221,13 +224,16 @@ def get_dynaslope_users(active_only=True, return_schema_format=False, include_co
     if return_schema_format:
         exclude_list = [
             "organizations", "ewi_restriction",
-            "landline_numbers",
-            "mobile_numbers.mobile_number.blocked_mobile"]
-        include_list = []
+            "landline_numbers", "mobile_numbers.mobile_number.blocked_mobile"
+        ]
+
+        include_list = ["emails", "mobile_numbers", "teams"]
         if not include_contacts:
-            exclude_list.extend(["emails", "mobile_numbers", "teams"])
+            exclude_list.extend(include_list)
             include_list = []
-        result = UsersRelationshipSchema(many=True, exclude=exclude_list, include=include_list).dump(result).data
+
+        result = UsersRelationshipSchema(
+            many=True, exclude=exclude_list, include=include_list).dump(result).data
 
     return result
 
@@ -308,6 +314,7 @@ def login(data):
 
     return "wqewqewe"
 
+
 def update_account(data):
     """
     """
@@ -320,7 +327,8 @@ def update_account(data):
     sha512.update(old_pass.encode())
     password = sha512.hexdigest()
 
-    user_account = UserAccounts.query.filter_by(user_fk_id=user_id, password=password).first()
+    user_account = UserAccounts.query.filter_by(
+        user_fk_id=user_id, password=password).first()
 
     if user_account:
         enc = hashlib.sha512()
@@ -335,6 +343,7 @@ def update_account(data):
         return "success"
     return "invalid"
 
+
 def create_account(data, user_id):
     """
     """
@@ -345,14 +354,15 @@ def create_account(data, user_id):
     sha512.update(password.encode())
     hashed_password = sha512.hexdigest()
 
-    user_account = UserAccounts.query.filter_by(user_fk_id=user_id, username=username).first()
+    user_account = UserAccounts.query.filter_by(
+        user_fk_id=user_id, username=username).first()
 
     if not user_account:
         enc = hashlib.sha512()
         enc.update(password.encode())
         hashed_password = enc.hexdigest()
-        query = UserAccounts(username=username, password=hashed_password, \
-                        user_fk_id=user_id, is_active=1)
+        query = UserAccounts(username=username, password=hashed_password,
+                             user_fk_id=user_id, is_active=1)
         DB.session.add(query)
         return True
 

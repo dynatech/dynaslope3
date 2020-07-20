@@ -28,7 +28,7 @@ import SendRoutineEwiSmsModal from "./SendRoutineEwiSmsModal";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { CTContext } from "./CTContext";
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
-import { GeneralContext } from "../../contexts/GeneralContext";
+import { ServerTimeContext } from "../../contexts/ServerTimeContext";
 
 const useStyles = makeStyles(theme => {
     const general_styles = GeneralStyles(theme);
@@ -351,7 +351,7 @@ function LatestSiteAlertsExpansionPanel (props) {
         has_alert_release_today
     } = siteAlert;
     const { alert_level } = public_alert_symbol;
-    const { server_time } = useContext(GeneralContext);
+    const { server_time } = useContext(ServerTimeContext);
 
     const { is_sms_sent, is_bulletin_sent } = sent_statuses;
 

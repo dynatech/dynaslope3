@@ -235,8 +235,8 @@ def save_user_information(data):
     ewi_recipient = data["ewi_recipient"]
     sex = data["sex"]
     status = data["status"]
-    salutation = ""
-    birthday = ""
+    salutation = None
+    birthday = None
 
     if "birthday" in data:
         birthday = data["birthday"]
@@ -263,6 +263,9 @@ def save_user_information(data):
         update.nickname = nickname
         update.ewi_recipient = ewi_recipient
         update.status = status
+        update.birthday = birthday
+        update.sex = sex
+        update.salutation = salutation
 
     try:
         emails_to_delete = data["delete_emails"]
@@ -284,9 +287,8 @@ def save_user_email(emails, user_id, delete_list=None):
     """
     Function that save user email
     """
-    email_len = len(emails)
-    
-    if email_len > 0:
+
+    if emails:
         for row in emails:
             row_type = type(row)
             if row_type == str:
@@ -294,19 +296,22 @@ def save_user_email(emails, user_id, delete_list=None):
                 DB.session.add(insert_email)
             else:
                 if row["email_id"] == 0:
-                    insert_email = UserEmails(user_id=user_id, email=row["email"])
+                    insert_email = UserEmails(
+                        user_id=user_id, email=row["email"])
                     DB.session.add(insert_email)
                 else:
                     update_email = UserEmails.query.get(row["email_id"])
                     update_email.email = row["email"]
-                    
+
     if delete_list is not None:
         delete_len = len(delete_list)
         if delete_len > 0:
             for row in delete_list:
-                UserEmails.query.filter_by(user_id=user_id, email=row["email"]).delete()
+                UserEmails.query.filter_by(
+                    user_id=user_id, email=row["email"]).delete()
 
     return True
+
 
 def save_user_contact_numbers(data, user_id):
     """
@@ -314,7 +319,11 @@ def save_user_contact_numbers(data, user_id):
     """
 
     mobile_numbers = data["mobile_numbers"]
-    landline_numbers = data["landline_numbers"]
+    try:
+        landline_numbers = data["landline_numbers"]
+    except KeyError:
+        landline_numbers = []
+
     mobile_numbers_len = len(mobile_numbers)
     landline_number_len = len(landline_numbers)
 
@@ -605,6 +614,7 @@ def get_recipients(site_ids=None,
     """
     Refactored function of getting recipients
     """
+
     query = UsersRelationship.query.options(
         DB.subqueryload("mobile_numbers").joinedload(
             "mobile_number").raiseload("*"),

@@ -1,23 +1,23 @@
-import React, { Component, Fragment } from "react";
+import React, { Fragment, useState } from "react";
 import { Link } from "react-router-dom";
 import {
     SwipeableDrawer, List, ListItem,
     ListItemText, ListItemIcon, Divider,
     ListSubheader, Collapse, Badge, Typography,
-    Toolbar
+    Toolbar, makeStyles
 } from "@material-ui/core";
 import {
     Mail as MailIcon,
     Notifications as NotificationsIcon,
-    AccountCircle,
+    AccountCircle, ExitToApp,
     ExpandLess, ExpandMore
 } from "@material-ui/icons";
-import { withStyles } from "@material-ui/core/styles";
 import PhivolcsDynaslopeLogo from "../../images/phivolcs-dynaslope-logo.png";
 import GeneralStyles from "../../GeneralStyles";
-import { react_host } from "../../config";
+import { logout, getCurrentUser } from "../sessions/auth";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
+    ...GeneralStyles(theme),
     list: {
         width: 300,
         maxWidth: 360
@@ -33,7 +33,6 @@ const styles = theme => ({
         display: "block",
         alignItems: "center",
         textAlign: "center",
-        // justifyContent: "center",
         padding: 16
     },
     logo: {
@@ -44,70 +43,67 @@ const styles = theme => ({
         margin: "0 4px"
     },
     projectTitle: { fontWeight: 600 },
-    // projectSubtitle: { fontSize: "0.65rem" },
     link: { textDecoration: "none" }
-});
+}));
 
-const goToProfile = () => {
-    window.location.href = `${react_host}/profile`;
-};
+function ScreenDrawer (props) {
+    const { 
+        drawerHandler, drawer, navigationLabels,
+        history, onLogout
+    } = props;
+    const classes = useStyles();
+    const [open, isOpen] = useState({});
+    const iOS = process.browser && /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-class ScreenDrawer extends Component {
-    state = {
-        open: {}
-    }
-
-    handleNestedList = (key) => {
-        const { open } = this.state;
+    const handleNestedList = key => {
         const status = typeof open[key] === "undefined" ? false : open[key];
+        isOpen(state => ({ [key]: !status }));
+    };
 
-        this.setState(state => ({
-            open: {
-                [key]: !status
-            }
-        }));
+    const onClickProfile = () => {
+        history.push("/profile");
+    };
+
+    const onClickLogout = () => {
+        logout(() => {
+            onLogout();
+            history.push("/login");
+        });
     };
     
-
-    render () {
-        const { classes, drawerHandler, drawer, navigationLabels } = this.props;
-        const { open } = this.state;
-
-        const iOS = process.browser && /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-        return (
-            <SwipeableDrawer 
-                open={drawer} 
-                onClose={drawerHandler(false)}
-                onOpen={drawerHandler(true)}
-                disableBackdropTransition={!iOS}
-                disableDiscovery={iOS}
+    return (
+        <SwipeableDrawer 
+            open={drawer} 
+            onClose={drawerHandler(false)}
+            onOpen={drawerHandler(true)}
+            disableBackdropTransition={!iOS}
+            disableDiscovery={iOS}
+        >
+            <div
+                tabIndex={0}
+                role="button"
+                onKeyDown={drawerHandler(false)}
             >
-                <div
-                    tabIndex={0}
-                    role="button"
-                    onKeyDown={drawerHandler(false)}
-                >
-                    <div className={classes.list}>
-                        <Toolbar className={classes.drawerHeader}>
-                            <img
-                                src={PhivolcsDynaslopeLogo}
-                                alt="PHIVOLCS-Dynaslope Logo"
-                                className={`${classes.phivolcsDynaslopeLogo} ${classes.logo}`}
-                            />
+                <div className={classes.list}>
+                    <Toolbar className={classes.drawerHeader}>
+                        <img
+                            src={PhivolcsDynaslopeLogo}
+                            alt="PHIVOLCS-Dynaslope Logo"
+                            className={`${classes.phivolcsDynaslopeLogo} ${classes.logo}`}
+                        />
 
-                            <Typography variant="h5" className={classes.projectTitle}>
-                                MIA 3.0
-                            </Typography>
-                            <Typography variant="subtitle2" className={classes.projectSubtitle}>
-                                Monitoring and Information Application
-                            </Typography>
-                        </Toolbar>
+                        <Typography variant="h5" className={classes.projectTitle}>
+                            MIA 3.0
+                        </Typography>
+                        <Typography variant="subtitle2" className={classes.projectSubtitle}>
+                            Monitoring and Information Application
+                        </Typography>
+                    </Toolbar>
 
-                        <Divider />
+                    <Divider />
 
-                        <List component="nav">
-                            {/* <ListItem button>
+                    <List component="nav">
+                        {/* <ListItem button>
                                 <ListItemIcon>
                                     <Badge badgeContent={4} color="secondary">
                                         <MailIcon />
@@ -123,63 +119,62 @@ class ScreenDrawer extends Component {
                                 </ListItemIcon>
                                 <ListItemText primary="Notifications" />
                             </ListItem> */}
-                            <ListItem button onClick={goToProfile}>
-                                <ListItemIcon>
-                                    <AccountCircle />
-                                </ListItemIcon>
-                                <ListItemText primary="Profile" />
-                            </ListItem>
-                        </List>
+                        <ListItem button onClick={onClickProfile}>
+                            <ListItemIcon>
+                                <AccountCircle />
+                            </ListItemIcon>
+                            <ListItemText primary="Profile" />
+                        </ListItem>
+                        <ListItem button onClick={onClickLogout}>
+                            <ListItemIcon>
+                                <ExitToApp />
+                            </ListItemIcon>
+                            <ListItemText primary="Logout" />
+                        </ListItem>
+                    </List>
 
-                        <Divider />
+                    <Divider />
 
-                        <List
-                            component="nav"
-                            subheader={<ListSubheader component="div">Directory</ListSubheader>}
-                        >
-                            {
-                                navigationLabels.map(({ key, main, sub }) => (
-                                    <Fragment key={key}>
-                                        <ListItem
-                                            button 
-                                            onClick={() => this.handleNestedList(key)}
-                                        >
-                                            <ListItemText primary={main} />
-                                            { open[key] ? <ExpandLess /> : <ExpandMore /> }
-                                        </ListItem>
+                    <List
+                        component="nav"
+                        subheader={<ListSubheader component="div">Directory</ListSubheader>}
+                    >
+                        {
+                            navigationLabels.map(({ key, main, sub }) => (
+                                <Fragment key={key}>
+                                    <ListItem
+                                        button 
+                                        onClick={() => handleNestedList(key)}
+                                    >
+                                        <ListItemText primary={main} />
+                                        { open[key] ? <ExpandLess /> : <ExpandMore /> }
+                                    </ListItem>
 
-                                        <Collapse in={open[key]} timeout="auto" unmountOnExit>
-                                            <List component="div" disablePadding>
-                                                {
-                                                    sub.map(({ label: sublabel, link }) => (
-                                                        <Link to={link} key={sublabel} className={classes.link}>
-                                                            <ListItem button className={classes.nested} onClick={drawerHandler(false)}>
-                                                                <ListItemText 
-                                                                    primaryTypographyProps={{
-                                                                        className: classes.nestedText
-                                                                    }}
-                                                                    primary={sublabel}/>
-                                                            </ListItem>
-                                                        </Link>
-                                                    ))
-                                                }
-                                            </List>
-                                        </Collapse>
-                                    </Fragment>
-                                ))
-                            }
-                        </List>
-                    </div>
+                                    <Collapse in={open[key]} timeout="auto" unmountOnExit>
+                                        <List component="div" disablePadding>
+                                            {
+                                                sub.map(({ label: sublabel, link }) => (
+                                                    <Link to={link} key={sublabel} className={classes.link}>
+                                                        <ListItem button className={classes.nested} onClick={drawerHandler(false)}>
+                                                            <ListItemText 
+                                                                primaryTypographyProps={{
+                                                                    className: classes.nestedText
+                                                                }}
+                                                                primary={sublabel}/>
+                                                        </ListItem>
+                                                    </Link>
+                                                ))
+                                            }
+                                        </List>
+                                    </Collapse>
+                                </Fragment>
+                            ))
+                        }
+                    </List>
                 </div>
-            </SwipeableDrawer>
-        );
-    }
+            </div>
+        </SwipeableDrawer>
+    );
 }
 
-export default withStyles(
-    (theme) => ({
-        ...GeneralStyles(theme),
-        ...styles(theme),
-    }),
-    { withTheme: true },
-)(ScreenDrawer);
+export default ScreenDrawer;

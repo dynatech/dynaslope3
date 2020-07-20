@@ -1,74 +1,39 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import { Grid, ListItemText, List, ListItem, OutlinedInput
 } from "@material-ui/core";
 
 const useStyles = makeStyles(theme => ({
-    root: {
-        maxWidth: "100%",
-        flexGrow: 1,
-    },
-    container: {
-        maxWidth: "50%",
-    },
-    wall: {
-        width: "100%",
-    },
-    media: {
-        height: 200,
-    },
-    avatar: {
-        width: 150,
-        height: 150,
-    // border: '10px solid #f3f3f3'
-    },
-    avatarContainer: {
-        marginTop: -75,
-        display: "flex",
-    },
-    badge: {
-        backgroundColor: "#44b700",
-        color: "#44b700",
-        "&::after": {
-            position: "absolute",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            borderRadius: "50%",
-            animation: "$ripple 1.2s infinite ease-in-out",
-            border: "1px solid currentColor",
-            content: "\"\"",
-        },
-    },
-    addPhotoButton: {
-        backgroundColor: "#f2f2f2",
-    },
-    box: {
-        backgroundColor: "#0099ff",
-        padding: 10,
-        textAlign: "left",
-    },
-    centerText: {
-        textAlign: "center",
-    },
     list: {
-        maxHeight: 600,
-        width: "90%",
-        overflowY: "auto", 
-        padding: theme.spacing(3),
+        maxHeight: "60vh",
+        overflowY: "auto",
+        boxShadow: "0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12)",
+        "&::-webkit-scrollbar": {
+            width: 5
+        },
+        "&::-webkit-scrollbar-track": {
+            boxShadow: "inset 0 0 5px grey"
+        },
+        "&::-webkit-scrollbar-thumb": {
+            background: "rgba(127, 127, 127, 0.7)"
+        }
     },
     searchBox: {
-        marginLeft: 10,
-        width: "90%",
+        marginBottom: theme.spacing(3)
     },
-    newUserBtn: {
-        marginTop: 10,
+    sticky: {
+        position: "sticky",
+        top: 146,
+        [theme.breakpoints.down("sm")]: {
+            top: 48
+        },
+        backgroundColor: "white",
+        zIndex: 1
     },
 }));
 
 function MemberList (props) {
-    const { users, onMemberClickFn } = props;
+    const { users, onMemberClickFn, selectedUserDetails } = props;
     const classes = useStyles();
     const [usersList, setUsersList] = useState(null);
     const [search_str, setSearchStr] = useState(null);
@@ -92,33 +57,35 @@ function MemberList (props) {
     }, [search_str]);
 
     return (
-        <Grid container spacing={2}>
-            <Grid item md={6} xs={12} />
-            <Grid container spacing={3}>
-                <Grid item md={6} xs={12}>
-                    <OutlinedInput 
-                        fullWidth 
-                        placeholder="search..."
-                        onChange={event => setSearchStr(event.target.value)} 
-                        className={classes.searchBox}
-                    />
-                </Grid>
-                <List aria-label="list" className={classes.list} >
-                    {usersList !== null && usersList.map( user => {
-                        const name = `${user.first_name } ${user.last_name}`;
+        <div className={classes.sticky}>
+            <OutlinedInput
+                fullWidth
+                margin="dense"
+                placeholder="Search Dynaslope staff..."
+                onChange={event => setSearchStr(event.target.value)} 
+                className={classes.searchBox}
+            />
+
+            <List aria-label="list" className={classes.list}>
+                {
+                    usersList !== null && usersList.map(user => {
+                        const name = `${user.last_name}, ${user.first_name}`;
+                        const is_selected = selectedUserDetails !== null && selectedUserDetails.user_id === user.user_id;
+
                         return (
                             <ListItem 
                                 button 
                                 key={user.user_id} 
                                 onClick={onMemberClickFn(user)}
+                                selected={is_selected}
                             >
                                 <ListItemText primary={name} />
                             </ListItem>
                         );
-                    })}
-                </List>
-            </Grid>
-        </Grid>
+                    })
+                }
+            </List>
+        </div>
     );
 }
 export default MemberList;
