@@ -89,12 +89,12 @@ function MonitoringShiftsCalendar (props) {
 
             if (has_nickname) {
                 let name = null;
-                if (row.iompmt === nickname) name = nickname;
-                if (row.iompct === nickname) name = nickname;
+                if (row.iompmt === nickname) name = `${nickname} (MT`;
+                if (row.iompct === nickname) name = `${nickname} (CT`;
 
                 if (name) {
                     return [{
-                        title: `${name} (MT - ${time})`,
+                        title: `${name} - ${time})`,
                         start,
                         end: ts_end
                     }];
