@@ -5,10 +5,13 @@
 
 import json
 import time
+import math
 from datetime import datetime
 from connection import DB
 from src.models.analysis import (
     TSMSensors, TSMSensorsSchema,
+    AccelerometerStatus, AccelerometerStatusSchema,
+    Accelerometers, AccelerometersSchema,
     Loggers, get_tilt_table)
 from analysis_scripts.analysis.subsurface.vcdgen import vcdgen
 from src.utils.extra import get_unix_ts_value
@@ -255,6 +258,80 @@ def process_velocity_alerts_data(vel_alerts, ts_per_node):
 
     return ret_dict
 
+# def getSiteColumnNodeCount (subsurface_column):
+#     $result = $this->subsurface_node_model->getSiteColumnNodeCount($subsurface_column);
+#     return json_encode($result);
+
+
+def computeForYValues (node_count, base):
+    quotient = math.floor(node_count / base)
+    modulo = node_count % base
+    y_iterator = []
+    i = 0
+    while i < quotient:
+        y_iterator.append(base)
+        i += 1
+
+    if modulo != 0:
+        y_iterator.append(modulo)
+
+    return y_iterator
+
+
+def get_node_status(tsm_id):
+    """
+    get node status per logger
+    """
+    query = Accelerometers.query.options(
+        DB.joinedload("status", innerjoin=True).raiseload("*")) \
+            .filter_by(tsm_id=tsm_id).all()
+
+    result = AccelerometersSchema(many=True, only=["status", "node_id"]).dump(query).data
+    return result
+
+def process_node_health_data(logger_name):
+    """
+    """
+    query = TSMSensors.query.join(Loggers).options(
+        DB.joinedload("logger", innerjoin=True).raiseload("*")
+    ).filter_by(logger_name=logger_name)
+
+    result = TSMSensorsSchema(many=True, exclude=["logger.logger_model"]).\
+        dump(query).data
+
+    node_count = result[0]["number_of_segments"]
+    node_status = get_node_status(result[0]["tsm_id"])
+    y_iterators = computeForYValues(node_count, 25)
+    node_summary = []
+    count = 0
+
+    for y_index in y_iterators:
+        i = 1
+        while i <= y_index:
+            temp = {
+                "x" : i,
+                "y" : y_index,
+                "id" : count,
+                "value" : 0,
+            }
+            node_summary.append(count)
+            node_summary[count] = temp
+            i += 1
+            count += 1
+
+    for status in node_status:
+        node_id = status["node_id"]
+        temp = node_summary[node_id]
+        temp["value"] = status["status"][0]["status"]
+        temp["flagger"] = status["status"][0]["flagger"]
+        temp["id_date"] = status["status"][0]["ts_flag"]
+        temp["id"] = node_id
+        temp["comment"] = status["status"][0]["remarks"]
+        temp["status"] = status["status"][0]["status"]
+        node_summary[node_id] = temp
+
+    return node_summary
+
 
 def get_subsurface_plot_data(column_name, end_ts, start_date=None, hour_value=4):
     """
@@ -269,11 +346,12 @@ def get_subsurface_plot_data(column_name, end_ts, start_date=None, hour_value=4)
         data["d"][0])  # return value pag dict
     velocity_alerts = process_velocity_alerts_data(
         data["v"][0], ts_per_node)  # return value pag dict
-
+    node_health = process_node_health_data(column_name)  # return value pag dict
     return [
         {"type": "column_position", "data": column_position},
         {"type": "displacement", "data": displacement},
-        {"type": "velocity_alerts", "data": velocity_alerts}
+        {"type": "velocity_alerts", "data": velocity_alerts},
+        {"type": "node_health", "data": {"status":node_health}}
     ]
 
 

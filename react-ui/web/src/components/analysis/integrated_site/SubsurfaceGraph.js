@@ -6,15 +6,17 @@ import React, {
 import Highcharts from "highcharts";
 import HC_exporting from "highcharts/modules/exporting";
 import HighchartsReact from "highcharts-react-official";
-import { Grid, Paper, Hidden } from "@material-ui/core";
+import { Grid, Paper, Hidden, Typography } from "@material-ui/core";
 import * as moment from "moment";
 import { isWidthDown } from "@material-ui/core/withWidth";
-
+import heatmap from "highcharts/modules/heatmap.src";
+import { node } from "prop-types";
 import { getSubsurfacePlotData, saveChartSVG } from "../ajax";
 import BackToMainButton from "./BackToMainButton";
 import DateRangeSelector from "./DateRangeSelector";
 import { computeForStartTs } from "../../../UtilityFunctions";
 
+heatmap(Highcharts);
 window.moment = moment;
 HC_exporting(Highcharts);
 
@@ -95,6 +97,31 @@ function plotDisplacement (column_data, type) {
     return displacement_data;
 }
 
+function plotNodeHealth (column_data, type) {
+    const node_health_data = [];
+    const final_data = [];
+    column_data.status.forEach((data_list, index) => {
+        const { id, status } = data_list;
+        let color = "";
+        if (status === 2) color = "#f9ff40";
+        if (status === 3) color = "#ff8400";
+        if (status === 4) color = "#ff6961";
+        const each_data = {  
+            name: index + 1,
+            ...data_list,
+            data: { ...data_list, value: 0 },
+            value: 0,
+            id: id + 1,
+            color, 
+        }; 
+        node_health_data.push(each_data);
+    });  
+    
+    final_data.push({ data: node_health_data, type });
+
+    return final_data;       
+}
+
 function plotVelocityAlerts (column_data, type) {
     const { velocity_alerts, timestamps_per_node } = column_data;
     const velocity_data = [];
@@ -130,7 +157,6 @@ function plotVelocityAlerts (column_data, type) {
 
         velocity_data.push(col_data);
     });
-
     return velocity_data;
 }
 
@@ -262,7 +288,7 @@ function prepareDisplacementChartOption (set_data, form) {
             }
         },
         tooltip: {
-            header: "{point.x:%Y-%m-%d}: {point.y:.2f}"
+            header: "{  .x:%Y-%m-%d}: {point.y:.2f}"
         },
         plotOptions: {
             spline: {
@@ -292,7 +318,6 @@ function prepareVelocityAlertsOption (set_data, form) {
     const xAxisTitle = orientation === "across_slope" ? "Across Slope" : "Downslope";
     const categories = data.map(x => x.name).filter(x => typeof x === "number");
     categories.unshift(0);
-
     return {
         series: data,
         chart: {
@@ -368,7 +393,102 @@ function prepareVelocityAlertsOption (set_data, form) {
         }
     };
 }
+function prepareNodeHealthSummaryChart (set_data, form) {
+    const { data } = set_data;
+    const { subsurface_column } = form;
+    const divisor = Math.floor(data.length / 25);
+    
+    return {
+        series: [{
+            name: "Nodes",
+            borderColor: "#444444",
+            borderWidth: 1,
+            data,
+            dataLabels: {
+                enabled: true,
+                style: {
+                    textShadow: "none"
+                },
+                formatter () {
+                    return `${this.point.id}`;
+                }
+            }
+        }],
+        chart: {
+            type: "heatmap",
+            height: 140 + (divisor * 20),
+            marginTop: 50,
+            marginBottom: 40,
+            resetZoomButton: {
+                position: {
+                    x: 0,
+                    y: -30
+                }
+            }
+        },
+        title: {
+            text: `<b>Node Health Summary of ${subsurface_column.toUpperCase()}</b>`,
+            style: { fontSize: "14px" }
+        },
+        subtitle: {
+            text: `As of: <b>${moment().format("D MMM YYYY, HH:mm")}</b><br>`,
+            style: { fontSize: "0.6rem" }
+        },
+        xAxis: {
+            visible: false,
+            categories: []
+        },
+        yAxis: {
+            reversed: true,
+            categories: [],
+            title: null,
+            labels: {
+                format: "&ensp;",
+                useHTML: true
+            }
+        },
+        colorAxis: {
+            stops: [
+                [0, "#7cb5ec"],
+                [0.5, "#ffed49"],
+                [1, "#ff1414"]
+            ],
+            min: 0,
+            max: 2
+        },
+        legend: {
+            enabled: false
+        },
+        tooltip: {
+            formatter () {
+                const {
+                    id_date, flagger,
+                    status, comment, id
+                } = this.point;
+                let final_stat = "Ok";
+                let added_info = "";
 
+                if (typeof status !== "undefined") {
+                    switch (status) {
+                        case 2: final_stat = "Use with Caution"; break;
+                        case 3: final_stat = "Spacial Case"; break;
+                        case 4: final_stat = "Not Ok"; break;
+                        default: final_stat = "Ok"; break;
+                    }
+                    // final_stat = status;
+                    added_info = `Identification Date: <b>${moment(id_date).format("DD MMM YYYY")}</b><br/>` +
+                    `Comment: <b>${comment}</b><br/>Flagger: <b>${flagger}</b>`;
+                }
+
+                const tooltip = `Node ID: <b>${id}</b><br/>Status: <b>${final_stat}</b><br/>${added_info}`;
+                return tooltip;
+            }
+        },
+        credits: {
+            enabled: false
+        }
+    };
+}
 
 function SubsurfaceGraph (props) {
     const {
@@ -423,14 +543,15 @@ function SubsurfaceGraph (props) {
                 if (type === "column_position") temp = plotColumnPosition(sub, type);
                 else if (type === "displacement") temp = plotDisplacement(sub, type);
                 else if (type === "velocity_alerts") temp = plotVelocityAlerts(sub, type);
-                processed.push(...temp);
+                else if (type === "node_health") temp = plotNodeHealth(sub, type);
+                processed.push(...temp);                                                                                                                                                                                                                
             });
             setProcessedData(processed);
         });
     }, [selected_range_info, selected_hour_interval]);
 
     const [options, setOptions] = useState([{ title: { text: "Loading" } }]); 
-    
+                                                            
     useEffect(() => {
         const temp = [];
         processed_data.forEach(data => {
@@ -439,8 +560,9 @@ function SubsurfaceGraph (props) {
             if (type === "column_position") option = prepareColumnPositionChartOption(data, input, is_desktop);
             else if (type === "displacement") option = prepareDisplacementChartOption(data, input);
             else if (type === "velocity_alerts") option = prepareVelocityAlertsOption(data, input);
+            else if (type === "node_health") option = prepareNodeHealthSummaryChart(data, input);
             temp.push(option);
-        });
+        });                                                                                                                                                                                                                         
 
         setOptions(temp);
         if (temp.length > 0 && save_svg) setGetSVGNow(true);
@@ -497,7 +619,7 @@ function SubsurfaceGraph (props) {
 
             <div style={{ marginTop: 16 }}>
                 <Grid container spacing={4}>
-                    {
+                    {                           
                         options.length === 0 && (
                             <Fragment>
                                 <Grid item xs={12} md={6} key={1}>
@@ -539,7 +661,7 @@ function SubsurfaceGraph (props) {
                     }
                 </Grid>
             </div>
-
+            
             {
                 save_svg && (
                     <Hidden xsUp implementation="css">
