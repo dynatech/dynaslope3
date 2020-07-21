@@ -233,15 +233,17 @@ def save_user_information(data):
     nickname = data["nickname"]
     emails = data["emails"]
     ewi_recipient = data["ewi_recipient"]
-    sex = data["sex"]
     status = data["status"]
     salutation = None
     birthday = None
+    sex = None
 
     if "birthday" in data:
         birthday = data["birthday"]
-    if "salutaion" in data:
+    if "salutation" in data:
         salutation = data["salutation"]
+    if "sex" in data:
+        salutation = data["sex"]
 
     if user_id == 0:
         insert_user = Users(
