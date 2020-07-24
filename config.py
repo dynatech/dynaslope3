@@ -19,6 +19,14 @@ class Config(object):
         "pool_size": 10
     }
 
+    CELERY_BROKER_URL = 'redis://localhost:6379',
+    CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+    CELERY_TIMEZONE = "Asia/Manila"
+    # CELERY_ROUTES = {
+    #     "long_task": {"queue": "q1"},
+    #     "periodic_task": {"queue": "q2"}
+    # }
+
 
 class DevelopmentConfig(Config):
     """
@@ -48,7 +56,6 @@ def get_root_directory():
 
 
 ROOT_PATH = get_root_directory()
-# NOTE: transfer all emails to database
 APP_CONFIG = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
@@ -56,6 +63,7 @@ APP_CONFIG = {
     "generated_alerts_path": f"{ROOT_PATH}/temp/alerts",
     "bulletin_save_path": f"{ROOT_PATH}/temp/bulletin",
     "charts_render_path": f"{ROOT_PATH}/temp/charts",
+    "attachment_path": f"{ROOT_PATH}/temp/attachments",
     "logs_path": f"{ROOT_PATH}/logs",
     # "url": "http://192.168.150.167:3000",
     "url": "http://192.168.150.110",

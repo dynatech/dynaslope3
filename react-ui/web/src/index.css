@@ -24,3 +24,15 @@ code {
   max-height: 200px !important;
 }
 
+/* REACT BIG CALENDAR OVERRIDE */
+.rbc-toolbar {
+  direction: rtl !important;
+}
+
+.rbc-btn-group {
+  direction: ltr !important;
+}
+
+.rbc-toolbar-label {
+  font-weight: 600 !important;
+}

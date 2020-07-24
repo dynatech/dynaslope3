@@ -129,7 +129,10 @@ def process_rainfall_plot_data(rainfall_data):
     return plot_data
 
 
-def get_all_site_rainfall_data(site_codes_string='', end_ts=datetime.now()):
+def get_all_site_rainfall_data(site_codes_string='', end_ts=None):
+    if not end_ts:
+        end_ts = datetime.now()
+
     rainfall_summary = rainfall_main(
         site_code=site_codes_string,
         end=end_ts, Print=False,

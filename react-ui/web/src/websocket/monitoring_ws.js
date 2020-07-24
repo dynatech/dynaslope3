@@ -53,7 +53,6 @@ export function unsubscribeToWebSocket () {
     socket = null;
 }
 
-
 // Receiver Callback Functions
 export function receiveIssuesAndReminders (callback) {
     connectToWebsocket();
@@ -100,6 +99,15 @@ export function receiveAllSiteRainfallData (callback) {
     socket.on("receive_rainfall_data", data => {
         const temp = JSON.parse(data);
         console.log("All Site Rainfall Data: ", temp);
+        callback(temp);
+    });
+}
+
+export function receiveEWIInsertResponse (callback) {
+    connectToWebsocket();
+
+    socket.on("receive_ewi_insert_response", data => {
+        const temp = JSON.parse(data);
         callback(temp);
     });
 }

@@ -205,7 +205,7 @@ function TriggersInputForm (props) {
                 )
             }
             {
-                !subs_switch_state && !surf_switch_state && !moms_switch_state && (
+                !subs_switch_state && !surf_switch_state && !moms_switch_state && alert_level <= 1 && (
                     <Grid item xs={12} className={hasNoGroundData ? classes.groupGridContainer : ""}>
                         <FormControl component="fieldset" className={classes.formControl}>
                             <FormLabel component="legend" className={classes.formLabel}>

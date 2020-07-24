@@ -51,16 +51,22 @@ def test_truncator(class_name=None, date=None):
     return response
 
 
-def set_data_to_memcache(name, data):
+def set_data_to_memcache(name, data, raise_if_empty=False):
     """
     Memcache setter
+
+    raise_if_empty (bool):  raise an error when using
+                            retrieve_data_from_memcache
+                            if return data is empty
     """
-    final_data = data
-    if data == [] or data == {}:
-        final_data = "empty"
 
     temp = f"D3_{name.upper()}"
-    MEMORY_CLIENT.set(temp, final_data)
+    save_data = {
+        "data": data,
+        "raise_if_empty": raise_if_empty
+    }
+
+    MEMORY_CLIENT.set(temp, save_data)
 
 
 def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True, retrieve_attr=None):
@@ -73,35 +79,40 @@ def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True
     if filters_dict is None:
         filters_dict = []
 
-    data = MEMORY_CLIENT.get(f"D3_{table_name.upper()}")
+    save_data = MEMORY_CLIENT.get(f"D3_{table_name.upper()}")
+    data = save_data["data"]
+    raise_if_empty = save_data["raise_if_empty"]
 
-    if data:
-        if filters_dict:
-            for row in data:
-                try:
-                    if all(filters_dict[key] == row[key] for key in filters_dict):
-                        if retrieve_one:
-                            return_data = row
-                            break
-                        else:
-                            return_data.append(row)
-                except KeyError as err:
-                    print(err)
-                    raise
-        else:
-            return_data = data
+    if raise_if_empty and not data:
+        raise Exception(
+            (f"Table name '{table_name}' is not found in memcached ")
+            (f" OR data is empty and tagged as raise_if_empty")
+        )
 
-        final_return_data = []
-        if retrieve_attr:
-            if retrieve_one:
-                final_return_data = return_data[retrieve_attr]
-            else:
-                for d in return_data:
-                    final_return_data.append(d[retrieve_attr])
-        else:
-            final_return_data = return_data
+    if filters_dict:
+        for row in data:
+            try:
+                if all(filters_dict[key] == row[key] for key in filters_dict):
+                    if retrieve_one:
+                        return_data = row
+                        break
+                    else:
+                        return_data.append(row)
+            except KeyError as err:
+                print(err)
+                raise
     else:
-        raise Exception(f"Table name '{table_name}' is not found in memcached")
+        return_data = data
+
+    final_return_data = []
+    if retrieve_attr:
+        if retrieve_one:
+            final_return_data = return_data[retrieve_attr]
+        else:
+            for d in return_data:
+                final_return_data.append(d[retrieve_attr])
+    else:
+        final_return_data = return_data
 
     return final_return_data
 
@@ -271,3 +282,17 @@ def get_process_status_log(key, status):
         sys_time += f"{key} FAILED..."
 
     return status_log
+
+
+def convert_ampm_to_noon_midnight(ts):
+    """
+    """
+
+    formatted = ts.strftime("%I%p")
+
+    if ts.hour == 12:
+        formatted = "12NN"
+    elif ts.hour == 0:
+        formatted = "12MN"
+
+    return formatted

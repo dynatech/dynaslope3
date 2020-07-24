@@ -16,15 +16,10 @@ function makeAxiosRequest (json_data, api_link, callback = null) {
     .catch((error) => {
         console.log(error);
     });
+
 }
 
-export function handleDelete (json_data, callback) {
-    const api_link = `${host}/api/issues_and_reminders/delete_narratives_from_db`;
-    makeAxiosRequest(json_data, api_link, callback);
-}
-
-
-export function handleIssuesAndReminders (json_data, callback) {
+export function handleIssuesAndReminders (json_data) {
     const temp = json_data;
     const { ts_posted, ts_expiration, site_id_list } = json_data;
     const temp_list = [];
@@ -39,12 +34,19 @@ export function handleIssuesAndReminders (json_data, callback) {
     if (ts_expiration !== "Invalid date") temp.ts_expiration = moment(ts_expiration).format("YYYY-MM-DD HH:mm:ss");
     temp.site_id_list = temp_list;
 
-    // Make a websocket request
-    sendWSMessage("write_issues_and_reminders", temp);
+    return temp;
+}
 
-    // Make an API request
-    // const api_link = `${host}/api/issues_and_reminders/write_issue_reminder_to_db`;
-    // makeAxiosRequest(temp, api_link, callback);
+export function insertIssuesAndRemindersViaWS (json_data) {
+    const data = handleIssuesAndReminders(json_data);
+    sendWSMessage("write_issues_and_reminders", data);
+}
+
+export function insertIssuesAndRemindersViaPost (json_data, callback) {
+    const data = handleIssuesAndReminders(json_data);
+    const api_link = `${host}/api/issues_and_reminders/write_issue_reminder_to_db`;
+    makeAxiosRequest(data, api_link, callback);
+
 }
 
 
@@ -72,8 +74,6 @@ export function getIssuesAndReminders (input, callback) {
         }    
         if (search_str !== "") api_link += `&search=${search_str}`;    
     }
-
-    console.log(api_link);
 
     axios.get(api_link)
     .then(response => {

@@ -18,11 +18,16 @@ export function sendEmail (input, callback) {
 
 
 export function sendBulletinEmail (input, callback, err) {
-    const api_link = `${host}/api/mailbox/send_email`;
+    const api_link = `${host}/api/mailbox/send_bulletin_email`;
     makePOSTAxiosRequest(api_link, input, callback, err);
 }
 
 export function sendEOSEmail (json_data, callback, err) {
     const api_link = `${host}/api/mailbox/send_eos_email`;
     makePOSTAxiosRequest(api_link, json_data, callback, err);
+}
+
+export function uploadTempFile (data, callback, err) {
+    const api_link = `${host}/api/mailbox/upload_temp`;
+    makePOSTAxiosRequest(api_link, data, callback, err);
 }

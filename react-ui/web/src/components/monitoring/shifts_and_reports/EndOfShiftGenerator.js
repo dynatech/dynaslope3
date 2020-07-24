@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React, { useState } from "react";
 import ContentLoader from "react-content-loader";
 import moment from "moment";
 import { Grid, makeStyles, Button, withWidth, Paper } from "@material-ui/core";
@@ -36,7 +36,8 @@ const useStyles = makeStyles(theme => ({
     button: {
         fontSize: 16,
         paddingLeft: 8
-    }
+    },
+    hidden: { display: "none !important" }
 }));
 
 const MyLoader = () => (
@@ -112,7 +113,7 @@ function EoSRNoData (props) {
 }
 
 function EndOfShiftGenerator (props) {
-    const { width } = props;
+    const { width, hidden } = props;
     const classes = useStyles();
     const datetime_now = moment();
     const dt_hr = datetime_now.hour();
@@ -144,7 +145,7 @@ function EndOfShiftGenerator (props) {
 
 
     return (
-        <Fragment>
+        <div className={ hidden ? classes.hidden : "" }>
             <MuiPickersUtilsProvider utils={MomentUtils}>
                 <Grid 
                     container
@@ -152,6 +153,7 @@ function EndOfShiftGenerator (props) {
                     alignContent="center"
                     alignItems="center"
                     spacing={4}
+                    style={{ display: hidden ? "none !important" : "" }}
                 >
                     {
                         [
@@ -239,7 +241,7 @@ function EndOfShiftGenerator (props) {
                 setModalOpen={setModalOpen}
                 setEosData={setEosData}
             />
-        </Fragment>
+        </div>
     );
 }
 

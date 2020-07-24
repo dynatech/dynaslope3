@@ -8,14 +8,14 @@ import ListItemAvatar from "@material-ui/core/ListItemAvatar";
 import Avatar from "@material-ui/core/Avatar";
 import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
-import { IconButton, Tooltip, makeStyles } from "@material-ui/core";
+import { IconButton, Tooltip, makeStyles, CircularProgress } from "@material-ui/core";
 import {
-    TurnedIn, TurnedInNot,
+    TurnedIn, TurnedInNot, Refresh,
     RadioButtonUnchecked, CheckCircle, Cancel
 } from "@material-ui/icons";
 import GenericAvatar from "../../../images/generic-user-icon.jpg";
 import GeneralDataTagModal from "../../widgets/GeneralDataTagModal";
-import { loadMoreMessages } from "../ajax";
+import { loadMoreMessages, resendMessage } from "../ajax";
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -235,7 +235,8 @@ function BootstrapTooltip (props) {
     );
 }
 
-function chatBubbleCreator (classes, message_row, set_gdt_fn) {
+// eslint-disable-next-line max-params
+function chatBubbleCreator (classes, message_row, set_gdt_fn, on_resend_click) {
     const {
         convo_id,
         source, sms_msg: message,
@@ -247,6 +248,7 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
         tags,
         source,
         id: message_row[`${source}_id`],
+        ts
     };
 
     const is_you = source === "outbox";
@@ -299,9 +301,18 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn) {
                 }
                 {
                     (send_status === -1 || send_status > 5) && (
-                        <BootstrapTooltip disableFocusListener title="UNSENT">
-                            <Cancel color="error" className={classes.sentIcon} />
-                        </BootstrapTooltip>
+                        <Fragment>
+                            <BootstrapTooltip disableFocusListener title="UNSENT">
+                                <Cancel color="error" className={classes.sentIcon} />
+                            </BootstrapTooltip>
+                            <BootstrapTooltip disableFocusListener title="Resend">
+                                <Refresh 
+                                    color="action"
+                                    className={classes.sentIcon}
+                                    onClick={() => on_resend_click(message_row)}
+                                />
+                            </BootstrapTooltip>
+                        </Fragment>
                     )
                 }
             </Fragment>
@@ -336,6 +347,7 @@ function ChatThread (props) {
     const [tag_object, update_tag_object] = useState(default_tag_obj);
     const [message_batch, setMessageBatch] = useState(1);
     const [loaded_messages, setLoadedMessages] = useState([]);
+    const [is_loading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const initial_messages = message_list.slice(0).reverse();
@@ -353,12 +365,25 @@ function ChatThread (props) {
 
     const onLoadMessageClick = () => {
         const { mobile_id } = mobileDetails;
+        setIsLoading(true);
         loadMoreMessages(mobile_id, message_batch, data => {
+            setIsLoading(false);
             setLoadedMessages(data);
             const reversed = data.slice(0).reverse();
             setMessages(reversed.concat(messages));
         });
         setMessageBatch(message_batch + 1);
+    };
+
+    const onResendClick = message_row => {
+        const { convo_id } = message_row;
+        const temp = messages.map(row => {
+            if (row.convo_id === convo_id)
+                row.send_status = 0;
+            return row;
+        });
+        setMessages(temp);
+        resendMessage(convo_id);
     };
 
     return (
@@ -378,15 +403,16 @@ function ChatThread (props) {
                         size="small"
                         fullWidth
                         onClick={onLoadMessageClick}
+                        endIcon={is_loading && <CircularProgress size="1.5rem" />}
                     >
-                        <strong>Load more messages...</strong>
+                        <strong>Load{is_loading && "ing"} more messages...</strong>
                     </Button>
                 )
             }
                 
             <List className={classes.root}>
                 {
-                    messages.map(row => chatBubbleCreator(classes, row, set_gdt_fn))
+                    messages.map(row => chatBubbleCreator(classes, row, set_gdt_fn, onResendClick))
                 }
             </List>
 

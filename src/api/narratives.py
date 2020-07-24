@@ -145,6 +145,8 @@ def wrap_get_narratives(start=None, end=None):
         "include_count", default="false", type=str)
     site_ids = request.args.getlist("site_ids", type=int)
     search = request.args.get("search", default="", type=str)
+    order_by = request.args.get("order_by", default="timestamp", type=str)
+    order = request.args.get("order", default="desc", type=str)
 
     include_count = True if include_count.lower() == "true" else False
 
@@ -156,7 +158,9 @@ def wrap_get_narratives(start=None, end=None):
 
     return_val = get_narratives(
         offset, limit, start, end,
-        site_ids, include_count, search, raise_site=False)
+        site_ids, include_count, search,
+        order_by=order_by, order=order,
+        raise_site=False)
 
     if include_count:
         narratives = return_val[0]

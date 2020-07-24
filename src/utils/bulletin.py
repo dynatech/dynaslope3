@@ -8,7 +8,7 @@ import os
 import platform
 import re
 import copy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from flask import send_file
 
 import img2pdf
@@ -28,7 +28,9 @@ from src.models.monitoring import MonitoringReleasesSchema
 from src.utils.monitoring import (
     get_monitoring_releases, get_monitoring_triggers,
     compute_event_validity, check_if_onset_release,
-    get_next_ground_data_reporting, get_next_ewi_release_ts)
+    get_next_ground_data_reporting, get_next_ewi_release_ts
+)
+from src.utils.narratives import write_narratives_to_db
 from src.utils.extra import retrieve_data_from_memcache, format_timestamp_to_string, var_checker
 
 
@@ -157,8 +159,19 @@ class DriverContainer:
         print("Succesfully rendered PDF...")
 
 
-BROWSER_DRIVER = DriverContainer()
-# atexit.register(BROWSER_DRIVER.cleanup())
+BROWSER_DRIVER = None
+
+
+def create_browser_driver_instance():
+    global BROWSER_DRIVER
+    BROWSER_DRIVER = DriverContainer()
+
+
+@atexit.register
+def teardown_browser_driver():
+    if BROWSER_DRIVER:
+        print("Closing browser driver instance...")
+        BROWSER_DRIVER.cleanup()
 
 
 def prepare_symbols_list(internal_sym_ids):
@@ -477,6 +490,9 @@ def create_monitoring_bulletin(release_id):
     updated_data_ts = data_ts
     if not is_onset:
         updated_data_ts = data_ts + timedelta(minutes=30)
+    else:
+        updated_data_ts = datetime.combine(
+            data_ts.date(), release.release_time)
 
     bulletin_control_code = f"{site.site_code.upper()}-{data_ts.year}-{release.bulletin_number}"
 
@@ -585,3 +601,37 @@ def render_monitoring_bulletin(release_id):
         return ret["pdf_path"]
 
     return ret["error"]
+
+
+def write_bulletin_sending_narrative(recipients, sender_id, site_id, narrative_details):
+    """
+    """
+
+    str_recipients = ""
+    len_recipients = len(recipients)
+    for index, recipient in enumerate(recipients):
+        tmp_rcp = recipient
+        if tmp_rcp == "rusolidum@phivolcs.dost.gov.ph":
+            tmp_rcp = "RUS"
+        elif tmp_rcp == "asdaag48@gmail.com":
+            tmp_rcp = "ASD"
+
+        str_recipients = str_recipients + tmp_rcp
+
+        if len_recipients > (index + 1):
+            str_recipients = str_recipients + ", "
+
+    file_time = narrative_details["file_time"]
+    if narrative_details["is_onset"] and \
+            narrative_details["public_alert_level"] != 0:
+        file_time = "onset " + file_time
+    narrative = f"Sent {file_time} EWI BULLETIN to {str_recipients}"
+
+    write_narratives_to_db(
+        site_id=site_id,
+        timestamp=datetime.now(),
+        narrative=narrative,
+        type_id=1,
+        user_id=sender_id,
+        event_id=narrative_details["event_id"]
+    )

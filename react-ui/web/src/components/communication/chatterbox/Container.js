@@ -1,12 +1,18 @@
 import React, {
     Fragment, useState,
-    useEffect, useContext
+    useEffect, useContext, createContext
 } from "react";
-import { Button, Badge, makeStyles } from "@material-ui/core";
-import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { Route, Switch } from "react-router-dom";
-import { Create, Search } from "@material-ui/icons";
+
+import { 
+    Button, Badge, makeStyles, IconButton,
+    Dialog, DialogTitle, DialogContent, Typography, Divider
+} from "@material-ui/core";
+import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
+import { Create, Search, Info } from "@material-ui/icons";
+
 import ContentLoader from "react-content-loader";
+
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
 import MessageList from "./MessageList";
@@ -19,7 +25,9 @@ import SearchResultsPage from "./SearchResultsPage";
 import { GeneralContext } from "../../contexts/GeneralContext"; 
 import {
     socket, subscribeToWebSocket, removeReceiveLatestMessages,
-    receiveAllMobileNumbers, receiveLatestMessages
+    receiveAllMobileNumbers, receiveLatestMessages,
+    removeReceiveAllMobileNumbers, receiveAllContacts,
+    removeReceiveAllContacts
 } from "../../../websocket/communications_ws";
 
 const useStyles = makeStyles(theme => {
@@ -61,6 +69,34 @@ const ListLoader = () => (
     </ContentLoader>
 );
 
+function ChatterboxInfoModal (props) {
+    const { modalState, modalStateHandler } = props;
+    
+    return (
+        <Dialog onClose={modalStateHandler} aria-labelledby="simple-dialog-title" open={modalState}>
+            <DialogTitle id="simple-dialog-title">Chatterbox Information</DialogTitle>
+            <DialogContent>
+                <Typography variant="h6" gutterBottom align="center">Inbox</Typography>
+                <Typography variant="body1" gutterBottom align="justify">
+                    &emsp;&emsp;Inbox tab contains the list of our contacts who recently sent a message to our server.
+                    The first contact in the list is the most recent message sender, and so on.<br/><br/>
+                    &emsp;&emsp;Unlike a regular message list on a messaging app, outbound messages to our contacts do not affect
+                    the order of the list nor the appearance of a contact on the list (because our server sends
+                    a lot of messages, especially when routine, that incoming messages might get unnoticed).
+                </Typography>
+                <Divider style={{ margin: "8px 0" }} />
+                <Typography variant="h6" gutterBottom align="center">Unsent</Typography>
+                <Typography variant="body1" gutterBottom align="justify">
+                    &emsp;&emsp;Unsent tab displays conversation threads which contains unsent messages within one day span.
+                    Unsent messages refer to messages in the process of sending or messages with failed sending attempt.
+                </Typography>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+export const CommsContext = createContext();
+
 function Container (comp_props) {
     const { location, match: { url }, width } = comp_props;
     const classes = useStyles();
@@ -74,21 +110,23 @@ function Container (comp_props) {
     });
     const [tabs_array, setTabsArray] = useState([
         { label: "Inbox", href: "inbox" },
-        { label: "Unsent", href: "unsent" },
-        // { label: "Dynaslope", href: "dynaslope" }
+        { label: "Unsent", href: "unsent" }
     ]);
     const [search_results, setSearchResults] = useState([]);
     const [recipients_list, setRecipientsList] = useState([]);
+    const [contacts, setContacts] = useState([]);
+    const [is_open_info_modal, setIsOpenInfoModal] = useState(false);
 
     const set_modal_fn = (key, bool) => () => {
         if (key === "send") setIsOpenSendModal(bool);
         else if (key === "search") setIsOpenSearchModal(bool);
+        else if (key === "info") setIsOpenInfoModal(bool);
     };
 
     const { setIsReconnecting } = useContext(GeneralContext);
 
     useEffect(() => {
-        subscribeToWebSocket("chatterbox", setIsReconnecting);
+        subscribeToWebSocket(setIsReconnecting, "chatterbox");
 
         receiveLatestMessages(data => {
             setMessagesCollection(data);
@@ -113,12 +151,26 @@ function Container (comp_props) {
             setRecipientsList(data);
         });
 
-        return () => removeReceiveLatestMessages();
+        receiveAllContacts(data => setContacts(data));
+
+        return () => {
+            removeReceiveLatestMessages();
+            removeReceiveAllMobileNumbers();
+            removeReceiveAllContacts();
+        };
     }, []);
 
     const is_desktop = isWidthUp("md", width);
 
     const custom_buttons = <span>
+        <IconButton 
+            color="primary"
+            aria-label="Chatterbox info"
+            onClick={set_modal_fn("info", true)}
+        >
+            <Info fontSize="large" />
+        </IconButton>
+
         <Button
             aria-label="Compose message"
             variant="contained" 
@@ -126,8 +178,8 @@ function Container (comp_props) {
             size="small" 
             style={{ marginRight: 8 }}
             onClick={set_modal_fn("send", true)}
+            startIcon={<Create/>}
         >
-            <Create style={{ paddingRight: 4, fontSize: 20 }}/>
             Compose
         </Button>
 
@@ -137,8 +189,8 @@ function Container (comp_props) {
             color="primary"
             size="small"
             onClick={set_modal_fn("search", true)}
+            startIcon={<Search />}
         >
-            <Search style={{ paddingRight: 4, fontSize: 20 }}/>
             Search
         </Button>
     </span>;
@@ -164,67 +216,37 @@ function Container (comp_props) {
                         </div>
 
                         <div className={`${classes.tabBar} ${classes.tabBarContent}`}>
-                            {
-                                // chosen_tab === 0 && (
-                                //     <MessageList
-                                //         width={width}
-                                //         url={url}
-                                //         messagesArr={message_collection.inbox}
-                                //  
-                                //     />
-                                // )
-                            }
+                            <CommsContext.Provider value={{ contacts }}>
+                                {
+                                    message_collection.inbox === null ? (
+                                        <div style={{ width: "100%" }}><ListLoader /></div>
+                                    ) : (
+                                        <MessageList
+                                            width={width}
+                                            url={url}
+                                            messagesArr={message_collection.inbox}
+                                            async
+                                            hidden={chosen_tab !== 0}
+                                            is_desktop={is_desktop}
+                                        />
+                                    )
+                                }
 
-                            {
-                                message_collection.inbox === null ? (
-                                    <div style={{ width: "100%" }}><ListLoader /></div>
-                                ) : (
-                                    <MessageList
-                                        width={width}
-                                        url={url}
-                                        messagesArr={message_collection.inbox}
-                                        hidden={chosen_tab !== 0}
-                                        is_desktop={is_desktop}
-                                    />
-                                )
-                            }
-
-                            {
-                                // chosen_tab === 1 && (
-                                //     <MessageList
-                                //         width={width}
-                                //         url={url}
-                                //         messagesArr={message_collection.unsent}
-                                //  
-                                //     />
-                                // )
-                            }
-
-                            {
-                                message_collection.unsent === null ? (
-                                    <div style={{ width: "100%" }}><ListLoader /></div>
-                                ) : (
-                                    <MessageList
-                                        width={width}
-                                        url={url}
-                                        messagesArr={message_collection.unsent}
-                                        async
-                                        hidden={chosen_tab !== 1}
-                                        is_desktop={is_desktop}
-                                    />
-                                )
-                            }
-
-                            {/* {
-                                chosen_tab === 2 && (
-                                    <MessageList
-                                        width={width}
-                                        url={url}
-                                        messagesArr={[]}
-         
-                                    />
-                                )
-                            } */}
+                                {
+                                    message_collection.unsent === null ? (
+                                        <div style={{ width: "100%" }}><ListLoader /></div>
+                                    ) : (
+                                        <MessageList
+                                            width={width}
+                                            url={url}
+                                            messagesArr={message_collection.unsent}
+                                            async
+                                            hidden={chosen_tab !== 1}
+                                            is_desktop={is_desktop}
+                                        />
+                                    )
+                                }
+                            </CommsContext.Provider>
                         </div>
 
                         { !is_desktop && <CircularAddButton clickHandler={set_modal_fn("send", true)} />}
@@ -240,32 +262,41 @@ function Container (comp_props) {
                             modalState={is_open_search_modal}
                             setSearchResultsToEmpty={() => setSearchResults([])}
                             url={url}
-                        /> 
+                        />
+
+                        <ChatterboxInfoModal
+                            modalStateHandler={set_modal_fn("info", false)} 
+                            modalState={is_open_info_modal}
+                        />
                     </Fragment>
                 )}
             />
             
             <Route path={`${url}/search_results`} render={
-                props => <SearchResultsPage
-                    {...props}
-                    messageCollection={message_collection}
-                    socket={socket}
-                    url={url}
-                    width={width}
-                    is_desktop={is_desktop}
-                    searchResults={search_results}
-                    setSearchResults={setSearchResults}
-                    ListLoader={ListLoader}
-                />
+                props => <CommsContext.Provider value={{ contacts }}>
+                    <SearchResultsPage
+                        {...props}
+                        messageCollection={message_collection}
+                        socket={socket}
+                        url={url}
+                        width={width}
+                        is_desktop={is_desktop}
+                        searchResults={search_results}
+                        setSearchResults={setSearchResults}
+                        ListLoader={ListLoader}
+                    />
+                </CommsContext.Provider>
             } 
             />
 
             <Route path={`${url}/:mobile_id`} render={
-                props => <ConversationWindow 
-                    {...props}
-                    messageCollection={message_collection}
-                    socket={socket}
-                />
+                props => <CommsContext.Provider value={{ contacts }}>
+                    <ConversationWindow 
+                        {...props}
+                        messageCollection={message_collection}
+                        socket={socket}
+                    />
+                </CommsContext.Provider>
             } 
             />
         </Switch>

@@ -1,16 +1,13 @@
-import React, {
-    useState, useEffect
-} from "react";
+import React, { Fragment } from "react";
 
 import {
-    Grid, Typography,
-    List, ListItem,
-    ListItemText
+    Grid, Typography, Paper
 } from "@material-ui/core";
 
 function groupSimPrefixesByNetwork (sim_prefixes) {
     const smart = [];
     const globe = [];
+
     sim_prefixes.forEach(row => {
         const { prefix, network_id } = row;
         const prefix_code = `0${prefix}`;
@@ -21,132 +18,64 @@ function groupSimPrefixesByNetwork (sim_prefixes) {
         }
     });
 
-    return {
-        globe,
-        smart
-    };
+    return [
+        { network: "Globe", prefixes: globe },
+        { network: "Smart", prefixes: smart }
+    ];
+}
+
+function SimGroup (props) {
+    const { row: { network, prefixes } } = props;
+
+    return (
+        <Fragment>
+            <Typography 
+                variant="h5"
+                style={{ marginBottom: 12 }}
+            >
+                {network}
+            </Typography>
+
+            <Paper style={{ padding: "24px 16px" }}>
+                <Grid
+                    container spacing={3}
+                >
+                    {
+                        prefixes.map(row => {
+                            return (
+                                <Typography 
+                                    variant="body1"
+                                    component={Grid}
+                                    item xs={2}
+                                    align="center"
+                                    key={row}
+                                >
+                                    {row}
+                                </Typography>
+                            );
+                        })
+                    }
+                </Grid>
+            </Paper>
+        </Fragment>
+    );
 }
 
 function SimPrefixesList (props) {
     const { sim_prefixes } = props;
-    const groupedSimPrefixes = groupSimPrefixesByNetwork(sim_prefixes);
-    const { globe, smart } = groupedSimPrefixes;
-    return (
-        <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
-                <List dense style={{ paddingTop: 0 }}>
-                    <ListItem>
-                        <ListItemText
-                            primary={
-                                <Grid 
-                                    container
-                                    spacing={0}
-                                    justify="flex-start"
-                                    alignItems="center"
-                                >
-                                    <Grid 
-                                        item xl
-                                        style={{ flexGrow: 1 }}
-                                    >
-                                        <Typography 
-                                            variant="h6" 
-                                            style={{ marginRight: 8 }}
-                                        >Smart</Typography>
-                                    </Grid>   
-                                </Grid>
-                            }
-                        />
-                    </ListItem>
-                    {
-                        smart.map(row => {
-                            const prefix = `${row}`;
-                            return (
-                                <ListItem key={row}>
-                                    <ListItemText
-                                        primary={
-                                            <Grid 
-                                                container
-                                                spacing={0}
-                                                justify="flex-start"
-                                                alignItems="center"
-                                            >
-                                                <Grid 
-                                                    item xl
-                                                    style={{ flexGrow: 1 }}
-                                                >
-                                                    <Typography 
-                                                        variant="subtitle1" 
-                                                        style={{ marginRight: 8 }}
-                                                    > {prefix}</Typography>
-                                                </Grid>   
-                                            </Grid>
-                                        }
-                                    />
-                                </ListItem>
-                            );
-                        })
-                        
-                    }
-                </List>
-            </Grid>
+    const groups = groupSimPrefixesByNetwork(sim_prefixes);
 
-            <Grid item xs={12} md={6}>
-                <List dense style={{ paddingTop: 0 }}>
-                    <ListItem>
-                        <ListItemText
-                            primary={
-                                <Grid 
-                                    container
-                                    spacing={0}
-                                    justify="flex-start"
-                                    alignItems="center"
-                                >
-                                    <Grid 
-                                        item xl
-                                        style={{ flexGrow: 1 }}
-                                    >
-                                        <Typography 
-                                            variant="h6" 
-                                            style={{ marginRight: 8 }}
-                                        >Globe</Typography>
-                                    </Grid>   
-                                </Grid>
-                            }
-                        />
-                    </ListItem>
-                    {
-                        globe.map(row => {
-                            const prefix = `${row}`;
-                            return (
-                                <ListItem key={row}>
-                                    <ListItemText
-                                        primary={
-                                            <Grid 
-                                                container
-                                                spacing={0}
-                                                justify="flex-start"
-                                                alignItems="center"
-                                            >
-                                                <Grid 
-                                                    item xl
-                                                    style={{ flexGrow: 1 }}
-                                                >
-                                                    <Typography 
-                                                        variant="subtitle1" 
-                                                        style={{ marginRight: 8 }}
-                                                    > {prefix}</Typography>
-                                                </Grid>   
-                                            </Grid>
-                                        }
-                                    />
-                                </ListItem>
-                            );
-                        })
-                        
-                    }
-                </List>
-            </Grid>
-        </Grid>
+    return (
+        <Fragment>
+            {
+                groups.map(row => (
+                    <Fragment key={row.network}>
+                        <SimGroup row={row} />
+                        <div style={{ marginBottom: 24 }} />
+                    </Fragment>
+                ))
+            }
+        </Fragment>
     );
 }
 

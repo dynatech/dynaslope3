@@ -5,8 +5,8 @@ function prepareSiteAddress (site_details, include_site_code = true, position = 
     const { purok, sitio, barangay, municipality, province, site_code } = site_details;
     let address = "";
 
-    if (sitio !== null) address = `Sitio ${sitio}, `;
-    if (purok !== null) address += `Purok ${purok}, `;
+    if (sitio !== null && sitio !== "") address = `Sitio ${sitio}, `;
+    if (purok !== null && purok !== "") address += `Purok ${purok}, `;
 
     address += `Brgy. ${barangay}, ${municipality}, ${province}`;
     if (include_site_code) {
@@ -58,13 +58,26 @@ function getUserOrganizations (organizations, return_grouped = false) {
     return sites;
 }
 
+function getUserContactPriority (organizations) {
+    let is_priority = false;
+    if (organizations.length > 0 ) {
+        is_priority = Boolean(organizations[0].primary_contact);
+    }
+    return is_priority;
+}
+
 function simNumFormatter (sim_num) {
     return sim_num[0] === "0" || sim_num.match(/[a-z]/i) ? sim_num : `+${sim_num}`;
 }
 
 function computeForStartTs (ts, duration = 7, unit = "days") {
+    if (unit === "all") {
+        return "None";
+    }
+
     const ts_format = "YYYY-MM-DD HH:mm:ss";
-    const ts_start = ts.subtract(duration, unit).format(ts_format);
+    const ts_start = ts.clone().subtract(duration, unit)
+    .format(ts_format);
     return ts_start;
 }
 
@@ -116,9 +129,39 @@ function useInterval (callback, delay, clear_interval = false) {
         return () => clearInterval(id);
     }, [delay, clear_interval]);
 }
+
+function remapCkeditorEnterKey (editor) {
+    editor.editing.view.document.on("enter", (evt, data) => {
+        if (data.isSoft) {
+            editor.execute("enter");
+        } else {
+            editor.execute("shiftEnter");
+        }
+
+        data.preventDefault();
+        evt.stop();
+        editor.editing.view.scrollToTheSelection();
+    }, { priority: "high" } );
+}
+
+function monthSorter (season_months) {
+    const all_months = [
+        "january", "february", "march",
+        "april", "may", "june",
+        "july", "august", "september",
+        "october", "november", "december"
+    ];
+
+    season_months.sort((a, b) => {
+        return all_months.indexOf(a) - all_months.indexOf(b);
+    });
+}
+
 export {
     prepareSiteAddress, capitalizeFirstLetter,
     getUserOrganizations, simNumFormatter,
     computeForStartTs, makePOSTAxiosRequest,
-    makeGETAxiosRequest, useInterval
+    makeGETAxiosRequest, useInterval,
+    remapCkeditorEnterKey, getUserContactPriority,
+    monthSorter
 };

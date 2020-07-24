@@ -59,6 +59,9 @@ const styles = theme => ({
         "& *": {
             color: "white !important"
         }
+    },
+    dyna_error: {
+        color: phivolcs_red
     }
 });
 

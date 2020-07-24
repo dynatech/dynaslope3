@@ -20,12 +20,12 @@ from src.models.monitoring import (
     MonitoringMoms, MomsInstances, MonitoringTriggersSchema,
     BulletinTracker, MonitoringReleasePublishers, MonitoringTriggersMisc,
     EndOfShiftAnalysis)
+from src.utils.narratives import write_narratives_to_db, get_narratives
 from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.models.inbox_outbox import SmsInboxUsers2
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
     round_to_nearest_release_time)
-from src.utils.narratives import write_narratives_to_db, get_narratives
 
 
 #####################################################
@@ -349,8 +349,8 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}."
-                      + f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}." +
+                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -436,6 +436,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     extended = []
     overdue = []
     routine = {}
+    has_shifted_sites_to_routine = False
     for event_alert in active_event_alerts:
         event = event_alert.event
         validity = event.validity
@@ -459,8 +460,9 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             data_ts, release_interval_hours)
         release_time = latest_release.release_time
 
-        # CHECK IF ONSET RELEASE (only one release)
-        is_onset_release = len(event_alert.releases) == 1
+        # CHECK IF ONSET RELEASE (only one release) and alert_level > 0
+        is_onset_release = len(
+            event_alert.releases) == 1 and event_alert.public_alert_symbol.alert_level > 0
         # NOTE: CHECK NARRATIVE IF ALREADY SENT EWI SMS. if onset, do not add 30mins.
         sent_statuses = check_ewi_narrative_sent_status(
             is_onset_release, event_id, data_ts)
@@ -486,10 +488,13 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         event_alert_data["event"]["validity"] = str(datetime.strptime(
             event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
 
-        # NOTE: ADDING sent statuses
+        # Adding sent statuses on return object
         event_alert_data["sent_statuses"] = sent_statuses
+        event_alert_data["is_onset_release"] = is_onset_release
+        event_alert_data["prescribed_release_time"] = datetime.strftime(
+            rounded_data_ts, "%Y-%m-%d %H:%M:%S")
 
-        # NOTE: LOUIE SPECIAL intervention to add all triggers of the whole event.
+        # Special intervention to add all triggers of the whole event.
         # Bypassing the use of MonitoringEvent instead
         all_event_triggers = get_monitoring_triggers(
             event_id=event_id,
@@ -526,14 +531,10 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                     latest.append(event_alert_data)
                 elif day > 0 and day <= extended_monitoring_days:
                     event_alert_data["day"] = day
+                    event_alert_data["has_alert_release_today"] = current.date(
+                    ) == data_ts.date()
                     extended.append(event_alert_data)
                 else:
-                    # TODO: Make an API call to end an event
-                    # when extended is finished? based on old code
-                    # NOTE: HOWEVER -> Meron ng update sa insert_ewi
-                    # part ng last extended release. No need to put this here.
-                    # print("FINISH EVENT")
-
                     monitoring_status = event_alert.event.status
                     if monitoring_status == 2:
                         routine_ts = round_down_data_ts(run_ts)
@@ -559,11 +560,11 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                                     "ts_start": routine_ts
                                 }
                             }
-                            instance_details = start_new_monitoring_instance(
-                                new_instance_details)
-
+                            start_new_monitoring_instance(new_instance_details)
                             # If no problem,
                             DB.session.commit()
+
+                            has_shifted_sites_to_routine = True
                         except Exception as err:
                             print(err)
                             DB.session.rollback()
@@ -574,7 +575,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                         pass
 
     # Currently 12; so data timestamp to get should be 30 minutes before
-    dt = datetime.combine(date.today(), time(
+    dt = datetime.combine(run_ts.date(), time(
         hour=ROU_EXT_RELEASE_TIME, minute=0))
     less_30_dt = dt - timedelta(minutes=30)
     next_release_dt = dt + timedelta(hours=release_interval_hours)
@@ -609,7 +610,8 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         "latest": latest,
         "extended": sorted(extended, key=lambda x: x["day"], reverse=True),
         "overdue": overdue,
-        "routine": routine
+        "routine": routine,
+        "has_shifted_sites_to_routine": has_shifted_sites_to_routine
     }
 
     script_end = datetime.now()
@@ -623,12 +625,9 @@ def get_routine_sites(timestamp=None, include_inactive=False, only_site_code=Tru
     Utils counterpart of identifing the routine site per day.
     Returns "routine_sites" site_codes in a list as value.
 
-    E.g.:
-    {
-        "routine_sites": [
-            'bak', 'blc', 'cud', 'imu', 'ina'
-        ]
-    }
+    only_site_codes (bool) -    returns array of site codes if True
+                                ( e.g. ["bak", "blc"] )
+                                and array of site details if False
     """
     current_date = date.today()
 
@@ -785,8 +784,12 @@ def get_monitoring_releases_by_data_ts(site_code, data_ts):
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
     si = Sites
-    return_data = mr.query.join(mea) \
-        .join(me).join(si).filter(
+
+    return_data = mr.query.options(
+        DB.joinedload("event_alert", innerjoin=True).
+        raiseload("*"), DB.raiseload("*")
+    ).join(mea).join(me).join(si) \
+        .filter(
             DB.and_(
                 si.site_code == site_code,
                 mr.data_ts == data_ts
@@ -1121,23 +1124,6 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
     return return_data
 
 
-def get_latest_monitoring_event_per_site(site_id):
-    """
-    Returns event details with corresponding site details. Receives an event_id from flask request.
-
-    Args: event_id
-
-    Note: From pubrelease.php getEvent
-    """
-    me = MonitoringEvents
-
-    event = me.query.options(DB.raiseload("*")) \
-        .order_by(DB.desc(MonitoringEvents.event_start)) \
-        .filter(MonitoringEvents.site_id == site_id).first()
-
-    return event
-
-
 def get_monitoring_events(event_id=None, include_test_sites=False):
     """
     Returns event details with corresponding site details. Receives an event_id from flask request.
@@ -1188,19 +1174,27 @@ def get_active_monitoring_events():
     return active_events
 
 
-def get_current_monitoring_instance_per_site(site_id):
+def get_latest_monitoring_event_per_site(site_id, raise_load=False):
     """
     This functions looks up at monitoring_events table and retrieves the current
     event details (whether it is a routine- or event-type)
 
     Args:
         site_id - mandatory Integer parameter
+        raise_load - do not load database relationships
     """
+
     event = MonitoringEvents
-    latest_event = event.query.options(
-        DB.subqueryload("event_alerts").raiseload("releases"),
-        DB.joinedload("site", innerjoin=True).raiseload("*")
-    ).order_by(DB.desc(event.event_id)) \
+
+    if raise_load:
+        query = event.query.options(DB.raiseload("*"))
+    else:
+        query = event.query.options(
+            DB.subqueryload("event_alerts").raiseload("releases"),
+            DB.joinedload("site", innerjoin=True).raiseload("*")
+        )
+
+    latest_event = query.order_by(DB.desc(event.event_id)) \
         .filter(event.site_id == site_id).first()
 
     return latest_event
@@ -1306,7 +1300,11 @@ def search_if_feature_name_exists(site_id, feature_id, feature_name):
     mi = MomsInstances
     instance = None
     instance = mi.query.filter(
-        DB.and_(mi.site_id == site_id, mi.feature_name == feature_name, mi.feature_id == feature_id)).first()
+        DB.and_(
+            mi.site_id == site_id,
+            mi.feature_name == feature_name,
+            mi.feature_id == feature_id)
+    ).first()
 
     return instance
 

@@ -24,7 +24,7 @@ from src.utils.narratives import get_narratives
 from src.utils.subsurface import get_site_subsurface_columns, check_if_subsurface_columns_has_data
 from src.utils.surficial import (
     check_if_site_has_active_surficial_markers, get_surficial_data,
-    get_surficial_markers)
+    get_surficial_markers, get_marker_alerts)
 from src.models.analysis import TSMSensorsSchema
 from src.utils.chart_rendering import render_charts
 from src.utils.extra import var_checker
@@ -67,7 +67,7 @@ def download_eos_charts():
 
 @END_OF_SHIFT_BLUEPRINT.route(
     "/end_of_shift/get_eos_email_details/<event_id>/<shift_ts_end>", methods=["GET"])
-def get_eos_email_details(event_id, shift_ts_end):
+def get_eos_email_details(event_id, shift_ts_end, to_json=True):
     """
     Returns the filename, recipients, and subject
     """
@@ -98,11 +98,16 @@ def get_eos_email_details(event_id, shift_ts_end):
 
     file_name = f"{site_code.upper()}_{formatted_ts_end}".upper() + ".pdf"
 
-    return jsonify({
+    ret_obj = {
         "file_name": file_name,
         "recipients": recipients,
         "subject": subject
-    })
+    }
+
+    if to_json:
+        return jsonify(ret_obj)
+
+    return ret_obj
 
 
 def extract_unique_release_events(releases_list):
@@ -126,8 +131,10 @@ def extract_unique_release_events(releases_list):
         event_id = event.event_id
         if not event_id in unique_set:
             unique_set.add(event_id)
+            site = event.site
             unique_release_events.append({
-                "site_code": event.site.site_code,
+                "site_id": site.site_id,
+                "site_code": site.site_code,
                 "temp": release
             })
 
@@ -326,8 +333,8 @@ def get_shift_end_info(end_ts, eos_dict):
 
 
 def process_eos_data_analysis(
-        start_ts, event_id, site_code, subsurface_columns,
-        has_markers, has_surficial_data):
+        start_ts, event_id, subsurface_columns,
+        has_markers, surficial_data, site_id):
     data_analysis = get_eos_data_analysis(start_ts, event_id)
 
     if not data_analysis:
@@ -359,37 +366,29 @@ def process_eos_data_analysis(
         surf = "No active ground markers on site"
         if has_markers:
             surf = "No surficial data received from LEWC"
-            if has_surficial_data:
-                data = get_surficial_data(
-                    site_code=site_code, ts_order="desc", limit=2, anchor="marker_observations")
-                markers = get_surficial_markers(site_code=site_code)
+            if surficial_data:
+                surf_data = surficial_data[0]
+                alert_data = get_marker_alerts(site_id, surf_data.ts)
+                markers = get_surficial_markers(site_id=site_id)
+                latest_ts = surf_data.ts
 
-                row_1 = data[0].marker_data
-                row_2 = data[1].marker_data
                 data_list = []
-                for md in row_1:
-                    md_row = next(
-                        (x for x in row_2 if x.marker_id == md.marker_id), None)
+                for row in alert_data:
                     name_row = next(
-                        x for x in markers if x.marker_id == md.marker_id)
-
-                    if md_row:
-                        change = str(md.measurement - md_row.measurement)
-                        change += "cm"
-                    else:
-                        change = (f"No value on last data sending "
-                                  f"(current value - {md_row.measurement}cm")
-
+                        x for x in markers if x.marker_id == row.marker_id)
                     temp = {
                         "marker_name": name_row.marker_name,
-                        "change": change
+                        "change": str(row.displacement) + "cm"
                     }
                     data_list.append(temp)
 
+                delta = timedelta(hours=alert_data[0].time_delta)
+                last_sending_ts = latest_ts - timedelta(seconds=delta.seconds)
+
                 surf = (f"Latest data received last <b>"
-                        f"{datetime.strftime(data[0].ts, '%B %d, %Y, %I:%M %p')}</b>. ")
+                        f"{datetime.strftime(latest_ts, '%B %d, %Y, %I:%M %p')}</b>. ")
                 surf += (f"Displacement of marker(s) from last data sending <b>"
-                         f"({datetime.strftime(data[1].ts, '%B %d, %Y, %I:%M %p')}):</b> ")
+                         f"({datetime.strftime(last_sending_ts, '%B %d, %Y, %I:%M %p')}):</b> ")
                 surf += ", ".join(str("<b>" + x["marker_name"]
                                       + " -> " + x["change"] + "</b>") for x in data_list)
 
@@ -451,7 +450,8 @@ def get_eos_narratives(start_timestamp, end_timestamp, event_id):
     end_timestamp = end_timestamp + timedelta(minutes=30)
 
     shift_narratives = get_narratives(
-        event_id=event_id, start=str(start_timestamp), end=str(end_timestamp))
+        event_id=event_id, start=str(start_timestamp),
+        end=str(end_timestamp), order="asc")
 
     return shift_narratives
 
@@ -489,6 +489,7 @@ def process_eos_list(start_ts, end_ts, eos_data_list):
         event_id = eos_data["event_id"]
         validity = eos_data["validity"]
         site_code = eos_dict["site_code"]
+        site_id = eos_dict["site_id"]
         # Get the EOS publishers
         for publisher in eos_dict["temp"].release_publishers:
             user_details = publisher.user_details
@@ -515,6 +516,7 @@ def process_eos_list(start_ts, end_ts, eos_data_list):
             site_code=site_code)
 
         has_surficial_data = False
+        surficial_data = None
         if has_markers:
             surficial_data = get_surficial_data(site_code=site_code, ts_order="desc",
                                                 start_ts=start_ts, end_ts=end_ts,
@@ -527,8 +529,8 @@ def process_eos_list(start_ts, end_ts, eos_data_list):
         shift_start_info = get_shift_start_info(start_ts, end_ts, eos_dict)
         shift_end_info = get_shift_end_info(end_ts, eos_dict)
         data_analysis = process_eos_data_analysis(
-            start_ts, event_id, site_code, subsurface_columns,
-            has_markers, has_surficial_data)
+            start_ts, event_id, subsurface_columns,
+            has_markers, surficial_data, site_id)
         raw_narratives = get_eos_narratives(start_ts, end_ts, event_id)
         narratives = get_formatted_shift_narratives(raw_narratives)
 

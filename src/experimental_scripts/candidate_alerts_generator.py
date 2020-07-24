@@ -25,12 +25,13 @@ from connection import create_app
 from config import APP_CONFIG
 from src.utils.extra import (
     retrieve_data_from_memcache, var_checker,
-    get_process_status_log)
-from src.api.monitoring import get_unreleased_routine_sites
-from src.utils.monitoring import (build_internal_alert_level,
-                                  get_ongoing_extended_overdue_events,
-                                  get_routine_sites, get_saved_event_triggers,
-                                  round_to_nearest_release_time)
+    get_process_status_log
+)
+from src.utils.monitoring import (
+    build_internal_alert_level,
+    get_ongoing_extended_overdue_events,
+    round_to_nearest_release_time
+)
 
 # Every how many hours per release
 RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
@@ -315,7 +316,8 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         has_unresolved_moms = bool(
             formatted_alerts_for_ewi["unresolved_moms_list"])
         to_extend_validity = True if (
-            not alert_entry["has_ground_data"] or has_unresolved_moms or has_nd_rx_trigger) else False
+            not alert_entry["has_ground_data"] or
+            has_unresolved_moms or has_nd_rx_trigger) else False
 
         try:
             saved_event_triggers = alert_entry["saved_event_triggers"]

@@ -8,15 +8,15 @@ from src.models.inbox_outbox import SmsTagsSchema
 from src.utils.chatterbox import (
     get_quick_inbox, get_message_tag_options,
     insert_message_on_database, get_latest_messages,
-    get_messages_schema_dict
+    get_messages_schema_dict, resend_message,
+    get_formatted_unsent_messages
 )
-from src.utils.ewi import create_ewi_message
+from src.utils.ewi import create_ewi_message, insert_ewi_sms_narrative
 from src.utils.general_data_tag import insert_data_tag
-from src.utils.surficial import check_if_site_has_active_surficial_markers
-from src.utils.monitoring import get_monitoring_releases
 from src.utils.narratives import write_narratives_to_db
-from src.utils.extra import round_to_nearest_release_time, var_checker
 from src.utils.contacts import get_contacts_per_site, get_org_ids
+from src.websocket.monitoring_tasks import execute_update_db_alert_ewi_sent_status
+from src.utils.extra import var_checker
 
 CHATTERBOX_BLUEPRINT = Blueprint("chatterbox_blueprint", __name__)
 
@@ -25,8 +25,9 @@ CHATTERBOX_BLUEPRINT = Blueprint("chatterbox_blueprint", __name__)
 def get_routine_ewi_template():
     """
     """
+
     template = create_ewi_message(release_id=None)
-    var_checker("template", template, True)
+    # var_checker("template", template, True)
 
     return template
 
@@ -151,43 +152,6 @@ def wrap_get_ewi_message(release_id):
     return ewi_msg
 
 
-@CHATTERBOX_BLUEPRINT.route("/chatterbox/get_ewi_sms_narrative/<release_id>", methods=["GET"])
-def get_ewi_sms_narrative(release_id):
-    """
-    """
-
-    release = get_monitoring_releases(
-        release_id=release_id, load_options="ewi_narrative")
-    data_ts = release.data_ts
-    event_alert = release.event_alert
-    public_alert_level = event_alert.public_alert_symbol.alert_level
-
-    event = event_alert.event
-    event_id = event.event_id
-    site_id = event.site_id
-    first_release = list(
-        sorted(event_alert.releases, key=lambda x: x.data_ts))[0]
-
-    # Get data needed to see if onset
-    first_data_ts = first_release.data_ts
-    is_onset = first_data_ts == data_ts and public_alert_level > 0
-
-    ewi_sms_detail = " onset"
-    if not is_onset:
-        release_hour = round_to_nearest_release_time(
-            data_ts, interval=4).strftime("%I%p")
-        ewi_sms_detail = f" {release_hour}"
-
-    narrative = f"Sent{ewi_sms_detail} EWI SMS to "
-
-    return jsonify({
-        "narrative": narrative,
-        "event_id": event_id,
-        "site_list": [site_id],
-        "type_id": 1
-    })
-
-
 @CHATTERBOX_BLUEPRINT.route("/chatterbox/send_message", methods=["POST"])
 def wrap_insert_message_on_database():
     """
@@ -200,8 +164,35 @@ def wrap_insert_message_on_database():
     }
 
     try:
+        is_ewi = data["is_ewi"]
+    except KeyError:
+        is_ewi = False
+
+    try:
         outbox_id = insert_message_on_database(data)
-        ret_obj["outbox_id"] = outbox_id
+
+        if is_ewi:
+            user_id = data["user_id"]
+            insert_ewi_sms_narrative(
+                data["release_id"], user_id, data["recipient_list"])
+
+            tag_details = {
+                "user_id": user_id,
+                "outbox_id": outbox_id,
+                "ts": datetime.now()
+            }
+
+            # TODO: change hard-coded code
+            insert_data_tag(
+                tag_type="smsoutbox_user_tags",
+                tag_details=tag_details,
+                tag_id=18  # hardcoded for #EwiMessage
+            )
+
+            execute_update_db_alert_ewi_sent_status(
+                data["alert_db_group"],
+                data["site_id"], "sms"
+            )
     except Exception as err:
         print(err)
 
@@ -209,6 +200,7 @@ def wrap_insert_message_on_database():
             error_msg = err.message
         else:
             error_msg = err
+
         ret_obj = {
             "status": False,
             "message": f"Error: {error_msg}"
@@ -228,3 +220,36 @@ def load_more_messages(mobile_id, batch):
     schema_msgs = get_messages_schema_dict(messages)
 
     return jsonify(schema_msgs)
+
+
+@CHATTERBOX_BLUEPRINT.route("/chatterbox/resend_message/<outbox_status_id>", methods=["GET"])
+def wrap_resend_message(outbox_status_id):
+    """
+    """
+
+    status = True
+    message = "Message resend success"
+
+    try:
+        resend_message(outbox_status_id)
+    except Exception as err:
+        print(err)
+
+        if hasattr(err, "message"):
+            error_msg = err.message
+        else:
+            error_msg = str(err)
+
+        status = False
+        message = error_msg
+
+    return jsonify({"status": status, "message": message})
+
+
+@CHATTERBOX_BLUEPRINT.route("/chatterbox/check_unsent_messages", methods=["GET"])
+def check_unsent_messages():
+    """
+    """
+
+    unsent_messages = get_formatted_unsent_messages()
+    return jsonify(unsent_messages)

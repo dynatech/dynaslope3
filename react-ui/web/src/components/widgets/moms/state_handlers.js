@@ -9,7 +9,8 @@ const moms_entry = {
         narrative: "",
         reporter: "",
         remarks: "",
-        validator: ""
+        validator: "",
+        location: ""
     }, 
     options: {
         feature_type: [],

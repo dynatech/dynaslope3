@@ -50,7 +50,8 @@ def render_charts(user_id, site_code, charts, file_name=None):
         response = {
             "status": True,
             "message": "Chart rendering successful...",
-            "file_path": file_path}
+            "file_path": file_path
+        }
     else:
         response = {"status": True,
                     "message": "No chart requested. Process successful..."}

@@ -11,8 +11,8 @@ class LoggerModels(DB.Model):
     site_id = DB.Column(
         DB.Integer, DB.ForeignKey("sites.site_id"))
     logger_name = DB.Column(DB.String(7))
-    date_activated = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
-    date_deactivated = DB.Column(DB.DateTime, default=datetime.datetime.utcnow)
+    date_activated = DB.Column(DB.DateTime, default=datetime.datetime.now)
+    date_deactivated = DB.Column(DB.DateTime, default=datetime.datetime.now)
     latitude = DB.Column(DB.Integer, nullable=True)
     latitude = DB.Column(DB.Integer, nullable=True)
     model_id = DB.Column(DB.Integer, nullable=False)

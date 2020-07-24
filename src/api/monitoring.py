@@ -11,7 +11,9 @@ from datetime import datetime, timedelta, time
 from flask import Blueprint, jsonify, request
 from connection import DB
 from src.models.monitoring import (
-    MonitoringEvents, MonitoringReleases, MonitoringEventAlerts)
+    MonitoringEvents, MonitoringReleases,
+    MonitoringEventAlerts, MonitoringShiftSchedule,
+    MonitoringShiftScheduleSchema)
 from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
     InternalAlertSymbolsSchema, EndOfShiftAnalysisSchema)
@@ -23,17 +25,15 @@ from src.utils.monitoring import (
     get_moms_id_list, get_internal_alert_symbols,
     get_monitoring_events, get_active_monitoring_events,
     get_monitoring_releases, get_monitoring_events_table,
-    get_current_monitoring_instance_per_site, get_public_alert,
+    get_latest_monitoring_event_per_site, get_public_alert,
     get_ongoing_extended_overdue_events, get_max_possible_alert_level,
     get_latest_release_per_site, get_saved_event_triggers,
     get_monitoring_triggers, build_internal_alert_level,
-    get_monitoring_releases_by_data_ts, get_routine_sites,
-    get_unreleased_routine_sites,
+    get_monitoring_releases_by_data_ts, get_unreleased_routine_sites,
 
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
     compute_event_validity, round_to_nearest_release_time,
-    build_internal_alert_level,
 
     # Logic: Insert EWI specific
     is_new_monitoring_instance, start_new_monitoring_instance,
@@ -101,7 +101,7 @@ def get_current_monitoring_summary_per_site(site_id):
     Function dedicated to returning brief status of site
     """
 
-    current_site_event = get_current_monitoring_instance_per_site(
+    current_site_event = get_latest_monitoring_event_per_site(
         site_id=site_id)
     event_start = datetime.strftime(
         current_site_event.event_start, "%Y-%m-%d %H:%M:%S")
@@ -368,7 +368,8 @@ def wrap_get_active_monitoring_events():
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_ongoing_extended_overdue_events", methods=["GET"])
-def wrap_get_ongoing_extended_overdue_events():
+@MONITORING_BLUEPRINT.route("/monitoring/get_ongoing_extended_overdue_events/<ts>", methods=["GET"])
+def wrap_get_ongoing_extended_overdue_events(ts=None):
     """
     Gets active events and organizes them into the following categories:
         (a) Ongoing
@@ -376,7 +377,11 @@ def wrap_get_ongoing_extended_overdue_events():
         (c) Overdue
     For use in alerts_from_db in Candidate Alerts Generator
     """
-    ongoing_events = get_ongoing_extended_overdue_events()
+
+    if ts:
+        ts = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+
+    ongoing_events = get_ongoing_extended_overdue_events(run_ts=ts)
 
     return_data = []
     if ongoing_events:
@@ -711,7 +716,6 @@ def insert_ewi(internal_json=None):
     it means re-release.
     If it is different, create a new event.
     """
-    return_data = None
 
     print(get_process_status_log("insert", "start"))
 
@@ -756,7 +760,7 @@ def insert_ewi(internal_json=None):
         if is_not_routine:
             try:
                 entry_type = 1  # Automatic, if entry_type 1, Mass ROUTINE Release
-                site_monitoring_instance = get_current_monitoring_instance_per_site(
+                site_monitoring_instance = get_latest_monitoring_event_per_site(
                     site_id)
 
                 if site_monitoring_instance:
@@ -826,7 +830,7 @@ def insert_ewi(internal_json=None):
                     var_checker("routine_site", routine_site, True)
 
                     routine_site_id = routine_site["value"]
-                    site_monitoring_instance = get_current_monitoring_instance_per_site(
+                    site_monitoring_instance = get_latest_monitoring_event_per_site(
                         routine_site_id)
                     if site_monitoring_instance:
                         site_status = site_monitoring_instance.status
@@ -915,7 +919,6 @@ def insert_ewi(internal_json=None):
                 event_alert_id = current_event_alert_id
 
                 # Raising from lower alert level e.g. A1->A2->A3->etc.
-                # NOTE: LOUIE change max alert level here
                 if pub_sym_id > current_event_alert.pub_sym_id \
                         and pub_sym_id <= (max_possible_alert_level + 1):
                     # if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= 4:
@@ -929,7 +932,7 @@ def insert_ewi(internal_json=None):
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
                         and site_monitoring_instance.validity \
-                == datetime_data_ts + timedelta(minutes=30):
+                    == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
@@ -943,8 +946,8 @@ def insert_ewi(internal_json=None):
                     except:
                         pass
 
-                # Lowering.
-                elif pub_sym_id == 1:
+                # Lowering
+                elif pub_sym_id == 1 and current_event_alert.pub_sym_id > 1:
                     release_time = round_to_nearest_release_time(
                         datetime_data_ts)
 
@@ -963,9 +966,6 @@ def insert_ewi(internal_json=None):
 
             # Append the chosen event_alert_id
             release_details["event_alert_id"] = event_alert_id
-            # Update bulletin number
-            # release_details["bulletin_number"] = update_bulletin_number(
-            #     site_id, 1)
 
             instance_details = {
                 "site_id": site_id,
@@ -986,13 +986,15 @@ def insert_ewi(internal_json=None):
                 f"Check entry type options in the back-end.")
 
         print(f"{get_system_time()} | Insert EWI Successful!")
-        return_data = "success"
+        message = "Insert EWI release successful!"
+        status = True
     except Exception as err:
         print(f"{get_system_time()} | Insert EWI FAILED!")
         print(err)
-        raise
+        message = "ERROR: Insert EWI release!"
+        status = False
 
-    return return_data
+    return {"message": message, "status": status}
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/create_bulletin/<release_id>", methods=["GET"])
@@ -1018,7 +1020,7 @@ def get_latest_cbewsl_ewi(site_id):
     latest release for the application.
 
     """
-    site_event = get_current_monitoring_instance_per_site(site_id)
+    site_event = get_latest_monitoring_event_per_site(site_id)
 
     latest_event_alert = site_event.event_alerts.order_by(
         DB.desc(MonitoringEventAlerts.ts_start)).first()
@@ -1348,3 +1350,16 @@ def get_event_timeline_data(event_id):
         }
 
     return jsonify(timeline_data)
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_shifts", methods=["GET"])
+def get_monitoring_shifts():
+    """
+    """
+
+    shift_sched = MonitoringShiftSchedule.query.order_by(
+        MonitoringShiftSchedule.ts.asc()).all()
+    result = MonitoringShiftScheduleSchema(many=True).dump(shift_sched).data
+    data = json.dumps(result)
+
+    return data

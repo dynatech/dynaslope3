@@ -187,7 +187,7 @@ function getAlertDialog (chosen_site, open, handleClose, sites) {
 
             <DialogActions>
                 <Button onClick={handleClose} color="primary" autoFocus>
-                        Close
+                    Close
                 </Button>
             </DialogActions>
         </Dialog>

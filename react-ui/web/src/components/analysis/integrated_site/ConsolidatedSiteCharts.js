@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React from "react";
 import moment from "moment";
 import { Grid } from "@material-ui/core";
 
@@ -13,9 +13,6 @@ function ConsolidatedSiteCharts (props) {
         match: { params: { site_code } },
         location
     } = props;
-    const [ selected, setSelected ] = useState("7 days");
-    const default_range_info = { label: "7 days", unit: "day", duration: 7 };
-    const [ selected_range_info, setSelectedRangeInfo ] = useState(default_range_info);
     const {
         site: site_data, ts_end,
         to_include, subsurface_columns
@@ -30,45 +27,38 @@ function ConsolidatedSiteCharts (props) {
         show_charts = { rainfall: true, surficial: true };
     }
 
-    const input = { site_code, ts_end: end_ts.format("YYYY-MM-DD HH:mm:ss"), range_info: selected_range_info };
+    const input = { site_code, ts_end: end_ts.format("YYYY-MM-DD HH:mm:ss") };
     return (
-        <Fragment>
-            <BackToMainButton 
-                {...props}
-                selected={selected}
-                setSelected={setSelected}
-                setSelectedRangeInfo={setSelectedRangeInfo}
-            />
-            
-            <Grid container spacing={1}>
-                {
-                    show_charts.rainfall && (
-                        <Grid item xs={12}>
-                            <RainfallGraph {...props} input={input} disableBack />
-                        </Grid>
-                    )
-                }
+        <Grid container spacing={1}>
+            <Grid item xs={12}><BackToMainButton {...props} /></Grid>
+
+            {
+                show_charts.rainfall && (
+                    <Grid item xs={12} style={{ marginBottom: 16 }}>
+                        <RainfallGraph {...props} input={input} disableBack />
+                    </Grid>
+                )
+            }
                 
-                {
-                    show_charts.surficial && (
-                        <Grid item xs={12}>
-                            <SurficialGraph {...props} input={input} disableBack />
-                        </Grid>
-                    )
-                }
+            {
+                show_charts.surficial && (
+                    <Grid item xs={12} style={{ marginBottom: 16 }}>
+                        <SurficialGraph {...props} input={input} disableBack />
+                    </Grid>
+                )
+            }
                 
-                {
-                    subsurface_cols.map(sc => {
-                        const temp = { ...input, tsm_sensor: sc };
-                        return (
-                            <Grid key={sc} item xs={12}>
-                                <SubsurfaceGraph {...props} input={temp} disableBack />
-                            </Grid>
-                        );
-                    })
-                }
-            </Grid>
-        </Fragment>
+            {
+                subsurface_cols.map(sc => {
+                    const temp = { ...input, tsm_sensor: sc };
+                    return (
+                        <Grid key={sc} item xs={12}>
+                            <SubsurfaceGraph {...props} input={temp} disableBack />
+                        </Grid>
+                    );
+                })
+            }
+        </Grid>
     );
 }
 

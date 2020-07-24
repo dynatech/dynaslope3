@@ -13,9 +13,10 @@ import Snackbar from "@material-ui/core/Snackbar";
 import IconButton from "@material-ui/core/IconButton";
 import CloseIcon from "@material-ui/icons/Close";
 
-import CKEditor from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
-// import DecoupledEditor from "@ckeditor/ckeditor5-build-decoupled-document";
+// import CKEditor from "@ckeditor/ckeditor5-react";
+// import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 
 import GeneralStyles from "../../../GeneralStyles";
 import PageTitle from "../../reusables/PageTitle";
@@ -184,7 +185,7 @@ function MailBoxContainer (props) {
                     </Grid>
                 </Grid>
                 <Grid item xs={12} key="message_body">
-                    <CKEditor
+                    {/* <CKEditor
                         editor={ClassicEditor}
                         data={mail_body}
                         config={config}
@@ -198,7 +199,8 @@ function MailBoxContainer (props) {
                             const data = editor.getData();
                             setMailBody(data);
                         }}
-                    />
+                    /> */}
+                    <ReactQuill theme="snow" value={mail_body} onChange={setMailBody}/>
                 </Grid>
 
                 <Grid item xs={12} key="buttons">

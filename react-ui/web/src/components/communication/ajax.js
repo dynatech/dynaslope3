@@ -28,6 +28,19 @@ export function saveContact (input, callback) {
     });
 }
 
+export function attachMobileNumberToExistingUser (input, callback) {
+    const api_link = `${host}/api/contacts/attach_mobile_number_to_existing_user`;
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save contact data reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function getEWISMSRecipients (site_code, callback) {
     const api_link = `${host}/api/contacts/get_contacts_per_site/${site_code}`;
 
@@ -99,20 +112,6 @@ export function writeEwiNarrativeToDB (payload, callback) {
     });
 }
 
-export function getEwiSMSNarrative (release_id, callback) {
-    const api_link = `${host}/api/chatterbox/get_ewi_sms_narrative/${release_id}`;
-
-    axios.get(api_link)
-    .then(response => {
-        const { data } = response;
-        console.log("EWI recipients", data);
-        callback(data);
-    })
-    .catch(error => {
-        console.error(error);
-    });
-}
-
 export function getRecipientsList (payload, callback) {
     const api_link = `${host}/api/contacts/get_recipients_option`;
 
@@ -174,6 +173,49 @@ export function loadMoreMessages (mobile_id, batch, callback) {
         const { data } = response;
         console.log("Additional loaded messages", data);
         callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function getSiteStakeHolders (callback) {
+    const api_link = `${host}/api/contacts/get_contact_prioritization`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("All Sites Stakeholders", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function saveUpdatedPrimaryContact (input, callback = null) {
+    const api_link = `${host}/api/contacts/save_primary_contact`;
+    
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save updated primary contact", data);
+        if (callback !== null)
+            callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function resendMessage (outbox_status_id, callback) {
+    const api_link = `${host}/api/chatterbox/resend_message/${outbox_status_id}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("Resend message", data);
+        if (typeof callback !== "undefined") callback(data);
     })
     .catch(error => {
         console.error(error);

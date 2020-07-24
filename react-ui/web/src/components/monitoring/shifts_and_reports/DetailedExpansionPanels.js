@@ -1,25 +1,50 @@
 import React, { useState, Fragment } from "react";
 import moment from "moment";
-
 import { useSnackbar } from "notistack";
 import ExpansionPanel from "@material-ui/core/ExpansionPanel";
 import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
 import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
 import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
-
 import Typography from "@material-ui/core/Typography";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
-import { Grid, makeStyles } from "@material-ui/core";
-import { Refresh, SaveAlt, Send, Report } from "@material-ui/icons";
-import CKEditor from "@ckeditor/ckeditor5-react";
-import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+import Tooltip from "@material-ui/core/Tooltip";
+import { Grid, makeStyles, Chip, Paper } from "@material-ui/core";
+import { Refresh, SaveAlt, Send, Info, Attachment } from "@material-ui/icons";
+
+// import CKEditor from "@ckeditor/ckeditor5-react";
+// import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
+
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
 import { react_host } from "../../../config";
+// import { useInterval, remapCkeditorEnterKey } from "../../../UtilityFunctions";
 import { useInterval } from "../../../UtilityFunctions";
-import { saveEOSDataAnalysis, getEOSDetails, downloadEosCharts, getNarrative } from "../ajax";
+import { saveEOSDataAnalysis, downloadEosCharts, getNarrative } from "../ajax";
 import { sendEOSEmail } from "../../communication/mailbox/ajax";
+
+const modules = {
+    toolbar: [
+        ["bold", "italic", "underline", "strike", "blockquote"],
+        [{ list: "ordered" }, { list: "bullet" }, 
+            { indent: "-1" }, { indent: "+1" }],
+        ["link"],
+        ["clean"]
+    ],
+    clipboard: {
+        // toggle to add extra line breaks when pasting HTML:
+        matchVisual: false, // originally false
+    }
+};
+
+const formats = [
+    "bold", "italic", "underline", "strike", "blockquote",
+    "list", "bullet", "indent",
+    "link"
+];
 
 const useStyles = makeStyles(theme => ({
     root: {
@@ -74,17 +99,18 @@ function callSnackbar (enqueueSnackbar, snackBarActionFn, response) {
 
 function extractSelectedCharts (checkboxStatus) {
     const chart_list = Object.keys(checkboxStatus).filter(key => checkboxStatus[key] === true);
-
     return chart_list;
 }
 
 function prepareMailBody (mail_contents) {
-    
     const { shiftSummary, dataAnalysis, shiftNarratives } = mail_contents;
+    const f_summary = shiftSummary.replace(/<p>/g, "").replace(/<\/p>/g, "<br/>");
+    const f_analysis = dataAnalysis.replace(/<p>/g, "").replace(/<\/p>/g, "<br/>");
+    const f_narratives = shiftNarratives.replace(/<p>/g, "").replace(/<\/p>/g, "<br/>");
+    const template = `<p>${f_summary}</p><br/><p>${f_analysis}</p><br/><p>${f_narratives}</p>`;
 
-    return `${shiftSummary}<br/><br/>${dataAnalysis}<br/><br/>${shiftNarratives}`;
+    return template;
 }
-
 
 function DetailedExpansionPanel (props) {
     const {
@@ -100,10 +126,13 @@ function DetailedExpansionPanel (props) {
     const node_shift_summary = `${eos_head}<br/>${shift_start_info}<br/><br/>${shift_end_info}`;
     const [shiftSummary, setShiftSummary] = useState(node_shift_summary);
     const [dataAnalysis, setDataAnalysis] = useState(data_analysis);
+    const [analysis_char_count, setAnalysisCharCount] = useState(data_analysis.length);
     const [shiftNarratives, setShiftNarratives] = useState(narratives);
     const [clear_interval, setClearInterval] = useState(false);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-    const [narrative_editor, setNarrativeEditor] = useState(null);
+    // const [narrative_editor, setNarrativeEditor] = useState(null);
+    const [attachedFiles, setAttachedFiles] = useState([]);
+
     const default_cbox = {
         rainfall: false, surficial: false
     };
@@ -160,8 +189,9 @@ function DetailedExpansionPanel (props) {
 
     const shift_ts_end = moment(shiftStartTs).add(12, "hours");
     const moment_validity = moment(validity);
-    const ts_end = moment_validity.isBefore(shift_ts_end) ?
-        moment_validity.add(30, "minutes") : moment(shift_ts_end).format("YYYY-MM-DD HH:mm:ss");
+    const ts_end = moment_validity.isBefore(shift_ts_end)
+        ? moment_validity.subtract(30, "minutes").format("YYYY-MM-DD HH:mm:ss")
+        : moment(shift_ts_end).format("YYYY-MM-DD HH:mm:ss");
 
     const rendering_url = `${react_host}/chart_rendering/${site_code}/${ts_end}`;
     const handleCheckboxEvent = value => event => {
@@ -187,16 +217,6 @@ function DetailedExpansionPanel (props) {
     };
 
     const handleSendEOS = () => {
-        // Get the charts
-        const file_name_ts = moment(ts_end).add(30, "minutes")
-        .format("YYYY-MM-DD HH:mm:ss");
-
-        const temp = {
-            shift_ts: shiftStartTs,
-            event_id,
-            dataAnalysis
-        };
-
         const loading_snackbar = enqueueSnackbar(
             "Sending End-of-Shift Report...",
             {
@@ -205,62 +225,63 @@ function DetailedExpansionPanel (props) {
             }
         );
 
-        saveEOSDataAnalysis(temp, save_response => {
-            console.log("save_response", save_response);
-            // callSnackbar(enqueueSnackbar, snackBarActionFn, save_response);
+        const form_data = new FormData();
+        const file_name_ts = moment(ts_end).add(30, "minutes")
+        .format("YYYY-MM-DD HH:mm:ss");
+        const charts = extractSelectedCharts(checkboxStatus);
+        charts.forEach(row => form_data.append("charts", row));
 
-            getEOSDetails(event_id, file_name_ts, eos_details => {
-                const { subject, file_name, recipients } = eos_details;
-    
-                const charts = extractSelectedCharts(checkboxStatus);
-    
-                const input = {
-                    mail_body: prepareMailBody({ shiftSummary, dataAnalysis, shiftNarratives }),
-                    subject,
-                    recipients,
-                    file_name,
-                    site_code,
-                    user_id: currentUser.user_id,
-                    charts
-                };
-        
-                sendEOSEmail(input, response => {
-                    closeSnackbar(loading_snackbar);
-                    console.log(response);
-                    if (response === "Success") {
-                        enqueueSnackbar(
-                            "End-of-Shift Report Sent!",
-                            {
-                                variant: "success",
-                                autoHideDuration: 7000,
-                                action: snackBarActionFn
-                            }
-                        );
-                    } else {
-                        enqueueSnackbar(
-                            "Error sending End-of-Shift Report...",
-                            {
-                                variant: "error",
-                                autoHideDuration: 7000,
-                                action: snackBarActionFn
-                            }
-                        );
-                    }
-                }, () => {
-                    closeSnackbar(loading_snackbar); 
-                    enqueueSnackbar(
-                        "Error sending End-of-Shift Report...",
-                        {
-                            variant: "error",
-                            autoHideDuration: 7000,
-                            action: snackBarActionFn
-                        }
-                    );
-                });
-        
-                setClearInterval(true);
-            });
+        attachedFiles.forEach(row => {       
+            form_data.append("attached_files", row);
         });
+
+        const input = {
+            shift_ts: shiftStartTs,
+            event_id,
+            data_analysis: dataAnalysis,
+            file_name_ts,
+            mail_body: prepareMailBody({ shiftSummary, dataAnalysis, shiftNarratives }),
+            site_code,
+            user_id: currentUser.user_id,
+        };
+
+        // eslint-disable-next-line no-restricted-syntax
+        for (const key in input) {
+            // eslint-disable-next-line no-prototype-builtins
+            if (input.hasOwnProperty(key)) form_data.append(key, input[key]);
+        }
+
+        sendEOSEmail(form_data, response=> {
+            closeSnackbar(loading_snackbar);
+            console.log(response);
+            let message = "Error sending End-of-Shift Report...";
+            let variant = "error";
+            if (response === "Success") {
+                message = "End-of-Shift Report Sent!";
+                variant = "success";
+            }
+
+            enqueueSnackbar(
+                message,
+                {
+                    variant,
+                    autoHideDuration: 7000,
+                    action: snackBarActionFn
+                }
+            );
+        }, () => {
+            closeSnackbar(loading_snackbar); 
+            enqueueSnackbar(
+                "Error sending End-of-Shift Report...",
+                {
+                    variant: "error",
+                    autoHideDuration: 7000,
+                    action: snackBarActionFn
+                }
+            );
+        });
+
+        setClearInterval(true);
     };
 
     const handleDownload = () => {
@@ -268,6 +289,7 @@ function DetailedExpansionPanel (props) {
         const input = {
             site_code, user_id: currentUser.user_id, charts, file_name: `${site_code}_chart.pdf`
         };
+
         downloadEosCharts(input, response => {
             const { message, file_response: { file_path, message: render_msg } } = response;
             console.log("response", render_msg);
@@ -292,21 +314,36 @@ function DetailedExpansionPanel (props) {
             }
         });
     };
+    
+    const handleFileChange = event => {
+        const { files } = event.target;
+        for (let i = 0; i < files.length; i += 1) {
+            attachedFiles.push(files.item(i));
+        }
+        setAttachedFiles([...attachedFiles]);
+    };
 
+    const handleRemoveFile = index => () => {
+        const files = attachedFiles;
+        files.pop(files[index]);
+        setAttachedFiles([...files]);
+    };
+    
     const refreshNarratives = () => {
         const temp = {
             shift_ts: shiftStartTs,
             event_id
         };
         getNarrative(temp, site_narrative => {
+            console.log(site_narrative);
             setShiftNarratives(site_narrative);
-            narrative_editor.setData(site_narrative);
+            // narrative_editor.setData(site_narrative);
         });
     };
 
-    const config = {
-        toolbar: ["heading", "|", "bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "|", "undo", "redo"]
-    };
+    // const config = {
+    //     toolbar: ["bold", "italic", "link", "bulletedList", "numberedList", "blockQuote", "|", "undo", "redo"]
+    // };
 
     const editors = [
         { 
@@ -318,6 +355,8 @@ function DetailedExpansionPanel (props) {
             key: "data_analysis", updateFn: setDataAnalysis
         }
     ];
+
+    const is_analysis_over_limit = analysis_char_count > 1500;
 
     return (
         <ExpansionPanel>
@@ -337,6 +376,7 @@ function DetailedExpansionPanel (props) {
                             <strong>Charts</strong>
                         </Typography>
                     </Grid>
+                    
                     <Grid 
                         item xs={12} container
                         spacing={1} justify="space-around"
@@ -348,6 +388,53 @@ function DetailedExpansionPanel (props) {
                             checkboxStyle="primary"
                         />
                     </Grid>
+
+                    <Grid item xs={12} >
+                        <Typography variant="body1">
+                            <strong>Attachments</strong>
+                        </Typography>
+                    </Grid>
+
+                    <Grid item xs={12} container>
+                        <Grid item xs={12}>
+                            <Paper square style={{ 
+                                padding: "8px 12px", marginBottom: 12,
+                                background: "gainsboro", border: "4px solid #CCCCCC"
+                            }}>
+                                {
+                                    attachedFiles.length > 0 
+                                        ? attachedFiles.map( (file, index )=> {
+                                            return (
+                                                <Chip key={index} label={file.name} onDelete={handleRemoveFile(index)} color="primary" />
+                                            );
+                                        })
+                                        : <Typography variant="body2"><i>None</i></Typography>
+                                }
+                            </Paper>
+                        </Grid>
+                        <Grid item xs={12} container justify="flex-end">
+                            <input
+                                className={classes.input}
+                                style={{ display: "none" }}
+                                multiple
+                                type="file"
+                                onChange={handleFileChange}
+                                id="raised-button-file"
+                            />
+                            <label htmlFor="raised-button-file">
+                                <Button 
+                                    startIcon={<Attachment />} 
+                                    variant="contained"
+                                    component="span"
+                                    color="primary"
+                                    size="small"
+                                >
+                                    {attachedFiles.length > 0 ? "Add more" : "Attach File"}
+                                </Button>
+                            </label> 
+                        </Grid>
+                    </Grid>
+
                     {   
                         editors.map(({ label, value, key, updateFn }) => (
                             <Fragment key={key}>
@@ -361,34 +448,73 @@ function DetailedExpansionPanel (props) {
                                         NOTE: To change textarea height of CKEditor, change .ck-editor__editable 
                                         value on index.css on react-ui/web
                                     */ }
-                                    <CKEditor
+                                    {/* <CKEditor
                                         editor={ClassicEditor}
                                         config={config}
                                         onInit={editor => {
                                             editor.setData(value);
+                                            remapCkeditorEnterKey(editor);
                                         }}
                                         onChange={(event, editor) => {
                                             const data = editor.getData();
+                                            if (label === "Data Analysis") {
+                                                setAnalysisCharCount(data.length);
+                                            }
                                             updateFn(data);
                                         }}
-                                    />                                    
+                                    /> */}
+                                    <ReactQuill 
+                                        onChange={e => {
+                                            if (label === "Data Analysis") {
+                                                setAnalysisCharCount(e.length);
+                                            }
+                                            updateFn(e);
+                                        }}
+                                        defaultValue={value}
+                                        modules={modules}
+                                        formats={formats}
+                                    />
                                 </Grid>
+                                {
+                                    label === "Data Analysis" && (
+                                        <Grid 
+                                            container item xs={12}
+                                            justify="flex-end" alignItems="center"
+                                            style={{ color: is_analysis_over_limit ? "red" : "black" }}
+                                        >
+                                            <Tooltip 
+                                                title="Content of text area is formatted on the background using HTML. HTML elements are included in the character count."
+                                                placement="top"
+                                                interactive
+                                                arrow
+                                            >
+                                                <div><Info color="primary" fontSize="small"/>&nbsp;</div>
+                                            </Tooltip>
+                                            <Typography variant="caption" >
+                                                <strong>Character count (including HTML): {analysis_char_count}/1500</strong>
+                                            </Typography>        
+                                        </Grid>
+                                    )
+                                }
                             </Fragment>
                         ))
-
                     }
+
                     <Grid item xs={12}>
                         <Typography variant="body1">
-                            <strong>Shift Narratives</strong>
+                            <strong>Shift Narratives </strong>
+                        </Typography>
+                        <Typography variant="body2">
+                            <i>NOTE: It is recommended NOT to add narratives via this text box. Use Site Logs Form instead then click Refresh.</i>
                         </Typography>
                     </Grid>
+                    
                     <Grid item xs={12}>
-                        <CKEditor
+                        {/* <CKEditor
                             editor={ClassicEditor}
                             config={config}
                             onInit={editor => {
                                 editor.setData(shiftNarratives);
-                                console.log(editor);
                                 setNarrativeEditor(editor);
                                 // editor.destroy();
                             }}
@@ -396,7 +522,15 @@ function DetailedExpansionPanel (props) {
                                 const data = editor.getData();
                                 setShiftNarratives(data);
                             }}
-                        /> 
+                        />  */}
+                        <ReactQuill 
+                            onChange={e => setShiftNarratives(e)}
+                            value={shiftNarratives}
+                            defaultValue={shiftNarratives}
+                            modules={modules}
+                            formats={formats}
+                            bounds=".app"
+                        />
                     </Grid>
                 </Grid>
             </ExpansionPanelDetails>
@@ -414,13 +548,14 @@ function DetailedExpansionPanel (props) {
                     startIcon={<Refresh />}
                     onClick={refreshNarratives}
                 >
-                    Refresh
+                    Refresh Narratives
                 </Button>
                 <Button
                     size="small"
                     color="primary"
                     startIcon={<Send />}
                     onClick={handleSendEOS}
+                    disabled={is_analysis_over_limit}
                 >
                     Send
                 </Button>

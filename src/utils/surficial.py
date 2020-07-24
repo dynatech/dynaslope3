@@ -7,11 +7,14 @@ from datetime import datetime, timedelta
 from connection import DB
 from src.models.analysis import (
     SiteMarkers, MarkerData as md,
-    MarkerObservations as mo)
+    MarkerObservations as mo, MarkerAlerts as ma,
+    Markers, MarkerHistory, MarkerNames)
 from src.models.sites import Sites
 from src.utils.extra import (
     var_checker, round_to_nearest_release_time,
     retrieve_data_from_memcache)
+from src.utils.sites import get_sites_data
+from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 
 
 def check_if_site_has_active_surficial_markers(site_code=None, site_id=None):
@@ -33,7 +36,7 @@ def check_if_site_has_active_surficial_markers(site_code=None, site_id=None):
     return bool(result.has_surficial_markers)
 
 
-def get_surficial_data_presence():
+def get_surficial_data_presence_old():
     """
     """
 
@@ -72,6 +75,108 @@ def get_surficial_data_presence():
         data_presence.append(temp)
 
     return data_presence
+
+
+def get_sites_with_ground_meas(ts, timedelta_hour=1, minute=30, site_id=None):
+    run_down_ts = ts - \
+        timedelta(hours=timedelta_hour, minutes=minute)
+
+    query = mo.query.with_entities(mo.site_id) \
+        .options(DB.raiseload("*")).filter(
+            mo.ts.between(run_down_ts, ts))
+
+    if site_id:
+        query = query.filter(mo.site_id == site_id)
+
+    result = query.all()
+
+    return [value for (value,) in result]
+
+
+def get_surficial_data_presence():
+    now = datetime.now()
+    release_interval_hours = retrieve_data_from_memcache(
+        "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
+
+    sites_data = get_sites_data()
+    leo = get_ongoing_extended_overdue_events(run_ts=now)
+    event_data = leo["latest"]
+    extended_data = leo["extended"]
+    event_site_code, extended_site_code = get_extended_and_event_site_code(
+        event_data, extended_data)
+
+    data = []
+    for row in sites_data:
+        site_id = row.site_id
+        site_code = str(row.site_code)
+        event_type = "Routine"
+        start_ts = now.strftime("%Y-%m-%d 06:00:00")
+        end_ts = now.strftime("%Y-%m-%d 12:00:00")
+
+        if site_code in event_site_code:
+            event_type = "Event"
+
+            end_ts = round_to_nearest_release_time(
+                now, release_interval_hours)
+            start_ts = end_ts - \
+                timedelta(hours=release_interval_hours)
+
+        if site_code in extended_site_code:
+            event_type = "Extended"
+
+        last_ts, has_data_presence = get_site_marker_observation_last_ts(
+            start_ts=start_ts,
+            end_ts=end_ts, site_id=site_id
+        )
+
+        check_marker = check_if_site_has_active_surficial_markers(
+            site_id=site_id)
+        has_surficial_marker = 1 if check_marker else 0
+
+        temp = {
+            "site_id": site_id,
+            "site_code": site_code,
+            "has_surficial_markers": has_surficial_marker,
+            "event_type": event_type,
+            "presence": has_data_presence,
+            "last_data": last_ts.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        data.append(temp)
+
+    return data
+
+
+def get_site_marker_observation_last_ts(start_ts, end_ts, site_id):
+    # gawin dito yung nache-check ng last marker observation between 2 dates
+    query = mo.query.with_entities(mo.ts).filter(
+        mo.ts.between(start_ts, end_ts)) \
+        .order_by(mo.ts.desc()) \
+        .filter(mo.site_id == site_id).first()
+    has_data_presence = False
+
+    if query is None:
+        query = mo.query.with_entities(mo.ts).order_by(
+            mo.ts.desc()).filter(mo.site_id == site_id).first()
+    else:
+        has_data_presence = True
+
+    last_ts = query[0]
+    return last_ts, has_data_presence
+
+
+def get_extended_and_event_site_code(event, extended):
+    event_site_code = set()
+    extended_site_code = set()
+
+    for event_row in event:
+        site_code = event_row["event"]["site"]["site_code"]
+        event_site_code.add(site_code)
+
+    for extended_row in extended:
+        site_code = extended_row["event"]["site"]["site_code"]
+        extended_site_code.add(site_code)
+
+    return event_site_code, extended_site_code
 
 
 def get_surficial_data(
@@ -132,25 +237,36 @@ def get_surficial_data(
     return filtered_marker_data
 
 
-def get_surficial_data_last_ten_timestamps(site_code, end_date):
+def get_marker_alerts(site_id, trigger_ts, alert_level=None):
     """
-        Note: This should be solved by get_surficial_markers
     """
-    return "data presence"
+    surficial_alerts_list = []
+    surficial_alerts = ma.query.filter(
+        ma.ts == trigger_ts)
+
+    if alert_level:
+        surficial_alerts = surficial_alerts.filter(
+            ma.alert_level == alert_level)
+
+    if not surficial_alerts:
+        raise Exception("No marker alerts entry found")
+
+    for item in surficial_alerts.all():
+        if item.marker.site_id == site_id:
+            surficial_alerts_list.append(item)
+
+    return surficial_alerts_list
 
 
-def get_surficial_data_last_ten_points(site_code, latest_ts_arr):
-    """
-        Note: This should be solved by get_surficial_markers
-    """
-    return "column data"
-
-
-def get_surficial_markers(site_code=None, filter_in_use=None, get_complete_data=None):
+def get_surficial_markers(site_code=None, site_id=None):
     """
 
     """
+
     filter_var = SiteMarkers.site_code == site_code
+    if site_id:
+        filter_var = SiteMarkers.site_id == site_id
+
     markers = SiteMarkers.query.filter(
         filter_var).order_by(SiteMarkers.marker_name).all()
 
@@ -239,3 +355,53 @@ def update(column, key, table, data):
         except:
             print("There is a problem on fnx update.")
     return "Process Done"
+
+
+def create_new_marker(site_code=None):
+    if not site_code:
+        raise Exception("No site code given")
+
+    site = Sites.query.options(DB.raiseload("*")) \
+        .filter_by(site_code=site_code).first()
+
+    if not site:
+        raise Exception("Site code not found")
+
+    new = Markers(site_id=site.site_id, in_use=1)
+
+    DB.session.add(new)
+    DB.session.flush()
+
+    return new
+
+
+def insert_marker_event(marker_id, ts, event, remarks):
+    history = MarkerHistory(
+        marker_id=marker_id,
+        ts=ts,
+        event=event,
+        remarks=remarks
+    )
+
+    DB.session.add(history)
+    DB.session.flush()
+
+    # NOTE: Delete this in the future because
+    # marker status must depend on MarkerHistory
+    if event == "decommission":
+        row = Markers.query.options(DB.raiseload(
+            '*')).filter_by(marker_id=marker_id).first()
+        row.in_use = 0
+
+        DB.session.flush()
+
+    return history
+
+
+def insert_new_marker_name(history_id, marker_name):
+    name = MarkerNames(
+        history_id=history_id,
+        marker_name=marker_name
+    )
+
+    DB.session.add(name)

@@ -1,3 +1,8 @@
+
+"""
+"""
+
+from instance.config import SCHEMA_DICT
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
 
@@ -9,16 +14,17 @@ class BulletinResponses(DB.Model):
 
     __tablename__ = "bulletin_responses"
     __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     pub_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.public_alert_symbols.pub_sym_id"), primary_key=True)
+        f"{SCHEMA_DICT['ewi_db']}.public_alert_symbols.pub_sym_id"), primary_key=True)
     recommended = DB.Column(DB.String(200))
     lewc_lgu = DB.Column(DB.String(200))
     community = DB.Column(DB.String(200))
 
     public_alert_symbol = DB.relationship(
-        "PublicAlertSymbols", backref=DB.backref("bulletin_response", lazy="dynamic"), lazy="joined", innerjoin=True)
+        "PublicAlertSymbols", backref=DB.backref("bulletin_response", lazy="dynamic"),
+        lazy="joined", innerjoin=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Public Symbol ID: {self.pub_sym_id}"
@@ -33,10 +39,10 @@ class BulletinTriggers(DB.Model):
 
     __tablename__ = "bulletin_triggers"
     __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": "ewi_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     internal_sym_id = DB.Column(DB.Integer, DB.ForeignKey(
-        "ewi_db.internal_alert_symbols.internal_sym_id"), primary_key=True)
+        f"{SCHEMA_DICT['ewi_db']}.internal_alert_symbols.internal_sym_id"), primary_key=True)
     description = DB.Column(DB.String(100))
     cause = DB.Column(DB.String(50))
     template = DB.Column(DB.String(100))

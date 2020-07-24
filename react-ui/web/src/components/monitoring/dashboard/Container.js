@@ -1,10 +1,9 @@
 import React, { Fragment, useEffect, useState, useContext } from "react";
-import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
-import { withStyles } from "@material-ui/core/styles";
-import { compose } from "recompose";
-import { Button, Grid } from "@material-ui/core";
-import { AddAlert, Warning } from "@material-ui/icons";
 
+import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
+import { Button, Grid, makeStyles } from "@material-ui/core";
+import { AddAlert, Warning } from "@material-ui/icons";
+import { useSnackbar } from "notistack";
 import PageTitle from "../../reusables/PageTitle";
 import TabBar from "../../reusables/TabBar";
 import MonitoringTables from "./MonitoringTables";
@@ -13,18 +12,20 @@ import AlertReleaseFormModal from "../../widgets/alert_release_form/AlertRelease
 import RoutineReleaseFormModal from "../../widgets/alert_release_form/RoutineReleaseFormModal";
 import IssuesAndRemindersList from "../../widgets/issues_and_reminders_form/IssuesAndRemindersList";
 import CircularAddButton from "../../reusables/CircularAddButton";
+import MonitoringShiftsPanel from "../../widgets/monitoring_shifts/MonitoringShiftsPanel";
 import GeneralStyles from "../../../GeneralStyles";
 import { 
     subscribeToWebSocket, unsubscribeToWebSocket,
-    receiveGeneratedAlerts, receiveCandidateAlerts, receiveAlertsFromDB
+    receiveGeneratedAlerts, receiveCandidateAlerts,
+    receiveAlertsFromDB, receiveEWIInsertResponse
 } from "../../../websocket/monitoring_ws";
+import { getMonitoringShifts, receiveMonitoringShiftData, removeReceiveMonitoringShiftData } from "../../../websocket/misc_ws";
 import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
 import InsertMomsButton from "../../widgets/moms/InsertMomsButton";
 import { GeneralContext } from "../../contexts/GeneralContext";
 
-const styles = theme => {
+const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
-
     return {
         ...gen_style,
         tabBar: {
@@ -34,7 +35,7 @@ const styles = theme => {
             marginTop: 30
         }
     };
-};
+});
 
 const tabs_array = [
     { label: "Monitoring Tables", href: "monitoring-tables" },
@@ -42,22 +43,23 @@ const tabs_array = [
 ];
 
 function Container (props) {
-    const { classes, width, history } = props;
+    const { width, history } = props;
+    const classes = useStyles();
+
     const [chosenTab, setChosenTab] = useState(0);
     const [generatedAlerts, setGeneratedAlerts] = useState(null);
+    const [monitoringShifts, setMonitoringShifts] = useState([]);
     const [candidateAlertsData, setCandidateAlertsData] = useState(null);
     const [alertsFromDbData, setAlertsFromDbData] = useState(null);
     const [isOpenReleaseModal, setIsOpenReleaseModal] = useState(false);
     const [isOpenRoutineModal, setIsOpenRoutineModal] = useState(false);
     const [chosenCandidateAlert, setChosenCandidateAlert] = useState(null);
-
     const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
     const [isIandRUpdateNeeded, setIsIandRUpdateNeeded] = useState(false);
-
     const [is_moms_modal_open, setMomsModal] = useState(false);
     const set_moms_modal_fn = bool => () => setMomsModal(bool);
-
     const { setIsReconnecting } = useContext(GeneralContext);
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     
     useEffect(() => {
         subscribeToWebSocket(setIsReconnecting);
@@ -65,16 +67,30 @@ function Container (props) {
         receiveGeneratedAlerts(generated_alerts => setGeneratedAlerts(generated_alerts));
         receiveCandidateAlerts(candidate_alerts => setCandidateAlertsData(candidate_alerts));
         receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
+        receiveMonitoringShiftData(shift_data => setMonitoringShifts(shift_data));
+        getMonitoringShifts();
+        receiveEWIInsertResponse(response => {
+            const { snackbar_key, message, status } = response;
+            closeSnackbar(snackbar_key);
+            enqueueSnackbar(
+                message,
+                {
+                    variant: status ? "success" : "error",
+                    autoHideDuration: 7000
+                }
+            );
+        });
 
         return function cleanup () {
             unsubscribeToWebSocket();
+            removeReceiveMonitoringShiftData();
         };
     }, []);
 
     const handleTabSelected = chosen_tab => {
         setChosenTab(chosen_tab);
     };
-
+    
     const handleBoolean = (data, bool) => () => {
         if (data === "is_open_release_modal") setIsOpenReleaseModal(bool);
         else if (data === "is_open_issues_modal") {
@@ -150,13 +166,16 @@ function Container (props) {
                     </Grid>
                     
                     <Grid item md={9}>
+                        <div style={{ marginBottom: 12 }}>
+                            <MonitoringShiftsPanel shiftData={monitoringShifts}/>
+                        </div>
+
                         <TabBar
                             chosenTab={chosenTab}
                             onSelect={handleTabSelected}
                             tabsArray={tabs_array}
                         />
-
-                        <div className={classes.tabBarContent}>
+                        <div className={classes.tabBarContent}>         
                             {chosenTab === 0 && (
                                 <MonitoringTables
                                     width={width}
@@ -171,7 +190,6 @@ function Container (props) {
                     </Grid>
                 </Grid>
             </div>
-
 
             { !is_desktop && <CircularAddButton clickHandler={handleBoolean("is_open_release_modal", true)} /> }
 
@@ -194,14 +212,10 @@ function Container (props) {
             <MomsInsertModal
                 isOpen={is_moms_modal_open}
                 closeHandler={set_moms_modal_fn(false)}
-                // snackbarHandler={set_snackbar_notif_fn(true)}
-                // width={width}
             />
-
         </Fragment>
     );
 
 
 }
-
-export default compose(withWidth(), withStyles(styles))(Container);
+export default withWidth()(Container);

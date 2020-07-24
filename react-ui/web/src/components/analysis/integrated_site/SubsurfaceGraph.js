@@ -6,12 +6,13 @@ import React, {
 import Highcharts from "highcharts";
 import HC_exporting from "highcharts/modules/exporting";
 import HighchartsReact from "highcharts-react-official";
-import { Grid, Paper, Hidden, CircularProgress } from "@material-ui/core";
+import { Grid, Paper, Hidden } from "@material-ui/core";
 import * as moment from "moment";
-import ContentLoader from "react-content-loader";
 import { isWidthDown } from "@material-ui/core/withWidth";
+
 import { getSubsurfacePlotData, saveChartSVG } from "../ajax";
 import BackToMainButton from "./BackToMainButton";
+import DateRangeSelector from "./DateRangeSelector";
 import { computeForStartTs } from "../../../UtilityFunctions";
 
 window.moment = moment;
@@ -289,7 +290,8 @@ function prepareVelocityAlertsOption (set_data, form) {
     const { subsurface_column, ts_end } = form;
 
     const xAxisTitle = orientation === "across_slope" ? "Across Slope" : "Downslope";
-    const category = data.map(x => x.name + 1);
+    const categories = data.map(x => x.name).filter(x => typeof x === "number");
+    categories.unshift(0);
 
     return {
         series: data,
@@ -335,10 +337,10 @@ function prepareVelocityAlertsOption (set_data, form) {
             enabled: false
         },
         yAxis: {
-            categories: category,
+            categories,
             reversed: true,
             title: {
-                text: "<b>Depth (m)</b>"
+                text: "<b>Nodes</b>"
             },
             labels: {
                 formatter () {
@@ -378,18 +380,14 @@ function SubsurfaceGraph (props) {
     let ts_end = "";
     let dt_ts_end;
     let tsm_sensor = sensor;
-    const [ selected, setSelected ] = useState("3 days");
+
     const default_range_info = { label: "3 days", unit: "days", duration: 3 };
-    const [ selected_range_info, setSelectedRangeInfo ] = useState(default_range_info);
+    const [selected_range_info, setSelectedRangeInfo] = useState(default_range_info);
     const defaul_hour_interval = { label: "4 hours", hour_value: "4" };
-    const [ selected_hour_interval, setSelectedHourInterval ] = useState(defaul_hour_interval);
-    let { unit, duration } = selected_range_info;
-    const { hour_value } = selected_hour_interval;
+    const [selected_hour_interval, setSelectedHourInterval] = useState(defaul_hour_interval);
+    
     if (typeof consolidated_input !== "undefined") {
-        const { ts_end: te, tsm_sensor: tsm, range_info } = consolidated_input;
-        const { unit: conso_unit, duration: conso_duration } = range_info;
-        unit = conso_unit;
-        duration = conso_duration;
+        const { ts_end: te, tsm_sensor: tsm } = consolidated_input;
         ts_end = te;
         dt_ts_end = moment(te);
         tsm_sensor = tsm;
@@ -398,18 +396,20 @@ function SubsurfaceGraph (props) {
         ts_end = ts_now.format("YYYY-MM-DD HH:mm:ss");
         dt_ts_end = ts_now;
     }
+
+    const { unit, duration } = selected_range_info;
     const ts_start = computeForStartTs(dt_ts_end, duration, unit);
     
     const disable_back = typeof disableBack === "undefined" ? false : disableBack;
     const save_svg = typeof saveSVG === "undefined" ? false : saveSVG;
 
-    const [timestamps, setTimestamps] = useState({ start: ts_start, end: ts_end });
     const [processed_data, setProcessedData] = useState([]);
     const chartRefs = useRef([...Array(6)].map(() => createRef()));
     const [get_svg, setGetSVGNow] = useState(false);
     const [svg_list, setSVGList] = useState([]);
 
-    const input = { ts_end: timestamps.end, ts_start, subsurface_column: tsm_sensor, hour_value };
+    const { hour_value } = selected_hour_interval;
+    const input = { ts_end, ts_start, subsurface_column: tsm_sensor, hour_value };
     
     const is_desktop = isWidthDown(width, "sm");
     const default_options = { title: { text: "Loading" } };
@@ -426,14 +426,12 @@ function SubsurfaceGraph (props) {
                 processed.push(...temp);
             });
             setProcessedData(processed);
-
         });
-    }, [timestamps, selected_hour_interval]);
+    }, [selected_range_info, selected_hour_interval]);
 
     const [options, setOptions] = useState([{ title: { text: "Loading" } }]); 
     
     useEffect(() => {
-        
         const temp = [];
         processed_data.forEach(data => {
             const { type } = data;
@@ -446,16 +444,18 @@ function SubsurfaceGraph (props) {
 
         setOptions(temp);
         if (temp.length > 0 && save_svg) setGetSVGNow(true);
-
-    }, [processed_data, selected_hour_interval]);
+    }, [processed_data]);
 
     useEffect(() => {
         if (get_svg) {
             const temp = [];
             chartRefs.current.forEach(ref => {
-                const { current: { chart } } = ref;
-                const svg = chart.getSVGForExport();
-                temp.push(svg);
+                const { current } = ref;
+                if (current !== null) {
+                    const { chart } = current;
+                    const svg = chart.getSVGForExport();
+                    temp.push(svg);
+                }
             });
             setSVGList(temp);
         }
@@ -477,18 +477,23 @@ function SubsurfaceGraph (props) {
         }
     }, [svg_list]);
 
-
     return (
         <Fragment>
-            { !disable_back && <BackToMainButton 
-                {...props}
-                selected={selected}
-                setSelected={setSelected}
-                setSelectedRangeInfo={setSelectedRangeInfo}
-                selected_hour_interval={selected_hour_interval}
-                setSelectedHourInterval={setSelectedHourInterval}
-            /> 
-            }
+            <Grid container spacing={1} justify="space-between">
+                {
+                    !disable_back && <BackToMainButton 
+                        {...props}
+                    />
+                }
+
+                <DateRangeSelector
+                    isSubsurface
+                    selectedRangeInfo={selected_range_info}
+                    setSelectedRangeInfo={setSelectedRangeInfo}
+                    selectedHourInterval={selected_hour_interval}
+                    setSelectedHourInterval={setSelectedHourInterval}
+                />
+            </Grid>
 
             <div style={{ marginTop: 16 }}>
                 <Grid container spacing={4}>
@@ -517,6 +522,7 @@ function SubsurfaceGraph (props) {
                     {
                         options.map((option, i) => {
                             const chart_update = true;
+                            const ref = chartRefs.current[i];
                             return (
                                 <Grid item xs={12} md={6} key={i}>
                                     <Paper>
@@ -524,6 +530,7 @@ function SubsurfaceGraph (props) {
                                             highcharts={Highcharts}
                                             allowChartUpdate={chart_update}
                                             options={option}
+                                            ref={ref}
                                         />
                                     </Paper>
                                 </Grid>

@@ -2,7 +2,7 @@
 Contacts Functions Utility File
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from sqlalchemy.orm import joinedload
 from connection import DB
 from src.models.users import (
@@ -17,13 +17,10 @@ from src.models.mobile_numbers import (
     BlockedMobileNumbersSchema
 )
 from src.models.organizations import (
-    Organizations, OrganizationsSchema,
-    UserOrganizations
+    Organizations, UserOrganizations
 )
 from src.models.gsm import SimPrefixes, SimPrefixesSchema
 from src.models.sites import Sites
-from src.models.analysis import MarkerObservations
-from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 from src.utils.extra import var_checker
 
 
@@ -236,20 +233,30 @@ def save_user_information(data):
     nickname = data["nickname"]
     emails = data["emails"]
     ewi_recipient = data["ewi_recipient"]
-    ewi_restriction = data["restriction"]
     status = data["status"]
+    salutation = None
+    birthday = None
+    sex = None
+
+    if "birthday" in data:
+        birthday = data["birthday"]
+    if "salutation" in data:
+        salutation = data["salutation"]
+    if "sex" in data:
+        salutation = data["sex"]
 
     if user_id == 0:
         insert_user = Users(
             first_name=first_name, last_name=last_name,
-            middle_name=middle_name, nickname=nickname, ewi_recipient=ewi_recipient,
-            status=status)
+            middle_name=middle_name, nickname=nickname,
+            ewi_recipient=ewi_recipient, birthday=birthday,
+            sex=sex, status=status, salutation=salutation
+        )
 
         DB.session.add(insert_user)
         DB.session.flush()
         user_id = insert_user.user_id
 
-        save_user_email(emails, user_id)
     else:
         update = Users.query.options(DB.raiseload("*")).get(user_id)
         update.first_name = first_name
@@ -258,28 +265,52 @@ def save_user_information(data):
         update.nickname = nickname
         update.ewi_recipient = ewi_recipient
         update.status = status
+        update.birthday = birthday
+        update.sex = sex
+        update.salutation = salutation
 
-        save_user_email(emails, user_id)
+    try:
+        emails_to_delete = data["delete_emails"]
+    except KeyError:
+        emails_to_delete = None
 
-    save_user_ewi_restriction(ewi_restriction, user_id)
+    save_user_email(emails, user_id, emails_to_delete)
+
+    try:
+        ewi_restriction = data["restriction"]
+        save_user_ewi_restriction(ewi_restriction, user_id)
+    except KeyError:
+        pass
 
     return user_id
 
 
-def save_user_email(emails, user_id):
+def save_user_email(emails, user_id, delete_list=None):
     """
     Function that save user email
     """
-    email_len = len(emails)
-    if email_len > 0:
+
+    if emails:
         for row in emails:
             row_type = type(row)
             if row_type == str:
                 insert_email = UserEmails(user_id=user_id, email=row)
                 DB.session.add(insert_email)
             else:
-                update_email = UserEmails.query.get(row["email_id"])
-                update_email.email = row["email"]
+                if row["email_id"] == 0:
+                    insert_email = UserEmails(
+                        user_id=user_id, email=row["email"])
+                    DB.session.add(insert_email)
+                else:
+                    update_email = UserEmails.query.get(row["email_id"])
+                    update_email.email = row["email"]
+
+    if delete_list is not None:
+        delete_len = len(delete_list)
+        if delete_len > 0:
+            for row in delete_list:
+                UserEmails.query.filter_by(
+                    user_id=user_id, email=row["email"]).delete()
 
     return True
 
@@ -288,17 +319,23 @@ def save_user_contact_numbers(data, user_id):
     """
     Function that save user contact numbers
     """
+
     mobile_numbers = data["mobile_numbers"]
-    landline_numbers = data["landline_numbers"]
+    try:
+        landline_numbers = data["landline_numbers"]
+    except KeyError:
+        landline_numbers = []
+
     mobile_numbers_len = len(mobile_numbers)
     landline_number_len = len(landline_numbers)
 
+    mobile_ids = []
     if mobile_numbers_len > 0:
         for row in mobile_numbers:
             mobile_id = row["mobile_number"]["mobile_id"]
             sim_num = row["mobile_number"]["sim_num"]
             status = row["status"]
-
+            to_insert_user_mobiles = False
             if mobile_id == 0:
                 check_sim_num = MobileNumbers.query.filter_by(
                     sim_num=sim_num).first()
@@ -321,18 +358,34 @@ def save_user_contact_numbers(data, user_id):
                     DB.session.flush()
 
                     last_inserted_mobile_id = insert_mobile_number.mobile_id
-                    insert_user_mobile = UserMobiles(
-                        user_id=user_id, mobile_id=last_inserted_mobile_id, status=status)
+                else:
+                    last_inserted_mobile_id = check_sim_num.mobile_id
 
-                    DB.session.add(insert_user_mobile)
+                to_insert_user_mobiles = True
             else:
                 update_mobile = MobileNumbers.query.get(mobile_id)
                 update_mobile.sim_num = sim_num
                 update_mobile.gsm_id = get_gsm_id_by_prefix(sim_num)
+                last_inserted_mobile_id = mobile_id
 
                 update_user_mobile = UserMobiles.query.filter_by(
                     user_id=user_id, mobile_id=mobile_id).first()
-                update_user_mobile.status = status
+
+                if update_user_mobile:
+                    update_user_mobile.status = status
+                else:
+                    to_insert_user_mobiles = True
+
+            if to_insert_user_mobiles:
+                insert_user_mobile = UserMobiles(
+                    user_id=user_id,
+                    mobile_id=last_inserted_mobile_id,
+                    status=status
+                )
+
+                DB.session.add(insert_user_mobile)
+
+            mobile_ids.append(last_inserted_mobile_id)
 
     if landline_number_len > 0:
         for row in landline_numbers:
@@ -347,30 +400,42 @@ def save_user_contact_numbers(data, user_id):
                 update_landline = UserLandlines.query.get(landline_id)
                 update_landline.landline_num = landline_num
 
-    return True
+    DB.session.flush()
+    return mobile_ids
 
 
 def save_user_affiliation(data, user_id):
     """
     Function that save user affiliation
+    NOTE: Improve this because it destroys and creates
+    new user_org rows every save
     """
+
     if data:
         # print(data)
         location = data["location"]
         site = data["site"]
         scope = data["scope"]
         office = data["office"]
-        org_query = Organizations.query.filter(
+
+        org = Organizations.query.options(DB.raiseload("*")).filter(
             Organizations.scope == scope, Organizations.name == office).first()
-        result = OrganizationsSchema(exclude=("users",)).dump(org_query).data
-        org_id = result["org_id"]
+        org_id = org.org_id
 
         site_ids = []
         org_name = office
         modifier = ""
 
-        UserOrganizations.query.filter(
-            UserOrganizations.user_id == user_id).delete()
+        uo_query = UserOrganizations.query.options(DB.raiseload("*")).filter(
+            UserOrganizations.user_id == user_id)
+
+        uo_row = uo_query.first()
+
+        primary_contact = None
+        if uo_row:
+            primary_contact = uo_row.primary_contact
+
+        uo_query.delete()
 
         if scope in (0, 1):
             site_ids.append(site["value"])
@@ -388,21 +453,23 @@ def save_user_affiliation(data, user_id):
             org_name = str(modifier + office)
 
         if scope not in (0, 1, 5):
-            result = Sites.query.filter(filter_var).all()
+            result = Sites.query.options(
+                DB.raiseload("*")).filter(filter_var).all()
             for site in result:
                 site_ids.append(site.site_id)
 
         for site_id in site_ids:
+            temp_id = site_id
             if scope == 5:
-                insert_org = UserOrganizations(
-                    user_id=user_id,
-                    site_id=0,
-                    org_name=org_name,
-                    org_id=org_id
-                )
-            else:
-                insert_org = UserOrganizations(
-                    user_id=user_id, site_id=site_id, org_name=org_name, org_id=org_id)
+                temp_id = 0
+
+            insert_org = UserOrganizations(
+                user_id=user_id,
+                site_id=temp_id,
+                org_name=org_name,
+                org_id=org_id,
+                primary_contact=primary_contact
+            )
 
             DB.session.add(insert_org)
 
@@ -413,6 +480,7 @@ def save_user_ewi_restriction(restriction, user_id):
     """
     Function that save user ewi restriction
     """
+
     if restriction != 0:
         UserEwiRestrictions.query.filter(
             UserEwiRestrictions.user_id == user_id).delete()
@@ -422,6 +490,20 @@ def save_user_ewi_restriction(restriction, user_id):
         DB.session.add(save_restriction_query)
 
     return True
+
+
+def attach_mobile_number_to_existing_user(mobile_id, user_id, status):
+    """
+    """
+
+    row = UserMobiles(
+        user_id=user_id,
+        mobile_id=mobile_id,
+        status=status
+    )
+
+    DB.session.add(row)
+    DB.session.commit()
 
 
 def get_gsm_id_by_prefix(mobile_number):
@@ -449,6 +531,7 @@ def ewi_recipient_migration():
     """
     Function that migrate ewi recipient
     """
+
     result = UserEwiStatus.query.options(DB.raiseload("*")) \
         .filter(UserEwiStatus.status == 1).with_entities(
             UserEwiStatus.users_id).distinct().all()
@@ -466,176 +549,25 @@ def ewi_recipient_migration():
     return True
 
 
-def get_ground_measurement_reminder_recipients(current_datetime):
-    """
-    Function that gets recipients for ground measurement reminder
-    """
+def get_ground_data_reminder_recipients(site_id):
+    org_ids = [1]
+    recipients = get_recipients(
+        site_ids=[site_id], org_ids=org_ids, joined=True)
 
-    leo = get_ongoing_extended_overdue_events(current_datetime)
-    routine_site_codes = get_routine_sites(current_datetime)
-    latest = leo["latest"]
-    extended = leo["extended"]
-    overdue = leo["overdue"]
-    latest = latest + overdue
-    event_site_ids = []
-    extended_site_ids = []
-
-    for row in latest:
-        site = row["event"]["site"]
-        site_id = site["site_id"]
-        site_code = site["site_code"]
-        alert_level = row["public_alert_symbol"]["alert_level"]
-        if site_id not in event_site_ids:
-            if alert_level != 0:
-                event_site_ids.append(site_id)
-
-        if site_code in routine_site_codes:
-            routine_site_codes.remove(site_code)
-
-    for row in extended:
-        site = row["event"]["site"]
-        site_id = site["site_id"]
-        site_code = site["site_code"]
-        if site_id not in extended_site_ids:
-            extended_site_ids.append(site_id)
-
-        if site_code in routine_site_codes:
-            routine_site_codes.remove(site_code)
-
-    routine_site_ids = get_site_ids(routine_site_codes)
-    final_site_ids = remove_sites_with_ground_meas(
-        event_site_ids,
-        extended_site_ids,
-        routine_site_ids,
-        current_datetime)
-
-    site_recipients = [
-        {"site_ids": final_site_ids["routine_site_ids"], "type": "routine"},
-        {"site_ids": final_site_ids["event_site_ids"], "type": "event"},
-        {"site_ids": final_site_ids["extended_site_ids"], "type": "extended"}
-    ]
-
-    feedback = get_recipients_for_ground_meas(site_recipients)
-
-    return feedback
+    return recipients
 
 
-def remove_sites_with_ground_meas(
-        event_site_ids,
-        extended_site_ids,
-        routine_site_ids,
-        current_datetime):
-    """
-    Function that remove site id with ground meas
-    """
-
-    year = current_datetime.year
-    month = current_datetime.month
-    day = current_datetime.day
-
-    routine_reminder_time = datetime(year, month, day, 9, 30)
-    routine_end_time = datetime(year, month, day, 9, 35)
-    one_thirty_reminder_time = datetime(year, month, day, 13, 30)
-    one_thirty_end_time = datetime(year, month, day, 13, 35)
-    five_thirty_reminder_time = datetime(year, month, day, 5, 30)
-    five_thirty_end_time = datetime(year, month, day, 5, 35)
-
-    if routine_reminder_time < current_datetime < routine_end_time:
-        if routine_site_ids or extended_site_ids:
-            result = get_site_with_observation_and_remove(
-                routine_reminder_time, timedelta_hour=4)
-
-            for site_id in result:
-                if site_id in routine_site_ids:
-                    routine_site_ids.remove(site_id)
-                if site_id in extended_site_ids:
-                    extended_site_ids.remove(site_id)
-        
-        if event_site_ids:
-            # NOTE: refactor na lang ito to query sites belonging
-            # to event_site_ids
-            result = get_site_with_observation_and_remove(
-                routine_reminder_time, timedelta_hour=1)
-            for site_id in result:
-                if site_id in event_site_ids:
-                    event_site_ids.remove(site_id)
-    else:
-        routine_site_ids = []
-        extended_site_ids = []
-        reminder_time = five_thirty_reminder_time
-
-        if five_thirty_reminder_time < current_datetime < five_thirty_end_time:
-            reminder_time = five_thirty_reminder_time
-
-        if one_thirty_reminder_time < current_datetime < one_thirty_end_time:
-            reminder_time = one_thirty_reminder_time
-
-        result = get_site_with_observation_and_remove(
-            reminder_time, timedelta_hour=1)
-
-        for site_id in result:
-            if site_id in event_site_ids:
-                event_site_ids.remove(site_id)
-
-    final_site_ids = {
-        "routine_site_ids": routine_site_ids,
-        "event_site_ids": event_site_ids,
-        "extended_site_ids": extended_site_ids
-    }
-
-    return final_site_ids
-
-
-def get_site_with_observation_and_remove(reminder_time, timedelta_hour=1):
-    run_down_ts = reminder_time - \
-        timedelta(hours=timedelta_hour, minutes=30)
-    # mo_result = MarkerObservations.query.with_entities(MarkerObservations.site_id).filter(
-    #     MarkerObservations.ts.between(run_down_ts, reminder_time)).all()
-    mo_result = MarkerObservations.query.with_entities(MarkerObservations.site_id).filter(
-        MarkerObservations.ts.between(run_down_ts, reminder_time)).all()
-
-    return [value for (value,) in mo_result]
-
-
-def get_recipients_for_ground_meas(site_recipients):
-    """
-    Function that get recipient per site
-    """
-    feedback = []
-    for row in site_recipients:
-        site_ids = row["site_ids"]
-        user_per_site_result = []
-        org_ids = [1]
-        if site_ids:
-            user_per_site_result = get_recipients(site_ids=site_ids, org_ids=org_ids, joined=True)
-
-        row["recipients"] = user_per_site_result
-        feedback.append(row)
-
-    return feedback
-
-
-def get_site_ids(site_codes):
-    """
-    Function that gets site ids
-    """
-
-    sites = Sites.query.options(DB.raiseload(
-        "*")).filter(Sites.site_code.in_(site_codes)).all()
-    site_ids = []
-    for row in sites:
-        site_ids.append(row.site_id)
-
-    return site_ids
-
-
-def get_blocked_numbers():
+def get_blocked_numbers(return_schema=True):
     """
     Function that gets blocked numbers
     """
+
     query = BlockedMobileNumbers.query.all()
 
-    result = BlockedMobileNumbersSchema(many=True).dump(query).data
+    if return_schema:
+        result = BlockedMobileNumbersSchema(many=True).dump(query).data
+    else:
+        result = query
 
     return result
 
@@ -644,6 +576,7 @@ def save_blocked_number(data):
     """
     Function that save block number
     """
+
     now = datetime.now()
     current_datetime = now.strftime("%Y-%m-%d %H:%M:%S")
     mobile_id = data["mobile_id"]
@@ -653,6 +586,10 @@ def save_blocked_number(data):
     insert_query = BlockedMobileNumbers(mobile_id=mobile_id, reason=reason,
                                         reporter_id=reporter_id, ts=current_datetime)
     DB.session.add(insert_query)
+
+    print("")
+    print(f"Blocked mobile ID {mobile_id} successfully")
+    print("")
 
     return True
 
@@ -667,6 +604,7 @@ def get_all_sim_prefix():
 
     return result
 
+
 def get_recipients(site_ids=None,
                    site_codes=None, only_ewi_recipients=True,
                    include_ewi_restrictions=False, org_ids=None,
@@ -678,20 +616,24 @@ def get_recipients(site_ids=None,
     """
     Refactored function of getting recipients
     """
+
     query = UsersRelationship.query.options(
-                DB.subqueryload("mobile_numbers").joinedload("mobile_number").raiseload("*"),
-                DB.subqueryload("landline_numbers"),
-                DB.subqueryload("organizations").joinedload("organization").raiseload("*"),
-                DB.subqueryload("organizations").joinedload("site").raiseload("*"),
-                DB.subqueryload("emails"),
-                DB.raiseload("*"))
+        DB.subqueryload("mobile_numbers").joinedload(
+            "mobile_number").raiseload("*"),
+        DB.subqueryload("landline_numbers"),
+        DB.subqueryload("organizations").joinedload(
+            "organization").raiseload("*"),
+        DB.subqueryload("organizations").joinedload("site").raiseload("*"),
+        DB.subqueryload("emails"),
+        DB.raiseload("*"))
 
     if joined:
-        query = query.join(UserOrganizations).join(Sites).join(Organizations).join(UserMobiles)
+        query = query.join(UserOrganizations).join(
+            Sites).join(Organizations).join(UserMobiles)
 
     schema_exclusions = ["teams", "ewi_restriction",
                          "mobile_numbers.mobile_number.blocked_mobile"]
- 
+
     if site_ids:
         query = query.filter(Sites.site_id.in_(site_ids))
 
@@ -720,7 +662,7 @@ def get_recipients(site_ids=None,
         query = query.order_by(Organizations.scope)
     else:
         query = query.order_by(UsersRelationship.last_name)
-    
+
     user_per_site_result = query.all()
 
     if return_schema_format:
@@ -729,3 +671,30 @@ def get_recipients(site_ids=None,
             .dump(user_per_site_result).data
 
     return user_per_site_result
+
+
+def save_primary(data):
+    """
+    Function that save primary contact
+    """
+    for contact in data:
+        is_primary_contact = contact["primary_contact"] == 1 and True or False
+        organizations = contact["contact_person"]["organizations"]
+
+        for organization in organizations:
+            user_org_id = organization["user_org_id"]
+            org_id = organization["organization"]["org_id"]
+            site_id = organization["site"]["site_id"]
+            update_query = UserOrganizations.query.get(user_org_id)
+
+            if is_primary_contact:
+                update_query.primary_contact = 1
+
+                for other_users in UserOrganizations.query.filter_by(
+                        site_id=site_id, org_id=org_id):
+                    if other_users.user_org_id != user_org_id:
+                        other_users.primary_contact = 0
+            else:
+                update_query.primary_contact = 0
+
+    return True

@@ -3,20 +3,20 @@ File containing class representation of
 Sites table (and related tables)
 """
 
-from flask_login import UserMixin
+from instance.config import SCHEMA_DICT
 from sqlalchemy.dialects.mysql import TINYINT
 from marshmallow import fields
 from connection import DB, MARSHMALLOW
 
 
-class Sites(UserMixin, DB.Model):
+class Sites(DB.Model):
     """
     Class representation of Sites table
     """
 
     __tablename__ = "sites"
     __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     site_id = DB.Column(TINYINT, primary_key=True)
     site_code = DB.Column(DB.String(3), nullable=False)
@@ -30,7 +30,7 @@ class Sites(UserMixin, DB.Model):
     psgc = DB.Column(DB.Integer, nullable=False)
     households = DB.Column(DB.String(255), nullable=False)
     season = DB.Column(
-        DB.Integer, DB.ForeignKey("commons_db.seasons.season_group_id"))
+        DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['commons_db']}.seasons.season_group_id"))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Site ID: {self.site_id}"
@@ -44,7 +44,7 @@ class Seasons(DB.Model):
 
     __tablename__ = "seasons"
     __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     season_group_id = DB.Column(TINYINT, primary_key=True)
     january = DB.Column(DB.String(1))
@@ -60,7 +60,7 @@ class Seasons(DB.Model):
     november = DB.Column(DB.String(1))
     december = DB.Column(DB.String(1))
     sched_group_id = DB.Column(
-        TINYINT, DB.ForeignKey("commons_db.routine_schedules.sched_group_id"))
+        TINYINT, DB.ForeignKey(f"{SCHEMA_DICT['commons_db']}.routine_schedules.sched_group_id"))
 
     sites = DB.relationship(
         "Sites", backref=DB.backref("season_months", lazy="raise"), lazy="subquery", order_by="Sites.site_code")
@@ -80,7 +80,7 @@ class RoutineSchedules(DB.Model):
 
     __tablename__ = "routine_schedules"
     __bind_key__ = "commons_db"
-    __table_args__ = {"schema": "commons_db"}
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     sched_id = DB.Column(TINYINT, primary_key=True)
     sched_group_id = DB.Column(TINYINT)

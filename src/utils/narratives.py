@@ -53,7 +53,7 @@ def find_narrative_event_id(timestamp, site_id):
 
     filtering = DB.or_(DB.and_(
         mea.ts_start <= timestamp, timestamp <= mea.ts_end), DB.and_(
-        mea.ts_start <= timestamp, mea.ts_end == None))
+        mea.ts_start <= timestamp, mea.ts_end.is_(None)))
 
     event_alert = mea.query.options(DB.joinedload("event", innerjoin=True), DB.raiseload("*")) \
         .order_by(DB.desc(mea.event_alert_id)) \
@@ -69,7 +69,9 @@ def find_narrative_event_id(timestamp, site_id):
 def get_narratives(
         offset=None, limit=None, start=None,
         end=None, site_ids=None, include_count=None,
-        search=None, event_id=None, raise_site=True):
+        search=None, event_id=None, raise_site=True,
+        order_by="timestamp", order="desc"
+):
     """
         Returns one or more row/s of narratives.
 
@@ -83,6 +85,7 @@ def get_narratives(
             search (String)
             event_id (Integer)
     """
+
     nar = Narratives
     base = nar.query
 
@@ -94,6 +97,16 @@ def get_narratives(
     else:
         base = base.filter(nar.timestamp.between(start, end))
 
+    order_attr = nar.timestamp
+    if order_by == "id":
+        order_attr = nar.id
+
+    ordering = DB.desc(order_attr)
+    if order == "asc":
+        ordering = DB.asc(order_attr)
+
+    base = base.order_by(ordering)
+
     if not event_id:
         if site_ids:
             base = base.filter(nar.site_id.in_(site_ids))
@@ -101,22 +114,18 @@ def get_narratives(
         if search != "":
             base = base.filter(nar.narrative.ilike("%" + search + "%"))
 
-        narratives = base.order_by(
-            DB.desc(nar.timestamp)).limit(limit).offset(offset).all()
-
-        DB.session.commit()
-
-        # DB.session.commit()
-
-        if include_count:
-            count = get_narrative_count(base)
-            return [narratives, count]
-        else:
-            return narratives
+        nar_base = base.limit(limit).offset(offset)
     else:
-        narratives = base.order_by(DB.asc(nar.timestamp)).filter(
-            nar.event_id == event_id).all()
-        DB.session.commit()
+        nar_base = base.filter(
+            nar.event_id == event_id)
+
+    narratives = nar_base.all()
+    DB.session.commit()
+
+    if include_count:
+        count = get_narrative_count(base)
+        return [narratives, count]
+    else:
         return narratives
 
 
@@ -139,7 +148,8 @@ def write_narratives_to_db(site_id, timestamp, narrative, type_id, user_id, even
 
     Returns narrative ID.
     """
-    print(get_process_status_log("write_narratives_to_db", "start"))
+
+    # print(get_process_status_log("write_narratives_to_db", "start"))
     try:
         narrative = Narratives(
             site_id=site_id,
@@ -150,7 +160,7 @@ def write_narratives_to_db(site_id, timestamp, narrative, type_id, user_id, even
             user_id=user_id
         )
         DB.session.add(narrative)
-        DB.session.flush()
+        DB.session.commit()
 
         new_narrative_id = narrative.id
     except Exception as err:
@@ -158,7 +168,7 @@ def write_narratives_to_db(site_id, timestamp, narrative, type_id, user_id, even
         DB.session.rollback()
         raise
 
-    print(get_process_status_log("write_narratives_to_db", "end"))
+    # print(get_process_status_log("write_narratives_to_db", "end"))
 
     return new_narrative_id
 

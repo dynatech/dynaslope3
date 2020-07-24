@@ -8,29 +8,39 @@ import { getSites, getUsers, getOrganizations } from "./ajax";
 export const GeneralContext = createContext();
 
 export const GeneralProvider = ({ children }) => {
+    const [refresh_users, setRefreshUser] = useState(true);
+    const [refresh_sites, setRefreshSites] = useState(true);
     const [users, setUsers] = useState([]);
     const [sites, setSites] = useState([]);
+    const [all_sites_including_inactive, SetAllSites] = useState([]);
     const [organizations, setOrganizations] = useState([]);
     const [is_reconnecting, setIsReconnecting] = useState(null);
 
     useEffect(() => {
-        getSites(data => {
-            setSites(data);
-        });
-    }, []);
+        if (refresh_sites) {
+            getSites(data => {
+                const active = data.filter(x => x.active);
+                setSites(active);
+                SetAllSites(data);
+                setRefreshSites(false);
+            });
+        }
+    }, [refresh_sites]);
 
     useEffect(() => {
-        getUsers(data => {
-            setUsers(data);
-        });
-    }, []);
+        if (refresh_users) {
+            getUsers(data => {
+                setUsers(data);
+                setRefreshUser(false);
+            });
+        }
+    }, [refresh_users]);
 
     useEffect(() => {
         getOrganizations(data => {
             setOrganizations(data);
         });
     }, []);
-
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const [key, setKey] = useState(null);
@@ -65,9 +75,12 @@ export const GeneralProvider = ({ children }) => {
     const return_obj = {
         users,
         sites,
+        all_sites_including_inactive,
         organizations,
         is_reconnecting,
-        setIsReconnecting
+        setIsReconnecting,
+        setRefreshUser,
+        setRefreshSites
     };
 
     return (

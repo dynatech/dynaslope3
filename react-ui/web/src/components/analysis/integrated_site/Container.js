@@ -82,9 +82,9 @@ function CustomButtons (change_consolidate_modal_fn, open_eq_modal) {
             size="small" 
             style={{ marginRight: 8 }}
             onClick={open_eq_modal(true)}
+            startIcon={<Event />}
         >
-            <Event style={{ paddingRight: 4, fontSize: 20 }}/>
-                    Insert Earthquake Event
+            Insert Earthquake Event
         </Button>
         <Button
             aria-label="Consolidate by site"
@@ -93,9 +93,9 @@ function CustomButtons (change_consolidate_modal_fn, open_eq_modal) {
             size="small" 
             style={{ marginRight: 8 }}
             onClick={change_consolidate_modal_fn(true)}
+            startIcon={<InsertChart />}
         >
-            <InsertChart style={{ paddingRight: 4, fontSize: 20 }}/>
-                    Consolidate by site
+            Consolidate by site
         </Button>
     </span>;
 }
@@ -139,19 +139,24 @@ function generateData (data_list, type, is_mobile) {
     let x = 0;
 
     data_list.forEach((row, i) => {
-        const { last_data, ts_updated, diff_days } = row;
+        const { last_data, ts_updated, diff_days, event_type } = row;
 
         let label;
+        let t_data;
         const value = row.presence;
         if (type === "surficial") {
             label = row.site_code;
+            t_data = label;
             if (!row.has_surficial_markers) label += "*";
         } else if (type === "rainfall") {
             label = row.rain_gauge.gauge_name;
+            t_data = label;
         } else if (type === "subsurface") {
             label = row.tsm_sensor.logger.logger_name;
+            t_data = label;
         } else {
             label = row.logger.logger_name;
+            t_data = label;
         }
 
         // const y = is_mobile ? i % 5 : i % 10;
@@ -163,11 +168,12 @@ function generateData (data_list, type, is_mobile) {
             y: 5 - x,
             value,
             label: label.toUpperCase(),
-            data: label,
+            data: t_data,
             type,
             ts_last_data: last_data,
             ts_updated,
-            diff_days
+            diff_days,
+            event_type
         };
         data.push(a);
         
@@ -188,7 +194,8 @@ function prepareOptions (is_mobile, type, data_list) {
     let subtitle_text = `Timestamp: <b>${ts_now.format(format_str)}</b>`;
     switch (type) {
         case "surficial":
-            subtitle_text += "<br/>Note: Data presence within four hours until next release" +
+            subtitle_text += "<br/>Note: Data presence within four hours<br/>until next release for event sites" +
+            "<br/>Data presence from 6AM to 12NN for <br/>routine and extended sites" +
             "<br/><b>*Sites without markers</b>";
             break;
         case "subsurface":
@@ -212,7 +219,7 @@ function prepareOptions (is_mobile, type, data_list) {
         chart: {
             type: "heatmap",
             // height: `${height }%`,
-            height: 600,
+            height: 700, // 600,
             spacingTop: 12,
             spacingRight: 18
         },
@@ -246,7 +253,7 @@ function prepareOptions (is_mobile, type, data_list) {
             outside: true,
             formatter () {
                 const {
-                    label, type, value,
+                    label, type, value, event_type,
                     ts_last_data, ts_updated, diff_days
                 } = this.point;
                 const presence = value ? "With" : "No";
@@ -271,11 +278,13 @@ function prepareOptions (is_mobile, type, data_list) {
 
                 let str = `${type_label}: <b>${label}</b><br/>` + 
                 `Presence: <b>${presence} data</b><br/>` + 
-                `Last data timestamp: <b>${moment(ts_last_data).format(format_str)}</b>`;
+                `Last data timestamp: <b>${moment(ts_last_data).format(format_str)}</b><br/>`;
 
                 if (type !== "surficial") {
                     str += `<br/>Last update timestamp: <b>${moment(ts_updated).format(format_str)}</b><br/>` +
                     `Days since last data: <b>${diff_days}</b><br/>`;
+                } else {
+                    str += `Event type: <b>${event_type}</b>`;
                 }
 
                 return str;
@@ -349,8 +358,9 @@ function formatRainfallSummaryData (data) {
     };
 }
 
-function prepareRainfallSummaryOption (rainfall_summary) {
+function prepareRainfallSummaryOption (rainfall_summary, ts) {
     const { site_codes, list_1d, list_3d } = rainfall_summary;
+    const ts_str = ts === null ? "---" : moment(ts).format("D MMM YYYY, HH:mm");
     
     return {
         chart: {
@@ -362,7 +372,7 @@ function prepareRainfallSummaryOption (rainfall_summary) {
             y: 20
         },
         subtitle: {
-            text: `As of: <b>${moment().format("D MMM YYYY, HH:mm")}</b><br>Note: Percentage capped at 100%`,
+            text: `As of: <b>${ts_str}</b><br>Note: Percentage capped at 100%`,
         },
         xAxis: {
             categories: site_codes,
@@ -522,8 +532,9 @@ function Container (props) {
         subscribeToWebSocket(setIsReconnecting);
 
         receiveAllSiteRainfallData(data => {
-            const obj = formatRainfallSummaryData(data);
-            const temp = prepareRainfallSummaryOption(obj);
+            const { rainfall_summary, ts } = data;
+            const obj = formatRainfallSummaryData(rainfall_summary);
+            const temp = prepareRainfallSummaryOption(obj, ts);
             setRainfallSummaryOption(temp);
         });
 

@@ -2,17 +2,18 @@
 Surficial functions API File
 """
 
-from connection import DB
-from datetime import datetime
 import itertools
-from operator import itemgetter
 import json
+from datetime import datetime
 from flask import Blueprint, jsonify, request
-from src.models.analysis import (SiteMarkersSchema)
+from connection import DB
+from src.models.analysis import SiteMarkersSchema, MarkerHistorySchema
 from src.utils.surficial import (
-    get_surficial_markers, get_surficial_data, delete_surficial_data
+    get_surficial_markers, get_surficial_data, delete_surficial_data,
+    create_new_marker, insert_marker_event, insert_new_marker_name
 )
-from src.utils.extra import (var_checker)
+from analysis_scripts.analysis.surficial import markeralerts
+from src.utils.extra import var_checker
 
 
 SURFICIAL_BLUEPRINT = Blueprint("surficial_blueprint", __name__)
@@ -23,9 +24,9 @@ SURFICIAL_BLUEPRINT = Blueprint("surficial_blueprint", __name__)
     "/surficial/get_surficial_markers/<site_code>",
     methods=["GET"])
 @SURFICIAL_BLUEPRINT.route(
-    "/surficial/get_surficial_markers/<site_code>/<filter_in_use>/<get_complete_data>",
+    "/surficial/get_surficial_markers/<site_code>/<get_complete_data>",
     methods=["GET"])
-def wrap_get_surficial_markers(site_code=None, filter_in_use=None, get_complete_data=None):
+def wrap_get_surficial_markers(site_code=None, get_complete_data=None):
     """
         Returns one or all subsurface columns of a site.
 
@@ -34,7 +35,7 @@ def wrap_get_surficial_markers(site_code=None, filter_in_use=None, get_complete_
     """
     markers_schema = SiteMarkersSchema(many=True)
     markers = get_surficial_markers(
-        site_code, filter_in_use, get_complete_data)
+        site_code, get_complete_data)
 
     marker_data = markers_schema.dump(markers).data
 
@@ -50,11 +51,12 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
 
     filter_val (int or str): site_code or marker_id
     """
-    
+
     ts_order = request.args.get("order", default="asc", type=str)
     limit = request.args.get("limit", default=None, type=int)
     is_end_of_shift = request.args.get(
         "is_end_of_shift", default="false", type=str)
+    start_ts = None if start_ts == "None" else start_ts
 
     ieos = is_end_of_shift == "true"
     anchor = "marker_data"
@@ -89,13 +91,19 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
     for marker_row in markers:
         marker_id = marker_row.marker_id
         marker_name = marker_row.marker_name
+        in_use = marker_row.in_use
 
-        data_set = list(filter(lambda x: x.marker_id
-                               == marker_id, surficial_data))
+        marker_history = MarkerHistorySchema(
+            many=True).dump(marker_row.history).data
+
+        data_set = list(filter(lambda x: x.marker_id ==
+                               marker_id, surficial_data))
         marker_string_dict = {
             "marker_id": marker_id,
             "marker_name": marker_name,
-            "name": marker_name
+            "name": marker_name,
+            "in_use": in_use,
+            "marker_history": marker_history
         }
 
         new_list = []
@@ -142,17 +150,17 @@ def wrap_update_surficial_data():
                         mo_id for 'all'
     """
 
-    json = request.get_json()
+    return_json = request.get_json()
     flag = False
 
     try:
-        mo_id = json["mo_id"]
+        mo_id = return_json["mo_id"]
         flag = True
     except KeyError:
         mo_id = None
 
     try:
-        data_id = json["data_id"]
+        data_id = return_json["data_id"]
         flag = True
     except KeyError:
         data_id = None
@@ -165,11 +173,11 @@ def wrap_update_surficial_data():
     else:
         if mo_id:
             obs = get_surficial_data(mo_id=mo_id, limit=1)
-            obs.ts = datetime.strptime(json["ts"], "%Y-%m-%d %H:%M:%S")
+            obs.ts = datetime.strptime(return_json["ts"], "%Y-%m-%d %H:%M:%S")
 
         if data_id:
             marker_data = get_surficial_data(data_id=data_id, limit=1)
-            marker_data.measurement = json["measurement"]
+            marker_data.measurement = return_json["measurement"]
 
         return_val = {
             "message": "Update successful",
@@ -186,9 +194,9 @@ def wrap_delete_surficial_data():
     """
     """
 
-    json = request.get_json()
-    filter_val = json["quantity"]
-    id = json["id"]
+    return_json = request.get_json()
+    filter_val = return_json["quantity"]
+    surf_id = return_json["id"]
 
     return_val = {
         "message": "Delete successful",
@@ -196,9 +204,9 @@ def wrap_delete_surficial_data():
     }
 
     if filter_val == "one":
-        delete_surficial_data(data_id=id)
+        delete_surficial_data(data_id=surf_id)
     elif filter_val == "all":
-        delete_surficial_data(mo_id=id)
+        delete_surficial_data(mo_id=surf_id)
     else:
         return_val = {
             "message": "Filter value can only be 'one' or 'all",
@@ -208,33 +216,100 @@ def wrap_delete_surficial_data():
     return jsonify(return_val)
 
 
-@SURFICIAL_BLUEPRINT.route("/surficial/get_surficial_marker_trending_data/<site_code>/<marker_name>/<end_ts>", methods=["GET"])
-def get_surficial_marker_trending_data(site_code, marker_name, end_ts):
+@SURFICIAL_BLUEPRINT.route("/surficial/insert_marker_event", methods=["POST"])
+def wrap_insert_marker_event():
     """
     """
-    # run trending data script from analysis
-    # temporary data
-    import os
-    path = os.path.dirname(os.path.abspath(__file__))
-    with open(path + "\surficial_trending_sample_data.json") as f:
-        data = json.load(f)
 
-    return_arr = [
-        {
-            "dataset_name": "velocity_acceleration",
-            "dataset": process_velocity_accel_data(data)
-        },
-        {
-            "dataset_name": "displacement_interpolation",
-            "dataset": process_displacement_interpolation(data)
-        },
-        {
-            "dataset_name": "velocity_acceleration_time",
-            "dataset": process_velocity_accel_time_data(data)
-        }
-    ]
+    return_json = request.get_json()
+    event = return_json["event"]
+    ts = datetime.strptime(return_json["ts"], "%Y-%m-%d %H:%M:%S")
+    marker_id = return_json["marker_id"]
+    remarks = return_json["remarks"]
 
-    return jsonify(return_arr)
+    try:
+        if event not in ["add", "rename", "reposition", "decommission"]:
+            raise Exception(
+                "Only 'add', 'rename', 'reposition', 'decommission' allowed as events")
+
+        if event == "add":
+            marker = create_new_marker(return_json["site_code"])
+            marker_id = marker.marker_id
+
+        history = insert_marker_event(marker_id, ts, event, remarks)
+        history_id = history.history_id
+
+        if event in ["add", "rename"]:
+            insert_new_marker_name(history_id, return_json["marker_name"])
+
+        DB.session.commit()
+
+        message = "Successfully added marker event!"
+        status = "success"
+    except Exception as e:
+        DB.session.rollback()
+        message = f"Error encountered: {e}"
+        status = "error"
+        print(e)
+
+    return jsonify({
+        "message": message,
+        "status": status
+    })
+
+
+@SURFICIAL_BLUEPRINT.route("/surficial/get_surficial_marker_trending_data/<site_code>/<marker_name>/<ts>", methods=["GET"])
+def get_surficial_marker_trending_data(site_code, marker_name, ts):
+    """
+    Get trending data
+    """
+
+    # Sample Data
+    # site_id = 27
+    # marker_id = 89
+    # ts = "2019-11-20 08:00:00"
+
+    markers = get_surficial_markers(site_code=site_code)
+    marker_row = next(
+        (row for row in markers if row.marker_name == marker_name), None)
+
+    if marker_row:
+        marker_id = marker_row.marker_id
+        site_id = marker_row.site_id
+    else:
+        return json.dumps({
+            "status": "error",
+            "message": f"Marker name of Site {site_code.upper()} not existing."
+        })
+
+    data = markeralerts.generate_surficial_alert(
+        site_id=site_id, ts=ts, marker_id=marker_id, to_json=True)
+
+    has_trend = bool(data["trend_alert"])
+
+    return_obj = {
+        "has_trend": has_trend
+    }
+
+    if has_trend:
+        trending_data = [
+            {
+                "dataset_name": "velocity_acceleration",
+                "dataset": process_velocity_accel_data(data)
+            },
+            {
+                "dataset_name": "displacement_interpolation",
+                "dataset": process_displacement_interpolation(data)
+            },
+            {
+                "dataset_name": "velocity_acceleration_time",
+                "dataset": process_velocity_accel_time_data(data)
+            }
+        ]
+
+        return_obj.update({"trending_data": trending_data})
+
+    return json.dumps(return_obj)
 
 
 def process_velocity_accel_data(data):

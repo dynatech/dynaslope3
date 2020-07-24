@@ -10,6 +10,7 @@ import * as moment from "moment";
 
 import { Grid, Paper, Hidden } from "@material-ui/core";
 import BackToMainButton from "./BackToMainButton";
+import DateRangeSelector from "./DateRangeSelector";
 
 import { getRainfallPlotData, saveChartSVG, saveTagInformation } from "../ajax";
 import { computeForStartTs } from "../../../UtilityFunctions";
@@ -315,9 +316,8 @@ function RainfallGraph (props) {
 
     const [rainfall_data, setRainfallData] = useState([]);
     const [processed_data, setProcessedData] = useState([]);
-    const [ selected, setSelected ] = useState("3 days");
     const default_range_info = { label: "3 days", unit: "days", duration: 3 };
-    const [ selected_range_info, setSelectedRangeInfo ] = useState(default_range_info);
+    const [selected_range_info, setSelectedRangeInfo] = useState(default_range_info);
     const chartRefs = useRef([...Array(arr_num)].map(() => ({
         instantaneous: createRef(),
         cumulative: createRef()
@@ -332,12 +332,8 @@ function RainfallGraph (props) {
     let ts_end = "";
     let sc = "";
     let dt_ts_end;
-    let { unit, duration } = selected_range_info;
     if (typeof conso_input !== "undefined") {
-        const { ts_end: te, range_info } = conso_input;
-        const { unit: conso_unit, duration: conso_duration } = range_info;
-        unit = conso_unit;
-        duration = conso_duration;
+        const { ts_end: te } = conso_input;
         ts_end = te;
         dt_ts_end = moment(te);
         sc = site_code;
@@ -348,8 +344,10 @@ function RainfallGraph (props) {
         sc = rain_gauge.substr(0, 3);
     }
 
+    const { unit, duration } = selected_range_info;
     const ts_start = computeForStartTs(dt_ts_end, duration, unit);
-    const input = { ts_start, ts_end, site_code: sc };
+    const days_diff = dt_ts_end.diff(moment(ts_start, "YYYY-MM-DD HH:mm:ss"), "days");
+    const input = { days_diff, ts_start, ts_end, site_code: sc };
 
     const default_options = {
         cumulative: prepareCumulativeRainfallChartOption(default_data, input),
@@ -433,16 +431,20 @@ function RainfallGraph (props) {
     
     return (
         <Fragment>
-            {
-                !disable_back && <BackToMainButton 
-                    {...props}
-                    selected={selected}
-                    setSelected={setSelected}
+            <Grid container spacing={1} justify="space-between">
+                {
+                    !disable_back && <BackToMainButton 
+                        {...props}
+                    />
+                }
+
+                <DateRangeSelector
+                    selectedRangeInfo={selected_range_info}
                     setSelectedRangeInfo={setSelectedRangeInfo}
-                    setTagInvalid={setTagInvalid}
+                    disableAll
                 />
-            }
-            
+            </Grid>
+ 
             <div style={{ marginTop: 16 }}>
                 <Grid container spacing={4}>
                     {
