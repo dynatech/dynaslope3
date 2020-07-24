@@ -2,13 +2,13 @@
 """
 
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import request
 from flask_socketio import join_room, leave_room
 from connection import SOCKETIO, DB, CELERY
 from src.utils.extra import (
     set_data_to_memcache, retrieve_data_from_memcache,
-    var_checker
+    var_checker, convert_ampm_to_noon_midnight
 )
 
 from src.api.chatterbox import get_quick_inbox
@@ -21,7 +21,8 @@ from src.utils.chatterbox import (
     delete_sms_user_update,
     get_messages_schema_dict,
     insert_message_on_database,
-    get_search_results
+    get_search_results,
+    get_ewi_acknowledgements_from_tags
 )
 from src.utils.contacts import (
     get_all_contacts,
@@ -32,7 +33,8 @@ from src.utils.contacts import (
 from src.utils.ewi import create_ground_measurement_reminder, get_ground_data_noun
 from src.utils.general_data_tag import insert_data_tag
 from src.utils.narratives import(
-    write_narratives_to_db, find_narrative_event_id
+    write_narratives_to_db, find_narrative_event_id,
+    get_narratives
 )
 
 from src.utils.monitoring import get_ongoing_extended_overdue_events, get_routine_sites
@@ -350,8 +352,11 @@ def wrap_get_all_contacts():
 @SOCKETIO.on("update_all_contacts", namespace="/communications")
 def wrap_update_all_contacts():
     contacts_users = get_contacts(orientation="users")
+    contacts_mobile = get_recipients_option()
     set_data_to_memcache(name="CONTACTS_USERS", data=contacts_users)
+    set_data_to_memcache(name="CONTACTS_MOBILE", data=contacts_mobile)
     emit_data("receive_all_contacts")
+    emit_data("receive_all_mobile_numbers")
 
 
 @SOCKETIO.on("get_all_mobile_numbers", namespace="/communications")
@@ -513,6 +518,87 @@ def check_ground_data_and_return_noun(site_id, timestamp, hour, minute):
                                  timedelta_hour=hour, minute=hour, site_id=site_id)
 
     return ground_data_noun, result
+
+
+@CELERY.task(name="no_ewi_acknowledgement_bg_task", ignore_results=True)
+def no_ewi_acknowledgement_bg_task():
+    """
+    """
+
+    ts = datetime.now()
+
+    events = get_ongoing_extended_overdue_events(ts)
+    latest = events["latest"]
+    overdue = events["overdue"]
+
+    active_events = latest + overdue
+
+    is_routine_extended_processing = ts.hour == 23
+
+    routine_sites = None
+    if is_routine_extended_processing:
+        routine_sites = get_routine_sites(
+            timestamp=ts, only_site_code=False)
+
+    ts_start = ts - timedelta(hours=3, minutes=59)
+    for row in active_events:
+        event = row["event"]
+        site_id = event["site_id"]
+        event_id = event["event_id"]
+
+        process_no_ewi_acknowledgements(
+            site_id, ts_start, ts, event_id, monitoring_type="event")
+
+        if routine_sites:
+            index = next(index for index, site in enumerate(routine_sites)
+                         if site.site_id == site_id)
+            del routine_sites[index]
+
+    processed_sites = []
+    if is_routine_extended_processing:
+        extended_events = events["extended"]
+        merged = extended_events + routine_sites
+
+        ts_start = ts.replace(hour=12, minute=0, second=0)
+        for row in merged:
+            try:
+                site_id = row.site_id
+                event_id = None
+                monitoring_type = "routine"
+            except AttributeError:
+                ev = row["event"]
+                site_id = ev["site_id"]
+                event_id = ev["event_id"]
+                monitoring_type = "extended"
+
+            if site_id not in processed_sites:
+                process_no_ewi_acknowledgements(
+                    site_id, ts_start, ts, event_id, monitoring_type)
+
+                processed_sites.append(site_id)
+
+
+def process_no_ewi_acknowledgements(site_id, ts_start, ts, event_id, monitoring_type):
+    """
+    """
+
+    default_user_id = 2  # Dynaslope User
+
+    # when changing this, mirror change on React
+    call_ack_hashtag = "#EWIResponseCall"
+
+    sms_acks = get_ewi_acknowledgements_from_tags(site_id, ts_start, ts)
+    call_acks = get_narratives(start=ts_start, end=ts,
+                               site_ids=[site_id],
+                               raise_site=True, search=call_ack_hashtag)
+
+    if not sms_acks and not call_acks:
+        release_hour = convert_ampm_to_noon_midnight(ts_start)
+        narrative = (f"No acknowledgement received from stakeholders "
+                     f"for {release_hour} {monitoring_type} EWI")
+        ts = ts.replace(minute=30)
+        write_narratives_to_db(
+            site_id, ts, narrative, 1, default_user_id, event_id=event_id)
 
 
 @CELERY.task(name="initialize_comms_data", ignore_results=True)

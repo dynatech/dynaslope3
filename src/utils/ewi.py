@@ -12,7 +12,7 @@ from src.utils.sites import build_site_address
 from src.utils.surficial import check_if_site_has_active_surficial_markers
 from src.utils.extra import (
     retrieve_data_from_memcache, format_timestamp_to_string,
-    round_to_nearest_release_time
+    round_to_nearest_release_time, convert_ampm_to_noon_midnight
 )
 from src.utils.narratives import write_narratives_to_db
 
@@ -238,8 +238,9 @@ def insert_ewi_sms_narrative(release_id, user_id, recipients):
 
     ewi_sms_detail = " onset"
     if not is_onset:
-        release_hour = round_to_nearest_release_time(
-            data_ts, interval=4).strftime("%I%p")
+        data_ts = round_to_nearest_release_time(
+            data_ts, interval=4)
+        release_hour = convert_ampm_to_noon_midnight(data_ts)
         ewi_sms_detail = f" {release_hour}"
 
     formatted_recipients = format_recipients_for_narrative(recipients)

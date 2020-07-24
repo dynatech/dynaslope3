@@ -13,7 +13,7 @@ from src.models.inbox_outbox import (
     SmsTags, SmsOutboxUserTags, SmsOutboxUserTagsSchema,
     SmsUserUpdates, ViewLatestUnsentMsgsPerMobileID
 )
-from src.models.users import Users
+from src.models.users import Users, UserOrganizations
 from src.models.mobile_numbers import (
     UserMobiles, MobileNumbers, MobileNumbersSchema)
 
@@ -372,3 +372,26 @@ def resend_message(outbox_status_id):
     row.send_status = 0
 
     DB.session.commit()
+
+
+def get_ewi_acknowledgements_from_tags(site_id, ts_start, ts_end):
+    """
+    """
+
+    query = SmsInboxUserTags.query.options(DB.raiseload("*")) \
+        .join(SmsTags).join(SmsInboxUsers) \
+        .join(UserMobiles) \
+        .join(Users) \
+        .join(UserOrganizations) \
+        .filter(
+            DB.and_(
+                SmsTags.tag_id == 9,  # EwiResponse
+                UserOrganizations.site_id == site_id,
+                SmsInboxUsers.ts_sms >= ts_start,
+                SmsInboxUsers.ts_sms < ts_end,
+            )
+    )
+
+    result = query.all()
+
+    return result

@@ -51,10 +51,12 @@ function NarrativeFormModal (props) {
     const [isDisabled, setIsDisabled] = useState(true);
     const { sites } = useContext(GeneralContext);
     const site_options = prepareSitesOption(sites, true);
+    const call_ack_hashtag = "#EWIResponseCall"; // when changing this, mirror change on communication_task.py
+    const [call_ack, setCallAck] = useState(false);
 
     useEffect(() => {
         let default_narr_data = {};
-
+        let temp_narrative = "";
         if (Object.keys(chosenNarrative).length !== 0) {
             const {
                 id, narrative, timestamp, site_id, user_id, event_id, type_id
@@ -70,7 +72,9 @@ function NarrativeFormModal (props) {
                 user_id, event_id, type_id
             };
             setNarrativeData(default_narr_data);
+            temp_narrative = narrative;
         }
+        setCallAck(temp_narrative.includes(call_ack_hashtag));
     }, [chosenNarrative]);
     
     useEffect(() => {
@@ -129,6 +133,7 @@ function NarrativeFormModal (props) {
             type_id: 1
         });
         setSiteList(site_list);
+        setCallAck(false);
     };
 
     const handleFullReset = () => {
@@ -170,6 +175,9 @@ function NarrativeFormModal (props) {
                         siteList={site_list}
                         setSiteList={setSiteList}
                         isFromSiteLogs={isFromSiteLogs}
+                        callAck={call_ack}
+                        setCallAck={setCallAck}
+                        callAckHashtag={call_ack_hashtag}
                     />
                 </DialogContent>
                 <DialogActions>
