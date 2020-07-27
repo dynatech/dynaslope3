@@ -179,7 +179,7 @@ def format_current_trigger_alerts(current_trigger_alerts):
     return formatted_release_trig
 
 
-def format_recent_retriggers(unique_positive_triggers_list, invalids_dict, valids_dict, site_moms_alerts_list):
+def format_recent_retriggers(unique_positive_triggers_list, invalids_dict, site_moms_alerts_list):
     """
     Prepare the most recent trigger
     Remove unnecessary attributes and convert SQLAlchemy row into a dict.
@@ -194,20 +194,7 @@ def format_recent_retriggers(unique_positive_triggers_list, invalids_dict, valid
         for item in unique_positive_triggers_list:
             # Include invalids as a dictionary
             final_invalids_dict = {}
-            trig_sym_id = item.trigger_sym_id
 
-            has_valid = False
-            try:
-                if valids_dict:
-                    valid = valids_dict[trig_sym_id]
-                    print(valid)
-                    has_valid = True
-                else:
-                    raise KeyError
-            except KeyError as key_err:
-                pass
-
-            has_invalid = False
             try:
                 invalid_entry = invalids_dict[trig_sym_id]
                 invalid_details_dict = AlertStatusSchema().dump(invalid_entry).data
@@ -222,119 +209,113 @@ def format_recent_retriggers(unique_positive_triggers_list, invalids_dict, valid
                 # entry, it will go here.
                 pass
 
-            
-            if has_valid and not has_invalid:
-                trig_sym = item.trigger_symbol
+            trig_sym = item.trigger_symbol
 
-                trigger_source = trig_sym.trigger_hierarchy.trigger_source
-                source_id = trig_sym.source_id
-                alert_level = trig_sym.alert_level
-                ots_row = retrieve_data_from_memcache("operational_trigger_symbols", \
-                                {"alert_level": alert_level, "source_id": source_id})
-                alert_symbol = ots_row["alert_symbol"]
-                internal_sym_id = ots_row["internal_alert_symbol"]["internal_sym_id"]
-                ts_updated = item.ts_updated
-                site_id = item.site_id
+            trigger_source = trig_sym.trigger_hierarchy.trigger_source
+            source_id = trig_sym.source_id
+            alert_level = trig_sym.alert_level
+            ots_row = retrieve_data_from_memcache("operational_trigger_symbols", \
+                            {"alert_level": alert_level, "source_id": source_id})
+            alert_symbol = ots_row["alert_symbol"]
+            internal_sym_id = ots_row["internal_alert_symbol"]["internal_sym_id"]
+            ts_updated = item.ts_updated
+            site_id = item.site_id
 
-                # Form a dictionary that will hold all trigger details
-                trigger_dict = {
-                    "trigger_type": trigger_source,
-                    "source_id": source_id,
-                    "alert_level": alert_level,
-                    "trigger_id": item.trigger_id,
-                    "alert": alert_symbol,
-                    "ts_updated": str(ts_updated),
-                    "internal_sym_id": internal_sym_id
-                }
+            # Form a dictionary that will hold all trigger details
+            trigger_dict = {
+                "trigger_type": trigger_source,
+                "source_id": source_id,
+                "alert_level": alert_level,
+                "trigger_id": item.trigger_id,
+                "alert": alert_symbol,
+                "ts_updated": str(ts_updated),
+                "internal_sym_id": internal_sym_id
+            }
 
-                # Prepare the tech_info of the trigger
-                # NOTE: MOMS list to be used should be moms_special_details (all moms within interval hours)
-                # REFACTOR tech_info_maker processes if possible.
-                # trigger_tech_info = tech_info_maker.main(item)
+            # Prepare the tech_info of the trigger
+            # NOTE: MOMS list to be used should be moms_special_details (all moms within interval hours)
+            # REFACTOR tech_info_maker processes if possible.
+            # trigger_tech_info = tech_info_maker.main(item)
 
-                if trigger_source == "moms":
-                    if site_moms_alerts_list:
-                        recent_moms_details = list(filter(lambda x: x.observance_ts == item.ts_updated, site_moms_alerts_list))
-                        # Get the highest triggering moms
-                        sorted_moms_details = sorted(recent_moms_details, key=lambda x: x.op_trigger, reverse=True)
+            if trigger_source == "moms":
+                if site_moms_alerts_list:
+                    recent_moms_details = list(filter(lambda x: x.observance_ts == item.ts_updated, site_moms_alerts_list))
+                    # Get the highest triggering moms
+                    sorted_moms_details = sorted(recent_moms_details, key=lambda x: x.op_trigger, reverse=True)
 
-                        moms_list = []
-                        if sorted_moms_details:
-                            sorted_moms_details_data = MONITORING_MOMS_SCHEMA.dump(sorted_moms_details).data
-                            moms_list = sorted_moms_details_data
+                    moms_list = []
+                    if sorted_moms_details:
+                        sorted_moms_details_data = MONITORING_MOMS_SCHEMA.dump(sorted_moms_details).data
+                        moms_list = sorted_moms_details_data
 
-                        trigger_tech_info = tech_info_maker.main(item, sorted_moms_details)
-                        
-                        moms_special_details = {
-                            "tech_info": trigger_tech_info,
-                            "moms_list": moms_list,
-                            "moms_list_notice": "Don't use this as data for " + \
-                                "MonitoringMomsReleases. This might be incomplete. " + \
-                                "Use moms from current_trigger_alerts instead."
-                        }
-                        trigger_dict.update(moms_special_details)
-
-                elif trigger_source == "earthquake":
-                    latest_eq_alerts = get_earthquake_alerts(ts_updated, site_id)
-
-                    if latest_eq_alerts:
-                        latest_eq_alert_data = latest_eq_alerts[0]
-                        eq_event = latest_eq_alert_data.eq_event
-                        eq_details = {
-                            "ea_id": latest_eq_alert_data.ea_id,
-                            "distance": str("%.6f" % latest_eq_alert_data.distance),
-                            "magnitude": str("%.1f" % eq_event.magnitude),
-                            "latitude": str("%.6f" % eq_event.latitude),
-                            "longitude": str("%.6f" % eq_event.longitude)
-                        }
-
-                        trigger_tech_info = tech_info_maker.main(item, eq_details)
-
-                        earthquake_special_details = {
-                            "tech_info": trigger_tech_info,
-                            "eq_details": eq_details
-                        }
-
-                        trigger_dict.update(earthquake_special_details)                    
-                    else:
-                        raise Exception("Reaching EQ event trigger WITHOUT any earthquake alerts!")
-                elif trigger_source == "on demand":
-                    on_demand_alerts_list = get_on_demand(ts_updated)
-                    if on_demand_alerts_list:
-                        latest_on_demand = on_demand_alerts_list[0]
-                        trigger_tech_info = latest_on_demand.tech_info
-
-                        latest_on_demand_data = ON_DEMAND_SCHEMA.dump(latest_on_demand).data
-
-                        on_demand_special_details = {
-                            "tech_info": trigger_tech_info,
-                            "od_details": latest_on_demand_data
-                        }
-
-                        trigger_dict.update(on_demand_special_details)
-                    else:
-                        raise Exception("Reaching OD event trigger WITHOUT any on_demand alerts!")
-
-                elif trigger_source == "rainfall":
-                    trigger_tech_info = tech_info_maker.main(item)
-                    rainfall = {
-                        "rain_gauge": trigger_tech_info["rain_gauge"],
-                        "tech_info": trigger_tech_info["tech_info_string"]
+                    trigger_tech_info = tech_info_maker.main(item, sorted_moms_details)
+                    
+                    moms_special_details = {
+                        "tech_info": trigger_tech_info,
+                        "moms_list": moms_list,
+                        "moms_list_notice": "Don't use this as data for " + \
+                            "MonitoringMomsReleases. This might be incomplete. " + \
+                            "Use moms from current_trigger_alerts instead."
                     }
-                    trigger_dict.update(rainfall)
+                    trigger_dict.update(moms_special_details)
 
+            elif trigger_source == "earthquake":
+                latest_eq_alerts = get_earthquake_alerts(ts_updated, site_id)
+
+                if latest_eq_alerts:
+                    latest_eq_alert_data = latest_eq_alerts[0]
+                    eq_event = latest_eq_alert_data.eq_event
+                    eq_details = {
+                        "ea_id": latest_eq_alert_data.ea_id,
+                        "distance": str("%.6f" % latest_eq_alert_data.distance),
+                        "magnitude": str("%.1f" % eq_event.magnitude),
+                        "latitude": str("%.6f" % eq_event.latitude),
+                        "longitude": str("%.6f" % eq_event.longitude)
+                    }
+
+                    trigger_tech_info = tech_info_maker.main(item, eq_details)
+
+                    earthquake_special_details = {
+                        "tech_info": trigger_tech_info,
+                        "eq_details": eq_details
+                    }
+
+                    trigger_dict.update(earthquake_special_details)                    
                 else:
-                    trigger_tech_info = tech_info_maker.main(item)
-                    trigger_dict["tech_info"] = trigger_tech_info
+                    raise Exception("Reaching EQ event trigger WITHOUT any earthquake alerts!")
+            elif trigger_source == "on demand":
+                on_demand_alerts_list = get_on_demand(ts_updated)
+                if on_demand_alerts_list:
+                    latest_on_demand = on_demand_alerts_list[0]
+                    trigger_tech_info = latest_on_demand.tech_info
 
-                # # Add the invalid details same level to the dictionary attributes
-                trigger_dict.update(final_invalids_dict)
+                    latest_on_demand_data = ON_DEMAND_SCHEMA.dump(latest_on_demand).data
 
-                recent_triggers_list.append(trigger_dict)
-    
-    # else:
-    #     trigger_dict = {}
-    #     recent_triggers_list.append(trigger_dict)
+                    on_demand_special_details = {
+                        "tech_info": trigger_tech_info,
+                        "od_details": latest_on_demand_data
+                    }
+
+                    trigger_dict.update(on_demand_special_details)
+                else:
+                    raise Exception("Reaching OD event trigger WITHOUT any on_demand alerts!")
+
+            elif trigger_source == "rainfall":
+                trigger_tech_info = tech_info_maker.main(item)
+                rainfall = {
+                    "rain_gauge": trigger_tech_info["rain_gauge"],
+                    "tech_info": trigger_tech_info["tech_info_string"]
+                }
+                trigger_dict.update(rainfall)
+
+            else:
+                trigger_tech_info = tech_info_maker.main(item)
+                trigger_dict["tech_info"] = trigger_tech_info
+
+            # # Add the invalid details same level to the dictionary attributes
+            trigger_dict.update(final_invalids_dict)
+
+            recent_triggers_list.append(trigger_dict)
 
     return recent_triggers_list
 
@@ -891,35 +872,6 @@ def get_invalid_triggers(positive_triggers_list):
     return invalids_dict
 
 
-def get_valid_triggers(positive_triggers_list):
-    """
-    Get valid alerts by using the created relationship
-        'operational_triggers_table.alert_status'
-
-    returns valid_dict (dictionary): dictionary of key::value pair \
-                                        (trigger_sym_id::valid_alert_status_details)
-    """
-
-    valids_dict = {}
-    for item in positive_triggers_list:
-        alert_status_entry = item.alert_status
-
-        var_checker("alert_status_entry", alert_status_entry)
-
-        if alert_status_entry and alert_status_entry.alert_status == 1:
-            trigger_sym_id = item.trigger_sym_id
-            if trigger_sym_id in valids_dict:
-                # Check for latest validation entries
-                if valids_dict[trigger_sym_id].ts_ack < alert_status_entry.ts_ack:
-                    valids_dict[trigger_sym_id] = alert_status_entry
-            else:
-                valids_dict[trigger_sym_id] = alert_status_entry
-        # else:
-           # valids_dict[item.trigger_sym_id] = {"alert_status": 0}
-
-    return valids_dict
-
-
 def extract_positive_triggers_list(op_triggers_list):
     """
     Get all positive triggers from historical op_triggers_list
@@ -1128,7 +1080,6 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         # INVALID TRIGGERS PROCESSING #
         ###############################
         invalids_dict = get_invalid_triggers(positive_triggers_list)
-        valids_dict = get_valid_triggers(positive_triggers_list)
 
         # Get unique positive triggers
         unique_positive_triggers_list = extract_unique_positive_triggers(
@@ -1286,10 +1237,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ####################################
 
         # EVENT TRIGGERS: most recent retrigger of positive operational triggers
-        var_checker("unique_positive_triggers_list", unique_positive_triggers_list)
-        var_checker("valids_dict", valids_dict)
         event_triggers = format_recent_retriggers(
-            unique_positive_triggers_list, invalids_dict, valids_dict, site_moms_alerts_list)
+            unique_positive_triggers_list, invalids_dict, site_moms_alerts_list)
         
         # RELEASE TRIGGERS: current status prior to release time
         formatted_current_trigger_alerts = format_current_trigger_alerts(current_trigger_alerts)
