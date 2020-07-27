@@ -18,6 +18,7 @@ import ChartRenderingContainer from "./components/chart_rendering/Container";
 
 import { CTProvider } from "./components/monitoring/dashboard/CTContext";
 import { GeneralProvider } from "./components/contexts/GeneralContext";
+import { ServerTimeProvider } from "./components/contexts/ServerTimeContext";
 
 const styles = theme => ({
     app: {
@@ -104,23 +105,27 @@ function App (props) {
                                 // <ConnectionNotifierProvider>
                                 <GeneralProvider>
                                     <CTProvider>
-                                        <Header
-                                            {...r_props} 
-                                            drawerHandler={toggleDrawer}
-                                            onLogout={onLogout}
-                                        />
-                                        <Navigation
-                                            drawerHandler={toggleDrawer}
-                                            drawer={drawer}
-                                        />
+                                        <ServerTimeProvider>
+                                            <Header
+                                                {...r_props} 
+                                                drawerHandler={toggleDrawer}
+                                                onLogout={onLogout}
+                                            />
+                                            <Navigation
+                                                {...r_props}
+                                                drawerHandler={toggleDrawer}
+                                                drawer={drawer}
+                                                onLogout={onLogout}
+                                            />
                                     
-                                        <div className={classes.app}>
-                                            <div className={classes.body}>
-                                                <RoutesCollection {...r_props} />
+                                            <div className={classes.app}>
+                                                <div className={classes.body}>
+                                                    <RoutesCollection {...r_props} />
+                                                </div>
                                             </div>
-                                        </div>
                             
-                                        <Footer />
+                                            <Footer />
+                                        </ServerTimeProvider>
                                     </CTProvider>
                                 </GeneralProvider>
                                 // </ConnectionNotifierProvider>

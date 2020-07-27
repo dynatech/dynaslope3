@@ -716,7 +716,6 @@ def insert_ewi(internal_json=None):
     it means re-release.
     If it is different, create a new event.
     """
-    return_data = None
 
     print(get_process_status_log("insert", "start"))
 
@@ -920,7 +919,6 @@ def insert_ewi(internal_json=None):
                 event_alert_id = current_event_alert_id
 
                 # Raising from lower alert level e.g. A1->A2->A3->etc.
-                # NOTE: LOUIE change max alert level here
                 if pub_sym_id > current_event_alert.pub_sym_id \
                         and pub_sym_id <= (max_possible_alert_level + 1):
                     # if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= 4:
@@ -948,8 +946,8 @@ def insert_ewi(internal_json=None):
                     except:
                         pass
 
-                # Lowering.
-                elif pub_sym_id == 1:
+                # Lowering
+                elif pub_sym_id == 1 and current_event_alert.pub_sym_id > 1:
                     release_time = round_to_nearest_release_time(
                         datetime_data_ts)
 
@@ -968,9 +966,6 @@ def insert_ewi(internal_json=None):
 
             # Append the chosen event_alert_id
             release_details["event_alert_id"] = event_alert_id
-            # Update bulletin number
-            # release_details["bulletin_number"] = update_bulletin_number(
-            #     site_id, 1)
 
             instance_details = {
                 "site_id": site_id,
@@ -991,13 +986,15 @@ def insert_ewi(internal_json=None):
                 f"Check entry type options in the back-end.")
 
         print(f"{get_system_time()} | Insert EWI Successful!")
-        return_data = "success"
+        message = "Insert EWI release successful!"
+        status = True
     except Exception as err:
         print(f"{get_system_time()} | Insert EWI FAILED!")
         print(err)
-        raise
+        message = "ERROR: Insert EWI release!"
+        status = False
 
-    return return_data
+    return {"message": message, "status": status}
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/create_bulletin/<release_id>", methods=["GET"])

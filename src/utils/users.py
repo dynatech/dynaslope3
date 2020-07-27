@@ -3,16 +3,21 @@ Utility file for Users Table
 Contains functions for getting and accesing Users table
 and related tables
 """
-
+import hashlib
 from flask import jsonify
 from connection import DB
 from src.models.sites import Sites
 from src.models.users import (
-    Users, UsersRelationship, UserMobile,
-    UsersSchema, UsersRelationshipSchema
+    Users, UsersRelationship, UserMobile, UserEmails,
+    UsersSchema, UsersRelationshipSchema, UserEmailsSchema,
+    UserAccounts, UserAccountsSchema
+)
+from src.models.mobile_numbers import(
+    UserMobiles, UserMobilesSchema, MobileNumbers, MobileNumbersSchema
 )
 from src.models.organizations import UserOrganizations, Organizations, UserOrganizationsSchema
 from src.utils.extra import var_checker
+from src.utils.contacts import get_gsm_id_by_prefix
 
 PROP_DICT = {
     "mob": "mobile_numbers",
@@ -22,13 +27,15 @@ PROP_DICT = {
 }
 
 
-def get_users_categorized_by_org(site_code=None, return_schema=False):
+def get_users_categorized_by_org(site_code=None):
     """
     """
     u_org = UserOrganizations
     org = Organizations
+    users = UsersRelationship
 
-    base = u_org.query.join(org).order_by(DB.asc(org.scope))
+    base = u_org.query.join(org).join(UsersRelationship).order_by(
+        DB.asc(org.scope), DB.desc(users.status), DB.desc(u_org.primary_contact))
 
     if site_code:
         base = base.join(Sites).filter(Sites.site_code == site_code)
@@ -36,7 +43,8 @@ def get_users_categorized_by_org(site_code=None, return_schema=False):
     users_by_org = base.all()
 
     if return_schema:
-        users_by_org = UserOrganizationsSchema(many=True).dump(users_by_org).data
+        users_by_org = UserOrganizationsSchema(
+            many=True).dump(users_by_org).data
 
     return users_by_org
 
@@ -136,6 +144,8 @@ def get_users(
             users_query = users_query.join(Sites)
             filter_list.append(Sites.site_code.in_(filter_by_site))
 
+            query(Sites, Users)
+
     if not include_inactive:
         filter_list.append(Users.status == 1)
 
@@ -176,20 +186,34 @@ def get_users(
 #         return_jsonify_format=return_jsonify_format,
 #         user_group="dynaslope"
 #     )
-
 #     return users
 
 
-def get_dynaslope_users(active_only=True, return_schema_format=False):
+def get_dynaslope_users(active_only=True, return_schema_format=False, include_contacts=False):
     """
     Function that gets all Dynaslope users and related data
     """
 
     ur = UsersRelationship
+
     query = ur.query.options(
         DB.joinedload("account", innerjoin=True).raiseload("*"),
         DB.raiseload("*")
-    ).order_by(ur.last_name)
+    )
+
+    if include_contacts:
+        query = ur.query.options(
+            DB.joinedload("account", innerjoin=True).raiseload("*"),
+            DB.subqueryload("emails").raiseload("*"),
+            DB.subqueryload("teams").joinedload(
+                "team", innerjoin=True).raiseload("*"),
+            DB.subqueryload("mobile_numbers").
+            joinedload("mobile_number", innerjoin=True).lazyload(
+                "blocked_mobile"),
+            DB.raiseload("*")
+        )
+
+    query = query.order_by(ur.last_name)
 
     if active_only:
         # Note use status in users instead of is_active in UserAccounts
@@ -198,9 +222,18 @@ def get_dynaslope_users(active_only=True, return_schema_format=False):
     result = query.all()
 
     if return_schema_format:
-        result = UsersRelationshipSchema(many=True, exclude=[
-            "mobile_numbers", "organizations", "ewi_restriction",
-            "teams", "landline_numbers", "emails"]).dump(result).data
+        exclude_list = [
+            "organizations", "ewi_restriction",
+            "landline_numbers", "mobile_numbers.mobile_number.blocked_mobile"
+        ]
+
+        include_list = ["emails", "mobile_numbers", "teams"]
+        if not include_contacts:
+            exclude_list.extend(include_list)
+            include_list = []
+
+        result = UsersRelationshipSchema(
+            many=True, exclude=exclude_list, include=include_list).dump(result).data
 
     return result
 
@@ -280,3 +313,57 @@ def prepare_excludes(include_list):
 def login(data):
 
     return "wqewqewe"
+
+
+def update_account(data):
+    """
+    """
+    user_id = data["user_id"]
+    old_pass = data["old_password"]
+    new_pass = data["new_password"]
+    username = data["username"]
+
+    sha512 = hashlib.sha512()
+    sha512.update(old_pass.encode())
+    password = sha512.hexdigest()
+
+    user_account = UserAccounts.query.filter_by(
+        user_fk_id=user_id, password=password).first()
+
+    if user_account:
+        enc = hashlib.sha512()
+        enc.update(new_pass.encode())
+        new_password = enc.hexdigest()
+
+        if username:
+            user_account.username = username
+        if password:
+            user_account.password = new_password
+        DB.session.commit()
+        return "success"
+    return "invalid"
+
+
+def create_account(data, user_id):
+    """
+    """
+    password = data["password"]
+    username = data["username"]
+
+    sha512 = hashlib.sha512()
+    sha512.update(password.encode())
+    hashed_password = sha512.hexdigest()
+
+    user_account = UserAccounts.query.filter_by(
+        user_fk_id=user_id, username=username).first()
+
+    if not user_account:
+        enc = hashlib.sha512()
+        enc.update(password.encode())
+        hashed_password = enc.hexdigest()
+        query = UserAccounts(username=username, password=hashed_password,
+                             user_fk_id=user_id, is_active=1)
+        DB.session.add(query)
+        return True
+
+    return False

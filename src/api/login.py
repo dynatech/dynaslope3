@@ -2,6 +2,7 @@
 """
 
 import hashlib
+from datetime import datetime
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, jwt_required,
     jwt_refresh_token_required, get_jwt_identity
@@ -73,7 +74,9 @@ def __login_user():
     """
     """
     data = request.get_json()
-    var_checker("User Logged-in:", data["username"], True)
+    ts = datetime.now()
+    var_checker(f"{str(ts)} User logging in...", data["username"], True)
+
     try:
         username = str(data["username"])  # "jdguevarra"
         password = str(data["password"])  # "jdguevarra101"
@@ -86,15 +89,18 @@ def __login_user():
 
     account = get_account(username, password)
     if not account:
+        message = "No username-password combination found"
         return_obj = {
             "ok": False,
-            "message": "No username-password combination found"
+            "message": message
         }
+        print(message)
         return jsonify(return_obj)
 
     user = account.user
     access_token = create_access_token(identity=data['username'])
     refresh_token = create_refresh_token(identity=data['username'])
+    message = "Successfully logged in"
 
     return_obj = {
         "ok": True,
@@ -105,8 +111,9 @@ def __login_user():
                 "refresh_token": refresh_token
             }
         },
-        "message": "Successfully logged in"
+        "message": message
     }
+    print(message)
 
     return jsonify(return_obj)
 

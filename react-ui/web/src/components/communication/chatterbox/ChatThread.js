@@ -8,7 +8,7 @@ import ListItemAvatar from "@material-ui/core/ListItemAvatar";
 import Avatar from "@material-ui/core/Avatar";
 import Button from "@material-ui/core/Button";
 import Typography from "@material-ui/core/Typography";
-import { IconButton, Tooltip, makeStyles } from "@material-ui/core";
+import { IconButton, Tooltip, makeStyles, CircularProgress } from "@material-ui/core";
 import {
     TurnedIn, TurnedInNot, Refresh,
     RadioButtonUnchecked, CheckCircle, Cancel
@@ -347,6 +347,7 @@ function ChatThread (props) {
     const [tag_object, update_tag_object] = useState(default_tag_obj);
     const [message_batch, setMessageBatch] = useState(1);
     const [loaded_messages, setLoadedMessages] = useState([]);
+    const [is_loading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const initial_messages = message_list.slice(0).reverse();
@@ -364,7 +365,9 @@ function ChatThread (props) {
 
     const onLoadMessageClick = () => {
         const { mobile_id } = mobileDetails;
+        setIsLoading(true);
         loadMoreMessages(mobile_id, message_batch, data => {
+            setIsLoading(false);
             setLoadedMessages(data);
             const reversed = data.slice(0).reverse();
             setMessages(reversed.concat(messages));
@@ -400,8 +403,9 @@ function ChatThread (props) {
                         size="small"
                         fullWidth
                         onClick={onLoadMessageClick}
+                        endIcon={is_loading && <CircularProgress size="1.5rem" />}
                     >
-                        <strong>Load more messages...</strong>
+                        <strong>Load{is_loading && "ing"} more messages...</strong>
                     </Button>
                 )
             }

@@ -2,9 +2,12 @@ import React, { useState, useEffect, useReducer } from "react";
 import moment from "moment";
 import {
     Dialog, DialogTitle, DialogContent,
-    DialogContentText, DialogActions, Typography,
+    DialogContentText, DialogActions,
     Button, makeStyles, withMobileDialog, Grid
 } from "@material-ui/core";
+
+import { useSnackbar } from "notistack";
+
 import AlertReleaseForm from "./AlertReleaseForm";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
 import { createReleaseDetails, getMonitoringReleaseByDataTS } from "./ajax";
@@ -230,6 +233,7 @@ function AlertReleaseFormModal (props) {
     const [db_saved_triggers, setDBSavedTriggers] = useState([]);
 
     const [current_triggers_status, setCurrentTriggersStatus] = useState([]);
+    const { enqueueSnackbar } = useSnackbar();
 
     useEffect(() => {
         const { dataTimestamp: input_data_ts, siteCode } = generalData;
@@ -581,6 +585,16 @@ function AlertReleaseFormModal (props) {
             setModalTitle("");
             temp = ewiPayload;
             temp.release_details.comments = comments;
+           
+            const snackbar_key = enqueueSnackbar(
+                "Inserting EWI release...",
+                {
+                    variant: "warning",
+                    persist: true
+                }
+            );
+            temp.snackbar_key = snackbar_key;
+
             setEwiPayload(temp);
             handleSubmit();
         }

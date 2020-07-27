@@ -2,7 +2,7 @@ import React, { useState, useEffect, Fragment } from "react";
 
 import {
     Paper, LinearProgress,
-    withStyles, Dialog, DialogContent,
+    makeStyles, Dialog, DialogContent,
     Button, IconButton
 } from "@material-ui/core";
 import { AddAlert, Edit, Delete } from "@material-ui/icons";
@@ -11,7 +11,6 @@ import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 
 import moment from "moment";
 import MUIDataTable from "mui-datatables";
-import { compose } from "recompose";
 
 import CustomSearchRender from "./CustomSearchRender";
 import { getIssuesAndReminders } from "../../widgets/issues_and_reminders_form/ajax";
@@ -19,10 +18,10 @@ import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
 import IssueReminderModal from "../../widgets/issues_and_reminders_form/IssuesAndReminderModal";
 
-
 const sites_dict = {};
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
+    ...GeneralStyles(theme),
     inputGridContainer: {
         margin: "12px 0",
         [theme.breakpoints.down("sm")]: {
@@ -39,7 +38,7 @@ const styles = theme => ({
         fontSize: 16,
         paddingLeft: 8
     }
-});
+}));
 
 const getMuiTheme = createMuiTheme({
     overrides: {
@@ -61,10 +60,13 @@ function getManipulationButtons (issue_and_reminder, data_handlers) {
         setChosenIssueReminder(issue_and_reminder);
         setIsOpenIssueReminderModal(true);
         setIsIandRUpdateNeeded(true);
+        setToResolve(false);
     };
 
     const handleDelete = value => {
         setChosenIssueReminder(issue_and_reminder);
+        setIsOpenIssueReminderModal(true);
+        setIsIandRUpdateNeeded(true);
         setToResolve(true);
     };
 
@@ -98,7 +100,9 @@ function getManipulationButtons (issue_and_reminder, data_handlers) {
 }
 
 function IssuesAndReminders (props) {
-    const { classes, width } = props;
+    const { width } = props;
+    const classes = useStyles();
+
     const [table_data, setTableData] = useState([]);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -142,7 +146,7 @@ function IssuesAndReminders (props) {
         // NOTE: there was no need to use the bool for opening a modal or switch
         if (data === "is_issue_reminder_modal_open") {
             setIsOpenIssueReminderModal(bool);
-            setIsIandRUpdateNeeded(bool);
+            setIsIandRUpdateNeeded(false);
         } 
     };
 
@@ -375,12 +379,4 @@ function IssuesAndReminders (props) {
     );
 }
 
-export default compose(
-    withStyles(
-        (theme) => ({
-            ...GeneralStyles(theme),
-            ...styles(theme),
-        }),
-        { withTheme: true },
-    ), withWidth()
-)(IssuesAndReminders);
+export default withWidth()(IssuesAndReminders);

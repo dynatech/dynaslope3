@@ -4,7 +4,7 @@ Contains functions for getting and accesing Sites table only
 """
 
 from connection import DB
-from src.models.sites import Sites, SitesSchema
+from src.models.sites import Sites, SitesSchema, Seasons, SeasonsSchema
 
 
 def get_sites_data(site_code=None, include_inactive=False, raise_load=False):
@@ -27,7 +27,6 @@ def get_sites_data(site_code=None, include_inactive=False, raise_load=False):
             site = final_query.filter(Sites.site_code.in_(site_code)).all()
         else:
             site = final_query.filter_by(site_code=site_code).first()
-
 
     return site
 
@@ -64,7 +63,7 @@ def get_all_geographical_selection_per_category(category, include_inactive):
 
 def build_site_address(site_info):
     """
-    site_info (class):      Site class
+    site_info (class):  Site class
     """
 
     address = ""
@@ -112,10 +111,35 @@ def get_site_season(site_code=None, site_id=None, return_schema_format=True):
 
     return result
 
-def get_site_per(selector="province"):
+
+def get_seasons():
     """
-    Function that gets site per municipality, province, region
     """
-    # query = Sites.query().filter_by(selector)
+    query = Seasons.query.all()
+    result = SeasonsSchema(
+        many=True,
+        exclude=[
+            "routine_schedules", "sites"
+        ]
+    ).dump(query).data
+
+    return result
+
+
+def save_site_info(data):
+    """
+    """
+
+    update = Sites.query.get(data["site_id"])
+    update.purok = data["purok"]
+    update.sitio = data["sitio"]
+    update.barangay = data["barangay"]
+    update.municipality = data["municipality"]
+    update.province = data["province"]
+    update.region = data["region"]
+    update.psgc = data["psgc"]
+    update.active = data["active"]
+    update.households = data["households"]
+    update.season = data["season"]
 
     return True

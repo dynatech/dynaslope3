@@ -6,6 +6,7 @@ import {
     Button, withMobileDialog,
 } from "@material-ui/core";
 
+import { useSnackbar } from "notistack";
 import RoutineReleaseForm from "./RoutineReleaseForm";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
 import { getCurrentUser } from "../../sessions/auth";
@@ -26,7 +27,8 @@ function prepareSitesOption (arr) {
             return { state: true, value: site_id, label: s_code, is_disabled: false };
         });
     }
-    return temp;
+    
+    return temp.sort((a, b) => a.site_id > b.site_id);
 }
 
 
@@ -41,10 +43,11 @@ function RoutineReleaseFormModal (props) {
     const { sites } = useContext(GeneralContext);
 
     const [ewiPayload, setEwiPayload] = useState({});
+    const { enqueueSnackbar } = useSnackbar();
 
     const initial_routine_data = {
         public_alert_symbol: "A0",
-        public_alert_level: "0",
+        public_alert_level: 0,
         data_ts: null,
         release_time: moment(),
         general_status: "routine",
@@ -137,17 +140,26 @@ function RoutineReleaseFormModal (props) {
     }, [chosenCandidateAlert, site_options]);
 
     const handleSubmit = () => {
-        const f_data_ts = moment(routineData.data_ts).format("YYYY-MM-DD HH:mm:ss");
+        const f_data_ts = moment(routineData.data_ts).format("YYYY-MM-DD HH:mm:00");
         const f_rel_time = moment(routineData.release_time).format("HH:mm:ss");
+        const snackbar_key = enqueueSnackbar(
+            "Inserting Routine EWI release...",
+            {
+                variant: "warning",
+                persist: true
+            }
+        );
 
         const temp_payload = {
             ...routineData,
             data_timestamp: f_data_ts,
             release_time: f_rel_time,
+            reporter_id_ct: tmp_ct,
             routine_details: [
                 { ...a0SiteList },
                 { ...NDSiteList }
-            ]
+            ],
+            snackbar_key
         };
         
         console.log("Submitting data...", temp_payload);
@@ -172,8 +184,8 @@ function RoutineReleaseFormModal (props) {
                 <DialogTitle id="form-dialog-title">Routine Release Form</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Transfer site codes to their respective list if needed. Put sites with ground data on "A0 Sites" list
-                        while put sites without ground data on "ND Sites". 
+                        Transfer site codes to their respective list if needed. Put sites with ground data on A0 Sites list
+                        while put sites without ground data on ND Sites. 
                     </DialogContentText>
                     <RoutineReleaseForm
                         routineData={routineData}

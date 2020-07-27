@@ -3,9 +3,9 @@ import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
     Button, withMobileDialog, Grid,
-    makeStyles, FormControl, FormLabel,
+    FormControl, FormLabel,
     FormControlLabel, FormGroup, Checkbox,
-    Divider, Typography
+    Typography
 } from "@material-ui/core";
 import moment from "moment";
 import MomentUtils from "@date-io/moment";
@@ -15,17 +15,11 @@ import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInp
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 import { getSiteSubsurfaceColumns } from "../ajax";
 
-const useStyles = makeStyles(theme => ({
-    link: { textDecoration: "none" }
-}));
-
 function ConsolidatedSiteChartsModal (props) {
     const {
         fullScreen, isOpen,
-        clickHandler, isMobile,
-        url
+        clickHandler, isMobile, url
     } = props;
-    const classes = useStyles();
     const [site_value, setSiteValue] = useState({ value: null, data: { site_code: null } });
     const update_site_value = value => setSiteValue(value);
     const [ts_end, setTsEnd] = useState(moment());
@@ -196,9 +190,9 @@ function ConsolidatedSiteChartsModal (props) {
                     }}
                     color="primary"
                     onClick={clickHandler}
-                    disabled={site_value.length === 0}
+                    disabled={site_value.value === null}
                 >
-                    Submit
+                    View
                 </Button>
                 <Button onClick={clickHandler}>
                     Cancel

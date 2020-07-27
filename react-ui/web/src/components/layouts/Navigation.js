@@ -1,4 +1,6 @@
 import React, { useState, useEffect, Fragment, useContext } from "react";
+import { Link } from "react-router-dom";
+
 import {
     AppBar, Tabs, Tab,
     MenuItem, MenuList,
@@ -6,13 +8,12 @@ import {
     makeStyles, Grid,
     Typography
 } from "@material-ui/core";
-import moment from "moment";
-import { Link } from "react-router-dom";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
+
+import moment from "moment";
+
 import ScreenDrawer from "./ScreenDrawer";
-import { 
-    getServerTime, receiveServerTime
-} from "../../websocket/misc_ws";
+import { ServerTimeContext } from "../contexts/ServerTimeContext";
 
 const useStyles = makeStyles(theme => ({
     navBar: {
@@ -142,7 +143,10 @@ const navigation_labels = [
 ];
 
 function Navigation (props) {
-    const { width, drawerHandler, drawer } = props;
+    const {
+        width, drawerHandler, drawer,
+        history, onLogout
+    } = props;
     const classes = useStyles();
 
     const { pathname } = window.location;
@@ -154,7 +158,7 @@ function Navigation (props) {
     const [last_clicked_tab, setLastClickedTab] = useState(null);
     const [popper_open, setPopperOpen] = useState(false);
     const [anchorEl, setAnchorE1] = useState(null);
-    const [server_time, setServerTime] = useState("Loading server time...");
+    const { server_time } = useContext(ServerTimeContext);
 
     const tab = value === from_tab && last_clicked_tab !== null ? last_clicked_tab : value;
     const { sub } = navigation_labels[tab];
@@ -162,14 +166,6 @@ function Navigation (props) {
     useEffect(() => {
         setLastClickedTab(value);
     }, [value]);
-
-    useEffect(() => {
-        getServerTime();
-        receiveServerTime(data => {
-            const date_time = moment(data).format("ddd DD-MMM-YYYY HH:mm:ss");
-            setServerTime(date_time);
-        });
-    }, []);
 
     const handleTabChange = (event, val) => {
         setValue(val);
@@ -224,7 +220,11 @@ function Navigation (props) {
                         </Grid>
                         <Grid item xs={2} align="center">
                             <Typography variant="button">
-                                {server_time}
+                                {
+                                    server_time 
+                                        ? moment(server_time).format("ddd DD-MMM-YYYY HH:mm:ss")
+                                        : "Loading server time..."
+                                }
                             </Typography>
                         </Grid>
                     </Grid>
@@ -264,7 +264,7 @@ function Navigation (props) {
                                                                 variant="overline"
                                                                 style={{ paddingLeft: 4 }}
                                                             >
-                                                        SOON
+                                                                SOON
                                                             </Typography>
                                                         }
                                                     </MenuItem>
@@ -297,6 +297,8 @@ function Navigation (props) {
                 drawer={drawer}
                 drawerHandler={drawerHandler}
                 navigationLabels={navigation_labels}
+                history={history}
+                onLogout={onLogout}
             />
         </Fragment>
     );

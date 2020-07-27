@@ -1,6 +1,8 @@
 import React from "react";
 import {
-    TextField, Grid, withStyles
+    TextField, Grid, makeStyles,
+    Typography, FormControlLabel,
+    Checkbox, Tooltip
 } from "@material-ui/core";
 
 // Form Related Imports
@@ -10,7 +12,7 @@ import { MuiPickersUtilsProvider, TimePicker, DatePicker } from "@material-ui/pi
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     inputGridContainer: {
         marginTop: 6,
         marginBottom: 6
@@ -35,18 +37,21 @@ const styles = theme => ({
         marginTop: 1,
         marginBottom: 1,
     }
-});
+}));
 
 function NarrativeForm (props) {
+    const classes = useStyles();
     const {
-        classes, narrativeData,
+        narrativeData,
         setNarrativeData, siteList,
-        setSiteList, isFromSiteLogs
+        setSiteList, isFromSiteLogs,
+        callAck, setCallAck,
+        callAckHashtag
     } = props;
     const {
         narrative, timestamp, user_id
     } = narrativeData;
-    
+
     const handleDateTime = key => value => {
         setNarrativeData({
             ...narrativeData,
@@ -68,6 +73,28 @@ function NarrativeForm (props) {
         });
     };
 
+    const handleCallAckOnCheck = event => {
+        const { checked } = event.target;
+        setCallAck(checked);
+
+        let new_narrative = narrative;
+        const with_space = ` ${callAckHashtag}`;
+        if (checked) {
+            if (narrative.length + with_space.length > 1000) {
+                new_narrative.substring(0, 1000 - with_space.length);
+            }
+            
+            new_narrative += with_space;
+        } else {
+            new_narrative = narrative.replace(with_space, "");
+        }
+        
+        setNarrativeData({
+            ...narrativeData,
+            narrative: new_narrative
+        });
+    };
+
     return (
         <MuiPickersUtilsProvider utils={MomentUtils}>
             <Grid
@@ -81,8 +108,7 @@ function NarrativeForm (props) {
                         value={siteList}
                         changeHandler={update_site_value}
                         isMulti
-                        isFromSiteLogs ={isFromSiteLogs}
-                                            
+                        isFromSiteLogs ={isFromSiteLogs}         
                     />
                 </Grid>
                 
@@ -120,7 +146,7 @@ function NarrativeForm (props) {
                     />
                 </Grid>
 
-                <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
+                <Grid item xs={12} className={classes.inputGridContainer}>
                     <DynaslopeUserSelectInputForm
                         variant="standard"
                         label="Reporter"
@@ -131,7 +157,24 @@ function NarrativeForm (props) {
                     />
                 </Grid>
 
-                <Grid item xs={12} sm={12} className={classes.inputGridContainer}>
+                <Grid item xs={12} className={classes.inputGridContainer}>
+                    <FormControlLabel
+                        value="callAck"
+                        control={<Checkbox 
+                            color="primary" checked={callAck}
+                            onClick={handleCallAckOnCheck}
+                        />}
+                        label={<div>
+                            Early Warning Information (EWI) acknowledgement call&nbsp;
+                            <Tooltip
+                                title="Tick this if the log to enter is a call that acknowledges an EWI. This will add #EWIResponseCall on the narrative."><strong>[?]</strong>
+                            </Tooltip>
+                        </div>}
+                        labelPlacement="end"
+                    />
+                </Grid>
+
+                <Grid item xs={12} className={classes.inputGridContainer}>
                     <TextField
                         required
                         id="standard-multiline-static"
@@ -143,9 +186,18 @@ function NarrativeForm (props) {
                         rows="4"
                         rowsMax={4}
                         fullWidth
-                        className={classes.textField}
+                        inputProps={{
+                            maxLength: 1000
+                        }}
                         variant="filled"
                     />
+                    <Typography
+                        component={Grid}
+                        container justify="flex-end"
+                        variant="caption"
+                    >
+                        Characters: {narrative.length}/1000
+                    </Typography>
                 </Grid>
             </Grid>
         </MuiPickersUtilsProvider>           
@@ -153,4 +205,4 @@ function NarrativeForm (props) {
 }
 
 
-export default withStyles(styles)(NarrativeForm);
+export default NarrativeForm;

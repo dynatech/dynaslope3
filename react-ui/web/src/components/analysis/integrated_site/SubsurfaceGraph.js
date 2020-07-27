@@ -290,7 +290,8 @@ function prepareVelocityAlertsOption (set_data, form) {
     const { subsurface_column, ts_end } = form;
 
     const xAxisTitle = orientation === "across_slope" ? "Across Slope" : "Downslope";
-    const category = data.map(x => x.name + 1);
+    const categories = data.map(x => x.name).filter(x => typeof x === "number");
+    categories.unshift(0);
 
     return {
         series: data,
@@ -336,10 +337,10 @@ function prepareVelocityAlertsOption (set_data, form) {
             enabled: false
         },
         yAxis: {
-            categories: category,
+            categories,
             reversed: true,
             title: {
-                text: "<b>Depth (m)</b>"
+                text: "<b>Nodes</b>"
             },
             labels: {
                 formatter () {
