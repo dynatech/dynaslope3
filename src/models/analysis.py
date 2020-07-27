@@ -435,7 +435,7 @@ class TSMSensors(DB.Model):
         return (f"Type <{self.__class__.__name__}> TSM ID: {self.tsm_id}"
                 f" Site ID: {self.site_id} Number of Segments: {self.number_of_segments}"
                 f" Logger ID: {self.site_id} Number of Segments: {self.number_of_segments}"
-                f"Date Activated: {self.date_activated} | LOGGER: {self.logger}")
+                f"Date Activated: {self.date_activated} | LOGGER: {self.logger} Version: {self.version}")
 
 class AccelerometerStatus(DB.Model):
     """
@@ -721,6 +721,7 @@ def get_tilt_table(table_name):
     """
 
     class GenericTiltTable(DB.Model):
+
         """
         """
 
@@ -731,15 +732,30 @@ def get_tilt_table(table_name):
 
         data_id = DB.Column(DB.Integer, primary_key=True)
         ts = DB.Column(DB.DateTime, nullable=False)
+        node_id = DB.Column(DB.Integer, nullable=False)
+        type_num = DB.Column(DB.Integer, nullable=False)
 
         def __repr__(self):
             return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
-                    f" ts: {self.ts}")
+                    f" ts: {self.ts} node_id: {self.node_id} type_num: {self.type_num}")
+
 
     model = GenericTiltTable
-
     return model
 
+def tilt_table_schema(table):
+    """
+    """
+
+    class GenericTiltTableSchema(MARSHMALLOW.ModelSchema):
+        """
+        """
+        class Meta:
+            """
+            """
+            model = table
+    schema = GenericTiltTableSchema
+    return schema
 #############################
 # End of Class Declarations #
 #############################
@@ -959,7 +975,6 @@ class LoggersSchema(MARSHMALLOW.ModelSchema):
         """Saves table class structure as schema model"""
         model = Loggers
         exclude = ["data_presence"]
-
 
 class LoggerModelsSchema(MARSHMALLOW.ModelSchema):
     """

@@ -122,6 +122,21 @@ export function getSubsurfacePlotData (input, callback) {
     });
 }
 
+export function getSubsurfaceCommsHealth (input, callback) {
+    const { subsurface_column, ts_end, ts_start } = input;
+    const api_link = `${host}/api/subsurface/get_subsurface_comms_health/${subsurface_column}/${ts_end}/${ts_start}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("Subsurface Comms Health Data", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function getEarthquakeEvents (callback) {
     const api_link = `${host}/api/analysis/get_earthquake_events`;
 
