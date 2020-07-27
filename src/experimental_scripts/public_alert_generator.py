@@ -904,6 +904,8 @@ def get_valid_triggers(positive_triggers_list):
     for item in positive_triggers_list:
         alert_status_entry = item.alert_status
 
+        var_checker("alert_status_entry", alert_status_entry)
+
         if alert_status_entry and alert_status_entry.alert_status == 1:
             trigger_sym_id = item.trigger_sym_id
             if trigger_sym_id in valids_dict:
@@ -912,6 +914,8 @@ def get_valid_triggers(positive_triggers_list):
                     valids_dict[trigger_sym_id] = alert_status_entry
             else:
                 valids_dict[trigger_sym_id] = alert_status_entry
+        # else:
+           # valids_dict[item.trigger_sym_id] = {"alert_status": 0}
 
     return valids_dict
 
@@ -1111,6 +1115,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
 
         positive_triggers_list = extract_positive_triggers_list(
             op_triggers_list)
+        var_checker("positive_triggers_list", positive_triggers_list)
 
         # Get highest public alert level
         highest_public_alert = get_highest_public_alert(
@@ -1281,6 +1286,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         ####################################
 
         # EVENT TRIGGERS: most recent retrigger of positive operational triggers
+        var_checker("unique_positive_triggers_list", unique_positive_triggers_list)
+        var_checker("valids_dict", valids_dict)
         event_triggers = format_recent_retriggers(
             unique_positive_triggers_list, invalids_dict, valids_dict, site_moms_alerts_list)
         

@@ -38,5 +38,5 @@ class ProductionConfig(Config):
 APP_CONFIG = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
-    "generated_alerts_path": "Documents/monitoringoutput/"
+    "generated_alerts_path": "/home/cbewsl/codes/dynaslope3/Documents/monitoringoutput"
 }

@@ -284,6 +284,7 @@ def fix_internal_alert(alert_entry, internal_source_id):
     trigger_list_str = None
 
     for trigger in event_triggers:
+        var_checker("trigger", trigger)
         alert_symbol = trigger["alert"]
         ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
                                               "alert_symbol": alert_symbol})
@@ -422,6 +423,10 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
             if is_new_release:
                 highest_valid_public_alert, trigger_list_str, validity_status = fix_internal_alert(
                     site_w_alert, internal_source_id)
+
+                var_checker("highest_val", highest_valid_public_alert)
+                var_checker("trigger list", trigger_list_str)
+                var_checker("validity status", validity_status)
 
                 site_w_alert = {
                     **site_w_alert,
@@ -616,15 +621,16 @@ def main(ts=None, generated_alerts_list=None):
     # If no generated alerts sent thru argument, read from
     # file.
     if not generated_alerts_list:
-        print("### WALANG GENERATED ALERTS")
+        print("### Retrieving generated alerts from file.")
         filepath = APP_CONFIG["generated_alerts_path"]
-        # filepath = "/var/www/dynaslope3/outputs/"
-        filename = "generated_alerts.json"
+        filename = "/generated_alerts.json"
         generated_alerts_list = get_generated_alerts_list_from_file(
             filepath, filename)
+    var_checker("generated_alerts_list", generated_alerts_list)
 
     db_alerts_dict = get_ongoing_extended_overdue_events(query_end_ts)
 
+    var_checker("db_alerts_dict", db_alerts_dict)
     # Split site with alerts and site with no alerts
     with_alerts, without_alerts = separate_with_alerts_wo_alerts(
         generated_alerts_list)
@@ -632,6 +638,8 @@ def main(ts=None, generated_alerts_list=None):
     # PROCESS CANDIDATES
     candidate_alerts_list = process_candidate_alerts(
         with_alerts, without_alerts, db_alerts_dict, query_end_ts)
+
+    var_checker("candidate_alerts_list", candidate_alerts_list)
 
     # NOTE: TAG LOWERING CANDIDATES
     # candidate_alerts_list = remove_for_lowering_sites(
@@ -644,9 +652,9 @@ def main(ts=None, generated_alerts_list=None):
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    # var_checker("directory", directory, True)
-    with open(directory + "candidate_alerts.json", "w") as file_path:
-        # var_checker("CAN PATH", file_path, True)
+    var_checker("directory", directory, True)
+    with open(directory + "/candidate_alerts.json", "w") as file_path:
+        var_checker("CAN PATH", file_path, True)
         file_path.write(json_data)
 
     end_run_ts = datetime.now()
