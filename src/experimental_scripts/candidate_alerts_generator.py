@@ -48,64 +48,6 @@ ROUTINE_EXTENDED_RELEASE_TIME = DT.time()
 # Utility functions here #
 ##########################
 
-def remove_for_lowering_sites(candidates, db_alerts_dict):
-    """
-    Remove sites that are already released.
-    """
-    latest = db_alerts_dict["latest"]
-    overdue = db_alerts_dict["overdue"]
-    merged = latest + overdue
-    new_candidate_list = []
-
-    for key, candidate in enumerate(candidates):
-        p_alert_level = candidate["public_alert_level"]
-        gen_status = candidate["general_status"]
-
-        if p_alert_level == 0 and gen_status == "lowering":
-            candidate["trigger_list_arr"] = []
-            candidate["to_extend_validity"] = False
-
-            site_code = candidate["public_alert_level"]
-            datetime_ts = datetime.strptime(
-                candidate["ts"], "%Y-%m-%d %H:%M:%S")
-
-            site_alert = next(
-                iter(filter(lambda x: x["site_code"] == site_code, merged)), None)
-            in_latest = bool(site_alert)
-
-            if in_latest:
-                datetime_data_ts = datetime.strptime(
-                    site_alert["releases"][0]["data_ts"], "%Y-%m-%d %H:%M:%S")
-                is_already_released = datetime_ts == datetime_data_ts
-
-        if not is_already_released:
-            new_candidate_list.append(candidate)
-
-    return new_candidate_list
-
-
-def generate_ias_x_ots_map():
-    """
-    """
-    cross_map = {}
-    trigger_symbols_list = ots.query.all()
-
-    for item in trigger_symbols_list:
-        ias = item.internal_alert_symbol
-        if ias:
-            cross_map[("alert_symbol", item.alert_symbol)] = {
-                "alert_level": item.alert_level,
-                "internal_symbol": ias.alert_symbol,
-                "internal_alert_id": ias.internal_sym_id
-            }
-            cross_map[("trigger_sym_id", item.trigger_sym_id)] = {
-                "alert_level": item.alert_level,
-                "internal_symbol": ias.alert_symbol,
-                "internal_alert_id": ias.internal_sym_id
-            }
-
-    return cross_map
-
 
 def get_generated_alerts_list_from_file(filepath, filename):
     """
@@ -270,9 +212,6 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
     return formatted_alerts_for_ewi
 
 
-IAS_X_OTS_MAP = generate_ias_x_ots_map()
-
-
 def fix_internal_alert(alert_entry, internal_source_id):
     """
     Changes the internal alert string of each alert entry.
@@ -289,8 +228,6 @@ def fix_internal_alert(alert_entry, internal_source_id):
                                               "alert_symbol": alert_symbol})
         trigger["internal_sym_id"] = ots_row["internal_alert_symbol"]["internal_sym_id"]
 
-        # trigger["internal_sym_id"] = IAS_X_OTS_MAP["alert_symbol",
-        #                                            alert_symbol]["internal_alert_id"]
         source_id = trigger["source_id"]
         alert_level = trigger["alert_level"]
         op_trig_row = retrieve_data_from_memcache("operational_trigger_symbols", {
@@ -489,7 +426,7 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 site_wo_alert = {
                     **site_wo_alert,
                     "trigger_list_str": trigger_list_str,
-                    "   ": is_for_release
+                    "is_for_release": is_for_release
                 }
 
                 formatted_alert_entry = format_alerts_for_ewi_insert(
@@ -632,10 +569,6 @@ def main(ts=None, generated_alerts_list=None):
     candidate_alerts_list = process_candidate_alerts(
         with_alerts, without_alerts, db_alerts_dict, query_end_ts)
 
-    # NOTE: TAG LOWERING CANDIDATES
-    # candidate_alerts_list = remove_for_lowering_sites(
-    #     candidate_alerts_list, db_alerts_dict)
-    # Convert data to JSON
     json_data = json.dumps(candidate_alerts_list)
 
     # Write to specified filepath and filename
