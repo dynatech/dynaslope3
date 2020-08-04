@@ -946,7 +946,6 @@ def insert_ewi(internal_json=None):
                 event_alert_id = current_event_alert_id
 
                 # Raising from lower alert level e.g. A1->A2->A3->etc.
-                # NOTE: LOUIE change max alert level here
                 if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= (max_possible_alert_level + 1):
                     # if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= 4:
                     # Now that you created a new event
@@ -958,6 +957,7 @@ def insert_ewi(internal_json=None):
                         event_alert_details).event_alert_id
 
                 elif pub_sym_id == current_event_alert.pub_sym_id and current_event_alert.event.validity == datetime_data_ts + timedelta(minutes=30) or is_overdue:
+                    print("---OVERDUE RELEASE")
                     # This extends the validity of the event in cases where
                     # no ground data is available.
                     try:
@@ -984,6 +984,10 @@ def insert_ewi(internal_json=None):
                     print("---LOWERING")
                     release_time = round_to_nearest_release_time(
                         datetime_data_ts)
+
+                    var_checker("release_time", release_time)
+                    var_checker("validity", validity)
+                    var_checker("ND validity", validity + timedelta(hours=alert_extension_limit))
 
                     if release_time == validity:
                         # End of Heightened Alert
@@ -1019,6 +1023,7 @@ def insert_ewi(internal_json=None):
                         }
                         instance_details = start_new_monitoring_instance(
                             new_instance_details)
+                        var_checker("instance_details", instance_details)
                         event_alert_id = instance_details["event_alert"].event_alert_id
 
             # Append the chosen event_alert_id
