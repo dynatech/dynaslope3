@@ -243,7 +243,7 @@ def save_user_information(data):
     if "salutation" in data:
         salutation = data["salutation"]
     if "sex" in data:
-        salutation = data["sex"]
+        sex = data["sex"]
 
     if user_id == 0:
         insert_user = Users(
