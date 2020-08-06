@@ -547,7 +547,7 @@ def no_ewi_acknowledgement_bg_task():
         event_id = event["event_id"]
 
         process_no_ewi_acknowledgements(
-            site_id, ts_start, ts, event_id, monitoring_type="event")
+            site_id, ts_start, ts, event_id, monitoring_type="event", row=row)
 
         if routine_sites:
             index = next(index for index, site in enumerate(routine_sites)
@@ -578,14 +578,27 @@ def no_ewi_acknowledgement_bg_task():
                 processed_sites.append(site_id)
 
 
-def process_no_ewi_acknowledgements(site_id, ts_start, ts, event_id, monitoring_type):
+def process_no_ewi_acknowledgements(site_id, ts_start, ts, event_id, monitoring_type, row=None):
     """
     """
 
     default_user_id = 2  # Dynaslope User
+    release_hr = ts_start
 
     # when changing this, mirror change on React
     call_ack_hashtag = "#EWIResponseCall"
+
+    if monitoring_type == "event":
+        if row["is_onset_release"]:
+            release_hr = datetime.strptime(
+                row["releases"][0]["data_ts"],
+                "%Y-%m-%d %H:%M:%S"
+            )
+        elif row["public_alert_symbol"]["alert_level"] == 0 and \
+            datetime.strptime(row["prescribed_release_time"],
+                              "%Y-%m-%d %H:%M:%S"
+                              ) < ts_start.replace(second=0, microsecond=0):
+            return
 
     sms_acks = get_ewi_acknowledgements_from_tags(site_id, ts_start, ts)
     call_acks = get_narratives(start=ts_start, end=ts,
@@ -593,7 +606,7 @@ def process_no_ewi_acknowledgements(site_id, ts_start, ts, event_id, monitoring_
                                raise_site=True, search=call_ack_hashtag)
 
     if not sms_acks and not call_acks:
-        release_hour = convert_ampm_to_noon_midnight(ts_start)
+        release_hour = convert_ampm_to_noon_midnight(release_hr)
         narrative = (f"No acknowledgement received from stakeholders "
                      f"for {release_hour} {monitoring_type} EWI")
         ts = ts.replace(minute=30)
