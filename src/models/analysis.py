@@ -435,8 +435,61 @@ class TSMSensors(DB.Model):
         return (f"Type <{self.__class__.__name__}> TSM ID: {self.tsm_id}"
                 f" Site ID: {self.site_id} Number of Segments: {self.number_of_segments}"
                 f" Logger ID: {self.site_id} Number of Segments: {self.number_of_segments}"
-                f"Date Activated: {self.date_activated} | LOGGER: {self.logger}")
+                f"Date Activated: {self.date_activated} | LOGGER: {self.logger} Version: {self.version}")
 
+class AccelerometerStatus(DB.Model):
+    """
+    Class representation of accelerometer_status table
+    """
+
+    __tablename__ = "accelerometer_status"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    stat_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    accel_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.accelerometers.accel_id"), nullable=False)
+    ts_flag = DB.Column(DB.DateTime)
+    date_identified = DB.Column(DB.DateTime)
+    flagger = DB.Column(DB.String(20))
+    status = DB.Column(DB.Integer)
+    remarks = DB.Column(DB.String)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> ACCELEROMETER STATUS: {self.stat_id}"
+                f" Accel ID: {self.accel_id} ts flagged: {self.ts_flagged}"
+                f" Date Identified: {self.date_identified} flagger: {self.flagger}"
+                f"Status: {self.status} Remarks: {self.remarks}")
+
+class Accelerometers(DB.Model):
+    """
+    Class representation of accelerometers table
+    """
+
+    __tablename__ = "accelerometers"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    accel_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    tsm_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.tsm_sensors.tsm_id"), nullable=False)
+    node_id = DB.Column(DB.Integer)
+    accel_number = DB.Column(DB.Integer)
+    ts_updated = DB.Column(DB.String(45))
+    voltage_max = DB.Column(DB.Float)
+    voltage_min = DB.Column(DB.Float)
+    in_use = DB.Column(DB.Integer)
+
+    status = DB.relationship(
+        "AccelerometerStatus", backref="accelerometers", lazy="joined", innerjoin=True)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> ACCELEROMETER: {self.accel_id}"
+                f" TSM ID: {self.tsm_id} Node ID: {self.node_id}"
+                f" accel_number: {self.accel_number} ts_updated: {self.ts_updated}"
+                f"voltage_max: {self.voltage_max} voltage_min: {self.voltage_min}"
+                f"inUse: {self.in_use}"
+                )
 
 class NodeAlerts(DB.Model):
     """
@@ -466,7 +519,6 @@ class NodeAlerts(DB.Model):
                 f" disp_alert: {self.disp_alert}"
                 f" vel_alert: {self.vel_alert} na_status: {self.na_status}"
                 f" || tsm_sensor: {self.tsm_sensor}")
-
 
 class Loggers(DB.Model):
     """
@@ -669,6 +721,7 @@ def get_tilt_table(table_name):
     """
 
     class GenericTiltTable(DB.Model):
+
         """
         """
 
@@ -679,15 +732,30 @@ def get_tilt_table(table_name):
 
         data_id = DB.Column(DB.Integer, primary_key=True)
         ts = DB.Column(DB.DateTime, nullable=False)
+        node_id = DB.Column(DB.Integer, nullable=False)
+        type_num = DB.Column(DB.Integer, nullable=False)
 
         def __repr__(self):
             return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
-                    f" ts: {self.ts}")
+                    f" ts: {self.ts} node_id: {self.node_id} type_num: {self.type_num}")
+
 
     model = GenericTiltTable
-
     return model
 
+def tilt_table_schema(table):
+    """
+    """
+
+    class GenericTiltTableSchema(MARSHMALLOW.ModelSchema):
+        """
+        """
+        class Meta:
+            """
+            """
+            model = table
+    schema = GenericTiltTableSchema
+    return schema
 #############################
 # End of Class Declarations #
 #############################
@@ -710,7 +778,24 @@ class EarthquakeAlertsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = EarthquakeAlerts
+    
+class AccelerometerStatusSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Analysis Accelerometer Status class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = AccelerometerStatus
 
+class AccelerometersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Analysis Accelerometer Status class
+    """
+    status = fields.Nested("AccelerometerStatusSchema", \
+    many=True, exclude=["accelerometers"])
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = Accelerometers
 
 class EarthquakeEventsSchema(MARSHMALLOW.ModelSchema):
     """
@@ -891,7 +976,6 @@ class LoggersSchema(MARSHMALLOW.ModelSchema):
         model = Loggers
         exclude = ["data_presence"]
 
-
 class LoggerModelsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of LoggerModels class
@@ -940,7 +1024,6 @@ class AlertStatusSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = AlertStatus
-
 
 class DataPresenceRainGaugesSchema(MARSHMALLOW.ModelSchema):
     """
