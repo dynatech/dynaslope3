@@ -14,14 +14,27 @@ def get_narrative_text(narrative_type, details):
     """
     """
     narrative_text = ""
+    tag = details["tag"]
+
+    try:
+        data = details['additional_data']
+    except KeyError:
+        data = ""
+
     if narrative_type == "sms_tagging":
-        if details["tag"] == "#GroundMeas":
-            print()
-            narrative_text = f"Received surficial ground data from {details['additional_data']}"
-        elif details["tag"] == "#GroundObs":
-            narrative_text = f"Received onsite ground observation data from {details['additional_data']}"
-        elif details["tag"] == "#EwiResponse":
-            narrative_text = f"EWI SMS acknowledged by {details['additional_data']}"
+        if tag == "#GroundMeas":
+            narrative_text = f"Received surficial ground data from {data}"
+        elif tag == "#GroundObs":
+            narrative_text = (f"Received onsite ground observation data "
+                              f"from {data}")
+        elif tag == "#EwiResponse":
+            narrative_text = f"EWI SMS acknowledged by {data}"
+        elif tag == "#EwiResponse":
+            narrative_text = f"EWI SMS acknowledged by {data}"
+        elif tag == "#EwiMessage":
+            narrative_text = f"Sent EWI SMS (manually created and tagged)"
+        elif tag == "#RainInfo":
+            narrative_text = f"Sent rainfall information to {data}"
 
     return narrative_text
 
