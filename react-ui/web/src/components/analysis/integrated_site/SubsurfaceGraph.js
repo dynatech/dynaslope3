@@ -6,15 +6,17 @@ import React, {
 import Highcharts from "highcharts";
 import HC_exporting from "highcharts/modules/exporting";
 import HighchartsReact from "highcharts-react-official";
-import { Grid, Paper, Hidden } from "@material-ui/core";
+import { Grid, Paper, Hidden, Typography } from "@material-ui/core";
 import * as moment from "moment";
 import { isWidthDown } from "@material-ui/core/withWidth";
-
-import { getSubsurfacePlotData, saveChartSVG } from "../ajax";
+import heatmap from "highcharts/modules/heatmap.src";
+import { node } from "prop-types";
+import { getSubsurfacePlotData, saveChartSVG, getSubsurfaceCommsHealth } from "../ajax";
 import BackToMainButton from "./BackToMainButton";
 import DateRangeSelector from "./DateRangeSelector";
 import { computeForStartTs } from "../../../UtilityFunctions";
 
+heatmap(Highcharts);
 window.moment = moment;
 HC_exporting(Highcharts);
 
@@ -95,6 +97,50 @@ function plotDisplacement (column_data, type) {
     return displacement_data;
 }
 
+function plotNodeHealth (column_data, type) {
+    const node_health_data = [];
+    const final_data = [];
+    column_data.forEach((data_list, index) => {
+        const { id, status } = data_list;
+        let color = "";
+        if (status === 2) color = "#f9ff40";
+        if (status === 3) color = "#ff8400";
+        if (status === 4) color = "#ff6961";
+        const each_data = {  
+            name: index + 1,
+            ...data_list,
+            value: 0,
+            id: id + 1,
+            color, 
+        }; 
+        node_health_data.push(each_data);
+    });  
+    
+    final_data.push({ data: node_health_data, type });
+    return final_data;       
+}
+
+function plotCommunicationHealth (column_data) {
+    
+    const comms_health_data = [];
+    
+    column_data.forEach( data_list => {
+        const { name, data } = data_list;
+        const temp = {
+            name,
+            data: data.map( row => {
+                return { 
+                    x: row[0],
+                    y: row[1]
+                };
+            })
+        };
+        comms_health_data.push(temp);
+    });
+    // final_data.push(comms_health_data);
+    return { data: comms_health_data };       
+}
+
 function plotVelocityAlerts (column_data, type) {
     const { velocity_alerts, timestamps_per_node } = column_data;
     const velocity_data = [];
@@ -130,8 +176,63 @@ function plotVelocityAlerts (column_data, type) {
 
         velocity_data.push(col_data);
     });
-
     return velocity_data;
+}
+function createCommunicationHealthChart (communication_health, form) {
+    const { subsurface_column, start_date, end_date } = form;
+    const { data } = communication_health;
+    const options = {
+        series: data,
+        chart: {
+            type: "column",
+            height: 300,
+            resetZoomButton: {
+                position: {
+                    x: 0,
+                    y: -30
+                }
+            }
+        },
+        title: {
+            text: `<b>Communication Health Chart of ${subsurface_column.toUpperCase()}</b>`,
+            style: { fontSize: "14px" },
+            margin: 20,
+            y: 16
+        },
+        subtitle: {
+            text: `Range: <b>${moment(start_date).format("D MMM YYYY, HH:mm")} - ${moment(end_date).format("D MMM YYYY, HH:mm")}</b>`,
+            style: { fontSize: "12px" }
+        },
+        xAxis: {
+            min: 1,
+            title: {
+                text: "<b>Node number</b>"
+            },
+            allowDecimals: false
+        },
+        yAxis: {
+            min: 0,
+            max: 100,
+            title: {
+                text: "<b>Health Percentage (%)</b>"
+            }
+        },
+        tooltip: {
+            crosshairs: true,
+            shared: true,
+            headerFormat: "Node {point.x}<br/>"
+        },
+        legend: {
+            align: "right",
+            verticalAlign: "middle",
+            layout: "vertical"
+        },
+        credits: {
+            enabled: false
+        },
+    };
+
+    return options;
 }
 
 function prepareColumnPositionChartOption (set_data, input, is_desktop) {
@@ -262,7 +363,7 @@ function prepareDisplacementChartOption (set_data, form) {
             }
         },
         tooltip: {
-            header: "{point.x:%Y-%m-%d}: {point.y:.2f}"
+            header: "{  .x:%Y-%m-%d}: {point.y:.2f}"
         },
         plotOptions: {
             spline: {
@@ -292,7 +393,6 @@ function prepareVelocityAlertsOption (set_data, form) {
     const xAxisTitle = orientation === "across_slope" ? "Across Slope" : "Downslope";
     const categories = data.map(x => x.name).filter(x => typeof x === "number");
     categories.unshift(0);
-
     return {
         series: data,
         chart: {
@@ -368,7 +468,104 @@ function prepareVelocityAlertsOption (set_data, form) {
         }
     };
 }
+function prepareNodeHealthSummaryChart (set_data, form) {
+    const { data } = set_data;
+    const { subsurface_column } = form;
+    const divisor = Math.floor(data.length / 25);
+    
+    return {
+        series: [{
+            name: "Node Health",
+            borderColor: "#444444",
+            borderWidth: 0.5,
+            data,
+            rowsize: 10,
+            dataLabels: {
+                enabled: true,
+                style: {
+                    textShadow: "none",
+                },
+                formatter () {
+                    return `${this.point.id}`;
+                }
+            },
+           
+        }],
+        chart: {
+            type: "heatmap",
+            height: 140 + (divisor * 20),
+            marginTop: 50,
+            marginBottom: 40,
+            resetZoomButton: {
+                position: {
+                    x: 0,
+                    y: -30
+                }
+            }
+        },
+        title: {
+            text: `<b>Node Health Summary of ${subsurface_column.toUpperCase()}</b>`,
+            style: { fontSize: "14px" }
+        },
+        subtitle: {
+            text: `As of: <b>${moment().format("D MMM YYYY, HH:mm")}</b><br>`,
+            style: { fontSize: "0.6rem" }
+        },
+        xAxis: {
+            visible: false,
+            categories: [],
+        },
+        yAxis: {
+            reversed: false,
+            categories: [],
+            title: null,
+            labels: {
+                format: "&ensp;",
+                useHTML: true
+            },
+        },
+        colorAxis: {
+            stops: [
+                [0, "#7cb5ec"],
+                [0.5, "#ffed49"],
+                [1, "#ff1414"]
+            ],
+            min: 0,
+            max: 2
+        },
+        legend: {
+            enabled: false
+        },
+        tooltip: {
+            formatter () {
+                const {
+                    id_date, flagger,
+                    status, comment, id
+                } = this.point;
+                let final_stat = "Ok";
+                let added_info = "";
 
+                if (typeof status !== "undefined") {
+                    switch (status) {
+                        case 2: final_stat = "Use with Caution"; break;
+                        case 3: final_stat = "Spacial Case"; break;
+                        case 4: final_stat = "Not Ok"; break;
+                        default: final_stat = "Ok"; break;
+                    }
+                    // final_stat = status;
+                    added_info = `Identification Date: <b>${moment(id_date).format("DD MMM YYYY")}</b><br/>` +
+                    `Comment: <b>${comment}</b><br/>Flagger: <b>${flagger}</b>`;
+                }
+
+                const tooltip = `Node ID: <b>${id}</b><br/>Status: <b>${final_stat}</b><br/>${added_info}`;
+                return tooltip;
+            }
+        },
+        credits: {
+            enabled: false
+        }
+    };
+}
 
 function SubsurfaceGraph (props) {
     const {
@@ -403,6 +600,7 @@ function SubsurfaceGraph (props) {
     const disable_back = typeof disableBack === "undefined" ? false : disableBack;
     const save_svg = typeof saveSVG === "undefined" ? false : saveSVG;
 
+    const [sub_comms_healh, set_sub_comms_health] = useState([]); 
     const [processed_data, setProcessedData] = useState([]);
     const chartRefs = useRef([...Array(6)].map(() => createRef()));
     const [get_svg, setGetSVGNow] = useState(false);
@@ -413,6 +611,7 @@ function SubsurfaceGraph (props) {
     
     const is_desktop = isWidthDown(width, "sm");
     const default_options = { title: { text: "Loading" } };
+
     useEffect(() => { 
         setProcessedData([]);
         getSubsurfacePlotData(input, subsurface_data => {
@@ -423,14 +622,15 @@ function SubsurfaceGraph (props) {
                 if (type === "column_position") temp = plotColumnPosition(sub, type);
                 else if (type === "displacement") temp = plotDisplacement(sub, type);
                 else if (type === "velocity_alerts") temp = plotVelocityAlerts(sub, type);
-                processed.push(...temp);
+                else if (type === "node_health") temp = plotNodeHealth(sub, type);
+                processed.push(...temp);                                                                                                                                                                                                                
             });
             setProcessedData(processed);
         });
     }, [selected_range_info, selected_hour_interval]);
 
     const [options, setOptions] = useState([{ title: { text: "Loading" } }]); 
-    
+                                                            
     useEffect(() => {
         const temp = [];
         processed_data.forEach(data => {
@@ -439,11 +639,18 @@ function SubsurfaceGraph (props) {
             if (type === "column_position") option = prepareColumnPositionChartOption(data, input, is_desktop);
             else if (type === "displacement") option = prepareDisplacementChartOption(data, input);
             else if (type === "velocity_alerts") option = prepareVelocityAlertsOption(data, input);
+            else if (type === "node_health") option = prepareNodeHealthSummaryChart(data, input);
             temp.push(option);
         });
-
         setOptions(temp);
         if (temp.length > 0 && save_svg) setGetSVGNow(true);
+
+        getSubsurfaceCommsHealth(input, comms_health_data =>{
+            const sub = JSON.parse(JSON.stringify(comms_health_data));
+            const raw = plotCommunicationHealth(sub);
+            const option = createCommunicationHealthChart(raw, input);
+            set_sub_comms_health(option);
+        });
     }, [processed_data]);
 
     useEffect(() => {
@@ -497,7 +704,7 @@ function SubsurfaceGraph (props) {
 
             <div style={{ marginTop: 16 }}>
                 <Grid container spacing={4}>
-                    {
+                    {                           
                         options.length === 0 && (
                             <Fragment>
                                 <Grid item xs={12} md={6} key={1}>
@@ -523,8 +730,12 @@ function SubsurfaceGraph (props) {
                         options.map((option, i) => {
                             const chart_update = true;
                             const ref = chartRefs.current[i];
+                            let gridSize = 6;
+                            if (typeof option.series !== "undefined") {
+                                gridSize = option.series[0].name === "Node Health" ? 12 : 6;
+                            }
                             return (
-                                <Grid item xs={12} md={6} key={i}>
+                                <Grid item xs={12} md={gridSize} key={i}>
                                     <Paper>
                                         <HighchartsReact
                                             highcharts={Highcharts}
@@ -536,10 +747,22 @@ function SubsurfaceGraph (props) {
                                 </Grid>
                             );
                         })
+                    }{ 
+                        options.length !== 0 && sub_comms_healh.length !== 0 &&
+                            <Grid item xs={12} md={12}>
+                                <Paper>
+                                    <HighchartsReact
+                                        highcharts={Highcharts}
+                                        allowChartUpdate
+                                        options={sub_comms_healh}
+                                    // ref={ref}
+                                    />
+                                </Paper>
+                            </Grid>
                     }
                 </Grid>
             </div>
-
+            
             {
                 save_svg && (
                     <Hidden xsUp implementation="css">
