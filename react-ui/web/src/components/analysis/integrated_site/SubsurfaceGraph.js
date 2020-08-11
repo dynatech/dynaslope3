@@ -3,13 +3,17 @@ import React, {
     useRef, createRef
 } from "react";
 
+import { Grid, Paper, Hidden } from "@material-ui/core";
+import { isWidthDown } from "@material-ui/core/withWidth";
+
 import Highcharts from "highcharts";
 import HC_exporting from "highcharts/modules/exporting";
 import HighchartsReact from "highcharts-react-official";
-import { Grid, Paper, Hidden } from "@material-ui/core";
-import * as moment from "moment";
-import { isWidthDown } from "@material-ui/core/withWidth";
 import heatmap from "highcharts/modules/heatmap.src";
+
+import * as moment from "moment";
+import Chroma from "chroma-js";
+
 import { getSubsurfacePlotData, saveChartSVG, getSurfaceNodeHealth } from "../ajax";
 import BackToMainButton from "./BackToMainButton";
 import DateRangeSelector from "./DateRangeSelector";
@@ -21,36 +25,13 @@ HC_exporting(Highcharts);
 
 function assignColorToEachSeries (data_array) {
     const size = data_array.length;
-    const rainbow_colors = makeRainbowColors(size);
+    const rainbow_colors = Chroma.scale(["#f00", "#0f0", "#00f"]).mode("hsl")
+    .domain([0, size - 1]);
     const data = [...data_array];
     for (let i = 0; i < size; i += 1) {
-        if (data_array[i].name !== "Cumulative") data[i].color = rainbow_colors[i];
+        if (data_array[i].name !== "Cumulative") data[i].color = rainbow_colors(i).name();
     }
     return data;
-}
-
-let rainbow_colors = [];
-
-function makeRainbowColors (size) {
-    const rainbow = [...rainbow_colors];
-    if (rainbow.length !== size) {
-        for (let i = 0; i < size; i += 1) {
-            const obj = { index: i, size };
-            const red = sinToHex(obj, 2 * Math.PI * 2 / 3);
-            const blue = sinToHex(obj, 1 * Math.PI * 2 / 3);
-            const green = sinToHex(obj, 0 * Math.PI * 2 / 3);
-            rainbow[i] = `#${red}${green}${blue}`;
-        }
-        rainbow_colors = [...rainbow];
-    }
-    return rainbow;
-}
-
-function sinToHex ({ index, size }, phase) {
-    const sin = Math.sin(Math.PI / size * 2 * index + phase);
-    const int = Math.floor(sin * 127) + 128;
-    const hex = int.toString(16);
-    return hex.length === 1 ? `0${hex}` : hex;
 }
 
 function plotColumnPosition (column_data, type) {
