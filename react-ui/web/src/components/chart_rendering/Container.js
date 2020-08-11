@@ -72,6 +72,7 @@ function Container (props) {
                 currentUser={current_user}
                 disableBack
                 saveSVG
+                isEOS
             />;
             setSubsurfaceComp(temp);
         }

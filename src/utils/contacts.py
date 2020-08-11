@@ -243,7 +243,7 @@ def save_user_information(data):
     if "salutation" in data:
         salutation = data["salutation"]
     if "sex" in data:
-        salutation = data["sex"]
+        sex = data["sex"]
 
     if user_id == 0:
         insert_user = Users(
@@ -481,10 +481,10 @@ def save_user_ewi_restriction(restriction, user_id):
     Function that save user ewi restriction
     """
 
-    if restriction != 0:
-        UserEwiRestrictions.query.filter(
-            UserEwiRestrictions.user_id == user_id).delete()
+    UserEwiRestrictions.query.filter(
+        UserEwiRestrictions.user_id == user_id).delete()
 
+    if restriction != 0:
         save_restriction_query = UserEwiRestrictions(
             user_id=user_id, alert_level=restriction)
         DB.session.add(save_restriction_query)

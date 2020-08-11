@@ -70,7 +70,7 @@ function SendMessageForm (props) {
                                 // LEWC to MLGU
                                 to_push = false;
                                 if (name === "lewc" || (scope < 3 && name === "lgu")) to_push = true; 
-                            } else if (ewi_restriction !== null && alert_level !== 0 && alert_level < ewi_restriction.alert_level) {
+                            } else if (ewi_restriction !== null && alert_level !== 0 && alert_level <= ewi_restriction.alert_level) {
                                 to_push = false;
                             }
                             

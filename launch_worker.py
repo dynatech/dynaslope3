@@ -84,9 +84,8 @@ def setup_periodic_tasks(sender, **kwargs):
             alert_generation_background_task.s(),
             name="monitoring-background-task"
         )
-
         sender.add_periodic_task(
-            crontab(minute="59", hour="3/4"),
+            crontab(minute="59", hour="3-23/4"),
             no_ewi_acknowledgement_bg_task.s(),
             name="no-ewi-acknowledgement-bg-task"
         )

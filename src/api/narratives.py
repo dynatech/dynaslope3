@@ -2,9 +2,9 @@
 Narratives functions API File
 """
 
-from connection import DB
 from datetime import datetime
 from flask import Blueprint, jsonify, request
+from connection import DB
 from src.models.narratives import (NarrativesSchema)
 from src.utils.narratives import (get_narratives, write_narratives_to_db,
                                   update_narratives_on_db, find_narrative_event_id,

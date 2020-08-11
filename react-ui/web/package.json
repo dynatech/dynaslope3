@@ -11,6 +11,7 @@
     "@material-ui/icons": "^4.9.1",
     "@material-ui/pickers": "^3.2.10",
     "axios": "^0.19.2",
+    "chroma-js": "^2.1.0",
     "ckeditor": "^4.12.1",
     "highcharts": "^8.1.2",
     "highcharts-export-server": "^2.0.28",
