@@ -660,9 +660,9 @@ function SubsurfaceGraph (props) {
         <Fragment>
             <Grid container spacing={1} justify="space-between">
                 {
-                    !disable_back && <BackToMainButton 
+                    !disable_back && <Grid item sm><BackToMainButton 
                         {...props}
-                    />
+                    /></Grid>
                 }
 
                 <DateRangeSelector
