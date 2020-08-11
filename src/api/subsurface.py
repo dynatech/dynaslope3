@@ -1,11 +1,12 @@
 """
 Subsurface functions API File
 """
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from src.models.analysis import (TSMSensorsSchema)
 from src.utils.subsurface import (
     get_site_subsurface_columns, get_subsurface_column_versions,
-    get_subsurface_plot_data, get_subsurface_comms_health)
+    get_subsurface_plot_data, get_subsurface_node_health
+)
 
 
 SUBSURFACE_BLUEPRINT = Blueprint("subsurface_blueprint", __name__)
@@ -54,17 +55,22 @@ def wrap_get_subsurface_plot_data(column_name, end_ts, start_ts, hour_value):
     """
     """
 
+    i_c_h = request.args.get("include_comms_health", default="false", type=str)
+    include_comms_health = i_c_h.lower() == "true"
+
     data = get_subsurface_plot_data(
-        column_name=column_name, end_ts=end_ts, start_date=start_ts, hour_value=hour_value)  # magta, 2017-06-09 19:30
-    
+        column_name=column_name,
+        end_ts=end_ts, start_date=start_ts,
+        hour_value=hour_value,
+        include_comms_health=include_comms_health)  # magta, 2017-06-09 19:30
+
     return jsonify(data)
 
-@SUBSURFACE_BLUEPRINT.route("/subsurface/get_subsurface_comms_health/<column_name>/<end_ts>/<start_ts>", methods=["GET"])
-def wrap_get_subsurface_comms_health_data(column_name, end_ts, start_ts):
+
+@SUBSURFACE_BLUEPRINT.route("/subsurface/get_subsurface_node_health/<column_name>", methods=["GET"])
+def wrap_get_subsurface_node_health_data(column_name):
     """
     """
 
-    data = get_subsurface_comms_health(
-        column_name=column_name, end_ts=end_ts, start_date=start_ts)  # magta, 2017-06-09 19:30
-    
+    data = get_subsurface_node_health(column_name=column_name)
     return jsonify(data)
