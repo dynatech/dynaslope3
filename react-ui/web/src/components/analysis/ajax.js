@@ -240,8 +240,8 @@ export function saveChartSVG (input, callback) {
     });
 }
 
-export function saveTagInformation (input, callback) {
-    const api_link = `${host}/api/rainfall/save_tag_information`;
+export function saveInvalidRainfallTag (input, callback) {
+    const api_link = `${host}/api/rainfall/tag_invalid_data`;
     
     axios.post(api_link, input)
     .then(response => {
