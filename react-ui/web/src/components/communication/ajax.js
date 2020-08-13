@@ -98,20 +98,6 @@ export function sendMessage (payload, callback, error_callback) {
     });
 }
 
-export function writeEwiNarrativeToDB (payload, callback) {
-    const api_link = `${host}/api/narratives/write_narratives_to_db`;
-
-    axios.post(api_link, payload)
-    .then(response => {
-        const { data } = response;
-        console.log("EWI SMS reponse", data);
-        callback(data);
-    })
-    .catch(error => {
-        console.error(error);
-    });
-}
-
 export function getRecipientsList (payload, callback) {
     const api_link = `${host}/api/contacts/get_recipients_option`;
 

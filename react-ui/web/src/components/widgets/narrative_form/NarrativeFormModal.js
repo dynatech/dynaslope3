@@ -53,6 +53,7 @@ function NarrativeFormModal (props) {
     const site_options = prepareSitesOption(sites, true);
     const call_ack_hashtag = "#EWIResponseCall"; // when changing this, mirror change on communication_task.py
     const [call_ack, setCallAck] = useState(false);
+    const [to_use_current_instance, setToUseCurrentInstance] = useState(true);
 
     useEffect(() => {
         let default_narr_data = {};
@@ -64,6 +65,7 @@ function NarrativeFormModal (props) {
 
             const site = site_options.filter(row => row.value === site_id);
             delete site.data;
+            site.event_id = event_id;
             setSiteList([...site]);
 
             default_narr_data = {
@@ -93,15 +95,19 @@ function NarrativeFormModal (props) {
             }
         );
 
-        const temp = [];
-        site_list.forEach(({ value }) => {
-            // Value is site_id
-            temp.push(value);
+        const temp = site_list.map(x => {
+            const { value, event_id } = x; // Value is site_id
+            let temp_id = event_id || null;
+            if (!to_use_current_instance) temp_id = null;
+            
+            return { site_id: value, event_id: temp_id };
         });
 
         narrative_data.site_list = temp;
         narrative_data.timestamp = moment(narrative_data.timestamp).format("YYYY-MM-DD HH:mm:ss");
         narrative_data.user_id = current_user.user_id;
+        console.log(narrative_data);
+        // return;
         handleNarratives(narrative_data, ret => {
             console.log("ret", ret);
             handleReset();
@@ -134,6 +140,7 @@ function NarrativeFormModal (props) {
         });
         setSiteList(site_list);
         setCallAck(false);
+        setToUseCurrentInstance(true);
     };
 
     const handleFullReset = () => {
@@ -146,6 +153,7 @@ function NarrativeFormModal (props) {
             type_id: 1
         });
         setSiteList(null);
+        setToUseCurrentInstance(true);
     };
 
     const closeFn = () => {
@@ -178,6 +186,8 @@ function NarrativeFormModal (props) {
                         callAck={call_ack}
                         setCallAck={setCallAck}
                         callAckHashtag={call_ack_hashtag}
+                        toUseCurrentInstance={to_use_current_instance}
+                        setToUseCurrentInstance={setToUseCurrentInstance}
                     />
                 </DialogContent>
                 <DialogActions>

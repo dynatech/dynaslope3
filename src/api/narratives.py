@@ -47,7 +47,6 @@ def wrap_write_narratives_to_db():
         try:
             site_list = json_data["site_list"]
             print(get_process_status_log("Multiple Site Narrative", "start"))
-            is_multiple_insert = True
         except KeyError:
             raise
 
@@ -94,11 +93,11 @@ def wrap_write_narratives_to_db():
 
         # INSERT OF NARRATIVE
         else:
-            for site_id in site_list:
-                has_event_id = bool(json_data["event_id"])
-                if has_event_id:
-                    event_id = json_data["event_id"]
-                else:
+            for row in site_list:
+                event_id = row["event_id"]
+                site_id = row["site_id"]
+
+                if not event_id:
                     event_id = find_narrative_event_id(timestamp, site_id)
 
                 # if event:
