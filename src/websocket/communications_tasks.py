@@ -116,6 +116,7 @@ def communication_background_task():
                     message_row["messages"] = msgs_schema
                     inbox_messages_arr.insert(0, message_row)
 
+                    update_mobile_id_room(mobile_id)
                     messages["inbox"] = inbox_messages_arr
                     set_data_to_memcache(name="CB_MESSAGES", data=messages)
                 elif update_source == "outbox":
