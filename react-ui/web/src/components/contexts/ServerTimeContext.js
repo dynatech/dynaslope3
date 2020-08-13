@@ -3,8 +3,7 @@ import React, {
     useEffect
 } from "react";
 import { 
-    getServerTime, receiveServerTime,
-    unsubscribeToWebSocket
+    getServerTime, receiveServerTime
 } from "../../websocket/misc_ws";
 
 export const ServerTimeContext = createContext();
@@ -15,10 +14,6 @@ export const ServerTimeProvider = ({ children }) => {
     useEffect(() => {
         getServerTime();
         receiveServerTime(ts => setServerTime(ts));
-
-        return function cleanup () {
-            unsubscribeToWebSocket();
-        };
     }, []);
 
     const return_obj = { server_time };
