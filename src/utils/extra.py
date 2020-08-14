@@ -282,3 +282,17 @@ def get_process_status_log(key, status):
         sys_time += f"{key} FAILED..."
 
     return status_log
+
+
+def convert_ampm_to_noon_midnight(ts):
+    """
+    """
+
+    formatted = ts.strftime("%I%p")
+
+    if ts.hour == 12:
+        formatted = "12NN"
+    elif ts.hour == 0:
+        formatted = "12MN"
+
+    return formatted

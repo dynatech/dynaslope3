@@ -11,6 +11,7 @@
     "@material-ui/icons": "^4.9.1",
     "@material-ui/pickers": "^3.2.10",
     "axios": "^0.19.2",
+    "chroma-js": "^2.1.0",
     "ckeditor": "^4.12.1",
     "highcharts": "^8.1.2",
     "highcharts-export-server": "^2.0.28",
@@ -38,6 +39,7 @@
     "react-window": "^1.8.5",
     "recompose": "^0.30.0",
     "socket.io-client": "^2.3.0",
+    "string-mask": "^0.3.0",
     "text-mask-addons": "^3.8.0",
     "verify": "^0.1.2",
     "vertical-timeline-component-for-react": "^1.0.7"

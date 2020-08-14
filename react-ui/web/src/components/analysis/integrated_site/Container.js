@@ -194,7 +194,8 @@ function prepareOptions (is_mobile, type, data_list) {
     let subtitle_text = `Timestamp: <b>${ts_now.format(format_str)}</b>`;
     switch (type) {
         case "surficial":
-            subtitle_text += "<br/>Note: Data presence within four hours until next release" +
+            subtitle_text += "<br/>Note: Data presence within four hours<br/>until next release for event sites" +
+            "<br/>Data presence from 6AM to 12NN for <br/>routine and extended sites" +
             "<br/><b>*Sites without markers</b>";
             break;
         case "subsurface":

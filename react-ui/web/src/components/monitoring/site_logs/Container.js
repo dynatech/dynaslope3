@@ -202,6 +202,7 @@ function SiteLogs (props) {
         if (data === "is_narrative_modal_open") {
             setIsOpenNarrativeModal(!isOpenNarrativeModal);
             setIsEditMode(false);
+            setChosenNarrative({});
         } else if (data === "is_open_delete_modal") {
             setIsOpenDeleteModal(!isOpenDeleteModal);
         }

@@ -93,7 +93,7 @@ function initReducer (data) {
 function EditSiteInformationForm (props) {
     const {
         siteInformation, setSiteInformationData,
-        seasons, setIsDisable
+        seasons, setIsDisabled
     } = props;
 
     const [site_data, dispatch] = useReducer(reducerFunction, siteInformation, initReducer);
@@ -111,9 +111,9 @@ function EditSiteInformationForm (props) {
             const { required, helper_text } = site_data[key];
             return required && helper_text !== "" && helper_text !== null;
         });
-        setIsDisable(is_disable_save);
+    
+        setIsDisabled(is_disable_save);
         setSiteInformationData(sanitizeData(site_data));
-
     }, [site_data]);
     
     useEffect(() => {

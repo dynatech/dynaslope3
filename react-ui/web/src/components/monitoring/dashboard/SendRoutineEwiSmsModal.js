@@ -3,17 +3,18 @@ import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
     Button, withMobileDialog, IconButton,
-    Grid, CircularProgress, 
+    Grid, CircularProgress, makeStyles
 } from "@material-ui/core";
 import { Close } from "@material-ui/icons";
 import { useSnackbar } from "notistack";
 
+import GeneralStyles from "../../../GeneralStyles";
 import { getCurrentUser } from "../../sessions/auth";
 import MessageInputTextbox from "../../communication/chatterbox/MessageInputTextbox";
-
 import { sendRoutineEwiMessage } from "../../communication/ajax";
-
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
+
+const useStyles = makeStyles(theme => GeneralStyles(theme));
 
 function SendRoutineMessageForm (props) {
     const {
@@ -52,6 +53,7 @@ function SendRoutineEwiSmsModal (props) {
         fullScreen, modalStateHandler,
         modalState, textboxValue, siteList
     } = props;
+    const classes = useStyles();
 
     // const { release_id, site_code } = releaseDetail;
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -134,7 +136,14 @@ function SendRoutineEwiSmsModal (props) {
             </DialogTitle>
             <DialogContent style={{ overflowY: "hidden" }}>
                 <DialogContentText>
-                    Early warning information recipients for this site is already pre-loaded. Recipients are LEWC, Barangay, and Municipal LGUs per site. If you need to add a new recipient, add a new community contact via chatterbox.
+                    Early warning information recipients for this site is already pre-loaded. 
+                    Recipients are LEWC, Barangay, and Municipal LGUs per site. If you need to add a new recipient, 
+                    add a new community contact via chatterbox.
+                </DialogContentText>
+
+                <DialogContentText className={classes.dyna_error}>
+                    NOTE: Ensure first that alerts for ALL sites under routine monitoring has been released before sending 
+                    routine EWI SMS. Sending routine EWI in multiple batches will result in message duplication on our stakeholders.
                 </DialogContentText>
                         
                 <div style={{ marginTop: 20 }}>

@@ -233,22 +233,30 @@ def save_user_information(data):
     nickname = data["nickname"]
     emails = data["emails"]
     ewi_recipient = data["ewi_recipient"]
-    ewi_restriction = data["restriction"]
     status = data["status"]
+    salutation = None
+    birthday = None
+    sex = None
+
+    if "birthday" in data:
+        birthday = data["birthday"]
+    if "salutation" in data:
+        salutation = data["salutation"]
+    if "sex" in data:
+        sex = data["sex"]
 
     if user_id == 0:
         insert_user = Users(
             first_name=first_name, last_name=last_name,
             middle_name=middle_name, nickname=nickname,
-            ewi_recipient=ewi_recipient,
-            status=status
+            ewi_recipient=ewi_recipient, birthday=birthday,
+            sex=sex, status=status, salutation=salutation
         )
 
         DB.session.add(insert_user)
         DB.session.flush()
         user_id = insert_user.user_id
 
-        save_user_email(emails, user_id)
     else:
         update = Users.query.options(DB.raiseload("*")).get(user_id)
         update.first_name = first_name
@@ -257,28 +265,52 @@ def save_user_information(data):
         update.nickname = nickname
         update.ewi_recipient = ewi_recipient
         update.status = status
+        update.birthday = birthday
+        update.sex = sex
+        update.salutation = salutation
 
-        save_user_email(emails, user_id)
+    try:
+        emails_to_delete = data["delete_emails"]
+    except KeyError:
+        emails_to_delete = None
 
-    save_user_ewi_restriction(ewi_restriction, user_id)
+    save_user_email(emails, user_id, emails_to_delete)
+
+    try:
+        ewi_restriction = data["restriction"]
+        save_user_ewi_restriction(ewi_restriction, user_id)
+    except KeyError:
+        pass
 
     return user_id
 
 
-def save_user_email(emails, user_id):
+def save_user_email(emails, user_id, delete_list=None):
     """
     Function that save user email
     """
-    email_len = len(emails)
-    if email_len > 0:
+
+    if emails:
         for row in emails:
             row_type = type(row)
             if row_type == str:
                 insert_email = UserEmails(user_id=user_id, email=row)
                 DB.session.add(insert_email)
             else:
-                update_email = UserEmails.query.get(row["email_id"])
-                update_email.email = row["email"]
+                if row["email_id"] == 0:
+                    insert_email = UserEmails(
+                        user_id=user_id, email=row["email"])
+                    DB.session.add(insert_email)
+                else:
+                    update_email = UserEmails.query.get(row["email_id"])
+                    update_email.email = row["email"]
+
+    if delete_list is not None:
+        delete_len = len(delete_list)
+        if delete_len > 0:
+            for row in delete_list:
+                UserEmails.query.filter_by(
+                    user_id=user_id, email=row["email"]).delete()
 
     return True
 
@@ -289,7 +321,11 @@ def save_user_contact_numbers(data, user_id):
     """
 
     mobile_numbers = data["mobile_numbers"]
-    landline_numbers = data["landline_numbers"]
+    try:
+        landline_numbers = data["landline_numbers"]
+    except KeyError:
+        landline_numbers = []
+
     mobile_numbers_len = len(mobile_numbers)
     landline_number_len = len(landline_numbers)
 
@@ -299,7 +335,6 @@ def save_user_contact_numbers(data, user_id):
             mobile_id = row["mobile_number"]["mobile_id"]
             sim_num = row["mobile_number"]["sim_num"]
             status = row["status"]
-
             to_insert_user_mobiles = False
             if mobile_id == 0:
                 check_sim_num = MobileNumbers.query.filter_by(
@@ -365,6 +400,7 @@ def save_user_contact_numbers(data, user_id):
                 update_landline = UserLandlines.query.get(landline_id)
                 update_landline.landline_num = landline_num
 
+    DB.session.flush()
     return mobile_ids
 
 
@@ -445,10 +481,10 @@ def save_user_ewi_restriction(restriction, user_id):
     Function that save user ewi restriction
     """
 
-    if restriction != 0:
-        UserEwiRestrictions.query.filter(
-            UserEwiRestrictions.user_id == user_id).delete()
+    UserEwiRestrictions.query.filter(
+        UserEwiRestrictions.user_id == user_id).delete()
 
+    if restriction != 0:
         save_restriction_query = UserEwiRestrictions(
             user_id=user_id, alert_level=restriction)
         DB.session.add(save_restriction_query)
@@ -580,6 +616,7 @@ def get_recipients(site_ids=None,
     """
     Refactored function of getting recipients
     """
+
     query = UsersRelationship.query.options(
         DB.subqueryload("mobile_numbers").joinedload(
             "mobile_number").raiseload("*"),

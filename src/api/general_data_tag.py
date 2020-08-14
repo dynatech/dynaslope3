@@ -32,6 +32,7 @@ def handle_update_insert_tags():
     """
     Function that insert tags
     """
+
     tag_data = request.get_json()
     contact_person = tag_data["contact_person"]
     message = tag_data["message"]
@@ -50,7 +51,6 @@ def handle_update_insert_tags():
                 tag_details=tag_details,
                 tag_id=tag_id
             )
-
         else:
             response = insert_data_tag(
                 tag_type=tag_type,
@@ -61,7 +61,9 @@ def handle_update_insert_tags():
         tag_description = get_tag_description(tag_id=tag_id)
         var_checker("tag_description", tag_description, True)
         # TODO: change tags when new tags came or use tag_ids
-        if tag_description in ["#GroundMeas", "#GroundObs", "#EwiResponse"]:
+        if tag_description in [
+                "#GroundMeas", "#GroundObs", "#EwiResponse",
+                "#RainInfo", "#EwiMessage"]:
             get_process_status_log(key="Writing narratives", status="request")
 
             try:

@@ -43,27 +43,12 @@ def get_site_subsurface_columns(site_code, include_deactivated=False):
     return sub_column
 
 
-def get_subsurface_column_data_presence(site_column, start_ts, end_ts):
-    """
-        Roadblock: This function requires a dynamically created Models and Schemas (or all schemas)
-    """
-    table_name = "tilt_" + str(site_column)
-    filter_var = ""
-    return "data presence"
-
-
-# def get_subsurface_column_data():
-#     """
-#         Roadblock: This function requires a dynamically created Models and Schemas (or all schemas)
-#     """
-#     return "column data"
-
-
 def get_subsurface_column_versions(tsm_id):
     """
         Basically returns the whole row of data regarding a site_column.
         Version should be filtered through new schema class
     """
+
     tsms = TSMSensors
     column = tsms.query.filter_by(tsm_id=tsm_id).first()
 
@@ -256,12 +241,8 @@ def process_velocity_alerts_data(vel_alerts, ts_per_node):
 
     return ret_dict
 
-# def getSiteColumnNodeCount (subsurface_column):
-#     $result = $this->subsurface_node_model->getSiteColumnNodeCount($subsurface_column);
-#     return json_encode($result);
 
-
-def computeForYValues (node_count, base):
+def compute_for_y_values(node_count, base):
     """
     """
     quotient = math.floor(node_count / base)
@@ -282,17 +263,21 @@ def get_node_status(tsm_id):
     """
     get node status per logger
     """
+
     query = Accelerometers.query.options(
         DB.joinedload("status", innerjoin=True).raiseload("*")) \
-            .filter_by(tsm_id=tsm_id).all()
-    result = AccelerometersSchema(many=True, only=["status", "node_id"]).dump(query).data
+        .filter_by(tsm_id=tsm_id).all()
+    result = AccelerometersSchema(
+        many=True, only=["status", "node_id"]).dump(query).data
 
     return result
+
 
 def get_node_details(logger_name, return_with_tsm_id=None):
     """
     returns node count of logger
     """
+
     query = TSMSensors.query.join(Loggers).options(
         DB.joinedload("logger", innerjoin=True).raiseload("*")
     ).filter_by(logger_name=logger_name)
@@ -305,15 +290,17 @@ def get_node_details(logger_name, return_with_tsm_id=None):
 
     return throw
 
+
 def process_node_health_data(logger_name):
     """
     returns node health per node of logger
     """
+
     details = get_node_details(logger_name, True)
     node_count = details["node_count"]
     tsm_id = details["tsm_id"]
     node_status = get_node_status(tsm_id)
-    y_iterators = computeForYValues(node_count, 25)
+    y_iterators = compute_for_y_values(node_count, 25)
     node_summary = []
     count = 0
 
@@ -321,10 +308,10 @@ def process_node_health_data(logger_name):
         i = 1
         while i <= y_index:
             temp = {
-                "x" : i,
-                "y" : y_index,
-                "id" : count,
-                "value" : 0,
+                "x": i,
+                "y": y_index,
+                "id": count,
+                "value": 0,
             }
             node_summary.append(count)
             node_summary[count] = temp
@@ -346,37 +333,43 @@ def process_node_health_data(logger_name):
 
     return node_summary
 
+
 def get_subsurface_column_data(site_column, start_date, end_date):
     """
     get data from dynamic tables
     """
+
     tilt = f"tilt_{site_column}"
     Table = get_tilt_table(tilt)
 
-    query = Table.query.filter(DB.and_(start_date <= Table.ts,\
-        Table.ts <= end_date)).all()
+    query = Table.query.filter(DB.and_(start_date <= Table.ts,
+                                       Table.ts <= end_date)).all()
 
     return query
+
 
 def get_communication_health_data(logger, start_date, end_date):
     """
     get communication health for subsurface
     """
+
     details = get_node_details(logger, True)
     data = get_subsurface_column_data(logger, start_date, end_date)
     node_count = details["node_count"]
     tsm_id = details["tsm_id"]
-    array = delegate_subsurface_column_data_for_computation(data, logger, node_count)
+    array = delegate_subsurface_column_data_for_computation(
+        data, logger, node_count)
     date_format = "%Y-%m-%d %H:%M:%S"
     # // + 1 because the end_date is inclusive
-    date_diff = (datetime.strptime(end_date, date_format) - \
-        datetime.strptime(start_date, date_format))
+    date_diff = (datetime.strptime(end_date, date_format) -
+                 datetime.strptime(start_date, date_format))
     expected_no_of_timestamps = (date_diff.days * 24 * 60) / 1800 + 1
     accel_ids = get_accel_id_by_version(tsm_id)
-    communication_health = compute_communication_health(array, expected_no_of_timestamps,\
-        node_count, accel_ids)
+    communication_health = compute_communication_health(array, expected_no_of_timestamps,
+                                                        node_count, accel_ids)
 
-    return communication_health
+    return {"data": communication_health}
+
 
 def get_accel_id_by_version(tsm_id):
     """
@@ -384,16 +377,18 @@ def get_accel_id_by_version(tsm_id):
     """
     _version = get_subsurface_column_versions(tsm_id)
 
-    if _version == 1: 
+    if _version == 1:
         return []
     if _version == 2:
         return [32, 33]
     if _version == 3:
         return [11, 12]
 
+
 def delegate_subsurface_column_data_for_computation(data, subsurface_column, node_count):
     """
     """
+
     array = {}
     for point in data:
         node_id = point.node_id
@@ -412,18 +407,21 @@ def delegate_subsurface_column_data_for_computation(data, subsurface_column, nod
 def compute_communication_health(array, expected_no_of_timestamps, node_count, accel_ids):
     """
     """
+
     computed_percentages = {}
     series = []
     new_version = False
     node_id = 1
+
     while node_id <= node_count:
-        if len(accel_ids) > 0:
+        if accel_ids:
             new_version = True
 
             if str(node_id) not in array:
                 for accel_id in accel_ids:
                     computed_percentages.setdefault(accel_id, [])
-                    computed_percentages[accel_id].append([node_id, 0])
+                    computed_percentages[accel_id].append(
+                        {"x": node_id, "y": 0})
             else:
                 for accel_id in accel_ids:
                     filtered = []
@@ -432,14 +430,16 @@ def compute_communication_health(array, expected_no_of_timestamps, node_count, a
                     count = len(filtered)
                     percentage = count / expected_no_of_timestamps * 100
                     computed_percentages.setdefault(accel_id, [])
-                    computed_percentages[accel_id].append([node_id, round(percentage, 2)])
+                    computed_percentages[accel_id].append(
+                        {"x": node_id, "y": round(percentage, 2)})
 
         else:
             percentage = 0
             if str(node_id) in array:
                 count = len(array[str(node_id)])
                 percentage = count / expected_no_of_timestamps * 100
-            computed_percentages.setdefault(0, []).append([node_id, round(percentage, 2)])
+            computed_percentages.setdefault(0, []).append(
+                {"x": node_id, "y": round(percentage, 2)})
 
         node_id += 1
 
@@ -448,18 +448,22 @@ def compute_communication_health(array, expected_no_of_timestamps, node_count, a
             name = "Accel " + str(key)
         else:
             name = "Data"
+
         temp = {
-            "name" : name,
-            "data" : value
+            "name": name,
+            "data": value
         }
         series.append(temp)
+
     return series
 
-def get_subsurface_plot_data(column_name, end_ts, start_date=None, hour_value=4):
+
+def get_subsurface_plot_data(column_name, end_ts, start_date=None, hour_value=4, include_comms_health=True):
     """
     """
 
-    json_data = vcdgen(column_name, endTS=end_ts, startTS=start_date, hour_interval=int(hour_value))
+    json_data = vcdgen(column_name, endTS=end_ts,
+                       startTS=start_date, hour_interval=int(hour_value))
     # json_data = vcdgen(column_name, endTS="2019-01-15 13:07:14")
     data = json.loads(json_data)[0]  # return value pag dict
 
@@ -468,19 +472,28 @@ def get_subsurface_plot_data(column_name, end_ts, start_date=None, hour_value=4)
         data["d"][0])  # return value pag dict
     velocity_alerts = process_velocity_alerts_data(
         data["v"][0], ts_per_node)  # return value pag dict
-    node_health = process_node_health_data(column_name)  # return value pag dict
-    return [
+
+    arr = [
         {"type": "column_position", "data": column_position},
         {"type": "displacement", "data": displacement},
-        {"type": "velocity_alerts", "data": velocity_alerts},
-        {"type": "node_health", "data": node_health},
+        {"type": "velocity_alerts", "data": velocity_alerts}
     ]
 
-def get_subsurface_comms_health(column_name, end_ts, start_date=None):
+    if include_comms_health:
+        comms_health = get_communication_health_data(
+            column_name, start_date, end_ts)
+        arr.append({"type": "comms_health", "data": comms_health})
+
+    return arr
+
+
+def get_subsurface_node_health(column_name):
     """
     """
-    communication_health = get_communication_health_data(column_name, start_date, end_ts)
-    return communication_health
+
+    node_health = process_node_health_data(column_name)
+    return node_health
+
 
 def check_if_subsurface_columns_has_data(site_code, start_ts, end_ts):
     tsm_sensors = get_site_subsurface_columns(site_code)

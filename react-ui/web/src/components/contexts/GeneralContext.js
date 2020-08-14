@@ -4,20 +4,17 @@ import React, {
 } from "react";
 import { useSnackbar } from "notistack";
 import { getSites, getUsers, getOrganizations } from "./ajax";
-import { 
-    getServerTime, receiveServerTime
-} from "../../websocket/misc_ws";
 
 export const GeneralContext = createContext();
 
 export const GeneralProvider = ({ children }) => {
+    const [refresh_users, setRefreshUser] = useState(true);
     const [refresh_sites, setRefreshSites] = useState(true);
     const [users, setUsers] = useState([]);
     const [sites, setSites] = useState([]);
     const [all_sites_including_inactive, SetAllSites] = useState([]);
     const [organizations, setOrganizations] = useState([]);
     const [is_reconnecting, setIsReconnecting] = useState(null);
-    const [server_time, setServerTime] = useState(null);
 
     useEffect(() => {
         if (refresh_sites) {
@@ -31,22 +28,17 @@ export const GeneralProvider = ({ children }) => {
     }, [refresh_sites]);
 
     useEffect(() => {
-        getUsers(data => {
-            setUsers(data);
-            
-        });
-    }, []);
+        if (refresh_users) {
+            getUsers(data => {
+                setUsers(data);
+                setRefreshUser(false);
+            });
+        }
+    }, [refresh_users]);
 
     useEffect(() => {
         getOrganizations(data => {
             setOrganizations(data);
-        });
-    }, []);
-
-    useEffect(() => {
-        getServerTime();
-        receiveServerTime(ts => {
-            setServerTime(ts);
         });
     }, []);
 
@@ -87,8 +79,8 @@ export const GeneralProvider = ({ children }) => {
         organizations,
         is_reconnecting,
         setIsReconnecting,
-        setRefreshSites, 
-        server_time
+        setRefreshUser,
+        setRefreshSites
     };
 
     return (

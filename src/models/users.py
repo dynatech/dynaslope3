@@ -28,7 +28,7 @@ class Users(DB.Model, UserMixin):
     nickname = DB.Column(DB.String(45))
     sex = DB.Column(DB.String(1))
     status = DB.Column(DB.Integer, nullable=True)
-    birthday = DB.Column(DB.DateTime)
+    birthday = DB.Column(DB.Date)
     ewi_recipient = DB.Column(DB.Integer, nullable=True)
 
     def get_id(self):
@@ -69,7 +69,6 @@ class UsersRelationship(Users):
     emails = DB.relationship(
         "UserEmails", backref=DB.backref("user", lazy="joined", innerjoin=True),
         lazy="subquery")
-
     # user_account relationship declared on UserAccounts
 
     def __repr__(self):
@@ -173,7 +172,9 @@ class UserTeamMembers(DB.Model):
         DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['commons_db']}.user_teams.team_id"))
 
     team = DB.relationship(
-        "UserTeams", backref=DB.backref("team_members", lazy="joined", innerjoin=True), lazy="subquery")
+        "UserTeams",
+        backref=DB.backref("team_members", lazy="joined", innerjoin=True),
+        lazy="subquery")
 
     def __repr__(self):
         return (f"Member ID : {self.members_id} | User ID : {self.users_users_id}"
@@ -214,7 +215,7 @@ class UserAccounts(DB.Model):
     salt = DB.Column(DB.String(200))
 
     user = DB.relationship(Users, backref=DB.backref(
-        "account", lazy="raise", innerjoin=True), lazy="joined", uselist=False)
+        "account", lazy="raise", innerjoin=True, uselist=False), lazy="joined", uselist=False)
 
     def __repr__(self):
         return f"{self.email}"
@@ -266,6 +267,9 @@ class UsersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
     """
+
+    birthday = fields.DateTime("%Y-%m-%d %H:%M:%S")
+
     class Meta:
         """Saves table class structure as schema model"""
         model = Users
@@ -277,6 +281,19 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
     Schema representation of Users Relationships
     """
 
+    def __init__(self, *args, **kwargs):
+        self.include = kwargs.pop("include", None)
+        super().__init__(*args, **kwargs)
+
+    def _update_fields(self, *args, **kwargs):
+        super()._update_fields(*args, **kwargs)
+        if self.include:
+            for field_name in self.include:
+                self.fields[field_name] = self._declared_fields[field_name]
+            self.include = None
+
+    birthday = fields.DateTime("%Y-%m-%d")
+
     mobile_numbers = fields.Nested(
         "UserMobilesSchema", many=True, exclude=("user",))
 
@@ -287,13 +304,16 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
         "UserEwiRestrictionsSchema", exclude=("user",))
 
     teams = fields.Nested(
-        "UserTeamsSchema", many=True, exclude=("user",))
+        "UserTeamMembersSchema", many=True, exclude=("user",))
 
     landline_numbers = fields.Nested(
         "UserLandlinesSchema", many=True, exclude=("user",))
 
     emails = fields.Nested(
         "UserEmailsSchema", many=True, exclude=("user",))
+
+    account = fields.Nested(
+        "UserAccountsSchema", many=False, exclude=("user",))
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -354,6 +374,7 @@ class UserTeamsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Users class
     """
+
     team_members = fields.Nested(
         "UserTeamMembersSchema", many=True, exclude=["team"])
 

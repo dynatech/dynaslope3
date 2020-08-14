@@ -31,6 +31,11 @@ function subscribeToMiscWebSocket (reconnect_callback) {
     });
 }
 
+function unsubscribeToWebSocket () {
+    socket.close();
+    socket = null;
+}
+
 function getServerTime () {
     connectToWebsocket();
     socket.emit("get_server_time");
@@ -60,9 +65,9 @@ function removeReceiveMonitoringShiftData () {
     socket.removeListener("receive_monitoring_shifts");
 }
 
-
 export { 
     subscribeToMiscWebSocket,
+    unsubscribeToWebSocket,
     connectToWebsocket, 
     getServerTime, 
     receiveServerTime, 

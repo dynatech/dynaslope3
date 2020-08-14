@@ -108,8 +108,14 @@ export function getRainfallPlotData (input, callback) {
 }
 
 export function getSubsurfacePlotData (input, callback) {
-    const { subsurface_column, ts_end, ts_start, hour_value } = input;
-    const api_link = `${host}/api/subsurface/get_subsurface_plot_data/${subsurface_column}/${ts_end}/${ts_start}/${hour_value}`;
+    const {
+        subsurface_column, ts_end, ts_start,
+        hour_value, include_comms_health
+    } = input;
+
+    const api_link = `${host}/api/subsurface/get_subsurface_plot_data/` +
+    `${subsurface_column}/${ts_end}/${ts_start}/${hour_value}` +
+    `?include_comms_health=${include_comms_health}`;
 
     axios.get(api_link)
     .then(response => {
@@ -122,14 +128,14 @@ export function getSubsurfacePlotData (input, callback) {
     });
 }
 
-export function getSubsurfaceCommsHealth (input, callback) {
-    const { subsurface_column, ts_end, ts_start } = input;
-    const api_link = `${host}/api/subsurface/get_subsurface_comms_health/${subsurface_column}/${ts_end}/${ts_start}`;
+export function getSurfaceNodeHealth (input, callback) {
+    const { subsurface_column } = input;
+    const api_link = `${host}/api/subsurface/get_subsurface_node_health/${subsurface_column}`;
 
     axios.get(api_link)
     .then(response => {
         const { data } = response;
-        console.log("Subsurface Comms Health Data", data);
+        console.log("Subsurface Node Health Data", data);
         callback(data);
     })
     .catch(error => {

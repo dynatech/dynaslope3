@@ -462,7 +462,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
 
         # CHECK IF ONSET RELEASE (only one release) and alert_level > 0
         is_onset_release = len(
-            event_alert.releases) == 1 and event_alert.public_alert_symmbol.alert_level > 0
+            event_alert.releases) == 1 and event_alert.public_alert_symbol.alert_level > 0
         # NOTE: CHECK NARRATIVE IF ALREADY SENT EWI SMS. if onset, do not add 30mins.
         sent_statuses = check_ewi_narrative_sent_status(
             is_onset_release, event_id, data_ts)

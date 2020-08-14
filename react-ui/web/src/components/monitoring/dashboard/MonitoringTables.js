@@ -28,6 +28,7 @@ import SendRoutineEwiSmsModal from "./SendRoutineEwiSmsModal";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import { CTContext } from "./CTContext";
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
+import { ServerTimeContext } from "../../contexts/ServerTimeContext";
 import { GeneralContext } from "../../contexts/GeneralContext";
 
 const useStyles = makeStyles(theme => {
@@ -51,7 +52,7 @@ const useStyles = makeStyles(theme => {
         partialInvalidCandidate: {
             background: "linear-gradient(315deg, #bbf0f3 0%, #f6d285 74%)"
         },
-        inputWidth: { width: "50%" }
+        inputWidth: { width: "50%" },
     };
 });
 
@@ -78,6 +79,7 @@ function CandidateAlertsExpansionPanel (props) {
         handleExpansion, index, releaseFormOpenHandler,
         isShowingValidation, toggleValidation, validationDetails
     } = props;
+    const { sites } = useContext(GeneralContext);
 
     let site = "";
     let ts = "";
@@ -89,6 +91,10 @@ function CandidateAlertsExpansionPanel (props) {
         unresolved_moms_list
     } = alertData;
 
+    const routine_a0 = [];
+    const routine_nd = [];
+    let routine_overdue = [];
+
     const { validity_status: vs } = alertData;
     let validity_status = "valid";
     if (typeof vs !== "undefined") {
@@ -96,10 +102,29 @@ function CandidateAlertsExpansionPanel (props) {
     }
     
     if (general_status === "routine") {
-        const { data_ts, public_alert_symbol } = alertData;
+        const { data_ts, public_alert_symbol, overdue_routine_list, routine_details } = alertData;
         site = "ROUTINE RELEASE";
         ts = format_ts(data_ts);
         ia_level = public_alert_symbol;
+        routine_overdue = overdue_routine_list;
+        routine_details.forEach(el => {
+            if (el.internal_alert_level === "ND" && sites !== null) {
+                el.site_id_list.forEach( id => {
+                    const r_site = sites.filter( row => {
+                        return row.site_id === id;
+                    });
+                    routine_nd.push(r_site[0]);
+                });
+            }
+            if (el.internal_alert_level === "A0" && sites !== null) {
+                el.site_id_list.forEach( id => {
+                    const r_site = sites.filter( row => {
+                        return row.site_id === id;
+                    });
+                    routine_a0.push(r_site[0]);
+                });
+            }
+        });   
     } else {
         const { 
             site_code, release_details, internal_alert_level,
@@ -148,6 +173,7 @@ function CandidateAlertsExpansionPanel (props) {
             </ExpansionPanelSummary>
             <Divider style={{ marginBottom: 12 }} />
             <ExpansionPanelDetails>
+
                 <Grid container spacing={1}>
                     <Grid item xs={12} container spacing={1}>
                         <Grid item xs={12} sm align="center">
@@ -163,113 +189,191 @@ function CandidateAlertsExpansionPanel (props) {
                     <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
 
                     <Grid item xs={12} container spacing={1}>
-                        <Grid item xs={12}>
-                            <Typography variant="subtitle2" color="textPrimary">TRIGGERS</Typography>
-                        </Grid>
-                        
-                        <Grid item xs={12} container spacing={2} alignItems="center">
-                            {
-                                has_new_triggers ? (
-                                    trigger_arr.map((trigger, key) => {
-                                        const { 
-                                            ts_updated, alert, tech_info,
-                                            trigger_id, trigger_type
-                                        } = trigger;
+                        { 
+                            gen_status === "ROUTINE" ? (
+                                <Grid item xs={12} container spacing={2} justify="space-between">
+                                    <Grid item container xs={12} md={12}>
+                                        <Grid item xs={12}>
+                                            <Typography variant="h6">
+                                                <strong>A0</strong>
+                                            </Typography>
+                                        </Grid>
+                                        {
+                                            routine_a0.length > 0 ? (
+                                                routine_a0.map( row => {
+                                                    return (
+                                                        <Grid item md={1} xs={2} key={row.site_code} style={{ padding: 3 }} >
+                                                            <Typography 
+                                                                variant="body1"> 
+                                                                {row.site_code.toUpperCase()}
+                                                            </Typography>
+                                                        </Grid>
+                                                    );
+                                                })
+                                            ) : (
+                                                <Typography variant="subtitle2">None</Typography>
+                                            )
+                                        }
+                                    </Grid>
 
-                                        const formatted_ts = format_ts(ts_updated);
-                                        let trigger_validity = "Valid";
-                                        let to_validate = false;
-                                        let is_validating = false;
+                                    <Grid item container xs={12} md={12} alignItems="center" >
+                                        <Grid item xs={12}>
+                                            <Typography variant="h6">
+                                                <strong>ND</strong>
+                                            </Typography>
+                                        </Grid>
+                                        {
+                                            routine_nd.length > 0 && typeof routine_nd !== "undefined" ? ( 
+                                                routine_nd.map( row => {
+                                                    return (
+                                                        <Grid item md={1} xs={2} key={row.site_id} style={{ padding: 3 }} >
+                                                            <Typography 
+                                                                variant="body1"> 
+                                                                {row.site_code.toUpperCase()}
+                                                            </Typography>
+                                                        </Grid>
+                                                    );
+                                                })
+                                            ) : (
+                                                <Typography variant="subtitle2">None</Typography>
+                                            )
+                                        }
+                                    </Grid>
+                                    
+                                    <Grid item container xs={12} md={12}>
+                                        { 
+                                            routine_overdue.length > 0 && (
+                                                <Fragment>
+                                                    <Grid item xs={12} className={classes.routineSitesContainer}>
+                                                        <Typography variant="h6">
+                                                            <strong>Overdue</strong>
+                                                        </Typography>
+                                                    </Grid>
 
-                                        try {
-                                            const { validating_status } = trigger;
-                                            if (validating_status === 0) {
-                                                trigger_validity = "Validating";
-                                                is_validating = true;
-                                                to_validate = true;
-                                            } else if (validating_status === null) {
-                                                trigger_validity = "---";
-                                                to_validate = true;
-                                            } else if (validating_status === 1) {
-                                                to_validate = false;
-                                            }
-                                        } catch (err) { /* pass */ }
+                                                    {
+                                                        routine_overdue.map(row => (
+                                                            <Grid item md={1} xs={2} key={row.site_code} style={{ justifyItems: "center", padding: 3 }} >
+                                                                <Typography 
+                                                                    variant="body1"> 
+                                                                    {row.site_code.toUpperCase()}
+                                                                </Typography>
+                                                            </Grid>
+                                                        ))
+                                                    }
+                                                </Fragment>
+                                            )
+                                        }
+                                    </Grid>
+                                </Grid> 
+                            ) : (
+                                <div style={{ width: "100%" }}>
+                                    <Grid item xs={12} md={12}>
+                                        <Typography variant="subtitle2" color="textPrimary">TRIGGERS</Typography>
+                                    </Grid>
+                       
+                                    <Grid item xs={12} container spacing={2} alignItems="center" >
+                                        {
+                                            has_new_triggers ? (
+                                                trigger_arr.map((trigger, key) => {
+                                                    const { 
+                                                        ts_updated, alert, tech_info,
+                                                        trigger_id, trigger_type
+                                                    } = trigger;
 
-                                        try {
-                                            const { invalid } = trigger;
-                                            if (invalid) {
-                                                trigger_validity = "Invalid";
-                                            }
-                                        } catch (err) { /* pass */ }
+                                                    const formatted_ts = format_ts(ts_updated);
+                                                    let trigger_validity = "Valid";
+                                                    let to_validate = false;
+                                                    let is_validating = false;
 
-                                        const to_show_validate_button = ["surficial", "rainfall", "subsurface"].includes(trigger_type) && to_validate;
+                                                    try {
+                                                        const { validating_status } = trigger;
+                                                        if (validating_status === 0) {
+                                                            trigger_validity = "Validating";
+                                                            is_validating = true;
+                                                            to_validate = true;
+                                                        } else if (validating_status === null) {
+                                                            trigger_validity = "---";
+                                                            to_validate = true;
+                                                        } else if (validating_status === 1) {
+                                                            to_validate = false;
+                                                        }
+                                                    } catch (err) { /* pass */ }
 
-                                        return (
-                                            <Fragment key={`trigger-${trigger_type}-${alert}`}>
-                                                <Grid item xs align="center">
-                                                    <Typography variant="body1" color="textSecondary">Trigger</Typography>
-                                                    <Typography variant="body1" color="textPrimary">{alert}</Typography>
-                                                </Grid>
+                                                    try {
+                                                        const { invalid } = trigger;
+                                                        if (invalid) {
+                                                            trigger_validity = "Invalid";
+                                                        }
+                                                    } catch (err) { /* pass */ }
 
-                                                <Grid item xs={4} align="center">
-                                                    <Typography variant="body1" color="textSecondary">Trigger timestamp</Typography>
-                                                    <Typography variant="body1" color="textPrimary">{formatted_ts}</Typography>
-                                                </Grid>
+                                                    const to_show_validate_button = ["surficial", "rainfall", "subsurface"].includes(trigger_type) && to_validate;
 
-                                                {/* 
+                                                    return (
+                                                        <Fragment key={`trigger-${trigger_type}-${alert}`} >
+                                                            <Grid item xs align="center">
+                                                                <Typography variant="body1" color="textSecondary">Trigger</Typography>
+                                                                <Typography variant="body1" color="textPrimary">{alert}</Typography>
+                                                            </Grid>
+
+                                                            <Grid item xs={4} align="center">
+                                                                <Typography variant="body1" color="textSecondary">Trigger timestamp</Typography>
+                                                                <Typography variant="body1" color="textPrimary">{formatted_ts}</Typography>
+                                                            </Grid>
+                                                            {/* 
                                                     NOTE: Pwedeng ipakita, pwedeng hindi, commented out just in case need
                                                     <Grid item xs={6} align="center">
                                                         <Typography variant="body1" color="textSecondary">Tech Info</Typography>
                                                         <Typography variant="body1" color="textPrimary">{tech_info}</Typography>
                                                     </Grid> 
                                                 */}
+                                                            <Grid item xs align={to_show_validate_button ? "flex-start" : "center"}>
+                                                                <Typography component="span" variant="body1" color="textSecondary" style={{ paddingRight: 8 }}>Status:</Typography>
+                                                                <Typography component="span" variant="body1" color="textPrimary">{trigger_validity}</Typography>
+                                                            </Grid>
 
-                                                <Grid item xs align={to_show_validate_button ? "flex-start" : "center"}>
-                                                    <Typography component="span" variant="body1" color="textSecondary" style={{ paddingRight: 8 }}>Status:</Typography>
-                                                    <Typography component="span" variant="body1" color="textPrimary">{trigger_validity}</Typography>
-                                                </Grid>
-
-                                                {
-                                                    to_show_validate_button && (
-                                                        <Grid item xs justify="flex-end" container>
-                                                            <Button
-                                                                onClick={toggleValidation(true, {
-                                                                    site, trigger_id, ts_updated
-                                                                })}
-                                                                variant="contained" color="secondary"
-                                                                size="small" aria-label="Validate trigger"
-                                                            >
-                                                                Validate
-                                                            </Button>
-                                                        </Grid>
-                                                    )
-                                                }
-
-                                                <ValidationModal
-                                                    isShowing={isShowingValidation}
-                                                    data={validationDetails}
-                                                    hide={toggleValidation(false, {})}
-                                                    isValidating={is_validating}
-                                                />
-                                                {
-                                                    trigger_arr.length > key + 1 && (
-                                                        <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
-                                                    )
-                                                }
-                                            </Fragment>
-                                        );
-                                    })
-                                ) : (
-                                    <Fragment>
-                                        <Grid item xs={12} align="center">
-                                            <Typography variant="body1" color="textSecondary">No new triggers</Typography>
-                                        </Grid>
-                                    </Fragment>
-                                )
-                            }
-                        </Grid>
+                                                            {
+                                                                to_show_validate_button && (
+                                                                    <Grid item xs justify="flex-end" container>
+                                                                        <Button
+                                                                            onClick={toggleValidation(true, {
+                                                                                site, trigger_id, ts_updated
+                                                                            })}
+                                                                            variant="contained" color="secondary"
+                                                                            size="small" aria-label="Validate trigger"
+                                                                        >
+                                                                            Validate
+                                                                        </Button>
+                                                                    </Grid>
+                                                                )
+                                                            }
+                                                            <ValidationModal
+                                                                isShowing={isShowingValidation}
+                                                                data={validationDetails}
+                                                                hide={toggleValidation(false, {})}
+                                                                isValidating={is_validating}
+                                                            />
+                                                            {
+                                                                trigger_arr.length > key + 1 && (
+                                                                    <Grid item xs={12} style={{ margin: "6px 0" }}><Divider /></Grid>
+                                                                )
+                                                            }
+                                                        </Fragment>
+                                                    );
+                                                })
+                                            ) : (
+                                                <Fragment >
+                                                    <Grid item xs={12} align="center">
+                                                        <Typography variant="body1" color="textSecondary">No new triggers</Typography>
+                                                    </Grid>
+                                                </Fragment>
+                                            )
+                                        }
+                                    </Grid>
+                                </div>
+                            )
+                        }
                     </Grid>
-
+                        
                     {
                         typeof unresolved_moms_list !== "undefined" && unresolved_moms_list.length > 0 && (
                             <Fragment>
@@ -351,7 +455,7 @@ function LatestSiteAlertsExpansionPanel (props) {
         has_alert_release_today
     } = siteAlert;
     const { alert_level } = public_alert_symbol;
-    const { server_time } = useContext(GeneralContext);
+    const { server_time } = useContext(ServerTimeContext);
 
     const { is_sms_sent, is_bulletin_sent } = sent_statuses;
 
@@ -372,7 +476,7 @@ function LatestSiteAlertsExpansionPanel (props) {
         let notice = "";
         if (!has_alert_release_today) {
             notice = <Tooltip 
-                arrow title="No alert release for today yet!"
+                arrow title="Don't forget to release today's site alert for extended monitoring!"
             >
                 <Warning 
                     fontSize="small" style={{ marginLeft: 8 }} 
@@ -693,6 +797,7 @@ function MonitoringTables (props) {
                                         isShowingValidation={isShowingValidation}
                                         toggleValidation={toggleValidation}
                                         validationDetails={validation_details}
+                                        candidateAlertsData={candidateAlertsData}
                                     />
                                 ))
                             ) : (

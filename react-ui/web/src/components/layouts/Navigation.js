@@ -13,7 +13,7 @@ import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import moment from "moment";
 
 import ScreenDrawer from "./ScreenDrawer";
-import { GeneralContext } from "../contexts/GeneralContext";
+import { ServerTimeContext } from "../contexts/ServerTimeContext";
 
 const useStyles = makeStyles(theme => ({
     navBar: {
@@ -143,7 +143,10 @@ const navigation_labels = [
 ];
 
 function Navigation (props) {
-    const { width, drawerHandler, drawer } = props;
+    const {
+        width, drawerHandler, drawer,
+        history, onLogout
+    } = props;
     const classes = useStyles();
 
     const { pathname } = window.location;
@@ -155,7 +158,7 @@ function Navigation (props) {
     const [last_clicked_tab, setLastClickedTab] = useState(null);
     const [popper_open, setPopperOpen] = useState(false);
     const [anchorEl, setAnchorE1] = useState(null);
-    const { server_time } = useContext(GeneralContext);
+    const { server_time } = useContext(ServerTimeContext);
 
     const tab = value === from_tab && last_clicked_tab !== null ? last_clicked_tab : value;
     const { sub } = navigation_labels[tab];
@@ -294,6 +297,8 @@ function Navigation (props) {
                 drawer={drawer}
                 drawerHandler={drawerHandler}
                 navigationLabels={navigation_labels}
+                history={history}
+                onLogout={onLogout}
             />
         </Fragment>
     );
