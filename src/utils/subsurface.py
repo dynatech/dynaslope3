@@ -15,7 +15,7 @@ from src.models.analysis import (
     Loggers, get_tilt_table, tilt_table_schema)
 from analysis_scripts.analysis.subsurface.vcdgen import vcdgen
 from src.utils.extra import get_unix_ts_value
-
+# from analysis_scripts.analysis.subsurface import get_filtered_accel_data_json
 
 def get_site_subsurface_columns(site_code, include_deactivated=False):
     """
@@ -499,3 +499,150 @@ def check_if_subsurface_columns_has_data(site_code, start_ts, end_ts):
             tsm["has_data"] = True
 
     return subsurface_columns
+
+
+def get_plot_data_for_node(subsurface_column, start_date, end_date, node):
+    """
+    """
+    final_series = {subsurface_column, start_date, end_date, node}
+    # node_status = get_node_status(subsurface_column)
+    # node_list = get_adjacent_working_nodes(node, node_status)
+    # delegate_array = [[], [], [], []]
+    # for node_id in node_list:
+    #     index_node_id = "Node " + str(node_id)
+    #     version = 1
+    #     if len(subsurface_column) > 4:
+    #         version = 2
+    #     return_data = get_filtered_accel_data_json(subsurface_column, start_date, \
+    #         end_date, node_id, version)
+    #     ## Python Behavior
+    #     return_data = json.loads(return_data[0])
+
+    #     for key in delegate_array:
+    #         array = key["array"]
+    #         delegate_array[key][index_node_id] = []
+    #     for accel_id in return_data:
+    #         raw_filtered_arr = accel_id["raw_filtered_arr"]
+    #         for rf_arr in raw_filtered_arr:
+    #             raw_filtered = rf_arr["type"]
+    #             data_arr = rf_arr["data"]
+    #             if raw_filtered == "raw":
+    #                 is_raw = True
+    #             else:
+    #                 is_raw = False
+    #             for point in data_arr:
+    #                 timestamp = datetime.strptime(point["ts"]) * 1000
+    #                 point_values = [
+    #                     float(point["x"]),
+    #                     float(point["y"]),
+    #                     float(point["z"])
+    #                 ]
+    #                 if is_raw:
+    #                     point_values.append(float(point["batt"]))
+    #                 ### Loop until z-accel only if filtered else include battery
+    #                 if is_raw:
+    #                     limit = 4
+    #                 else:
+    #                     limit = 3
+    #                 n = 0
+    #                 while n < limit:
+    #                     accel_id.setdefault(delegate_array[n][node_id], [])
+    #                     temp = {
+    #                         timestamp,
+    #                         point_values[n],
+    #                         raw_filtered
+    #                     }
+    #                     delegate_array[n][node_id][accel_id].append(temp)
+    #                     n += 1
+
+    # temp_series = [[], [], [], []]
+    # for key in delegate_array:
+    #     array = key["array"]
+    #     for node_id in array:
+    #         accel_array = node_id["accel_array"]
+    #         node_id.setdefault(temp_series[key], [])
+
+    #         for accel_id in accel_array:
+    #             point_array = accel_id["point_array"]
+    #             if accel_id == "v1":
+    #                 accel = "Data"
+    #             else:
+    #                 accel = "Accel " + str(accel_id)
+    #             ##// if delegate_array is battery
+    #             if key == 3:
+    #                 temp_series[key][node_id].append({
+    #                     "name" : str(node_id) +", "+ str(accel),
+    #                     "data" : point_array
+    #                 })
+    #             else:
+    #                 for check_filter_type in ["filtered", "raw"]:
+    #                     grouped_array = []
+    #                     for filter_type in point_array:
+    #                         if filter_type[2] == check_filter_type:
+    #                             grouped_array.append(point_array)
+
+    #                     filter_label = str(check_filter_type).title()
+    #                     temp_series[key][node_id].push({
+    #                         "name" : str(node_id) + ", " + str(accel) + "<br/>" + str(filter_label),
+    #                         "data" : grouped_array})
+
+    # lookup = ["x-accelerometer", "y-accelerometer", "z-accelerometer", "battery"]
+    # final_series = []
+    # for key in temp_series:
+    #     series = key["series"]
+    #     node_temp = []
+    #     for node_id in series:
+    #         data = node_id["data"]
+    #         node_name = str(node_id).lower().replace(" ", "_")
+    #         temp = {"node_name" : node_name, "series" :data}
+    #         node_temp.append(temp)
+    #     final_series.append({
+    #         "series_name" : lookup[key],
+    #         "data" : node_temp
+    #     })
+    # print("plots ", final_series)
+    return final_series
+
+
+def get_adjacent_working_nodes(node, node_status):
+    """
+    get adjacent nodes
+    """
+    node_list = []
+    start = None
+    end = None
+    is_start_filled = False
+    is_end_filled = False
+    i = 1
+    for row in node_status:
+        node_id = row["node_id"]
+        if node_prop:
+            if node_prop["status"]:
+                status = node_prop["status"]
+            else:
+                status = "OK"
+
+        node_prop = row["node_prop"]
+        if int(node) == node_id:
+            #Check if node is the first in node_status
+            if i == node_status[0]["id"]:
+                node_list.append(node_id["id"])
+                is_start_filled = True
+            else:
+                start = node_prop
+                node_list.append(start["id"])
+                node_list.append(node_prop["id"])
+                is_start_filled = True
+        else:
+            if is_start_filled and is_end_filled:
+                break
+            if not is_start_filled:
+                if status != "Not OK":
+                    start = node_prop
+            else:
+                if status != "Not OK":
+                    end = node_prop
+                    node_list.append(end["id"])
+                    is_end_filled = True
+        i += 1
+    return node_list
