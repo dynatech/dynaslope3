@@ -66,17 +66,12 @@ def wrap_write_narratives_to_db():
 
         # UPDATING OF NARRATIVE
         if narrative_id:
-            for site_id in site_list:
-                has_event_id = bool(json_data["event_id"])
-                if has_event_id:
-                    event_id = json_data["event_id"]
-                else:
-                    event = find_narrative_event_id(timestamp, site_id)
-                    if event:
-                        event_id = event.event_id
-                    else:
-                        raise Exception(get_process_status_log(
-                            "INSERT NARRATIVES", "fail"))
+            for row in site_list:
+                event_id = row["event_id"]
+                site_id = row["site_id"]
+
+                if not event_id:
+                    event_id = find_narrative_event_id(timestamp, site_id)
 
                 var_checker("narrative_id", narrative_id, True)
                 status = update_narratives_on_db(
