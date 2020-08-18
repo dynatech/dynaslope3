@@ -87,7 +87,7 @@ def get_earthquake_events():
     _filter = request.args.get("filter", default=10, type=int)
     # .filter(EarthquakeEvents.eq_id == 13385)
     query = EarthquakeEvents.query.order_by(
-        EarthquakeEvents.eq_id.desc()).limit(_filter).all()
+        EarthquakeEvents.ts.desc()).limit(_filter).all()
     result = EarthquakeEventsSchema(many=True).dump(query).data
 
     return jsonify(result)
