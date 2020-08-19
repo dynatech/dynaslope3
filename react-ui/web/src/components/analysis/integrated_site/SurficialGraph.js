@@ -844,8 +844,14 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
 
     let min_x = start_date;
     if ((is_end_of_shift || start === "None") && data.length > 0) {
-        const { data: meas_row } = data[0];
-        if (meas_row.length > 0) min_x = moment(meas_row[0].x);
+        const min = data.reduce((cur_min, row) => {
+            const { data: cd } = cur_min;
+            const { data: rd } = row;
+            if (cd.length === 0) return row;
+            if (rd.length === 0) return cur_min;
+            return cd[0].x < rd[0].x ? cur_min : row;
+        });
+        min_x = min.data.length > 0 ? moment(min.data[0].x) : moment();
     }
 
     return {
