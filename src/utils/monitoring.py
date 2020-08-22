@@ -23,7 +23,9 @@ from src.utils.extra import (
     var_checker, create_symbols_map, retrieve_data_from_memcache, get_system_time,
     get_process_status_log)
 from src.utils.narratives import write_narratives_to_db
-
+from src.api.monitoring import (
+    end_current_monitoring_event_alert, start_new_monitoring_instance
+)
 
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
@@ -369,14 +371,16 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         (b) Extended
         (c) Overdue
     For use in alerts_from_db in Candidate Alerts Generator
-
     Args:
         run_ts (Datetime) - used for testing retroactive generated alerts
     """
     global RELEASE_INTERVAL_HOURS
     global EXTENDED_MONITORING_DAYS
+    global ROU_EXT_RELEASE_TIME
     release_interval_hours = RELEASE_INTERVAL_HOURS
     extended_monitoring_days = EXTENDED_MONITORING_DAYS
+
+    script_start = datetime.now()
 
     if not run_ts:
         run_ts = datetime.now()
@@ -386,9 +390,11 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     latest = []
     extended = []
     overdue = []
+    routine = []
     for event_alert in active_event_alerts:
-        validity = event_alert.event.validity
-        event_id = event_alert.event.event_id
+        event = event_alert.event
+        validity = event.validity
+        event_id = event.event_id
         latest_release = event_alert.releases.order_by(
             DB.desc(MonitoringReleases.data_ts)).first()
 
@@ -399,6 +405,8 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         release_time = latest_release.release_time
 
         if data_ts.hour == 23 and release_time.hour < release_interval_hours:
+        # if data_ts.hour == 23 and release_time.hour < 4:
+            # rounded_data_ts = round_to_nearest_release_time(data_ts)
             str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
             str_release_time = str(release_time)
 
@@ -430,37 +438,85 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                 # Late release
                 overdue.append(event_alert_data)
             else:
-                # EXTENDED
                 # Get Next Day 00:00
                 next_day = validity + timedelta(days=1)
                 start = datetime(next_day.year, next_day.month, next_day.day, 0, 0, 0)
                 # Day 3 is the 3rd 12-noon from validity
                 end = start + timedelta(days=extended_monitoring_days)
                 current = run_ts  # Production code is current time
-                # Count the days distance between current date and day 3 to know which extended day it is
+                # Count the days distance between current date and
+                # day 3 to know which extended day it is
                 difference = end - current
                 day = extended_monitoring_days - difference.days
 
-                print("DAY", day)
-
                 if day <= 0:
                     latest.append(event_alert_data)
-                    print("ENTERED LAT")
                 elif day > 0 and day <= extended_monitoring_days:
                     event_alert_data["day"] = day
                     extended.append(event_alert_data)
-                    print("ENTERED EXT")
                 else:
+                    # TODO: Make an API call to end an event
+                    # when extended is finished? based on old code
                     # NOTE: HOWEVER -> Meron ng update sa insert_ewi
                     # part ng last extended release. No need to put this here.
                     # print("FINISH EVENT")
-                    print("FINISH EVENT")
+
+                    monitoring_status = event_alert.event.status
+                    if monitoring_status == 2:
+                        routine_ts = round_down_data_ts(run_ts)
+                        site_id = event_alert.event.site_id
+
+                        pub_sym_id = retrieve_data_from_memcache(
+                            "public_alert_symbols",
+                            {"alert_level": 0},
+                            retrieve_attr="pub_sym_id")
+
+                        try:
+                            end_current_monitoring_event_alert(
+                                event_alert.event_alert_id, routine_ts)
+                            new_instance_details = {
+                                "event_details": {
+                                    "site_id": site_id,
+                                    "event_start": routine_ts,
+                                    "validity": None,
+                                    "status": 1
+                                },
+                                "event_alert_details": {
+                                    "pub_sym_id": pub_sym_id,
+                                    "ts_start": routine_ts
+                                }
+                            }
+                            instance_details = start_new_monitoring_instance(
+                                new_instance_details)
+
+                            # If no problem,
+                            DB.session.commit()
+                        except Exception as err:
+                            print(err)
+                            DB.session.rollback()
+                        # var_checker("PRINTING for log only: instance_details",
+                        # instance_details, True)
+                    else:
+                        # var_checker("PRINTING for log only", "ALREADY IN ROUTINE", True)
+                        pass
+
+    # # Currently 12; so data timestamp to get should be 30 minutes before
+    # dt = datetime.combine(date.today(), time(hour=ROU_EXT_RELEASE_TIME, minute=0))
+    # less_30_dt = dt - timedelta(minutes=30)
+    # next_release_dt = dt + timedelta(hours=release_interval_hours)
+    # routine_extended_release_time = less_30_dt.time()
+    # if routine_extended_release_time <= run_ts.time() < next_release_dt.time():
+    #     routine = get_unreleased_routine_sites(less_30_dt, only_site_code=True)
 
     db_alerts = {
         "latest": latest,
-        "extended": extended,
+        "extended": sorted(extended, key=lambda x: x["day"], reverse=True),
         "overdue": overdue
+        # "routine": routine
     }
+
+    script_end = datetime.now()
+    print("GET DB ALERTS RUNTIME: ", script_end - script_start)
 
     return db_alerts
 
