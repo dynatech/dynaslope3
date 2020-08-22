@@ -23,9 +23,6 @@ from src.utils.extra import (
     var_checker, create_symbols_map, retrieve_data_from_memcache, get_system_time,
     get_process_status_log)
 from src.utils.narratives import write_narratives_to_db
-from src.api.monitoring import (
-    end_current_monitoring_event_alert, start_new_monitoring_instance
-)
 
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
