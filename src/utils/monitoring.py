@@ -16,15 +16,13 @@ from src.models.monitoring import (
     MomsInstances, MomsFeatures, InternalAlertSymbols, PublicAlertSymbols,
     TriggerHierarchies, OperationalTriggerSymbols,
     MonitoringEventAlertsSchema, OperationalTriggers, MomsInstances as mi,
-    MonitoringTriggersSchema, MonitoringMomsSchema)
+    MonitoringTriggersSchema, MonitoringMomsSchema, BulletinTracker, MonitoringReleasePublishers)
 from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.utils.sites import get_sites_data
 from src.utils.extra import (
     var_checker, create_symbols_map, retrieve_data_from_memcache, get_system_time,
     get_process_status_log)
 from src.utils.narratives import write_narratives_to_db
-from src.api.monitoring import end_current_monitoring_event_alert
-from src.api.monitoring import start_new_monitoring_instance
 
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
@@ -35,6 +33,370 @@ RELEASE_INTERVAL_HOURS = retrieve_data_from_memcache(
 
 EXTENDED_MONITORING_DAYS = retrieve_data_from_memcache(
     "dynamic_variables", {"var_name": "EXTENDED_MONITORING_DAYS"}, retrieve_attr="var_value")
+
+
+###########################
+# HOT FIX
+###########################
+
+
+def is_new_monitoring_instance(new_status, current_status):
+    """
+    Checks is new.
+    """
+    is_new = False
+    if new_status != current_status:
+        is_new = True
+
+    return is_new
+
+
+def end_current_monitoring_event_alert(event_alert_id, ts):
+    """
+    If new alert is initiated, this will end the previous event_alert before creating a new one.
+    """
+    try:
+        event_alerts = MonitoringEventAlerts
+        ea_to_end = event_alerts.query.filter(
+            event_alerts.event_alert_id == event_alert_id).first()
+        ea_to_end.ts_end = ts
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+        raise
+
+
+def write_monitoring_event_to_db(event_details):
+    """
+    Writes to DB all event details
+    Args:
+        event_details (dict)
+            site_id (int), event_start (
+                datetime), validity (datetime), status  (int)
+
+    Returns event_id (integer)
+    """
+    try:
+        new_event = MonitoringEvents(
+            site_id=event_details["site_id"],
+            event_start=event_details["event_start"],
+            validity=event_details["validity"],
+            status=event_details["status"]
+        )
+        DB.session.add(new_event)
+        DB.session.flush()
+
+        # DB.session.commit()
+
+        new_event_id = new_event.event_id
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+        raise
+
+    # return new_event_id
+    return new_event
+
+
+def write_monitoring_event_alert_to_db(event_alert_details):
+    """
+    Writes to DB all event alert details
+    Args:
+        event_alert_details (dict)
+            event_id (int), pub_sym_id (int), ts_start (datetime)
+        Note: There is no ts_end because it is only filled when the event ends.
+
+    Returns event_id (integer)
+    """
+    try:
+        new_ea = MonitoringEventAlerts(
+            event_id=event_alert_details["event_id"],
+            pub_sym_id=event_alert_details["pub_sym_id"],
+            ts_start=event_alert_details["ts_start"],
+            ts_end=None
+        )
+        DB.session.add(new_ea)
+        DB.session.flush()
+        # DB.session.commit()
+
+        new_ea_id = new_ea.event_alert_id
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+        raise
+
+    # return new_ea_id
+    return new_ea
+
+
+def start_new_monitoring_instance(new_instance_details):
+    """
+    Initiates a new monitoring instance
+
+    Args:
+        new_instance_details (dict) - contains event_details (dict) and event_alert_details (dict)
+
+    Returns event alert ID for use in releases
+    """
+    try:
+        event_details = new_instance_details["event_details"]
+        event_alert_details = new_instance_details["event_alert_details"]
+
+        event = write_monitoring_event_to_db(event_details)
+
+        event_alert_details["event_id"] = event.event_id
+        event_alert = write_monitoring_event_alert_to_db(
+            event_alert_details)
+
+        returns = {
+            "event": event,
+            "event_alert": event_alert
+        }
+
+    except Exception as err:
+        DB.session.rollback()
+        print("Problem is start new monitoring")
+        print(err)
+        raise
+
+    return returns
+
+
+def write_monitoring_release_to_db(release_details):
+    """
+    Returns release_id
+    """
+    try:
+        new_release = MonitoringReleases(
+            event_alert_id=release_details["event_alert_id"],
+            data_ts=release_details["data_ts"],
+            trigger_list=release_details["trigger_list_str"],
+            release_time=release_details["release_time"],
+            bulletin_number=release_details["bulletin_number"],
+            comments=release_details["comments"]
+        )
+        DB.session.add(new_release)
+        DB.session.flush()
+        # DB.session.commit()
+
+        new_release_id = new_release.release_id
+
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+        raise
+
+    print(f"{datetime.now()} | Monitoring Release written with ID: {new_release_id}")
+
+    return new_release_id
+
+
+def get_bulletin_number(site_id):
+    """
+    Gets the bulletin number of a site specified
+    """
+    bulletin_number_row = BulletinTracker.query.filter(
+        BulletinTracker.site_id == site_id).first()
+
+    return bulletin_number_row["bulletin_number"]
+
+
+def update_bulletin_number(site_id, custom_bulletin_value=1):
+    """
+    Returns an updated bulletin number based on specified increments or decrements.
+
+    Args:
+        site_id (int) - the site you want to manipulate the bulletin number
+        custom_bulletin_number (int) - default is one. You can set other values to either
+        increase or decrease the bulletin number. Useful for fixing any mis-releases
+    """
+    try:
+        row_to_update = BulletinTracker.query.filter(
+            BulletinTracker.site_id == site_id).first()
+        row_to_update.bulletin_number = row_to_update.bulletin_number + custom_bulletin_value
+    except Exception as err:
+        print(err)
+        raise
+
+    return row_to_update.bulletin_number
+
+
+def write_monitoring_release_publishers_to_db(role, user_id, release_id):
+    """
+    Writes a release publisher to DB and returns the new ID.
+    """
+    try:
+        new_publisher = MonitoringReleasePublishers(
+            user_id=user_id,
+            release_id=release_id,
+            role=role
+        )
+        DB.session.add(new_publisher)
+        DB.session.flush()
+        # DB.session.commit()
+
+        new_publisher_id = new_publisher.publisher_id
+
+    except Exception as err:
+        print(err)
+        DB.session.rollback()
+        raise
+
+    print(f"{datetime.now()} | {role.upper()} Release Publisher written with ID: {new_publisher_id}")
+
+    return new_publisher_id
+
+
+def write_monitoring_release_triggers_to_db(trigger_details, new_release_id):
+    """
+    Write triggers to the database one by one. Must be looped if needed.
+
+    Args:
+        trigger_details (dict)
+        new_release_id (int)
+
+    Returns trigger_id (possibly appended to a list to the owner function)
+    """
+    print(f"{datetime.now()} | Writing Monitoring Release Trigger...")
+    try:
+        datetime_ts = trigger_details["ts"]
+        new_trigger = MonitoringTriggers(
+            release_id=new_release_id,
+            internal_sym_id=trigger_details["internal_sym_id"],
+            ts=datetime_ts,
+            info=trigger_details["info"]
+        )
+        DB.session.add(new_trigger)
+        DB.session.flush()
+        # DB.session.commit()
+
+        new_trigger_id = new_trigger.trigger_id
+
+        print(f"{datetime.now()} | New Monitoring Release Trigger: {new_trigger_id}")
+    except Exception as err:
+        DB.session.rollback()
+        print(err)
+        raise
+
+    print(f"{datetime.now()} | Monitoring Trigger written with ID: {new_trigger_id}")
+
+    return new_trigger_id
+
+
+def write_monitoring_triggers_misc_to_db(trigger_id, has_moms, od_id=None, eq_id=None):
+    """
+    """
+    try:
+        trigger_misc = MonitoringTriggersMisc(
+            trigger_id=trigger_id,
+            od_id=od_id,
+            eq_id=eq_id,
+            has_moms=has_moms
+        )
+        DB.session.add(trigger_misc)
+        DB.session.flush()
+        # DB.session.commit()
+
+        new_trig_misc_id = trigger_misc.trig_misc_id
+    except Exception as err:
+        print(err)
+        raise
+
+    print(f"{datetime.now()} | Monitoring Triggers Misc written with ID: {new_trig_misc_id}")
+
+    return new_trig_misc_id
+
+
+def write_monitoring_moms_releases_to_db(moms_id, trig_misc_id=None, release_id=None):
+    """
+    Writes a record that links trigger_misc and the moms report.
+
+    Args:
+        trig_misc_id (Int)
+        moms_id (Int)
+
+    Returns nothing for now since there is no use for it's moms_release_id.
+    """
+    try:
+        if trig_misc_id:
+            moms_release = MonitoringMomsReleases(
+                trig_misc_id=trig_misc_id,
+                moms_id=moms_id
+            )
+        elif release_id:
+            moms_release = MonitoringMomsReleases(
+                release_id=release_id,
+                moms_id=moms_id
+            )
+        DB.session.add(moms_release)
+        DB.session.flush()
+        # DB.session.commit()
+    except Exception as err:
+        print(err)
+        raise
+
+    print(f"{datetime.now()} | Monitoring Moms Releases written")
+
+
+def get_moms_id_list(moms_dictionary, site_id, event_id):
+    """
+    Retrieves the moms ID list from the given list of MonitoringMOMS
+    Retrieves IDs from front-end if MonitoringMOMS entry is already
+    in the database or writes to the database if not yet in DB.
+
+    Args:
+        moms_dictionary (Dictionary) -> Either triggering moms dictionary or
+                        non-triggering moms dictionary
+
+    Returns list of moms_ids
+    """
+
+    moms_id_list = []
+    has_moms_ids = True
+    try:
+        # NOTE: If there are pre-inserted moms, get the id and use it here.
+        moms_id_list = moms_dictionary["moms_id_list"]
+    except:
+        has_moms_ids = False
+        pass
+
+    try:
+        moms_list = moms_dictionary["moms_list"]
+
+        for moms in moms_list:
+            moms_id = write_monitoring_moms_to_db(
+                moms, site_id, event_id)
+            moms_id_list.append(moms_id)
+    except KeyError as err:
+        print(err)
+        if not has_moms_ids:
+            raise Exception("No MOMS entry")
+        pass
+
+    return moms_id_list
+
+
+def is_rain_surficial_subsurface_trigger(alert_symbol):
+    flag = False
+    if alert_symbol in ["R", "S", "s", "G", "g"]:
+        flag = True
+
+    return flag
+
+
+def update_event_validity(new_validity, event_id):
+    """
+    Adjust validity
+    """
+    try:
+        event = MonitoringEvents.query.filter(
+            MonitoringEvents.event_id == event_id).first()
+        event.validity = new_validity
+        # DB.session.commit()
+    except Exception as err:
+        print(err)
+        raise
+
 
 
 def write_operational_trigger(ts, site_id, trigger_sym_id, ts_updated):
