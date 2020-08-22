@@ -459,7 +459,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                     # when extended is finished? based on old code
                     # NOTE: HOWEVER -> Meron ng update sa insert_ewi
                     # part ng last extended release. No need to put this here.
-                    # print("FINISH EVENT") test
+                    # print("FINISH EVENT")
 
                     monitoring_status = event_alert.event.status
                     if monitoring_status == 2:
