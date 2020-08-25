@@ -757,6 +757,7 @@ function Container (props) {
                         props => <RainfallGraph 
                             {...props}
                             width={width}
+                            chartType="rainfall"
                         />} 
                     />
 
