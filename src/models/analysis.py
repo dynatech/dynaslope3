@@ -351,6 +351,40 @@ class RainfallGauges(DB.Model):
                 f" Gauge Name: {self.gauge_name} Date Activated: {self.date_activated}")
 
 
+class RainfallDataTags(DB.Model):
+    """
+    Class representation of rainfall_data_tags table
+
+    observed_data (int):    -1/actual is lower than recorded,
+                            0/actual is zero,
+                            1/actual is higher than recorded
+    """
+
+    __tablename__ = "rainfall_data_tags"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    rain_tag_id = DB.Column(DB.Integer, primary_key=True)
+    rain_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.rainfall_gauges.rain_id"), nullable=False)
+    ts = DB.Column(DB.DateTime, nullable=False, default=datetime.datetime.now)
+    ts_start = DB.Column(DB.DateTime, nullable=False)
+    ts_end = DB.Column(DB.DateTime, nullable=False)
+    tagger_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
+    observed_data = DB.Column(DB.Integer, nullable=False)
+    remarks = DB.Column(DB.String(1000), default=None)
+
+    tagger = DB.relationship(
+        "Users", backref=DB.backref("rainfall_tags", lazy="dynamic"),
+        lazy="joined", innerjoin=True)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Rain Tag ID: {self.rain_tag_id}"
+                f" TS: {self.ts} TS Start: {self.ts_start}"
+                f"TS End: {self.ts_end} Observed Data: {self.observed_data}")
+
+
 class RainfallPriorities(DB.Model):
     """
     Class representation of rainfall_priorities table
@@ -966,6 +1000,21 @@ class RainfallGaugesSchema(MARSHMALLOW.ModelSchema):
         model = RainfallGauges
 
 
+class RainfallDataTagsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of RainfallDataTags class
+    """
+
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_end = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    tagger = fields.Nested(UsersSchema, exclude=("rainfall_tags", ))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = RainfallDataTags
+
+
 class RainfallPrioritiesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of RainfallPriorities class
@@ -1029,7 +1078,7 @@ class AlertStatusSchema(MARSHMALLOW.ModelSchema):
     Schema representation of AlertStatus class
     """
 
-    user = fields.Nested(UsersSchema, exclude=("alert_status", ))
+    user = fields.Nested(UsersSchema, exclude=("alert_status_ack", ))
     ts_ack = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_last_retrigger = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_set = fields.DateTime("%Y-%m-%d %H:%M:%S")
