@@ -361,6 +361,7 @@ function MarkerHistoryTable (props) {
         selectableRows: "none",
         expandableRows: true,
         expandableRowsHeader: false,
+        expandableRowsOnClick: true,
         renderExpandableRow: (row_data, rowMeta) => {
             const col_span = row_data.length + 1;
             const remarks = row_data[3];
@@ -1155,8 +1156,8 @@ function SurficialGraph (props) {
             
                 <Grid
                     item xs={12}
-                    md={ selected_marker ? 7 : 12}
-                    lg={ selected_marker ? 8 : 12}
+                    md={selected_marker ? 7 : 12}
+                    lg={selected_marker ? 8 : 12}
                 >
                     <Paper elevation={2}>
                         {graph_component}
