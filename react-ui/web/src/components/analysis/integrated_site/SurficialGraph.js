@@ -388,7 +388,7 @@ function MarkerHistoryTable (props) {
                     ) * (order === "desc" ? 1 : -1); 
                 } 
                 
-                return (a.data[col_index] < b.data[col_index] ? -1 : 1 ) * (order === "desc" ? 1 : -1);
+                return (a.data[col_index] < b.data[col_index] ? -1 : 1) * (order === "desc" ? 1 : -1);
             }); 
         }
     };
