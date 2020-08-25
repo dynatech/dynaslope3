@@ -1355,7 +1355,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             site_id=site_id,
             timestamp=observance_ts,
             narrative=narrative,
-            type_id=2,  # NOTE: STATIC VALUE SET Event Narrative Type
+            type_id=2,  # NOTE: STATIC VALUE TYPE FOR MOMS
             event_id=event_id,
             user_id=iomp
         )

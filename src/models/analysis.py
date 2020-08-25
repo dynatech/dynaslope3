@@ -721,7 +721,7 @@ class DataPresenceLoggers(DB.Model):
                 f" ts_updated: {self.ts_updated} diff_days: {self.diff_days}")
 
 
-def get_tilt_table(table_name):
+def get_tilt_table(table_name, schema="senslopedb"):
     """
     """
 
@@ -731,7 +731,7 @@ def get_tilt_table(table_name):
         """
 
         __tablename__ = table_name
-        __bind_key__ = "senslopedb"
+        __bind_key__ = schema
         __table_args__ = {
             "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
 
@@ -739,6 +739,11 @@ def get_tilt_table(table_name):
         ts = DB.Column(DB.DateTime, nullable=False)
         node_id = DB.Column(DB.Integer, nullable=False)
         type_num = DB.Column(DB.Integer, nullable=False)
+        xval = DB.Column(DB.Integer)
+        yval = DB.Column(DB.Integer)
+        zval = DB.Column(DB.Integer)
+        batt = DB.Column(DB.Float)
+        # is_live = DB.Column(DB.Boolean)
 
         def __repr__(self):
             return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
@@ -763,6 +768,37 @@ def tilt_table_schema(table):
 
     schema = GenericTiltTableSchema
     return schema
+
+
+def get_rain_table(table_name, schema="senslopedb"):
+    """
+    """
+
+    class GenericRainTable(DB.Model):
+
+        """
+        """
+
+        __tablename__ = table_name
+        __bind_key__ = schema
+        __table_args__ = {
+            "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
+
+        data_id = DB.Column(DB.Integer, primary_key=True)
+        ts = DB.Column(DB.DateTime, nullable=False)
+        rain = DB.Column(DB.Float)
+        temperature = DB.Column(DB.Float)
+        humidity = DB.Column(DB.Float)
+        battery1 = DB.Column(DB.Float)
+        battery2 = DB.Column(DB.Float)
+        csq = DB.Column(DB.Integer)
+
+        def __repr__(self):
+            return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
+                    f" ts: {self.ts}")
+
+    model = GenericRainTable
+    return model
 
 #############################
 # End of Class Declarations #
