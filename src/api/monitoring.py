@@ -626,7 +626,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
 
                     od_details["narrative_id"] = write_narratives_to_db(
                         site_id=site_id, timestamp=request_ts, narrative=narrative,
-                        type_id=2, user_id=publisher_details["publisher_ct_id"], event_id=event_id
+                        type_id=1, user_id=publisher_details["publisher_ct_id"], event_id=event_id
                     )
 
                     od_id = write_monitoring_on_demand_to_db(od_details)
