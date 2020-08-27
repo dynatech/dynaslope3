@@ -6,6 +6,7 @@
 import json
 import time
 import math
+import pydash
 from datetime import datetime
 from connection import DB
 from src.models.analysis import (
@@ -15,7 +16,7 @@ from src.models.analysis import (
     Loggers, get_tilt_table, tilt_table_schema)
 from analysis_scripts.analysis.subsurface.vcdgen import vcdgen
 from src.utils.extra import get_unix_ts_value
-# from analysis_scripts.analysis.subsurface import get_filtered_accel_data_json
+from analysis_scripts.analysis.subsurface.getfilteredaccel import get_filtered_accel_data_json
 
 def get_site_subsurface_columns(site_code, include_deactivated=False):
     """
@@ -259,23 +260,29 @@ def compute_for_y_values(node_count, base):
     return y_iterator
 
 
-def get_node_status(tsm_id):
+def get_node_status(tsm_id, node_id=None):
     """
     get node status per logger
     """
-
-    query = Accelerometers.query.options(
-        DB.joinedload("status", innerjoin=True).raiseload("*")) \
-        .filter_by(tsm_id=tsm_id).all()
-    result = AccelerometersSchema(
+    if node_id:
+        query = Accelerometers.query.options(
+            DB.joinedload("status", innerjoin=False).raiseload("*")) \
+            .filter_by(tsm_id=tsm_id, node_id=node_id).all()
+        result = AccelerometersSchema(
+        many=True).dump(query).data
+        return result
+    else:
+        query = Accelerometers.query.options(
+            DB.joinedload("status", innerjoin=True).raiseload("*")) \
+            .filter_by(tsm_id=tsm_id).all()
+        result = AccelerometersSchema(
         many=True, only=["status", "node_id"]).dump(query).data
-
-    return result
+        return result
 
 
 def get_node_details(logger_name, return_with_tsm_id=None):
     """
-    returns node count of logger
+    returns node count and TSM ID of logger 
     """
 
     query = TSMSensors.query.join(Loggers).options(
@@ -517,109 +524,112 @@ def check_if_subsurface_columns_has_data(site_code, start_ts, end_ts):
 def get_plot_data_for_node(subsurface_column, start_date, end_date, node):
     """
     """
-    final_series = {subsurface_column, start_date, end_date, node}
-    # node_status = get_node_status(subsurface_column)
-    # node_list = get_adjacent_working_nodes(node, node_status)
-    # delegate_array = [[], [], [], []]
-    # for node_id in node_list:
-    #     index_node_id = "Node " + str(node_id)
-    #     version = 1
-    #     if len(subsurface_column) > 4:
-    #         version = 2
-    #     return_data = get_filtered_accel_data_json(subsurface_column, start_date, \
-    #         end_date, node_id, version)
-    #     ## Python Behavior
-    #     return_data = json.loads(return_data[0])
+    details = get_node_details(subsurface_column, True)
+    node_count = details["node_count"]
+    tsm_id = details["tsm_id"]
+    node_status = process_node_health_data(subsurface_column)
+    node_list = get_adjacent_working_nodes(node, node_status)
+    delegate_array = {}
+    
+    for node_id in node_list:
+        index_node_id = "Node " + str(node_id)
+        version = 1
+        if len(subsurface_column) > 4:
+            version = 2
+        
+        return_data = get_filtered_accel_data_json(subsurface_column, start_date, \
+            end_date, node_id, version)
+        return_data = json.loads(return_data)
+        i = 0
+        while i < 4:
+            if i not in delegate_array:
+                delegate_array.setdefault(i, {})
+            if index_node_id not in delegate_array[i]:
+                delegate_array[i].update({index_node_id:{}})
+            i+=1
 
-    #     for key in delegate_array:
-    #         array = key["array"]
-    #         delegate_array[key][index_node_id] = []
-    #     for accel_id in return_data:
-    #         raw_filtered_arr = accel_id["raw_filtered_arr"]
-    #         for rf_arr in raw_filtered_arr:
-    #             raw_filtered = rf_arr["type"]
-    #             data_arr = rf_arr["data"]
-    #             if raw_filtered == "raw":
-    #                 is_raw = True
-    #             else:
-    #                 is_raw = False
-    #             for point in data_arr:
-    #                 timestamp = datetime.strptime(point["ts"]) * 1000
-    #                 point_values = [
-    #                     float(point["x"]),
-    #                     float(point["y"]),
-    #                     float(point["z"])
-    #                 ]
-    #                 if is_raw:
-    #                     point_values.append(float(point["batt"]))
-    #                 ### Loop until z-accel only if filtered else include battery
-    #                 if is_raw:
-    #                     limit = 4
-    #                 else:
-    #                     limit = 3
-    #                 n = 0
-    #                 while n < limit:
-    #                     accel_id.setdefault(delegate_array[n][node_id], [])
-    #                     temp = {
-    #                         timestamp,
-    #                         point_values[n],
-    #                         raw_filtered
-    #                     }
-    #                     delegate_array[n][node_id][accel_id].append(temp)
-    #                     n += 1
+        for accel_id, val in return_data[0].items():
+            for row in val:
+                raw_filtered =  row["type"]
+                data_arr = row["data"]
+                is_raw = False
+                if raw_filtered == "raw":
+                    is_raw = True
+                for point in data_arr:
+                    timestamp =  time.mktime(datetime.strptime(point["ts"], "%Y-%m-%d %H:%M:%S").timetuple())
+                    point_values = [
+                        float(point["x"]),
+                        float(point["y"]),
+                        float(point["z"]),
+                    ];
+                
+                    if is_raw:
+                        batt = 0;
+                        if point["batt"] != None:
+                            batt = float(point["batt"])
+                        point_values.append(batt)
+                    # Loop until z-accel only if filtered else include battery
+                    limit = 3
+                    if is_raw:
+                        limit = 4
+                    # print(point_values)
+                    i = 0
+                    while i < limit:
+                        if accel_id not in delegate_array[i][index_node_id]:
+                            #print(accel_id, "not exist, initializing in : ", index_node_id)
+                            delegate_array[i][index_node_id].setdefault(accel_id,[])
+                        delegate_array[i][index_node_id][accel_id].append([
+                            timestamp,
+                            point_values[i],
+                            raw_filtered])
+                        i+=1
+    temp_series = {}
+    for key, data in delegate_array.items():
+        for node_id, row in data.items():
+            temp_series.setdefault(key, {})
+            for accel_id, accel_data in row.items():
+                accel = "Data"
+                if accel_id != 1:
+                    accel = "Accel "+ str(accel_id)
+                # if delegate_array is battery
+                if key == 3:
+                    temp_series[key].update({node_id : [{
+                        "name": str(node_id) + " " + accel,
+                        "data": accel_data
+                    }]
+                    })
+                else:
+                    for check_filter_type in ["filtered", "raw"]:
+                        grouped_array = []
+                        for each in accel_data:
+                            if check_filter_type == each[2]:
+                                grouped_array.append(each)
+                        filter_label = check_filter_type.title()
+                        if node_id not in temp_series[key]:
+                            temp_series[key].setdefault(node_id, [])
+                        temp_series[key][node_id].append({
+                                "name" : f"{node_id}, {accel} <br/> ({filter_label})",
+                                "data" : grouped_array
+                            })
+    lookup = ["x-accelerometer", "y-accelerometer", "z-accelerometer", "battery"];
+    final_series = [];
+    for key, series in temp_series.items():
+        node_temp = [];
+        for node_id, data in series.items():
+            node_name = node_id.lower().replace(" ", "_")
+            temp = {"node_name" : node_name, "series" : data}
+            node_temp.append(temp)
 
-    # temp_series = [[], [], [], []]
-    # for key in delegate_array:
-    #     array = key["array"]
-    #     for node_id in array:
-    #         accel_array = node_id["accel_array"]
-    #         node_id.setdefault(temp_series[key], [])
-
-    #         for accel_id in accel_array:
-    #             point_array = accel_id["point_array"]
-    #             if accel_id == "v1":
-    #                 accel = "Data"
-    #             else:
-    #                 accel = "Accel " + str(accel_id)
-    #             ##// if delegate_array is battery
-    #             if key == 3:
-    #                 temp_series[key][node_id].append({
-    #                     "name" : str(node_id) +", "+ str(accel),
-    #                     "data" : point_array
-    #                 })
-    #             else:
-    #                 for check_filter_type in ["filtered", "raw"]:
-    #                     grouped_array = []
-    #                     for filter_type in point_array:
-    #                         if filter_type[2] == check_filter_type:
-    #                             grouped_array.append(point_array)
-
-    #                     filter_label = str(check_filter_type).title()
-    #                     temp_series[key][node_id].push({
-    #                         "name" : str(node_id) + ", " + str(accel) + "<br/>" + str(filter_label),
-    #                         "data" : grouped_array})
-
-    # lookup = ["x-accelerometer", "y-accelerometer", "z-accelerometer", "battery"]
-    # final_series = []
-    # for key in temp_series:
-    #     series = key["series"]
-    #     node_temp = []
-    #     for node_id in series:
-    #         data = node_id["data"]
-    #         node_name = str(node_id).lower().replace(" ", "_")
-    #         temp = {"node_name" : node_name, "series" :data}
-    #         node_temp.append(temp)
-    #     final_series.append({
-    #         "series_name" : lookup[key],
-    #         "data" : node_temp
-    #     })
-    # print("plots ", final_series)
+        final_series.append({
+            "series_name" : lookup[key],
+            "data" : node_temp
+        })
     return final_series
 
 
 def get_adjacent_working_nodes(node, node_status):
     """
-    get adjacent nodes
+    get adjacent working nodes 
     """
     node_list = []
     start = None
@@ -627,24 +637,20 @@ def get_adjacent_working_nodes(node, node_status):
     is_start_filled = False
     is_end_filled = False
     i = 1
-    for row in node_status:
-        node_id = row["node_id"]
-        if node_prop:
-            if node_prop["status"]:
-                status = node_prop["status"]
-            else:
-                status = "OK"
-
-        node_prop = row["node_prop"]
-        if int(node) == node_id:
-            #Check if node is the first in node_status
-            if i == node_status[0]["id"]:
-                node_list.append(node_id["id"])
+    for node_prop in node_status:
+        status = "OK"
+        if "status" in node_prop:
+            if node_prop["status"] > 1:
+                status = "Not OK"
+        node_id = node_prop["x"]
+        if int(node) == int(node_id):
+            if i == node_status[0]["x"]:
+                node_list.append(node_prop["x"])
                 is_start_filled = True
             else:
-                start = node_prop
-                node_list.append(start["id"])
-                node_list.append(node_prop["id"])
+                if start != None:
+                    node_list.append(start["x"])
+                node_list.append(node_prop["x"])
                 is_start_filled = True
         else:
             if is_start_filled and is_end_filled:
@@ -655,7 +661,7 @@ def get_adjacent_working_nodes(node, node_status):
             else:
                 if status != "Not OK":
                     end = node_prop
-                    node_list.append(end["id"])
+                    node_list.append(end["x"])
                     is_end_filled = True
         i += 1
     return node_list
