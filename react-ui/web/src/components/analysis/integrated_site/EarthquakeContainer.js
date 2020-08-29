@@ -114,7 +114,7 @@ function EarthquakeContainer (props) {
         viewColumns: false,
         responsive: "scrollMaxHeight",
         onRowClick (data, meta, e) {
-            select_map_event(data[2], eqEvents);
+            select_map_event(data[3], eqEvents);
         }
     };
 
