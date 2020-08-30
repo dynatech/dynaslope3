@@ -9,6 +9,7 @@ from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
 from src.models.users import UsersSchema
 from src.models.monitoring import OperationalTriggers
+from sqlalchemy.dialects.mysql import MEDIUMINT, TINYINT, DECIMAL, TEXT
 
 
 ###############################
@@ -415,6 +416,7 @@ class TSMSensors(DB.Model):
         f"{SCHEMA_DICT['commons_db']}.sites.site_id"), nullable=False)
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['senslopedb']}.loggers.logger_id"), nullable=False)
+    tsm_name = DB.Column(DB.String(7))
     date_activated = DB.Column(DB.Date)
     date_deactivated = DB.Column(DB.Date)
     segment_length = DB.Column(DB.Float)
@@ -429,7 +431,8 @@ class TSMSensors(DB.Model):
         lazy="dynamic")
 
     logger = DB.relationship(
-        "Loggers", backref="tsm_sensor", lazy="joined", innerjoin=True)
+        "Loggers", backref=DB.backref("tsm_sensor", lazy="subquery", innerjoin=False, uselist=False),
+        lazy="subquery", innerjoin=False, uselist=False)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> TSM ID: {self.tsm_id}"
@@ -491,6 +494,37 @@ class Loggers(DB.Model):
     site = DB.relationship("Sites", backref=DB.backref(
         "loggers", lazy="dynamic"))
 
+    logger_model = DB.relationship("LoggerModels", backref=DB.backref(
+        "loggers", lazy="dynamic"))
+    
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Logger ID: {self.logger_id}"
+                f" Site_ID: {self.site_id} Logger NAme: {self.logger_name}"
+                f" Date Activated: {self.date_activated} Latitude: {self.latitude}")
+
+
+class LoggersComms(DB.Model):
+    """
+    Class representation of loggers table
+    """
+
+    __tablename__ = "loggers"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    logger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    site_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['commons_db']}.sites.site_id"), nullable=False)
+    logger_name = DB.Column(DB.String(7))
+    date_activated = DB.Column(DB.Date)
+    date_deactivated = DB.Column(DB.Date)
+    latitude = DB.Column(DB.Float)
+    longitude = DB.Column(DB.Float)
+    model_id = DB.Column(DB.Integer)
+    # site = DB.relationship("Sites", backref=DB.backref(
+    #     "loggers", lazy="dynamic"))
+
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Logger ID: {self.logger_id}"
                 f" Site_ID: {self.site_id} Logger NAme: {self.logger_name}"
@@ -512,9 +546,6 @@ class LoggerModels(DB.Model):
     has_piezo = DB.Column(DB.Integer)
     has_soms = DB.Column(DB.Integer)
     logger_type = DB.Column(DB.String(10))
-
-    loggers = DB.relationship(
-        "Loggers", backref="logger_model", lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> TSM ID: {self.tsm_id}"
@@ -664,6 +695,128 @@ class DataPresenceLoggers(DB.Model):
                 f" ts_updated: {self.ts_updated} diff_days: {self.diff_days}")
 
 
+class DeploymentLogs(DB.Model):
+    """
+    Class representation of deployment_logs
+    """
+
+    __tablename__ = "deployment_logs"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    dep_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    logger_id = DB.Column(DB.Integer)
+    installation_date = DB.Column(DB.DateTime)
+    location_description = DB.Column(TEXT)
+    network_type = DB.Column(DB.String(7))
+    personnel = DB.Column(DB.String(100))
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> dep_id: {self.dep_id}"
+                f" logger_id: {self.logger_id} installation_date: {self.installation_date}"
+                f" location_description: {self.location_description} personnel: {self.personnel}")
+
+
+class DeployedNode(DB.Model):
+    """
+    Class representation of deployed_node
+    """
+
+    __tablename__ = "deployed_node"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    dep_node_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    dep_id = DB.Column(DB.Integer)
+    tsm_id = DB.Column(DB.Integer)
+    node_id = DB.Column(DB.Integer)
+    n_id = DB.Column(DB.Integer)
+    version = DB.Column(DB.Integer)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> dep_node_id: {self.dep_node_id}"
+                f" dep_id: {self.dep_id} tsm_id: {self.tsm_id}"
+                f" node_id: {self.node_id} n_id: {self.n_id}"
+                f" version: {self.version}")
+
+
+class Accelerometers(DB.Model):
+    """
+    Class representation of accelerometers
+    """
+
+    __tablename__ = "accelerometers"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    accel_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    tsm_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.tsm_sensors.tsm_id"), nullable=False)
+    node_id = DB.Column(DB.Integer)
+    accel_number = DB.Column(DB.Integer)
+    ts_updated = DB.Column(DB.String(45))
+    voltage_max = DB.Column(DB.Float)
+    voltage_min = DB.Column(DB.Float)
+    in_use = DB.Column(DB.Integer)
+
+    accelerometers = DB.relationship("TSMSensors", backref=DB.backref(
+        "accelerometers", lazy="dynamic"), lazy="subquery")
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> accel_id: {self.accel_id}"
+                f" tsm_id: {self.tsm_id} node_id: {self.node_id}"
+                f" accel_number: {self.accel_number} ts_updated: {self.ts_updated}"
+                f" voltage_max: {self.voltage_max} voltage_min: {self.voltage_min}"
+                f" in_use: {self.in_use}")
+
+            
+class LoggerMobile(DB.Model):
+    """
+    Class representation of logger_mobile
+    """
+
+    __tablename__ = "logger_mobile"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    mobile_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    logger_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.loggers.logger_id"), nullable=False)
+    date_activated = DB.Column(DB.String(45))
+    sim_num = DB.Column(DB.String(12))
+    gsm_id = DB.Column(DB.Integer)
+
+    logger = DB.relationship(
+        "Loggers", backref=DB.backref("logger_mobile", lazy="joined", innerjoin=True, uselist=False),
+        lazy="joined", innerjoin=True, uselist=False)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> mobile_id: {self.mobile_id}"
+                f" logger_id: {self.logger_id} date_activated: {self.date_activated}"
+                f" sim_num: {self.sim_num} gsm_id: {self.gsm_id}")
+
+
+class LoggerMobileComms(DB.Model):
+    """
+    Class representation of logger_mobile
+    """
+
+    __tablename__ = "logger_mobile"
+    __bind_key__ = "comms_db"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    mobile_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    logger_id = DB.Column(DB.Integer)
+    date_activated = DB.Column(DB.String(45))
+    sim_num = DB.Column(DB.String(12))
+    gsm_id = DB.Column(DB.Integer)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> mobile_id: {self.mobile_id}"
+                f" logger_id: {self.logger_id} date_activated: {self.date_activated}"
+                f" sim_num: {self.sim_num} gsm_id: {self.gsm_id}")
+
+
 def get_tilt_table(table_name):
     """
     """
@@ -679,12 +832,130 @@ def get_tilt_table(table_name):
 
         data_id = DB.Column(DB.Integer, primary_key=True)
         ts = DB.Column(DB.DateTime, nullable=False)
+        node_id = DB.Column(DB.Integer)
+        type_num = DB.Column(DB.Integer)
+        xval = DB.Column(DB.Integer)
+        yval = DB.Column(DB.Integer)
+        zval = DB.Column(DB.Integer)
+        batt = DB.Column(DB.Float)
+        is_live = DB.Column(TINYINT)
 
         def __repr__(self):
             return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
                     f" ts: {self.ts}")
 
     model = GenericTiltTable
+
+    return model
+
+def get_temperature_table(table_name):
+    """
+    """
+
+    class GenericTemperatureTable(DB.Model):
+        """
+        """
+
+        __tablename__ = table_name
+        __bind_key__ = "senslopedb"
+        __table_args__ = {
+            "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
+
+        data_id = DB.Column(DB.Integer, primary_key=True)
+        ts = DB.Column(DB.DateTime, nullable=False)
+        node_id = DB.Column(DB.Integer)
+        type_num = DB.Column(DB.Integer)
+        temp_val = DB.Column(DB.Integer)
+
+        def __repr__(self):
+            return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
+                    f" ts: {self.ts}")
+
+    model = GenericTemperatureTable
+
+    return model
+
+def get_rain_table(table_name):
+    """
+    """
+
+    class GenericRainTable(DB.Model):
+        """
+        """
+
+        __tablename__ = table_name
+        __bind_key__ = "senslopedb"
+        __table_args__ = {
+            "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
+
+        data_id = DB.Column(DB.Integer, primary_key=True)
+        ts = DB.Column(DB.DateTime, nullable=False)
+        rain = DB.Column(DB.Float)
+        temperature = DB.Column(DB.Float)
+        humidity = DB.Column(DB.Float)
+        battery1 = DB.Column(DB.Float)
+        battery2 = DB.Column(DB.Float)
+        csq = DB.Column(TINYINT)
+
+        def __repr__(self):
+            return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
+                    f" ts: {self.ts}")
+
+    model = GenericRainTable
+
+    return model
+
+def get_piezo_table(table_name):
+    """
+    """
+
+    class GenericPiezoTable(DB.Model):
+        """
+        """
+
+        __tablename__ = table_name
+        __bind_key__ = "senslopedb"
+        __table_args__ = {
+            "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
+
+        data_id = DB.Column(DB.Integer, primary_key=True)
+        ts = DB.Column(DB.DateTime, nullable=False)
+        frequency_shift = DB.Column(DECIMAL(precision=6, scale=2, asdecimal=True))
+        temperature = DB.Column(DB.Float)
+
+        def __repr__(self):
+            return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
+                    f" ts: {self.ts}")
+
+    model = GenericPiezoTable
+
+    return model
+
+def get_soms_table(table_name):
+    """
+    """
+
+    class GenericSomsTable(DB.Model):
+        """
+        """
+
+        __tablename__ = table_name
+        __bind_key__ = "senslopedb"
+        __table_args__ = {
+            "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
+
+        data_id = DB.Column(DB.Integer, primary_key=True)
+        ts = DB.Column(DB.DateTime, nullable=False)
+        node_id = DB.Column(DB.Integer)
+        type_num = DB.Column(DB.Integer)
+        mval1 = DB.Column(DB.Integer)
+        mval2 = DB.Column(DB.Integer)
+
+        def __repr__(self):
+            return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
+                    f" ts: {self.ts}")
+
+    model = GenericSomsTable
 
     return model
 
@@ -884,11 +1155,27 @@ class LoggersSchema(MARSHMALLOW.ModelSchema):
     """
 
     model_id = fields.Integer()
+    tsm_sensor = fields.Nested("TSMSensorsSchema", exclude=("logger", ))
+    logger_mobile = fields.Nested("LoggerMobileSchema", exclude=("logger", ))
     logger_model = fields.Nested("LoggerModelsSchema", exclude=("loggers", ))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = Loggers
+        exclude = ["data_presence"]
+
+
+class LoggersCommsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Loggers class
+    """
+
+    model_id = fields.Integer()
+    logger_model = fields.Nested("LoggerModelsSchema", exclude=("loggers", ))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = LoggersComms
         exclude = ["data_presence"]
 
 
@@ -908,6 +1195,7 @@ class TSMSensorsSchema(MARSHMALLOW.ModelSchema):
     Schema representation of TSMSensors class
     """
     logger = fields.Nested(LoggersSchema, exclude=("site", "tsm_sensor"))
+    accelerometers = fields.Nested("AccelerometersSchema", many=True)
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -984,3 +1272,61 @@ class DataPresenceLoggersSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = DataPresenceLoggers
+
+
+class DeploymentLogsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of DeploymentLogs class
+    """
+    dep_id = fields.Integer()
+    logger_id = fields.Integer()
+    installation_date = fields.DateTime("%Y-%m-%d %H:%M:%S")
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = DeploymentLogs
+
+    
+class DeployedNodeSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of DeployedNode class
+    """
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = DeployedNode
+
+
+class AccelerometersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Accelerometers class
+    """
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = Accelerometers
+
+
+class LoggerMobileSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of LoggerMobile class
+    """
+    logger = fields.Nested(
+        LoggersSchema, exclude=("data_presence", "tsm_sensor", "logger_model"))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = LoggerMobile
+
+
+class LoggerMobileCommsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of LoggerMobileComms class
+    """
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = LoggerMobileComms
+
+
+

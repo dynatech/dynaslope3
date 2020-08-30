@@ -113,6 +113,10 @@ const navigation_labels = [
                 link: "/community/site_info"
             },
             {
+                label: "Data Loggers and Sensors Settings",
+                link: "/community"
+            },
+            {
                 label: "Stakeholders' Concerns",
                 link: "/community/concerns",
                 soon: true

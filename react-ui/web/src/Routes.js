@@ -18,6 +18,8 @@ import ProfileContainer from "./components/member_profile/Container";
 import UpdateCredentialsForm from "./components/member_profile/UpdateCredentialsForm";
 import CreateDynaUser from "./components/member_profile/CreateDynaUser";
 
+import DeploymentFormContainer from "./components/community/DeploymentFormContainer";
+
 
 function RoutesCollection (props) {
     const { 
@@ -43,11 +45,14 @@ function RoutesCollection (props) {
             <Route path={`${url}communication`} render={() => <h3>Sorry. We could not find what you are looking for.</h3>} />
 
             <Route path={`${url}community/site_info`} component={SitesInformationContainer} />
+            <Route path={`${url}community`} component={DeploymentFormContainer} />
             
             <Route path={`${url}profile/credentials`} component={UpdateCredentialsForm} />
             <Route path={`${url}profile/create`} component={CreateDynaUser} />
             <Route path={`${url}profile`} component={ProfileContainer} />
             
+
+
             <Route render={() => <h3> Not found</h3>} />
         </Switch>
 
