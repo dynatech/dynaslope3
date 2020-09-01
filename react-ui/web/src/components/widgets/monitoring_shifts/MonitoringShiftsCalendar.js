@@ -26,7 +26,7 @@ function Event ({ event }) {
     const id = open ? "simple-popover" : undefined;
     
     return (
-        <div style={{ width: "inherit " }}>
+        <div style={{ width: "inherit" }}>
             <div aria-describedby={id} onClick={handleClick} role="button" tabIndex="0">
                 { event.title }
             </div>
@@ -52,6 +52,10 @@ function Event ({ event }) {
 }
 
 function MonitoringShiftsCalendar (props) {
+    const { nickname } = props;
+    const has_nickname = typeof nickname !== "undefined"; // Return one user only
+    // used in Profiles Page
+
     const localizer = momentLocalizer(moment);
     const [rows, setRows] = useState([]);
     const [allShifts, setShifts] = useState([]);
@@ -83,23 +87,35 @@ function MonitoringShiftsCalendar (props) {
                 ts_end = start.set({ h: 23, m: 59 }); 
             }
 
-            return [{
-                title: `${row.iompmt} (MT - ${time})`,
-                start,
-                end: ts_end
-            }, {
-                title: `${row.iompct} (CT - ${time})`,
-                start,
-                end: ts_end
-            }];
+            if (has_nickname) {
+                let name = null;
+                if (row.iompmt === nickname) name = `${nickname} (MT`;
+                if (row.iompct === nickname) name = `${nickname} (CT`;
+
+                if (name) {
+                    return [{
+                        title: `${name} - ${time})`,
+                        start,
+                        end: ts_end
+                    }];
+                }
+            } else {
+                return [{
+                    title: `${row.iompmt} (MT - ${time})`,
+                    start,
+                    end: ts_end
+                }, {
+                    title: `${row.iompct} (CT - ${time})`,
+                    start,
+                    end: ts_end
+                }];
+            }
         });
 
         setEvents(data);    
-    }, [allShifts]);
+    }, [allShifts, nickname]);
 
     const now = moment();
-
-
     const color_night = "#053752";
     const color_day = "#E5DE44";
     const eventStyle = (event, ts_start, ts_end) => {
@@ -146,7 +162,7 @@ function MonitoringShiftsCalendar (props) {
     };
 
     return ( 
-        <div style={{ height: 850, width: "-webkit-fill-available" }}>
+        <div style={{ height: has_nickname ? 300 : 850, width: "-webkit-fill-available" }}>
             <Typography variant="subtitle2" align="center">
                 <i>Note: The border color of the bordered box specifies the current monitoring shift.</i>
             </Typography>

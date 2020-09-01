@@ -5,8 +5,8 @@ function prepareSiteAddress (site_details, include_site_code = true, position = 
     const { purok, sitio, barangay, municipality, province, site_code } = site_details;
     let address = "";
 
-    if (sitio !== null) address = `Sitio ${sitio}, `;
-    if (purok !== null) address += `Purok ${purok}, `;
+    if (sitio !== null && sitio !== "") address = `Sitio ${sitio}, `;
+    if (purok !== null && purok !== "") address += `Purok ${purok}, `;
 
     address += `Brgy. ${barangay}, ${municipality}, ${province}`;
     if (include_site_code) {
@@ -144,10 +144,24 @@ function remapCkeditorEnterKey (editor) {
     }, { priority: "high" } );
 }
 
+function monthSorter (season_months) {
+    const all_months = [
+        "january", "february", "march",
+        "april", "may", "june",
+        "july", "august", "september",
+        "october", "november", "december"
+    ];
+
+    season_months.sort((a, b) => {
+        return all_months.indexOf(a) - all_months.indexOf(b);
+    });
+}
+
 export {
     prepareSiteAddress, capitalizeFirstLetter,
     getUserOrganizations, simNumFormatter,
     computeForStartTs, makePOSTAxiosRequest,
     makeGETAxiosRequest, useInterval,
-    remapCkeditorEnterKey, getUserContactPriority
+    remapCkeditorEnterKey, getUserContactPriority,
+    monthSorter
 };

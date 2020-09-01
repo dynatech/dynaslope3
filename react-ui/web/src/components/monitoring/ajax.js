@@ -36,10 +36,11 @@ export function getEndOfShiftReports (input, callback) {
 export function getNarratives (input, callback) {
     const {
         include_count, limit, offset,
-        filters, search_str
+        filters, search_str, order_by, order
     } = input;
 
     let api_link = `${host}/api/narratives/get_narratives?limit=${limit}&offset=${offset}`;
+    api_link += `&order_by=${order_by}&order=${order}`;
 
     if (include_count) api_link += "&include_count=true";
 

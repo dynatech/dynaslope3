@@ -121,7 +121,12 @@ function IndividualContact (props) {
     } = props;
     
     const { sites, org } = siteOrgs;
-    const { status, emails, ewi_recipient, landline_numbers, mobile_numbers } = chosenContact;
+    const {
+        status, emails, ewi_recipient,
+        landline_numbers, mobile_numbers,
+        ewi_restriction
+    } = chosenContact;
+
     return (
         <Grid
             container 
@@ -242,6 +247,28 @@ function IndividualContact (props) {
                 </Typography>
             </Grid>
 
+            {
+                ewi_restriction && (
+                    <Fragment>
+                        <Grid item xs={12} className={classes.insetDivider} >
+                            <Divider />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Typography variant="body1" align="center">
+                                <strong>EWI Restriction</strong>
+                            </Typography>
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Typography variant="body2" align="center">
+                                Do not send on Alert {ewi_restriction.alert_level} { ewi_restriction.alert_level > 1 && "and below" }
+                            </Typography>
+                        </Grid>
+                    </Fragment>
+                )
+            }
+
             <Grid item xs={12} style={{ padding: "12px 4px" }} >
                 <Divider />
             </Grid>
@@ -332,7 +359,9 @@ function IndividualContact (props) {
                                     </ListItem>
                                 ))
                             }
-                        </List>)}
+                        </List>
+                    )
+                }
             </Grid>
 
             <Grid item xs={12} className={classes.insetDivider} >
@@ -369,7 +398,9 @@ function IndividualContact (props) {
                                     </ListItem>
                                 ))
                             }
-                        </List>)}
+                        </List>
+                    )
+                }
             </Grid>
 
             <Grid item xs={12} style={{ padding: "12px 4px" }} >

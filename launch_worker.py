@@ -17,7 +17,8 @@ from src.websocket.communications_tasks import (
     initialize_comms_data,
     communication_background_task,
     ground_data_reminder_bg_task,
-    no_ground_data_narrative_bg_task
+    no_ground_data_narrative_bg_task,
+    no_ewi_acknowledgement_bg_task
 )
 from src.websocket.misc_ws import (
     monitoring_shift_background_task
@@ -82,6 +83,11 @@ def setup_periodic_tasks(sender, **kwargs):
             crontab(minute="1-59/5"),
             alert_generation_background_task.s(),
             name="monitoring-background-task"
+        )
+        sender.add_periodic_task(
+            crontab(minute="59", hour="3-23/4"),
+            no_ewi_acknowledgement_bg_task.s(),
+            name="no-ewi-acknowledgement-bg-task"
         )
 
     if ENABLE_RAINFALL:

@@ -230,7 +230,7 @@ function AllContacts (props) {
     return orgs.map((row, index) => {
         const { scope, org_name } = contact_per_org[row][0];
         const { header: contact_scope } = createHeader(scope, org_name);
-        const primary_contact = contact_per_org[row].find(x => x.primary_contact === 1);
+        const primary_contact = contact_per_org[row].find(x => x.primary_contact === 1);	
         let primary = "No primary contact set";
         if (typeof primary_contact !== "undefined") {
             const { contact_person: { first_name, last_name } } = primary_contact;

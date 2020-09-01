@@ -23,6 +23,7 @@ const getMuiTheme = createMuiTheme({
 const eq_ev_tbl_columns = [
     { name: "Timestamp" },
     { name: "Magnitude" },
+    { name: "Issuer" },
     {
         name: "eq_id",
         options: {
@@ -69,6 +70,7 @@ function EarthquakeContainer (props) {
         const table_data = eqEvents.map(d => [
             moment(d.ts).format("D MMM YYYY, HH:mm"), 
             parseFloat(d.magnitude),
+            d.issuer.toUpperCase(),
             d.eq_id
         ]);
         setEqEventsTable([...table_data]);
@@ -112,7 +114,7 @@ function EarthquakeContainer (props) {
         viewColumns: false,
         responsive: "scrollMaxHeight",
         onRowClick (data, meta, e) {
-            select_map_event(data[2], eqEvents);
+            select_map_event(data[3], eqEvents);
         }
     };
 
@@ -179,7 +181,7 @@ function EarthquakeContainer (props) {
                                     <Typography
                                         variant="body1"
                                     >
-                                    Earthquake Alerts
+                                        Earthquake Alerts
                                     </Typography>
                                 }
                                 columns={eq_al_tbl_columns}

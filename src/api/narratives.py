@@ -2,9 +2,9 @@
 Narratives functions API File
 """
 
-from connection import DB
 from datetime import datetime
 from flask import Blueprint, jsonify, request
+from connection import DB
 from src.models.narratives import (NarrativesSchema)
 from src.utils.narratives import (get_narratives, write_narratives_to_db,
                                   update_narratives_on_db, find_narrative_event_id,
@@ -47,7 +47,6 @@ def wrap_write_narratives_to_db():
         try:
             site_list = json_data["site_list"]
             print(get_process_status_log("Multiple Site Narrative", "start"))
-            is_multiple_insert = True
         except KeyError:
             raise
 
@@ -67,17 +66,12 @@ def wrap_write_narratives_to_db():
 
         # UPDATING OF NARRATIVE
         if narrative_id:
-            for site_id in site_list:
-                has_event_id = bool(json_data["event_id"])
-                if has_event_id:
-                    event_id = json_data["event_id"]
-                else:
-                    event = find_narrative_event_id(timestamp, site_id)
-                    if event:
-                        event_id = event.event_id
-                    else:
-                        raise Exception(get_process_status_log(
-                            "INSERT NARRATIVES", "fail"))
+            for row in site_list:
+                event_id = row["event_id"]
+                site_id = row["site_id"]
+
+                if not event_id:
+                    event_id = find_narrative_event_id(timestamp, site_id)
 
                 var_checker("narrative_id", narrative_id, True)
                 status = update_narratives_on_db(
@@ -94,11 +88,11 @@ def wrap_write_narratives_to_db():
 
         # INSERT OF NARRATIVE
         else:
-            for site_id in site_list:
-                has_event_id = bool(json_data["event_id"])
-                if has_event_id:
-                    event_id = json_data["event_id"]
-                else:
+            for row in site_list:
+                event_id = row["event_id"]
+                site_id = row["site_id"]
+
+                if not event_id:
                     event_id = find_narrative_event_id(timestamp, site_id)
 
                 # if event:
@@ -145,6 +139,8 @@ def wrap_get_narratives(start=None, end=None):
         "include_count", default="false", type=str)
     site_ids = request.args.getlist("site_ids", type=int)
     search = request.args.get("search", default="", type=str)
+    order_by = request.args.get("order_by", default="timestamp", type=str)
+    order = request.args.get("order", default="desc", type=str)
 
     include_count = True if include_count.lower() == "true" else False
 
@@ -156,7 +152,9 @@ def wrap_get_narratives(start=None, end=None):
 
     return_val = get_narratives(
         offset, limit, start, end,
-        site_ids, include_count, search, raise_site=False)
+        site_ids, include_count, search,
+        order_by=order_by, order=order,
+        raise_site=False)
 
     if include_count:
         narratives = return_val[0]

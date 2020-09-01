@@ -183,7 +183,8 @@ function TriggersInputForm (props) {
     } = triggersState;
 
     useEffect(() => {
-        setModalTitle("Add triggers if not yet included in this release.");
+        setModalTitle("Toggle ON all the triggers to be included in the internal alert computation, otherwise toggle them OFF. " +
+        "Fill in the required fields for each selected trigger.");
     }, []);
     
     return (
@@ -205,7 +206,7 @@ function TriggersInputForm (props) {
                 )
             }
             {
-                !subs_switch_state && !surf_switch_state && !moms_switch_state && (
+                !subs_switch_state && !surf_switch_state && !moms_switch_state && alert_level <= 1 && (
                     <Grid item xs={12} className={hasNoGroundData ? classes.groupGridContainer : ""}>
                         <FormControl component="fieldset" className={classes.formControl}>
                             <FormLabel component="legend" className={classes.formLabel}>

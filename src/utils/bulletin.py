@@ -170,6 +170,7 @@ def create_browser_driver_instance():
 @atexit.register
 def teardown_browser_driver():
     if BROWSER_DRIVER:
+        print("Closing browser driver instance...")
         BROWSER_DRIVER.cleanup()
 
 

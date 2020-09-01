@@ -31,7 +31,6 @@ export function getLatestSiteRelease (input, callback) {
 }
 
 export function getUnreleasedRoutineSites (data_timestamp, callback) {
-    const ts = "2020-02-04 11:30:00";
     const api_link = `${host}/api/monitoring/get_unreleased_routine_sites/${data_timestamp}`;
     
     makeGETAxiosRequest(api_link, callback);

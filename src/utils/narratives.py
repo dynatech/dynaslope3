@@ -14,14 +14,27 @@ def get_narrative_text(narrative_type, details):
     """
     """
     narrative_text = ""
+    tag = details["tag"]
+
+    try:
+        data = details['additional_data']
+    except KeyError:
+        data = ""
+
     if narrative_type == "sms_tagging":
-        if details["tag"] == "#GroundMeas":
-            print()
-            narrative_text = f"Received surficial ground data from {details['additional_data']}"
-        elif details["tag"] == "#GroundObs":
-            narrative_text = f"Received onsite ground observation data from {details['additional_data']}"
-        elif details["tag"] == "#EwiResponse":
-            narrative_text = f"EWI SMS acknowledged by {details['additional_data']}"
+        if tag == "#GroundMeas":
+            narrative_text = f"Received surficial ground data from {data}"
+        elif tag == "#GroundObs":
+            narrative_text = (f"Received onsite ground observation data "
+                              f"from {data}")
+        elif tag == "#EwiResponse":
+            narrative_text = f"EWI SMS acknowledged by {data}"
+        elif tag == "#EwiResponse":
+            narrative_text = f"EWI SMS acknowledged by {data}"
+        elif tag == "#EwiMessage":
+            narrative_text = f"Sent EWI SMS (manually created and tagged)"
+        elif tag == "#RainInfo":
+            narrative_text = f"Sent rainfall information to {data}"
 
     return narrative_text
 
@@ -53,7 +66,7 @@ def find_narrative_event_id(timestamp, site_id):
 
     filtering = DB.or_(DB.and_(
         mea.ts_start <= timestamp, timestamp <= mea.ts_end), DB.and_(
-        mea.ts_start <= timestamp, mea.ts_end == None))
+        mea.ts_start <= timestamp, mea.ts_end.is_(None)))
 
     event_alert = mea.query.options(DB.joinedload("event", innerjoin=True), DB.raiseload("*")) \
         .order_by(DB.desc(mea.event_alert_id)) \
@@ -69,7 +82,9 @@ def find_narrative_event_id(timestamp, site_id):
 def get_narratives(
         offset=None, limit=None, start=None,
         end=None, site_ids=None, include_count=None,
-        search=None, event_id=None, raise_site=True):
+        search=None, event_id=None, raise_site=True,
+        order_by="timestamp", order="desc"
+):
     """
         Returns one or more row/s of narratives.
 
@@ -83,6 +98,7 @@ def get_narratives(
             search (String)
             event_id (Integer)
     """
+
     nar = Narratives
     base = nar.query
 
@@ -94,6 +110,16 @@ def get_narratives(
     else:
         base = base.filter(nar.timestamp.between(start, end))
 
+    order_attr = nar.timestamp
+    if order_by == "id":
+        order_attr = nar.id
+
+    ordering = DB.desc(order_attr)
+    if order == "asc":
+        ordering = DB.asc(order_attr)
+
+    base = base.order_by(ordering)
+
     if not event_id:
         if site_ids:
             base = base.filter(nar.site_id.in_(site_ids))
@@ -101,22 +127,18 @@ def get_narratives(
         if search != "":
             base = base.filter(nar.narrative.ilike("%" + search + "%"))
 
-        narratives = base.order_by(
-            DB.desc(nar.timestamp)).limit(limit).offset(offset).all()
-
-        DB.session.commit()
-
-        # DB.session.commit()
-
-        if include_count:
-            count = get_narrative_count(base)
-            return [narratives, count]
-        else:
-            return narratives
+        nar_base = base.limit(limit).offset(offset)
     else:
-        narratives = base.order_by(DB.asc(nar.timestamp)).filter(
-            nar.event_id == event_id).all()
-        DB.session.commit()
+        nar_base = base.filter(
+            nar.event_id == event_id)
+
+    narratives = nar_base.all()
+    DB.session.commit()
+
+    if include_count:
+        count = get_narrative_count(base)
+        return [narratives, count]
+    else:
         return narratives
 
 

@@ -1,12 +1,13 @@
 """
 Chart Rendering Utility
 """
+
 import os
 import glob
 import json
 import requests
 import img2pdf
-from flask import jsonify, request
+from flask import jsonify
 from config import APP_CONFIG
 
 
@@ -44,13 +45,16 @@ def render_charts(user_id, site_code, charts, file_name=None):
             f.write(r.content)
             f.close()
 
+        svg.close()
+
     if charts:
         file_path = render_to_pdf(save_path, file_name)
         print("Chart rendering successful...")
         response = {
             "status": True,
             "message": "Chart rendering successful...",
-            "file_path": file_path}
+            "file_path": file_path
+        }
     else:
         response = {"status": True,
                     "message": "No chart requested. Process successful..."}
