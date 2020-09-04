@@ -855,6 +855,8 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
         min_x = min.data.length > 0 ? moment(min.data[0].x) : moment();
     }
 
+    data.forEach(row => { row.turboThreshold = 100000; });
+
     return {
         title: {
             text: `<b>Surficial Data History Chart of ${site_code.toUpperCase()}</b>`,

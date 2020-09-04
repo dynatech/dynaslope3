@@ -39,6 +39,7 @@ function plotColumnPosition (column_data, type) {
     const col_position_data = [];
     data_list.forEach(({ orientation, data: series_list }) => {
         const colored_data = assignColorToEachSeries(series_list);
+        colored_data.forEach(row => { row.turboThreshold = 100000; });
         const col_data = { 
             ...column_data,
             data: colored_data,
@@ -58,6 +59,7 @@ function plotDisplacement (column_data, type) {
 
         series_list[0].type = "area";
         const colored_data = assignColorToEachSeries(series_list);
+        colored_data.forEach(row => { row.turboThreshold = 100000; });
 
         annotations.forEach((line) => {
             line.width = 0;
