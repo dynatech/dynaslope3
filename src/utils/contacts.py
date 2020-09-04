@@ -342,7 +342,7 @@ def save_user_contact_numbers(data, user_id):
 
                 if check_sim_num is None:
                     # NOTE: (DYNA 2.0) insert to UserMobile during transistion
-                    # period. Change adding to MobileNumbers after full 3.0 implem
+                    # period. Change adding to MobileNumbers after full GSM 3 implem
                     gsm_id = get_gsm_id_by_prefix(sim_num)
                     # insert_mobile_number = MobileNumbers(
                     #     sim_num=sim_num, gsm_id=gsm_id)
