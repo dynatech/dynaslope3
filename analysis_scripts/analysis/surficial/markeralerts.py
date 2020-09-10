@@ -22,8 +22,6 @@ import time as mytime
 #### Import local codes
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import analysis.querydb as qdb
-import dynadb.db as db
-import gsm.smsparser2.smsclass as sms
 import volatile.memory as mem
 
 #### Open config files
@@ -146,7 +144,6 @@ def compute_critical_acceleration(velocity):
         upper bound for acceleration
     acceleration_lower_bound: array-like
         lower bound for acceleration
-
     """
     
     #### Compute for critical acceleration from computed slope and intercept from critical values
@@ -466,7 +463,9 @@ def evaluate_trending_filter(marker_data_df, to_plot, to_json=False):
                                'a_n':list(acceleration),
                                'ts_n':list(time_arr)
                               },
-                       'trend_alert': trend_alert
+                       'trend_alert': trend_alert,
+                       'plot_trend': 1
+
                       }
         return return_json
     else:
@@ -541,7 +540,7 @@ def evaluate_marker_alerts(marker_data_df, ts, to_json):
                     #### Check if there is enough data for trending analysis
                     if len(marker_data_df) < int(sc['surficial']['surficial_num_pts']):
                         #### Not enough data points for trending analysis
-                        trend_alert = {'trend_alert': 1}
+                        trend_alert = {'trend_alert': 1, 'plot_trend': 0}
                         
                     else:
                     #### Perform trending analysis
@@ -587,11 +586,11 @@ def get_surficial_alert(marker_alerts, site_id):
     site_alert = max(marker_alerts.alert_level)
     
     #### Get the corresponding trigger sym id
-    trigger_sym_id = qdb.get_trigger_sym_id(site_alert)
+    trigger_sym_id = qdb.get_trigger_sym_id(site_alert, 'surficial')
     
-    return pd.DataFrame({'ts':marker_alerts.ts.iloc[0], 'site_id':site_id,
-                         'trigger_sym_id':trigger_sym_id,
-                         'ts_updated':marker_alerts.ts.iloc[0]}, index = [0])
+    return pd.DataFrame({'ts': marker_alerts.ts.iloc[0], 'site_id': site_id,
+                         'trigger_sym_id': trigger_sym_id,
+                         'ts_updated': marker_alerts.ts.iloc[0]}, index = [0])
 
 
 def generate_surficial_alert(site_id = None, ts = None, marker_id = None,
@@ -627,10 +626,8 @@ def generate_surficial_alert(site_id = None, ts = None, marker_id = None,
     marker_data_df = surficial_data_df.groupby('marker_id',as_index = False)
     marker_alerts = marker_data_df.apply(evaluate_marker_alerts, ts, to_json)
     #### Write to marker_alerts table    
-    data_table = sms.DataTable('marker_alerts',
-                               marker_alerts[['data_id', 'displacement',
+    qdb.write_marker_alerts(marker_alerts[['data_id', 'displacement',
                                               'time_delta', 'alert_level']])
-    db.df_write(data_table)
 
     #### Generate surficial alert for site
     surficial_alert = get_surficial_alert(marker_alerts,site_id)
@@ -645,15 +642,29 @@ def generate_surficial_alert(site_id = None, ts = None, marker_id = None,
         plot_site_meas(surficial_data_to_plot, ts)
         
     if to_json:
-        plot_trend_alert = -1 * (marker_alerts['trend_alert'][0]['trend_alert'] - 1)
-        return {'trend_alert': plot_trend_alert}
-
+        return marker_alerts['trend_alert'][0]
     
     return surficial_data_df
-
+        
 
 #Call the generate_surficial_alert() function
 if __name__ == "__main__":
     start = datetime.now()
+    
+#    # test l0t: 
+#    site_id = 27, 
+#    ts = '2019-11-20 08:00'
+#    marker_id = 89
+#    data = generate_surficial_alert(site_id=site_id, ts=ts,
+#                                    marker_id=marker_id, to_json=True)
+
+#    # test l2: 
+#    site_id = 18
+#    ts = '2019-11-07 15:15:00'
+#    marker_id = 190
+#    data = generate_surficial_alert(site_id=site_id, ts=ts,
+#                                    marker_id=marker_id, to_json=True)
+
     generate_surficial_alert()
+    
     print ('runtime =', datetime.now()-start)
