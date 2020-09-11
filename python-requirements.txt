@@ -42,5 +42,6 @@ python-memcached
 serial
 python-gsmmodem
 pyfinance
+pymysql
 
-*except for marshmallow amd flask-marshmallow. After installing packages, downgrade marshmallow to 2.x.x
+*except for marshmallow amd flask-marshmallow. After installing packages, uninstall these two files and reinstall with the recommended versions
