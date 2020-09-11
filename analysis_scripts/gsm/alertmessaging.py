@@ -9,14 +9,17 @@ import re
 import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+import volatile.memory as mem
 # ------------------------------------------------------------------------------
 
 
 def get_alert_staff_numbers():
-    query = ("select t1.user_id,t2.sim_num,t2.gsm_id from user_alert_info t1 inner join"
-             " user_mobile t2 on t1.user_id = t2.user_id where t1.send_alert = 1;")
-
-    dev_contacts = dbio.read(query=query, resource="sms_data")
+    conn = mem.get('DICT_DB_CONNECTIONS')
+    query = "select user_id, sim_num, gsm_id from {}.user_alert_info ".format(conn['common']['schema'])
+    query += "inner join {}.user_mobiles using (user_id) ".format(conn['gsm_pi']['schema'])
+    query += "inner join {}.mobile_numbers using (mobile_id) ".format(conn['gsm_pi']['schema'])
+    query += "where send_alert = 1"
+    dev_contacts = dbio.read(query=query, resource="sms_analysis")
 
     ts = dt.today().strftime("%Y-%m-%d %H:%M:%S")
     query = ("select iompmt, iompct from monshiftsched where "
@@ -28,12 +31,12 @@ def get_alert_staff_numbers():
     except IndexError:
         print(">> Error in getting IOMP nicknames")
         print(">> No alert message will be sent to IOMPs")
-
-    query = ("select t1.user_id, t2.sim_num, t2.gsm_id from users t1 "
-             "inner join user_mobile t2 on t1.user_id = t2.user_id "
-             "where t1.nickname in {}".format(iomp_nicknames_tuple))
-
-    iomp_contacts = dbio.read(query=query, resource="sms_data")
+    
+    query  = "select user_id, sim_num, gsm_id from {}.users ".format(conn['common']['schema'])
+    query += "inner join {}.user_mobiles using (user_id) ".format(conn['gsm_pi']['schema'])
+    query += "inner join {}.mobile_numbers using (mobile_id) ".format(conn['gsm_pi']['schema'])
+    query += "where nickname in {}".format(iomp_nicknames_tuple)
+    iomp_contacts = dbio.read(query=query, resource="sms_analysis")
 
     return dev_contacts + iomp_contacts
 
@@ -234,35 +237,38 @@ def send_alert_message():
 
 
 def check_alerts():
+    conn = mem.get('DICT_DB_CONNECTIONS')
     ts_now = dt.now().strftime("%Y-%m-%d %H:%M:%S")
+    common = conn['common']['schema']
+    analysis = conn['analysis']['schema']
     query = ("SELECT stat_id, site_id, site_code, trigger_source, "
              "alert_symbol, ts_last_retrigger FROM "
              "(SELECT stat_id, ts_last_retrigger, site_id, "
              "trigger_source, alert_symbol FROM "
              "(SELECT stat_id, ts_last_retrigger, site_id, "
              "trigger_sym_id FROM "
-             "(SELECT * FROM alert_status "
-             "WHERE ts_set < '%s' "
+             "(SELECT * FROM {}.alert_status "
+             "WHERE ts_set < '{}' "
              "and ts_ack is NULL "
              ") AS stat "
              "INNER JOIN "
-             "operational_triggers AS op "
+             "{}.operational_triggers AS op "
              "USING (trigger_id) "
              ") AS trig "
              "INNER JOIN "
              "(SELECT trigger_sym_id, trigger_source, "
              "alert_level, alert_symbol FROM "
-             "operational_trigger_symbols "
+             "{}.operational_trigger_symbols "
              "INNER JOIN "
-             "trigger_hierarchies "
+             "{}.trigger_hierarchies "
              "USING (source_id) "
              ") as sym "
              "USING (trigger_sym_id)) AS alert "
              "INNER JOIN "
-             "sites "
-             "USING (site_id)") % (ts_now)
+             "{}.sites "
+             "USING (site_id)").format(analysis,ts_now,analysis,analysis,analysis,common)
 
-    alert_msgs = dbio.read(query=query, resource="sensor_data")
+    alert_msgs = dbio.read(query=query, resource="sensor_analysis")
 
     print("alert messages:", alert_msgs)
 
@@ -270,9 +276,11 @@ def check_alerts():
 
 
 def get_name_of_staff(number):
-    query = ("select t1.user_id, t2.nickname, t1.gsm_id from user_mobile t1 "
-             "inner join users t2 on t1.user_id = t2.user_id where "
-             "t1.sim_num = '%s';") % (number)
+    conn = mem.get('DICT_DB_CONNECTIONS')
+    query  = "select user_id, nickname, gsm_id from {}.users ".format(conn['common']['schema'])
+    query += "inner join {}.user_mobiles using (user_id) ".format(conn['gsm_pi']['schema'])
+    query += "inner join {}.mobile_numbers using (mobile_id) ".format(conn['gsm_pi']['schema'])
+    query += "where sim_num = '%s'" % (number)
 
     return dbio.read(query=query, resource="sms_data")[0]
 
