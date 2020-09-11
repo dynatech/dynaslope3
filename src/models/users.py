@@ -75,28 +75,6 @@ class UsersRelationship(Users):
         return f"Type relationship"
 
 
-# SOON TO BE DELETED BECAUSE OF REFACTORING
-# SEE models/mobile_numbers.py
-class UserMobile(DB.Model):
-    """
-    Class representation of user mobile table
-    """
-    __tablename__ = "user_mobile"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    mobile_id = DB.Column(DB.Integer, primary_key=True)
-    user_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
-    sim_num = DB.Column(DB.String(30))
-    priority = DB.Column(DB.Integer, nullable=False)
-    mobile_status = DB.Column(DB.Integer, nullable=False)
-    gsm_id = DB.Column(DB.Integer, nullable=False)
-
-    def __repr__(self):
-        return f"{self.sim_num}"
-
-
 class UserOrganization(DB.Model):
     """
     Class representation of user_organization table
