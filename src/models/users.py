@@ -299,17 +299,6 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
         exclude = ["account"]
 
 
-class UserMobileSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of User Mobile class
-    """
-    user = fields.Nested(UsersRelationshipSchema, exclude=("mobile_numbers",))
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = UserMobile
-
-
 class UserOrganizationSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of User Organization class
