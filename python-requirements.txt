@@ -17,6 +17,7 @@ Flask-Cors             3.0.7
 Flask-JWT-Extended     3.16.0    
 Flask-Login            0.4.1      
 Flask-SQLAlchemy       2.3.2
+flask-marshmallow*     0.9.0
 marshmallow-sqlalchemy 0.16.0       
 mysqlclient            1.4.1     
 pep8                   1.7.1        (dev)
@@ -42,4 +43,4 @@ serial
 python-gsmmodem
 pyfinance
 
-*except for marshmallow. After installing packages, downgrade marshmallow to 2.x.x
+*except for marshmallow amd flask-marshmallow. After installing packages, downgrade marshmallow to 2.x.x
