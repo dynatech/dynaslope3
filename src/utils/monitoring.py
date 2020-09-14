@@ -363,8 +363,7 @@ def update_alert_status(as_details):
         # ALSO NOTE: Remove Sandbox from sms_msg when GSM 3 arrived
         row = SmsInboxUsers(
             mobile_id=31,  # Default for community phone
-            sms_msg=f"ACK {stat_id} {val_map[alert_status]} {remarks}",
-            gsm_id=2
+            sms_msg=f"ACK {stat_id} {val_map[alert_status]} {remarks}"
         )
         DB.session.add(row)
 
