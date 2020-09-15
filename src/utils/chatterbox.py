@@ -6,8 +6,7 @@ from sqlalchemy import bindparam, literal, text
 from sqlalchemy.orm import joinedload, raiseload
 from connection import DB
 from src.models.inbox_outbox import (
-    SmsInboxUsers, SmsOutboxUsers, SmsOutboxUsers2,
-    SmsOutboxUserStatus, SmsOutboxUserStatus2,
+    SmsInboxUsers, SmsOutboxUsers, SmsOutboxUserStatus,
     ViewLatestMessagesMobileID, TempLatestMessagesSchema,
     SmsInboxUserTags, SmsInboxUserTagsSchema,
     SmsTags, SmsOutboxUserTags, SmsOutboxUserTagsSchema,
@@ -294,7 +293,7 @@ def insert_message_on_database(obj):
     recipient_list = obj["recipient_list"]
 
     # NOTE: pointed to comms_db orig until GSM 3
-    new_msg = SmsOutboxUsers2(
+    new_msg = SmsOutboxUsers(
         ts_written=datetime.now(),
         source="central",
         sms_msg=sms_msg
@@ -311,7 +310,7 @@ def insert_message_on_database(obj):
         gsm_id = row["gsm_id"]
 
         # NOTE: pointed to comms_db orig until GSM 3
-        new_status = SmsOutboxUserStatus2(
+        new_status = SmsOutboxUserStatus(
             outbox_id=outbox_id,
             mobile_id=mobile_id,
             gsm_id=gsm_id
@@ -366,7 +365,7 @@ def resend_message(outbox_status_id):
     """
 
     # NOTE: pointed to comms_db orig until GSM 3
-    row = SmsOutboxUserStatus2.query \
+    row = SmsOutboxUserStatus.query \
         .filter_by(stat_id=outbox_status_id).first()
 
     row.send_status = 0

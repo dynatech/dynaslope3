@@ -650,33 +650,6 @@ class AlertStatus(DB.Model):
                 f" || TRIGGER: {self.trigger} || user: {self.user}")
 
 
-class AlertStatusSync(DB.Model):
-    """
-    Class representation of alert_status_sync table
-    """
-
-    __tablename__ = "alert_status_sync"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    as_update_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    stat_id = DB.Column(DB.Integer, nullable=False)
-    ts_last_retrigger = DB.Column(DB.DateTime)
-    trigger_id = DB.Column(DB.Integer)
-    ts_set = DB.Column(DB.DateTime)
-    ts_ack = DB.Column(DB.DateTime)
-    alert_status = DB.Column(DB.Integer)
-    remarks = DB.Column(DB.String(450))
-    user_id = DB.Column(DB.Integer, nullable=False)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> as_update_id: {self.as_update_id} stat ID: {self.stat_id}"
-                f" ts_last_retrigger: {self.ts_last_retrigger} ts_set: {self.ts_set}"
-                f" ts_ack: {self.ts_ack} alert_status: {self.alert_status}"
-                f" remarks: {self.remarks} user_id: {self.user_id}"
-                f" || TRIGGER: {self.trigger} || user: {self.user}")
-
-
 class DataPresenceRainGauges(DB.Model):
     """
     Class representation of data_presence_rain_gauges

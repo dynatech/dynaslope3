@@ -266,7 +266,7 @@ function buildTimelineElements (timelineItems, bulletinHandler, site_code, site_
                                     <Grid item xs={12}><Divider /></Grid>
                                     <Grid item xs={12} container justify="space-between">
                                         <Typography variant="body2" style={{ color: card_color }}>
-                                        Comments: <strong>{comments}</strong>
+                                            Comments: <strong>{comments}</strong>
                                         </Typography>
                                     </Grid>
                                 </Fragment>
@@ -380,7 +380,8 @@ function MonitoringEventTimeline (props) {
     const monitoring_type = eventDetails.status === 1 ? "ROUTINE" : "EVENT";
     const bulletinHandler = release => event => {
         console.log(release);
-        setChosenReleaseDetail(release);
+        const rel = { ...release, type: null };
+        setChosenReleaseDetail(rel);
         setIsOpenBulletinModal(true);
     };
 
