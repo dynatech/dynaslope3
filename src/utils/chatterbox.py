@@ -20,7 +20,7 @@ from src.utils.contacts import get_mobile_numbers
 from src.utils.extra import var_checker
 
 
-def get_quick_inbox(inbox_limit=50, limit_inbox_outbox=True):
+def get_quick_inbox(inbox_limit=50, limit_inbox_outbox=True, ts_start=None, ts_end=None):
     query_start = datetime.now()
     vlmmid = ViewLatestMessagesMobileID
     inbox_mobile_ids = vlmmid.query.outerjoin(
@@ -57,9 +57,10 @@ def get_quick_inbox(inbox_limit=50, limit_inbox_outbox=True):
     return messages
 
 
-def get_formatted_latest_mobile_id_message(mobile_id, limit_inbox_outbox=True):
+def get_formatted_latest_mobile_id_message(mobile_id, limit_inbox_outbox=True, ts_start=None, ts_end=None):
     msgs = get_latest_messages(
-        mobile_id, limit_inbox_outbox=limit_inbox_outbox)
+        mobile_id, limit_inbox_outbox=limit_inbox_outbox,
+        ts_start=ts_start, ts_end=ts_end)
     msgs_schema = TempLatestMessagesSchema(many=True).dump(msgs).data
 
     return msgs_schema
@@ -156,7 +157,11 @@ def get_user_mobile_details(mobile_id):
     return mobile_schema
 
 
-def get_latest_messages(mobile_id, messages_per_convo=20, batch=0, limit_inbox_outbox=False):
+def get_latest_messages(
+        mobile_id, messages_per_convo=20,
+        batch=0, limit_inbox_outbox=False,
+        ts_start=None, ts_end=None
+):
     """
     """
 
@@ -177,7 +182,15 @@ def get_latest_messages(mobile_id, messages_per_convo=20, batch=0, limit_inbox_o
         bindparam("ts_sent", None),
         literal("inbox").label("source"),
         bindparam("send_status", None)
-    ).options(raiseload("*")).filter(siu.mobile_id == mobile_id).order_by(DB.desc(siu.ts_sms))
+    ).options(raiseload("*")).filter(siu.mobile_id == mobile_id)
+
+    if ts_start:
+        sms_inbox = sms_inbox.filter(siu.ts_sms >= ts_start)
+
+    if ts_end:
+        sms_inbox = sms_inbox.filter(siu.ts_sms <= ts_end)
+
+    sms_inbox = sms_inbox.order_by(DB.desc(siu.ts_sms))
 
     if limit_inbox_outbox:
         sms_inbox = sms_inbox.limit(1)
@@ -196,8 +209,15 @@ def get_latest_messages(mobile_id, messages_per_convo=20, batch=0, limit_inbox_o
         sous.ts_sent,
         literal("outbox").label("source"),
         sous.send_status
-    ).options(raiseload("*")).join(sou).filter(sous.mobile_id == mobile_id) \
-        .order_by(DB.desc(sous.outbox_id))
+    ).options(raiseload("*")).join(sou).filter(sous.mobile_id == mobile_id)
+
+    if ts_start:
+        sms_outbox = sms_outbox.filter(sou.ts_written >= ts_start)
+
+    if ts_end:
+        sms_outbox = sms_outbox.filter(sou.ts_written <= ts_end)
+
+    sms_outbox = sms_outbox.order_by(DB.desc(sous.outbox_id))
 
     if limit_inbox_outbox:
         sms_outbox = sms_outbox.limit(1)
@@ -211,6 +231,40 @@ def get_latest_messages(mobile_id, messages_per_convo=20, batch=0, limit_inbox_o
     print("SCRIPT RUNTIME: GET LATEST MESSAGES",
           (query_end - query_start).total_seconds())
     print("")
+
+    return union
+
+
+def get_message_users_within_ts_range(ts_start=None, ts_end=None):
+    """
+    """
+
+    siu = SmsInboxUsers
+    sms_inbox = DB.session.query(siu.mobile_id.label(
+        "mobile_id")).options(raiseload("*"))
+
+    if ts_start:
+        sms_inbox = sms_inbox.filter(siu.ts_sms >= ts_start)
+
+    if ts_end:
+        sms_inbox = sms_inbox.filter(siu.ts_sms <= ts_end)
+
+    sms_inbox = sms_inbox.order_by(DB.desc(siu.ts_sms))
+
+    sou = SmsOutboxUsers
+    sous = SmsOutboxUserStatus
+    sms_outbox = DB.session.query(
+        sous.mobile_id.label("mobile_id")).options(raiseload("*")).join(sou)
+
+    if ts_start:
+        sms_outbox = sms_outbox.filter(sou.ts_written >= ts_start)
+
+    if ts_end:
+        sms_outbox = sms_outbox.filter(sou.ts_written <= ts_end)
+
+    sms_outbox = sms_outbox.order_by(DB.desc(sous.outbox_id))
+
+    union = sms_inbox.union(sms_outbox).group_by(DB.text("mobile_id"))
 
     return union
 
@@ -331,9 +385,21 @@ def get_search_results(obj):
     site_ids = obj["site_ids"]
     org_ids = obj["org_ids"]
     only_ewi_recipients = obj["only_ewi_recipients"]
+    ts_start = obj["ts_start"]
+    ts_end = obj["ts_end"]
+
+    # search for mobile_ids using ts range given
+    # if site_ids OR org_ids not given
+    # (yes OR, because lower code would just apply date filter)
+    mobile_ids = None
+    if ts_start and ts_end and (not site_ids or not org_ids):
+        result = get_message_users_within_ts_range(
+            ts_start=ts_start, ts_end=ts_end)
+        mobile_ids = list(map(lambda x: x[0], result))
 
     contacts = get_mobile_numbers(
-        return_schema=True, site_ids=site_ids, org_ids=org_ids,
+        return_schema=True, mobile_ids=mobile_ids,
+        site_ids=site_ids, org_ids=org_ids,
         only_ewi_recipients=only_ewi_recipients)
 
     search_results = []
@@ -341,7 +407,7 @@ def get_search_results(obj):
         mobile_number = contact["mobile_number"]
         mobile_id = mobile_number["mobile_id"]
         msgs_schema = get_formatted_latest_mobile_id_message(
-            mobile_id, limit_inbox_outbox=True)
+            mobile_id, limit_inbox_outbox=True, ts_start=ts_start, ts_end=ts_end)
 
         temp = {
             "messages": msgs_schema,

@@ -160,7 +160,7 @@ function IssuesAndReminders (props) {
         print: false,
         download: false,
         filterType: "multiselect",
-        responsive: isWidthUp(width, "xs") ? "scroll" : "scrollFullHeight",
+        responsive: isWidthUp(width, "xs") ? "standard" : "simple",
         serverSide: true,
         rowsPerPageOptions: [5, 10, 15],
         rowsPerPage,

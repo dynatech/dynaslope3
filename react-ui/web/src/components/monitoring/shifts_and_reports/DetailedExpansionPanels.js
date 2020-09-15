@@ -1,10 +1,10 @@
 import React, { useState, Fragment } from "react";
 import moment from "moment";
 import { useSnackbar } from "notistack";
-import ExpansionPanel from "@material-ui/core/ExpansionPanel";
-import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
-import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
-import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
+import Accordion from "@material-ui/core/Accordion";
+import AccordionDetails from "@material-ui/core/AccordionDetails";
+import AccordionSummary from "@material-ui/core/AccordionSummary";
+import AccordionActions from "@material-ui/core/AccordionActions";
 import Typography from "@material-ui/core/Typography";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
@@ -112,7 +112,7 @@ function prepareMailBody (mail_contents) {
     return template;
 }
 
-function DetailedExpansionPanel (props) {
+function DetailedAccordion (props) {
     const {
         data: eos_report, shiftStartTs, currentUser
     } = props;
@@ -359,17 +359,17 @@ function DetailedExpansionPanel (props) {
     const is_analysis_over_limit = analysis_char_count > 1500;
 
     return (
-        <ExpansionPanel>
-            <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
+        <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <div className={classes.column}>
                     <Typography variant="body1">{site_code.toUpperCase()}</Typography>
                 </div>
                 <div className={classes.column}>
                     <Typography variant="body1">Shift Report</Typography>
                 </div>
-            </ExpansionPanelSummary>
+            </AccordionSummary>
             <Divider />
-            <ExpansionPanelDetails className={classes.details}>
+            <AccordionDetails className={classes.details}>
                 <Grid container spacing={2}>
                     <Grid item xs={12} style={{ marginTop: 12 }}>
                         <Typography variant="body1">
@@ -533,9 +533,9 @@ function DetailedExpansionPanel (props) {
                         />
                     </Grid>
                 </Grid>
-            </ExpansionPanelDetails>
+            </AccordionDetails>
             <Divider />
-            <ExpansionPanelActions>
+            <AccordionActions>
                 <Button
                     size="small"
                     onClick={handleDownload}
@@ -559,9 +559,9 @@ function DetailedExpansionPanel (props) {
                 >
                     Send
                 </Button>
-            </ExpansionPanelActions>
-        </ExpansionPanel>
+            </AccordionActions>
+        </Accordion>
     );
 }
 
-export default DetailedExpansionPanel;
+export default DetailedAccordion;

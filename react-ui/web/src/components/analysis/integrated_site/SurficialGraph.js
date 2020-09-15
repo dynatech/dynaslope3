@@ -378,7 +378,7 @@ function MarkerHistoryTable (props) {
         print: false,
         download: false,
         viewColumns: false,
-        responsive: "scrollMaxHeight",
+        responsive: "standard",
         customSort (data, col_index, order) {
             return data.sort((a, b) => {
                 if (col_index === 0) {

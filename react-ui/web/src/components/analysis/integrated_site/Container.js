@@ -66,8 +66,8 @@ const MyLoader = () => (
         height={600}
         width={400}
         speed={1}
-        primaryColor="#f3f3f3"
-        secondaryColor="#ecebeb"
+        foregroundColor="#f3f3f3"
+        backgroundColor="#ecebeb"
     >
         <rect x="0" y="0" rx="0" ry="0" width="400" height="600" />
     </ContentLoader>
@@ -734,7 +734,7 @@ function Container (props) {
                                                 print: false,
                                                 download: false,
                                                 viewColumns: false,
-                                                responsive: "scrollMaxHeight"
+                                                responsive: "standard"
                                             }}
                                             data={moms_alerts}
                                         />
