@@ -257,20 +257,18 @@ class MarkerAlerts(DB.Model):
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     ma_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    ts = DB.Column(DB.DateTime, nullable=False,
-                   default=datetime.datetime.now)
-    marker_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.markers.marker_id"), nullable=False)
+    data_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.marker_data.data_id"), nullable=False)
     displacement = DB.Column(DB.Float)
     time_delta = DB.Column(DB.Float)
     alert_level = DB.Column(DB.Integer)
 
-    marker = DB.relationship(
-        "Markers", backref="marker_alerts", lazy="subquery")
+    marker_data = DB.relationship(
+        "MarkerData", backref=DB.backref("marker_alert", lazy="select"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> MA ID: {self.ma_id}"
-                f" Marker ID: {self.marker_id} Displacement: {self.displacement}"
+                f" Data ID: {self.data_id} Displacement: {self.displacement}"
                 f" Alert Level: {self.alert_level} Time Delta: {self.time_delta}")
 
 
