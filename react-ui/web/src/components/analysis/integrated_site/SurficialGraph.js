@@ -361,6 +361,7 @@ function MarkerHistoryTable (props) {
         selectableRows: "none",
         expandableRows: true,
         expandableRowsHeader: false,
+        expandableRowsOnClick: true,
         renderExpandableRow: (row_data, rowMeta) => {
             const col_span = row_data.length + 1;
             const remarks = row_data[3];
@@ -387,7 +388,7 @@ function MarkerHistoryTable (props) {
                     ) * (order === "desc" ? 1 : -1); 
                 } 
                 
-                return (a.data[col_index] < b.data[col_index] ? -1 : 1 ) * (order === "desc" ? 1 : -1);
+                return (a.data[col_index] < b.data[col_index] ? -1 : 1) * (order === "desc" ? 1 : -1);
             }); 
         }
     };
@@ -854,6 +855,8 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
         min_x = min.data.length > 0 ? moment(min.data[0].x) : moment();
     }
 
+    data.forEach(row => { row.turboThreshold = 100000; });
+
     return {
         title: {
             text: `<b>Surficial Data History Chart of ${site_code.toUpperCase()}</b>`,
@@ -1155,8 +1158,8 @@ function SurficialGraph (props) {
             
                 <Grid
                     item xs={12}
-                    md={ selected_marker ? 7 : 12}
-                    lg={ selected_marker ? 8 : 12}
+                    md={selected_marker ? 7 : 12}
+                    lg={selected_marker ? 8 : 12}
                 >
                     <Paper elevation={2}>
                         {graph_component}

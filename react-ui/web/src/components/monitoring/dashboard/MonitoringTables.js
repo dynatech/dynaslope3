@@ -504,8 +504,12 @@ function LatestSiteAlertsExpansionPanel (props) {
     }
 
     const tooltip_title_maker = ewi => {
+        const lowercase = ewi.toLowerCase();
+        if (lowercase === "bulletin" && type === "extended") {
+            return "No need to send EWI bulletin on sites under extended monitoring";
+        }
         if (not_yet_sending_time) return "Wait for EWI sending time";
-        if (sent_statuses[`is_${ewi.toLowerCase()}_sent`]) return `EWI ${ewi} sent!`;
+        if (sent_statuses[`is_${lowercase}_sent`]) return `EWI ${ewi} sent!`;
         return `Send EWI ${ewi}`;
     };
 
@@ -602,15 +606,16 @@ function LatestSiteAlertsExpansionPanel (props) {
                     arrow
                     title={tooltip_title_maker("Bulletin")}
                 >
-                    <Button 
+                    <span><Button 
                         size="small" color="primary"
                         startIcon={<Description />}
                         onClick={bulletinHandler({ release_id, site_code, site_id, type, is_bulletin_sent })}
                         endIcon={bulletin_end_icon}
-                        className={not_yet_sending_time && classes.dyna_error}
+                        className={not_yet_sending_time ? classes.dyna_error : ""}
+                        disabled={type === "extended"}
                     >
                         Bulletin
-                    </Button>
+                    </Button></span>
                 </Tooltip>
             </ExpansionPanelActions>
         </ExpansionPanel>

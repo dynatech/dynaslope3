@@ -9,14 +9,17 @@ import re
 import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+import volatile.memory as mem
 # ------------------------------------------------------------------------------
 
 
 def get_alert_staff_numbers():
-    query = ("select t1.user_id,t2.sim_num,t2.gsm_id from user_alert_info t1 inner join"
-             " user_mobile t2 on t1.user_id = t2.user_id where t1.send_alert = 1;")
-
-    dev_contacts = dbio.read(query=query, resource="sms_data")
+    conn = mem.get('DICT_DB_CONNECTIONS')
+    query = "select user_id, sim_num, gsm_id from {}.user_alert_info ".format(conn['common']['schema'])
+    query += "inner join {}.user_mobiles using (user_id) ".format(conn['gsm_pi']['schema'])
+    query += "inner join {}.mobile_numbers using (mobile_id) ".format(conn['gsm_pi']['schema'])
+    query += "where send_alert = 1"
+    dev_contacts = dbio.read(query=query, resource="sms_analysis")
 
     ts = dt.today().strftime("%Y-%m-%d %H:%M:%S")
     query = ("select iompmt, iompct from monshiftsched where "
@@ -28,12 +31,12 @@ def get_alert_staff_numbers():
     except IndexError:
         print(">> Error in getting IOMP nicknames")
         print(">> No alert message will be sent to IOMPs")
-
-    query = ("select t1.user_id, t2.sim_num, t2.gsm_id from users t1 "
-             "inner join user_mobile t2 on t1.user_id = t2.user_id "
-             "where t1.nickname in {}".format(iomp_nicknames_tuple))
-
-    iomp_contacts = dbio.read(query=query, resource="sms_data")
+    
+    query  = "select user_id, sim_num, gsm_id from {}.users ".format(conn['common']['schema'])
+    query += "inner join {}.user_mobiles using (user_id) ".format(conn['gsm_pi']['schema'])
+    query += "inner join {}.mobile_numbers using (mobile_id) ".format(conn['gsm_pi']['schema'])
+    query += "where nickname in {}".format(iomp_nicknames_tuple)
+    iomp_contacts = dbio.read(query=query, resource="sms_analysis")
 
     return dev_contacts + iomp_contacts
 
@@ -207,15 +210,14 @@ def send_alert_message():
     for (stat_id, site_id, site_code, trigger_source, alert_symbol,
          ts_last_retrigger) in alert_msgs:
         tlr_str = ts_last_retrigger.strftime("%Y-%m-%d %H:%M:%S")
-        message = ("SANDBOX:\n"
-                   "As of %s\n"
+        message = ("As of %s\n"
                    "Alert ID %d:\n"
                    "%s:%s:%s") % (tlr_str, stat_id, site_code,
                                   alert_symbol, trigger_source)
 
         message += alert_details(site_id, trigger_source, ts_last_retrigger)
 
-        message += "\n\nText\nSandbox ACK <alert_id> <validity> <remarks>"
+        message += "\n\nText\nACK <alert_id> <validity> <remarks>"
 
         # send to alert staff
         recipients_list = ""
@@ -235,35 +237,38 @@ def send_alert_message():
 
 
 def check_alerts():
+    conn = mem.get('DICT_DB_CONNECTIONS')
     ts_now = dt.now().strftime("%Y-%m-%d %H:%M:%S")
+    common = conn['common']['schema']
+    analysis = conn['analysis']['schema']
     query = ("SELECT stat_id, site_id, site_code, trigger_source, "
              "alert_symbol, ts_last_retrigger FROM "
              "(SELECT stat_id, ts_last_retrigger, site_id, "
              "trigger_source, alert_symbol FROM "
              "(SELECT stat_id, ts_last_retrigger, site_id, "
              "trigger_sym_id FROM "
-             "(SELECT * FROM alert_status "
-             "WHERE ts_set < '%s' "
+             "(SELECT * FROM {}.alert_status "
+             "WHERE ts_set < '{}' "
              "and ts_ack is NULL "
              ") AS stat "
              "INNER JOIN "
-             "operational_triggers AS op "
+             "{}.operational_triggers AS op "
              "USING (trigger_id) "
              ") AS trig "
              "INNER JOIN "
              "(SELECT trigger_sym_id, trigger_source, "
              "alert_level, alert_symbol FROM "
-             "operational_trigger_symbols "
+             "{}.operational_trigger_symbols "
              "INNER JOIN "
-             "trigger_hierarchies "
+             "{}.trigger_hierarchies "
              "USING (source_id) "
              ") as sym "
              "USING (trigger_sym_id)) AS alert "
              "INNER JOIN "
-             "sites "
-             "USING (site_id)") % (ts_now)
+             "{}.sites "
+             "USING (site_id)").format(analysis,ts_now,analysis,analysis,analysis,common)
 
-    alert_msgs = dbio.read(query=query, resource="sensor_data")
+    alert_msgs = dbio.read(query=query, resource="sensor_analysis")
 
     print("alert messages:", alert_msgs)
 
@@ -271,9 +276,11 @@ def check_alerts():
 
 
 def get_name_of_staff(number):
-    query = ("select t1.user_id, t2.nickname, t1.gsm_id from user_mobile t1 "
-             "inner join users t2 on t1.user_id = t2.user_id where "
-             "t1.sim_num = '%s';") % (number)
+    conn = mem.get('DICT_DB_CONNECTIONS')
+    query  = "select user_id, nickname, gsm_id from {}.users ".format(conn['common']['schema'])
+    query += "inner join {}.user_mobiles using (user_id) ".format(conn['gsm_pi']['schema'])
+    query += "inner join {}.mobile_numbers using (mobile_id) ".format(conn['gsm_pi']['schema'])
+    query += "where sim_num = '%s'" % (number)
 
     return dbio.read(query=query, resource="sms_data")[0]
 
@@ -345,9 +352,9 @@ def update_shift_tags():
     today = dt.today().strftime("%Y-%m-%d %H:%M:%S")
     print('Updating shift tags for', today)
 
-    query = ("update senslopedb.dewslcontacts set grouptags = "
+    query = ("update dewslcontacts set grouptags = "
              "replace(grouptags,',alert-mon','') where grouptags like '%alert-mon%'")
-    dbio.write(query, 'update_shift_tags')
+    dbio.write(query, 'update_shift_tags', connection='analysis')
 
     # update the tags of current shifts
     query = (
@@ -363,35 +370,8 @@ def update_shift_tags():
         "t1.nickname = t2.oompmt or"
         "t1.nickname = t2.oompct"
     ) % (today)
-    dbio.write(query, 'update_shift_tags')
+    dbio.write(query, 'update_shift_tags', connection='analysis')
 
-
-def send_monitoringshift_reminder():
-    tomorrow = dt.now() + td(days=1)
-    tomorrow = tomorrow.strftime("%Y-%m-%d")
-    query = "SELECT ts, iompmt, iompct, comms_db.users.user_id, sim_num, gsm_id FROM " \
-    "senslopedb.monshiftsched INNER JOIN " \
-    "comms_db.users ON monshiftsched.iompmt = comms_db.users.nickname " \
-    "OR monshiftsched.iompct = comms_db.users.nickname " \
-    "INNER JOIN comms_db.user_mobile " \
-    "ON comms_db.users.user_id = comms_db.user_mobile.user_id " \
-    "WHERE ts LIKE '%"+tomorrow+"%'"
-
-    message = "Monitoring shift reminder. Good Afternoon <NICKNAME>, " \
-    "you are assigned to be the IOMPMT and IOMPCT respectively for <Date Time> <AM/PM>"
-    recipients = dbio.read(query=query, resource="sensor_data")
-
-    for ts, iompmt, iompct, user_id, sim_num, gsm_id in recipients:
-        temp = message.replace("<NICKNAME>", iompmt+" and "+iompct)
-        temp = temp.replace("<Date Time>", tomorrow)
-        if "20:00:00" in str(ts):
-            temp = temp.replace("<AM/PM>", "7:30 PM")
-        else:
-            temp = temp.replace("<AM/PM>", "7:30 AM")
-
-        temp = smstables.write_outbox(message=temp, recipients=sim_num,
-                               gsm_id=gsm_id, table='users')
-        print(temp)
 
 def main():
     desc_str = "Request information from server\n PSIR [-options]"
@@ -425,8 +405,6 @@ def main():
         update_shift_tags()
     if args.check_alerts:
         check_alerts()
-    if args.monitoring_shift:
-        send_monitoringshift_reminder()
 
 
 if __name__ == "__main__":

@@ -144,9 +144,6 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
     from src.api.utils import UTILITIES_BLUEPRINT
     app.register_blueprint(UTILITIES_BLUEPRINT, url_prefix="/api/utils")
 
-    from src.api.sending import SENDING_BLUEPRINT
-    app.register_blueprint(SENDING_BLUEPRINT, url_prefix="/api")
-
     from src.api.contacts import CONTACTS_BLUEPRINT
     app.register_blueprint(CONTACTS_BLUEPRINT, url_prefix="/api")
 

@@ -61,7 +61,8 @@ def send_bulletin_email():
         )
 
         response_msg = "Bulletin email succesfully sent!"
-    except KeyError:
+    except KeyError as err:
+        var_checker("PROBLEM with Sending Bulletin", err, True)
         response_msg = "Key error: Bulletin email sending unsuccessful..."
         status = False
     except Exception as err:

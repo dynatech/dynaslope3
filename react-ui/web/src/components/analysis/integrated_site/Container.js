@@ -757,6 +757,7 @@ function Container (props) {
                         props => <RainfallGraph 
                             {...props}
                             width={width}
+                            chartType="rainfall"
                         />} 
                     />
 
@@ -789,10 +790,11 @@ function Container (props) {
                 clickHandler={change_consolidate_modal_fn(false)}
                 url={url}
             />
+
             <InsertEarthquakeModal
                 isOpen={is_earthquake_modal}
-                clickHandler = {open_eq_modal(false)}
-                setReloadEqEvent = {setReloadEqEvent}
+                clickHandler={open_eq_modal(false)}
+                setReloadEqEvent={setReloadEqEvent}
             />
         </Fragment>
     );

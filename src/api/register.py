@@ -9,7 +9,7 @@ from sqlalchemy import text
 from flask import Blueprint, jsonify, request
 from connection import DB, SOCKETIO
 from src.models.users import (
-    PendingAccounts, PendingAccountsSchema, UserAccounts, UserAccountsSchema, UserMobile, UserMobileSchema)
+    PendingAccounts, UserAccounts)
 
 from src.api.sending import get_gsm_id
 from src.models.inbox_outbox import SmsOutboxUsers, SmsOutboxUserStatus
@@ -51,11 +51,11 @@ def insert_pending_account(data):
         DB.session.add(insert_account)
         DB.session.commit()
 
-        name = first_name+" "+last_name
+        name = first_name + " " + last_name
         message = str("CBEWS-L Account Approval\n\n"
-                      "Name: "+name+"\n"
-                      "Mobile #: "+mobile_number+"\n"
-                      "Validation Code: "+validation_code+"\n"
+                      "Name: " + name + "\n"
+                      "Mobile #: " + mobile_number + "\n"
+                      "Validation Code: " + validation_code + "\n"
                       "Role: 1 for Public Account, 2 for Staff Account, 3 for Admin Account.\n\n"
                       "Reply: validate <validation_code> <role>\nExample: validate CBWS 2")
         write_message(
@@ -125,7 +125,7 @@ def forgot_password():
     DB.session.commit()
 
     message = str("CBEWS-L Account New Password\n\n"
-                  "You new password is : "+new_password)
+                  "You new password is : " + new_password)
 
     write_message(
         message=message, mobile_id=30)

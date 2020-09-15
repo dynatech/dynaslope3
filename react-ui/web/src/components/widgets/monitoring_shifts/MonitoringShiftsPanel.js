@@ -30,7 +30,7 @@ const useStyles = makeStyles((theme) => ({
     details: { paddingTop: 16 }
 }));
 
-// This function returns a component displaying cuurent shift and next 2 shifts
+// This function returns a component displaying current shift and next 2 shifts
 function MonitoringShiftsPanel (props) {
     const { shiftData } = props;
     const classes = useStyles();
@@ -38,9 +38,10 @@ function MonitoringShiftsPanel (props) {
 
     useEffect(() => {    
         if (shiftData !== null || shiftData !== "undefined") {
-            const data = shiftData.filter(row =>{
+            const data = shiftData.filter(row => {
                 if (moment(row.ts) > moment().subtract({ hours: 12 })) {
-                    return row; }
+                    return row;
+                }
                 return null;
             });
             const temp = data.slice(0, 3);
@@ -105,15 +106,15 @@ function MonitoringShiftsPanel (props) {
                 <Grid container justify="space-evenly" className={classes.details}>
                     {
                         shifts.length > 0 && shifts.map(row => (
-                            <Grid item xs={12} sm={4} key={row.ts}>
+                            <Grid item xs={6} sm={4} key={row.ts}>
                                 <Typography variant="subtitle2" align="center">
-                                    <strong>{ getShiftStatus(row.ts) }</strong>
+                                    <strong>{getShiftStatus(row.ts)}</strong>
                                 </Typography>
                                 <Typography variant="body2" align="center">        
-                                    { row.iompmt} (MT)
+                                    {row.iompmt} (MT)
                                 </Typography>
-                                <Typography variant="body2" align="center">        
-                                    { row.iompct } (CT)
+                                <Typography variant="body2" align="center" gutterBottom>        
+                                    {row.iompct} (CT)
                                 </Typography>
                             </Grid>
                         ))

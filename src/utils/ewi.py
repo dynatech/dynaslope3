@@ -41,7 +41,7 @@ def get_greeting(data_ts):
 
 
 def get_highest_trigger(trigger_list_str):
-    triggers_arr = re.sub(r"0|x", "", trigger_list_str)
+    triggers_arr = re.sub(r"0|x|rx", "", trigger_list_str)
 
     triggers = []
     for letter in triggers_arr:

@@ -11,6 +11,7 @@ import * as moment from "moment";
 import { Grid, Paper, Hidden } from "@material-ui/core";
 import BackToMainButton from "./BackToMainButton";
 import DateRangeSelector from "./DateRangeSelector";
+import RainfallDataTaggingModal from "./RainfallDataTaggingModal";
 
 import { getRainfallPlotData, saveChartSVG } from "../ajax";
 import { computeForStartTs } from "../../../UtilityFunctions";
@@ -29,10 +30,17 @@ const default_data = {
         gauge_name: "loading",
         distance: 0,
         data_source: "loading",
-        threshold_value: 0
+        threshold_value: 0,
+        rain_id: null
     },
     series_data: [],
     max_rval_data: []
+};
+
+const observed_data_dict = {
+    "-1": "Actual is lower than recorded",
+    "0": "No rainfall/Data is zero",
+    "1": "Actual is higher than recorded"
 };
 
 const rainfall_colors = {
@@ -41,21 +49,54 @@ const rainfall_colors = {
     rain: "rgba(0, 0, 0, 0.9)"
 };
 
+function processInstantaneousRainData (data, invalid_data) {
+    const { length: inv_len } = invalid_data;
+    let i = 0;
+    const transformed = data.map(row => {
+        const [x, y] = row;
+        const obj = { x, y };
+
+        if (inv_len > 0 && i < inv_len) {
+            const { ts_start, ts_end } = invalid_data[i];
+
+            const ts = moment.unix(x / 1000);
+            if (ts.isSameOrAfter(ts_start) && ts.isSameOrBefore(ts_end)) {
+                obj.color = "rgba(250, 96, 96)";
+                obj.is_invalid = true;
+                Object.assign(obj, invalid_data[i]);
+            }
+
+            if (ts.isSame(ts_end)) i += 1;
+        }
+
+        return obj;
+    });
+
+    return transformed;
+}
+
 function prepareRainfallData (set) {
-    const { null_ranges } = set;  
+    const { null_ranges, invalid_data } = set;
     const series_data = [];
     const max_rval_data = [];
 
     Object.keys(rainfall_colors).forEach((name) => {
         const color = rainfall_colors[name];
+
+        let data = set[name];
+        if (name === "rain") {
+            data = processInstantaneousRainData(data, invalid_data);
+        }
+
         const entry = {
             name,
             step: true,
-            data: set[name],
+            data,
             color,
             id: name,
             fillOpacity: 1,
-            lineWidth: 1
+            lineWidth: 1,
+            turboThreshold: 100000
         };
 
         if (name !== "rain") series_data.push(entry);
@@ -67,10 +108,184 @@ function prepareRainfallData (set) {
     return { set, series_data, max_rval_data, null_processed };
 }
 
-function prepareInstantaneousRainfallChartOption (row, input) {
+function selectPointsByDrag (e) {
+    const { target, is_tagging_data, rain_gauge: rg, rain_id: rd, setTaggingData: std } = e;
+    const {
+        series, resetZoomButton,
+        is_tagging_data: target_itd, rain_gauge: target_rain_gauge,
+        rain_id: target_rain_id, tagging_sign, setTaggingData: target_std
+    } = target;
+
+    const rain_gauge = target_rain_gauge;
+    const rain_id = target_rain_id;
+    if (typeof rg !== "undefined") {
+        target.rain_gauge = rg;
+        target.rain_id = rd;
+    }
+
+    const setTaggingData = target_std;
+    if (typeof std !== "undefined") target.setTaggingData = std;
+
+    const is_itd_undef = typeof target_itd === "undefined";
+    const temp = is_itd_undef ? false : target_itd;
+    const is_tagging = typeof is_tagging_data === "undefined" ? temp : is_tagging_data;
+    target.is_tagging_data = is_tagging;
+
+    const destroyResetSelection = () => {
+        target.reset_selection.destroy();
+        delete target.reset_selection;
+    };
+
+    const destroySubmitSelection = () => {
+        target.submit_selection.destroy();
+        delete target.submit_selection;
+    };
+
+    // if (typeof reset_selection === "undefined" && typeof submit_selection === "undefined") {
+    target.submit_selection = target.renderer.button("Submit", 70, 65)
+    .attr({
+        zIndex: 3,
+        r: 5,
+        id: "submit-selection",
+        fill: Highcharts.getOptions().colors[0],
+    })
+    .css({
+        color: "#FFFFFF"
+    })
+    .on("click", () => {
+        Highcharts.fireEvent(target, "selectedpoints", {
+            selected_points: target.getSelectedPoints(),
+            rain_gauge, rain_id, is_submit: true,
+            setTaggingData
+        });
+        destroyResetSelection();
+        destroySubmitSelection();
+        unselectPoints(series);
+    });
+
+    target.reset_selection = target.renderer.button("Reset", 133, 65)
+    .attr({
+        zIndex: 3,
+        r: 5,
+        id: "reset-selection",
+        fill: Highcharts.getOptions().colors[0],
+    })
+    .css({
+        color: "#FFFFFF"
+    })
+    .on("click", () => {
+        destroyResetSelection();
+        destroySubmitSelection();
+        unselectPoints(series);
+    });
+    // }
+
+    if (typeof resetZoomButton !== "undefined") {
+        if (is_tagging) resetZoomButton.hide();
+        else resetZoomButton.show();
+    }
+
+    if (!is_tagging) {
+        unselectPoints(series);
+        // if (typeof reset_selection !== "undefined" && typeof submit_selection !== "undefined") {
+        destroyResetSelection();
+        destroySubmitSelection();
+        delete target.setTaggingData;
+        // }
+
+        if (typeof tagging_sign !== "undefined") {
+            target.tagging_sign.destroy();
+            delete target.tagging_sign;
+        }
+
+        return true;
+    }
+
+    // The code below will activate only when is_tagging TRUE
+
+    if (typeof tagging_sign === "undefined") {
+        target.tagging_sign = target.renderer.label("Tagging", 30, 20)
+        .attr({
+            fill: Highcharts.getOptions().colors[5],
+            padding: 10,
+            r: 5,
+            zIndex: 8
+        })
+        .css({
+            color: "#FFFFFF"
+        })
+        .add();
+    }
+
+    let selected_points = target.getSelectedPoints();
+    const selected_ts_list = selected_points.map(x =>x.x);
+    const min_sel_ts = Math.min(...selected_ts_list);
+    const max_sel_ts = Math.max(...selected_ts_list);
+    // Select points
+    if (typeof e.xAxis !== "undefined") {
+        series.forEach(s => {
+            s.points.forEach(point => {
+                if ((point.x >= e.xAxis[0].min || point.x >= min_sel_ts)
+                && (point.x <= e.xAxis[0].max || point.x <= max_sel_ts)
+                && point.y !== null) {
+                    point.select(true, true);
+                }
+            });
+        });
+
+        selected_points = target.getSelectedPoints();
+        if (selected_points.length > 0) {
+            target.reset_selection.add();
+            target.submit_selection.add();
+        }
+    }
+
+    // Fire a custom event
+    Highcharts.fireEvent(target, "selectedpoints", { selected_points, rain_gauge, rain_id });
+    return false; // Don't zoom
+}
+
+function processSelectedPoints (e) {
+    const {
+        selected_points, rain_gauge, rain_id,
+        is_submit, setTaggingData, target: chart
+    } = e;
+
+    const tagged_data = [];
+    selected_points.forEach((data) => {
+        let timestamp = new Date(data.x);
+        timestamp = moment(timestamp).format("YYYY-MM-DD HH:mm:ss");
+        if (tagged_data.includes(timestamp) !== true) {
+            tagged_data.push(timestamp);
+        }
+    });
+
+    const submitted_data = {
+        rain_gauge,
+        ts_start: tagged_data[0],
+        ts_end: tagged_data[tagged_data.length - 1],
+        rain_id,
+        chart
+    };
+
+    if (is_submit) {
+        setTaggingData(submitted_data);
+    }
+}
+
+function unselectPoints (series) {
+    series.forEach(s => {
+        s.points.forEach(point => {
+            point.select(false, false);
+        });
+    });
+}
+
+// eslint-disable-next-line max-params
+function prepareInstantaneousRainfallChartOption (row, input, is_tagging_data, setIsTaggingData, setTaggingData) {
     const { set, max_rval_data, null_processed } = row;
     const {
-        distance, max_rval, gauge_name
+        distance, max_rval, gauge_name, rain_id
     } = set;
     const { ts_start, ts_end, site_code } = input;
 
@@ -80,7 +295,12 @@ function prepareInstantaneousRainfallChartOption (row, input) {
             type: "column",
             zoomType: "x",
             panning: true,
-            // height: 400,
+            events: {
+                selection: selectPointsByDrag,
+                selectedpoints: processSelectedPoints
+                // click: unselectByClick
+            },
+            height: 400,
             resetZoomButton: {
                 position: {
                     x: 0,
@@ -125,7 +345,21 @@ function prepareInstantaneousRainfallChartOption (row, input) {
         },
         tooltip: {
             shared: true,
-            crosshairs: true
+            crosshairs: true,
+            formatter (tooltip) {
+                const { x, y, is_invalid, tagger, remarks, observed_data } = this.points[0].point;
+                let str = `${moment.unix(x / 1000).format("dddd, MMMM D, HH:mm")}<br/>` + 
+                `- Rain: <b>${y}</b>`;
+
+                if (is_invalid) {
+                    const { first_name, last_name } = tagger;
+                    str += `<br/>- Observed Data: <b>${observed_data_dict[observed_data]}</b><br/>` +
+                    `- Tagger: <b>${first_name} ${last_name}</b><br/>` +
+                    `- Remarks: <b>${remarks || "---"}</b>`;
+                }
+
+                return str;
+            }
         },
         plotOptions: {
             series: {
@@ -135,6 +369,26 @@ function prepareInstantaneousRainfallChartOption (row, input) {
                 cursor: "pointer"
             }
         },
+        exporting: {
+            menuItemDefinitions: {
+                // Custom definition
+                tagInvalidData: {
+                    onclick () {
+                        Highcharts.fireEvent(this, "selection", {
+                            is_tagging_data: !is_tagging_data, rain_gauge: gauge_name,
+                            rain_id, setTaggingData
+                        });
+                        setIsTaggingData(!is_tagging_data);
+                    },
+                    text: is_tagging_data ? "Exit tagging" : "Tag invalid data"
+                }
+            },
+            buttons: {
+                contextButton: {
+                    menuItems: ["tagInvalidData", "viewFullscreen", "printChart", "separator", "downloadPNG", "downloadJPEG", "downloadPDF", "downloadSVG"]
+                }
+            }
+        },    
         legend: {
             enabled: false
         },
@@ -250,13 +504,15 @@ function RainfallGraph (props) {
         input: conso_input, disableBack, currentUser,
         saveSVG
     } = props;
-
+    
     const arr_num = typeof rain_gauge !== "undefined" ? 1 : 4;
 
     const [rainfall_data, setRainfallData] = useState([]);
     const [processed_data, setProcessedData] = useState([]);
     const default_range_info = { label: "3 days", unit: "days", duration: 3 };
     const [selected_range_info, setSelectedRangeInfo] = useState(default_range_info);
+    const [to_reload, setToReload] = useState(false);
+
     const chartRefs = useRef([...Array(arr_num)].map(() => ({
         instantaneous: createRef(),
         cumulative: createRef()
@@ -287,12 +543,16 @@ function RainfallGraph (props) {
     const days_diff = dt_ts_end.diff(moment(ts_start, "YYYY-MM-DD HH:mm:ss"), "days");
     const input = { days_diff, ts_start, ts_end, site_code: sc };
 
+    const [is_tagging_data, setIsTaggingData] = useState(false);
+    const [tagging_data, setTaggingData] = useState(null);
+    const [is_tag_modal_open, setIsTagModalOpen] = useState(false);
+
     const default_options = {
         cumulative: prepareCumulativeRainfallChartOption(default_data, input),
-        instantaneous: prepareInstantaneousRainfallChartOption(default_data, input)
+        instantaneous: prepareInstantaneousRainfallChartOption(default_data, input, is_tagging_data, setIsTaggingData, setTaggingData)
     };
 
-    useEffect(() => {
+    const getDataFn = () => {
         setProcessedData([]);
         getRainfallPlotData(input, data => {
             let arr = data;
@@ -301,7 +561,18 @@ function RainfallGraph (props) {
             }
             setRainfallData(arr);
         });
-    }, [selected_range_info, duration]);
+    };
+
+    useEffect(() => {
+        getDataFn();
+    }, [selected_range_info]);
+
+    useEffect(() => {
+        if (to_reload) {
+            getDataFn();
+            setToReload(false);
+        }
+    }, [to_reload]);
 
     useEffect(() => {
         const temp = [];
@@ -309,6 +580,7 @@ function RainfallGraph (props) {
             const data = prepareRainfallData(set);
             temp.push(data);
         });
+        
         if (temp.length > 0) setProcessedData(temp);
     }, [rainfall_data]);
 
@@ -317,13 +589,17 @@ function RainfallGraph (props) {
     useEffect(() => {
         const temp = [];
         processed_data.forEach(data => {
-            const instantaneous = prepareInstantaneousRainfallChartOption(data, input);
+            const instantaneous = prepareInstantaneousRainfallChartOption(data, input, is_tagging_data, setIsTaggingData, setTaggingData);
             const cumulative = prepareCumulativeRainfallChartOption(data, input);
             temp.push({ instantaneous, cumulative });
         });
         setOptions(temp);
         if (temp.length > 0 && save_svg) setGetSVGNow(true);
-    }, [processed_data]);
+    }, [processed_data, is_tagging_data]);
+
+    useEffect(() => {
+        if (is_tagging_data) setIsTagModalOpen(true);
+    }, [tagging_data]);
 
     useEffect(() => {
         if (get_svg) {
@@ -355,21 +631,33 @@ function RainfallGraph (props) {
             saveChartSVG(temp, data => {});
         }
     }, [svg_list]);
+
+    const onTagSuccess = () => {
+        Highcharts.fireEvent(tagging_data.chart, "selection", {
+            is_tagging_data: false
+        });
+        setIsTaggingData(false);
+        setToReload(true);
+    };
     
     return (
         <Fragment>
-            <Grid container spacing={1} justify="space-between">
+            <Grid container spacing={1} justify="space-between" alignItems="center">
                 {
-                    !disable_back && <BackToMainButton 
-                        {...props}
-                    />
+                    !disable_back && <div>
+                        <BackToMainButton 
+                            {...props}
+                        />
+                    </div>
                 }
-
-                <DateRangeSelector
-                    selectedRangeInfo={selected_range_info}
-                    setSelectedRangeInfo={setSelectedRangeInfo}
-                    disableAll
-                />
+                
+                <Grid container item xs justify="flex-end">
+                    <DateRangeSelector
+                        selectedRangeInfo={selected_range_info}
+                        setSelectedRangeInfo={setSelectedRangeInfo}
+                        disableAll
+                    />
+                </Grid>
             </Grid>
  
             <div style={{ marginTop: 16 }}>
@@ -402,12 +690,20 @@ function RainfallGraph (props) {
                                             />
                                         </Paper>
                                     </Grid>
+                                    
                                 </Fragment>
                             );
                         })
                     }
                 </Grid>
             </div>
+
+            <RainfallDataTaggingModal
+                isOpen={is_tag_modal_open}
+                closeModalFn={() => setIsTagModalOpen(false)}
+                taggingData={tagging_data}
+                onTagSuccess={onTagSuccess}
+            />
 
             {
                 save_svg && (
@@ -454,8 +750,8 @@ function syncExtremes (e) {
     const { charts } = Highcharts;
 
     if (e.trigger !== "syncExtremes") { // Prevent feedback loop
-        Highcharts.each(charts, (chart) => {
-            if (chart !== this_chart) {
+        charts.forEach(chart => {
+            if (chart !== this_chart && typeof chart !== "undefined") {
                 if (chart.xAxis[0].setExtremes) { // It is null while updating
                     chart.xAxis[0].setExtremes(e.min, e.max, undefined, false, { trigger: "syncExtremes" });
                 }
