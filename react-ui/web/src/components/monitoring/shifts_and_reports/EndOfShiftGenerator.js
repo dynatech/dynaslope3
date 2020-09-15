@@ -53,7 +53,7 @@ const MyLoader = () => (
     </ContentLoader>
 );
 
-function createDateTime ({ label, value, id }, handleDateTime) {
+export function createDateTime ({ label, value, id }, handleDateTime) {
     return (
         <KeyboardDatePicker
             required

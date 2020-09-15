@@ -6,6 +6,7 @@ import EventsTableContainer from "./components/monitoring/events_table/Container
 import ShiftsAndReportsContainer from "./components/monitoring/shifts_and_reports/Container";
 import SiteLogsContainer from "./components/monitoring/site_logs/Container";
 import IssuesAndReminders from "./components/monitoring/issues_and_reminders/Container";
+import QAContainer from "./components/monitoring/qa/Container";
 
 import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_site/Container";
 
@@ -32,6 +33,7 @@ function RoutesCollection (props) {
             <Route path={`${url}monitoring/shifts_and_reports`} component={ShiftsAndReportsContainer} />
             <Route path={`${url}monitoring/issues_and_reminders`} component={IssuesAndReminders} />
             <Route path={`${url}monitoring/logs`} component={SiteLogsContainer} />
+            <Route path={`${url}monitoring/qa`} component={QAContainer} />
             <Route path={`${url}monitoring`} render={() => <h3> Not yet created</h3>} />
 
             <Route path={`${url}analysis/sites`} component={IntegratedSiteAnalysisContainer} />
