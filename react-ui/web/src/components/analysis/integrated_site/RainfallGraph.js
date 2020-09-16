@@ -60,7 +60,9 @@ function processInstantaneousRainData (data, invalid_data) {
             const { ts_start, ts_end } = invalid_data[i];
 
             const ts = moment.unix(x / 1000);
-            if (ts.isSameOrAfter(ts_start) && ts.isSameOrBefore(ts_end)) {
+            if (ts.isSameOrAfter(ts_start) && (
+                ts.isSameOrBefore(ts_end) || ts_end === null
+            )) {
                 obj.color = "rgba(250, 96, 96)";
                 obj.is_invalid = true;
                 Object.assign(obj, invalid_data[i]);

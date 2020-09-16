@@ -367,7 +367,7 @@ class RainfallDataTags(DB.Model):
         f"{SCHEMA_DICT['senslopedb']}.rainfall_gauges.rain_id"), nullable=False)
     ts = DB.Column(DB.DateTime, nullable=False, default=datetime.datetime.now)
     ts_start = DB.Column(DB.DateTime, nullable=False)
-    ts_end = DB.Column(DB.DateTime, nullable=False)
+    ts_end = DB.Column(DB.DateTime)
     tagger_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
     observed_data = DB.Column(DB.Integer, nullable=False)
