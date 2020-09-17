@@ -65,4 +65,8 @@ const styles = theme => ({
     }
 });
 
+export const alert_1 = daag_yellow;
+export const alert_2 = dynaslope_orange;
+export const alert_3 = zarcon_red;
+
 export default styles;

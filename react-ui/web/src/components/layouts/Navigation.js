@@ -81,8 +81,7 @@ const navigation_labels = [
             },
             {
                 label: "Monitoring Alerts Analytics",
-                link: "/analysis/alerts",
-                soon: true
+                link: "/analysis/alerts"
             }
         ]
     },

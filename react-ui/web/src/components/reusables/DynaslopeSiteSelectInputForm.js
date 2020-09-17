@@ -45,7 +45,7 @@ function DynaslopeSiteSelectInputForm (props) {
         value, changeHandler, isMulti,
         renderDropdownIndicator, includeAddressOnOptions,
         returnSiteDataCallback, isFromSiteLogs,
-        disabled, customPlaceholder
+        disabled, customPlaceholder, isClearable
     } = props;
     const { sites } = useContext(GeneralContext);
 
@@ -56,6 +56,7 @@ function DynaslopeSiteSelectInputForm (props) {
     let placeholder = is_multi ? "Select site(s)" : "Select site";
     placeholder = customPlaceholder || placeholder;
     const to_render_dropdown = (typeof renderDropdownIndicator === "undefined") ? false : renderDropdownIndicator;
+    const is_clearable = (typeof isClearable === "undefined") ? false : isClearable;
 
     let pass_value = value;
     if (value !== "" && value !== null) {
@@ -82,6 +83,7 @@ function DynaslopeSiteSelectInputForm (props) {
             openMenuOnClick
             isMulti={is_multi}
             isDisabled={Boolean(disabled)}
+            isClearable={is_clearable}
         />
     );
 }

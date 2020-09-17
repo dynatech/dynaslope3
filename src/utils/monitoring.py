@@ -6,7 +6,7 @@ Contains functions for getting and accesing monitoring-related tables only
 import re
 import traceback
 from datetime import datetime, timedelta, time, date
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from sqlalchemy.orm import joinedload
 from connection import DB
 from src.models.analysis import AlertStatus
@@ -2026,3 +2026,79 @@ def get_next_ewi_release_ts(data_ts, is_onset=False):
             timedelta(hours=RELEASE_INTERVAL_HOURS)
 
     return next_ewi_release_ts
+
+
+def get_monitoring_analytics(data):
+    chart_type = data["chart_type"]
+    inputs = data["inputs"]
+
+    mea = MonitoringEventAlerts
+    me = MonitoringEvents
+    sites = Sites
+
+    site = inputs["site"]
+    final_data = []
+    if chart_type == "pie":
+        start_ts = inputs["start_ts"]
+        end_ts = inputs["end_ts"]
+        query = mea.query.join(me).with_entities(
+            func.count(mea.pub_sym_id),
+            mea.pub_sym_id).join(sites).filter(
+                me.event_start.between(
+                    start_ts, end_ts)
+                ).filter(mea.pub_sym_id != 1).group_by(
+                    mea.pub_sym_id)
+        if site:
+            site_id = inputs["site_id"]
+            query = query.filter(sites.site_id == site_id)
+
+        query = query.all()
+        for count in query:
+            alert_level = count[1] - 1
+            data = {
+                "name": f"Alert {alert_level}",
+                "y": count[0]
+            }
+            final_data.append(data)
+    elif chart_type == "stacked":
+        year = inputs["year"]
+        data = [
+            {
+                "name": "Alert 1",
+                "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            },
+            {
+                "name": "Alert 2",
+                "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            },
+            {
+                "name": "Alert 3",
+                "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            }
+        ]
+
+        query = mea.query.with_entities(
+            extract("month", mea.ts_start),
+            func.count(mea.pub_sym_id).label('number'),
+            mea.pub_sym_id).join(me).join(sites).filter(
+                mea.ts_start.between(f"{year}-01-01 00:00:00", f"{year}-12-31 23:59:59")
+            ).filter(mea.pub_sym_id != 1).group_by(
+                extract("month", mea.ts_start)).group_by(mea.pub_sym_id)
+
+        if site:
+            print("eqweqwe")
+            site_id = inputs["site_id"]
+            query = query.filter(sites.site_id == site_id)
+
+        query = query.all()
+
+        for row in query:
+            month = row[0]
+            count = row[1]
+            pub_sym_id = row[2]
+            temp_data = data[pub_sym_id - 2]["data"]
+            temp_data[month - 1] = count
+
+        final_data = data
+
+    return final_data

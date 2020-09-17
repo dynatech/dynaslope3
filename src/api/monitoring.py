@@ -9,11 +9,12 @@ NAMING CONVENTION
 import json
 from datetime import datetime, timedelta, time
 from flask import Blueprint, jsonify, request
+from sqlalchemy import func
 from connection import DB
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases,
     MonitoringEventAlerts, MonitoringShiftSchedule,
-    MonitoringShiftScheduleSchema)
+    MonitoringShiftScheduleSchema, Sites)
 from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
     InternalAlertSymbolsSchema, EndOfShiftAnalysisSchema)
@@ -45,7 +46,10 @@ from src.utils.monitoring import (
     write_monitoring_release_to_db, write_monitoring_release_publishers_to_db,
     write_monitoring_release_triggers_to_db, write_monitoring_triggers_misc_to_db,
     write_monitoring_moms_releases_to_db,
-    write_monitoring_on_demand_to_db, write_monitoring_earthquake_to_db
+    write_monitoring_on_demand_to_db, write_monitoring_earthquake_to_db,
+
+    #Monitoring Analytics Data
+    get_monitoring_analytics
 )
 from src.api.end_of_shift import (get_eos_data_analysis)
 from src.utils.extra import (
@@ -1363,3 +1367,27 @@ def get_monitoring_shifts():
     data = json.dumps(result)
 
     return data
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_analytics_data", methods=["GET", "POST"])
+def get_monitoring_analytics_data():
+    """
+    Function that get monitoring analytics data
+    """
+    status = None
+    message = ""
+
+    data = request.get_json()
+    if data is None:
+        data = request.form
+
+    final_data = []
+    try:
+        final_data = get_monitoring_analytics(data)
+        status = True
+    except Exception as err:
+        print(err)
+        status = False
+        message = f"Error: {err}"
+
+    return jsonify(final_data)
+
