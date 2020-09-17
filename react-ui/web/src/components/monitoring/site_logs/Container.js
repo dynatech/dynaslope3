@@ -218,7 +218,7 @@ function SiteLogs (props) {
         print: false,
         download: false,
         filterType: "multiselect",
-        responsive: isWidthUp(width, "xs") ? "scroll" : "scrollFullHeight",
+        responsive: isWidthUp(width, "xs") ? "standard" : "simple",
         serverSide: true,
         searchText: search_str,
         searchPlaceholder: "Type words to search narrative column",

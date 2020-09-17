@@ -227,8 +227,8 @@ const MyLoader = () => (
         height={300}
         width={684}
         speed={1}
-        primaryColor="#f3f3f3"
-        secondaryColor="#ecebeb"
+        foregroundColor="#f3f3f3"
+        backgroundColor="#ecebeb"
         style={{ width: "100%" }}
     >
         <rect x="8" y="1" rx="0" ry="0" width="206" height="116" /> 

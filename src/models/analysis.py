@@ -257,20 +257,18 @@ class MarkerAlerts(DB.Model):
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     ma_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    ts = DB.Column(DB.DateTime, nullable=False,
-                   default=datetime.datetime.now)
-    marker_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.markers.marker_id"), nullable=False)
+    data_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.marker_data.data_id"), nullable=False)
     displacement = DB.Column(DB.Float)
     time_delta = DB.Column(DB.Float)
     alert_level = DB.Column(DB.Integer)
 
-    marker = DB.relationship(
-        "Markers", backref="marker_alerts", lazy="subquery")
+    marker_data = DB.relationship(
+        "MarkerData", backref=DB.backref("marker_alert", lazy="select"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> MA ID: {self.ma_id}"
-                f" Marker ID: {self.marker_id} Displacement: {self.displacement}"
+                f" Data ID: {self.data_id} Displacement: {self.displacement}"
                 f" Alert Level: {self.alert_level} Time Delta: {self.time_delta}")
 
 
@@ -349,6 +347,40 @@ class RainfallGauges(DB.Model):
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Rain Gauge ID: {self.rain_id}"
                 f" Gauge Name: {self.gauge_name} Date Activated: {self.date_activated}")
+
+
+class RainfallDataTags(DB.Model):
+    """
+    Class representation of rainfall_data_tags table
+
+    observed_data (int):    -1/actual is lower than recorded,
+                            0/actual is zero,
+                            1/actual is higher than recorded
+    """
+
+    __tablename__ = "rainfall_data_tags"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    rain_tag_id = DB.Column(DB.Integer, primary_key=True)
+    rain_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.rainfall_gauges.rain_id"), nullable=False)
+    ts = DB.Column(DB.DateTime, nullable=False, default=datetime.datetime.now)
+    ts_start = DB.Column(DB.DateTime, nullable=False)
+    ts_end = DB.Column(DB.DateTime)
+    tagger_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
+    observed_data = DB.Column(DB.Integer, nullable=False)
+    remarks = DB.Column(DB.String(1000), default=None)
+
+    tagger = DB.relationship(
+        "Users", backref=DB.backref("rainfall_tags", lazy="dynamic"),
+        lazy="joined", innerjoin=True)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Rain Tag ID: {self.rain_tag_id}"
+                f" TS: {self.ts} TS Start: {self.ts_start}"
+                f"TS End: {self.ts_end} Observed Data: {self.observed_data}")
 
 
 class RainfallPriorities(DB.Model):
@@ -616,33 +648,6 @@ class AlertStatus(DB.Model):
                 f" || TRIGGER: {self.trigger} || user: {self.user}")
 
 
-class AlertStatusSync(DB.Model):
-    """
-    Class representation of alert_status_sync table
-    """
-
-    __tablename__ = "alert_status_sync"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    as_update_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    stat_id = DB.Column(DB.Integer, nullable=False)
-    ts_last_retrigger = DB.Column(DB.DateTime)
-    trigger_id = DB.Column(DB.Integer)
-    ts_set = DB.Column(DB.DateTime)
-    ts_ack = DB.Column(DB.DateTime)
-    alert_status = DB.Column(DB.Integer)
-    remarks = DB.Column(DB.String(450))
-    user_id = DB.Column(DB.Integer, nullable=False)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> as_update_id: {self.as_update_id} stat ID: {self.stat_id}"
-                f" ts_last_retrigger: {self.ts_last_retrigger} ts_set: {self.ts_set}"
-                f" ts_ack: {self.ts_ack} alert_status: {self.alert_status}"
-                f" remarks: {self.remarks} user_id: {self.user_id}"
-                f" || TRIGGER: {self.trigger} || user: {self.user}")
-
-
 class DataPresenceRainGauges(DB.Model):
     """
     Class representation of data_presence_rain_gauges
@@ -721,7 +726,7 @@ class DataPresenceLoggers(DB.Model):
                 f" ts_updated: {self.ts_updated} diff_days: {self.diff_days}")
 
 
-def get_tilt_table(table_name):
+def get_tilt_table(table_name, schema="senslopedb"):
     """
     """
 
@@ -731,7 +736,7 @@ def get_tilt_table(table_name):
         """
 
         __tablename__ = table_name
-        __bind_key__ = "senslopedb"
+        __bind_key__ = schema
         __table_args__ = {
             "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
 
@@ -739,6 +744,11 @@ def get_tilt_table(table_name):
         ts = DB.Column(DB.DateTime, nullable=False)
         node_id = DB.Column(DB.Integer, nullable=False)
         type_num = DB.Column(DB.Integer, nullable=False)
+        xval = DB.Column(DB.Integer)
+        yval = DB.Column(DB.Integer)
+        zval = DB.Column(DB.Integer)
+        batt = DB.Column(DB.Float)
+        # is_live = DB.Column(DB.Boolean)
 
         def __repr__(self):
             return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
@@ -763,6 +773,37 @@ def tilt_table_schema(table):
 
     schema = GenericTiltTableSchema
     return schema
+
+
+def get_rain_table(table_name, schema="senslopedb"):
+    """
+    """
+
+    class GenericRainTable(DB.Model):
+
+        """
+        """
+
+        __tablename__ = table_name
+        __bind_key__ = schema
+        __table_args__ = {
+            "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
+
+        data_id = DB.Column(DB.Integer, primary_key=True)
+        ts = DB.Column(DB.DateTime, nullable=False)
+        rain = DB.Column(DB.Float)
+        temperature = DB.Column(DB.Float)
+        humidity = DB.Column(DB.Float)
+        battery1 = DB.Column(DB.Float)
+        battery2 = DB.Column(DB.Float)
+        csq = DB.Column(DB.Integer)
+
+        def __repr__(self):
+            return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
+                    f" ts: {self.ts}")
+
+    model = GenericRainTable
+    return model
 
 #############################
 # End of Class Declarations #
@@ -966,6 +1007,21 @@ class RainfallGaugesSchema(MARSHMALLOW.ModelSchema):
         model = RainfallGauges
 
 
+class RainfallDataTagsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of RainfallDataTags class
+    """
+
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_end = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    tagger = fields.Nested(UsersSchema, exclude=("rainfall_tags", ))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = RainfallDataTags
+
+
 class RainfallPrioritiesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of RainfallPriorities class
@@ -1029,7 +1085,7 @@ class AlertStatusSchema(MARSHMALLOW.ModelSchema):
     Schema representation of AlertStatus class
     """
 
-    user = fields.Nested(UsersSchema, exclude=("alert_status", ))
+    user = fields.Nested(UsersSchema, exclude=("alert_status_ack", ))
     ts_ack = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_last_retrigger = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_set = fields.DateTime("%Y-%m-%d %H:%M:%S")

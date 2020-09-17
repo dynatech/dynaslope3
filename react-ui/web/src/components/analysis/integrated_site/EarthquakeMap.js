@@ -1,4 +1,7 @@
-import React, { Fragment } from "react";
+import React, { 
+    Fragment, useRef, createRef, 
+    useState, useEffect 
+} from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Map as LeafletMap, TileLayer, Marker, Popup, Circle, CircleMarker } from "react-leaflet";
@@ -41,6 +44,21 @@ function EarthquakeMap (props) {
         zoom = 7;
     }
 
+    
+    const ref = useRef();
+    const is_one = eqEvents.length === 1;
+    const [show_popup, setShowPopUp] = useState(false);
+    useEffect(() => {
+        if (is_one) setShowPopUp(true);
+    }, [eqEvents]);
+
+    useEffect(() => {
+        if (show_popup) {
+            if (ref !== null) ref.current.leafletElement.openPopup();
+            setShowPopUp(false);
+        }
+    }, [show_popup]);
+
     const rule = /\.0*$|(?<=\.[0-9]{0,2147483646})0*$/;
 
     return (
@@ -51,7 +69,7 @@ function EarthquakeMap (props) {
                 url="https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw"
             />
             {
-                eqEvents.map(event => {
+                eqEvents.map((event, i) => {
                     const {
                         latitude, longitude, magnitude,
                         depth, critical_distance, eq_id
@@ -62,7 +80,7 @@ function EarthquakeMap (props) {
                     return (
                         <Fragment key={eq_id}>
                             <Circle center={center} fillColor="blue" radius={distance * 1000} />
-                            <Marker icon={marker} position={center}>
+                            <Marker icon={marker} position={center} ref={is_one ? ref : createRef()}>
                                 <Popup>
                                     Magnitude: <strong>{magnitude.replace(rule, "")}</strong> <br/>
                                     Depth: <strong>{depth.replace(rule, "")}</strong> <br/>
@@ -94,7 +112,6 @@ function EarthquakeMap (props) {
                 ))
             }
 
-            
             {/* <Marker icon={marker} position={position}>
                 <Popup>
                     A pretty CSS3 popup. <br/> Easily customizable.

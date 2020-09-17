@@ -6,8 +6,10 @@
 import json
 from datetime import datetime
 from connection import DB
-from src.models.analysis import RainfallAlerts as ra
-from src.models.sites import Sites, SitesSchema
+from src.models.analysis import (
+    RainfallAlerts as ra,
+    RainfallDataTags
+)
 from src.utils.extra import get_unix_ts_value
 from analysis.rainfall.rainfall import main as rainfall_main, web_plotter
 
@@ -196,3 +198,39 @@ def process_rainfall_information_message(rainfall_summary, sites, as_of, is_expr
         final_message += "\n" + str(row["message"])
 
     return final_message
+
+
+def get_invalid_rainfall_data(rain_id, ts_start, ts_end):
+    """
+    """
+
+    rdt = RainfallDataTags
+    rows = rdt.query.filter(
+        DB.and_(
+            rdt.rain_id == rain_id,
+            rdt.ts_start >= ts_start,
+            DB.or_(
+                rdt.ts_end <= ts_end,
+                rdt.ts_end.is_(None)
+            )
+        )
+    ).order_by(rdt.ts_start).all()
+
+    return rows
+
+
+def save_invalid_rainfall_tag(rain_id, ts_start, ts_end, tagger_id, observed_data, remarks):
+    """
+    """
+
+    row = RainfallDataTags(
+        rain_id=rain_id,
+        ts_start=ts_start,
+        ts_end=ts_end,
+        tagger_id=tagger_id,
+        observed_data=observed_data,
+        remarks=remarks
+    )
+
+    DB.session.add(row)
+    DB.session.flush()

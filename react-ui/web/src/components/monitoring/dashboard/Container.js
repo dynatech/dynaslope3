@@ -1,9 +1,22 @@
-import React, { Fragment, useEffect, useState, useContext } from "react";
+import React, { 
+    Fragment, useEffect, 
+    useState, useContext 
+} from "react";
 
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
-import { Button, Grid, makeStyles } from "@material-ui/core";
-import { AddAlert, Warning } from "@material-ui/icons";
+import { 
+    Button, Grid, makeStyles, 
+    Hidden, Accordion, AccordionSummary,
+    AccordionDetails, Divider, Typography
+} from "@material-ui/core";
+import { 
+    AddAlert, Warning, ExpandMore,
+    Landscape
+} from "@material-ui/icons";
+import { SpeedDial, SpeedDialAction, SpeedDialIcon } from "@material-ui/lab";
+
 import { useSnackbar } from "notistack";
+
 import PageTitle from "../../reusables/PageTitle";
 import TabBar from "../../reusables/TabBar";
 import MonitoringTables from "./MonitoringTables";
@@ -11,7 +24,6 @@ import GeneratedAlerts from "./GeneratedAlerts";
 import AlertReleaseFormModal from "../../widgets/alert_release_form/AlertReleaseFormModal";
 import RoutineReleaseFormModal from "../../widgets/alert_release_form/RoutineReleaseFormModal";
 import IssuesAndRemindersList from "../../widgets/issues_and_reminders_form/IssuesAndRemindersList";
-import CircularAddButton from "../../reusables/CircularAddButton";
 import MonitoringShiftsPanel from "../../widgets/monitoring_shifts/MonitoringShiftsPanel";
 import GeneralStyles from "../../../GeneralStyles";
 import { 
@@ -33,6 +45,13 @@ const useStyles = makeStyles(theme => {
         },
         tabBarContent: {
             marginTop: 30
+        },
+        speedDial: {
+            position: "fixed",
+            "&.MuiSpeedDial-directionUp": {
+                bottom: theme.spacing(2),
+                right: theme.spacing(2),
+            }
         }
     };
 });
@@ -118,6 +137,13 @@ function Container (props) {
 
     const is_desktop = isWidthUp("md", width);
 
+    const [open, setOpen] = useState(false);
+    const actions = [
+        { icon: <AddAlert />, name: "Release alert", action: releaseAlertHandler(null) },
+        { icon: <Landscape />, name: "Insert MOMs", action: set_moms_modal_fn(true) },
+        { icon: <Warning />, name: "Add issue/reminder", action: handleBoolean("is_open_issues_modal", true) }
+    ];
+
     const custom_buttons = <span>
         <Button
             aria-label="Add issue/reminder"
@@ -157,15 +183,44 @@ function Container (props) {
             <div className={classes.tabBar}>
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={3}>
-                        <IssuesAndRemindersList 
-                            isOpenIssueReminderModal={isOpenIssueReminderModal}
-                            setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
-                            isIandRUpdateNeeded={isIandRUpdateNeeded}
-                            setIsIandRUpdateNeeded={setIsIandRUpdateNeeded}
-                        />
+                        <Hidden smDown>
+                            <IssuesAndRemindersList 
+                                isOpenIssueReminderModal={isOpenIssueReminderModal}
+                                setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
+                                isIandRUpdateNeeded={isIandRUpdateNeeded}
+                                setIsIandRUpdateNeeded={setIsIandRUpdateNeeded}
+                            />
+                        </Hidden>
+
+                        <Hidden mdUp>
+                            <Accordion defaultExpanded={false}>
+                                <AccordionSummary
+                                    expandIcon={<ExpandMore />}
+                                    aria-controls="panel1c-content"
+                                    id="panel1c-header"
+                                >
+                                    <Grid container justify="space-between" alignItems="baseline">
+                                        <Typography variant="caption">
+                                            <strong>ISSUES AND REMINDERS</strong>
+                                        </Typography>
+                                    </Grid>
+                                </AccordionSummary>
+                                <Divider />
+                                <AccordionDetails>
+                                    <Grid container justify="space-evenly" className={classes.details}>
+                                        <IssuesAndRemindersList 
+                                            isOpenIssueReminderModal={isOpenIssueReminderModal}
+                                            setIsOpenIssueReminderModal={setIsOpenIssueReminderModal}
+                                            isIandRUpdateNeeded={isIandRUpdateNeeded}
+                                            setIsIandRUpdateNeeded={setIsIandRUpdateNeeded}
+                                        />
+                                    </Grid>
+                                </AccordionDetails>
+                            </Accordion>
+                        </Hidden>
                     </Grid>
                     
-                    <Grid item md={9}>
+                    <Grid item xs={12} md={9}>
                         <div style={{ marginBottom: 12 }}>
                             <MonitoringShiftsPanel shiftData={monitoringShifts}/>
                         </div>
@@ -191,7 +246,32 @@ function Container (props) {
                 </Grid>
             </div>
 
-            { !is_desktop && <CircularAddButton clickHandler={handleBoolean("is_open_release_modal", true)} /> }
+            {
+                !is_desktop && (
+                    <SpeedDial
+                        ariaLabel="SpeedDial example"
+                        className={classes.speedDial}
+                        FabProps={{
+                            color: "secondary"
+                        }}
+                        icon={<SpeedDialIcon />}
+                        onClose={() => setOpen(false)}
+                        onOpen={() => setOpen(true)}
+                        open={open}
+                    >
+                        {
+                            actions.map(item => (
+                                <SpeedDialAction
+                                    key={item.name}
+                                    icon={item.icon}
+                                    tooltipTitle={item.name}
+                                    onClick={item.action}
+                                />
+                            ))
+                        }
+                    </SpeedDial>
+                )
+            }
 
             <AlertReleaseFormModal
                 isOpen={isOpenReleaseModal}

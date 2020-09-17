@@ -183,7 +183,8 @@ function TriggersInputForm (props) {
     } = triggersState;
 
     useEffect(() => {
-        setModalTitle("Add triggers if not yet included in this release.");
+        setModalTitle("Toggle ON all the triggers to be included in the internal alert computation, otherwise toggle them OFF. " +
+        "Fill in the required fields for each selected trigger.");
     }, []);
     
     return (
