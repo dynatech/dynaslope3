@@ -129,7 +129,7 @@ function MomsInstancesPage (props) {
                         rowsPerPageOptions: [],
                         print: false,
                         download: false,
-                        responsive: "scrollMaxHeight",
+                        responsive: "standard",
                         onRowClick (data, meta, e) {
                             const instance_id = data[5];
                             history.push(`${url}/${instance_id}`);
@@ -192,7 +192,7 @@ function MomsReportsTable (props) {
                     rowsPerPageOptions: [],
                     print: false,
                     download: false,
-                    responsive: "scrollMaxHeight",
+                    responsive: "standard",
                 }}
                 data={moms_reports}
             />

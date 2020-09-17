@@ -375,7 +375,7 @@ def process_eos_data_analysis(
                 data_list = []
                 for row in alert_data:
                     name_row = next(
-                        x for x in markers if x.marker_id == row.marker_id)
+                        x for x in markers if x.marker_id == row.marker_data.marker_id)
                     temp = {
                         "marker_name": name_row.marker_name,
                         "change": str(row.displacement) + "cm"

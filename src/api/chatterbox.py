@@ -116,7 +116,7 @@ def wrap_send_routine_ewi_sms():
         except Exception as e:
             var_checker("ERROR: Releasing Routine EWI SMS", e, True)
             DB.session.rollback()
-            response["message"] = "failed",
+            response["message"] = "failed"
             response["status"] = False
             response["site_ids"].append(site["site_code"])
 

@@ -334,7 +334,7 @@ function chatBubbleCreator (classes, message_row, set_gdt_fn, on_resend_click) {
 }
 
 function ChatThread (props) {
-    const { message_list, mobileDetails, setScrollToBottom } = props;
+    const { message_list, mobileDetails, searchFilters, setScrollToBottom } = props;
     const classes = useStyles();
 
     const [messages, setMessages] = useState([]);
@@ -386,12 +386,14 @@ function ChatThread (props) {
         resendMessage(convo_id);
     };
 
+    const no_convo_message = searchFilters ? "No conversations" : "No conversation yet";
+
     return (
         <Fragment>
             {
                 message_list.length === 0 && (
-                    <Typography variant="subtitle1" align="center">
-                        No conversation yet
+                    <Typography variant="subtitle1" align="center" style={{ marginTop: 8 }}>
+                        { no_convo_message }
                     </Typography>
                 )
             }

@@ -48,11 +48,11 @@ const useStyles = makeStyles(theme => {
 
 const ListLoader = () => (
     <ContentLoader 
-        height={400}
-        width={600}
         speed={2}
-        primaryColor="#f3f3f3"
-        secondaryColor="#ecebeb"
+        foregroundColor="#f3f3f3"
+        backgroundColor="#ecebeb"
+        viewBox="0 0 600 400"
+        style={{ width: "100%" }}
     >
         <circle cx="47" cy="48" r="26" /> 
         <rect x="90" y="36" rx="0" ry="0" width="489" height="29" /> 
@@ -219,7 +219,7 @@ function Container (comp_props) {
                             <CommsContext.Provider value={{ contacts }}>
                                 {
                                     message_collection.inbox === null ? (
-                                        <div style={{ width: "100%" }}><ListLoader /></div>
+                                        <ListLoader />
                                     ) : (
                                         <MessageList
                                             width={width}
@@ -233,17 +233,19 @@ function Container (comp_props) {
                                 }
 
                                 {
-                                    message_collection.unsent === null ? (
-                                        <div style={{ width: "100%" }}><ListLoader /></div>
-                                    ) : (
-                                        <MessageList
-                                            width={width}
-                                            url={url}
-                                            messagesArr={message_collection.unsent}
-                                            async
-                                            hidden={chosen_tab !== 1}
-                                            is_desktop={is_desktop}
-                                        />
+                                    chosen_tab === 1 && (
+                                        message_collection.unsent === null ? (
+                                            <div style={{ width: "100%" }}><ListLoader /></div>
+                                        ) : (
+                                            <MessageList
+                                                width={width}
+                                                url={url}
+                                                messagesArr={message_collection.unsent}
+                                                async
+                                                hidden={chosen_tab !== 1}
+                                                is_desktop={is_desktop}
+                                            />
+                                        )
                                     )
                                 }
                             </CommsContext.Provider>

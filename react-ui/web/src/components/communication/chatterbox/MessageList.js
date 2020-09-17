@@ -107,7 +107,7 @@ function SecondaryInformation (classes, first_message) {
 function MessageListItem (row, props, openOptionsModal) {
     const { messages, mobile_details } = row;
     const [first_message] = messages;
-    const { classes, url, width, async, is_desktop } = props;
+    const { classes, url, width, async, is_desktop, searchFilters } = props;
 
     const { mobile_id, sim_num, user_details } = mobile_details;
     const sim_number = simNumFormatter(sim_num);
@@ -120,6 +120,13 @@ function MessageListItem (row, props, openOptionsModal) {
         sender = s;
         orgs = o;
     }
+
+    let search_filters = null;
+    if (typeof searchFilters !== "undefined") {
+        search_filters = { ...searchFilters };
+    }
+
+    const no_convo_message = searchFilters ? "No conversations" : "No conversation yet";
     
     const on_option_button_click = e => {
         e.preventDefault();
@@ -131,7 +138,7 @@ function MessageListItem (row, props, openOptionsModal) {
             to={{
                 pathname: `${url}/${mobile_id}`,
                 state: {
-                    async
+                    async, search_filters
                 }
             }} 
             key={mobile_id} 
@@ -195,7 +202,7 @@ function MessageListItem (row, props, openOptionsModal) {
                         messages.length > 0 ? (
                             SecondaryInformation(classes, first_message)
                         ) : (
-                            <div style={{ textAlign: "center" }}>No conversation yet</div>
+                            <div style={{ textAlign: "center" }}>{no_convo_message}</div>
                         )
                     }
                     secondaryTypographyProps={{ component: "div" }}
