@@ -143,7 +143,6 @@ function EndOfShiftGenerator (props) {
         }
     };
 
-
     return (
         <div className={ hidden ? classes.hidden : "" }>
             <MuiPickersUtilsProvider utils={MomentUtils}>
@@ -215,7 +214,7 @@ function EndOfShiftGenerator (props) {
                                 selectedEosData !== null && (
                                     selectedEosData.length > 0 ? (
                                         selectedEosData.map((row, index) => (
-                                            <DetailedExpansionPanels 
+                                            <DetailedExpansionPanels
                                                 data={row}
                                                 key={index}
                                                 shiftStartTs={shift_start_ts}

@@ -20,7 +20,6 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
-import { react_host } from "../../../config";
 // import { useInterval, remapCkeditorEnterKey } from "../../../UtilityFunctions";
 import { useInterval } from "../../../UtilityFunctions";
 import { saveEOSDataAnalysis, downloadEosCharts, getNarrative } from "../ajax";
@@ -193,7 +192,8 @@ function DetailedAccordion (props) {
         ? moment_validity.subtract(30, "minutes").format("YYYY-MM-DD HH:mm:ss")
         : moment(shift_ts_end).format("YYYY-MM-DD HH:mm:ss");
 
-    const rendering_url = `${react_host}/chart_rendering/${site_code}/${ts_end}`;
+    const { location: { host, protocol } } = window;
+    const rendering_url = `${protocol}//${host}/chart_rendering/${site_code}/${ts_end}`;
     const handleCheckboxEvent = value => event => {
         const { target: { checked } } = event;
         setCheckboxStatus({ ...checkboxStatus, [value]: checked });
