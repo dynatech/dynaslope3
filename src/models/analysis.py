@@ -446,7 +446,7 @@ class TSMSensors(DB.Model):
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['commons_db']}.sites.site_id"), nullable=False)
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.loggers.logger_id"), nullable=False)
+        f"{SCHEMA_DICT['commons_db']}.loggers.logger_id"), nullable=False)
     date_activated = DB.Column(DB.Date)
     date_deactivated = DB.Column(DB.Date)
     segment_length = DB.Column(DB.Float)
@@ -522,9 +522,8 @@ class Accelerometers(DB.Model):
         return (f"Type <{self.__class__.__name__}> ACCELEROMETER: {self.accel_id}"
                 f" TSM ID: {self.tsm_id} Node ID: {self.node_id}"
                 f" accel_number: {self.accel_number} ts_updated: {self.ts_updated}"
-                f"voltage_max: {self.voltage_max} voltage_min: {self.voltage_min}"
-                f"inUse: {self.in_use}"
-                )
+                f" voltage_max: {self.voltage_max} voltage_min: {self.voltage_min}"
+                f" inUse: {self.in_use}")
 
 
 class NodeAlerts(DB.Model):
@@ -563,7 +562,7 @@ class Loggers(DB.Model):
     """
 
     __tablename__ = "loggers"
-    __bind_key__ = "senslopedb"
+    __bind_key__ = "commons_db"
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     logger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
@@ -575,7 +574,7 @@ class Loggers(DB.Model):
     latitude = DB.Column(DB.Float)
     longitude = DB.Column(DB.Float)
     model_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.logger_models.model_id"), nullable=False)
+        f"{SCHEMA_DICT['commons_db']}.logger_models.model_id"), nullable=False)
 
     site = DB.relationship("Sites", backref=DB.backref(
         "loggers", lazy="dynamic"))
@@ -592,7 +591,7 @@ class LoggerModels(DB.Model):
     """
 
     __tablename__ = "logger_models"
-    __bind_key__ = "senslopedb"
+    __bind_key__ = "commons_db"
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     model_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
@@ -710,7 +709,7 @@ class DataPresenceLoggers(DB.Model):
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.loggers.logger_id"), primary_key=True)
+        f"{SCHEMA_DICT['commons_db']}.loggers.logger_id"), primary_key=True)
     presence = DB.Column(DB.Integer)
     last_data = DB.Column(DB.DateTime)
     ts_updated = DB.Column(DB.DateTime)
