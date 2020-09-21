@@ -24,6 +24,7 @@ const useStyles = makeStyles(theme => ({
     eventTable: {
         minWidth: "900px"
     }
+
 }));
 
 function prepareEventTimelineLink (url, event_id) {
@@ -79,22 +80,13 @@ const getMuiTheme = createMuiTheme({
     }
 });
 
-const final_data = [{
-    site_name: "AGB",
-    ewi_web_release :"07-09-2020 15:47:06",
-    ewi_bulletin_release: "07-09-2020 16:05:03",
-    rainfall_info: "07-09-2020 16:05:03",
-    ground_measurement : "07-09-2020 16:05:03",
-    ground_data: "07-09-2020 16:05:03",
-    fyi_permission: "07-09-2020 16:05:03",
 
-}]
 
 function QATable (props) {
     const location = useLocation();
     const url = window.location.href;
     const {
-        width, tableTitle
+        width, tableTitle, isLoading
     } = props;
 
     const classes = useStyles();
@@ -103,7 +95,6 @@ function QATable (props) {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [count, setCount] = useState(1);
-    const [isLoading, setIsLoading] = useState(false);
     const [sites_dict, setSitesDict] = useState({});
 
     // SEARCH AND FILTERS
@@ -113,6 +104,10 @@ function QATable (props) {
     const [on_search_open, setOnSearchOpen] = useState(false);
 
     const { sites } = useContext(GeneralContext);
+
+    const final_data = props.data.map(row => {
+        return {site_name : row.toUpperCase()};
+    });
 
     useEffect(() => {
         const temp = {};
@@ -127,7 +122,6 @@ function QATable (props) {
 
     useEffect(() => {
         // setTotalEventCount(setCount);
-        setIsLoading(true);
 
         const offset = page * rowsPerPage;
         const limit = (page * rowsPerPage) + rowsPerPage;
@@ -144,7 +138,6 @@ function QATable (props) {
         //     setCount(total);
         //     setIsLoading(false);
         // });
-        setIsLoading(false);
     }, [
         page, rowsPerPage, filters,
         search_str, url, sites_dict
@@ -340,28 +333,31 @@ function QATable (props) {
 
     return (
         <Fragment>
-            <div className={classes.pageContentMargin}>
-                <PageTitle title={tableTitle} />
+            <div className={classes.pageContentMargin} style={{margin: 10}}>
+                {/* <PageTitle title={tableTitle} /> */}
             </div>
             <div className={classes.pageContentMargin}>
                 <MuiThemeProvider theme={getMuiTheme}>
                     <MUIDataTable
                         title={
-                            <Typography variant="h5" component="div">
-                                Timestamps
-                                {
-                                    isLoading &&
-                                        <CircularProgress
-                                            size={24}
-                                            style={{
-                                                marginLeft: 15,
-                                                position: "relative",
-                                                top: 4
-                                            }}
-                                        />
-                                }
-                            </Typography>
-                        }
+                            <div>
+                                <Typography variant="h5" component="div">
+                                    Latest release
+                                    {
+                                        isLoading &&
+                                            <CircularProgress
+                                                size={24}
+                                                style={{
+                                                    marginLeft: 15,
+                                                    position: "relative",
+                                                    top: 4
+                                                }}
+                                            />
+                                    }
+                                </Typography>
+                                <Typography variant="caption">Click site name to view site history</Typography>
+                            </div>
+                            }
                         data={final_data}
                         columns={columns}
                         options={options}

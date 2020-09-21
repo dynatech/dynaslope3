@@ -19,7 +19,7 @@ import { MuiPickersUtilsProvider, KeyboardDatePicker } from "@material-ui/picker
 import moment from "moment";
 import { getCurrentUser } from "../../sessions/auth";
 import ArrowForwardIosIcon from '@material-ui/icons/ArrowForwardIos';
-import {createDateTime } from "../shifts_and_reports/EndOfShiftGenerator";
+import {createDateTime, prepareEOSRequest } from "../shifts_and_reports/EndOfShiftGenerator";
 import SelectInputForm from "../../reusables/SelectInputForm";
 import MenuIcon from '@material-ui/icons/Menu';
 
@@ -34,6 +34,7 @@ const drawerWidth = 240;
 const useStyles = makeStyles((theme) => ({
   root: {
     display: 'flex',
+    flexGrow: 1,
   },
 
   drawer: {
@@ -55,12 +56,12 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const TabCompenents = (props) => {
-  const {selectedTab} = props;
+  const {selectedTab, isLoading, eosData} = props;
   const components = [
-    <Event/>,
-    <Lowering/>,
-    <Extended/>,
-    <Routine/>
+    <Event eosData={eosData} isLoading={isLoading}/>,
+    <Lowering eosData={eosData} isLoading={isLoading}/>,
+    <Extended eosData={eosData} isLoading={isLoading}/>,
+    <Routine eosData={eosData} isLoading={isLoading}/>
     ];
   return components[selectedTab];
 }
@@ -78,22 +79,17 @@ export default function QAContainer() {
     const [selectedEosData, setSelectedEosData] = useState(null);
     const [shift_start_ts, setShiftStartTs] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
-
     const current_user = getCurrentUser();
 
     const handleDateTime = value => {
         setStartTs(value);
     };
 
-    const handleClick = key => event => {
-        // if (key === "generate_report") {
-        //     setModalOpen(false);
-        // } else {
-        //     setModalOpen(true);
-        //     const ts = prepareEOSRequest(start_ts, shift_time, setEosData);
-        //     setShiftStartTs(ts);
-        // }
-        console.log(start_ts, shift_start_ts, shift_time);
+    const handleClick = () => {
+        setIsLoading(true);
+        const ts = prepareEOSRequest(start_ts, shift_time, setEosData);
+        setShiftStartTs(ts);
+        setIsLoading(false);
     };
 
     const closeDrawer = () => {
@@ -194,9 +190,7 @@ export default function QAContainer() {
                             variant="contained"
                             color="secondary"
                             //size={isWidthDown("sm", width) ? "small" : "medium"}
-                            onClick={
-                                handleClick("site_list")
-                            }
+                            onClick={handleClick}
                             endIcon={<ArrowForwardIosIcon className={classes.button} />}
                         >
                             Generate 
@@ -204,8 +198,22 @@ export default function QAContainer() {
                     </Grid>
                 </Grid>
             </MuiPickersUtilsProvider>
-            
-            <TabCompenents selectedTab={selectedTab}/>
+            { eosData !== null && eosData.length !== 0  ? (
+              <TabCompenents eosData={eosData} isLoading={isLoading} selectedTab={selectedTab}/>
+            ):(
+              
+              <div className={classes.root} style={{marginTop: "10%"}}>
+                <Grid container justify="center">
+                  <Grid item>
+                    {shift_start_ts !== null ? 
+                      <Typography>No available data for <strong>{moment(shift_start_ts).format('dddd, MMMM DD, YYYY A')} shift</strong></Typography>
+                    : <Typography>Select shift</Typography>
+                    }
+                  </Grid>
+                </Grid>
+              </div>
+            )
+            }
        </Grid>
       </main>
     </div>
