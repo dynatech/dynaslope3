@@ -1,6 +1,7 @@
 """
 Subsurface functions API File
 """
+
 from flask import Blueprint, jsonify, request
 from src.models.analysis import (TSMSensorsSchema)
 from src.utils.subsurface import (
@@ -80,5 +81,6 @@ def wrap_get_subsurface_node_health_data(column_name):
 def wrap_get_subsurface_node_level(column_name, end_ts, start_ts, node):
     """
     """
+
     data = get_plot_data_for_node(column_name, start_ts, end_ts, node)
     return jsonify(data)

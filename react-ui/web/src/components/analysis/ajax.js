@@ -145,7 +145,7 @@ export function getSurfaceNodeHealth (input, callback) {
 
 export function getSubsurfaceNodeLevel (input, callback) {
     const { subsurface_column, ts_end, ts_start, node_id } = input;
-    console.log("node level input",input)
+    console.log("node level input", input);
     const api_link = `${host}/api/subsurface/get_subsurface_node_level/${subsurface_column}/${ts_end}/${ts_start}/${node_id}`;
 
     axios.get(api_link)
