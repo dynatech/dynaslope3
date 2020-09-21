@@ -22,7 +22,7 @@ from src.models.monitoring import (
     EndOfShiftAnalysis)
 from src.utils.narratives import write_narratives_to_db, get_narratives
 from src.models.sites import Seasons, RoutineSchedules, Sites
-from src.models.inbox_outbox import SmsInboxUsers2
+from src.models.inbox_outbox import SmsInboxUsers
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
     round_to_nearest_release_time)
@@ -361,10 +361,9 @@ def update_alert_status(as_details):
 
         # NOTE: refactor by directly sending messages
         # ALSO NOTE: Remove Sandbox from sms_msg when GSM 3 arrived
-        row = SmsInboxUsers2(
+        row = SmsInboxUsers(
             mobile_id=31,  # Default for community phone
-            sms_msg=f"Sandbox ACK {stat_id} {val_map[alert_status]} {remarks}",
-            gsm_id=2
+            sms_msg=f"ACK {stat_id} {val_map[alert_status]} {remarks}"
         )
         DB.session.add(row)
 
@@ -1355,7 +1354,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             site_id=site_id,
             timestamp=observance_ts,
             narrative=narrative,
-            type_id=2,  # NOTE: STATIC VALUE SET Event Narrative Type
+            type_id=2,  # NOTE: STATIC VALUE TYPE FOR MOMS
             event_id=event_id,
             user_id=iomp
         )

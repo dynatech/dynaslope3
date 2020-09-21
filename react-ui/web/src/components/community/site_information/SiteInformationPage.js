@@ -30,8 +30,8 @@ const MyLoader = () => (
         height={125}
         width={380}
         speed={2}
-        primaryColor="#f3f3f3"
-        secondaryColor="#ecebeb"
+        foregroundColor="#f3f3f3"
+        backgroundColor="#ecebeb"
     >
         <rect x="129" y="20" rx="3" ry="3" width="123" height="44" /> 
         <rect x="18" y="80" rx="3" ry="3" width="350" height="22" />

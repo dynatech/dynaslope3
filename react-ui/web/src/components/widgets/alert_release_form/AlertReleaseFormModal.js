@@ -411,7 +411,14 @@ function AlertReleaseFormModal (props) {
                     f_alert_level = "nd";
                 }
 
-                let obj = { action: "TOGGLE_SWITCH", trigger_type, value: true };
+                let to_toggle = true;
+                if (alert_level <= 1 && ["surficial", "subsurface"].includes(trigger_type))
+                    to_toggle = false;
+                let obj = { 
+                    action: "TOGGLE_SWITCH",
+                    trigger_type,
+                    value: to_toggle
+                };
                 setTriggers(obj);
                 // setCurrentTriggerList(obj);
 
@@ -634,6 +641,7 @@ function AlertReleaseFormModal (props) {
                         generalData={generalData} setGeneralData={setGeneralData}
                         internalAlertLevel={internalAlertLevel}
                         setInternalAlertLevel={setInternalAlertLevel}
+                        publicAlertLevel={publicAlertLevel}
                         setPublicAlertLevel={setPublicAlertLevel}
                         setModalTitle={setModalTitle} ewiPayload={ewiPayload}
                         hasNoGroundData={has_no_ground_data} setHasNoGroundData={setHasNoGroundData}

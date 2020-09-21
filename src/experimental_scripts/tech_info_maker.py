@@ -122,7 +122,7 @@ def get_surficial_tech_info(surficial_alert_details, site_id):
     markers = get_surficial_markers(site_id=site_id)
     for item in surficial_alert_details:
         name_row = next(
-            x for x in markers if x.marker_id == item.marker_id)
+            x for x in markers if x.marker_id == item.marker_data.marker_id)
         disp = item.displacement
         timestamp = '{:.2f}'.format(item.time_delta)
         tech_info.append(

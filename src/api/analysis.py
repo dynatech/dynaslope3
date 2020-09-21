@@ -84,10 +84,11 @@ def get_latest_data_presence(group, item_name="all"):
 
 @ANALYSIS_BLUEPRINT.route("/analysis/get_earthquake_events", methods=["GET"])
 def get_earthquake_events():
-    _filter = request.args.get("filter", default=10, type=int)
+    limit = request.args.get("limit", default=300, type=int)
+    offset = request.args.get("offset", default=0, type=int)
     # .filter(EarthquakeEvents.eq_id == 13385)
     query = EarthquakeEvents.query.order_by(
-        EarthquakeEvents.ts.desc()).limit(_filter).all()
+        EarthquakeEvents.ts.desc()).limit(limit).offset(offset).all()
     result = EarthquakeEventsSchema(many=True).dump(query).data
 
     return jsonify(result)
@@ -137,7 +138,6 @@ def get_earthquake_alerts():
     return jsonify(result)
 
 
-
 @ANALYSIS_BLUEPRINT.route("/analysis/save_chart_svg", methods=["POST"])
 def save_svg():
     data = request.get_json()
@@ -163,6 +163,7 @@ def save_svg():
     f.close()
 
     return jsonify("Success")
+
 
 @ANALYSIS_BLUEPRINT.route("/analysis/rainfall", methods=["GET"])
 def wrap_rainfall():

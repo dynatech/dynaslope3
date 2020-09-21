@@ -8,8 +8,7 @@ from connection import DB
 from src.models.users import (
     Users, UserEmails, UserLandlines,
     UsersRelationship, UsersRelationshipSchema,
-    UserEwiRestrictions,
-    UserMobile
+    UserEwiRestrictions
 )
 from src.models.mobile_numbers import (
     UserMobiles, UserMobilesSchema,
@@ -49,14 +48,18 @@ def get_org_ids(scopes=None, org_names=None):
     return org_id_list
 
 
-def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True):
+def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None, org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True):
     """
     """
+
     base_query = UserMobiles.query.join(Users) \
         .options(
             joinedload("user").subqueryload("organizations")
             .joinedload("site").raiseload("*")) \
         .order_by(Users.last_name, UserMobiles.priority)
+
+    if mobile_ids:
+        base_query = base_query.filter(UserMobiles.mobile_id.in_(mobile_ids))
 
     if org_ids:
         base_query = base_query.join(UserOrganizations) \
@@ -342,17 +345,10 @@ def save_user_contact_numbers(data, user_id):
 
                 if check_sim_num is None:
                     # NOTE: (DYNA 2.0) insert to UserMobile during transistion
-                    # period. Change adding to MobileNumbers after full 3.0 implem
+                    # period. Change adding to MobileNumbers after full GSM 3 implem
                     gsm_id = get_gsm_id_by_prefix(sim_num)
-                    # insert_mobile_number = MobileNumbers(
-                    #     sim_num=sim_num, gsm_id=gsm_id)
-                    insert_mobile_number = UserMobile(
-                        user_id=2,
-                        sim_num=sim_num,
-                        priority=1,
-                        mobile_status=1,
-                        gsm_id=gsm_id
-                    )
+                    insert_mobile_number = MobileNumbers(
+                        sim_num=sim_num, gsm_id=gsm_id)
 
                     DB.session.add(insert_mobile_number)
                     DB.session.flush()

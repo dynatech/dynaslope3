@@ -35,7 +35,8 @@ $ flask run
 ```
 
 ## Requirements
-Install all required Python packages inside the ***python-requirements.txt***
+1. Install all required Python packages inside the ***python-requirements.txt***
+2. Get config.py (file containing database connections and credentials, and other sensitive info) then create ```instance``` folder on top-level and put it inside
 
 ### Note: 
 Install Python packages using ***Conda*** first. Only use ***Pip*** if package is not available in Conda.
