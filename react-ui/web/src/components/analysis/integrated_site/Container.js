@@ -199,8 +199,9 @@ function prepareOptions (is_mobile, type, data_list) {
             "<br/><b>*Sites without markers</b>";
             break;
         case "subsurface":
-            height = 85;
-            additional_height = 100;
+            subtitle_text += "<br/>Note: Data presence of raw data (not yet filtered)";
+            height = 95;
+            // additional_height = 100;
             break;
         case "loggers":
             height = 95;

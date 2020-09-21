@@ -249,8 +249,8 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
 
             if trigger_source == "moms":
                 if site_moms_alerts_list:
-                    recent_moms_details = list(filter(lambda x: x.observance_ts
-                                                      == item.ts_updated, site_moms_alerts_list))
+                    recent_moms_details = list(filter(lambda x: x.observance_ts ==
+                                                      item.ts_updated, site_moms_alerts_list))
                     # Get the highest triggering moms
                     sorted_moms_details = sorted(recent_moms_details,
                                                  key=lambda x: x.op_trigger, reverse=True)
@@ -267,9 +267,9 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                     moms_special_details = {
                         "tech_info": trigger_tech_info,
                         "moms_list": moms_list,
-                        "moms_list_notice": "Don't use this as data for "
-                        + "MonitoringMomsReleases. This might be incomplete. "
-                        + "Use moms from unreleased_moms_list instead."
+                        "moms_list_notice": "Don't use this as data for " +
+                        "MonitoringMomsReleases. This might be incomplete. " +
+                        "Use moms from unreleased_moms_list instead."
                     }
                     trigger_dict.update(moms_special_details)
 
@@ -497,8 +497,8 @@ def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
         if any(trig_source == trigger_source for trig_source in no_data_list):
             # If positive trigger is not within release time interval,
             # replace symbol to its respective ND symbol.
-            if not (ts_updated >= round_to_nearest_release_time(query_ts_end, interval) -
-                    timedelta(hours=interval)):
+            if not (ts_updated >= round_to_nearest_release_time(query_ts_end, interval)
+                    - timedelta(hours=interval)):
                 nd_row = retrieve_data_from_memcache(
                     "operational_trigger_symbols", {
                         "alert_level": -1,
@@ -819,20 +819,23 @@ def get_tsm_alerts(site_tsm_sensors, query_ts_end):
     """
     ta = TSMAlerts
 
-    subsurface_source_id = retrieve_data_from_memcache(
-        "trigger_hierarchies", {"trigger_source": "subsurface"}, retrieve_attr="source_id")
+    subsurface_row = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"trigger_source": "subsurface"})
+    subsurface_source_id = subsurface_row["source_id"]
+    data_presence = subsurface_row["data_presence"]
+
+    delta = timedelta(minutes=0) if data_presence == 1 else timedelta(
+        hours=RELEASE_INTERVAL_HOURS - 1, minutes=30)
 
     tsm_alerts_list = []
     for sensor in site_tsm_sensors:
         tsm_alert_entries = sensor.tsm_alert.filter(DB.and_(
-            ta.ts <= query_ts_end, ta.ts_updated >= query_ts_end - timedelta(minutes=30))).all()
-
-        # Note: tsm_alert_entries is expected to
-        # return ONLY ONE row (if has data)
-        # because of the nature of the query (check filter)
+            ta.ts <= query_ts_end, ta.ts_updated >= query_ts_end - delta)) \
+            .order_by(DB.desc(ta.ts_updated)).all()
 
         if tsm_alert_entries:
-            entry = tsm_alert_entries[0]
+            entry = next(
+                (item for item in tsm_alert_entries if item.alert_level > -1), tsm_alert_entries[0])
             subsurface_ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
                                                              "alert_level": entry.alert_level, "source_id": subsurface_source_id})
             alert_symbol = subsurface_ots_row["alert_symbol"]
@@ -840,7 +843,8 @@ def get_tsm_alerts(site_tsm_sensors, query_ts_end):
             formatted = {
                 "tsm_name": entry.tsm_sensor.logger.logger_name,
                 "alert_level": entry.alert_level,
-                "alert_symbol": alert_symbol
+                "alert_symbol": alert_symbol,
+                "ts": str(entry.ts_updated)
             }
             tsm_alerts_list.append(formatted)
 
@@ -952,8 +956,8 @@ def extract_positive_triggers_list(op_triggers_list):
 
         # Filter for g0t alerts (surficial trending alerts for validation)
         # DYNAMIC: TH_MAP
-        g0t_filter = not (op_trig.alert_level
-                          == 1 and op_trig.source_id == surficial_source_id)
+        g0t_filter = not (op_trig.alert_level ==
+                          1 and op_trig.source_id == surficial_source_id)
         if op_trig.alert_level > 0 and g0t_filter:
             positive_triggers_list.append(op_trigger)
 
@@ -965,7 +969,7 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interva
     Get all operational triggers released within the four-hour window
     (when on heightened alert) or 1-day window (on alert 0, 12 MN onwards) or as defined
     on dynamic variables, before release with exception for
-    subsurface and rainfall triggers
+    rainfall triggers
     """
 
     # Get the triggers within 4 hours before the release AND use "distinct" to remove duplicates
@@ -985,13 +989,22 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interva
         "trigger_hierarchies", {"data_presence": 1},
         retrieve_one=False, retrieve_attr="source_id")
 
-    # Remove subsurface and rainfall triggers less than the actual query_ts_end
-    # Data presence for subsurface and rainfall is limited to the
+    continuous_data_interval = retrieve_data_from_memcache(
+        "trigger_hierarchies", {"data_interval": "continuous"},
+        retrieve_one=False, retrieve_attr="source_id")
+
+    # Remove rainfall triggers less than the actual query_ts_end
+    # Data presence for rainfall is limited to the
     # current runtime only (not within release interval hours)
+    previous_release_time = round_to_nearest_release_time(
+        query_ts_end, interval) - timedelta(hours=interval)
     release_op_triggers_list = []
     for release_op_trig in release_op_triggers:
-        if not (release_op_trig.trigger_symbol.source_id in on_run_triggers_list
-                and release_op_trig.ts_updated < query_ts_end):
+        source_id = release_op_trig.trigger_symbol.source_id
+        ts_updated = release_op_trig.ts_updated
+        if not (source_id in on_run_triggers_list and
+                ts_updated < query_ts_end) and \
+                (source_id in continuous_data_interval and previous_release_time < ts_updated and ts_updated <= query_ts_end):
             release_op_triggers_list.append(release_op_trig)
 
     return release_op_triggers_list
@@ -1341,8 +1354,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         # is no latest data
         minute = int(query_ts_start.strftime('%M'))
         if data_ts > query_ts_end or \
-            ((minute >= 45 or 15 <= minute and minute < 30) and
-                data_ts != query_ts_end):
+            ((minute >= 45 or 15 <= minute and minute < 30)
+                and data_ts != query_ts_end):
             data_ts = query_ts_end
 
         data_ts = str(data_ts)
@@ -1474,8 +1487,8 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
 if __name__ == "__main__":
     config_name = os.getenv("FLASK_CONFIG")
-    app = create_app(config_name, skip_memcache=True, skip_websocket=True)
-    main()
+    app = create_app(config_name)
+    main(is_test=True, site_code="mag", query_ts_end="2020-08-24 11:30:00")
 
     # TEST MAIN
     # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")

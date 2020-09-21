@@ -115,10 +115,11 @@ function getAlertDialog (chosen_site, open, handleClose, sites) {
                     {
                         rel_subsurface.length > 0
                             ? rel_subsurface.map((trigger) => {
-                                const { alert_symbol, tsm_name } = trigger;
+                                const { alert_symbol, tsm_name, ts: ts_sub_data } = trigger;
                                 return (
                                     <Grid item xs={12} sm key={tsm_name} align="center">
                                         <Typography variant="body1" color="textSecondary">{tsm_name.toUpperCase()}</Typography>
+                                        <Typography variant="body1" color="textPrimary">{formatTS(ts_sub_data)}</Typography>
                                         <Typography variant="body1" color="textPrimary">{alert_symbol}</Typography>
                                     </Grid>
                                 );
