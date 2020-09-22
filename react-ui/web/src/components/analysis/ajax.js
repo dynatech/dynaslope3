@@ -143,6 +143,22 @@ export function getSurfaceNodeHealth (input, callback) {
     });
 }
 
+export function getSubsurfaceNodeLevel (input, callback) {
+    const { subsurface_column, ts_end, ts_start, node_id } = input;
+    console.log("node level input", input);
+    const api_link = `${host}/api/subsurface/get_subsurface_node_level/${subsurface_column}/${ts_end}/${ts_start}/${node_id}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("Subsurface Node Level Data", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function getEarthquakeEvents (callback) {
     const api_link = `${host}/api/analysis/get_earthquake_events`;
 
