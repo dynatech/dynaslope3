@@ -15,19 +15,28 @@ export function prepareSitesOption (arr, to_include_address, isFromSiteLogs) {
 
         // check sites if on-event
         let color = "black";
+        let event_id = null;
         if (typeof isFromSiteLogs !== "undefined" && isFromSiteLogs !== null) {
             const { latest, extended, overdue } = isFromSiteLogs;
             const merged_latest = [...latest, ...overdue];
             const sc = site_code.toLowerCase();
 
-            const is_ev = merged_latest.find(x => x.event.site.site_code === sc);
-            const is_ex = extended.find(x => x.event.site.site_code === sc);
+            // const is_ev = merged_latest.find(x => x.event.site.site_code === sc);
+            // const is_ex = extended.find(x => x.event.site.site_code === sc);
+            const ev_index = merged_latest.findIndex(x => x.event.site.site_code === sc);
+            const ex_index = extended.findIndex(x => x.event.site.site_code === sc);
             
-            if (is_ev) color = "red";
-            if (is_ex) color = "green";
+            if (ev_index > -1) {
+                color = "red"; 
+                event_id = merged_latest[ev_index].event.event_id; 
+            }
+            if (ex_index > -1) {
+                color = "green";
+                event_id = extended[ex_index].event.event_id;
+            }
         }
 
-        return { value: site_id, label: address, data: site, color };
+        return { value: site_id, label: address, data: site, color, event_id };
     });
 }
 
@@ -35,7 +44,8 @@ function DynaslopeSiteSelectInputForm (props) {
     const { 
         value, changeHandler, isMulti,
         renderDropdownIndicator, includeAddressOnOptions,
-        returnSiteDataCallback, isFromSiteLogs
+        returnSiteDataCallback, isFromSiteLogs,
+        disabled, customPlaceholder
     } = props;
     const { sites } = useContext(GeneralContext);
 
@@ -43,7 +53,8 @@ function DynaslopeSiteSelectInputForm (props) {
     const options = prepareSitesOption(sites, to_include_address, isFromSiteLogs);
 
     const is_multi = (typeof isMulti === "undefined") ? false : isMulti;
-    const placeholder = is_multi ? "Select site(s)" : "Select site";
+    let placeholder = is_multi ? "Select site(s)" : "Select site";
+    placeholder = customPlaceholder || placeholder;
     const to_render_dropdown = (typeof renderDropdownIndicator === "undefined") ? false : renderDropdownIndicator;
 
     let pass_value = value;
@@ -70,6 +81,7 @@ function DynaslopeSiteSelectInputForm (props) {
             renderDropdownIndicator={to_render_dropdown}
             openMenuOnClick
             isMulti={is_multi}
+            isDisabled={Boolean(disabled)}
         />
     );
 }

@@ -46,10 +46,11 @@ function NarrativeForm (props) {
         setNarrativeData, siteList,
         setSiteList, isFromSiteLogs,
         callAck, setCallAck,
-        callAckHashtag
+        callAckHashtag, toUseCurrentInstance,
+        setToUseCurrentInstance
     } = props;
     const {
-        narrative, timestamp, user_id
+        narrative, timestamp, user_id, narrative_id
     } = narrativeData;
 
     const handleDateTime = key => value => {
@@ -108,7 +109,8 @@ function NarrativeForm (props) {
                         value={siteList}
                         changeHandler={update_site_value}
                         isMulti
-                        isFromSiteLogs ={isFromSiteLogs}         
+                        isFromSiteLogs={isFromSiteLogs}
+                        disabled={Boolean(narrative_id)}      
                     />
                 </Grid>
                 
@@ -158,6 +160,24 @@ function NarrativeForm (props) {
                 </Grid>
 
                 <Grid item xs={12} className={classes.inputGridContainer}>
+                    <FormControlLabel
+                        value="callAck"
+                        control={<Checkbox 
+                            color="primary" checked={toUseCurrentInstance}
+                            onClick={e => setToUseCurrentInstance(e.target.checked)}
+                        />}
+                        label={<div>
+                            Associate site log to current monitoring instance&nbsp;
+                            <Tooltip
+                                title="Unchecking this will associate the log on the montoring event where the log's timestamp falls through.">
+                                <strong>[?]</strong>
+                            </Tooltip>
+                        </div>}
+                        labelPlacement="end"
+                    />
+                </Grid>
+
+                <Grid item xs={12}>
                     <FormControlLabel
                         value="callAck"
                         control={<Checkbox 

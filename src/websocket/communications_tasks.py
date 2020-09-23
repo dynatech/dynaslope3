@@ -116,6 +116,7 @@ def communication_background_task():
                     message_row["messages"] = msgs_schema
                     inbox_messages_arr.insert(0, message_row)
 
+                    update_mobile_id_room(mobile_id)
                     messages["inbox"] = inbox_messages_arr
                     set_data_to_memcache(name="CB_MESSAGES", data=messages)
                 elif update_source == "outbox":
@@ -259,14 +260,25 @@ def wrap_get_latest_messages():
 
 
 @SOCKETIO.on("join_mobile_id_room", namespace="/communications")
-def join_mobile_id_room(mobile_id):
+def join_mobile_id_room(obj):
     """
+        obj (object)
+
+        Attributes:
         mobile_id (str):   variable is integer from origin but
                            converted to string on websocket
+        search_filters (obj)
     """
 
-    mobile_id = int(mobile_id)
+    mobile_id = int(obj["mobile_id"])
     sid = request.sid
+
+    ts_start = None
+    ts_end = None
+    search_filters = obj["search_filters"]
+    if search_filters:
+        ts_start = search_filters["ts_start"]
+        ts_end = search_filters["ts_end"]
 
     room_mobile_ids = retrieve_data_from_memcache("ROOM_MOBILE_IDS")
     room_users = []
@@ -276,7 +288,8 @@ def join_mobile_id_room(mobile_id):
     else:
         mobile_details = get_user_mobile_details(mobile_id)
 
-        msgs = get_latest_messages(mobile_id)
+        msgs = get_latest_messages(
+            mobile_id=mobile_id, ts_start=ts_start, ts_end=ts_end)
         msgs_schema = get_messages_schema_dict(msgs)
 
         message_row = {
@@ -390,10 +403,11 @@ def no_ground_data_narrative_bg_task():
 
     ts = datetime.now()
     process_ground_data(ts, routine_extended_hour=11, event_delta_hour=3,
-                        routine_delta_hour=6, process_fn=process_no_ground_narrative_writing)
+                        routine_delta_hour=6, process_fn=process_no_ground_narrative_writing,
+                        is_no_ground_fn=True)
 
 
-def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_delta_hour, process_fn):
+def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_delta_hour, process_fn, is_no_ground_fn=False):
     events = get_ongoing_extended_overdue_events(ts)
     latest_events = events["latest"]
 
@@ -413,6 +427,17 @@ def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_del
         if alert_level != 0:
             process_fn(
                 ts, site_id, event_delta_hour, event_id, "event")
+        elif is_no_ground_fn:  # runs only if is_no_ground_fn and alert_level is 0
+            last_data_ts = datetime.strptime(
+                row["releases"][0]["data_ts"],
+                "%Y-%m-%d %H:%M:%S"
+            )
+            diff = ts - last_data_ts
+            hours = diff.seconds / 3600
+
+            if hours < 1:  # check if recent release
+                process_fn(
+                    ts, site_id, event_delta_hour, event_id, "event")
 
         if routine_sites:
             index = next(index for index, site in enumerate(routine_sites)
@@ -547,7 +572,7 @@ def no_ewi_acknowledgement_bg_task():
         event_id = event["event_id"]
 
         process_no_ewi_acknowledgements(
-            site_id, ts_start, ts, event_id, monitoring_type="event")
+            site_id, ts_start, ts, event_id, monitoring_type="event", row=row)
 
         if routine_sites:
             index = next(index for index, site in enumerate(routine_sites)
@@ -578,14 +603,33 @@ def no_ewi_acknowledgement_bg_task():
                 processed_sites.append(site_id)
 
 
-def process_no_ewi_acknowledgements(site_id, ts_start, ts, event_id, monitoring_type):
+def process_no_ewi_acknowledgements(site_id, ts_start, ts, event_id, monitoring_type, row=None):
     """
     """
 
     default_user_id = 2  # Dynaslope User
+    release_hr = ts_start
 
     # when changing this, mirror change on React
     call_ack_hashtag = "#EWIResponseCall"
+
+    if monitoring_type == "event":
+        alert_level = row["public_alert_symbol"]["alert_level"]
+        first_data_ts = datetime.strptime(
+            row["releases"][-1]["data_ts"],
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+        # use first release data_ts if onset
+        if alert_level != 0 and ts_start < first_data_ts and first_data_ts < ts:
+            release_hr = first_data_ts
+        # don't continue if it's A0 (lowered today) and
+        # past the actual runtime (more than 4 hours from last release)
+        elif alert_level == 0 and \
+            datetime.strptime(row["prescribed_release_time"],
+                              "%Y-%m-%d %H:%M:%S"
+                              ) < ts_start.replace(second=0, microsecond=0):
+            return
 
     sms_acks = get_ewi_acknowledgements_from_tags(site_id, ts_start, ts)
     call_acks = get_narratives(start=ts_start, end=ts,
@@ -593,7 +637,7 @@ def process_no_ewi_acknowledgements(site_id, ts_start, ts, event_id, monitoring_
                                raise_site=True, search=call_ack_hashtag)
 
     if not sms_acks and not call_acks:
-        release_hour = convert_ampm_to_noon_midnight(ts_start)
+        release_hour = convert_ampm_to_noon_midnight(release_hr)
         narrative = (f"No acknowledgement received from stakeholders "
                      f"for {release_hour} {monitoring_type} EWI")
         ts = ts.replace(minute=30)

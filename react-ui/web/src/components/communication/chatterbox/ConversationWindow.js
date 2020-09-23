@@ -3,9 +3,10 @@ import React, { Fragment, useState, useEffect, useRef } from "react";
 import { 
     IconButton, Typography, Divider,
     Grid, Chip, makeStyles, Avatar,
-    Button, Menu, MenuItem
+    Button, Menu, MenuItem, Box,
+    Tooltip
 } from "@material-ui/core";
-import { KeyboardArrowLeft, MoreVert } from "@material-ui/icons";
+import { KeyboardArrowLeft, MoreVert, AssignmentLate } from "@material-ui/icons";
 
 import ContentLoader from "react-content-loader";
 import { useSnackbar } from "notistack";
@@ -74,13 +75,15 @@ const useStyles = makeStyles(theme => {
 });
 
 const AvatarWithText = () => (
-    <ContentLoader 
+    <ContentLoader
         height={70}
         width={800}
         speed={2}
-        primaryColor="#f3f3f3"
-        secondaryColor="#ecebeb"
+        foregroundColor="#f3f3f3"
+        backgroundColor="#ecebeb"
+        viewBox="0 0 800 70"
         preserveAspectRatio="xMinYMin slice"
+        style={{ height: "100%", width: "100%" }}
     >
         <rect x="69" y="7" rx="4" ry="4" width="663" height="19" /> 
         <rect x="70" y="35" rx="3" ry="3" width="293" height="14" /> 
@@ -95,15 +98,20 @@ const ChatLoader = props => {
             height={160}
             width={446}
             speed={2}
-            primaryColor="#f3f3f3"
-            secondaryColor="#ecebeb"
+            foregroundColor="#f3f3f3"
+            backgroundColor="#ecebeb"
+            viewBox="3 0 446 160"
+            preserveAspectRatio="xMinYMin slice"
+            style={{ height: "100%", width: "100%" }}
         >
             <circle cx="19" cy="25" r="16" />
-            <rect x="39" y="12" rx="5" ry="5" width="220" height="10" />
+            <rect x="40" y="12" rx="5" ry="5" width="220" height="10" />
             <rect x="40" y="29" rx="5" ry="5" width="220" height="10" />
+
             <circle cx="420" cy="71" r="16" />
             <rect x="179" y="76" rx="5" ry="5" width="220" height="10" />
             <rect x="179" y="58" rx="5" ry="5" width="220" height="10" />
+            
             <circle cx="21" cy="117" r="16" />
             <rect x="45" y="104" rx="5" ry="5" width="220" height="10" />
             <rect x="45" y="122" rx="5" ry="5" width="220" height="10" />
@@ -112,12 +120,12 @@ const ChatLoader = props => {
 };
   
 function RecipientFormatter (props) {
-    const { mobile_details, classes, saveNumberModal } = props;
+    const { mobile_details, classes, saveNumberModal, searchFilters } = props;
     const { user_details, sim_num } = mobile_details;
     const sim_number = simNumFormatter(sim_num);
     let sender = sim_number;
     let orgs = [];
-    const [ anchorEl, setAnchor ] = useState(null);
+    const [anchorEl, setAnchor] = useState(null);
     
     const is_unknown = user_details === null;
     if (!is_unknown) {
@@ -185,6 +193,16 @@ function RecipientFormatter (props) {
                 }
             </div>
 
+            <Box ml={1} flex="display">
+                {
+                    searchFilters && (
+                        <Tooltip title="Filters enabled" arrow>
+                            <AssignmentLate color="primary" />
+                        </Tooltip>
+                    )
+                }
+            </Box>
+
             {
                 is_unknown && (
                     <Grid 
@@ -242,7 +260,7 @@ function ConversationWindow (props) {
     const {
         history,
         match: { params: { mobile_id } },
-        location: { state: { async } },
+        location: { state: { async, search_filters } },
         messageCollection, socket
     } = props;
     const classes = useStyles();
@@ -259,7 +277,9 @@ function ConversationWindow (props) {
 
     useEffect(() => {
         if (async && typeof socket !== "undefined") {
-            socket.emit("join_mobile_id_room", mobile_id);
+            socket.emit("join_mobile_id_room", {
+                mobile_id, search_filters
+            });
 
             receiveMobileIDRoomUpdate(data => {
                 const { mobile_details, messages } = data;
@@ -366,7 +386,7 @@ function ConversationWindow (props) {
     return (
         <Fragment>
             {
-                message_list === null
+                message_list == null
                     ? <div 
                         className={classes.regularContainer} 
                         style={{ paddingLeft: 16, paddingBottom: 0 }}
@@ -387,7 +407,9 @@ function ConversationWindow (props) {
                             <RecipientFormatter 
                                 mobile_details={mobile_details}
                                 classes={classes} 
-                                saveNumberModal={saveNumberModal}/>
+                                saveNumberModal={saveNumberModal}
+                                searchFilters={search_filters}
+                            />
                         </div>
                     </div>
             }
@@ -396,7 +418,12 @@ function ConversationWindow (props) {
                 { 
                     message_list === null
                         ? <div style={{ padding: "0 16px" }}><ChatLoader style={{ height: "100%" }} /></div>
-                        : <ChatThread message_list={message_list} mobileDetails={mobile_details} setScrollToBottom={setScrollToBottom}/>
+                        : <ChatThread
+                            message_list={message_list}
+                            searchFilters={search_filters}
+                            mobileDetails={mobile_details}
+                            setScrollToBottom={setScrollToBottom}
+                        />
                 }
             </div>
 

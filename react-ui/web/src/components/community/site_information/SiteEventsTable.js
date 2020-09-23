@@ -122,7 +122,7 @@ function SiteEventsTable (props) {
             }
         },
         filterType: "multiselect",
-        responsive: isWidthUp(width, "xs") ? "scrollMaxHeight" : "scrollFullHeight",
+        responsive: isWidthUp(width, "xs") ? "standard" : "vertical",
         searchText: search_str,
         searchPlaceholder: "Type words to search narrative column",
         rowsPerPageOptions: [5, 10, 15],

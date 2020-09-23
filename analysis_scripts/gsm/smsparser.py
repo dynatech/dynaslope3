@@ -264,7 +264,7 @@ def process_surficial_observation(sms):
 
         return False
 
-    site_surf_mark = surf_mark[surf_mark["site_id"] == obv["obv"]["site_id"]]
+    site_surf_mark = surf_mark[(surf_mark["site_id"] == obv["obv"]["site_id"]) & (surf_mark["in_use"] == 1)]
 
     df_meas = pd.DataFrame()
     df_meas = df_meas.from_dict(obv["markers"]["measurements"], orient = 'index')
@@ -546,7 +546,7 @@ def parse_all_messages(args,allmsgs=[]):
                     dbio.df_write(data_table, resource=resource)
                 else:
                     is_msg_proc_success = False
-            elif re.search("^SANDBOX ACK \d+ .+",sms.msg.upper()):
+            elif re.search("^ACK \d+ .+",sms.msg.upper()):
                 is_msg_proc_success = amsg.process_ack_to_alert(sms)   
             elif re.search("^ *(R(O|0)*U*TI*N*E )|(EVE*NT )", sms.msg.upper()):
                 is_msg_proc_success = process_surficial_observation(sms)                  

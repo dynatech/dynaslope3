@@ -71,9 +71,10 @@ def rain_subplot(rain_gauge_props, offsetstart, start, end, threshold,
     """
 
     gauge_name = rain_gauge_props['gauge_name'].values[0]
+    rain_id = rain_gauge_props['rain_id'].values[0]
     gauge_distance = rain_gauge_props['distance'].values[0]
     # resampled data
-    data = ra.get_resampled_data(gauge_name, offsetstart, start, end,
+    data = ra.get_resampled_data(rain_id, gauge_name, offsetstart, start, end,
                                  check_nd=False)
     if len(data) == 0:
         data = pd.DataFrame(columns=['ts', 'rain']).set_index('ts')
@@ -149,11 +150,12 @@ def rain_subplot(rain_gauge_props, offsetstart, start, end, threshold,
     data = data.reset_index()
     data.loc[:, 'ts'] = data['ts'].apply(lambda x: x.strftime("%Y-%m-%d %H:%M"))
     
+    rain_id = rain_gauge_props['rain_id'].values[0]
     data_source = rain_gauge_props['data_source'].values[0]
     threshold_value = rain_gauge_props['threshold_value'].values[0]
     return pd.DataFrame({'gauge_name': [gauge_name], 'data': [data],
                          'distance': [gauge_distance], 'data_source': [data_source],
-                         'threshold_value': [threshold_value]})
+                         'threshold_value': [threshold_value], 'rain_id': [rain_id]})
     
 def rain_stack_plot(site_code, gauges, offsetstart, start, end, tsn, threshold,
                     sc, output_path, save_plot):
@@ -222,7 +224,7 @@ def rain_stack_plot(site_code, gauges, offsetstart, start, end, tsn, threshold,
     
         plt.savefig(output_path+sc['fileio']['rainfall_path'] + 'rainfall_' +
                     tsn + '_' + site_code, dpi=100, facecolor='w',
-                    edgecolor='w',orientation='landscape',mode='w',
+                    edgecolor='w',orientation='landscape',
                     bbox_extra_artists=(lgd,))#, bbox_inches='tight')
     
     plt.close()

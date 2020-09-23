@@ -2,8 +2,7 @@
 import React, { Fragment, useState } from "react";
 
 import {
-    Button, Menu, MenuItem,
-    Tooltip, Grid
+    Button, Menu, MenuItem, Tooltip
 } from "@material-ui/core";
 import { ArrowDropDown } from "@material-ui/icons";
 
@@ -113,7 +112,7 @@ function DateRangeSelector (props) {
     };
 
     return (
-        <Grid container item xs justify="flex-end">
+        <div>
             {
                 is_subsurface && SubsurfaceHourInterval()
             }
@@ -156,7 +155,7 @@ function DateRangeSelector (props) {
                     })
                 }
             </Menu>
-        </Grid>
+        </div>
 
     );
 }

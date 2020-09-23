@@ -1,25 +1,14 @@
 import axios from "axios";
 import { host } from "../../../config";
-import { makeGETAxiosRequest, makePOSTAxiosRequest } from "../../../UtilityFunctions";
-
-
-export function write_bulletin_narrative (payload, callback) {
-    const api_link = `${host}/api/narratives/write_narratives_to_db`;
-
-    makePOSTAxiosRequest(api_link, payload, callback);
-}
-
+import { makeGETAxiosRequest } from "../../../UtilityFunctions";
 
 export function getBulletinEmailDetails (release_id, callback) {
     const api_link = `${host}/api/bulletin_email/get_bulletin_email_details/${release_id}`;
-
     makeGETAxiosRequest(api_link, callback);
 }
 
-
 export function downloadBulletin (release_id, callback) {
     const api_link = `${host}/api/bulletin/download_bulletin/${release_id}`;
-
     makeGETAxiosRequest(api_link, callback);
 }
 

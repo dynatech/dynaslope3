@@ -361,6 +361,7 @@ function MarkerHistoryTable (props) {
         selectableRows: "none",
         expandableRows: true,
         expandableRowsHeader: false,
+        expandableRowsOnClick: true,
         renderExpandableRow: (row_data, rowMeta) => {
             const col_span = row_data.length + 1;
             const remarks = row_data[3];
@@ -377,7 +378,7 @@ function MarkerHistoryTable (props) {
         print: false,
         download: false,
         viewColumns: false,
-        responsive: "scrollMaxHeight",
+        responsive: "standard",
         customSort (data, col_index, order) {
             return data.sort((a, b) => {
                 if (col_index === 0) {
@@ -387,7 +388,7 @@ function MarkerHistoryTable (props) {
                     ) * (order === "desc" ? 1 : -1); 
                 } 
                 
-                return (a.data[col_index] < b.data[col_index] ? -1 : 1 ) * (order === "desc" ? 1 : -1);
+                return (a.data[col_index] < b.data[col_index] ? -1 : 1) * (order === "desc" ? 1 : -1);
             }); 
         }
     };
@@ -844,9 +845,17 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
 
     let min_x = start_date;
     if ((is_end_of_shift || start === "None") && data.length > 0) {
-        const { data: meas_row } = data[0];
-        if (meas_row.length > 0) min_x = moment(meas_row[0].x);
+        const min = data.reduce((cur_min, row) => {
+            const { data: cd } = cur_min;
+            const { data: rd } = row;
+            if (cd.length === 0) return row;
+            if (rd.length === 0) return cur_min;
+            return cd[0].x < rd[0].x ? cur_min : row;
+        });
+        min_x = min.data.length > 0 ? moment(min.data[0].x) : moment();
     }
+
+    data.forEach(row => { row.turboThreshold = 100000; });
 
     return {
         title: {
@@ -1149,8 +1158,8 @@ function SurficialGraph (props) {
             
                 <Grid
                     item xs={12}
-                    md={ selected_marker ? 7 : 12}
-                    lg={ selected_marker ? 8 : 12}
+                    md={selected_marker ? 7 : 12}
+                    lg={selected_marker ? 8 : 12}
                 >
                     <Paper elevation={2}>
                         {graph_component}

@@ -5,11 +5,11 @@ Analysis tables
 
 import datetime
 from marshmallow import fields
+from sqlalchemy.dialects.mysql import DECIMAL, TEXT
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
 from src.models.users import UsersSchema
 from src.models.monitoring import OperationalTriggers
-from sqlalchemy.dialects.mysql import MEDIUMINT, TINYINT, DECIMAL, TEXT
 
 
 ###############################
@@ -258,20 +258,18 @@ class MarkerAlerts(DB.Model):
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     ma_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    ts = DB.Column(DB.DateTime, nullable=False,
-                   default=datetime.datetime.now)
-    marker_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.markers.marker_id"), nullable=False)
+    data_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.marker_data.data_id"), nullable=False)
     displacement = DB.Column(DB.Float)
     time_delta = DB.Column(DB.Float)
     alert_level = DB.Column(DB.Integer)
 
-    marker = DB.relationship(
-        "Markers", backref="marker_alerts", lazy="subquery")
+    marker_data = DB.relationship(
+        "MarkerData", backref=DB.backref("marker_alert", lazy="select"), lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> MA ID: {self.ma_id}"
-                f" Marker ID: {self.marker_id} Displacement: {self.displacement}"
+                f" Data ID: {self.data_id} Displacement: {self.displacement}"
                 f" Alert Level: {self.alert_level} Time Delta: {self.time_delta}")
 
 
@@ -352,6 +350,40 @@ class RainfallGauges(DB.Model):
                 f" Gauge Name: {self.gauge_name} Date Activated: {self.date_activated}")
 
 
+class RainfallDataTags(DB.Model):
+    """
+    Class representation of rainfall_data_tags table
+
+    observed_data (int):    -1/actual is lower than recorded,
+                            0/actual is zero,
+                            1/actual is higher than recorded
+    """
+
+    __tablename__ = "rainfall_data_tags"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    rain_tag_id = DB.Column(DB.Integer, primary_key=True)
+    rain_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.rainfall_gauges.rain_id"), nullable=False)
+    ts = DB.Column(DB.DateTime, nullable=False, default=datetime.datetime.now)
+    ts_start = DB.Column(DB.DateTime, nullable=False)
+    ts_end = DB.Column(DB.DateTime)
+    tagger_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
+    observed_data = DB.Column(DB.Integer, nullable=False)
+    remarks = DB.Column(DB.String(1000), default=None)
+
+    tagger = DB.relationship(
+        "Users", backref=DB.backref("rainfall_tags", lazy="dynamic"),
+        lazy="joined", innerjoin=True)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> Rain Tag ID: {self.rain_tag_id}"
+                f" TS: {self.ts} TS Start: {self.ts_start}"
+                f"TS End: {self.ts_end} Observed Data: {self.observed_data}")
+
+
 class RainfallPriorities(DB.Model):
     """
     Class representation of rainfall_priorities table
@@ -415,8 +447,7 @@ class TSMSensors(DB.Model):
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['commons_db']}.sites.site_id"), nullable=False)
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.loggers.logger_id"), nullable=False)
-    tsm_name = DB.Column(DB.String(7))
+        f"{SCHEMA_DICT['commons_db']}.loggers.logger_id"), nullable=False)
     date_activated = DB.Column(DB.Date)
     date_deactivated = DB.Column(DB.Date)
     segment_length = DB.Column(DB.Float)
@@ -438,7 +469,63 @@ class TSMSensors(DB.Model):
         return (f"Type <{self.__class__.__name__}> TSM ID: {self.tsm_id}"
                 f" Site ID: {self.site_id} Number of Segments: {self.number_of_segments}"
                 f" Logger ID: {self.site_id} Number of Segments: {self.number_of_segments}"
-                f"Date Activated: {self.date_activated} | LOGGER: {self.logger}")
+                f" Date Activated: {self.date_activated}"
+                f" | LOGGER: {self.logger} Version: {self.version}")
+
+
+class AccelerometerStatus(DB.Model):
+    """
+    Class representation of accelerometer_status table
+    """
+
+    __tablename__ = "accelerometer_status"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    stat_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    accel_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.accelerometers.accel_id"), nullable=False)
+    ts_flag = DB.Column(DB.DateTime)
+    date_identified = DB.Column(DB.DateTime)
+    flagger = DB.Column(DB.String(20))
+    status = DB.Column(DB.Integer)
+    remarks = DB.Column(DB.String)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> ACCELEROMETER STATUS: {self.stat_id}"
+                f" Accel ID: {self.accel_id} ts flagged: {self.ts_flagged}"
+                f" Date Identified: {self.date_identified} flagger: {self.flagger}"
+                f"Status: {self.status} Remarks: {self.remarks}")
+
+
+class Accelerometers(DB.Model):
+    """
+    Class representation of accelerometers table
+    """
+
+    __tablename__ = "accelerometers"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    accel_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
+    tsm_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.tsm_sensors.tsm_id"), nullable=False)
+    node_id = DB.Column(DB.Integer)
+    accel_number = DB.Column(DB.Integer)
+    ts_updated = DB.Column(DB.String(45))
+    voltage_max = DB.Column(DB.Float)
+    voltage_min = DB.Column(DB.Float)
+    in_use = DB.Column(DB.Integer)
+
+    status = DB.relationship(
+        "AccelerometerStatus", backref="accelerometers", lazy="joined", innerjoin=True)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> ACCELEROMETER: {self.accel_id}"
+                f" TSM ID: {self.tsm_id} Node ID: {self.node_id}"
+                f" accel_number: {self.accel_number} ts_updated: {self.ts_updated}"
+                f" voltage_max: {self.voltage_max} voltage_min: {self.voltage_min}"
+                f" inUse: {self.in_use}")
 
 
 class NodeAlerts(DB.Model):
@@ -477,7 +564,7 @@ class Loggers(DB.Model):
     """
 
     __tablename__ = "loggers"
-    __bind_key__ = "senslopedb"
+    __bind_key__ = "commons_db"
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     logger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
@@ -489,14 +576,13 @@ class Loggers(DB.Model):
     latitude = DB.Column(DB.Float)
     longitude = DB.Column(DB.Float)
     model_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.logger_models.model_id"), nullable=False)
+        f"{SCHEMA_DICT['commons_db']}.logger_models.model_id"), nullable=False)
 
     site = DB.relationship("Sites", backref=DB.backref(
         "loggers", lazy="dynamic"))
 
     logger_model = DB.relationship("LoggerModels", backref=DB.backref(
         "loggers", lazy="dynamic"))
-    
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Logger ID: {self.logger_id}"
@@ -537,7 +623,7 @@ class LoggerModels(DB.Model):
     """
 
     __tablename__ = "logger_models"
-    __bind_key__ = "senslopedb"
+    __bind_key__ = "commons_db"
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     model_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
@@ -584,33 +670,6 @@ class AlertStatus(DB.Model):
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> stat ID: {self.stat_id}"
-                f" ts_last_retrigger: {self.ts_last_retrigger} ts_set: {self.ts_set}"
-                f" ts_ack: {self.ts_ack} alert_status: {self.alert_status}"
-                f" remarks: {self.remarks} user_id: {self.user_id}"
-                f" || TRIGGER: {self.trigger} || user: {self.user}")
-
-
-class AlertStatusSync(DB.Model):
-    """
-    Class representation of alert_status_sync table
-    """
-
-    __tablename__ = "alert_status_sync"
-    __bind_key__ = "analysis_db"
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    as_update_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    stat_id = DB.Column(DB.Integer, nullable=False)
-    ts_last_retrigger = DB.Column(DB.DateTime)
-    trigger_id = DB.Column(DB.Integer)
-    ts_set = DB.Column(DB.DateTime)
-    ts_ack = DB.Column(DB.DateTime)
-    alert_status = DB.Column(DB.Integer)
-    remarks = DB.Column(DB.String(450))
-    user_id = DB.Column(DB.Integer, nullable=False)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> as_update_id: {self.as_update_id} stat ID: {self.stat_id}"
                 f" ts_last_retrigger: {self.ts_last_retrigger} ts_set: {self.ts_set}"
                 f" ts_ack: {self.ts_ack} alert_status: {self.alert_status}"
                 f" remarks: {self.remarks} user_id: {self.user_id}"
@@ -679,7 +738,7 @@ class DataPresenceLoggers(DB.Model):
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.loggers.logger_id"), primary_key=True)
+        f"{SCHEMA_DICT['commons_db']}.loggers.logger_id"), primary_key=True)
     presence = DB.Column(DB.Integer)
     last_data = DB.Column(DB.DateTime)
     ts_updated = DB.Column(DB.DateTime)
@@ -740,36 +799,6 @@ class DeployedNode(DB.Model):
                 f" version: {self.version}")
 
 
-class Accelerometers(DB.Model):
-    """
-    Class representation of accelerometers
-    """
-
-    __tablename__ = "accelerometers"
-    __bind_key__ = "senslopedb"
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    accel_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    tsm_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.tsm_sensors.tsm_id"), nullable=False)
-    node_id = DB.Column(DB.Integer)
-    accel_number = DB.Column(DB.Integer)
-    ts_updated = DB.Column(DB.String(45))
-    voltage_max = DB.Column(DB.Float)
-    voltage_min = DB.Column(DB.Float)
-    in_use = DB.Column(DB.Integer)
-
-    accelerometers = DB.relationship("TSMSensors", backref=DB.backref(
-        "accelerometers", lazy="dynamic"), lazy="subquery")
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> accel_id: {self.accel_id}"
-                f" tsm_id: {self.tsm_id} node_id: {self.node_id}"
-                f" accel_number: {self.accel_number} ts_updated: {self.ts_updated}"
-                f" voltage_max: {self.voltage_max} voltage_min: {self.voltage_min}"
-                f" in_use: {self.in_use}")
-
-            
 class LoggerMobile(DB.Model):
     """
     Class representation of logger_mobile
@@ -817,36 +846,85 @@ class LoggerMobileComms(DB.Model):
                 f" sim_num: {self.sim_num} gsm_id: {self.gsm_id}")
 
 
-def get_tilt_table(table_name):
+def get_tilt_table(table_name, schema="senslopedb"):
     """
     """
 
     class GenericTiltTable(DB.Model):
+
         """
         """
 
         __tablename__ = table_name
-        __bind_key__ = "senslopedb"
+        __bind_key__ = schema
         __table_args__ = {
             "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
 
         data_id = DB.Column(DB.Integer, primary_key=True)
         ts = DB.Column(DB.DateTime, nullable=False)
-        node_id = DB.Column(DB.Integer)
-        type_num = DB.Column(DB.Integer)
+        node_id = DB.Column(DB.Integer, nullable=False)
+        type_num = DB.Column(DB.Integer, nullable=False)
         xval = DB.Column(DB.Integer)
         yval = DB.Column(DB.Integer)
         zval = DB.Column(DB.Integer)
         batt = DB.Column(DB.Float)
-        is_live = DB.Column(TINYINT)
+        # is_live = DB.Column(DB.Boolean)
+
+        def __repr__(self):
+            return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
+                    f" ts: {self.ts} node_id: {self.node_id} type_num: {self.type_num}")
+
+    model = GenericTiltTable
+    return model
+
+
+def tilt_table_schema(table):
+    """
+    """
+
+    class GenericTiltTableSchema(MARSHMALLOW.ModelSchema):
+        """
+        """
+
+        class Meta:
+            """
+            """
+            model = table
+
+    schema = GenericTiltTableSchema
+    return schema
+
+
+def get_rain_table(table_name, schema="senslopedb"):
+    """
+    """
+
+    class GenericRainTable(DB.Model):
+
+        """
+        """
+
+        __tablename__ = table_name
+        __bind_key__ = schema
+        __table_args__ = {
+            "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
+
+        data_id = DB.Column(DB.Integer, primary_key=True)
+        ts = DB.Column(DB.DateTime, nullable=False)
+        rain = DB.Column(DB.Float)
+        temperature = DB.Column(DB.Float)
+        humidity = DB.Column(DB.Float)
+        battery1 = DB.Column(DB.Float)
+        battery2 = DB.Column(DB.Float)
+        csq = DB.Column(DB.Integer)
 
         def __repr__(self):
             return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
                     f" ts: {self.ts}")
 
-    model = GenericTiltTable
-
+    model = GenericRainTable
     return model
+
 
 def get_temperature_table(table_name):
     """
@@ -875,35 +953,6 @@ def get_temperature_table(table_name):
 
     return model
 
-def get_rain_table(table_name):
-    """
-    """
-
-    class GenericRainTable(DB.Model):
-        """
-        """
-
-        __tablename__ = table_name
-        __bind_key__ = "senslopedb"
-        __table_args__ = {
-            "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
-
-        data_id = DB.Column(DB.Integer, primary_key=True)
-        ts = DB.Column(DB.DateTime, nullable=False)
-        rain = DB.Column(DB.Float)
-        temperature = DB.Column(DB.Float)
-        humidity = DB.Column(DB.Float)
-        battery1 = DB.Column(DB.Float)
-        battery2 = DB.Column(DB.Float)
-        csq = DB.Column(TINYINT)
-
-        def __repr__(self):
-            return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
-                    f" ts: {self.ts}")
-
-    model = GenericRainTable
-
-    return model
 
 def get_piezo_table(table_name):
     """
@@ -920,7 +969,8 @@ def get_piezo_table(table_name):
 
         data_id = DB.Column(DB.Integer, primary_key=True)
         ts = DB.Column(DB.DateTime, nullable=False)
-        frequency_shift = DB.Column(DECIMAL(precision=6, scale=2, asdecimal=True))
+        frequency_shift = DB.Column(
+            DECIMAL(precision=6, scale=2, asdecimal=True))
         temperature = DB.Column(DB.Float)
 
         def __repr__(self):
@@ -930,6 +980,7 @@ def get_piezo_table(table_name):
     model = GenericPiezoTable
 
     return model
+
 
 def get_soms_table(table_name):
     """
@@ -981,6 +1032,27 @@ class EarthquakeAlertsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = EarthquakeAlerts
+
+
+class AccelerometerStatusSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Analysis Accelerometer Status class
+    """
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = AccelerometerStatus
+
+
+class AccelerometersSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of Analysis Accelerometer Status class
+    """
+    status = fields.Nested("AccelerometerStatusSchema",
+                           many=True, exclude=["accelerometers"])
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = Accelerometers
 
 
 class EarthquakeEventsSchema(MARSHMALLOW.ModelSchema):
@@ -1140,6 +1212,21 @@ class RainfallGaugesSchema(MARSHMALLOW.ModelSchema):
         model = RainfallGauges
 
 
+class RainfallDataTagsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of RainfallDataTags class
+    """
+
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    ts_end = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    tagger = fields.Nested(UsersSchema, exclude=("rainfall_tags", ))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = RainfallDataTags
+
+
 class RainfallPrioritiesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of RainfallPriorities class
@@ -1220,7 +1307,7 @@ class AlertStatusSchema(MARSHMALLOW.ModelSchema):
     Schema representation of AlertStatus class
     """
 
-    user = fields.Nested(UsersSchema, exclude=("alert_status", ))
+    user = fields.Nested(UsersSchema, exclude=("alert_status_ack", ))
     ts_ack = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_last_retrigger = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_set = fields.DateTime("%Y-%m-%d %H:%M:%S")
@@ -1286,7 +1373,7 @@ class DeploymentLogsSchema(MARSHMALLOW.ModelSchema):
         """Saves table class structure as schema model"""
         model = DeploymentLogs
 
-    
+
 class DeployedNodeSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of DeployedNode class
@@ -1295,16 +1382,6 @@ class DeployedNodeSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = DeployedNode
-
-
-class AccelerometersSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Accelerometers class
-    """
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = Accelerometers
 
 
 class LoggerMobileSchema(MARSHMALLOW.ModelSchema):
@@ -1327,6 +1404,3 @@ class LoggerMobileCommsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = LoggerMobileComms
-
-
-

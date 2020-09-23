@@ -66,8 +66,8 @@ const MyLoader = () => (
         height={600}
         width={400}
         speed={1}
-        primaryColor="#f3f3f3"
-        secondaryColor="#ecebeb"
+        foregroundColor="#f3f3f3"
+        backgroundColor="#ecebeb"
     >
         <rect x="0" y="0" rx="0" ry="0" width="400" height="600" />
     </ContentLoader>
@@ -199,8 +199,9 @@ function prepareOptions (is_mobile, type, data_list) {
             "<br/><b>*Sites without markers</b>";
             break;
         case "subsurface":
-            height = 85;
-            additional_height = 100;
+            subtitle_text += "<br/>Note: Data presence of raw data (not yet filtered)";
+            height = 95;
+            // additional_height = 100;
             break;
         case "loggers":
             height = 95;
@@ -734,7 +735,7 @@ function Container (props) {
                                                 print: false,
                                                 download: false,
                                                 viewColumns: false,
-                                                responsive: "scrollMaxHeight"
+                                                responsive: "standard"
                                             }}
                                             data={moms_alerts}
                                         />
@@ -757,6 +758,7 @@ function Container (props) {
                         props => <RainfallGraph 
                             {...props}
                             width={width}
+                            chartType="rainfall"
                         />} 
                     />
 
@@ -789,10 +791,11 @@ function Container (props) {
                 clickHandler={change_consolidate_modal_fn(false)}
                 url={url}
             />
+
             <InsertEarthquakeModal
                 isOpen={is_earthquake_modal}
-                clickHandler = {open_eq_modal(false)}
-                setReloadEqEvent = {setReloadEqEvent}
+                clickHandler={open_eq_modal(false)}
+                setReloadEqEvent={setReloadEqEvent}
             />
         </Fragment>
     );

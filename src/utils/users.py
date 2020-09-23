@@ -3,21 +3,18 @@ Utility file for Users Table
 Contains functions for getting and accesing Users table
 and related tables
 """
+
 import hashlib
 from flask import jsonify
 from connection import DB
 from src.models.sites import Sites
 from src.models.users import (
-    Users, UsersRelationship, UserMobile, UserEmails,
-    UsersSchema, UsersRelationshipSchema, UserEmailsSchema,
-    UserAccounts, UserAccountsSchema
+    Users, UsersRelationship, UsersSchema,
+    UsersRelationshipSchema, UserAccounts
 )
-from src.models.mobile_numbers import(
-    UserMobiles, UserMobilesSchema, MobileNumbers, MobileNumbersSchema
-)
+from src.models.mobile_numbers import UserMobiles
 from src.models.organizations import UserOrganizations, Organizations, UserOrganizationsSchema
 from src.utils.extra import var_checker
-from src.utils.contacts import get_gsm_id_by_prefix
 
 PROP_DICT = {
     "mob": "mobile_numbers",
@@ -27,7 +24,7 @@ PROP_DICT = {
 }
 
 
-def get_users_categorized_by_org(site_code=None):
+def get_users_categorized_by_org(site_code=None, return_schema_format=False):
     """
     """
     u_org = UserOrganizations
@@ -42,7 +39,7 @@ def get_users_categorized_by_org(site_code=None):
 
     users_by_org = base.all()
 
-    if return_schema:
+    if return_schema_format:
         users_by_org = UserOrganizationsSchema(
             many=True).dump(users_by_org).data
 
@@ -137,8 +134,8 @@ def get_users(
         if filter_by_mobile_id:
             if include_relationships or has_includes:
                 users_query = users_query.join(
-                    UserMobile)
-            filter_list.append(UserMobile.mobile_id.in_(filter_by_mobile_id))
+                    UserMobiles)
+            filter_list.append(UserMobiles.mobile_id.in_(filter_by_mobile_id))
 
         if filter_by_site:
             users_query = users_query.join(Sites)
