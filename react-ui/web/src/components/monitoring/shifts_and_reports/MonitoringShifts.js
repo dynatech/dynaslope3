@@ -9,9 +9,9 @@ import moment from "moment";
 import { Link } from "react-router-dom";
 import converter from "number-to-words";
 
-import ExpansionPanel from "@material-ui/core/ExpansionPanel";
-import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
-import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
+import Accordion from "@material-ui/core/Accordion";
+import AccordionDetails from "@material-ui/core/AccordionDetails";
+import AccordionSummary from "@material-ui/core/AccordionSummary";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
 import GeneralStyles from "../../../GeneralStyles";
@@ -97,8 +97,8 @@ function processShiftData (classes, raw_data) {
         });
 
         return (
-            <ExpansionPanel key={`monitoring_date_${ index1 + 1}`}>
-                <ExpansionPanelSummary
+            <Accordion key={`monitoring_date_${ index1 + 1}`}>
+                <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
                     aria-controls="panel1a-content"
                     id="panel1a-header"
@@ -120,9 +120,9 @@ function processShiftData (classes, raw_data) {
                             </Typography>
                         </Grid>
                     </Grid>
-                </ExpansionPanelSummary>
+                </AccordionSummary>
                 <Divider />
-                <ExpansionPanelDetails>
+                <AccordionDetails>
                     <Grid container spacing={2} className={classes.def_padding}>
                         <Grid item xs={4}>
                             <Typography variant="body1" color="textSecondary" align="center">
@@ -155,9 +155,9 @@ function processShiftData (classes, raw_data) {
                             new_stuff                            
                         }
                     </Grid>
-                </ExpansionPanelDetails>
+                </AccordionDetails>
                 <Divider />
-            </ExpansionPanel>                         
+            </Accordion>                         
         );
     });
     
@@ -248,8 +248,8 @@ function MonitoringShifts (props) {
 
     return (
         <div className={ hidden ? classes.hidden : "" }>
-            <ExpansionPanel defaultExpanded={defaultCalendarOpen}>
-                <ExpansionPanelSummary
+            <Accordion defaultExpanded={defaultCalendarOpen}>
+                <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
                     aria-controls="panel1c-content"
                     id="panel1c-header"
@@ -257,12 +257,12 @@ function MonitoringShifts (props) {
                     <Typography variant="body1" component={Grid} container>
                         <Today style={{ marginRight: 8 }} /> <div><strong>MONITORING SHIFTS CALENDAR</strong></div>
                     </Typography>
-                </ExpansionPanelSummary>
+                </AccordionSummary>
                 <Divider />
-                <ExpansionPanelDetails>
+                <AccordionDetails>
                     <MonitoringShiftsCalendar />
-                </ExpansionPanelDetails>
-            </ExpansionPanel>
+                </AccordionDetails>
+            </Accordion>
 
             <MuiPickersUtilsProvider utils={MomentUtils}>
                 <Paper

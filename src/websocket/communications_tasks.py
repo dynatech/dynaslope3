@@ -260,14 +260,25 @@ def wrap_get_latest_messages():
 
 
 @SOCKETIO.on("join_mobile_id_room", namespace="/communications")
-def join_mobile_id_room(mobile_id):
+def join_mobile_id_room(obj):
     """
+        obj (object)
+
+        Attributes:
         mobile_id (str):   variable is integer from origin but
                            converted to string on websocket
+        search_filters (obj)
     """
 
-    mobile_id = int(mobile_id)
+    mobile_id = int(obj["mobile_id"])
     sid = request.sid
+
+    ts_start = None
+    ts_end = None
+    search_filters = obj["search_filters"]
+    if search_filters:
+        ts_start = search_filters["ts_start"]
+        ts_end = search_filters["ts_end"]
 
     room_mobile_ids = retrieve_data_from_memcache("ROOM_MOBILE_IDS")
     room_users = []
@@ -277,7 +288,8 @@ def join_mobile_id_room(mobile_id):
     else:
         mobile_details = get_user_mobile_details(mobile_id)
 
-        msgs = get_latest_messages(mobile_id)
+        msgs = get_latest_messages(
+            mobile_id=mobile_id, ts_start=ts_start, ts_end=ts_end)
         msgs_schema = get_messages_schema_dict(msgs)
 
         message_row = {

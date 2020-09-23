@@ -115,10 +115,11 @@ function getAlertDialog (chosen_site, open, handleClose, sites) {
                     {
                         rel_subsurface.length > 0
                             ? rel_subsurface.map((trigger) => {
-                                const { alert_symbol, tsm_name } = trigger;
+                                const { alert_symbol, tsm_name, ts: ts_sub_data } = trigger;
                                 return (
                                     <Grid item xs={12} sm key={tsm_name} align="center">
                                         <Typography variant="body1" color="textSecondary">{tsm_name.toUpperCase()}</Typography>
+                                        <Typography variant="body1" color="textPrimary">{formatTS(ts_sub_data)}</Typography>
                                         <Typography variant="body1" color="textPrimary">{alert_symbol}</Typography>
                                     </Grid>
                                 );
@@ -227,8 +228,8 @@ const MyLoader = () => (
         height={300}
         width={684}
         speed={1}
-        primaryColor="#f3f3f3"
-        secondaryColor="#ecebeb"
+        foregroundColor="#f3f3f3"
+        backgroundColor="#ecebeb"
         style={{ width: "100%" }}
     >
         <rect x="8" y="1" rx="0" ry="0" width="206" height="116" /> 

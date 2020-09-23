@@ -63,6 +63,7 @@ node_modules/
 instance/
 temp/
 tmp/
+logs/
 .env
 .pytest_cache
 .vscode

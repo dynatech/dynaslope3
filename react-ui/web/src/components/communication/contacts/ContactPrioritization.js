@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Fragment } from "react";
 import {
-    ExpansionPanel, ExpansionPanelDetails,
-    ExpansionPanelSummary, makeStyles, Button,
+    Accordion, AccordionDetails,
+    AccordionSummary, makeStyles, Button,
     Grid, Typography, Divider, CardActions,
     CardContent, FormControl, Radio, Card,
     RadioGroup, FormControlLabel, FormLabel
@@ -269,12 +269,12 @@ function ContactPrioritization (props) {
     
     return (
         <Fragment key={`site_ID${siteID + 1}`}>
-            <ExpansionPanel>
-                <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
+            <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Typography variant="body1">{siteLabel}</Typography>
-                </ExpansionPanelSummary>
+                </AccordionSummary>
                 <Divider />
-                <ExpansionPanelDetails className={classes.details}>
+                <AccordionDetails className={classes.details}>
                     <Grid container spacing={3} style={{ marginTop: 6 }}>
                         <AllContacts 
                             siteData={siteData}
@@ -283,9 +283,9 @@ function ContactPrioritization (props) {
                             setIsUpdatePrimary={setIsUpdatePrimary}
                         />
                     </Grid>
-                </ExpansionPanelDetails>
+                </AccordionDetails>
                 <Divider />
-            </ExpansionPanel>
+            </Accordion>
         </Fragment>
     );
 }

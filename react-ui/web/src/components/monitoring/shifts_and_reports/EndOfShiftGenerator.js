@@ -20,7 +20,7 @@ const useStyles = makeStyles(theme => ({
             margin: "0 0"
         }
     },
-    expansionPanelsGroup: {
+    AccordionsGroup: {
         margin: "12px 0",
         [theme.breakpoints.down("sm")]: {
             margin: "24px 0"
@@ -45,8 +45,8 @@ const MyLoader = () => (
         height={150}
         width={700}
         speed={0.5}
-        primaryColor="#f3f3f3"
-        secondaryColor="#ecebeb"
+        foregroundColor="#f3f3f3"
+        backgroundColor="#ecebeb"
         style={{ width: "100%" }}
     >
         <rect x="-4" y="5" rx="4" ry="4" width="700" height="111" /> 
@@ -143,7 +143,6 @@ function EndOfShiftGenerator (props) {
         }
     };
 
-
     return (
         <div className={ hidden ? classes.hidden : "" }>
             <MuiPickersUtilsProvider utils={MomentUtils}>
@@ -199,7 +198,7 @@ function EndOfShiftGenerator (props) {
                 </Grid>
             </MuiPickersUtilsProvider>
 
-            <div className={classes.expansionPanelsGroup}>
+            <div className={classes.AccordionsGroup}>
                 {
                     selectedEosData === null && !isLoading && (
                         <EoSRNoData isStart />
@@ -215,7 +214,7 @@ function EndOfShiftGenerator (props) {
                                 selectedEosData !== null && (
                                     selectedEosData.length > 0 ? (
                                         selectedEosData.map((row, index) => (
-                                            <DetailedExpansionPanels 
+                                            <DetailedExpansionPanels
                                                 data={row}
                                                 key={index}
                                                 shiftStartTs={shift_start_ts}

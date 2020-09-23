@@ -38,28 +38,6 @@ class SmsInboxUsers(DB.Model):
         return f"Type <{self.__class__.__name__}>"
 
 
-class SmsInboxUsers2(DB.Model):
-    """
-    Class representation of smsinbox_users table
-    """
-
-    __tablename__ = "smsinbox_users"
-    __bind_key__ = "comms_db"  # NOTE: transition thing
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    inbox_id = DB.Column(DB.Integer, primary_key=True)
-    ts_sms = DB.Column(DB.DateTime, default=datetime.now)
-    ts_stored = DB.Column(DB.DateTime, default=datetime.now)
-    mobile_id = DB.Column(DB.Integer)
-    sms_msg = DB.Column(DB.String(1000))
-    read_status = DB.Column(DB.Integer, default=0)
-    web_status = DB.Column(DB.Integer)
-    gsm_id = DB.Column(DB.Integer, nullable=False)
-
-    def __repr__(self):
-        return f"Type <{self.__class__.__name__}>"
-
-
 class SmsTags(DB.Model):
     """
     Class representation of smsinbox_users table
@@ -130,24 +108,6 @@ class SmsOutboxUsers(DB.Model):
         return f"Type <{self.sms_msg}>"
 
 
-class SmsOutboxUsers2(DB.Model):
-    """
-    Class representation of smsoutbox_users table
-    """
-
-    __tablename__ = "smsoutbox_users"
-    __bind_key__ = "comms_db"  # TAKE NOTE
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    outbox_id = DB.Column(DB.Integer, primary_key=True)
-    ts_written = DB.Column(DB.DateTime, default=datetime.now)
-    source = DB.Column(DB.String(45))
-    sms_msg = DB.Column(DB.String(1000))
-
-    def __repr__(self):
-        return f"Type <{self.sms_msg}>"
-
-
 class SmsOutboxUserStatus(DB.Model):
     """
     Class representation of smsoutbox_user_status table
@@ -162,26 +122,6 @@ class SmsOutboxUserStatus(DB.Model):
         DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['comms_db_3']}.smsoutbox_users.outbox_id"))
     mobile_id = DB.Column(
         DB.Integer, DB.ForeignKey(f"{SCHEMA_DICT['comms_db_3']}.user_mobiles.mobile_id"))
-    ts_sent = DB.Column(DB.DateTime, default=None)
-    send_status = DB.Column(DB.Integer, nullable=False, default=0)
-    gsm_id = DB.Column(DB.Integer, nullable=False)
-
-    def __repr__(self):
-        return f"Type <{self.__class__.__name__}>"
-
-
-class SmsOutboxUserStatus2(DB.Model):
-    """
-    Class representation of smsoutbox_user_status table
-    """
-
-    __tablename__ = "smsoutbox_user_status"
-    __bind_key__ = "comms_db"  # TAKE NOTE
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    stat_id = DB.Column(DB.Integer, primary_key=True)
-    outbox_id = DB.Column(DB.Integer)
-    mobile_id = DB.Column(DB.Integer)
     ts_sent = DB.Column(DB.DateTime, default=None)
     send_status = DB.Column(DB.Integer, nullable=False, default=0)
     gsm_id = DB.Column(DB.Integer, nullable=False)

@@ -3,7 +3,8 @@ import React, { useState, useEffect } from "react";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogActions, Button, DialogContentText,
-    Grid, TextField, Typography
+    Grid, TextField, Typography,
+    FormControlLabel, Checkbox, Tooltip
 } from "@material-ui/core";
 import { useSnackbar } from "notistack";
 import { cloneDeep } from "lodash";
@@ -28,6 +29,7 @@ function RainfallDataTaggingModal (props) {
         data = { ...taggingData };
     }
 
+    const [is_indefinite, setIsIndefinite] = useState(false);
     const [observed_data, setObservedData] = useState("");
     const [remarks, setRemarks] = useState("");
     const [is_disabled, setIsDisabled] = useState(true);
@@ -61,6 +63,8 @@ function RainfallDataTaggingModal (props) {
             remarks: remarks || null
         };
 
+        if (is_indefinite) final_data.ts_end = null;
+
         console.log("Submitting invalid tag", final_data);
         saveInvalidRainfallTag(final_data, ret => {
             const { status, message } = ret;
@@ -89,7 +93,7 @@ function RainfallDataTaggingModal (props) {
             <DialogTitle id="form-dialog-title">Tag invalid rainfall data</DialogTitle>
             <DialogContent>
                 <DialogContentText>
-                    Fill in the required fields then submit. Note: Do NOT tag again already tagged points.
+                    Fill in the required fields then submit. Note: DO NOT TAG ALREADY TAGGED POINTS.
                 </DialogContentText>
 
                 <Grid container spacing={2}>
@@ -99,7 +103,7 @@ function RainfallDataTaggingModal (props) {
                         </Typography>
 
                         <Typography variant="body1" align="center">
-                            <strong>{ data.ts_start }</strong>
+                            <strong>{data.ts_start}</strong>
                         </Typography>
                     </Grid>
 
@@ -109,10 +113,27 @@ function RainfallDataTaggingModal (props) {
                         </Typography>
 
                         <Typography variant="body1" align="center">
-                            <strong>{ data.ts_end }</strong>
+                            <strong>{is_indefinite ? "Indefinite" : data.ts_end}</strong>
                         </Typography>
                     </Grid>
 
+                    <Grid item xs={12}>
+                        <FormControlLabel
+                            value="isIndefinite"
+                            control={<Checkbox 
+                                color="primary" checked={is_indefinite}
+                                onClick={e => setIsIndefinite(e.target.checked)}
+                            />}
+                            label={<div>
+                                Set end timestamp as indefinite&nbsp;
+                                <Tooltip
+                                    title="Checking this will show data from start timestamp to latest timestamp and all incoming data as invalid. A script will provide the end timestamp of the invalidated range.">
+                                    <strong>[?]</strong>
+                                </Tooltip>
+                            </div>}
+                            labelPlacement="end"
+                        />
+                    </Grid>
 
                     <Grid item xs={12}>
                         <SelectInputForm

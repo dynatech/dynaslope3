@@ -241,18 +241,26 @@ def get_marker_alerts(site_id, trigger_ts, alert_level=None):
     """
     """
     surficial_alerts_list = []
-    surficial_alerts = ma.query.filter(
-        ma.ts == trigger_ts)
+
+    obs = mo.query.filter(
+        DB.and_(mo.ts == trigger_ts, mo.site_id == site_id)).first()
+
+    if not obs:
+        raise Exception(
+            f"No marker observation entry found given site_id {site_id} "
+            f"and trigger_ts {trigger_ts}")
+
+    surficial_alerts = ma.query.join(md).filter(md.mo_id == obs.mo_id)
 
     if alert_level:
         surficial_alerts = surficial_alerts.filter(
             ma.alert_level == alert_level)
 
-    if not surficial_alerts:
-        raise Exception("No marker alerts entry found")
-
     for item in surficial_alerts.all():
-        if item.marker.site_id == site_id:
+        if not item:
+            raise Exception("No marker alerts entry found")
+
+        if item.marker_data.marker.site_id == site_id:
             surficial_alerts_list.append(item)
 
     return surficial_alerts_list

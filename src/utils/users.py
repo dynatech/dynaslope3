@@ -9,10 +9,10 @@ from flask import jsonify
 from connection import DB
 from src.models.sites import Sites
 from src.models.users import (
-    Users, UsersRelationship, UserMobile,
-    UsersSchema, UsersRelationshipSchema,
-    UserAccounts
+    Users, UsersRelationship, UsersSchema,
+    UsersRelationshipSchema, UserAccounts
 )
+from src.models.mobile_numbers import UserMobiles
 from src.models.organizations import UserOrganizations, Organizations, UserOrganizationsSchema
 from src.utils.extra import var_checker
 
@@ -134,8 +134,8 @@ def get_users(
         if filter_by_mobile_id:
             if include_relationships or has_includes:
                 users_query = users_query.join(
-                    UserMobile)
-            filter_list.append(UserMobile.mobile_id.in_(filter_by_mobile_id))
+                    UserMobiles)
+            filter_list.append(UserMobiles.mobile_id.in_(filter_by_mobile_id))
 
         if filter_by_site:
             users_query = users_query.join(Sites)

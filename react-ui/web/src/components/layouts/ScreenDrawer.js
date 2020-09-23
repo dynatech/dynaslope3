@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useState, useContext } from "react";
 import { Link } from "react-router-dom";
 import {
     SwipeableDrawer, List, ListItem,
@@ -12,9 +12,13 @@ import {
     AccountCircle, ExitToApp,
     ExpandLess, ExpandMore
 } from "@material-ui/icons";
+
+import moment from "moment";
+
 import PhivolcsDynaslopeLogo from "../../images/phivolcs-dynaslope-logo.png";
 import GeneralStyles from "../../GeneralStyles";
 import { logout, getCurrentUser } from "../sessions/auth";
+import { ServerTimeContext } from "../contexts/ServerTimeContext";
 
 const useStyles = makeStyles(theme => ({
     ...GeneralStyles(theme),
@@ -29,7 +33,7 @@ const useStyles = makeStyles(theme => ({
         fontSize: "0.9rem"
     },
     drawerHeader: {
-        height: 160,
+        height: 220,
         display: "block",
         alignItems: "center",
         textAlign: "center",
@@ -54,6 +58,9 @@ function ScreenDrawer (props) {
     const classes = useStyles();
     const [open, isOpen] = useState({});
     const iOS = process.browser && /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+    const { nickname } = getCurrentUser();
+    const { server_time } = useContext(ServerTimeContext);
 
     const handleNestedList = key => {
         const status = typeof open[key] === "undefined" ? false : open[key];
@@ -95,8 +102,21 @@ function ScreenDrawer (props) {
                         <Typography variant="h5" className={classes.projectTitle}>
                             MIA 3.0
                         </Typography>
+
                         <Typography variant="subtitle2" className={classes.projectSubtitle}>
                             Monitoring and Information Application
+                        </Typography>
+
+                        <Typography variant="subtitle1" style={{ marginTop: 6, fontWeight: 600 }}>
+                            Hello {nickname}!
+                        </Typography>
+
+                        <Typography variant="button">
+                            {
+                                server_time 
+                                    ? moment(server_time).format("ddd DD-MMM-YYYY HH:mm:ss")
+                                    : "Loading server time..."
+                            }
                         </Typography>
                     </Toolbar>
 

@@ -378,7 +378,7 @@ function MarkerHistoryTable (props) {
         print: false,
         download: false,
         viewColumns: false,
-        responsive: "scrollMaxHeight",
+        responsive: "standard",
         customSort (data, col_index, order) {
             return data.sort((a, b) => {
                 if (col_index === 0) {
@@ -854,6 +854,8 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
         });
         min_x = min.data.length > 0 ? moment(min.data[0].x) : moment();
     }
+
+    data.forEach(row => { row.turboThreshold = 100000; });
 
     return {
         title: {
