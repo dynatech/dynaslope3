@@ -13,13 +13,14 @@ import WarningIcon from '@material-ui/icons/Warning';
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
 import HeightIcon from '@material-ui/icons/Height';
 import AutorenewIcon from '@material-ui/icons/Autorenew';
-import { Grid, Button, IconButton, Tooltip} from '@material-ui/core';
+import { Grid, Button, IconButton, Tooltip, CircularProgress} from '@material-ui/core';
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider, KeyboardDatePicker } from "@material-ui/pickers";
 import moment from "moment";
 import { getCurrentUser } from "../../sessions/auth";
 import ArrowForwardIosIcon from '@material-ui/icons/ArrowForwardIos';
 import {createDateTime } from "../shifts_and_reports/EndOfShiftGenerator";
+import { getMonitoringReleases } from "../ajax";
 import SelectInputForm from "../../reusables/SelectInputForm";
 import MenuIcon from '@material-ui/icons/Menu';
 
@@ -34,6 +35,7 @@ const drawerWidth = 240;
 const useStyles = makeStyles((theme) => ({
   root: {
     display: 'flex',
+    flexGrow: 1,
   },
 
   drawer: {
@@ -55,12 +57,13 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const TabCompenents = (props) => {
-  const {selectedTab} = props;
+  const { selectedTab, isLoading, 
+    eventData, loweringData, extendedData, routineData} = props;
   const components = [
-    <Event/>,
-    <Lowering/>,
-    <Extended/>,
-    <Routine/>
+    <Event releasesData={eventData} {...props}/>,
+    <Lowering releasesData={loweringData} {...props}/>,
+    <Extended releasesData={extendedData} {...props}/>,
+    <Routine releasesData={routineData} {...props}/>
     ];
   return components[selectedTab];
 }
@@ -74,28 +77,56 @@ export default function QAContainer() {
     const [start_ts, setStartTs] = useState(datetime_now.format("YYYY-MM-DD"));
     const [shift_time, setShiftTime] = useState(dt_hr >= 10 && dt_hr <= 22 ? "am" : "pm");
     const [isLoading, setIsLoading] = useState(false);
-    const [eosData, setEosData] = useState(null);
+    const [releasesData, setReleases] = useState(null);
     const [selectedEosData, setSelectedEosData] = useState(null);
     const [shift_start_ts, setShiftStartTs] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
-
     const current_user = getCurrentUser();
+
+    const [event_releases, setEventReleases] = useState([]);
+    const [routine_releases, setRoutineReleases] = useState([]);
+    const [extended_releases, setExtendedReleases] = useState([]);
+    const [lowering_releases, setLoweringReleases] = useState([]);
 
     const handleDateTime = value => {
         setStartTs(value);
     };
 
-    const handleClick = key => event => {
-        // if (key === "generate_report") {
-        //     setModalOpen(false);
-        // } else {
-        //     setModalOpen(true);
-        //     const ts = prepareEOSRequest(start_ts, shift_time, setEosData);
-        //     setShiftStartTs(ts);
-        // }
-        console.log(start_ts, shift_start_ts, shift_time);
+    const handleClick = () => {
+        setIsLoading(true);
+        const ts = getMonitoringReleases({ start_ts, shift_time }, setReleases);
+        setShiftStartTs(ts);
     };
 
+    useEffect(() => {
+
+      if(releasesData !== null) {
+        const routineTemp = [];
+        const eventTemp = [];
+        releasesData.forEach((row) => {
+          if (row.event_alert.public_alert_symbol.alert_type === "routine"){
+            routineTemp.push({
+              ewi_web_release: row.release_time,
+              site_id: row.event_alert.event.site.site_id,
+              site_name: row.event_alert.event.site.site_code.toUpperCase(),
+              bulletin_release: row.bulletin_number,
+            })
+          }
+          if (row.event_alert.public_alert_symbol.alert_type === "event"){
+            eventTemp.push({
+              ewi_web_release: row.release_time,
+              site_id: row.event_alert.event.site.site_id,
+              site_name: row.event_alert.event.site.site_code.toUpperCase(),
+              bulletin_release: row.bulletin_number,
+            })
+          }
+        });
+        setEventReleases(eventTemp);
+        setRoutineReleases(routineTemp);
+        setIsLoading(false);
+      }
+    },[releasesData]);
+    
     const closeDrawer = () => {
       setDrawerOpen(!drawerOpen)
     };
@@ -194,9 +225,7 @@ export default function QAContainer() {
                             variant="contained"
                             color="secondary"
                             //size={isWidthDown("sm", width) ? "small" : "medium"}
-                            onClick={
-                                handleClick("site_list")
-                            }
+                            onClick={handleClick}
                             endIcon={<ArrowForwardIosIcon className={classes.button} />}
                         >
                             Generate 
@@ -204,8 +233,33 @@ export default function QAContainer() {
                     </Grid>
                 </Grid>
             </MuiPickersUtilsProvider>
-            
-            <TabCompenents selectedTab={selectedTab}/>
+            { releasesData !== null && releasesData.length !== 0  ? (
+              <TabCompenents 
+                routineData={routine_releases} 
+                eventData={event_releases}
+                loweringData={lowering_releases}
+                extendedData={extended_releases}
+                isLoading={isLoading} 
+                shift_start_ts={shift_start_ts}
+                selectedTab={selectedTab}/>
+                
+            ):(
+              
+              <div className={classes.root} style={{marginTop: "10%"}}>
+                <Grid container justify="center">
+                  <Grid item>
+                    {isLoading ? (
+                      <CircularProgress/>
+                    ):(
+                    shift_start_ts !== null && releasesData !== null && releasesData.length === 0 ? 
+                      <Typography>No available data for <strong>{moment(shift_start_ts).format('dddd, MMMM DD, YYYY A')} shift</strong></Typography>
+                    : <Typography>Select shift</Typography>
+                    )}
+                  </Grid>
+                </Grid>
+              </div>
+            )
+            }
        </Grid>
       </main>
     </div>

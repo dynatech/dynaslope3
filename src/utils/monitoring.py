@@ -844,6 +844,7 @@ def get_monitoring_releases(
     if release_id:
         return_data = base.filter(
             mr.release_id == release_id).first()
+
     else:
         if ts_start and ts_end:
             base = base.filter(DB.and_(

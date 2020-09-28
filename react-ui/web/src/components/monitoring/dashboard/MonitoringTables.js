@@ -8,10 +8,10 @@ import ContentLoader from "react-content-loader";
 
 import moment from "moment";
 
-import ExpansionPanel from "@material-ui/core/ExpansionPanel";
-import ExpansionPanelDetails from "@material-ui/core/ExpansionPanelDetails";
-import ExpansionPanelSummary from "@material-ui/core/ExpansionPanelSummary";
-import ExpansionPanelActions from "@material-ui/core/ExpansionPanelActions";
+import Accordion from "@material-ui/core/Accordion";
+import AccordionDetails from "@material-ui/core/AccordionDetails";
+import AccordionSummary from "@material-ui/core/AccordionSummary";
+import AccordionActions from "@material-ui/core/AccordionActions";
 import Tooltip from "@material-ui/core/Tooltip";
 import {
     Publish, Description, PhoneAndroid,
@@ -42,7 +42,7 @@ const useStyles = makeStyles(theme => {
             ...general_styles.sectionHead,
             marginBottom: 24
         },
-        expansionPanelSummaryContent: { justifyContent: "space-between" },
+        AccordionSummaryContent: { justifyContent: "space-between" },
         invalidCandidate: {
             background: "linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)"
         },
@@ -65,15 +65,15 @@ const MyLoader = () => (
         height={60}
         width={700}
         speed={0.5}
-        primaryColor="#f3f3f3"
-        secondaryColor="#ecebeb"
+        foregroundColor="#f3f3f3"
+        backgroundColor="#ecebeb"
         style={{ width: "100%" }}
     >
         <rect x="-4" y="5" rx="4" ry="4" width="700" height="111" /> 
     </ContentLoader>
 );
 
-function CandidateAlertsExpansionPanel (props) {
+function CandidateAlertsAccordion (props) {
     const { 
         alertData, classes, expanded,
         handleExpansion, index, releaseFormOpenHandler,
@@ -145,17 +145,17 @@ function CandidateAlertsExpansionPanel (props) {
     else if (validity_status === "partially valid") root_style = classes.alert2;
 
     return (
-        <ExpansionPanel
+        <Accordion
             key={`panel-${index + 1}`}
             expanded={expanded === `panel${index}`}
             onChange={handleExpansion(`panel${index}`)}
         >
-            <ExpansionPanelSummary
+            <AccordionSummary
                 // expandIcon={<ExpandMoreIcon />}
                 aria-controls={`panel${index}bh-content`}
                 id={`panel${index}bh-header`}
                 classes={{
-                    content: classes.expansionPanelSummaryContent,
+                    content: classes.AccordionSummaryContent,
                     root: root_style
                 }}
             >
@@ -170,9 +170,9 @@ function CandidateAlertsExpansionPanel (props) {
                         </Typography>
                     ))
                 }
-            </ExpansionPanelSummary>
+            </AccordionSummary>
             <Divider style={{ marginBottom: 12 }} />
-            <ExpansionPanelDetails>
+            <AccordionDetails>
 
                 <Grid container spacing={1}>
                     <Grid item xs={12} container spacing={1}>
@@ -424,9 +424,9 @@ function CandidateAlertsExpansionPanel (props) {
                         )
                     }
                 </Grid>
-            </ExpansionPanelDetails>
+            </AccordionDetails>
             <Divider />
-            <ExpansionPanelActions>
+            <AccordionActions>
                 <Button
                     color="secondary" size="small"
                     aria-label="Release candidate alert"
@@ -436,12 +436,12 @@ function CandidateAlertsExpansionPanel (props) {
                 >
                     Release
                 </Button>
-            </ExpansionPanelActions>
-        </ExpansionPanel>
+            </AccordionActions>
+        </Accordion>
     );
 }
 
-function LatestSiteAlertsExpansionPanel (props) {
+function LatestSiteAlertsAccordion (props) {
     const { 
         siteAlert, classes, expanded,
         handleExpansion, smsHandler,
@@ -514,16 +514,16 @@ function LatestSiteAlertsExpansionPanel (props) {
     };
 
     return (
-        <ExpansionPanel
+        <Accordion
             expanded={expanded === keyName}
             onChange={handleExpansion(keyName)}
         >
-            <ExpansionPanelSummary
+            <AccordionSummary
                 // expandIcon={<ExpandMoreIcon />}
                 aria-controls={`${keyName}bh-content`}
                 id={`${keyName}bh-header`}
                 classes={{
-                    content: classes.expansionPanelSummaryContent,
+                    content: classes.AccordionSummaryContent,
                     root: classes[`alert${alert_level}`]
                 }}
             >
@@ -538,9 +538,9 @@ function LatestSiteAlertsExpansionPanel (props) {
                         </Typography>
                     ))
                 }
-            </ExpansionPanelSummary>
+            </AccordionSummary>
             <Divider style={{ marginBottom: 12 }} />
-            <ExpansionPanelDetails>
+            <AccordionDetails>
                 <Grid container spacing={1}>
                     <Grid item xs={12} container spacing={1}>
                         <Grid item xs={12} sm align="center">
@@ -574,9 +574,9 @@ function LatestSiteAlertsExpansionPanel (props) {
                         }
                     </Grid>
                 </Grid>
-            </ExpansionPanelDetails>
+            </AccordionDetails>
             <Divider />
-            <ExpansionPanelActions>
+            <AccordionActions>
                 <Button
                     size="small" color="primary" 
                     startIcon={<Timeline />}
@@ -617,12 +617,12 @@ function LatestSiteAlertsExpansionPanel (props) {
                         Bulletin
                     </Button></span>
                 </Tooltip>
-            </ExpansionPanelActions>
-        </ExpansionPanel>
+            </AccordionActions>
+        </Accordion>
     );
 }
 
-function RoutineExpansionPanel (props) {
+function RoutineAccordion (props) {
     const { 
         siteAlert, classes, expanded,
         handleExpansion, smsHandler,
@@ -634,16 +634,16 @@ function RoutineExpansionPanel (props) {
     adjusted_data_ts = format_ts(adjusted_data_ts);
 
     return (
-        <ExpansionPanel
+        <Accordion
             expanded={expanded === keyName}
             onChange={handleExpansion(keyName)}
         >
-            <ExpansionPanelSummary
+            <AccordionSummary
             // expandIcon={<ExpandMoreIcon />}
                 aria-controls={`${keyName}bh-content`}
                 id={`${keyName}bh-header`}
                 classes={{
-                    content: classes.expansionPanelSummaryContent,
+                    content: classes.AccordionSummaryContent,
                     root: classes.alert0
                 }}
             >
@@ -658,9 +658,9 @@ function RoutineExpansionPanel (props) {
                         </Typography>
                     ))
                 }
-            </ExpansionPanelSummary>
+            </AccordionSummary>
             <Divider style={{ marginBottom: 12 }} />
-            <ExpansionPanelDetails>
+            <AccordionDetails>
                 <Grid container spacing={1}>
                     <Grid item xs={12} container spacing={1}>
                         <Grid item xs={12} sm align="center">
@@ -686,9 +686,9 @@ function RoutineExpansionPanel (props) {
                         }
                     </Grid>
                 </Grid>
-            </ExpansionPanelDetails>
+            </AccordionDetails>
             <Divider />
-            <ExpansionPanelActions>
+            <AccordionActions>
                 <Button
                     size="small" color="primary" 
                     startIcon={<PhoneAndroid />}
@@ -697,8 +697,8 @@ function RoutineExpansionPanel (props) {
                 >
                     EWI SMS
                 </Button>
-            </ExpansionPanelActions>
-        </ExpansionPanel>
+            </AccordionActions>
+        </Accordion>
     );
 }
 
@@ -791,7 +791,7 @@ function MonitoringTables (props) {
                         ) : (
                             candidateAlertsData.length !== 0 ? (
                                 candidateAlertsData.map((row, index) => (
-                                    <CandidateAlertsExpansionPanel
+                                    <CandidateAlertsAccordion
                                         key={`exp-${index + 1}`}
                                         classes={classes}
                                         alertData={row}
@@ -826,7 +826,7 @@ function MonitoringTables (props) {
                         ) : (
                             latest_db_alerts.length > 0 ? (
                                 latest_db_alerts.map((row, index) => (
-                                    <LatestSiteAlertsExpansionPanel
+                                    <LatestSiteAlertsAccordion
                                         key={`latest-${index + 1}`}
                                         keyName={`latest-${index + 1}`}
                                         classes={classes}
@@ -860,7 +860,7 @@ function MonitoringTables (props) {
                         ) : (
                             extended_db_alerts.length > 0 ? (
                                 extended_db_alerts.map((row, index) => (
-                                    <LatestSiteAlertsExpansionPanel
+                                    <LatestSiteAlertsAccordion
                                         key={`db-alert-${index + 1}`}
                                         keyName={`db-alert-${index + 1}`}
                                         classes={classes}
@@ -894,7 +894,7 @@ function MonitoringTables (props) {
                                     <Typography className={classes.sectionHead} variant="h5">Routine Monitoring</Typography>
                                 </Grid>
                                 <Grid item xs={12} style={{ marginBottom: 22 }}>
-                                    <RoutineExpansionPanel
+                                    <RoutineAccordion
                                         key="routine-alert-panel"
                                         keyName="routine-alert-panel"
                                         classes={classes}
@@ -925,7 +925,7 @@ function MonitoringTables (props) {
                         ) : (
                             overdue_db_alerts.length > 0 ? (
                                 overdue_db_alerts.map((row, index) => (
-                                    <LatestSiteAlertsExpansionPanel
+                                    <LatestSiteAlertsAccordion
                                         key={`overdue-alert-${index + 1}`}
                                         keyName={`overdue-alert-${index + 1}`}
                                         classes={classes}

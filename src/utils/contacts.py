@@ -48,14 +48,18 @@ def get_org_ids(scopes=None, org_names=None):
     return org_id_list
 
 
-def get_mobile_numbers(return_schema=False, site_ids=None, org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True):
+def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None, org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True):
     """
     """
+
     base_query = UserMobiles.query.join(Users) \
         .options(
             joinedload("user").subqueryload("organizations")
             .joinedload("site").raiseload("*")) \
         .order_by(Users.last_name, UserMobiles.priority)
+
+    if mobile_ids:
+        base_query = base_query.filter(UserMobiles.mobile_id.in_(mobile_ids))
 
     if org_ids:
         base_query = base_query.join(UserOrganizations) \

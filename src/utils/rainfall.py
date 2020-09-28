@@ -209,7 +209,10 @@ def get_invalid_rainfall_data(rain_id, ts_start, ts_end):
         DB.and_(
             rdt.rain_id == rain_id,
             rdt.ts_start >= ts_start,
-            rdt.ts_end <= ts_end
+            DB.or_(
+                rdt.ts_end <= ts_end,
+                rdt.ts_end.is_(None)
+            )
         )
     ).order_by(rdt.ts_start).all()
 

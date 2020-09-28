@@ -6,8 +6,8 @@ import React, {
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { 
     Button, Grid, makeStyles, 
-    Hidden, ExpansionPanel, ExpansionPanelSummary,
-    ExpansionPanelDetails, Divider, Typography
+    Hidden, Accordion, AccordionSummary,
+    AccordionDetails, Divider, Typography
 } from "@material-ui/core";
 import { 
     AddAlert, Warning, ExpandMore,
@@ -193,8 +193,8 @@ function Container (props) {
                         </Hidden>
 
                         <Hidden mdUp>
-                            <ExpansionPanel defaultExpanded={false}>
-                                <ExpansionPanelSummary
+                            <Accordion defaultExpanded={false}>
+                                <AccordionSummary
                                     expandIcon={<ExpandMore />}
                                     aria-controls="panel1c-content"
                                     id="panel1c-header"
@@ -204,9 +204,9 @@ function Container (props) {
                                             <strong>ISSUES AND REMINDERS</strong>
                                         </Typography>
                                     </Grid>
-                                </ExpansionPanelSummary>
+                                </AccordionSummary>
                                 <Divider />
-                                <ExpansionPanelDetails>
+                                <AccordionDetails>
                                     <Grid container justify="space-evenly" className={classes.details}>
                                         <IssuesAndRemindersList 
                                             isOpenIssueReminderModal={isOpenIssueReminderModal}
@@ -215,8 +215,8 @@ function Container (props) {
                                             setIsIandRUpdateNeeded={setIsIandRUpdateNeeded}
                                         />
                                     </Grid>
-                                </ExpansionPanelDetails>
-                            </ExpansionPanel>
+                                </AccordionDetails>
+                            </Accordion>
                         </Hidden>
                     </Grid>
                     

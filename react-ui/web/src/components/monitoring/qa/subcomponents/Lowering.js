@@ -7,7 +7,7 @@ const useStyles = makeStyles((theme) => ({
       width: "100%",
     },
   }));
-export default function Event(){
+export default function Lowering(){
     const classes= useStyles();
     return (
         <div className={classes.root}>

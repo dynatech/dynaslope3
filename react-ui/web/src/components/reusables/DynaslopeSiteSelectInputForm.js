@@ -45,7 +45,7 @@ function DynaslopeSiteSelectInputForm (props) {
         value, changeHandler, isMulti,
         renderDropdownIndicator, includeAddressOnOptions,
         returnSiteDataCallback, isFromSiteLogs,
-        disabled
+        disabled, customPlaceholder
     } = props;
     const { sites } = useContext(GeneralContext);
 
@@ -53,7 +53,8 @@ function DynaslopeSiteSelectInputForm (props) {
     const options = prepareSitesOption(sites, to_include_address, isFromSiteLogs);
 
     const is_multi = (typeof isMulti === "undefined") ? false : isMulti;
-    const placeholder = is_multi ? "Select site(s)" : "Select site";
+    let placeholder = is_multi ? "Select site(s)" : "Select site";
+    placeholder = customPlaceholder || placeholder;
     const to_render_dropdown = (typeof renderDropdownIndicator === "undefined") ? false : renderDropdownIndicator;
 
     let pass_value = value;
