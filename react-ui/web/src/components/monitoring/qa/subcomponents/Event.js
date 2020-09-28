@@ -12,26 +12,76 @@ const useStyles = makeStyles((theme) => ({
 
 export default function Event(props){
     const classes= useStyles();
-    const {eosData, isLoading } = props;
-    const [event_ids, setEvents] = useState(null);
-    const [sites, setSites] = useState(null);
+    const {releasesData, isLoading } = props;
+    const columns = [
+      {
+          name: "site_name",
+          label: "Site",
+          options: {
+              filter: true,
+              sort: true,
+          }
+      },
+      {
+          name: "ewi_web_release",
+          label: "EWI Web Release",
 
-    useEffect(() => {
-      if(eosData.length > 0){
-        const eve_ids = _.map(eosData, 'event_id' );
-        const site_codes = _.map(eosData, 'site_code' );
-        setEvents(eve_ids);
-        setSites(site_codes);
-        console.log(eve_ids, site_codes);
+      },
+      {
+        name: "ewi_sms",
+        label: "EWI SMS",
+
+      },
+      {
+          name: "ewi_bulletin_release",
+          label: "EWI Bulletin",
+          options: {
+              filter: false,
+              sort: false
+          }
+      },
+      {
+          name: "rainfall_info",
+          label: "Rainfall Info",
+          options: {
+              filter: false,
+              sort: false
+          }
+      },
+      {
+          name: "ground_measurement",
+          label: "Ground Measurement",
+          options: {
+              filter: false,
+              sort: false
+          }
+      },
+      {
+          name: "ground_data",
+          label: "Ground Data",
+          options: {
+              filter: false,
+              sort: false
+          }
+      },
+      {
+          name: "fyi_permission",
+          label: "FYI Permission",
+          options: {
+              filter: false,
+              sort: false
+          }
       }
-    },[eosData])
+  ];
+
     return (
         <div className={classes.root}>
             <QATable 
               isLoading={isLoading} 
               tableTitle="QA for Event Monitoring" 
-              type="monitoring"
-              data={sites}
+              type="Event"
+              data={releasesData}
+              columns={columns}
             />
         </div>
     );

@@ -88,7 +88,6 @@ export function prepareEOSRequest (start_ts, shift_time, setEosData) {
     getEndOfShiftReports(input, ret => {
         setEosData(ret);
     });
-
     return moment_start_ts;
 }
 

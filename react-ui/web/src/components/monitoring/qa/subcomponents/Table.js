@@ -3,20 +3,19 @@ import moment from "moment";
 import MUIDataTable from "mui-datatables";
 import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import {
-    CircularProgress, Typography, Paper,
+    CircularProgress, Typography, Paper, Grid,
     makeStyles
 } from "@material-ui/core";
 import { createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 import { Route, Switch, Link, useHistory, useLocation} from "react-router-dom";
 
-import MonitoringEventTimeline from "../../events_table/EventTimeline";
 import CustomSearchRender from "../../events_table/CustomSearchRender";
 import PageTitle from "../../../reusables/PageTitle";
 import GeneralStyles from "../../../../GeneralStyles";
 import { prepareSiteAddress } from "../../../../UtilityFunctions";
 import { GeneralContext } from "../../../contexts/GeneralContext";
 import { getMonitoringEvents } from "../../ajax";
-
+import { getEventTimelineEntries } from "../../ajax";
 const filter_sites_option = [];
 
 const useStyles = makeStyles(theme => ({
@@ -81,12 +80,81 @@ const getMuiTheme = createMuiTheme({
 });
 
 
+function MonitoringEventTimeline (props) {
+    const { match: { params: { event_id } } } = props;
+    const classes = useStyles();
+    const [eventDetails, setEventDetails] = useState({
+        event_id,
+        site_code: "---",
+        site_id: 1,
+        validity: moment(),
+        event_start: moment(),
+        site_address: "",
+        status: 1
+    });
+    const [timelineItems, setTimelineItems] = useState([]);
+    const [chosenReleaseDetail, setChosenReleaseDetail] = useState({});
+    const [isOpenBulletinModal, setIsOpenBulletinModal] = useState(false);
 
+    useEffect(() => {
+        const input = { event_id };
+        getEventTimelineEntries(input, ret => {
+            const {
+                event_details, timeline_items
+            } = ret;
+            if (Object.keys(event_details).length > 0) {
+                setEventDetails(event_details);
+                setTimelineItems(timeline_items);
+            }
+        });
+    }, []);
+
+    const monitoring_type = eventDetails.status === 1 ? "ROUTINE" : "EVENT";
+    const bulletinHandler = release => event => {
+        console.log(release);
+        const rel = { ...release, type: null };
+        setChosenReleaseDetail(rel);
+        setIsOpenBulletinModal(true);
+    };
+
+    const format_str = "MMMM Do YYYY, hh:mm A";
+    const start_ts = moment(eventDetails.event_start).format(format_str);
+
+    let end_ts = "PRESENT";
+    if (eventDetails.validity !== null) end_ts = moment(eventDetails.validity).format(format_str);
+
+    return (
+        <Grid container spacing={2}>
+            {/* <Grid item xs={12} align="center">
+                <Typography variant="h5">
+                    {monitoring_type} Monitoring Timeline
+                </Typography>
+            </Grid> */}
+            <Grid item xs={12}>
+                <Typography variant="h6" align="center">
+                    <strong>{monitoring_type} MONITORING TIMELINE</strong>
+                </Typography>
+                <Typography 
+                    variant="h4"
+                    align="center"
+                >
+                    {eventDetails.site_address} ({eventDetails.site_code.toUpperCase()})
+                </Typography>
+                <Typography 
+                    variant="subtitle1"
+                    align="center"
+                >
+                    { `${start_ts} to ${end_ts}` }
+                </Typography>
+            </Grid>
+        </Grid>
+    );
+}
 function QATable (props) {
     const location = useLocation();
     const url = window.location.href;
     const {
-        width, tableTitle, isLoading
+        width, tableTitle, isLoading, columns, type
     } = props;
 
     const classes = useStyles();
@@ -103,22 +171,20 @@ function QATable (props) {
     const [search_str, setSearchString] = useState("");
     const [on_search_open, setOnSearchOpen] = useState(false);
 
-    const { sites } = useContext(GeneralContext);
-
-    const final_data = props.data.map(row => {
-        return {site_name : row.toUpperCase()};
-    });
+    // const { sites } = useContext(GeneralContext);
 
     useEffect(() => {
+        if (props.data.length > 0){
         const temp = {};
-        sites.forEach(site => {
-            const address = prepareSiteAddress(site, true, "start");
-            const site_code = site.site_code.toUpperCase();
+        props.data.forEach(site => {
+            //const address = prepareSiteAddress(site, true, "start");
+            const site_code = site.site_name.toUpperCase();
             filter_sites_option.push(site_code);
-            temp[site_code] = { site_id: site.site_id, address };
+            temp[site_code] = { site_id: site.site_id };
         });
         setSitesDict(temp);
-    }, [sites]);
+        }
+    }, [props.data]);
 
     useEffect(() => {
         // setTotalEventCount(setCount);
@@ -144,17 +210,18 @@ function QATable (props) {
     ]);
 
 
-
+    console.log(props.shift_start_ts);
     const options = {
         textLabels: {
             body: {
                 noMatch: "No data",
             }
         },
+
         filterType: "multiselect",
         responsive: isWidthUp(width, "xs") ? "scroll" : "scrollFullHeight",
         searchText: search_str,
-        searchPlaceholder: "Type words to search narrative column",
+        //searchPlaceholder: "Type words to search narrative column",
         rowsPerPageOptions: [5, 10, 15],
         rowsPerPage,
         count,
@@ -162,7 +229,11 @@ function QATable (props) {
         filter: true,
         selectableRows: "none",
         print: false,
-        download: false,
+        download: true,
+        downloadOptions: {
+            filename: `${type}_releases_${props.shift_start_ts}.csv`,
+            separator: ';',
+        },
         // filterType: "dropdown",
         serverSide: true,
         onTableChange: (action, tableState) => {
@@ -264,72 +335,8 @@ function QATable (props) {
             );
         }
     };
-    
-    const columns = [
-        {
-            name: "site_name",
-            label: "Site",
-            options: {
-                filter: true,
-                filterList: typeof filter_list.site_name === "undefined" ? [] : filter_list.site_name, 
-                filterOptions: {
-                    names: filter_sites_option
-                }
-            }
-        },
-        {
-            name: "ewi_web_release",
-            label: "EWI Web Release",
-            options: {
-                filter: false,
-                filterList: typeof filter_list.entry_type === "undefined" ? [] : filter_list.entry_type, 
-                // filterOptions: {
-                //     names: ["ROUTINE", "EVENT"]
-                // },
-                sort: false
-            }
-        },
-        {
-            name: "ewi_bulletin_release",
-            label: "EWI Bulletin",
-            options: {
-                filter: false,
-                sort: false
-            }
-        },
-        {
-            name: "rainfall_info",
-            label: "Rainfall Info",
-            options: {
-                filter: false,
-                sort: false
-            }
-        },
-        {
-            name: "ground_measurement",
-            label: "Ground Measurement",
-            options: {
-                filter: false,
-                sort: false
-            }
-        },
-        {
-            name: "ground_data",
-            label: "Ground Data",
-            options: {
-                filter: false,
-                sort: false
-            }
-        },
-        {
-            name: "fyi_permission",
-            label: "FYI Permission",
-            options: {
-                filter: false,
-                sort: false
-            }
-        }
-    ];
+
+   
 
     return (
         <Fragment>
@@ -342,7 +349,7 @@ function QATable (props) {
                         title={
                             <div>
                                 <Typography variant="h5" component="div">
-                                    Latest release
+                                    {type} releases
                                     {
                                         isLoading &&
                                             <CircularProgress
@@ -355,10 +362,10 @@ function QATable (props) {
                                             />
                                     }
                                 </Typography>
-                                <Typography variant="caption">Click site name to view site history</Typography>
+                                {/* <Typography variant="caption">Click site name to view all releases</Typography> */}
                             </div>
                             }
-                        data={final_data}
+                        data={props.data}
                         columns={columns}
                         options={options}
                     />
