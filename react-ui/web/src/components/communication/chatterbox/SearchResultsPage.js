@@ -15,6 +15,7 @@ import PageTitle from "../../reusables/PageTitle";
 import MessageList from "./MessageList";
 
 import { receiveSearchResults, removeReceiveSearchResults } from "../../../websocket/communications_ws";
+import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 
 const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
@@ -82,7 +83,7 @@ function SearchResultsPage (props) {
     const classes = useStyles();
     const { state: {
         sites, organizations, only_ewi_recipients,
-        ts_start, ts_end
+        include_inactive_numbers, ts_start, ts_end
     } } = location;
 
     const [is_loading, setIsLoading] = useState(false);
@@ -98,6 +99,7 @@ function SearchResultsPage (props) {
                 site_ids: sites.map(s => s.value),
                 org_ids: organizations.map(o => o.value),
                 only_ewi_recipients,
+                include_inactive_numbers,
                 ts_start,
                 ts_end
             };
@@ -166,15 +168,27 @@ function SearchResultsPage (props) {
 
                 {
                     ts_start && <Box mr={2}>
-                        <Typography variant="subtitle2"><strong>Start Date/Time:</strong> {ts_start}</Typography>
+                        <Typography variant="subtitle2"><strong>Start Date/Time:</strong>{ts_start}</Typography>
                     </Box>
                 }
 
                 {
                     ts_end && <Box mr={2}>
-                        <Typography variant="subtitle2"><strong>End Date/Time:</strong> {ts_end}</Typography>
+                        <Typography variant="subtitle2"><strong>End Date/Time:</strong>{ts_end}</Typography>
                     </Box>
                 }
+
+                <Box mr={2}>
+                    <Typography variant="subtitle2">
+                        <strong>Only EWI Recipients:</strong> {capitalizeFirstLetter(only_ewi_recipients.toString())}
+                    </Typography>
+                </Box>
+
+                <Box mr={2}>
+                    <Typography variant="subtitle2">
+                        <strong>Include Invalid Numbers:</strong> {capitalizeFirstLetter(include_inactive_numbers.toString())}
+                    </Typography>
+                </Box>
             </Box>
 
             <Divider style={{ marginTop: 12 }} />
