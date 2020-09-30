@@ -19,10 +19,11 @@ from src.models.monitoring import (
     MonitoringEventAlertsSchema, OperationalTriggers,
     MonitoringMoms, MomsInstances, MonitoringTriggersSchema,
     BulletinTracker, MonitoringReleasePublishers, MonitoringTriggersMisc,
-    EndOfShiftAnalysis)
+    EndOfShiftAnalysis, MonitoringReleasesSchema)
 from src.utils.narratives import write_narratives_to_db, get_narratives
 from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.models.inbox_outbox import SmsInboxUsers
+from src.models.narratives import Narratives
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
     round_to_nearest_release_time)
@@ -376,7 +377,7 @@ def update_alert_status(as_details):
     return return_data
 
 
-def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
+def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, for_qa=None):
     """
     Check sms range by 4-hour interval
     """
@@ -384,6 +385,7 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
     release_interval_hours = RELEASE_INTERVAL_HOURS
     is_sms_sent = False
     is_bulletin_sent = False
+    sent_ts = None
 
     if not is_onset_release or \
             (is_onset_release and start_ts.hour % 4 == 3 and start_ts.minute == 30):
@@ -402,10 +404,16 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
 
         if "EWI BULLETIN" in item.narrative:
             is_bulletin_sent = True
-
-    return {
+        if for_qa:
+            sent_ts = item.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    final = {
         "is_sms_sent": is_sms_sent, "is_bulletin_sent": is_bulletin_sent
     }
+    if for_qa:
+        final = {
+        "is_sms_sent": is_sms_sent, "is_bulletin_sent": is_bulletin_sent, "sent_ts": sent_ts
+        }
+    return final
 
 
 def get_ongoing_extended_overdue_events(run_ts=None):
@@ -796,6 +804,47 @@ def get_monitoring_releases_by_data_ts(site_code, data_ts):
 
     return return_data
 
+def get_qa_data(ts_start=None, ts_end=None, load_options=None):
+    """
+    """
+    exclude_list = ["moms_releases", "triggers", "release_publishers"]
+    release_schema = MonitoringReleasesSchema(many=True, exclude=exclude_list)
+    mr = MonitoringReleases
+    base = mr.query.order_by(DB.desc(mr.data_ts)) \
+        .order_by(DB.desc(mr.release_time))
+    return_data = None
+    ewi_statuses = []
+    if load_options == "quality_assurance":
+        ea_load = DB.joinedload("event_alert", innerjoin=True)
+        base = base.options(
+            ea_load.joinedload("releases", innerjoin=True)
+            .raiseload("*"),
+            ea_load.joinedload("event", innerjoin=True)
+            .joinedload("site", innerjoin=True)
+            .raiseload("*"),
+            ea_load.joinedload("public_alert_symbol", innerjoin=True)
+        )
+
+    if ts_start and ts_end:
+        base = base.filter(DB.and_(
+            ts_start <= mr.data_ts,
+            mr.data_ts <= ts_end
+        ))
+
+    return_data = base.all()
+    result = release_schema.dump(return_data).data
+    i = 0
+    for row in return_data:
+        event_id = row.event_alert.event.event_id
+        start_ts = row.data_ts
+        is_onset_release = False
+        if row.event_alert.public_alert_symbol.alert_type == "event":
+            is_onset_release = True
+        sent_status = check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, True)
+        result[i].update(sent_status)
+        i += 1
+    return result
+
 
 def get_monitoring_releases(
         release_id=None, ts_start=None, ts_end=None,
@@ -830,6 +879,17 @@ def get_monitoring_releases(
             DB.raiseload("*")
         )
     elif load_options == "ewi_narrative":
+        ea_load = DB.joinedload("event_alert", innerjoin=True)
+        base = base.options(
+            ea_load.joinedload("releases", innerjoin=True)
+            .raiseload("*"),
+            ea_load.joinedload("event", innerjoin=True)
+            .joinedload("site", innerjoin=True)
+            .raiseload("*"),
+            ea_load.joinedload("public_alert_symbol", innerjoin=True),
+            DB.raiseload("*")
+        )
+    elif load_options == "quality_assurance":
         ea_load = DB.joinedload("event_alert", innerjoin=True)
         base = base.options(
             ea_load.joinedload("releases", innerjoin=True)

@@ -21,7 +21,7 @@ from src.models.narratives import (NarrativesSchema)
 from src.utils.narratives import (write_narratives_to_db, get_narratives)
 from src.utils.monitoring import (
     # GET functions
-    get_pub_sym_id, get_event_count,
+    get_pub_sym_id, get_event_count, get_qa_data,
     get_moms_id_list, get_internal_alert_symbols,
     get_monitoring_events, get_active_monitoring_events,
     get_monitoring_releases, get_monitoring_events_table,
@@ -337,8 +337,16 @@ def wrap_get_monitoring_releases_by_data_ts(site_code, data_ts):
     return jsonify(releases_data)
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases", methods=["GET"])
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases/<ts_start>/<ts_end>/<load_options>", methods=["GET"])
+def qa_data(ts_start=None, ts_end=None, load_options=None):
+    """
+    """
+
+    q_a = get_qa_data(ts_start, ts_end, load_options)
+
+    return jsonify(q_a)
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases", methods=["GET"])
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases/<release_id>", methods=["GET"])
 
 def wrap_get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, load_options=None):
