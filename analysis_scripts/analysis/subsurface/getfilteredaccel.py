@@ -3,36 +3,41 @@ import pandas as pd
 import analysis.querydb as query
 from analysis.subsurface import filterdata as fd
 
+
 def get_filtered_accel_data_json(site_column, start_date, end_date, node_id, version):
     return_data = pd.DataFrame()
-    
+
     accel_id = [1]
-    if version == 2:
+    if version in [2, 3]:
         accel_id.append(2)
-    
+
     for a_id in accel_id:
         raw_data = query.get_raw_accel_data(
-                tsm_name = site_column, from_time = start_date,
-                to_time = end_date, node_id = node_id, accel_number = a_id,
-                batt=True)
-        
+            tsm_name=site_column, from_time=start_date,
+            to_time=end_date, node_id=node_id, accel_number=a_id,
+            batt=True)
+
         filtered_data = fd.apply_filters(raw_data)
-        
-        combined_data = pd.DataFrame({"data": [raw_data, filtered_data], "type": ["raw", "filtered"]})
-        
+
+        combined_data = pd.DataFrame(
+            {"data": [raw_data, filtered_data], "type": ["raw", "filtered"]})
+
         if len(accel_id) == 1:
             return_data["v1"] = [combined_data]
         else:
             return_data[a_id] = [combined_data]
-        
-    return return_data.to_json(orient = "records", date_format = "iso") \
-                            .replace("T", " ").replace("Z", "") \
-                            .replace(".000", "")
+
+    return return_data.to_json(orient="records", date_format="iso") \
+        .replace("T", " ").replace("Z", "") \
+        .replace(".000", "")
+
 
 if __name__ == "__main__":
     site_column = sys.argv[1]
-    start_date = sys.argv[2].replace("n",'').replace("T"," ").replace("%20"," ")
-    end_date = sys.argv[3].replace("n",'').replace("T"," ").replace("%20"," ")
+    start_date = sys.argv[2].replace(
+        "n", '').replace("T", " ").replace("%20", " ")
+    end_date = sys.argv[3].replace("n", '').replace(
+        "T", " ").replace("%20", " ")
     node_id = int(sys.argv[4])
     version = int(sys.argv[5])
 
@@ -48,5 +53,6 @@ if __name__ == "__main__":
 #    node_id = 1
 #    version = 1
 
-    json = get_filtered_accel_data_json(site_column, start_date, end_date, node_id, version)
+    json = get_filtered_accel_data_json(
+        site_column, start_date, end_date, node_id, version)
     print(json)

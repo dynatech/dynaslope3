@@ -4,18 +4,19 @@
 """
 
 import json
-import time
 import math
 from datetime import datetime
 from connection import DB
+
 from src.models.analysis import (
     TSMSensors, TSMSensorsSchema,
-    AccelerometerStatus, AccelerometerStatusSchema,
     Accelerometers, AccelerometersSchema,
-    Loggers, get_tilt_table, tilt_table_schema)
-from analysis_scripts.analysis.subsurface.vcdgen import vcdgen
+    Loggers, get_tilt_table)
 from src.utils.extra import get_unix_ts_value
+
+from analysis_scripts.analysis.subsurface.vcdgen import vcdgen
 from analysis_scripts.analysis.subsurface.getfilteredaccel import get_filtered_accel_data_json
+
 
 def get_site_subsurface_columns(site_code, include_deactivated=False):
     """
@@ -263,38 +264,34 @@ def get_node_status(tsm_id, node_id=None):
     """
     get node status per logger
     """
+
+    innerjoin = node_id is None
+    query = Accelerometers.query.options(
+        DB.joinedload("status", innerjoin=innerjoin).raiseload("*")) \
+        .filter_by(tsm_id=tsm_id)
+
     if node_id:
-        query = Accelerometers.query.options(
-            DB.joinedload("status", innerjoin=False).raiseload("*")) \
-            .filter_by(tsm_id=tsm_id, node_id=node_id).all()
-        result = AccelerometersSchema(
-        many=True).dump(query).data
-        return result
-    else:
-        query = Accelerometers.query.options(
-            DB.joinedload("status", innerjoin=True).raiseload("*")) \
-            .filter_by(tsm_id=tsm_id).all()
-        result = AccelerometersSchema(
-        many=True, only=["status", "node_id"]).dump(query).data
-        return result
+        query = query.filter_by(node_id=node_id)
+
+    result = query.all()
+
+    schema = AccelerometersSchema(many=True, only=["status", "node_id"])
+    if node_id:
+        schema = AccelerometersSchema(many=True)
+
+    return schema.dump(result).data
 
 
-def get_node_details(logger_name, return_with_tsm_id=None):
+def get_node_details(logger_name):
     """
-    returns node count and TSM ID of logger 
+    returns node count and TSM ID of logger
     """
 
-    query = TSMSensors.query.join(Loggers).options(
+    result = TSMSensors.query.join(Loggers).options(
         DB.joinedload("logger", innerjoin=True).raiseload("*")
-    ).filter_by(logger_name=logger_name)
-    result = TSMSensorsSchema(many=True, exclude=["logger.logger_model"]).\
-        dump(query).data
+    ).filter_by(logger_name=logger_name).first()
 
-    throw = {"node_count": result[0]["number_of_segments"]}
-    if return_with_tsm_id:
-        throw.update({"tsm_id": result[0]["tsm_id"]})
-
-    return throw
+    return result
 
 
 def process_node_health_data(logger_name):
@@ -302,9 +299,9 @@ def process_node_health_data(logger_name):
     returns node health per node of logger
     """
 
-    details = get_node_details(logger_name, True)
-    node_count = details["node_count"]
-    tsm_id = details["tsm_id"]
+    details = get_node_details(logger_name)
+    node_count = details.number_of_segments
+    tsm_id = details.tsm_id
     node_status = get_node_status(tsm_id)
     y_iterators = compute_for_y_values(node_count, 25)
     node_summary = []
@@ -359,10 +356,10 @@ def get_communication_health_data(logger, start_date, end_date):
     get communication health for subsurface
     """
 
-    details = get_node_details(logger, True)
+    details = get_node_details(logger)
     data = get_subsurface_column_data(logger, start_date, end_date)
-    node_count = details["node_count"]
-    tsm_id = details["tsm_id"]
+    node_count = details.number_of_segments
+    tsm_id = details.tsm_id
     array = delegate_subsurface_column_data_for_computation(
         data, logger, node_count)
     date_format = "%Y-%m-%d %H:%M:%S"
@@ -381,6 +378,7 @@ def get_accel_id_by_version(tsm_id):
     """
 
     """
+
     _version = get_subsurface_column_versions(tsm_id)
 
     if _version == 1:
@@ -523,144 +521,159 @@ def check_if_subsurface_columns_has_data(site_code, start_ts, end_ts):
 def get_plot_data_for_node(subsurface_column, start_date, end_date, node):
     """
     """
-    details = get_node_details(subsurface_column, True)
-    node_count = details["node_count"]
-    tsm_id = details["tsm_id"]
+
+    details = get_node_details(subsurface_column)
     node_status = process_node_health_data(subsurface_column)
     node_list = get_adjacent_working_nodes(node, node_status)
-    delegate_array = {}
-    
+    delegate_array = {
+        "x-accelerometer": {},
+        "y-accelerometer": {},
+        "z-accelerometer": {},
+        "battery": {}
+    }
+
+    version = details.version
     for node_id in node_list:
         index_node_id = "Node " + str(node_id)
-        version = 1
-        if len(subsurface_column) > 4:
-            version = 2
-        
-        return_data = get_filtered_accel_data_json(subsurface_column, start_date, \
-            end_date, node_id, version)
+        return_data = get_filtered_accel_data_json(subsurface_column, start_date,
+                                                   end_date, node_id, version)
         return_data = json.loads(return_data)
-        i = 0
-        while i < 4:
-            if i not in delegate_array:
-                delegate_array.setdefault(i, {})
-            if index_node_id not in delegate_array[i]:
-                delegate_array[i].update({index_node_id:{}})
-            i+=1
 
         for accel_id, val in return_data[0].items():
             for row in val:
-                raw_filtered =  row["type"]
+                raw_filtered = row["type"]
                 data_arr = row["data"]
                 is_raw = False
                 if raw_filtered == "raw":
                     is_raw = True
+
+                for key in delegate_array:
+                    if index_node_id not in delegate_array[key]:
+                        delegate_array[key].update({index_node_id: {}})
+
+                    if accel_id not in delegate_array[key][index_node_id]:
+                        delegate_array[key][index_node_id].setdefault(
+                            accel_id, [])
+
+                final_data = []
                 for point in data_arr:
-                    timestamp =  time.mktime(datetime.strptime(point["ts"], "%Y-%m-%d %H:%M:%S").timetuple())
-                    point_values = [
-                        float(point["x"]),
-                        float(point["y"]),
-                        float(point["z"]),
-                    ];
-                
+                    timestamp = get_unix_ts_value(point["ts"])
+                    point_values = {
+                        "x-accelerometer": float(point["x"]),
+                        "y-accelerometer": float(point["y"]),
+                        "z-accelerometer": float(point["z"])
+                    }
+
                     if is_raw:
-                        batt = 0;
-                        if point["batt"] != None:
+                        batt = 0
+                        if point["batt"] is not None:
                             batt = float(point["batt"])
-                        point_values.append(batt)
-                    # Loop until z-accel only if filtered else include battery
-                    limit = 3
-                    if is_raw:
-                        limit = 4
-                    # print(point_values)
-                    i = 0
-                    while i < limit:
-                        if accel_id not in delegate_array[i][index_node_id]:
-                            #print(accel_id, "not exist, initializing in : ", index_node_id)
-                            delegate_array[i][index_node_id].setdefault(accel_id,[])
-                        delegate_array[i][index_node_id][accel_id].append([
-                            timestamp,
-                            point_values[i],
-                            raw_filtered])
-                        i+=1
+                        # point_values.append(batt)
+                        point_values["battery"] = batt
+
+                    final_data.append({
+                        "ts": timestamp,
+                        "point_values": point_values
+                    })
+
+                for final_row in final_data:
+                    ts = final_row["ts"]
+                    for key, row_val in list(final_row["point_values"].items()):
+                        delegate_array[key][index_node_id][accel_id].append([
+                            ts,
+                            row_val,
+                            raw_filtered
+                        ])
+
     temp_series = {}
     for key, data in delegate_array.items():
         for node_id, row in data.items():
             temp_series.setdefault(key, {})
             for accel_id, accel_data in row.items():
-                accel = "Data"
-                if accel_id != 1:
-                    accel = "Accel "+ str(accel_id)
-                # if delegate_array is battery
-                if key == 3:
-                    temp_series[key].update({node_id : [{
-                        "name": str(node_id) + " " + accel,
+                accel = ""
+                if accel_id != "v1":
+                    accel = ", Accel " + str(accel_id)
+
+                if node_id not in temp_series[key]:
+                    temp_series[key].setdefault(node_id, [])
+
+                accel_data.sort(key=lambda x: x[0])
+
+                if key == "battery":
+                    temp_series[key][node_id].append({
+                        "name": f"{str(node_id)}{accel}",
                         "data": accel_data
-                    }]
                     })
                 else:
                     for check_filter_type in ["filtered", "raw"]:
                         grouped_array = []
-                        for each in accel_data:
-                            if check_filter_type == each[2]:
-                                grouped_array.append(each)
+                        for row_data in accel_data:
+                            if check_filter_type == row_data[2]:
+                                grouped_array.append(row_data)
+
                         filter_label = check_filter_type.title()
-                        if node_id not in temp_series[key]:
-                            temp_series[key].setdefault(node_id, [])
+
                         temp_series[key][node_id].append({
-                                "name" : f"{node_id}, {accel} <br/> ({filter_label})",
-                                "data" : grouped_array
-                            })
-    lookup = ["x-accelerometer", "y-accelerometer", "z-accelerometer", "battery"];
-    final_series = [];
+                            "name": f"{node_id}{accel} <br/> ({filter_label})",
+                            "data": grouped_array
+                        })
+
+    final_series = []
     for key, series in temp_series.items():
-        node_temp = [];
+        node_temp = []
         for node_id, data in series.items():
             node_name = node_id.lower().replace(" ", "_")
-            temp = {"node_name" : node_name, "series" : data}
+            temp = {"node_name": node_name, "series": data}
             node_temp.append(temp)
 
         final_series.append({
-            "series_name" : lookup[key],
-            "data" : node_temp
+            "series_name": key,
+            "data": node_temp
         })
     return final_series
 
 
 def get_adjacent_working_nodes(node, node_status):
     """
-    get adjacent working nodes 
+    get adjacent working nodes
     """
+
     node_list = []
     start = None
     end = None
     is_start_filled = False
     is_end_filled = False
     i = 1
+
     for node_prop in node_status:
         status = "OK"
         if "status" in node_prop:
             if node_prop["status"] > 1:
                 status = "Not OK"
-        node_id = node_prop["x"]
+        node_id = node_prop["id"] + 1
+
         if int(node) == int(node_id):
-            if i == node_status[0]["x"]:
-                node_list.append(node_prop["x"])
+            if i == node_status[0]["id"] + 1:
+                node_list.append(node_id)
                 is_start_filled = True
             else:
-                if start != None:
-                    node_list.append(start["x"])
-                node_list.append(node_prop["x"])
+                if start is not None:
+                    node_list.append(start)
+
+                node_list.append(node_id)
                 is_start_filled = True
         else:
             if is_start_filled and is_end_filled:
                 break
+
             if not is_start_filled:
                 if status != "Not OK":
-                    start = node_prop
-            else:
-                if status != "Not OK":
-                    end = node_prop
-                    node_list.append(end["x"])
-                    is_end_filled = True
+                    start = node_id
+            elif status != "Not OK":
+                end = node_id
+                node_list.append(end)
+                is_end_filled = True
+
         i += 1
+
     return node_list

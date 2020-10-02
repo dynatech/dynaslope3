@@ -620,14 +620,16 @@ def get_processed_internal_alert_symbols(unique_positive_triggers_list, current_
         # Process rainfall trigger if above 75% threshold
         if current_trigger_alerts["rainfall"]["alert_level"] == 0 and \
                 latest_rainfall_alert and is_end_of_validity:
-            rain_trigger_index = next((index for (index, trig) in enumerate(updated_h_u_p_t_list)
-                                       if trig.trigger_symbol.trigger_hierarchy.trigger_source == "rainfall"), None)
+            rain_trigger_index = next(
+                (index for (index, trig) in enumerate(updated_h_u_p_t_list)
+                 if trig.trigger_symbol.trigger_hierarchy.trigger_source == "rainfall"),
+                None)
 
             has_positive_rainfall_trigger = rain_trigger_index is not None
             rainfall_rx_symbol = get_rainfall_rx_symbol(rain_trigger_index)
             if has_positive_rainfall_trigger:
-                updated_h_u_p_t_list[rain_trigger_index].trigger_symbol.internal_alert_symbol.alert_symbol = rainfall_rx_symbol.capitalize(
-                )
+                updated_h_u_p_t_list[rain_trigger_index].trigger_symbol \
+                    .internal_alert_symbol.alert_symbol = rainfall_rx_symbol.capitalize()
 
             current_trigger_alerts["rainfall"]["alert_level"] = -2
             current_trigger_alerts["rainfall"]["alert_symbol"] = rainfall_rx_symbol
@@ -1002,9 +1004,17 @@ def extract_release_op_triggers(op_triggers_query, query_ts_end, release_interva
     for release_op_trig in release_op_triggers:
         source_id = release_op_trig.trigger_symbol.source_id
         ts_updated = release_op_trig.ts_updated
-        if not (source_id in on_run_triggers_list and
-                ts_updated < query_ts_end) and \
-                (source_id in continuous_data_interval and previous_release_time < ts_updated and ts_updated <= query_ts_end):
+
+        to_append = False
+        if source_id in on_run_triggers_list and ts_updated >= query_ts_end:
+            to_append = True
+        elif source_id in continuous_data_interval:
+            if previous_release_time < ts_updated and ts_updated <= query_ts_end:
+                to_append = True
+        else:
+            to_append = True
+
+        if to_append:
             release_op_triggers_list.append(release_op_trig)
 
     return release_op_triggers_list

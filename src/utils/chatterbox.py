@@ -385,6 +385,7 @@ def get_search_results(obj):
     site_ids = obj["site_ids"]
     org_ids = obj["org_ids"]
     only_ewi_recipients = obj["only_ewi_recipients"]
+    only_active_mobile_numbers = not obj["include_inactive_numbers"]
     ts_start = obj["ts_start"]
     ts_end = obj["ts_end"]
 
@@ -400,7 +401,8 @@ def get_search_results(obj):
     contacts = get_mobile_numbers(
         return_schema=True, mobile_ids=mobile_ids,
         site_ids=site_ids, org_ids=org_ids,
-        only_ewi_recipients=only_ewi_recipients)
+        only_ewi_recipients=only_ewi_recipients,
+        only_active_mobile_numbers=only_active_mobile_numbers)
 
     search_results = []
     for contact in contacts:

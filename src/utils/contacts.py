@@ -3,7 +3,7 @@ Contacts Functions Utility File
 """
 
 from datetime import datetime
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, contains_eager
 from connection import DB
 from src.models.users import (
     Users, UserEmails, UserLandlines,
@@ -649,7 +649,8 @@ def get_recipients(site_ids=None,
         schema_exclusions.remove("ewi_restriction")
 
     if not include_inactive_numbers:
-        query = query.filter(UserMobiles.status == 1)
+        query = query.filter(UserMobiles.status == 1).options(
+            contains_eager(UsersRelationship.mobile_numbers))
 
     if not include_inactive_users:
         query = query.filter(UsersRelationship.status == 1)
