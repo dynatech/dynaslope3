@@ -6,7 +6,10 @@ import {
     Button, Menu, MenuItem, Box,
     Tooltip
 } from "@material-ui/core";
-import { KeyboardArrowLeft, MoreVert, AssignmentLate } from "@material-ui/icons";
+import {
+    KeyboardArrowLeft, MoreVert, AssignmentLate,
+    MobileOff
+} from "@material-ui/icons";
 
 import ContentLoader from "react-content-loader";
 import { useSnackbar } from "notistack";
@@ -128,10 +131,12 @@ function RecipientFormatter (props) {
     const [anchorEl, setAnchor] = useState(null);
     
     const is_unknown = user_details === null;
+    let is_inactive_number = false;
     if (!is_unknown) {
         const { sender: s, orgs: o } = mobileUserFormatter(user_details);
         sender = s;
         orgs = o;
+        is_inactive_number = user_details.status === 0;
     }
 
     const handleClick = event => {
@@ -183,12 +188,20 @@ function RecipientFormatter (props) {
 
                 {
                     !is_unknown && (
-                        <Typography 
-                            variant="subtitle2" 
-                            color="textSecondary"
-                        >
-                            {sim_number}
-                        </Typography>
+                        <Grid container alignItems="center">
+                            {
+                                is_inactive_number && <MobileOff
+                                    style={{ color: "red", marginRight: 6 }}
+                                    titleAccess="Inactive number"/>
+                            }
+
+                            <Typography 
+                                variant="subtitle2" 
+                                color="textSecondary"
+                            >
+                                {sim_number}
+                            </Typography>
+                        </Grid>
                     )
                 }
             </div>

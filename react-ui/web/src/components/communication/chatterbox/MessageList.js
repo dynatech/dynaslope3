@@ -10,7 +10,8 @@ import {
 import { isWidthUp } from "@material-ui/core/withWidth";
 import {
     CallReceived, CallMade, MoreVert,
-    Cancel, RadioButtonUnchecked, CheckCircle
+    Cancel, RadioButtonUnchecked, CheckCircle,
+    MobileOff
 } from "@material-ui/icons";
 
 import moment from "moment";
@@ -115,10 +116,12 @@ function MessageListItem (row, props, openOptionsModal) {
     let orgs = [];
 
     const is_unknown = user_details === null;
+    let is_inactive_number = false;
     if (!is_unknown) {
         const { sender: s, orgs: o } = mobileUserFormatter(user_details);
         sender = s;
         orgs = o;
+        is_inactive_number = user_details.status === 0;
     }
 
     let search_filters = null;
@@ -171,9 +174,16 @@ function MessageListItem (row, props, openOptionsModal) {
                                 })
                             }
                             <Grid 
-                                item xs={6} sm 
-                                style={{ textAlign: isWidthUp("sm", width) ? "right" : "left" }}
+                                item xs={6} sm
+                                container justify={isWidthUp("sm", width) ? "flex-end" : "flex-start"}
+                                alignItems="center"
                             >
+                                {
+                                    is_inactive_number && <MobileOff
+                                        style={{ color: "red", marginRight: 6 }}
+                                        fontSize="small" titleAccess="Inactive number"/>
+                                }
+
                                 <Typography 
                                     variant="subtitle2" 
                                     color="textSecondary"
