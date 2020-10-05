@@ -462,8 +462,11 @@ class TSMSensors(DB.Model):
         lazy="dynamic")
 
     logger = DB.relationship(
-        "Loggers", backref=DB.backref("tsm_sensor", lazy="subquery", innerjoin=False, uselist=False),
-        lazy="subquery", innerjoin=False, uselist=False)
+        "Loggers", backref=DB.backref(
+            "tsm_sensor", lazy="joined",
+            innerjoin=False, uselist=False
+        ),
+        lazy="joined", innerjoin=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> TSM ID: {self.tsm_id}"
@@ -519,6 +522,9 @@ class Accelerometers(DB.Model):
 
     status = DB.relationship(
         "AccelerometerStatus", backref="accelerometers", lazy="joined", innerjoin=True)
+
+    accelerometers = DB.relationship("TSMSensors", backref=DB.backref(
+        "accelerometers", lazy="dynamic"), lazy="subquery")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> ACCELEROMETER: {self.accel_id}"
@@ -583,33 +589,6 @@ class Loggers(DB.Model):
 
     logger_model = DB.relationship("LoggerModels", backref=DB.backref(
         "loggers", lazy="dynamic"))
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Logger ID: {self.logger_id}"
-                f" Site_ID: {self.site_id} Logger NAme: {self.logger_name}"
-                f" Date Activated: {self.date_activated} Latitude: {self.latitude}")
-
-
-class LoggersComms(DB.Model):
-    """
-    Class representation of loggers table
-    """
-
-    __tablename__ = "loggers"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    logger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['commons_db']}.sites.site_id"), nullable=False)
-    logger_name = DB.Column(DB.String(7))
-    date_activated = DB.Column(DB.Date)
-    date_deactivated = DB.Column(DB.Date)
-    latitude = DB.Column(DB.Float)
-    longitude = DB.Column(DB.Float)
-    model_id = DB.Column(DB.Integer)
-    # site = DB.relationship("Sites", backref=DB.backref(
-    #     "loggers", lazy="dynamic"))
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Logger ID: {self.logger_id}"
@@ -805,40 +784,22 @@ class LoggerMobile(DB.Model):
     """
 
     __tablename__ = "logger_mobile"
-    __bind_key__ = "senslopedb"
+    __bind_key__ = "comms_db_3"
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     mobile_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.loggers.logger_id"), nullable=False)
+        f"{SCHEMA_DICT['commons_db']}.loggers.logger_id"), nullable=False)
     date_activated = DB.Column(DB.String(45))
     sim_num = DB.Column(DB.String(12))
     gsm_id = DB.Column(DB.Integer)
 
     logger = DB.relationship(
-        "Loggers", backref=DB.backref("logger_mobile", lazy="joined", innerjoin=True, uselist=False),
+        "Loggers", backref=DB.backref(
+            "logger_mobile", lazy="joined",
+            innerjoin=True, uselist=False
+        ),
         lazy="joined", innerjoin=True, uselist=False)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> mobile_id: {self.mobile_id}"
-                f" logger_id: {self.logger_id} date_activated: {self.date_activated}"
-                f" sim_num: {self.sim_num} gsm_id: {self.gsm_id}")
-
-
-class LoggerMobileComms(DB.Model):
-    """
-    Class representation of logger_mobile
-    """
-
-    __tablename__ = "logger_mobile"
-    __bind_key__ = "comms_db"
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    mobile_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    logger_id = DB.Column(DB.Integer)
-    date_activated = DB.Column(DB.String(45))
-    sim_num = DB.Column(DB.String(12))
-    gsm_id = DB.Column(DB.Integer)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> mobile_id: {self.mobile_id}"
@@ -1252,20 +1213,6 @@ class LoggersSchema(MARSHMALLOW.ModelSchema):
         exclude = ["data_presence"]
 
 
-class LoggersCommsSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Loggers class
-    """
-
-    model_id = fields.Integer()
-    logger_model = fields.Nested("LoggerModelsSchema", exclude=("loggers", ))
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = LoggersComms
-        exclude = ["data_presence"]
-
-
 class LoggerModelsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of LoggerModels class
@@ -1394,13 +1341,3 @@ class LoggerMobileSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = LoggerMobile
-
-
-class LoggerMobileCommsSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of LoggerMobileComms class
-    """
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = LoggerMobileComms

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { makeStyles } from "@material-ui/core/styles";
+
 import {
-    ListItemText, List, ListItem, OutlinedInput
+    List, ListItem, ListItemText,
+    OutlinedInput, makeStyles
 } from "@material-ui/core";
+
+import { getLoggersAndSensorsData } from "../ajax";
 
 const useStyles = makeStyles(theme => ({
     list: {
@@ -33,27 +36,43 @@ const useStyles = makeStyles(theme => ({
     },
 }));
 
-function MemberList (props) {
-    const { users, onMemberClickFn, selectedUserDetails } = props;
+function LoggersList (props) {
+    const { selectedLogger, onLoggerClickFn } = props;
     const classes = useStyles();
-    const [usersList, setUsersList] = useState(null);
+
+    const [loggers, setLoggers] = useState([]);
+    const [loggers_list, setLoggersList] = useState([]);
     const [search_str, setSearchStr] = useState(null);
 
     useEffect(() => {
-        setUsersList(users);
-    }, [users]);
+        getLoggersAndSensorsData(data => {
+            const { loggers: temp_l, rain_gauges } = data;
+            temp_l.forEach(x => {
+                const { logger_model: { has_rain }, logger_name } = x;
+
+                if (has_rain) {
+                    const rg = rain_gauges.find(y=> y.gauge_name === logger_name);
+                    x.rain_gauge = rg || null;
+                }
+            });
+
+            setLoggers(temp_l);
+            setLoggersList(temp_l);
+
+            if (temp_l.length > 0) onLoggerClickFn(temp_l[0])();
+        });
+    }, []);
 
     useEffect(() => {
-        if (search_str !== null ) {
-            const filtered = users.filter(row => {
-                const { first_name, last_name } = row;
-                const name = `${first_name} ${last_name}`;
+        if (search_str !== null) {
+            const filtered = loggers_list.filter(row => {
+                const { logger_name } = row;
                 const pattern = new RegExp(`${search_str.toLowerCase()}`, "gi");
-                return pattern.test(name.toLocaleLowerCase());
+                return pattern.test(logger_name.toLocaleLowerCase());
             });
-            setUsersList(filtered);
+            setLoggers(filtered);
         } else {
-            setUsersList(users);
+            setLoggers(loggers);
         }
     }, [search_str]);
 
@@ -62,25 +81,25 @@ function MemberList (props) {
             <OutlinedInput
                 fullWidth
                 margin="dense"
-                placeholder="Search Dynaslope staff..."
+                placeholder="Search loggers..."
                 onChange={event => setSearchStr(event.target.value)} 
                 className={classes.searchBox}
             />
 
             <List aria-label="list" className={classes.list}>
                 {
-                    usersList !== null && usersList.map(user => {
-                        const name = `${user.last_name}, ${user.first_name}`;
-                        const is_selected = selectedUserDetails !== null && selectedUserDetails.user_id === user.user_id;
+                    loggers.map(logger => {
+                        const { logger_name, logger_id } = logger;
+                        const is_selected = selectedLogger !== null && selectedLogger.logger_id === logger_id;
 
                         return (
                             <ListItem 
                                 button 
-                                key={user.user_id} 
-                                onClick={onMemberClickFn(user)}
+                                key={logger.logger_id} 
+                                onClick={onLoggerClickFn(logger)}
                                 selected={is_selected}
                             >
-                                <ListItemText primary={name} />
+                                <ListItemText primary={logger_name.toUpperCase()} />
                             </ListItem>
                         );
                     })
@@ -89,5 +108,5 @@ function MemberList (props) {
         </div>
     );
 }
-export default MemberList;
 
+export default React.memo(LoggersList);

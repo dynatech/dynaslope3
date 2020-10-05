@@ -8,17 +8,17 @@ import SiteLogsContainer from "./components/monitoring/site_logs/Container";
 import IssuesAndReminders from "./components/monitoring/issues_and_reminders/Container";
 
 import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_site/Container";
+import LoggersAndSensorsFormContainer from "./components/analysis/loggers_and_sensors_form/Container";
 
 import ChatterboxContainer from "./components/communication/chatterbox/Container";
 import ContactsContainer from "./components/communication/contacts/Container";
 import MailBoxContainer from "./components/communication/mailbox/MailBoxContainer";
+
 import SitesInformationContainer from "./components/community/site_information/Container";
 
 import ProfileContainer from "./components/member_profile/Container";
 import UpdateCredentialsForm from "./components/member_profile/UpdateCredentialsForm";
 import CreateDynaUser from "./components/member_profile/CreateDynaUser";
-
-import DeploymentFormContainer from "./components/community/DeploymentFormContainer";
 
 
 function RoutesCollection (props) {
@@ -37,6 +37,7 @@ function RoutesCollection (props) {
             <Route path={`${url}monitoring`} render={() => <h3> Not yet created</h3>} />
 
             <Route path={`${url}analysis/sites`} component={IntegratedSiteAnalysisContainer} />
+            <Route path={`${url}analysis/forms/loggers_and_sensors`} component={LoggersAndSensorsFormContainer} />
             <Route path={`${url}analysis`} render={() => <h3> Not yet created</h3>} />
 
             <Route path={`${url}communication/chatterbox`} component={ChatterboxContainer} />
@@ -45,7 +46,6 @@ function RoutesCollection (props) {
             <Route path={`${url}communication`} render={() => <h3>Sorry. We could not find what you are looking for.</h3>} />
 
             <Route path={`${url}community/site_info`} component={SitesInformationContainer} />
-            <Route path={`${url}community`} component={DeploymentFormContainer} />
             
             <Route path={`${url}profile/credentials`} component={UpdateCredentialsForm} />
             <Route path={`${url}profile/create`} component={CreateDynaUser} />

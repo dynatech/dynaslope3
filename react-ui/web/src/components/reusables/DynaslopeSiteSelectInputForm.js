@@ -45,7 +45,7 @@ function DynaslopeSiteSelectInputForm (props) {
         value, changeHandler, isMulti,
         renderDropdownIndicator, includeAddressOnOptions,
         returnSiteDataCallback, isFromSiteLogs,
-        disabled, customPlaceholder
+        disabled, customPlaceholder, required
     } = props;
     const { sites } = useContext(GeneralContext);
 
@@ -71,9 +71,13 @@ function DynaslopeSiteSelectInputForm (props) {
         }
     }
 
+    let label = isMulti ? "Site(s)" : "Site";
+    if (required) label += " *";
+
     return (
         <SelectMultipleWithSuggest
-            label={isMulti ? "Site(s)" : "Site"}
+            isRequired={Boolean(required)}
+            label={label}
             options={options}
             value={pass_value}
             changeHandler={changeHandler}

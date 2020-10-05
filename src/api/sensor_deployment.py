@@ -4,18 +4,19 @@ Deployment Form functions controller file
 
 from flask import Blueprint, jsonify, request
 from connection import DB
-from src.utils.deployment_logs import (
+from src.utils.sensor_deployment import (
     create_table_for_sensors_data,
     save_all_deployment_data,
-    loggers_data, update_logger_details,
+    get_loggers_data, update_logger_details,
     update_logger_mobile, update_tsm,
     update_accelerometer, update_rain_gauge
 )
 
-DEPLOYMENT_LOGS_BLUEPRINT = Blueprint("deployment_logs_blueprint", __name__)
+SENSOR_DEPLOYMENT = Blueprint("sensor_deployment_blueprint", __name__)
 
-@DEPLOYMENT_LOGS_BLUEPRINT.route("/deployment_logs/save_deployment_logs", methods=["GET", "POST"])
-def save_deployment_logs():
+
+@SENSOR_DEPLOYMENT.route("/sensor_deployment/save_logger_deployment", methods=["GET", "POST"])
+def save_sensor_deployment():
     """
     Function that save deployment form data
     """
@@ -25,7 +26,7 @@ def save_deployment_logs():
     data = request.get_json()
     if data is None:
         data = request.form
-    
+
     try:
         status, message = save_all_deployment_data(data)
     except Exception as err:
@@ -41,16 +42,18 @@ def save_deployment_logs():
     return jsonify(feedback)
 
 
-@DEPLOYMENT_LOGS_BLUEPRINT.route("/deployment_logs/get_loggers_data", methods=["GET", "POST"])
-def get_loggers_data():
+@SENSOR_DEPLOYMENT.route("/sensor_deployment/get_loggers_data", methods=["GET", "POST"])
+def wrap_get_loggers_data():
     """
     Function that get loggers data
     """
-    data = loggers_data()
+
+    data = get_loggers_data()
 
     return jsonify(data)
 
-@DEPLOYMENT_LOGS_BLUEPRINT.route("/deployment_logs/save_data_update", methods=["GET", "POST"])
+
+@SENSOR_DEPLOYMENT.route("/sensor_deployment/save_data_update", methods=["GET", "POST"])
 def save_data_update():
     """
     Function that save updated data

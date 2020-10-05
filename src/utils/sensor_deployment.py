@@ -8,13 +8,14 @@ from src.models.analysis import (
     get_piezo_table, get_rain_table,
     get_soms_table, get_tilt_table,
     get_temperature_table, LoggerModels,
-    TSMSensors, Loggers, LoggersComms,
+    TSMSensors, Loggers,
     DeploymentLogs, Accelerometers,
-    LoggerMobile, LoggerMobileComms,
+    LoggerMobile,
     DeployedNode, LoggersSchema,
     RainfallGauges, RainfallGaugesSchema
 )
 from src.utils.contacts import get_gsm_id_by_prefix
+
 
 def save_all_deployment_data(data):
     status = None
@@ -54,7 +55,8 @@ def save_all_deployment_data(data):
             "personnel": data["personnels"]
         }
 
-        deployment_logs_status, deployment_logs_id = save_deployment_logs_data(deployment_logs_data)
+        deployment_logs_status, deployment_logs_id = save_deployment_logs_data(
+            deployment_logs_data)
         tsm_sensors_status = True
         deployed_node_status = True
 
@@ -80,8 +82,9 @@ def save_all_deployment_data(data):
                 "voltage_max": 3.47,
                 "voltage_min": 3.13
             }
-            deployed_node_status = save_deployed_node_and_accelerometers(deployed_node_data)
-        
+            deployed_node_status = save_deployed_node_and_accelerometers(
+                deployed_node_data)
+
         rain_gauge_status = True
         if has_rain is 1:
             rain_gauge_data = {
@@ -120,6 +123,7 @@ def save_all_deployment_data(data):
 
     return status, message
 
+
 def save_logger_models(logger_models_data):
     logger_model_status = None
     model_id = 0
@@ -143,6 +147,7 @@ def save_logger_models(logger_models_data):
 
     return logger_model_status, model_id
 
+
 def save_loggers_data(loggers_data):
     logger_data_status = None
     logger_id = 0
@@ -159,12 +164,12 @@ def save_loggers_data(loggers_data):
                                  date_activated=date_activated,
                                  latitude=latitude, longitude=longitude, model_id=model_id)
 
-        query_comms = LoggersComms(site_id=site_id, logger_name=logger_name,
-                                   date_activated=date_activated,
-                                   latitude=latitude, longitude=longitude, model_id=model_id)
+        # query_comms = LoggersComms(site_id=site_id, logger_name=logger_name,
+        #                            date_activated=date_activated,
+        #                            latitude=latitude, longitude=longitude, model_id=model_id)
 
         DB.session.add(query_senslope)
-        DB.session.add(query_comms)
+        # DB.session.add(query_comms)
         DB.session.flush()
         logger_id = query_senslope.logger_id
         logger_data_status = True
@@ -174,10 +179,11 @@ def save_loggers_data(loggers_data):
 
     return logger_data_status, logger_id
 
+
 def save_deployment_logs_data(deployment_logs_data):
     deployment_logs_status = None
     deployment_logs_id = 0
-    
+
     logger_id = deployment_logs_data["logger_id"]
     installation_date = deployment_logs_data["installation_date"]
     location_description = deployment_logs_data["location_description"]
@@ -188,7 +194,7 @@ def save_deployment_logs_data(deployment_logs_data):
         query = DeploymentLogs(logger_id=logger_id, installation_date=installation_date,
                                location_description=location_description, network_type=network_type,
                                personnel=personnel)
-        DB.session.add(query)       
+        DB.session.add(query)
         DB.session.flush()
 
         deployment_logs_id = query.dep_id
@@ -198,6 +204,7 @@ def save_deployment_logs_data(deployment_logs_data):
         deployment_logs_status = False
 
     return deployment_logs_status, deployment_logs_id
+
 
 def save_tsm_sensors(tsm_sensor_data):
     tsm_sensors_status = None
@@ -227,6 +234,7 @@ def save_tsm_sensors(tsm_sensor_data):
 
     return tsm_sensors_status, tsm_id
 
+
 def save_deployed_node_and_accelerometers(deployed_node_data):
     deployed_node_status = None
     dep_id = deployed_node_data["dep_id"]
@@ -237,7 +245,6 @@ def save_deployed_node_and_accelerometers(deployed_node_data):
     voltage_max = deployed_node_data["voltage_max"]
     voltage_min = deployed_node_data["voltage_min"]
 
-
     try:
         for accel in accel_number:
             in_use = accel if accel == 1 else 0
@@ -246,7 +253,7 @@ def save_deployed_node_and_accelerometers(deployed_node_data):
                 n_id = row["segment_value"]
 
                 if accel is 1:
-                    deployed_node_query = DeployedNode(dep_id=dep_id, 
+                    deployed_node_query = DeployedNode(dep_id=dep_id,
                                                        tsm_id=tsm_id, node_id=node_id,
                                                        n_id=n_id, version=version)
                     DB.session.add(deployed_node_query)
@@ -257,7 +264,6 @@ def save_deployed_node_and_accelerometers(deployed_node_data):
                                                       voltage_min=voltage_min,
                                                       in_use=in_use)
                 DB.session.add(accelerometers_query)
-
 
         deployed_node_status = True
     except Exception as err:
@@ -278,16 +284,17 @@ def save_logger_mobile_data(logger_mobile_data):
     try:
         query_senslope = LoggerMobile(logger_id=logger_id, date_activated=date_activated,
                                       sim_num=sim_num, gsm_id=gsm_id)
-        query_comms = LoggerMobileComms(logger_id=logger_id, date_activated=date_activated,
-                                        sim_num=sim_num, gsm_id=gsm_id) 
+        # query_comms = LoggerMobileComms(logger_id=logger_id, date_activated=date_activated,
+        #                                 sim_num=sim_num, gsm_id=gsm_id)
         DB.session.add(query_senslope)
-        DB.session.add(query_comms)
+        # DB.session.add(query_comms)
         loggger_mobile_status = True
     except Exception as err:
         print("save_logger_mobile_data =>", err)
         loggger_mobile_status = False
 
     return loggger_mobile_status
+
 
 def save_rain_gauge_data(data):
     rain_gauge_status = None
@@ -307,6 +314,7 @@ def save_rain_gauge_data(data):
         rain_gauge_status = False
 
     return rain_gauge_status
+
 
 def create_table_for_sensors_data(data, logger_name):
     """
@@ -346,11 +354,13 @@ def create_table_for_sensors_data(data, logger_name):
     return ""
 
 
-def loggers_data():
-    loggers_query = Loggers.query.order_by(Loggers.logger_id.desc()).all()
-    loggers_result = LoggersSchema(many=True, exclude=["site"]).dump(loggers_query).data
-    
-    rainfall_gauges_query = RainfallGauges.query.filter_by(data_source="senslope").all()
+def get_loggers_data():
+    loggers_query = Loggers.query.order_by(Loggers.logger_name).all()
+    loggers_result = LoggersSchema(
+        many=True, exclude=["site"]).dump(loggers_query).data
+
+    rainfall_gauges_query = RainfallGauges.query.filter_by(
+        data_source="senslope").all()
     rainfall_gauges_result = RainfallGaugesSchema(
         many=True, exclude=["data_presence", "rainfall_alerts",
                             "rainfall_priorities"]).dump(rainfall_gauges_query).data
@@ -362,6 +372,7 @@ def loggers_data():
 
     return datas
 
+
 def update_logger_details(data):
     logger_id = data["logger_id"]
     date_deactivated = data["date_deactivated"]
@@ -372,22 +383,24 @@ def update_logger_details(data):
     update_logger_details_data.latitude = latitude
     update_logger_details_data.longitude = longitude
 
-    update_logger_details_data_comms = LoggersComms.query.get(logger_id)
-    update_logger_details_data_comms.date_deactivated = date_deactivated
-    update_logger_details_data_comms.latitude = latitude
-    update_logger_details_data_comms.longitude = longitude
+    # update_logger_details_data_comms = LoggersComms.query.get(logger_id)
+    # update_logger_details_data_comms.date_deactivated = date_deactivated
+    # update_logger_details_data_comms.latitude = latitude
+    # update_logger_details_data_comms.longitude = longitude
     return ""
+
 
 def update_logger_mobile(data):
     mobile_id = data["mobile_id"]
     sim_num = data["sim_num"]
-    
+
     update_logger_mobile_data = LoggerMobile.query.get(mobile_id)
     update_logger_mobile_data.sim_num = str(sim_num)
 
-    update_logger_mobile_data_comms = LoggerMobileComms.query.get(mobile_id)
-    update_logger_mobile_data_comms.sim_num = str(sim_num)
+    # update_logger_mobile_data_comms = LoggerMobileComms.query.get(mobile_id)
+    # update_logger_mobile_data_comms.sim_num = str(sim_num)
     return ""
+
 
 def update_tsm(data):
     tsm_id = data["tsm_id"]
@@ -396,6 +409,7 @@ def update_tsm(data):
     update_tsm_data = TSMSensors.query.get(tsm_id)
     update_tsm_data.date_deactivated = date_deactivated
     return ""
+
 
 def update_accelerometer(data):
     accel_id = data["accel_id"]
@@ -410,6 +424,7 @@ def update_accelerometer(data):
     update_accel.voltage_max = voltage_max
     update_accel.voltage_min = voltage_min
     return ""
+
 
 def update_rain_gauge(data):
     rain_id = data["rain_id"]

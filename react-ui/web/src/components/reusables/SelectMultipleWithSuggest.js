@@ -177,7 +177,7 @@ function Menu (props) {
 
 function SelectMultipleWithSuggest (props) {
     const {
-        classes, changeHandler,
+        classes, changeHandler, isRequired,
         options, value, label, placeholder,
         renderDropdownIndicator, openMenuOnClick, isMulti,
         isDisabled, isClearable, hasAlternativeChipLabel
@@ -208,6 +208,7 @@ function SelectMultipleWithSuggest (props) {
     const is_multi = isMulti === undefined ? false : isMulti;
     const is_disabled = isDisabled === undefined ? false : isDisabled;
     const is_clearable = isClearable === undefined ? false : isClearable;
+    const is_required = isRequired === undefined ? false : isRequired;
 
     const rdd = renderDropdownIndicator === undefined ? true : renderDropdownIndicator;
     if (rdd === false) {
@@ -218,7 +219,8 @@ function SelectMultipleWithSuggest (props) {
     return (
         <div className={classes.root}>
             <NoSsr>
-                <Select 
+                <Select
+                    required={is_required}
                     classes={classes}
                     styles={selectStyles}
                     textFieldProps={{
