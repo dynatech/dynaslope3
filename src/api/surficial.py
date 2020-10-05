@@ -5,12 +5,13 @@ Surficial functions API File
 import itertools
 import json
 from datetime import datetime
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, make_response
 from connection import DB
-from src.models.analysis import SiteMarkersSchema, MarkerHistorySchema
+from src.models.analysis import SiteMarkersSchema, MarkerHistorySchema, MarkerData, MarkerDataSchema
 from src.utils.surficial import (
     get_surficial_markers, get_surficial_data, delete_surficial_data,
-    create_new_marker, insert_marker_event, insert_new_marker_name
+    create_new_marker, insert_marker_event, insert_new_marker_name,
+    insert_unreliable_data
 )
 from analysis_scripts.analysis.surficial import markeralerts
 from src.utils.extra import var_checker
@@ -95,7 +96,7 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
 
         marker_history = MarkerHistorySchema(
             many=True).dump(marker_row.history).data
-
+            
         data_set = list(filter(lambda x: x.marker_id ==
                                marker_id, surficial_data))
         marker_string_dict = {
@@ -108,16 +109,30 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
 
         new_list = []
         for item in data_set:
+            unreliable_data = {}
             ts = item.marker_observation.ts
             final_ts = int(ts.timestamp() * 1000)
+            check_marker_data_tag = item.marker_data_tags
+            if check_marker_data_tag is not None:
+                marker_data_tags = item.marker_data_tags
+                unreliable_data = {
+                    "marker_tag_id": marker_data_tags.marker_tag_id,
+                    "data_id": marker_data_tags.data_id,
+                    "remarks": marker_data_tags.remarks,
+                    "ts": marker_data_tags.ts,
+                    "tagger_id": marker_data_tags.tagger_id
+                }
 
             new_list.append({
-                "x": final_ts, "y": item.measurement, "data_id": item.data_id, "mo_id": item.mo_id})
+                "x": final_ts, "y": item.measurement,
+                "data_id": item.data_id, "mo_id": item.mo_id,
+                "unreliable_data": unreliable_data
+            })
 
         new_list = sorted(new_list, key=lambda i: i["x"])
         marker_string_dict["data"] = new_list
         formatted_list.append(marker_string_dict)
-
+        
     return jsonify(formatted_list)
 
 
@@ -425,3 +440,35 @@ def process_velocity_accel_time_data(data):
     ]
 
     return velocity_acceleration_time
+
+
+
+@SURFICIAL_BLUEPRINT.route("/surficial/save_unreliable_data", methods=["GET", "POST"])
+def unreliable_data():
+    """
+    Function that save unreliable data
+    """
+
+    data = request.get_json()
+    if data is None:
+        data = request.form
+
+    status = None
+    message = ""
+    try:
+        insert_unreliable_data(data)
+        DB.session.commit()
+        message = "Succesfully saved unreliable data."
+        status = True
+    except Exception as err:
+        message = f"Something went wrong, Please try again, {err}"
+        DB.session.rollback()
+        status = False
+        print(err)
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+
+    return jsonify(feedback)

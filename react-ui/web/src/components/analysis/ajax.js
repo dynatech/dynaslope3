@@ -269,3 +269,17 @@ export function saveInvalidRainfallTag (input, callback) {
         console.error(error);
     });
 }
+
+export function saveUnreliableData (input, callback) {
+    const api_link = `${host}/api/surficial/save_unreliable_data`;
+    
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save unreliable data", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}

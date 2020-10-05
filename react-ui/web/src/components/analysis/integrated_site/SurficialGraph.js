@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect, Fragment, useContext } from "react";
 import { Route, Link, matchPath } from "react-router-dom";
 
 import Highcharts from "highcharts";
@@ -16,9 +16,10 @@ import {
     Typography, Divider, TextField, FormControl,
     FormControlLabel, Radio, RadioGroup,
     Menu, MenuItem, List, ListItem,
-    ListItemIcon, ListItemText, Tooltip, TableRow, TableCell
+    ListItemIcon, ListItemText, Tooltip, TableRow, TableCell,
+    FormHelperText
 } from "@material-ui/core";
-import { ArrowDropDown, Edit, TrendingUp, Add } from "@material-ui/icons";
+import { ArrowDropDown, Edit, TrendingUp, Add, LocalOffer, Info } from "@material-ui/icons";
 import { isWidthDown } from "@material-ui/core/withWidth";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 import MUIDataTable from "mui-datatables";
@@ -31,9 +32,11 @@ import { SlideTransition, FadeTransition } from "../../reusables/TransitionList"
 import {
     getSurficialPlotData, deleteSurficialData,
     updateSurficialData, saveChartSVG,
-    insertMarkerEvent
+    insertMarkerEvent, saveUnreliableData
 } from "../ajax";
 import { computeForStartTs, capitalizeFirstLetter } from "../../../UtilityFunctions";
+import { getCurrentUser } from "../../sessions/auth";
+import { GeneralContext } from "../../contexts/GeneralContext";
 
 // init the module
 HC_exporting(Highcharts);
@@ -425,7 +428,6 @@ function UpdateDeleteModal (props) {
         is_open, ts, name, measurement, mo_id, data_id
     } = editModal;
     const { ts: chosen_ts, measurement: chosen_meas } = chosenPoint;
-    
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const [is_delete_clicked, setDeleteClick] = useState(false);
     const [delete_quantity, setDeleteQuantity] = useState("one");
@@ -668,15 +670,157 @@ function UpdateDeleteModal (props) {
     );
 }
 
+function SurficialDataTagModal (props) {
+    const { 
+        surficialDataTagModal, fullScreen, setSurficialDataTagModal, 
+        siteCode, setRedrawChart, chosenPoint
+    } = props;
+    const {
+        is_open, ts, name, measurement, mo_id, data_id, unreliable_data
+    } = surficialDataTagModal;
+
+    const [tagger, setTagger] = useState("");
+    const { user_id } = getCurrentUser();
+    const [current_user, setCurrentUser] = useState(user_id);
+    const [remarks, setRemarks] = useState("");
+    const { users } = useContext(GeneralContext);
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
+    const changeHandlerFn = (prop, value) => x => {
+        setSurficialDataTagModal({
+            ...surficialDataTagModal, [prop]: value 
+        });
+    };
+
+    const snackBarActionFn = key => {
+        return (<Button
+            color="primary"
+            onClick={() => { closeSnackbar(key); }}
+        >
+            Dismiss
+        </Button>);
+    };
+
+    const saveFunction = () => {
+        const input = {
+            data_id,
+            tagger_id: current_user,
+            remarks
+        };
+
+        saveUnreliableData(input, data => {
+            const { status, message } = data;
+            let variant;
+            if (status === true) {
+                setRedrawChart(true);
+                setSurficialDataTagModal({
+                    ...surficialDataTagModal, is_open: false 
+                });
+                variant = "success";
+            } else {
+                variant = "error";
+            }
+
+            enqueueSnackbar(
+                message,
+                {
+                    variant,
+                    autoHideDuration: 5000,
+                    action: snackBarActionFn
+                }
+            );
+        });
+    };
+
+    useEffect(() => {
+        if (unreliable_data) {
+            const { first_name, last_name } = users.find(o => o.user_id === unreliable_data.tagger_id);
+            setTagger(`${first_name} ${last_name}`);
+        }
+    }, [surficialDataTagModal]);
+
+    return (
+        <Dialog
+            fullWidth
+            fullScreen={fullScreen}
+            open={is_open}
+            aria-labelledby="form-dialog-title"
+            TransitionComponent={fullScreen ? SlideTransition : FadeTransition}      
+        >
+            <DialogTitle id="form-dialog-title">
+                { unreliable_data ? "Unreliable data information" : "Tag unreliable data"}
+            </DialogTitle>
+            <DialogContent>
+
+                <Grid container spacing={2}>
+                    <Grid item xs={12} style={{ textAlign: "center" }}>
+                        <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
+                            {siteCode.toUpperCase()} - Marker {name}
+                        </Typography>
+                        <Typography variant="body2">
+                            Timestamp: {moment(ts).format("DD MMMM YYYY, HH:mm:ss")}
+                        </Typography>
+                        <Typography variant="body2">
+                            Measurement: {measurement} cm
+                        </Typography>
+                    </Grid>
+
+                    <Grid item xs={12}><Divider /></Grid>
+
+                    <Grid item xs={12} style={{ textAlign: "center" }}>
+                        {
+                            unreliable_data ? <Fragment>
+                                <Typography variant="body2">
+                                    Remarks: {unreliable_data.remarks}
+                                </Typography>
+                                <Typography variant="body2">
+                                    Tagger: {tagger}
+                                </Typography>
+                                <Typography variant="body2">
+                                    Timestamp: {moment(unreliable_data.tagged_ts).format("DD MMMM YYYY, HH:mm:ss")}
+                                </Typography></Fragment>
+                                : <Fragment><TextField 
+                                    label="Remarks"
+                                    value={remarks}
+                                    onChange={event => setRemarks(event.target.value)}
+                                    fullWidth
+                                    required
+                                    error={remarks === ""}
+                                /><FormHelperText error>{remarks ? "" : "Required"}</FormHelperText></Fragment>
+                        }
+                        
+                    </Grid>
+                </Grid>
+            </DialogContent>
+            <DialogActions>
+                {
+                    !unreliable_data && <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        onClick={saveFunction}
+                    >
+                        Save
+                    </Button>
+                }
+                <Button 
+                    onClick={changeHandlerFn("is_open", false)}
+                >
+                    Cancel
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+}
+
 function ClickPointModal (props) {
     const {
         setIsOpenClickModal, open, chosenPoint,
         setEditModal, setShowTrending,
-        setGenerateTrending
+        setGenerateTrending, setSurficialDataTagModal
     } = props;
 
-    const { ts: chosen_ts, measurement: chosen_meas, name } = chosenPoint;
-
+    const { ts: chosen_ts, measurement: chosen_meas, name, unreliable_data } = chosenPoint;
     const handleClose = () => {
         setIsOpenClickModal(false);
     };
@@ -693,6 +837,15 @@ function ClickPointModal (props) {
         handleClose();
         setShowTrending(true);
         setGenerateTrending(true);
+    };
+
+    const hadleSurficialDataTagClick = type => event => {
+        handleClose();
+        setSurficialDataTagModal({
+            ...chosenPoint,
+            is_open: true,
+            type
+        });
     };
 
     return (
@@ -725,6 +878,20 @@ function ClickPointModal (props) {
                     </ListItemIcon>
                     <ListItemText primary="Generate trending chart" />
                 </ListItem>
+                {
+                    unreliable_data === false ? <ListItem button onClick={hadleSurficialDataTagClick("tag")}>
+                        <ListItemIcon>
+                            <LocalOffer />
+                        </ListItemIcon>
+                        <ListItemText primary="Tag data as unreliable" />
+                    </ListItem> : <ListItem button onClick={hadleSurficialDataTagClick("show")}>
+                        <ListItemIcon>
+                            <Info />
+                        </ListItemIcon>
+                        <ListItemText primary="Show unreliable data information" />
+                    </ListItem>
+                }
+                
             </List>
         </Dialog>
     );
@@ -855,8 +1022,25 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
         min_x = min.data.length > 0 ? moment(min.data[0].x) : moment();
     }
 
-    data.forEach(row => { row.turboThreshold = 100000; });
-
+    data.forEach(row => {
+        row.turboThreshold = 100000;
+        const { data: series_data } = row;
+        series_data.forEach(series_data_row => {
+            const { unreliable_data } = series_data_row;
+            if (Object.keys(unreliable_data).length !== 0) {
+                const marker = {
+                    symbol: "triangle",
+                    radius: 10,
+                    fillColor: "#FFFF00",
+                    lineColor: "#000000",
+                    lineWidth: 2
+                };
+                series_data_row.marker = marker;
+            } else {
+                series_data_row.unreliable_data = false;
+            }
+        }); 
+    });
     return {
         title: {
             text: `<b>Surficial Data History Chart of ${site_code.toUpperCase()}</b>`,
@@ -932,7 +1116,8 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
                                 const {
                                     data_id, x, y,
                                     mo_id,
-                                    series: { name } 
+                                    series: { name },
+                                    unreliable_data
                                 } = this;
 
                                 const obj = {
@@ -941,8 +1126,8 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
                                     mo_id, 
                                     ts: moment(x),
                                     measurement: y,
+                                    unreliable_data
                                 };
-
                                 setChosenPointCopy(obj);
                                 setIsOpenClickModal(true);
                             }
@@ -1027,6 +1212,11 @@ function SurficialGraph (props) {
     };
     const [chosen_point, setChosenPointCopy] = useState({ ...default_point });
     const [edit_modal, setEditModal] = useState({
+        ...default_point,
+        is_open: false
+    });
+
+    const [surficial_data_tag_modal, setSurficialDataTagModal] = useState({
         ...default_point,
         is_open: false
     });
@@ -1217,12 +1407,22 @@ function SurficialGraph (props) {
                 setEditModal={setEditModal}
                 setShowTrending={setShowTrending}
                 setGenerateTrending={setGenerateTrending}
+                setSurficialDataTagModal={setSurficialDataTagModal}
             />
 
             <UpdateDeleteModal 
                 chosenPoint={chosen_point}
                 editModal={edit_modal}
                 setEditModal={setEditModal}
+                fullScreen={fullScreen}
+                siteCode={site_code}
+                setRedrawChart={setRedrawChart}
+            />
+
+            <SurficialDataTagModal 
+                chosenPoint={chosen_point}
+                surficialDataTagModal={surficial_data_tag_modal}
+                setSurficialDataTagModal={setSurficialDataTagModal}
                 fullScreen={fullScreen}
                 siteCode={site_code}
                 setRedrawChart={setRedrawChart}
