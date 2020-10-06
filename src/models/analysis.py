@@ -521,10 +521,12 @@ class Accelerometers(DB.Model):
     in_use = DB.Column(DB.Integer)
 
     status = DB.relationship(
-        "AccelerometerStatus", backref="accelerometers", lazy="joined", innerjoin=True)
+        "AccelerometerStatus", backref="accelerometers", lazy="joined")
 
-    accelerometers = DB.relationship("TSMSensors", backref=DB.backref(
-        "accelerometers", lazy="dynamic"), lazy="subquery")
+    tsm_sensor = DB.relationship("TSMSensors", backref=DB.backref(
+        "accelerometers", lazy="subquery",
+        order_by="[Accelerometers.node_id, Accelerometers.accel_number]"
+    ), lazy="joined")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> ACCELEROMETER: {self.accel_id}"
@@ -999,6 +1001,9 @@ class AccelerometerStatusSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Analysis Accelerometer Status class
     """
+
+    ts_flag = fields.DateTime("%Y-%m-%d %H:%M:%S")
+
     class Meta:
         """Saves table class structure as schema model"""
         model = AccelerometerStatus
@@ -1008,6 +1013,8 @@ class AccelerometersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Analysis Accelerometer Status class
     """
+
+    tsm_id = fields.Integer()
     status = fields.Nested("AccelerometerStatusSchema",
                            many=True, exclude=["accelerometers"])
 
