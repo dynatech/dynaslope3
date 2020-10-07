@@ -16,6 +16,8 @@ import { prepareSiteAddress } from "../../../../UtilityFunctions";
 import { GeneralContext } from "../../../contexts/GeneralContext";
 import { getMonitoringEvents } from "../../ajax";
 import { getEventTimelineEntries } from "../../ajax";
+import { filter, forEach } from "lodash";
+import _ from "lodash";
 const filter_sites_option = [];
 
 const useStyles = makeStyles(theme => ({
@@ -158,192 +160,128 @@ function QATable (props) {
     } = props;
 
     const classes = useStyles();
+    const [data, setData] = useState(props.data);
+    const [cols, setCols] = useState([]);
 
-    const [data, setData] = useState([["Loading Data..."]]);
-    const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(10);
-    const [count, setCount] = useState(1);
-    const [sites_dict, setSitesDict] = useState({});
-
-    // SEARCH AND FILTERS
-    const [filters, setFilters] = useState([]);
-    const [filter_list, setFilterList] = useState([]);
-    const [search_str, setSearchString] = useState("");
-    const [on_search_open, setOnSearchOpen] = useState(false);
-
-    // const { sites } = useContext(GeneralContext);
+    const sites_count = _(data)
+        .groupBy('site_name')
+        .map(function(items, name) { 
+            return name;
+        }).value().length;
 
     useEffect(() => {
-        if (props.data.length > 0){
-        const temp = {};
-        props.data.forEach(site => {
-            //const address = prepareSiteAddress(site, true, "start");
-            const site_code = site.site_name.toUpperCase();
-            filter_sites_option.push(site_code);
-            temp[site_code] = { site_id: site.site_id };
+        columns.map((col, index) =>{
+            switch(col.name){
+                case "ewi_sms": {
+                    col.options = {
+                        ...col.options,
+                        customBodyRender: (value, tableMeta, updateValue) => {
+                            const limit_start = moment(tableMeta.tableData[tableMeta.rowIndex].ts_limit_start).format("YYYY-MM-DD HH:mm:ss");
+                            let limit = moment(limit_start);
+                            const sent_ts = moment(value);
+                            sites_count > 5 ? limit.add(sites_count, "minutes") : limit.add(5 ,"minutes");
+                            if(type === "Lowering") limit.add(15, "minutes");
+                            const error = sent_ts > limit ? true : false;
+
+                            return (
+                                <span style={{color: error ? "red" : ""}} >{value}</span>
+                            )
+                        },
+                    }  
+                }
+                break;
+
+                case "ewi_bulletin_release" && type !=="Routine": {
+                    col.options = {
+                        ...col.options,
+                        customBodyRender: (value, tableMeta, updateValue) => {
+                            const limit_start = moment(tableMeta.tableData[tableMeta.rowIndex].ts_limit_start).format("YYYY-MM-DD HH:mm:ss");
+                            let limit = moment(limit_start).add(10 ,"minutes");
+                            const sent_ts = moment(value);
+                            if(sites_count > 5) limit = limit_start.add((sites_count * 2), "minutes");
+                            if(type === "Lowering") limit.add(15, "minutes");
+                            const error = sent_ts > limit ? true : false;
+
+                            return (
+                                <span style={{color: error ? "red" : ""}} >{value}</span>
+                            )
+                        },
+                    }  
+                }
+                break;
+                case "rainfall_info": {
+                    col.options = {
+                        ...col.options,
+                        customBodyRender: (value, tableMeta, updateValue) => {
+                            const limit_start = moment(tableMeta.tableData[tableMeta.rowIndex].ts_limit_start).format("YYYY-MM-DD HH:mm:ss");
+                            let limit = moment(limit_start).add(15 ,"minutes");
+                            const sent_ts = moment(value);
+                            //if(sites_count > 5) limit = limit_start.add((sites_count * 2), "minutes");
+                            const error = sent_ts > limit ? true : false;
+
+                            return (
+                                <span style={{color: error ? "red" : ""}} >{value}</span>
+                            )
+                        },
+                    }  
+                }
+                break;
+                case "ground_measurement": {
+                    col.options = {
+                        ...col.options,
+                        customBodyRender: (value, tableMeta, updateValue) => {
+                            const limit_start = moment(tableMeta.tableData[tableMeta.rowIndex].ts_limit_start).format("YYYY-MM-DD HH:mm:ss");
+                            let start_limit = moment(limit_start).subtract(2.5 ,"hours");
+                            let end_limit = moment(limit_start).subtract(2 ,"hours");
+                            const sent_ts = moment(value);
+                            const error = sent_ts >= start_limit && sent_ts <= end_limit ? true : false;
+
+                            return (
+                                <span style={{color: error ? "red" : ""}} >{value}</span>
+                            )
+                        },
+                    }  
+                }
+                break;
+            }
+            
         });
-        setSitesDict(temp);
-        }
-    }, [props.data]);
 
-    useEffect(() => {
-        // setTotalEventCount(setCount);
+        setCols(columns);
 
-        const offset = page * rowsPerPage;
-        const limit = (page * rowsPerPage) + rowsPerPage;
+    },[columns]);
 
-        const input = {
-            include_count: true,
-            limit, offset, filters, search_str
-        };
-        
-        // getMonitoringEvents(input, ret2 => {            
-        //     const { events, count: total } = ret2;
-        //     //const final_data = prepareEventsArray(events, sites_dict);
-        //     //setData(final_data);
-        //     setCount(total);
-        //     setIsLoading(false);
-        // });
-    }, [
-        page, rowsPerPage, filters,
-        search_str, url, sites_dict
-    ]);
-
-
-    console.log(props.shift_start_ts);
     const options = {
         textLabels: {
             body: {
-                noMatch: "No data",
+                noMatch: `No ${type} event(s)`,
             }
         },
-
-        filterType: "multiselect",
         responsive: isWidthUp(width, "xs") ? "scroll" : "scrollFullHeight",
-        searchText: search_str,
-        //searchPlaceholder: "Type words to search narrative column",
-        rowsPerPageOptions: [5, 10, 15],
-        rowsPerPage,
-        count,
-        page,
         filter: true,
         selectableRows: "none",
-        print: false,
+        print: true,
         download: true,
         downloadOptions: {
             filename: `${type}_releases_${props.shift_start_ts}.csv`,
             separator: ';',
         },
-        // filterType: "dropdown",
-        serverSide: true,
+        filterType: "dropdown",
         onTableChange: (action, tableState) => {
-            // console.log(action, tableState);
-            // a developer could react to change on an action basis or
-            // examine the state as a whole and do whatever they want
-            if (action === "changePage") {
-                const { page: cur_page } = tableState;
-                setPage(cur_page);
-            } else if (action === "changeRowsPerPage") {
-                const { rowsPerPage: cur_rpp } = tableState;
-                if (cur_rpp !== rowsPerPage) setRowsPerPage(cur_rpp);
-            } else if (action === "resetFilters") {
-                setFilterList({});
-                setFilters([]);
-            } else if (action === "onSearchOpen") {
-                setOnSearchOpen(true);
+           if (action === "resetFilters") {
+                setData(props.data);
+           }
+            if(action === "propsUpdate"){
+                setData(props.data);
             }
         },
-        onSearchChange: (search_string) => {
-            // Looking for proper async implementation
-            console.log(`Searching for ${search_string}`);
-        },
-        onFilterChange: (changedColumn, ret_filters) => {
-            const chosen_filters = [];
-            let is_empty = true;
-            ret_filters.forEach((row, index) => {
-
-                let filter_var = null;
-
-                if (row.length !== 0) {
-                    is_empty = false;
-                    const { name: column_name } = columns[index];
-                    if (column_name === "site_name") {
-                        const site_ids = [];
-                        const site_names = [];
-
-                        row.forEach(site => {
-                            site_ids.push(sites_dict[site].site_id);
-                            site_names.push(site);
-                        });
-
-                        chosen_filters.push({
-                            name: "site_ids",
-                            data: site_ids
-                        });
-
-                        filter_var = site_names;
-                    } else if (column_name === "entry_type") {
-                        const entry_types = [];
-                        const entry_type_ids = [];
-                        let temp;
-
-                        row.forEach(type => {
-                            if (type === "EVENT") { 
-                                temp = 2;
-                            } else if (type === "ROUTINE") {
-                                temp = 1;
-                            }
-                            entry_types.push(type);
-                            entry_type_ids.push(temp);
-                        });
-
-                        chosen_filters.push({
-                            name: "entry_types",
-                            data: entry_type_ids
-                        });
-
-                        filter_var = entry_types;
-                    }
-                    setFilterList({ ...filter_list, [column_name]: filter_var });
-                }
-            });
-
-            if (is_empty) setFilterList({});
-            setFilters(chosen_filters);
-        },
-        customSearchRender: (searchText, handleSearch, hideSearch, rendererOptions) => {
-            let searchStr = searchText || "";
-
-            if (on_search_open) {
-                searchStr = search_str;
-                setOnSearchOpen(false);
-            }
-
-            const custom_on_hide_fn = () => {
-                hideSearch();
-                setOnSearchOpen(false);
-            };
-
-            return (
-                <CustomSearchRender
-                    searchText={searchText}
-                    onSearch={handleSearch}
-                    onHide={custom_on_hide_fn}
-                    options={rendererOptions}
-                    onSearchClick={() => setSearchString(searchStr)}
-                />
-            );
-        }
     };
 
    
 
     return (
         <Fragment>
-            <div className={classes.pageContentMargin} style={{margin: 10}}>
-                {/* <PageTitle title={tableTitle} /> */}
-            </div>
-            <div className={classes.pageContentMargin}>
+            <div>
                 <MuiThemeProvider theme={getMuiTheme}>
                     <MUIDataTable
                         title={
@@ -365,8 +303,8 @@ function QATable (props) {
                                 {/* <Typography variant="caption">Click site name to view all releases</Typography> */}
                             </div>
                             }
-                        data={props.data}
-                        columns={columns}
+                        data={data}
+                        columns={cols}
                         options={options}
                     />
                 </MuiThemeProvider>                           

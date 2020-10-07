@@ -26,11 +26,19 @@ export default function Event (props) {
         {
             name: "ewi_web_release",
             label: "EWI Web Release",
+            options: {
+                filter: false,
+                sort: false
+            }
 
         },
         {
             name: "ewi_sms",
             label: "EWI SMS",
+            options: {
+                filter: false,
+                sort: false
+            }
 
         },
         {
@@ -51,7 +59,7 @@ export default function Event (props) {
         },
         {
             name: "ground_measurement",
-            label: "Ground Measurement",
+            label: "Ground Measurement Reminder",
             options: {
                 filter: false,
                 sort: false

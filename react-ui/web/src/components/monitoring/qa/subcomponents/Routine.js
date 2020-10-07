@@ -25,11 +25,19 @@ export default function Routine(props){
       {
           name: "ewi_web_release",
           label: "EWI Web Release",
+          options: {
+            filter: false,
+            sort: false
+        }
 
       },
       {
         name: "ewi_sms",
         label: "EWI SMS",
+        options: {
+            filter: false,
+            sort: false
+        }
 
       },
       {

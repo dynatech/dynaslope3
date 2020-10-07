@@ -385,7 +385,12 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, for_qa
     release_interval_hours = RELEASE_INTERVAL_HOURS
     is_sms_sent = False
     is_bulletin_sent = False
-    sent_ts = None
+
+    ground_data = "---"
+    fyi = "---"
+    rainfall_info = "---"
+    ground_meas = "---"
+
 
     if not is_onset_release or \
             (is_onset_release and start_ts.hour % 4 == 3 and start_ts.minute == 30):
@@ -395,24 +400,50 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, for_qa
     end_ts = round_to_nearest_release_time(
         start_ts, interval=release_interval_hours)
 
+    limit_start = round_to_nearest_release_time(
+        start_ts - timedelta(minutes=30), interval=release_interval_hours)
+
     narrative_list = get_narratives(
         event_id=event_id, start=start_ts, end=end_ts)
 
     for item in narrative_list:
+        item_ts = item.timestamp.strftime("%Y-%m-%d %H:%M:%S")
         if "EWI SMS" in item.narrative:
-            is_sms_sent = True
+            if for_qa:
+                is_sms_sent = item_ts
+            else:
+                is_sms_sent = True
 
         if "EWI BULLETIN" in item.narrative:
-            is_bulletin_sent = True
+            if for_qa:
+                is_bulletin_sent = item_ts
+            else:
+                is_bulletin_sent = True
         if for_qa:
-            sent_ts = item.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            if "Sent surficial ground data reminder" in item.narrative:
+                ground_meas = item_ts
+
+            if "Salamat sa pagpapadala" in item.narrative:
+                ground_data = item_ts
+
+            if "FYI" in item.narrative:
+                fyi = item_ts
+
+            if "Sent rainfall information" in item.narrative:
+                rainfall_info = item_ts
     final = {
         "is_sms_sent": is_sms_sent, "is_bulletin_sent": is_bulletin_sent
     }
+
     if for_qa:
-        final = {
-        "is_sms_sent": is_sms_sent, "is_bulletin_sent": is_bulletin_sent, "sent_ts": sent_ts
-        }
+        final.update({
+            "ground_measurement": ground_meas,
+            "ground_data": ground_data,
+            "fyi": fyi,
+            "rainfall_info": rainfall_info,
+            "nearest_release_ts": limit_start.strftime("%Y-%m-%d %H:%M:%S"),
+            })
+    
     return final
 
 
@@ -837,7 +868,7 @@ def get_qa_data(ts_start=None, ts_end=None, load_options=None):
     for row in return_data:
         event_id = row.event_alert.event.event_id
         start_ts = row.data_ts
-        is_onset_release = False
+        is_onset_release = True
         if row.event_alert.public_alert_symbol.alert_type == "event":
             is_onset_release = True
         sent_status = check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, True)

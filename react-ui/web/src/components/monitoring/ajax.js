@@ -37,7 +37,7 @@ export function getMonitoringReleases (input, callback) {
     const {
         shift_time, start_ts
     } = input;
-    const time = shift_time === "am" ? "07:30:00" : "19:30:00"; 
+    const time = shift_time === "am" ? "08:00:00" : "20:00:00"; 
 
     const moment_start_ts = moment(start_ts).format(`YYYY-MM-DD ${time}`);
     let moment_end_ts = moment(moment_start_ts).add("hours", 12);

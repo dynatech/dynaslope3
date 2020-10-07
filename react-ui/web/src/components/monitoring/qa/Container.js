@@ -1,38 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
-import Drawer from "@material-ui/core/Drawer";
 import CssBaseline from "@material-ui/core/CssBaseline";
-import Toolbar from "@material-ui/core/Toolbar";
-import List from "@material-ui/core/List";
 import Typography from "@material-ui/core/Typography";
-import Divider from "@material-ui/core/Divider";
-import ListItem from "@material-ui/core/ListItem";
-import ListItemIcon from "@material-ui/core/ListItemIcon";
-import ListItemText from "@material-ui/core/ListItemText";
-import WarningIcon from "@material-ui/icons/Warning";
-import ArrowDownwardIcon from "@material-ui/icons/ArrowDownward";
-import HeightIcon from "@material-ui/icons/Height";
-import AutorenewIcon from "@material-ui/icons/Autorenew";
-import { Grid, Button, IconButton, Tooltip, CircularProgress } from "@material-ui/core";
+import { Grid, Button, FormHelperText, Tooltip, CircularProgress, InputLabel, Select,
+MenuItem, FormControl } from "@material-ui/core";
 import MomentUtils from "@date-io/moment";
-import { MuiPickersUtilsProvider, KeyboardDatePicker } from "@material-ui/pickers";
+import { MuiPickersUtilsProvider } from "@material-ui/pickers";
 import moment from "moment";
 import ArrowForwardIosIcon from "@material-ui/icons/ArrowForwardIos";
-import MenuIcon from "@material-ui/icons/Menu";
-import { getCurrentUser } from "../../sessions/auth";
 import { createDateTime } from "../shifts_and_reports/EndOfShiftGenerator";
 import { getMonitoringReleases } from "../ajax";
 import SelectInputForm from "../../reusables/SelectInputForm";
-
+import GeneralStyles from "../../../GeneralStyles";
 // subComponents
 import Event from "./subcomponents/Event";
 import Lowering from "./subcomponents/Lowering";
 import Extended from "./subcomponents/Extended";
 import Routine from "./subcomponents/Routine";
-
+import PageTitle from "../../reusables/PageTitle";
 
 const drawerWidth = 240;
 const useStyles = makeStyles((theme) => ({
+    ...GeneralStyles(theme),
     root: {
         display: "flex",
         flexGrow: 1,
@@ -81,7 +70,6 @@ export default function QAContainer () {
     const [selectedEosData, setSelectedEosData] = useState(null);
     const [shift_start_ts, setShiftStartTs] = useState(null);
     const [drawerOpen, setDrawerOpen] = useState(false);
-    const current_user = getCurrentUser();
 
     const [event_releases, setEventReleases] = useState([]);
     const [routine_releases, setRoutineReleases] = useState([]);
@@ -103,25 +91,48 @@ export default function QAContainer () {
         if (releasesData !== null) {
             const routineTemp = [];
             const eventTemp = [];
+            const extendedTemp = [];
+            const loweringTemp = [];
             releasesData.forEach((row) => {
+                const data_ts = moment(row.data_ts).format();
+                const validity = row.event_alert.event.validity;
+                const pub_alert_level = row.event_alert.public_alert_symbol.alert_level;
+                const pub_alert_type = row.event_alert.public_alert_symbol.alert_type;
+                const end_val_data_ts = moment(validity).subtract(30, "minutes").format();
                 const temp = {
                     ewi_web_release: row.release_time,
                     site_id: row.event_alert.event.site.site_id,
                     site_name: row.event_alert.event.site.site_code.toUpperCase(),
                     bulletin_release: row.bulletin_number,
-                    ewi_sms: row.sent_ts,
-                    ewi_bulletin_release: row.sent_ts,
+                    ewi_sms: row.is_sms_sent,
+                    ewi_bulletin_release: row.is_bulletin_sent,
+                    ground_measurement: row.ground_measurement,
+                    ground_data: row.ground_data,
+                    rainfall_info: row.rainfall_info,
+                    fyi_permission: row.fyi,
+                    ts_limit_start: row.nearest_release_ts
                 };
-
-                if (row.event_alert.public_alert_symbol.alert_type === "routine") {
+            if(pub_alert_type === "routine") {
+                
+                if (end_val_data_ts === data_ts && pub_alert_level === 0) {
+                    loweringTemp.push(temp);
+                }else{
                     routineTemp.push(temp);
                 }
-                if (row.event_alert.public_alert_symbol.alert_type === "event") {
+            }else{
+                if (end_val_data_ts > data_ts) {
                     eventTemp.push(temp);
                 }
+                if (end_val_data_ts < data_ts) {
+                    extendedTemp.push(temp);
+                } 
+                }
             });
+
             setEventReleases(eventTemp);
             setRoutineReleases(routineTemp);
+            setExtendedReleases(extendedTemp);
+            setLoweringReleases(loweringTemp);
             setIsLoading(false);
         }
     }, [releasesData]);
@@ -136,43 +147,11 @@ export default function QAContainer () {
     };
 
     return (
-        <div className={classes.root}>
+        <div className={classes.pageContentMargin}>
             <CssBaseline />
-            <Drawer
-                className={classes.drawer}
-                variant="temporary"
-                classes={{
-                    paper: classes.drawerPaper,
-                }}
-                open={drawerOpen}
-                onClose={closeDrawer}
-            >
-                <div className={classes.drawerContainer}>
-                    <List>
-                        <Typography variant="overline">select Monitoring Type</Typography>
-                        <ListItem button onClick={e=> handleChangeTab(0)}>
-                            <ListItemIcon><WarningIcon/></ListItemIcon>
-                            <ListItemText primary="Event" />
-                        </ListItem>
-                        <ListItem button onClick={e=> handleChangeTab(1)}>
-                            <ListItemIcon><ArrowDownwardIcon/></ListItemIcon>
-                            <ListItemText primary="Event Lowering" />
-                        </ListItem>
-                        <ListItem button onClick={e=> handleChangeTab(2)}>
-                            <ListItemIcon><HeightIcon style={{ transform: "rotate(90deg)" }}/></ListItemIcon>
-                            <ListItemText primary="Extended" />
-                        </ListItem>
-                        <ListItem button onClick={e=> handleChangeTab(3)}>
-                            <ListItemIcon><AutorenewIcon/></ListItemIcon>
-                            <ListItemText primary="Routine" />
-                        </ListItem>
-                    </List>
-                    <Divider />
-                </div>
-            </Drawer>
+            <PageTitle title="Quality Assurance page"/>
             <main className={classes.content}>
-                <Grid container>
-                    <Typography variant="h5" color="textSecondary">Quality Assurance</Typography>
+                <Grid container spacing={2} >
                     <MuiPickersUtilsProvider utils={MomentUtils}>
                         <Grid 
                             container
@@ -182,14 +161,6 @@ export default function QAContainer () {
                             spacing={4}
                             // style={{ display: hidden ? "none !important" : "" }}
                         >
-                            <Grid item xs={12} sm>
-                                <Tooltip placement="top" title="Select Monitoring Type">
-                                    <IconButton onClick={e=>setDrawerOpen(!drawerOpen)}> 
-                                        <MenuIcon/>
-                                    </IconButton>
-                                </Tooltip>
-                            </Grid>
-                            <Grid />
                             {
                                 [
                                     { label: "Shift Start", value: start_ts, id: "start_ts" },
@@ -216,31 +187,49 @@ export default function QAContainer () {
                                 />
                             </Grid>
 
-                            <Grid
-                                item xs={12} sm
-                                className={`${classes.inputGridContainer} ${classes.buttonGrid}`}
-                            >
+                            <Grid item xs={12} sm className={`${classes.inputGridContainer} ${classes.buttonGrid}`}>
                                 <Button 
                                     variant="contained"
                                     color="secondary"
-                                    // size={isWidthDown("sm", width) ? "small" : "medium"}
                                     onClick={handleClick}
                                     endIcon={<ArrowForwardIosIcon className={classes.button} />}
                                 >
                                     Generate 
                                 </Button>
                             </Grid>
+                            
                         </Grid>
                     </MuiPickersUtilsProvider>
                     { releasesData !== null && releasesData.length !== 0 ? (
-                        <TabCompenents 
-                            routineData={routine_releases} 
-                            eventData={event_releases}
-                            loweringData={lowering_releases}
-                            extendedData={extended_releases}
-                            isLoading={isLoading} 
-                            shift_start_ts={shift_start_ts}
-                            selectedTab={selectedTab}/>
+                        <>
+                            <Grid item xs={12} sm style={{display:"flex", justifyContent:"flex-end"}}>
+                                <FormControl>
+                                    <Select
+                                        value={selectedTab}
+                                        onChange={e=> setSelectedTab(e.target.value)}
+                                        style={{width: 200}}
+                                        autoFocus
+                                    >
+                                        <MenuItem value={0}>{`Event (${event_releases.length})`}</MenuItem>
+                                        <MenuItem value={1}>{`Lowering (${lowering_releases.length})`}</MenuItem>
+                                        <MenuItem value={2}>{`Extended (${extended_releases.length})`}</MenuItem>
+                                        <MenuItem value={3}>{`Routine (${routine_releases.length})`}</MenuItem>
+                                    </Select>
+                                    <FormHelperText>Select monitoring type to display</FormHelperText>
+                                </FormControl>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <TabCompenents 
+                                    routineData={routine_releases} 
+                                    eventData={event_releases}
+                                    loweringData={lowering_releases}
+                                    extendedData={extended_releases}
+                                    isLoading={isLoading} 
+                                    shift_start_ts={shift_start_ts}
+                                    selectedTab={selectedTab}
+                                />
+                            </Grid>
+                        </>
                 
                     ) : (
               
