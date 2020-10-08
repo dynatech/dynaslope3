@@ -349,8 +349,9 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}." +
-                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}. " +
+                      f"Trigger ID [{trigger_id}] is tagged as " +
+                      f"{alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -366,7 +367,6 @@ def update_alert_status(as_details):
             sms_msg=f"ACK {stat_id} {val_map[alert_status]} {remarks}"
         )
         DB.session.add(row)
-
         DB.session.commit()
     except Exception as err:
         DB.session.rollback()
@@ -467,8 +467,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             is_onset_release, event_id, data_ts)
 
         if data_ts.hour == 23 and release_time.hour < release_interval_hours:
-            # if data_ts.hour == 23 and release_time.hour < 4:
-            # rounded_data_ts = round_to_nearest_release_time(data_ts)
             str_data_ts_ymd = datetime.strftime(rounded_data_ts, "%Y-%m-%d")
             str_release_time = str(release_time)
 
@@ -505,6 +503,10 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             "trigger_misc.moms_releases.moms_details.moms_instance.site"])
         event_alert_data["latest_event_triggers"] = mts.dump(
             latest_triggers_per_kind).data
+
+        highest_event_alert_level = max(
+            map(lambda x: x.public_alert_symbol.alert_level, event.event_alerts))
+        event_alert_data["highest_event_alert_level"] = highest_event_alert_level
 
         if run_ts <= validity:
             # On time release
@@ -2000,7 +2002,7 @@ def get_next_ground_data_reporting(data_ts, is_onset=False, is_alert_0=False, in
         release_ts = round_to_nearest_release_time(data_ts)
         reporting = datetime.combine(
             release_ts.date(), time_comp) + timedelta(days=1)
-    elif hour <= 7 and minute == 0:
+    elif (hour < 7) or (hour == 7 and minute == 0):
         reporting = datetime.combine(data_ts.date(), time_comp)
     elif (hour == 15 and minute >= 30) or hour > 15:
         reporting = datetime.combine(

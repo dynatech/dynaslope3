@@ -38,7 +38,10 @@ function SendMessageForm (props) {
                 const temp_ewi_recipients = [];
                 const default_recipients = [];
 
-                const { type, public_alert_symbol: { alert_level } } = updateSentStatusObj;
+                const {
+                    type, public_alert_symbol: { alert_level },
+                    highest_event_alert_level
+                } = updateSentStatusObj;
 
                 ewi_recipients_list.forEach(item => {
                     if (item.mobile_numbers.length > 0) {
@@ -70,8 +73,11 @@ function SendMessageForm (props) {
                                 // LEWC to MLGU
                                 to_push = false;
                                 if (name === "lewc" || (scope < 3 && name === "lgu")) to_push = true; 
-                            } else if (ewi_restriction !== null && alert_level !== 0 && alert_level <= ewi_restriction.alert_level) {
-                                to_push = false;
+                            } else if (ewi_restriction !== null) {
+                                const { alert_level: limit_alert_level } = ewi_restriction;
+                                if ((alert_level !== 0 && alert_level <= limit_alert_level) || 
+                                    (alert_level === 0 && highest_event_alert_level <= limit_alert_level))
+                                    to_push = false;
                             }
                             
                             if (to_push) default_recipients.push(temp);
