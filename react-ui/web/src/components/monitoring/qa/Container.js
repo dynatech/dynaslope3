@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import CssBaseline from "@material-ui/core/CssBaseline";
 import Typography from "@material-ui/core/Typography";
-import { Grid, Button, FormHelperText, Tooltip, CircularProgress, InputLabel, Select,
-MenuItem, FormControl } from "@material-ui/core";
+import { Grid, Button, FormHelperText, CircularProgress, Select,
+    MenuItem, FormControl } from "@material-ui/core";
 import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider } from "@material-ui/pickers";
 import moment from "moment";
@@ -17,6 +17,7 @@ import Event from "./subcomponents/Event";
 import Lowering from "./subcomponents/Lowering";
 import Extended from "./subcomponents/Extended";
 import Routine from "./subcomponents/Routine";
+import Raising from "./subcomponents/Raising";
 import PageTitle from "../../reusables/PageTitle";
 
 const drawerWidth = 240;
@@ -47,12 +48,13 @@ const useStyles = makeStyles((theme) => ({
 
 const TabCompenents = (props) => {
     const { selectedTab, 
-        eventData, loweringData, extendedData, routineData } = props;
+        eventData, loweringData, extendedData, routineData, raisingData } = props;
     const components = [
         <Event releasesData={eventData} {...props}/>,
         <Lowering releasesData={loweringData} {...props}/>,
         <Extended releasesData={extendedData} {...props}/>,
-        <Routine releasesData={routineData} {...props}/>
+        <Routine releasesData={routineData} {...props}/>,
+        <Raising releasesData={raisingData} {...props}/>
     ];
     return components[selectedTab];
 };
@@ -67,14 +69,13 @@ export default function QAContainer () {
     const [shift_time, setShiftTime] = useState(dt_hr >= 10 && dt_hr <= 22 ? "am" : "pm");
     const [isLoading, setIsLoading] = useState(false);
     const [releasesData, setReleases] = useState(null);
-    const [selectedEosData, setSelectedEosData] = useState(null);
     const [shift_start_ts, setShiftStartTs] = useState(null);
-    const [drawerOpen, setDrawerOpen] = useState(false);
 
     const [event_releases, setEventReleases] = useState([]);
     const [routine_releases, setRoutineReleases] = useState([]);
     const [extended_releases, setExtendedReleases] = useState([]);
     const [lowering_releases, setLoweringReleases] = useState([]);
+    const [raising_releases, setRaisingReleases] = useState([]);
 
     const handleDateTime = value => {
         setStartTs(value);
@@ -93,12 +94,14 @@ export default function QAContainer () {
             const eventTemp = [];
             const extendedTemp = [];
             const loweringTemp = [];
+            const raisingTemp = [];
             releasesData.forEach((row) => {
                 const data_ts = moment(row.data_ts).format();
-                const validity = row.event_alert.event.validity;
+                const { validity, status } = row.event_alert.event;
                 const pub_alert_level = row.event_alert.public_alert_symbol.alert_level;
-                const pub_alert_type = row.event_alert.public_alert_symbol.alert_type;
-                const end_val_data_ts = moment(validity).subtract(30, "minutes").format();
+                const end_val_data_ts = moment(validity).subtract(30, "minutes")
+                .format();
+                const ts_start = moment(row.event_alert.ts_start).format();
                 const temp = {
                     ewi_web_release: row.release_time,
                     site_id: row.event_alert.event.site.site_id,
@@ -112,23 +115,25 @@ export default function QAContainer () {
                     fyi_permission: row.fyi,
                     ts_limit_start: row.nearest_release_ts
                 };
-            if(pub_alert_type === "routine") {
-                
-                if (end_val_data_ts === data_ts && pub_alert_level === 0) {
-                    loweringTemp.push(temp);
-                }else{
-                    routineTemp.push(temp);
-                }
-            }else{
-                if (end_val_data_ts > data_ts) {
-                    eventTemp.push(temp);
-                }
-                if (end_val_data_ts < data_ts) {
-                    extendedTemp.push(temp);
+                // status 1 = Routine , 2 = Event
+                if (status === "1") {
+                    routineTemp.push(temp);                 
                 } 
+                if (status === "2") {
+                    if (end_val_data_ts > data_ts) {
+                        eventTemp.push(temp);
+                    }
+                    if (end_val_data_ts < data_ts) {
+                        extendedTemp.push(temp);
+                    } 
+                    if (end_val_data_ts === data_ts && pub_alert_level === 0) {
+                        loweringTemp.push(temp);
+                    } else if (data_ts === ts_start) {
+                        raisingTemp.push(temp);
+                    }
                 }
             });
-
+            setRaisingReleases(raisingTemp);
             setEventReleases(eventTemp);
             setRoutineReleases(routineTemp);
             setExtendedReleases(extendedTemp);
@@ -137,14 +142,18 @@ export default function QAContainer () {
         }
     }, [releasesData]);
     
-    const closeDrawer = () => {
-        setDrawerOpen(!drawerOpen);
-    };
+    useEffect(() => {
+        // function changes default Tab to Monitoring Type with largest data size
+        const monTypes = [
+            event_releases.length, 
+            lowering_releases.length, 
+            extended_releases.length, 
+            routine_releases.length,
+            raising_releases.length,
+        ];
+        setSelectedTab(monTypes.indexOf(Math.max(...monTypes)));
 
-    const handleChangeTab = (index) => {
-        setSelectedTab(index);
-        closeDrawer();
-    };
+    }, [event_releases, routine_releases, lowering_releases, extended_releases, raising_releases]);
 
     return (
         <div className={classes.pageContentMargin}>
@@ -202,15 +211,16 @@ export default function QAContainer () {
                     </MuiPickersUtilsProvider>
                     { releasesData !== null && releasesData.length !== 0 ? (
                         <>
-                            <Grid item xs={12} sm style={{display:"flex", justifyContent:"flex-end"}}>
+                            <Grid item xs={12} sm style={{ display: "flex", justifyContent: "flex-end" }}>
                                 <FormControl>
                                     <Select
                                         value={selectedTab}
                                         onChange={e=> setSelectedTab(e.target.value)}
-                                        style={{width: 200}}
+                                        style={{ width: 200 }}
                                         autoFocus
                                     >
                                         <MenuItem value={0}>{`Event (${event_releases.length})`}</MenuItem>
+                                        <MenuItem value={4}>{`Raising (${raising_releases.length})`}</MenuItem>
                                         <MenuItem value={1}>{`Lowering (${lowering_releases.length})`}</MenuItem>
                                         <MenuItem value={2}>{`Extended (${extended_releases.length})`}</MenuItem>
                                         <MenuItem value={3}>{`Routine (${routine_releases.length})`}</MenuItem>
@@ -224,6 +234,7 @@ export default function QAContainer () {
                                     eventData={event_releases}
                                     loweringData={lowering_releases}
                                     extendedData={extended_releases}
+                                    raisingData={raising_releases}
                                     isLoading={isLoading} 
                                     shift_start_ts={shift_start_ts}
                                     selectedTab={selectedTab}

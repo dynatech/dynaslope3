@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Typography } from "@material-ui/core";
+import React from "react";
 import { makeStyles } from "@material-ui/core/styles";
-import _ from "lodash";
 import QATable from "./Table";
-
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -59,7 +56,7 @@ export default function Event (props) {
         },
         {
             name: "ground_measurement",
-            label: "Ground Measurement Reminder",
+            label: "Ground Meas Reminder",
             options: {
                 filter: false,
                 sort: false
@@ -73,14 +70,6 @@ export default function Event (props) {
                 sort: false
             }
         },
-        {
-            name: "fyi_permission",
-            label: "FYI Permission",
-            options: {
-                filter: false,
-                sort: false
-            }
-        }
     ];
 
     return (
@@ -89,7 +78,7 @@ export default function Event (props) {
                 isLoading={isLoading} 
                 tableTitle="QA for Event Monitoring" 
                 type="Event"
-                data={releasesData}
+                datas={releasesData}
                 columns={columns}
             />
         </div>

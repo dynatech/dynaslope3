@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { Typography } from "@material-ui/core";
+import React from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import _ from "lodash";
 import QATable from "./Table";
@@ -41,25 +40,9 @@ export default function Event (props) {
             }
 
         },
-        // {
-        //     name: "ewi_bulletin_release",
-        //     label: "EWI Bulletin",
-        //     options: {
-        //         filter: false,
-        //         sort: false
-        //     }
-        // },
-        {
-            name: "rainfall_info",
-            label: "Rainfall Info",
-            options: {
-                filter: false,
-                sort: false
-            }
-        },
         {
             name: "ground_measurement",
-            label: "Ground Measurement",
+            label: "Ground Meas Reminder",
             options: {
                 filter: false,
                 sort: false
@@ -73,14 +56,6 @@ export default function Event (props) {
                 sort: false
             }
         },
-        // {
-        //     name: "fyi_permission",
-        //     label: "FYI Permission",
-        //     options: {
-        //         filter: false,
-        //         sort: false
-        //     }
-        // }
     ];
 
     return (
@@ -89,7 +64,7 @@ export default function Event (props) {
                 isLoading={isLoading} 
                 tableTitle="QA for Event Monitoring" 
                 type="Extended"
-                data={releasesData}
+                datas={releasesData}
                 columns={columns}
             />
         </div>

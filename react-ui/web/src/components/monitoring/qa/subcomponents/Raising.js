@@ -79,7 +79,7 @@ export default function Event (props) {
             <QATable 
                 isLoading={isLoading} 
                 tableTitle="QA for Event Monitoring" 
-                type="Lowering"
+                type="Raising"
                 datas={releasesData}
                 columns={columns}
             />
