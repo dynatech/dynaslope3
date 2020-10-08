@@ -415,13 +415,16 @@ def insert_new_marker_name(history_id, marker_name):
 
     DB.session.add(name)
 
+
 def insert_unreliable_data(data):
     data_id = data["data_id"]
     tagger_id = data["tagger_id"]
     remarks = data["remarks"]
+
     insert_query = MarkerDataTags(
         data_id=data_id,
         tagger_id=tagger_id,
         remarks=remarks
     )
+
     DB.session.add(insert_query)

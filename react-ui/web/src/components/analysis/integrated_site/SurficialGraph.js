@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Fragment, useContext } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import { Route, Link, matchPath } from "react-router-dom";
 
 import Highcharts from "highcharts";
@@ -16,8 +16,8 @@ import {
     Typography, Divider, TextField, FormControl,
     FormControlLabel, Radio, RadioGroup,
     Menu, MenuItem, List, ListItem,
-    ListItemIcon, ListItemText, Tooltip, TableRow, TableCell,
-    FormHelperText
+    ListItemIcon, ListItemText, Tooltip,
+    TableRow, TableCell
 } from "@material-ui/core";
 import { ArrowDropDown, Edit, TrendingUp, Add, LocalOffer, Info } from "@material-ui/icons";
 import { isWidthDown } from "@material-ui/core/withWidth";
@@ -32,11 +32,10 @@ import { SlideTransition, FadeTransition } from "../../reusables/TransitionList"
 import {
     getSurficialPlotData, deleteSurficialData,
     updateSurficialData, saveChartSVG,
-    insertMarkerEvent, saveUnreliableData
+    insertMarkerEvent, saveUnreliableMarkerData
 } from "../ajax";
 import { computeForStartTs, capitalizeFirstLetter } from "../../../UtilityFunctions";
 import { getCurrentUser } from "../../sessions/auth";
-import { GeneralContext } from "../../contexts/GeneralContext";
 
 // init the module
 HC_exporting(Highcharts);
@@ -331,7 +330,7 @@ function MarkerHistoryTable (props) {
                 customBodyRender (value) {
                     return moment(value).format("D MMMM YYYY, HH:mm");
                 },
-                sortDirection: "desc"
+                sort: true
             }
         },
         {
@@ -541,7 +540,7 @@ function UpdateDeleteModal (props) {
                 </DialogContentText>
 
                 <Grid container spacing={2}>
-                    <Grid item xs={12} style={{ textAlign: "center" }}>
+                    <Grid item xs={12} align="center">
                         <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
                             {siteCode.toUpperCase()} - Marker {name}
                         </Typography>
@@ -672,18 +671,16 @@ function UpdateDeleteModal (props) {
 
 function SurficialDataTagModal (props) {
     const { 
-        surficialDataTagModal, fullScreen, setSurficialDataTagModal, 
-        siteCode, setRedrawChart, chosenPoint
+        surficialDataTagModal, setSurficialDataTagModal, 
+        siteCode, setRedrawChart
     } = props;
     const {
-        is_open, ts, name, measurement, mo_id, data_id, unreliable_data
+        is_open, ts, name, measurement, 
+        data_id, unreliable_data
     } = surficialDataTagModal;
 
-    const [tagger, setTagger] = useState("");
     const { user_id } = getCurrentUser();
-    const [current_user, setCurrentUser] = useState(user_id);
     const [remarks, setRemarks] = useState("");
-    const { users } = useContext(GeneralContext);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
     const changeHandlerFn = (prop, value) => x => {
@@ -704,11 +701,11 @@ function SurficialDataTagModal (props) {
     const saveFunction = () => {
         const input = {
             data_id,
-            tagger_id: current_user,
+            tagger_id: user_id,
             remarks
         };
 
-        saveUnreliableData(input, data => {
+        saveUnreliableMarkerData(input, data => {
             const { status, message } = data;
             let variant;
             if (status === true) {
@@ -717,6 +714,8 @@ function SurficialDataTagModal (props) {
                     ...surficialDataTagModal, is_open: false 
                 });
                 variant = "success";
+
+                setRemarks("");
             } else {
                 variant = "error";
             }
@@ -732,28 +731,18 @@ function SurficialDataTagModal (props) {
         });
     };
 
-    useEffect(() => {
-        if (unreliable_data) {
-            const { first_name, last_name } = users.find(o => o.user_id === unreliable_data.tagger_id);
-            setTagger(`${first_name} ${last_name}`);
-        }
-    }, [surficialDataTagModal]);
-
     return (
         <Dialog
-            fullWidth
-            fullScreen={fullScreen}
             open={is_open}
-            aria-labelledby="form-dialog-title"
-            TransitionComponent={fullScreen ? SlideTransition : FadeTransition}      
+            aria-labelledby="form-dialog-title"    
         >
             <DialogTitle id="form-dialog-title">
-                { unreliable_data ? "Unreliable data information" : "Tag unreliable data"}
+                { unreliable_data ? "Unreliable data tag information" : "Tag unreliable data"}
             </DialogTitle>
-            <DialogContent>
 
+            <DialogContent>
                 <Grid container spacing={2}>
-                    <Grid item xs={12} style={{ textAlign: "center" }}>
+                    <Grid item xs={12} align="center">
                         <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
                             {siteCode.toUpperCase()} - Marker {name}
                         </Typography>
@@ -767,45 +756,65 @@ function SurficialDataTagModal (props) {
 
                     <Grid item xs={12}><Divider /></Grid>
 
-                    <Grid item xs={12} style={{ textAlign: "center" }}>
+                    <Grid item xs={12} align="center">
                         {
-                            unreliable_data ? <Fragment>
-                                <Typography variant="body2">
-                                    Remarks: {unreliable_data.remarks}
-                                </Typography>
-                                <Typography variant="body2">
-                                    Tagger: {tagger}
-                                </Typography>
-                                <Typography variant="body2">
-                                    Timestamp: {moment(unreliable_data.tagged_ts).format("DD MMMM YYYY, HH:mm:ss")}
-                                </Typography></Fragment>
-                                : <Fragment><TextField 
+                            unreliable_data ? (
+                                <Grid container justify="center">
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="body1">
+                                            <strong>Tagger:</strong>
+                                        </Typography>
+                                        <Typography variant="body1" gutterBottom>
+                                            {`${unreliable_data.tagger.first_name} ${unreliable_data.tagger.last_name}`}
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="body1">
+                                            <strong>Timestamp:</strong>
+                                        </Typography>
+                                        <Typography variant="body1" gutterBottom>
+                                            {moment(unreliable_data.ts).format("DD MMMM YYYY, HH:mm:ss")}
+                                        </Typography>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <Typography variant="body1">
+                                            <strong>Remarks:</strong>
+                                        </Typography>
+                                        <Typography variant="body1">
+                                            {unreliable_data.remarks}
+                                        </Typography>
+                                    </Grid>
+                                </Grid>
+                            ) : (
+                                <TextField 
                                     label="Remarks"
                                     value={remarks}
                                     onChange={event => setRemarks(event.target.value)}
                                     fullWidth
                                     required
                                     error={remarks === ""}
-                                /><FormHelperText error>{remarks ? "" : "Required"}</FormHelperText></Fragment>
+                                    helperText={remarks ? "" : "Required"}
+                                />
+                            )
                         }
-                        
                     </Grid>
                 </Grid>
             </DialogContent>
+
             <DialogActions>
                 {
                     !unreliable_data && <Button
                         variant="contained"
-                        color="primary"
+                        color="secondary"
                         size="small"
                         onClick={saveFunction}
+                        disabled={remarks === ""}
                     >
                         Save
                     </Button>
                 }
-                <Button 
-                    onClick={changeHandlerFn("is_open", false)}
-                >
+
+                <Button color="primary" onClick={changeHandlerFn("is_open", false)}>
                     Cancel
                 </Button>
             </DialogActions>
@@ -852,7 +861,7 @@ function ClickPointModal (props) {
         <Dialog onClose={handleClose} aria-labelledby="simple-dialog-title" open={open}>
             <DialogTitle id="simple-dialog-title">Point options</DialogTitle>
             <DialogContent>
-                <div style={{ textAlign: "center" }}>
+                <div align="center">
                     <Typography variant="subtitle1" style={{ fontWeight: "bold" }}>
                         Marker {name}
                     </Typography>
@@ -879,17 +888,21 @@ function ClickPointModal (props) {
                     <ListItemText primary="Generate trending chart" />
                 </ListItem>
                 {
-                    unreliable_data === false ? <ListItem button onClick={hadleSurficialDataTagClick("tag")}>
-                        <ListItemIcon>
-                            <LocalOffer />
-                        </ListItemIcon>
-                        <ListItemText primary="Tag data as unreliable" />
-                    </ListItem> : <ListItem button onClick={hadleSurficialDataTagClick("show")}>
-                        <ListItemIcon>
-                            <Info />
-                        </ListItemIcon>
-                        <ListItemText primary="Show unreliable data information" />
-                    </ListItem>
+                    unreliable_data === false ? (
+                        <ListItem button onClick={hadleSurficialDataTagClick("tag")}>
+                            <ListItemIcon>
+                                <LocalOffer />
+                            </ListItemIcon>
+                            <ListItemText primary="Tag data as unreliable" />
+                        </ListItem>
+                    ) : (
+                        <ListItem button onClick={hadleSurficialDataTagClick("show")}>
+                            <ListItemIcon>
+                                <Info />
+                            </ListItemIcon>
+                            <ListItemText primary="Show unreliable tag info" />
+                        </ListItem>
+                    )
                 }
                 
             </List>
@@ -929,7 +942,7 @@ function SurficialMarkersButton (props) {
                 aria-label="Site markers button group"
                 style={{ marginRight: 6 }}
             >
-                <Button disabled style={{ color: "#000000" }}>Marker Info</Button>
+                <Button disabled style={{ color: "#000000" }}>Marker</Button>
 
                 {
                     has_enough_markers ? (
@@ -1029,11 +1042,11 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
             const { unreliable_data } = series_data_row;
             if (Object.keys(unreliable_data).length !== 0) {
                 const marker = {
-                    symbol: "triangle",
-                    radius: 10,
+                    symbol: "triangle-down",
+                    radius: 8,
                     fillColor: "#FFFF00",
                     lineColor: "#000000",
-                    lineWidth: 2
+                    lineWidth: 1
                 };
                 series_data_row.marker = marker;
             } else {
@@ -1321,7 +1334,7 @@ function SurficialGraph (props) {
             >
                 <Grid container item xs={12} style={{ marginBottom: 16 }}>
                     {
-                        !disable_back && <Grid item sm><BackToMainButton {...props}/></Grid>
+                        !disable_back && <Grid item xs={1} sm={3}><BackToMainButton {...props}/></Grid>
                     }
 
                     <Grid item container xs justify="flex-end">

@@ -270,8 +270,8 @@ export function saveInvalidRainfallTag (input, callback) {
     });
 }
 
-export function saveUnreliableData (input, callback) {
-    const api_link = `${host}/api/surficial/save_unreliable_data`;
+export function saveUnreliableMarkerData (input, callback) {
+    const api_link = `${host}/api/surficial/save_unreliable_marker_data`;
     
     axios.post(api_link, input)
     .then(response => {

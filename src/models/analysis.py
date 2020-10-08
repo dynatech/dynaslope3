@@ -237,7 +237,7 @@ class MarkerData(DB.Model):
 
     marker = DB.relationship("Markers", backref=DB.backref(
         "marker_data", lazy="dynamic"), lazy="select")
-        
+
     marker_observation = DB.relationship(
         "MarkerObservations", backref=DB.backref("marker_data", lazy="subquery"), lazy="select")
 
@@ -805,6 +805,7 @@ def get_rain_table(table_name, schema="senslopedb"):
     model = GenericRainTable
     return model
 
+
 class MarkerDataTags(DB.Model):
     """
     Class representation of marker_data_tags
@@ -823,8 +824,15 @@ class MarkerDataTags(DB.Model):
     remarks = DB.Column(DB.String(250))
 
     marker_data = DB.relationship(
-        "MarkerData", backref=DB.backref("marker_data_tags", lazy="subquery", innerjoin=False, uselist=False),
+        "MarkerData", backref=DB.backref(
+            "marker_data_tags", lazy="subquery",
+            innerjoin=False, uselist=False
+        ),
         lazy="subquery", innerjoin=False, uselist=False)
+    tagger = DB.relationship(
+        "Users", backref=DB.backref("marker_tags", lazy="dynamic"),
+        lazy="joined", innerjoin=True)
+
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> marker_tag_id: {self.marker_tag_id}"
                 f" data_id: {self.data_id} ts: {self.ts}"
@@ -1170,12 +1178,11 @@ class MarkerDataTagsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of MarkerDataTags class
     """
+
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     data_id = fields.Integer()
-    maker_data = fields.Nested(
-        MarkerData, exclude=("marker_observation_report"))
+    tagger = fields.Nested(UsersSchema, exclude=("marker_tags", ))
+
     class Meta:
         """Saves table class structure as schema model"""
         model = MarkerDataTags
-
-

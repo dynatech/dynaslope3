@@ -59,7 +59,8 @@ def get_latest_data_presence(group, item_name="all"):
     elif group == "surficial":
         pass
     else:
-        return "Data group inputs for querying data presence can only be 'rain_gauges', 'surficial', 'tsm' or 'loggers'"
+        return (f"Data group inputs for querying data presence can " +
+                f"only be 'rain_gauges', 'surficial', 'tsm' or 'loggers'")
 
     if group != "surficial":
         query = DB.session.query(table)
