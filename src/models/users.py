@@ -251,7 +251,10 @@ class UsersSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = Users
-        exclude = ["mobile_numbers", "landline_numbers", "account"]
+        exclude = [
+            "mobile_numbers", "landline_numbers", "account",
+            "marker_tags", "rainfall_tags", "issue_and_reminder"
+        ]
 
 
 class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
