@@ -198,7 +198,7 @@ def get_ground_meas_reminder_recipients(site_id):
     return jsonify(data)
 
 
-@CONTACTS_BLUEPRINT.route("/contacts/blocked_numbers", methods=["GET", "POST"])
+@CONTACTS_BLUEPRINT.route("/contacts/get_blocked_numbers", methods=["GET", "POST"])
 def get_all_blocked_numbers():
     """
     Function that gets all blocked numbers

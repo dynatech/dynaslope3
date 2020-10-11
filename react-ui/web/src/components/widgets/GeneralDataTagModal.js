@@ -14,17 +14,23 @@ import { getCurrentUser } from "../sessions/auth";
 import { mobileUserFormatter } from "../communication/chatterbox/MessageList";
 
 function prepareContactPerson (mobileDetails) {
-    let name = mobileDetails.sim_num;
-    const u_details = mobileDetails.user_details;
-    if (u_details !== null) {
-        const formatted_user = mobileUserFormatter(u_details);
-        const { sender: contact_person, orgs } = formatted_user;
+    const { sim_num, users } = mobileDetails;
+    let name = sim_num;
 
-        let org_str = "";
-        orgs.forEach(org => {
-            org_str += `${org} `;
+    if (users.length > 0) {
+        const formatted_users = mobileUserFormatter(users, false);
+        const { sender_arr } = formatted_users;
+        const temp = [];
+        sender_arr.forEach(row => {
+            const { sender, level, inactive } = row;
+            if (!inactive) {
+                const position = level !== null ? `${level} ` : "";
+                temp.push(`${position}${sender}`);
+            }
         });
-        name = org_str + contact_person;
+
+        if (temp.length > 0) name = temp.join(", ");
+        if (temp.length > 1) name += "(shared number)";
     }
     
     return name;
@@ -75,6 +81,8 @@ function GeneralDataTagModal (props) {
         tagObject, mobileDetails, message
     } = props;
 
+    const is_saved_number = mobileDetails.users.length > 0;
+
     const tag_options = useFetchTagOptions(tagOption);
 
     const [tags, update_tags] = useState(null);
@@ -93,11 +101,15 @@ function GeneralDataTagModal (props) {
 
         let contact_person = null;
         const site_id_list = [];
-        if (mobileDetails.user_details !== null) {
-            const user_organizations = mobileDetails.user_details.user.organizations;
-            user_organizations.forEach(org => {
-                const { site: { site_id } } = org;
-                !site_id_list.includes(site_id) && site_id_list.push(site_id);
+        if (is_saved_number) {
+            mobileDetails.users.forEach(row => {
+                const { user } = row;
+
+                const user_organizations = user.organizations;
+                user_organizations.forEach(org => {
+                    const { site: { site_id } } = org;
+                    !site_id_list.includes(site_id) && site_id_list.push(site_id);
+                });
             });
 
             contact_person = prepareContactPerson(mobileDetails);
@@ -197,7 +209,11 @@ function GeneralDataTagModal (props) {
                 }
             </DialogContent>
             <DialogActions>
-                <Button color="primary" onClick={submitTagHandler}>
+                <Button 
+                    color="primary"
+                    onClick={submitTagHandler}
+                    disabled={!is_saved_number}
+                >
                     Submit
                 </Button>
                 <Button onClick={closeHandler}>
