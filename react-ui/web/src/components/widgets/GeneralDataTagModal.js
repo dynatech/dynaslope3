@@ -1,17 +1,26 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
+
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withMobileDialog
+    Button, withMobileDialog, makeStyles,
+    Radio, RadioGroup, FormControlLabel,
+    FormLabel
 } from "@material-ui/core";
+
 import axios from "axios";
 import moment from "moment";
+
+import GeneralStyles from "../../GeneralStyles";
 import SelectMultipleWithSuggest from "../reusables/SelectMultipleWithSuggest";
 import { SlideTransition, FadeTransition } from "../reusables/TransitionList";
 import { host } from "../../config";
 import { handleUpdateInsertTags, handleDeleteTags } from "./ajax";
 import { getCurrentUser } from "../sessions/auth";
 import { mobileUserFormatter } from "../communication/chatterbox/MessageList";
+import DynaslopeSiteSelectInputForm from "../reusables/DynaslopeSiteSelectInputForm";
+
+const useStyles = makeStyles(theme => GeneralStyles(theme));
 
 function prepareContactPerson (mobileDetails) {
     const { sim_num, users } = mobileDetails;
@@ -81,12 +90,35 @@ function GeneralDataTagModal (props) {
         tagObject, mobileDetails, message
     } = props;
 
-    const is_saved_number = mobileDetails.users.length > 0;
+    const classes = useStyles();
 
     const tag_options = useFetchTagOptions(tagOption);
-
     const [tags, update_tags] = useState(null);
     const [orig_tags, setOrigTags] = useState([]);
+    const [has_fyi_tag, setHasFyiTag] = useState(false);
+    const [sites, setSites] = useState(null);
+    const [fyi_purpose, setFyiPurspose] = useState("");
+
+    const is_saved_number = mobileDetails.users.length > 0;
+
+    useEffect(() => {
+        let bool = false;
+        if (tags !== null) bool = tags.some(x => x.label === "#AlertFYI");
+        setHasFyiTag(bool);
+    }, [tags]);
+
+    const [is_disabled, setIsDisabled] = useState(false);
+    useEffect(() => {
+        let bool = false;
+        if (is_saved_number) {
+            if (has_fyi_tag) {
+                if (sites === null || fyi_purpose === "") bool = true;
+            }
+        } else {
+            bool = true;
+        }
+        setIsDisabled(bool);
+    }, [has_fyi_tag, sites, fyi_purpose]);
 
     useEffect(() =>{
         const tag_arr = preparePassedTags(tagObject);
@@ -100,8 +132,8 @@ function GeneralDataTagModal (props) {
         const { id, source, ts } = tagObject;
 
         let contact_person = null;
-        const site_id_list = [];
-        if (is_saved_number) {
+        let site_id_list = [];
+        if (is_saved_number && !has_fyi_tag) {
             mobileDetails.users.forEach(row => {
                 const { user } = row;
 
@@ -113,12 +145,15 @@ function GeneralDataTagModal (props) {
             });
 
             contact_person = prepareContactPerson(mobileDetails);
+        } else if (has_fyi_tag) {
+            site_id_list = sites.map(x => x.value);
         }
+        
         const var_key_id = source === "inbox" ? "inbox_id" : "outbox_id";
 
         // DELETE MISSING TAGS
         let missing_tags = [];
-        console.log(orig_tags, tags);
+        // console.log(orig_tags, tags);
         if (orig_tags.length > 0) {
             if (tags === null) missing_tags = [...orig_tags];
             else {
@@ -127,7 +162,7 @@ function GeneralDataTagModal (props) {
         }
 
         if (missing_tags.length > 0) {
-            console.log("missing_tags", missing_tags);
+            // console.log("missing_tags", missing_tags);
             const delete_tag_id_list = missing_tags.map(tag => {
                 return tag.value;
             });
@@ -147,16 +182,15 @@ function GeneralDataTagModal (props) {
         // ADD NEW TAGS
         let new_tags = [];
         if (tags !== null) new_tags = tags.filter((i => a => a !== orig_tags[i] || !++i)(0));
-
         if (new_tags.length > null) {            
-            console.log("new_tags", new_tags);
+            // console.log("new_tags", new_tags);
             const tag_id_list = new_tags.map(tag => {
                 return tag.value;
             });
             const payload = {
                 tag_type: `sms${source}_user_tags`,
                 contact_person,
-                message,
+                message: has_fyi_tag ? fyi_purpose : message,
                 tag_details: {
                     user_id: getCurrentUser().user_id,
                     [var_key_id]: id,
@@ -184,11 +218,16 @@ function GeneralDataTagModal (props) {
             TransitionComponent={fullScreen ? SlideTransition : FadeTransition}      
         >
             <DialogTitle id="form-dialog-title">
-                General Data Tagging
+                Chatterbox Message Tagging
             </DialogTitle>
             <DialogContent>
                 <DialogContentText>
-                    Attach tags to selected data.
+                    Attach or remove tags to a message.
+                </DialogContentText>
+
+                <DialogContentText className={classes.dyna_error}>
+                    NOTE: You must manually remove any site logs created (if any) 
+                    by a tag when removing a tag to a message.
                 </DialogContentText>
                 
                 <div style={{ margin: "24px 0" }}>
@@ -203,6 +242,35 @@ function GeneralDataTagModal (props) {
                         isMulti
                     />
                 </div>
+                {
+                    has_fyi_tag && <Fragment>
+                        <DialogContentText color="textPrimary">
+                            Alert FYI
+                        </DialogContentText>
+
+                        
+                        <DynaslopeSiteSelectInputForm
+                            value={sites}
+                            changeHandler={value => setSites(value)}
+                            isMulti
+                            required
+                        />
+
+
+                        <FormLabel component="legend" style={{ marginTop: 24 }}>Purpose</FormLabel>
+                        <RadioGroup
+                            aria-label="fyi-purpose"
+                            name="fyi-purpose"
+                            row
+                            style={{ justifyContent: "space-around" }}
+                            value={fyi_purpose}
+                            onChange={e => setFyiPurspose(e.target.value)}
+                        >
+                            <FormControlLabel value="alert raising" control={<Radio />} label="Alert raising" />
+                            <FormControlLabel value="alert lowering" control={<Radio />} label="Alert lowering" />
+                        </RadioGroup>
+                    </Fragment>
+                }
 
                 {
                     !isMobile && <div style={{ height: 240 }} />
@@ -212,7 +280,7 @@ function GeneralDataTagModal (props) {
                 <Button 
                     color="primary"
                     onClick={submitTagHandler}
-                    disabled={!is_saved_number}
+                    disabled={is_disabled}
                 >
                     Submit
                 </Button>
