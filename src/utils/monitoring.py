@@ -2046,8 +2046,8 @@ def get_monitoring_analytics(data):
             mea.pub_sym_id).join(sites).filter(
                 me.event_start.between(
                     start_ts, end_ts)
-                ).filter(mea.pub_sym_id != 1).group_by(
-                    mea.pub_sym_id)
+        ).filter(mea.pub_sym_id != 1).group_by(
+            mea.pub_sym_id)
         if site:
             site_id = inputs["site_id"]
             query = query.filter(sites.site_id == site_id)
@@ -2081,12 +2081,12 @@ def get_monitoring_analytics(data):
             extract("month", mea.ts_start),
             func.count(mea.pub_sym_id).label('number'),
             mea.pub_sym_id).join(me).join(sites).filter(
-                mea.ts_start.between(f"{year}-01-01 00:00:00", f"{year}-12-31 23:59:59")
-            ).filter(mea.pub_sym_id != 1).group_by(
+                mea.ts_start.between(
+                    f"{year}-01-01 00:00:00", f"{year}-12-31 23:59:59")
+        ).filter(mea.pub_sym_id != 1).group_by(
                 extract("month", mea.ts_start)).group_by(mea.pub_sym_id)
 
         if site:
-            print("eqweqwe")
             site_id = inputs["site_id"]
             query = query.filter(sites.site_id == site_id)
 
