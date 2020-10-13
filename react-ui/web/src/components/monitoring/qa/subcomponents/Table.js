@@ -37,8 +37,9 @@ function QATable (props) {
                 case "ewi_sms": 
                     col.options = {
                         ...col.options,
-                        customBodyRender: (value, tableMeta, updateValue) => {
-                            const limit = moment(tableMeta.tableData[tableMeta.rowIndex].ts_limit_start);
+                        customBodyRender: (value, tableMeta) => {
+                            const { tableData, rowIndex } = tableMeta;
+                            const limit = moment(tableData[rowIndex].ts_limit_start);
                             const sent_ts = moment(value);
                             sites_count > 5 ? limit.add(sites_count, "minutes") : limit.add(5, "minutes");
                             if (type === "Lowering") limit.add(15, "minutes");
@@ -55,8 +56,9 @@ function QATable (props) {
                     col.options = {
                         ...col.options,
                         customBodyRender: (value, tableMeta, updateValue) => {
-                            const limit_start = moment(tableMeta.tableData[tableMeta.rowIndex].ts_limit_start).format("YYYY-MM-DD HH:mm:ss");
-                            let limit = moment(tableMeta.tableData[tableMeta.rowIndex].ts_limit_start).add(10, "minutes");
+                            const { tableData, rowIndex } = tableMeta;
+                            const limit_start = moment(tableData[rowIndex].ts_limit_start).format("YYYY-MM-DD HH:mm:ss");
+                            let limit = moment(tableData[rowIndex].ts_limit_start).add(10, "minutes");
                             const sent_ts = moment(value);
                             if (sites_count > 5) limit = limit_start.add((sites_count * 2), "minutes");
                             if (type === "Lowering") limit.add(15, "minutes");
@@ -73,7 +75,8 @@ function QATable (props) {
                     col.options = {
                         ...col.options,
                         customBodyRender: (value, tableMeta, updateValue) => {
-                            const limit_start = moment(tableMeta.tableData[tableMeta.rowIndex].ts_limit_start).format("YYYY-MM-DD HH:mm:ss");
+                            const { tableData, rowIndex } = tableMeta;
+                            const limit_start = moment(tableData[rowIndex].ts_limit_start).format("YYYY-MM-DD HH:mm:ss");
                             const limit = moment(limit_start).add(15, "minutes");
                             const sent_ts = moment(value);
                             // if(sites_count > 5) limit = limit_start.add((sites_count * 2), "minutes");
@@ -90,7 +93,8 @@ function QATable (props) {
                     col.options = {
                         ...col.options,
                         customBodyRender: (value, tableMeta, updateValue) => {
-                            const limit_start = moment(tableMeta.tableData[tableMeta.rowIndex].ts_limit_start).format("YYYY-MM-DD HH:mm:ss");
+                            const { tableData, rowIndex } = tableMeta;
+                            const limit_start = moment(tableData[rowIndex].ts_limit_start).format("YYYY-MM-DD HH:mm:ss");
                             const start_limit = moment(limit_start).subtract(2.5, "hours");
                             const end_limit = moment(limit_start).subtract(2, "hours");
                             const sent_ts = moment(value);

@@ -103,61 +103,11 @@ export default function QAContainer () {
 
     useEffect(() => {
         if (releasesData !== null) {
-            const routineTemp = [];
-            const eventTemp = [];
-            const extendedTemp = [];
-            const loweringTemp = [];
-            const raisingTemp = [];
-            releasesData.forEach((row) => {
-                const {
-                    data_ts: d_ts, event_alert, release_time,
-                    is_sms_sent, is_bulletin_sent, ground_measurement,
-                    ground_data, rainfall_info, fyi, nearest_release_ts
-                } = row;
-                const { event } = event_alert;
-
-                const data_ts = moment(d_ts).format();
-                const { validity, status, site: { site_id, site_code } } = event;
-                const pub_alert_level = event_alert.public_alert_symbol.alert_level;
-                const end_val_data_ts = moment(validity).subtract(30, "minutes")
-                .format();
-                const ts_start = moment(event_alert.ts_start).format();
-                const temp = {
-                    ewi_web_release: release_time,
-                    site_id,
-                    site_name: site_code.toUpperCase(),
-                    ewi_sms: is_sms_sent,
-                    ewi_bulletin_release: is_bulletin_sent,
-                    ground_measurement,
-                    ground_data,
-                    rainfall_info,
-                    fyi_permissio: fyi,
-                    ts_limit_start: nearest_release_ts
-                };
-                // status 1 = Routine , 2 = Event
-                if (status === "1") {
-                    routineTemp.push(temp);                 
-                } 
-                if (status === "2") {
-                    if (end_val_data_ts > data_ts) {
-                        eventTemp.push(temp);
-                    }
-                    if (end_val_data_ts < data_ts) {
-                        extendedTemp.push(temp);
-                    } 
-                    if (end_val_data_ts === data_ts && pub_alert_level === 0) {
-                        loweringTemp.push(temp);
-                    } else if (data_ts === ts_start) {
-                        raisingTemp.push(temp);
-                    }
-                }
-            });
-
-            setRaisingReleases(raisingTemp);
-            setEventReleases(eventTemp);
-            setRoutineReleases(routineTemp);
-            setExtendedReleases(extendedTemp);
-            setLoweringReleases(loweringTemp);
+            if (releasesData.raising.length > 0) setRaisingReleases(releasesData.raising);
+            if (releasesData.event.length > 0)setEventReleases(releasesData.event);
+            if (releasesData.routine.length > 0)setRoutineReleases(releasesData.routine);
+            if (releasesData.extended.length > 0)setExtendedReleases(releasesData.extended);
+            if (releasesData.lowering.length > 0)setLoweringReleases(releasesData.lowering);
             setIsLoading(false);
         }
     }, [releasesData]);

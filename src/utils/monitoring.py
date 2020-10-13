@@ -28,7 +28,6 @@ from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
     round_to_nearest_release_time)
 
-
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
 #####################################################
@@ -385,8 +384,9 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, for_qa
     release_interval_hours = RELEASE_INTERVAL_HOURS
     is_sms_sent = False
     is_bulletin_sent = False
-
-    ground_data = "---"
+    if for_qa:
+        is_sms_sent = "---"
+        is_bulletin_sent = "---"
     fyi = "---"
     rainfall_info = "---"
     ground_meas = "---"
@@ -423,9 +423,6 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, for_qa
             if "Sent surficial ground data reminder" in item.narrative:
                 ground_meas = item_ts
 
-            if "Salamat sa pagpapadala" in item.narrative:
-                ground_data = item_ts
-
             if "FYI" in item.narrative:
                 fyi = item_ts
 
@@ -438,12 +435,10 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, for_qa
     if for_qa:
         final.update({
             "ground_measurement": ground_meas,
-            "ground_data": ground_data,
             "fyi": fyi,
             "rainfall_info": rainfall_info,
             "nearest_release_ts": limit_start.strftime("%Y-%m-%d %H:%M:%S"),
             })
-    
     return final
 
 
@@ -835,7 +830,7 @@ def get_monitoring_releases_by_data_ts(site_code, data_ts):
 
     return return_data
 
-def get_qa_data(ts_start=None, ts_end=None, load_options=None):
+def get_qa_data(ts_start=None, ts_end=None):
     """
     """
     exclude_list = ["moms_releases", "triggers", "release_publishers"]
@@ -844,17 +839,16 @@ def get_qa_data(ts_start=None, ts_end=None, load_options=None):
     base = mr.query.order_by(DB.desc(mr.data_ts)) \
         .order_by(DB.desc(mr.release_time))
     return_data = None
-    ewi_statuses = []
-    if load_options == "quality_assurance":
-        ea_load = DB.joinedload("event_alert", innerjoin=True)
-        base = base.options(
-            ea_load.joinedload("releases", innerjoin=True)
-            .raiseload("*"),
-            ea_load.joinedload("event", innerjoin=True)
-            .joinedload("site", innerjoin=True)
-            .raiseload("*"),
-            ea_load.joinedload("public_alert_symbol", innerjoin=True)
-        )
+
+    ea_load = DB.joinedload("event_alert", innerjoin=True)
+    base = base.options(
+        ea_load.joinedload("releases", innerjoin=True)
+        .raiseload("*"),
+        ea_load.joinedload("event", innerjoin=True)
+        .joinedload("site", innerjoin=True)
+        .raiseload("*"),
+        ea_load.joinedload("public_alert_symbol", innerjoin=True)
+    )
 
     if ts_start and ts_end:
         base = base.filter(DB.and_(
@@ -873,8 +867,22 @@ def get_qa_data(ts_start=None, ts_end=None, load_options=None):
             is_onset_release = True
         sent_status = check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, True)
         result[i].update(sent_status)
+        result[i].update({"ground_data": "YYYY-MM-DD | Markers"})
         i += 1
     return result
+
+
+# def check_ground_data_and_return_noun(site_id, timestamp, hour, minute):
+#     ground_data_noun = get_ground_data_noun(site_id=site_id)
+
+#     if ground_data_noun == "ground measurement":
+#         result = get_sites_with_ground_meas(timestamp,
+#                                             timedelta_hour=hour, minute=minute, site_id=site_id)
+#     else:
+#         result = get_moms_report(timestamp,
+#                                  timedelta_hour=hour, minute=hour, site_id=site_id)
+
+#     return ground_data_noun, result
 
 
 def get_monitoring_releases(
@@ -1612,18 +1620,6 @@ def fix_internal_alert(alert_entry, internal_source_id):
     invalid_triggers = []
     trigger_list_str = None
 
-    # for trigger in trigger_list_arr:
-    #     alert_level = trigger["alert_level"]
-    #     alert_symbol = trigger["alert_symbol"]
-    #     internal_sym_id = trigger["internal_sym_id"]
-    #     trigger_type = trigger["trigger_type"]
-
-    #     try:
-    #         if True:
-    #             print("Oh yes!")
-    #     except Exception as err:
-    #         print(err)
-    #         raise
 
     for trigger in event_triggers:
         alert_symbol = trigger["alert"]
