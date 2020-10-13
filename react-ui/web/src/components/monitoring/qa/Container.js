@@ -1,43 +1,35 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Fragment } from "react";
+
+import {
+    Grid, Button, FormHelperText,
+    CircularProgress, Select, MenuItem,
+    FormControl, Paper
+} from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
-import CssBaseline from "@material-ui/core/CssBaseline";
-import Typography from "@material-ui/core/Typography";
-import { Grid, Button, FormHelperText, CircularProgress, Select,
-    MenuItem, FormControl } from "@material-ui/core";
-import MomentUtils from "@date-io/moment";
 import { MuiPickersUtilsProvider } from "@material-ui/pickers";
-import moment from "moment";
 import ArrowForwardIosIcon from "@material-ui/icons/ArrowForwardIos";
+
+import MomentUtils from "@date-io/moment";
+import moment from "moment";
+
 import { createDateTime } from "../shifts_and_reports/EndOfShiftGenerator";
 import { getMonitoringReleases } from "../ajax";
 import SelectInputForm from "../../reusables/SelectInputForm";
 import GeneralStyles from "../../../GeneralStyles";
+import PageTitle from "../../reusables/PageTitle";
+
 // subComponents
 import Event from "./subcomponents/Event";
 import Lowering from "./subcomponents/Lowering";
 import Extended from "./subcomponents/Extended";
 import Routine from "./subcomponents/Routine";
 import Raising from "./subcomponents/Raising";
-import PageTitle from "../../reusables/PageTitle";
 
-const drawerWidth = 240;
 const useStyles = makeStyles((theme) => ({
     ...GeneralStyles(theme),
     root: {
         display: "flex",
         flexGrow: 1,
-    },
-
-    drawer: {
-        width: drawerWidth,
-        flexShrink: 0,
-    },
-    drawerPaper: {
-        width: drawerWidth,
-        padding: 20,
-    },
-    drawerContainer: {
-        overflow: "auto",
     },
     content: {
         flexGrow: 1,
@@ -46,9 +38,32 @@ const useStyles = makeStyles((theme) => ({
     },
 }));
 
-const TabCompenents = (props) => {
-    const { selectedTab, 
-        eventData, loweringData, extendedData, routineData, raisingData } = props;
+function NoQAData (props) {
+    const { isStart } = props;
+    const is_start = isStart === "undefined" ? false : isStart;
+    let message = "No available data for QA";
+    if (is_start) {
+        message = "Select shift to generate data for QA";
+    }
+    return (
+        <Paper
+            style={{
+                height: "20vh", padding: 60, display: "flex",
+                justifyContent: "center", alignItems: "center",
+                background: "gainsboro", border: "4px solid #CCCCCC"
+            }}
+        >
+            <div>{message}</div>
+        </Paper>
+    );
+}
+
+const TabComponents = (props) => {
+    const { 
+        selectedTab, eventData, loweringData,
+        extendedData, routineData, raisingData 
+    } = props;
+
     const components = [
         <Event releasesData={eventData} {...props}/>,
         <Lowering releasesData={loweringData} {...props}/>,
@@ -58,7 +73,6 @@ const TabCompenents = (props) => {
     ];
     return components[selectedTab];
 };
-
 
 export default function QAContainer () {
     const classes = useStyles();
@@ -88,7 +102,6 @@ export default function QAContainer () {
     };
 
     useEffect(() => {
-
         if (releasesData !== null) {
             const routineTemp = [];
             const eventTemp = [];
@@ -96,24 +109,30 @@ export default function QAContainer () {
             const loweringTemp = [];
             const raisingTemp = [];
             releasesData.forEach((row) => {
-                const data_ts = moment(row.data_ts).format();
-                const { validity, status } = row.event_alert.event;
-                const pub_alert_level = row.event_alert.public_alert_symbol.alert_level;
+                const {
+                    data_ts: d_ts, event_alert, release_time,
+                    is_sms_sent, is_bulletin_sent, ground_measurement,
+                    ground_data, rainfall_info, fyi, nearest_release_ts
+                } = row;
+                const { event } = event_alert;
+
+                const data_ts = moment(d_ts).format();
+                const { validity, status, site: { site_id, site_code } } = event;
+                const pub_alert_level = event_alert.public_alert_symbol.alert_level;
                 const end_val_data_ts = moment(validity).subtract(30, "minutes")
                 .format();
-                const ts_start = moment(row.event_alert.ts_start).format();
+                const ts_start = moment(event_alert.ts_start).format();
                 const temp = {
-                    ewi_web_release: row.release_time,
-                    site_id: row.event_alert.event.site.site_id,
-                    site_name: row.event_alert.event.site.site_code.toUpperCase(),
-                    bulletin_release: row.bulletin_number,
-                    ewi_sms: row.is_sms_sent,
-                    ewi_bulletin_release: row.is_bulletin_sent,
-                    ground_measurement: row.ground_measurement,
-                    ground_data: row.ground_data,
-                    rainfall_info: row.rainfall_info,
-                    fyi_permission: row.fyi,
-                    ts_limit_start: row.nearest_release_ts
+                    ewi_web_release: release_time,
+                    site_id,
+                    site_name: site_code.toUpperCase(),
+                    ewi_sms: is_sms_sent,
+                    ewi_bulletin_release: is_bulletin_sent,
+                    ground_measurement,
+                    ground_data,
+                    rainfall_info,
+                    fyi_permissio: fyi,
+                    ts_limit_start: nearest_release_ts
                 };
                 // status 1 = Routine , 2 = Event
                 if (status === "1") {
@@ -133,6 +152,7 @@ export default function QAContainer () {
                     }
                 }
             });
+
             setRaisingReleases(raisingTemp);
             setEventReleases(eventTemp);
             setRoutineReleases(routineTemp);
@@ -156,19 +176,22 @@ export default function QAContainer () {
     }, [event_releases, routine_releases, lowering_releases, extended_releases, raising_releases]);
 
     return (
-        <div className={classes.pageContentMargin}>
-            <CssBaseline />
-            <PageTitle title="Quality Assurance page"/>
-            <main className={classes.content}>
-                <Grid container spacing={2} >
+        <Fragment>
+            <div className={classes.pageContentMargin}>
+                <PageTitle title="Alert Monitoring | Quality Assurance"/>
+            </div>
+
+            <div className={classes.pageContentMargin}>
+                <Grid container spacing={2}>
                     <MuiPickersUtilsProvider utils={MomentUtils}>
                         <Grid 
                             container
                             justify="space-between"
                             alignContent="center"
                             alignItems="center"
-                            spacing={4}
-                            // style={{ display: hidden ? "none !important" : "" }}
+                            spacing={2}
+                            item xs={12}
+                            style={{ marginBottom: 8 }}
                         >
                             {
                                 [
@@ -196,7 +219,7 @@ export default function QAContainer () {
                                 />
                             </Grid>
 
-                            <Grid item xs={12} sm className={`${classes.inputGridContainer} ${classes.buttonGrid}`}>
+                            <Grid item xs={12} sm align="right">
                                 <Button 
                                     variant="contained"
                                     color="secondary"
@@ -206,12 +229,12 @@ export default function QAContainer () {
                                     Generate 
                                 </Button>
                             </Grid>
-                            
                         </Grid>
                     </MuiPickersUtilsProvider>
+                    
                     { releasesData !== null && releasesData.length !== 0 ? (
-                        <>
-                            <Grid item xs={12} sm style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <Fragment>
+                            <Grid item xs={12} sm container justify="flex-end">
                                 <FormControl>
                                     <Select
                                         value={selectedTab}
@@ -228,8 +251,9 @@ export default function QAContainer () {
                                     <FormHelperText>Select monitoring type to display</FormHelperText>
                                 </FormControl>
                             </Grid>
+                            
                             <Grid item xs={12}>
-                                <TabCompenents 
+                                <TabComponents 
                                     routineData={routine_releases} 
                                     eventData={event_releases}
                                     loweringData={lowering_releases}
@@ -240,26 +264,21 @@ export default function QAContainer () {
                                     selectedTab={selectedTab}
                                 />
                             </Grid>
-                        </>
-                
+                        </Fragment>
                     ) : (
-              
-                        <div className={classes.root} style={{ marginTop: "10%" }}>
-                            <Grid container justify="center">
-                                <Grid item>
-                                    {isLoading ? (
-                                        <CircularProgress/>
-                                    ) : (
-                                        shift_start_ts !== null && releasesData !== null && releasesData.length === 0 ? 
-                                            <Typography>No available data for <strong>{moment(shift_start_ts).format("dddd, MMMM DD, YYYY A")} shift</strong></Typography>
-                                            : <Typography>Select shift</Typography>
-                                    )}
-                                </Grid>
-                            </Grid>
-                        </div>
-                    )
-                    }
+                        <Grid item xs={12} align="center">
+                            {
+                                // eslint-disable-next-line no-nested-ternary
+                                isLoading ? (
+                                    <CircularProgress/>
+                                ) : (
+                                    shift_start_ts !== null && releasesData !== null && releasesData.length === 0 ? 
+                                        <NoQAData /> : <NoQAData isStart />
+                                )
+                            }
+                        </Grid>
+                    ) }
                 </Grid>
-            </main>
-        </div>
+            </div>
+        </Fragment>
     ); }

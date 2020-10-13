@@ -23,9 +23,6 @@ const useStyles = makeStyles(theme => ({
     grow: {
         flexGrow: 1,
     },
-    appBar: {
-        zIndex: theme.zIndex.drawer + 1,
-    },
     menuButton: {
         display: "flex",
         marginLeft: -12,
@@ -105,7 +102,7 @@ function Header (props) {
 
     return (
         <div className={classes.root}>
-            <AppBar position="fixed" color="primary" className={classes.appBar}>
+            <AppBar position="fixed" color="primary">
                 <Toolbar>
                     <IconButton
                         onClick={drawerHandler(true)}

@@ -40,7 +40,7 @@ export function getMonitoringReleases (input, callback) {
     const time = shift_time === "am" ? "08:00:00" : "20:00:00"; 
 
     const moment_start_ts = moment(start_ts).format(`YYYY-MM-DD ${time}`);
-    let moment_end_ts = moment(moment_start_ts).add("hours", 12);
+    let moment_end_ts = moment(moment_start_ts).add(12, "hours");
     moment_end_ts = moment(moment_end_ts).format(`YYYY-MM-DD HH:mm:ss`);
     const api_link = `${host}/api/monitoring/get_monitoring_releases/${moment_start_ts}/${moment_end_ts}/quality_assurance`;
     axios.get(api_link)
