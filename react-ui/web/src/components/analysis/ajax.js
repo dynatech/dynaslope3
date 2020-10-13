@@ -143,6 +143,22 @@ export function getSurfaceNodeHealth (input, callback) {
     });
 }
 
+export function getSubsurfaceNodeLevel (input, callback) {
+    const { subsurface_column, ts_end, ts_start, node_id } = input;
+    console.log("node level input", input);
+    const api_link = `${host}/api/subsurface/get_subsurface_node_level/${subsurface_column}/${ts_end}/${ts_start}/${node_id}`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("Subsurface Node Level Data", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function getEarthquakeEvents (callback) {
     const api_link = `${host}/api/analysis/get_earthquake_events`;
 
@@ -247,6 +263,20 @@ export function saveInvalidRainfallTag (input, callback) {
     .then(response => {
         const { data } = response;
         console.log("Save tag information", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function saveUnreliableMarkerData (input, callback) {
+    const api_link = `${host}/api/surficial/save_unreliable_marker_data`;
+    
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save unreliable data", data);
         callback(data);
     })
     .catch(error => {

@@ -10,7 +10,8 @@ import {
 import { isWidthUp } from "@material-ui/core/withWidth";
 import {
     CallReceived, CallMade, MoreVert,
-    Cancel, RadioButtonUnchecked, CheckCircle
+    Cancel, RadioButtonUnchecked, CheckCircle,
+    MobileOff
 } from "@material-ui/icons";
 
 import moment from "moment";
@@ -37,14 +38,27 @@ const useStyles = makeStyles(theme => ({
     sentIcon: { fontSize: "1.10rem" }
 }));
 
-export function mobileUserFormatter (user_details) {
-    const { user } = user_details;
-    const { first_name, last_name, organizations } = user;
+export function mobileUserFormatter (users) {
+    const sender_arr = [];
+    let orgs_arr = [];
 
-    const sender = `${first_name} ${last_name}`;
-    const orgs = getUserOrganizations(organizations);
+    users.forEach(row => {
+        const { user, status } = row;
+        const { first_name, last_name, organizations } = user;
+        const sender = `${first_name} ${last_name}`;
+        const orgs = getUserOrganizations(organizations);
+        if (users.length === 1) orgs_arr = [...orgs];
+        let org = sender;
+        let level = null;
+        if (orgs.length > 0) {
+            org = `${orgs[0].toUpperCase()}: ${orgs.slice(1).join(", ")}`;
+            level = orgs[0];
+        }
+        
+        sender_arr.push({ sender, org, level, inactive: !status });
+    });
 
-    return { sender, orgs };
+    return { sender_arr, orgs_arr };
 }
 
 function returnTS (ts_received) {
@@ -104,21 +118,22 @@ function SecondaryInformation (classes, first_message) {
     );
 }
 
-function MessageListItem (row, props, openOptionsModal) {
+// eslint-disable-next-line max-params
+function MessageListItem (row, props, openOptionsModal, index) {
     const { messages, mobile_details } = row;
     const [first_message] = messages;
     const { classes, url, width, async, is_desktop, searchFilters } = props;
 
-    const { mobile_id, sim_num, user_details } = mobile_details;
+    const { mobile_id, sim_num, users } = mobile_details;
     const sim_number = simNumFormatter(sim_num);
-    let sender = sim_number;
+    let senders = [{ sender: sim_number, org: sim_number, inactive: false }];
     let orgs = [];
 
-    const is_unknown = user_details === null;
+    const is_unknown = users.length === 0; // users === null;
     if (!is_unknown) {
-        const { sender: s, orgs: o } = mobileUserFormatter(user_details);
-        sender = s;
-        orgs = o;
+        const { sender_arr, orgs_arr } = mobileUserFormatter(users);
+        senders = sender_arr;
+        orgs = orgs_arr;
     }
 
     let search_filters = null;
@@ -133,6 +148,10 @@ function MessageListItem (row, props, openOptionsModal) {
         openOptionsModal(is_unknown, mobile_details);
     };
 
+    const InactiveIcon = <MobileOff
+        style={{ color: "red", marginRight: 6 }}
+        fontSize="small" titleAccess="Inactive number"/>;
+
     return (
         <Link 
             to={{
@@ -141,12 +160,12 @@ function MessageListItem (row, props, openOptionsModal) {
                     async, search_filters
                 }
             }} 
-            key={mobile_id} 
+            key={`${index}-${mobile_id}`} 
             className={classes.link}
         >
             <ListItem alignItems="center" button>
                 <ListItemAvatar>
-                    <Avatar alt={sender} src={GenericAvatar} className={classes.bigAvatar} />
+                    <Avatar alt="User" src={GenericAvatar} className={classes.bigAvatar} />
                 </ListItemAvatar>
                 <ListItemText
                     primary={
@@ -154,12 +173,25 @@ function MessageListItem (row, props, openOptionsModal) {
                             <Grid item xs className={classes.noFlexGrow}>
                                 <Typography 
                                     variant="body1" 
-                                    style={{ marginRight: 8 }}
                                     className={classes.overflowEllipsis}
+                                    component="div"
+                                    style={{ display: "flex", alignItems: "center" }}
                                 >
-                                    {sender}
+                                    {senders.map((row, i) => {
+                                        return (
+                                            <Fragment key={`${row.sender}-${mobile_id}`}>
+                                                {senders.length > 1 && row.inactive && InactiveIcon}
+                                                <span title={row.org} 
+                                                    style={{ paddingRight: 4 }}
+                                                >
+                                                    {row.sender}{i < senders.length - 1 && ","}
+                                                </span>
+                                            </Fragment>
+                                        );
+                                    })}
                                 </Typography>
                             </Grid>
+                            
                             {
                                 orgs.map((x, i) => {
                                     const color = i === 0 ? "secondary" : "primary";
@@ -170,10 +202,16 @@ function MessageListItem (row, props, openOptionsModal) {
                                     );
                                 })
                             }
+
                             <Grid 
-                                item xs={6} sm 
-                                style={{ textAlign: isWidthUp("sm", width) ? "right" : "left" }}
+                                item xs={6} sm
+                                container justify={isWidthUp("sm", width) ? "flex-end" : "flex-start"}
+                                alignItems="center"
                             >
+                                {
+                                    (senders.length === 1 && senders[0].inactive) && InactiveIcon
+                                }
+
                                 <Typography 
                                     variant="subtitle2" 
                                     color="textSecondary"
@@ -251,7 +289,7 @@ function MessageList (comp_props) {
                 ) : (
                     <List dense className={ hidden ? classes.hidden : "" }>
                         {
-                            messagesArr.map(row => MessageListItem(row, props, openOptionsModal))
+                            messagesArr.map((row, index) => MessageListItem(row, props, openOptionsModal, index))
                         }
                     </List>
                 )

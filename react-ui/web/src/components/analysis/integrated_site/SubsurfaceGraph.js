@@ -3,7 +3,10 @@ import React, {
     useRef, createRef
 } from "react";
 
-import { Grid, Paper, Hidden } from "@material-ui/core";
+import {
+    Grid, Paper, Hidden, Dialog, Button,
+    DialogActions, DialogContent, LinearProgress
+} from "@material-ui/core";
 import { isWidthDown } from "@material-ui/core/withWidth";
 
 import Highcharts from "highcharts";
@@ -14,7 +17,7 @@ import heatmap from "highcharts/modules/heatmap.src";
 import * as moment from "moment";
 import Chroma from "chroma-js";
 
-import { getSubsurfacePlotData, saveChartSVG, getSurfaceNodeHealth } from "../ajax";
+import { getSubsurfacePlotData, saveChartSVG, getSurfaceNodeHealth, getSubsurfaceNodeLevel } from "../ajax";
 import BackToMainButton from "./BackToMainButton";
 import DateRangeSelector from "./DateRangeSelector";
 import { computeForStartTs } from "../../../UtilityFunctions";
@@ -258,7 +261,6 @@ function prepareDisplacementChartOption (set_data, form) {
     const { orientation, data, annotations } = set_data;
     const { subsurface_column, ts_end } = form;
     const xAxisTitle = orientation === "across_slope" ? "Across Slope" : "Downslope";
-
     return {
         series: data,
         chart: {
@@ -432,9 +434,13 @@ function plotNodeHealth (column_data, type) {
     return node_health_data;       
 }
 
-function prepareNodeHealthSummaryChartOption (data, form) {
+// eslint-disable-next-line max-params
+function prepareNodeHealthSummaryChartOption (data, form, setNodeLevelChart, callback) {
     const { subsurface_column } = form;
     const divisor = Math.floor(data.length / 25);
+
+    const subtitle = `As of: <b>${moment().format("D MMM YYYY, HH:mm")}</b><br>` +
+    `Note: <b>Click a box to access node-level charts.</b><br>`;
     
     return {
         series: [{
@@ -452,18 +458,30 @@ function prepareNodeHealthSummaryChartOption (data, form) {
                     return `${this.point.id}`;
                 }
             },
-           
+            events: {
+                click (series, event) {
+                    handleSelectedNode(series.point.id, form, data => {
+                        callback(data);
+                    });
+                    setNodeLevelChart(true);
+                }            
+            },
         }],
         chart: {
             type: "heatmap",
-            height: 140 + (divisor * 20),
-            marginTop: 50,
+            height: 160 + (divisor * 20),
+            marginTop: 70,
             marginBottom: 40,
             resetZoomButton: {
                 position: {
                     x: 0,
                     y: -30
                 }
+            },
+        },
+        plotOptions: {
+            series: {
+                cursor: "pointer"
             }
         },
         title: {
@@ -471,8 +489,8 @@ function prepareNodeHealthSummaryChartOption (data, form) {
             style: { fontSize: "14px" }
         },
         subtitle: {
-            text: `As of: <b>${moment().format("D MMM YYYY, HH:mm")}</b><br>`,
-            style: { fontSize: "0.6rem" }
+            text: subtitle,
+            style: { fontSize: "0.75rem" }
         },
         xAxis: {
             visible: false,
@@ -530,6 +548,166 @@ function prepareNodeHealthSummaryChartOption (data, form) {
     };
 }
 
+function hideByDefaultRawSeries (series) {
+    const new_series = [];
+    series.forEach(row =>{
+        const temp = {
+            x: row.data[0],
+            y: row.data[1],
+            name: row.data[2]
+        };
+        if (row.name.includes("Raw")) row.visible = false;
+        new_series.push({ ...row, name: row.name, data: temp });
+    });
+    series.data = [...new_series];
+    return series;
+}
+
+function plotNodeLevelCharts (subsurface_node_data, input) {
+    const chartOptions = [];
+    subsurface_node_data.forEach((series) => {
+        const { series_name, data: nodes } = series;
+        const final_series = [];
+        nodes.forEach((node_arr) => {
+            const { series: node_series, } = node_arr;
+            final_series.push(...hideByDefaultRawSeries(node_series));
+        });
+        chartOptions.push(createGeneralNodeChart(series_name, final_series, input));
+    });
+    return chartOptions;
+}
+
+function createGeneralNodeChart (series_name, data, input) {
+    const { subsurface_column, ts_start, ts_end, node_id } = input;
+    const cap = series_name === "battery" ? 1 : 3;
+    const title = series_name.slice(0, cap).toUpperCase() + series_name.slice(cap);
+    
+    return {
+        series: data,
+        chart: {
+            type: "line",
+            zoomType: "x",
+            panning: true,
+            panKey: "shift",
+            height: 400,
+        },
+        title: {
+            // style: { fontSize: "0" },
+            text: `<b>${title} Plot of ${subsurface_column.toUpperCase()}</b>`,
+            style: { fontSize: "10px" },
+            margin: 20,
+            y: 16
+        },
+        subtitle: {
+            text: `Source: <b>Node ${node_id}</b><br/>As of: <b>${moment(ts_start).format("D MMM YYYY, HH:mm")} - ${moment(ts_end).format("D MMM YYYY, HH:mm")}</b>`,
+            style: { fontSize: "9px" }
+        },
+        xAxis: {
+            min: Date.parse(ts_start),
+            max: Date.parse(ts_end),
+            type: "datetime",
+            dateTimeLabelFormats: {
+                month: "%e. %b %Y",
+                year: "%Y"
+            },
+            title: {
+                text: "<b>Date</b>"
+            }
+        },
+        yAxis: {
+            title: {
+                text: "<b>Value</b>"
+            }
+        },
+        tooltip: {
+            crosshairs: true,
+            shared: true
+        },
+        plotOptions: {
+            series: {
+                marker: {
+                    radius: 3
+                },
+                cursor: "pointer"
+            }
+        },
+        legend: {
+            itemStyle: {
+                fontSize: "10px"
+            },
+            layout: "vertical",
+            align: "right",
+            verticalAlign: "middle",
+            borderWidth: 0
+        },
+        credits: {
+            enabled: false
+        }
+    };
+}
+
+function NodeLevelChart (props) {
+    const { show, setNodeLevelChart, data, setData } = props;
+    const handleClose = () => {
+        setNodeLevelChart(false);
+        setData(null);
+    };
+    return (
+        <div >
+            <Dialog
+                open={show}
+                onClose={handleClose}
+                maxWidth="lg"
+                fullWidth
+            >
+                <Grid container justify="center" alignItems="center" alignContent="center">
+                    <Grid item xs={12}>
+                        { data !== null ? (
+                            <div>
+                                <DialogContent>
+                                    {
+                                        data.map((option, i) => {
+                                            const chart_update = true;
+                                            return (
+                                                <Grid item xs={12} md={12} key={i}>
+                                                    <Paper>
+                                                        <HighchartsReact
+                                                            highcharts={Highcharts}
+                                                            options={option}
+                                                            allowChartUpdate={chart_update}
+                                                        />
+                                                    </Paper>
+                                                </Grid>
+                                            );
+                                        })
+                                    }
+                                </DialogContent>
+                                <DialogActions>
+                                    <Button onClick={handleClose} color="secondary" autoFocus>
+                                        Close
+                                    </Button>
+                                </DialogActions>
+                            </div>
+                        ) :
+                            (
+                                <LinearProgress />
+                            )
+                        }
+                    </Grid>
+                </Grid>
+            </Dialog>
+        </div>
+    );
+}
+
+async function handleSelectedNode (node_id, form, callback) {
+    const input = { ...form, node_id };
+    getSubsurfaceNodeLevel(input, data => {
+        const returned_data = plotNodeLevelCharts(data, input);
+        callback(returned_data);
+    });
+}
+
 function SubsurfaceGraph (props) {
     const {
         match: { params: { tsm_sensor: sensor } },
@@ -580,6 +758,8 @@ function SubsurfaceGraph (props) {
     const [options, setOptions] = useState([{ title: { text: "Loading" } }]);
     const [node_health_option, setNodeHealthOption] = useState(null);
     const [comms_health_option, setCommsHealthOption] = useState(null);
+    const [node_level_chart, setNodeLevelChart] = useState(false);
+    const [node_level_data, setNodeLevelData] = useState(null);
 
     useEffect(() => { 
         setProcessedData([]);
@@ -622,7 +802,9 @@ function SubsurfaceGraph (props) {
     useEffect(() => {
         getSurfaceNodeHealth(input, data => {
             const raw = plotNodeHealth(data);
-            const option = prepareNodeHealthSummaryChartOption(raw, input);
+            const option = prepareNodeHealthSummaryChartOption(raw, input, setNodeLevelChart, result => {
+                setNodeLevelData(result);
+            });
             setNodeHealthOption(option);
         });
     }, []);
@@ -660,6 +842,12 @@ function SubsurfaceGraph (props) {
 
     return (
         <Fragment>
+            <NodeLevelChart 
+                show={node_level_chart} 
+                setNodeLevelChart={setNodeLevelChart}
+                data={node_level_data}
+                setData={setNodeLevelData}
+            />
             <Grid container spacing={1} justify="space-between">
                 {
                     !disable_back && <Grid item sm><BackToMainButton 
@@ -733,7 +921,6 @@ function SubsurfaceGraph (props) {
                         options.map((option, i) => {
                             const chart_update = true;
                             const ref = chartRefs.current[i];
-                            
                             return (
                                 <Grid item xs={12} md={6} key={i}>
                                     <Paper>

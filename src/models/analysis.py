@@ -237,6 +237,7 @@ class MarkerData(DB.Model):
 
     marker = DB.relationship("Markers", backref=DB.backref(
         "marker_data", lazy="dynamic"), lazy="select")
+
     marker_observation = DB.relationship(
         "MarkerObservations", backref=DB.backref("marker_data", lazy="subquery"), lazy="select")
 
@@ -446,7 +447,7 @@ class TSMSensors(DB.Model):
     site_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['commons_db']}.sites.site_id"), nullable=False)
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.loggers.logger_id"), nullable=False)
+        f"{SCHEMA_DICT['commons_db']}.loggers.logger_id"), nullable=False)
     date_activated = DB.Column(DB.Date)
     date_deactivated = DB.Column(DB.Date)
     segment_length = DB.Column(DB.Float)
@@ -522,9 +523,8 @@ class Accelerometers(DB.Model):
         return (f"Type <{self.__class__.__name__}> ACCELEROMETER: {self.accel_id}"
                 f" TSM ID: {self.tsm_id} Node ID: {self.node_id}"
                 f" accel_number: {self.accel_number} ts_updated: {self.ts_updated}"
-                f"voltage_max: {self.voltage_max} voltage_min: {self.voltage_min}"
-                f"inUse: {self.in_use}"
-                )
+                f" voltage_max: {self.voltage_max} voltage_min: {self.voltage_min}"
+                f" inUse: {self.in_use}")
 
 
 class NodeAlerts(DB.Model):
@@ -563,7 +563,7 @@ class Loggers(DB.Model):
     """
 
     __tablename__ = "loggers"
-    __bind_key__ = "senslopedb"
+    __bind_key__ = "commons_db"
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     logger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
@@ -575,7 +575,7 @@ class Loggers(DB.Model):
     latitude = DB.Column(DB.Float)
     longitude = DB.Column(DB.Float)
     model_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.logger_models.model_id"), nullable=False)
+        f"{SCHEMA_DICT['commons_db']}.logger_models.model_id"), nullable=False)
 
     site = DB.relationship("Sites", backref=DB.backref(
         "loggers", lazy="dynamic"))
@@ -592,7 +592,7 @@ class LoggerModels(DB.Model):
     """
 
     __tablename__ = "logger_models"
-    __bind_key__ = "senslopedb"
+    __bind_key__ = "commons_db"
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     model_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
@@ -710,7 +710,7 @@ class DataPresenceLoggers(DB.Model):
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['senslopedb']}.loggers.logger_id"), primary_key=True)
+        f"{SCHEMA_DICT['commons_db']}.loggers.logger_id"), primary_key=True)
     presence = DB.Column(DB.Integer)
     last_data = DB.Column(DB.DateTime)
     ts_updated = DB.Column(DB.DateTime)
@@ -804,6 +804,39 @@ def get_rain_table(table_name, schema="senslopedb"):
 
     model = GenericRainTable
     return model
+
+
+class MarkerDataTags(DB.Model):
+    """
+    Class representation of marker_data_tags
+    """
+
+    __tablename__ = "marker_data_tags"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    marker_tag_id = DB.Column(DB.Integer, primary_key=True)
+    data_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.marker_data.data_id"))
+    ts = DB.Column(DB.DateTime)
+    tagger_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['commons_db']}.users.user_id"))
+    remarks = DB.Column(DB.String(250))
+
+    marker_data = DB.relationship(
+        "MarkerData", backref=DB.backref(
+            "marker_data_tags", lazy="subquery",
+            innerjoin=False, uselist=False
+        ),
+        lazy="subquery", innerjoin=False, uselist=False)
+    tagger = DB.relationship(
+        "Users", backref=DB.backref("marker_tags", lazy="dynamic"),
+        lazy="joined", innerjoin=True)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> marker_tag_id: {self.marker_tag_id}"
+                f" data_id: {self.data_id} ts: {self.ts}"
+                f" tagger_id: {self.tagger_id} remarks: {self.remarks}")
 
 #############################
 # End of Class Declarations #
@@ -953,6 +986,8 @@ class MarkerDataSchema(MARSHMALLOW.ModelSchema):
     """
 
     # marker = fields.Nested("Markers", exclude=("marker_data",))
+    marker_data_tags = fields.Nested(
+        "Marker_data_tags", exclude=("marker_data",))
     marker_observation_report = fields.Nested(
         "MarkerObservationsSchema", exclude=("marker_data",))
 
@@ -1137,3 +1172,17 @@ class DataPresenceLoggersSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = DataPresenceLoggers
+
+
+class MarkerDataTagsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of MarkerDataTags class
+    """
+
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    data_id = fields.Integer()
+    tagger = fields.Nested(UsersSchema, exclude=("marker_tags", ))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MarkerDataTags
