@@ -37,13 +37,15 @@ const useStyles = makeStyles(theme => ({
 }));
 
 function LoggersList (props) {
-    const { selectedLogger, onLoggerClickFn } = props;
+    const {
+        selectedLogger, onLoggerClickFn,
+        reloadList, loggers, setLoggers,
+        setReloadList } = props;
     const classes = useStyles();
 
-    const [loggers, setLoggers] = useState([]);
     const [loggers_list, setLoggersList] = useState([]);
     const [search_str, setSearchStr] = useState(null);
-
+    
     useEffect(() => {
         getLoggersAndSensorsData(data => {
             const { loggers: temp_l, rain_gauges } = data;
@@ -58,10 +60,30 @@ function LoggersList (props) {
 
             setLoggers(temp_l);
             setLoggersList(temp_l);
-
             if (temp_l.length > 0) onLoggerClickFn(temp_l[0])();
+            
         });
     }, []);
+
+    useEffect(() => {
+        if (reloadList) {
+            setTimeout(() => { 
+                getLoggersAndSensorsData(data => {
+                    const { loggers: temp_l, rain_gauges } = data;
+                    temp_l.forEach(x => {
+                        const { logger_model: { has_rain }, logger_name } = x;
+    
+                        if (has_rain) {
+                            const rg = rain_gauges.find(y=> y.gauge_name === logger_name);
+                            x.rain_gauge = rg || null;
+                        }
+                    });
+                    setLoggers(temp_l);
+                });
+                setReloadList(false); 
+            }, 1000);
+        }
+    }, [reloadList]);
 
     useEffect(() => {
         if (search_str !== null) {

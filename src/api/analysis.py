@@ -8,10 +8,13 @@ from connection import DB
 from config import APP_CONFIG
 from src.models.analysis import (
     DataPresenceRainGauges, DataPresenceRainGaugesSchema,
-    RainfallGauges, TSMSensors, Loggers,
-    DataPresenceTSM, DataPresenceTSMSchema,
+    RainfallGauges, DataPresenceTSM, DataPresenceTSMSchema,
     DataPresenceLoggers, DataPresenceLoggersSchema,
-    EarthquakeEvents, EarthquakeEventsSchema)
+    EarthquakeEvents, EarthquakeEventsSchema,
+    TSMSensors, TSMSensorsSchema)
+from src.models.loggers import (
+    Loggers, LoggersSchema
+)
 from src.utils.surficial import get_surficial_data_presence
 from src.utils.chart_rendering import render_charts
 from src.utils.rainfall import get_all_site_rainfall_data

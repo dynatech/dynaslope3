@@ -67,7 +67,7 @@ function sanitizeData (data) {
             }
 
             if (moment.isMoment(value)) {
-                temp_value = value.format("YYYY-MM-DD HH:mm:ss");
+                temp_value = value.format("YYYY-MM-DD");
             }
     
             temp_bank[key] = temp_value;
@@ -220,7 +220,7 @@ const personnel_list = [
 ];
 
 function AddLoggerForm (props) {
-    const { setIsAddLogger } = props;
+    const { setIsAddLogger, setReloadList } = props;
     const initial_data = {
         site: "", 
         logger_name: "",
@@ -294,12 +294,21 @@ function AddLoggerForm (props) {
 
     const save_deployment_data = () => {
         const cleaned_data = sanitizeData(deployment_data);
+        cleaned_data.date_installed = moment(cleaned_data.date_installed).format("YYYY-MM-DD");
+        const { installed_sensors } = cleaned_data;
+
+        if (installed_sensors.includes("tilt")) {
+            cleaned_data.tilt.date_activated = moment(cleaned_data.tilt.date_activated).format("YYYY-MM-DD");
+        }
+        
         console.log(cleaned_data);
         saveLoggerDeployment(cleaned_data, data => {
             const { status, message } = data;
             let variant;
             if (status) {
                 variant = "success";
+                setIsAddLogger(false);
+                setReloadList(true);
             } else {
                 variant = "error";
             }

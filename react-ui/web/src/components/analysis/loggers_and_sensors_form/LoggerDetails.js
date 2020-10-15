@@ -41,12 +41,17 @@ function TextMaskCustom (props) {
 
 function RainSection (props) {
     const { rainGauge, saveUpdate } = props;
-    const { date_activated, date_deactivated } = rainGauge;
+    const { date_activated, date_deactivated, rain_id } = rainGauge;
     const [is_edit, setIsEdit] = useState(false);
-    const [date_deact, setDateDeact] = useState({
+    const initial_data = {
         value: date_deactivated, helper_text: null
-    });
-
+    };
+    const [date_deact, setDateDeact] = useState(initial_data);
+    
+    useEffect(() => {
+        setDateDeact(initial_data);
+    }, [rainGauge]);
+    
     const updateDeact = value => {
         let helper_text = "";
         if (value === null) helper_text = "Required field";
@@ -59,13 +64,14 @@ function RainSection (props) {
     const save = () => {
         setIsEdit(false);
         const updated_data = {
-            date_deactivated: date_deact.value.format("YYYY-MM-DD HH:mm:ss"),
-            section: "rain"
+            date_deactivated: date_deact.value.format("YYYY-MM-DD"),
+            section: "rain",
+            rain_id
         };
         saveUpdate(updated_data);
     };
 
-    const deact = date_deactivated ? moment(date_deactivated).format("DD MMMM YYYY") : "---";
+    const deact = date_deact.value ? moment(date_deact.value).format("DD MMMM YYYY") : "---";
 
     return <Card variant="outlined">
         <CardContent component={Grid} container spacing={2}>
@@ -137,12 +143,17 @@ function TiltSection (props) {
     const { tsmSensor, saveUpdate } = props;
     const {
         date_activated, date_deactivated, version,
-        number_of_segments, segment_length
+        number_of_segments, segment_length, tsm_id
     } = tsmSensor;
     const [is_edit, setIsEdit] = useState(false);
-    const [date_deact, setDateDeact] = useState({
+    const initial_data = {
         value: date_deactivated, helper_text: null
-    });
+    };
+    const [date_deact, setDateDeact] = useState(initial_data);
+
+    useEffect(() => {
+        setDateDeact(initial_data);
+    }, [tsmSensor]);
 
     const updateDeact = value => {
         let helper_text = "";
@@ -156,13 +167,14 @@ function TiltSection (props) {
     const save = () => {
         setIsEdit(false);
         const updated_data = {
-            date_deactivated: date_deact.value.format("YYYY-MM-DD HH:mm:ss"),
-            section: "tilt"
+            date_deactivated: date_deact.value.format("YYYY-MM-DD"),
+            section: "tilt",
+            tsm_id
         };
         saveUpdate(updated_data);
     };
 
-    const deact = date_deactivated ? moment(date_deactivated).format("DD MMMM YYYY") : "---";
+    const deact = date_deact.value ? moment(date_deact.value).format("DD MMMM YYYY") : "---";
 
     return <Card variant="outlined">
         <CardContent component={Grid} container spacing={2}>
@@ -256,7 +268,6 @@ function AccelerometersSection (props) {
     const {
         version, accelerometers
     } = tsmSensor;
-
     return <Card variant="outlined">
         <CardContent component={Grid} container spacing={2}>
             <Typography variant="subtitle1" display="block" component={Grid} item xs={12}>
@@ -287,6 +298,7 @@ function IndividualAccelerometers (props) {
         in_use: Boolean(in_use),
         voltage_max,
         voltage_min,
+        date_updated,
         ...default_flag
     });
 
@@ -301,7 +313,7 @@ function IndividualAccelerometers (props) {
 
     const is_disabled = Object.keys(data).some(x => data[x] === "");
 
-    const update_ts = date_updated !== null ? moment(date_updated).format("DD MMMM YYYY, HH:mm:ss") : "---";
+    const update_ts = data.date_updated !== null ? moment(data.date_updated).format("DD MMMM YYYY") : "---";
     const get_status = stat => {
         if (stat === 2) return "Use with caution";
         if (stat === 3) return "Special case";
@@ -311,6 +323,7 @@ function IndividualAccelerometers (props) {
 
     const save = () => {
         setIsEdit(false);
+        const ts_updated = moment().format("YYYY-MM-DD");
         const updated_data = {
             ...data,
             section: "accelerometers",
@@ -318,7 +331,8 @@ function IndividualAccelerometers (props) {
             node_id,
             tsm_id,
             has_new_status: add_flag,
-            flagger: getCurrentUser()
+            flagger: getCurrentUser(),
+            ts_updated
         };
         saveUpdate(updated_data);
     };
@@ -339,21 +353,21 @@ function IndividualAccelerometers (props) {
                     item xs={12} sm={4} md={6} lg={2}
                     variant="body1" align="center"
                 >
-                    <strong>Active:</strong> {in_use ? "Yes" : "No"}
+                    <strong>Active:</strong> {data.in_use ? "Yes" : "No"}
                 </Typography>
 
                 <Typography component={Grid}
                     item xs={12} sm={4} md={6} lg={3}
                     variant="body1" align="center"
                 >
-                    <strong>Min Voltage:</strong> {voltage_min}
+                    <strong>Min Voltage:</strong> {data.voltage_min}
                 </Typography>
 
                 <Typography component={Grid}
                     item xs={12} sm={4} md={6} lg={3}
                     variant="body1" align="center"
                 >
-                    <strong>Max Voltage:</strong> {voltage_max}
+                    <strong>Max Voltage:</strong> {data.voltage_max}
                 </Typography>
 
                 <Typography component={Grid}
@@ -383,7 +397,7 @@ function IndividualAccelerometers (props) {
                             item xs={12} sm={12} md={6} lg={4}
                             variant="body1" align="center"
                         >
-                            <strong>Timestamp:</strong> {moment(status[0].ts_flagged).format("DD MMMM YYYY, HH:mm:ss")}
+                            <strong>Timestamp:</strong> {moment(status[0].ts_flagged).format("DD MMMM YYYY")}
                         </Typography>
 
                         <Typography component={Grid}
@@ -521,22 +535,22 @@ function MainSection (props) {
     const { selectedLogger, saveUpdate } = props;
     const {
         date_activated, date_deactivated, latitude,
-        longitude, logger_mobile: { sim_num },
+        longitude, logger_id, logger_mobile: { sim_num, mobile_id },
         logger_model: { logger_type }
     } = selectedLogger;
 
     const { conformedValue: conformed_sim } = conformToMask(sim_num, conforming_mobile_mask);
-
+    const initial_value = {
+        date_deactivated: { value: date_deactivated, helper_text: "", required: false },
+        logger_number: { value: conformed_sim, helper_text: "", required: true },
+        latitude: { value: latitude, helper_text: "", required: true },
+        longitude: { value: longitude, helper_text: "", required: true }
+    };
     const [is_edit, setIsEdit] = useState(false);
-    const [data, setData] = useState({});
+    const [data, setData] = useState(initial_value);
 
     useEffect(() => {
-        setData({
-            date_deactivated: { value: date_deactivated, helper_text: "", required: false },
-            logger_number: { value: conformed_sim, helper_text: "", required: true },
-            latitude: { value: latitude, helper_text: "", required: true },
-            longitude: { value: longitude, helper_text: "", required: true }
-        });
+        setData(initial_value);
     }, [selectedLogger]);
 
     const update = (field, value) => {
@@ -571,15 +585,17 @@ function MainSection (props) {
         Object.keys(data).forEach(key => {
             const { value } = data[key];
             let val = value;
-            if (moment.isMoment(value)) val = value.format("YYYY-MM-DD HH:mm:ss");
+            if (moment.isMoment(value)) val = value.format("YYYY-MM-DD");
             if (key === "logger_number") val = value.replace(/[()+-\s]/g, "");
             updated_data[key] = val;
         });
         updated_data.section = "loggers";
+        updated_data.mobile_id = mobile_id;
+        updated_data.logger_id = logger_id;
         saveUpdate(updated_data);
     };
 
-    const deact = date_deactivated ? moment(date_deactivated).format("DD MMMM YYYY") : "---";
+    const deact = data.date_deactivated.value ? moment(data.date_deactivated.value).format("DD MMMM YYYY") : "---";
 
     return (
         <Card variant="outlined">
@@ -614,21 +630,21 @@ function MainSection (props) {
                         item xs={12} sm={6} lg={4}
                         variant="body1" align="center"
                     >
-                        <strong>Logger number:</strong> +{sim_num}
+                        <strong>Logger number:</strong> +{data.logger_number.value}
                     </Typography>
 
                     <Typography component={Grid}
                         item xs={12} sm={6} lg={4}
                         variant="body1" align="center"
                     >
-                        <strong>Latitude:</strong> {latitude}
+                        <strong>Latitude:</strong> {data.latitude.value}
                     </Typography>
 
                     <Typography component={Grid}
                         item xs={12} sm={6} lg={4}
                         variant="body1" align="center"
                     >
-                        <strong>Longitude:</strong> {longitude}
+                        <strong>Longitude:</strong> {data.longitude.value}
                     </Typography>
                 </Fragment>}
 
@@ -723,12 +739,11 @@ function MainSection (props) {
 }
 
 function LoggerDetails (props) {
-    const { selectedLogger } = props;
+    const { selectedLogger, setReloadList } = props;
     const {
         logger_name, logger_model: {
-            has_rain, has_tilt,
-            has_soms, has_piezo
-        }, tsm_sensor, rain_gauge, piezo, soms
+            has_rain, has_tilt
+        }, tsm_sensor, rain_gauge
     } = selectedLogger;
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -743,26 +758,32 @@ function LoggerDetails (props) {
     };
 
     const save_update = updated_data => {
+        // eslint-disable-next-line no-param-reassign
+        updated_data.has_rain = has_rain;
+        if (has_rain === 1) {
+            // eslint-disable-next-line no-param-reassign
+            updated_data.rain = rain_gauge;
+        }
+        setReloadList(true);
         console.log(updated_data);
-        // saveDataUpdate(updated_data, data => {
-        //     const { status, message } = data;
-        //     let variant;
-        //     if (status === true) {
-        //         variant = "success";
-        //         // updateData();
-        //     } else {
-        //         variant = "error";
-        //     }
+        saveDataUpdate(updated_data, data => {
+            const { status, message } = data;
+            let variant;
+            if (status === true) {
+                variant = "success";
+            } else {
+                variant = "error";
+            }
 
-        //     enqueueSnackbar(
-        //         message,
-        //         {
-        //             variant,
-        //             autoHideDuration: 5000,
-        //             action: snackBarActionFn
-        //         }
-        //     );
-        // });
+            enqueueSnackbar(
+                message,
+                {
+                    variant,
+                    autoHideDuration: 5000,
+                    action: snackBarActionFn
+                }
+            );
+        });
     };
 
     return (
@@ -776,7 +797,9 @@ function LoggerDetails (props) {
             </Typography>
 
             <Grid item xs={12}>
-                <MainSection selectedLogger={selectedLogger} saveUpdate={save_update} />
+                <MainSection
+                    selectedLogger={selectedLogger}
+                    saveUpdate={save_update} />
             </Grid>
 
             {

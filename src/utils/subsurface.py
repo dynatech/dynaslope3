@@ -8,10 +8,12 @@ import math
 from datetime import datetime
 from connection import DB
 
+from src.models.loggers import (
+    Loggers)
 from src.models.analysis import (
-    TSMSensors, TSMSensorsSchema,
+    TSMSensors, TSMSensorsSchema, get_tilt_table,
     Accelerometers, AccelerometersSchema,
-    Loggers, get_tilt_table)
+)
 from src.utils.extra import get_unix_ts_value
 
 from analysis_scripts.analysis.subsurface.vcdgen import vcdgen

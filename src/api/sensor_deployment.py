@@ -29,6 +29,7 @@ def save_sensor_deployment():
 
     try:
         status, message = save_all_deployment_data(data)
+
     except Exception as err:
         print(err)
         status = False
@@ -66,16 +67,14 @@ def save_data_update():
     message = ""
     try:
         print(data)
-        data_to_update = data["data_to_update"]
-        if data_to_update == "loggers":
+        section = data["section"]
+        if section == "loggers":
             update_logger_details(data)
-        elif data_to_update == "mobile":
-            update_logger_mobile(data)
-        elif data_to_update == "tsm":
+        elif section == "tilt":
             update_tsm(data)
-        elif data_to_update == "accel":
+        elif section == "accelerometers":
             update_accelerometer(data)
-        elif data_to_update == "rain_gauge":
+        elif section == "rain":
             update_rain_gauge(data)
 
         DB.session.commit()

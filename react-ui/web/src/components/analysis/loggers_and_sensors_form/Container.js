@@ -83,6 +83,8 @@ function Container (props) {
     
     const [is_add_logger, setIsAddLogger] = useState(false);
     const [selected_logger, setSelectedLogger] = useState(null);
+    const [reload_list, setReloadList] = useState(false);
+    const [loggers, setLoggers] = useState([]);
     const onLoggerClickFn = logger => () => {
         setSelectedLogger(logger);
         console.log("Selected logger", logger);
@@ -105,14 +107,19 @@ function Container (props) {
                         <LoggersList
                             selectedLogger={selected_logger}
                             onLoggerClickFn={onLoggerClickFn}
+                            reloadList={reload_list}
+                            loggers={loggers}
+                            setLoggers={setLoggers}
+                            setReloadList={setReloadList}
                         />
                     </Grid>
 
                     <Grid item xs={12} sm={9} lg={10}>
                         { !is_add_logger && selected_logger !== null && <LoggerDetails
                             selectedLogger={selected_logger}
+                            setReloadList={setReloadList}
                         />}
-                        { is_add_logger && <AddLoggerForm setIsAddLogger={setIsAddLogger} /> }
+                        { is_add_logger && <AddLoggerForm setIsAddLogger={setIsAddLogger} setReloadList={setReloadList} /> }
                     </Grid>
                 </Grid>
             </div>
