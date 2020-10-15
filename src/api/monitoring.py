@@ -340,7 +340,8 @@ def wrap_get_monitoring_releases_by_data_ts(site_code, data_ts):
 def wrap_get_qa_data(ts_start=None):
     """
     """
-    ts_end = datetime.strptime(ts_start, "%Y-%m-%d %H:%M:%S") + timedelta(hours=12)
+    ts_end = datetime.strptime(
+        ts_start, "%Y-%m-%d %H:%M:%S") + timedelta(hours=12)
     q_a = get_qa_data(ts_start, ts_end)
 
     routine_temp = []
@@ -367,8 +368,8 @@ def wrap_get_qa_data(ts_start=None):
 
         pub_alert_level = row["event_alert"]["public_alert_symbol"]["alert_level"]
 
-        start_dt_ts = datetime.strptime(data_ts, \
-            "%Y-%m-%d %H:%M:%S")
+        start_dt_ts = datetime.strptime(data_ts,
+                                        "%Y-%m-%d %H:%M:%S")
 
         temp = {
             "ewi_web_release": release_time,
@@ -382,14 +383,13 @@ def wrap_get_qa_data(ts_start=None):
             "ts_limit_start": near_ts_release
         }
 
-
-#     // status 1 = Routine , 2 = Event
+        # status 1 = Routine , 2 = Event
         if status == "1":
-            routine_temp.append(temp)           
+            routine_temp.append(temp)
 
         if status == "2":
-            end_val_data_ts = datetime.strptime(event["validity"], \
-            "%Y-%m-%d %H:%M:%S") - timedelta(minutes=30)
+            end_val_data_ts = datetime.strptime(event["validity"],
+                                                "%Y-%m-%d %H:%M:%S") - timedelta(minutes=30)
 
             if end_val_data_ts > start_dt_ts:
                 event_temp.append(temp)
@@ -409,17 +409,18 @@ def wrap_get_qa_data(ts_start=None):
         "extended": extended_temp,
         "lowering": lowering_temp,
         "raising": raising_temp
-        }
+    }
     return jsonify(final_data)
+
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases", methods=["GET"])
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases/<release_id>", methods=["GET"])
-
 def wrap_get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, load_options=None):
     """
     Gets a single release with the specificied ID
     """
-    release = get_monitoring_releases(release_id, ts_start, ts_end, load_options)
+    release = get_monitoring_releases(
+        release_id, ts_start, ts_end, load_options)
     release_schema = MonitoringReleasesSchema()
 
     if release_id is None:
@@ -1008,7 +1009,7 @@ def insert_ewi(internal_json=None):
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
                         and site_monitoring_instance.validity \
-                    == datetime_data_ts + timedelta(minutes=30):
+                == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 

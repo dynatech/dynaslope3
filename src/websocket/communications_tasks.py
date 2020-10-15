@@ -12,6 +12,7 @@ from src.utils.extra import (
 )
 
 from src.api.chatterbox import get_quick_inbox
+
 from src.utils.chatterbox import (
     get_sms_user_updates,
     get_latest_messages,
@@ -30,16 +31,14 @@ from src.utils.contacts import (
     get_blocked_numbers,
     get_ground_data_reminder_recipients
 )
-from src.utils.ewi import create_ground_measurement_reminder, get_ground_data_noun
+from src.utils.ewi import create_ground_measurement_reminder
 from src.utils.general_data_tag import insert_data_tag
 from src.utils.narratives import(
     write_narratives_to_db, find_narrative_event_id,
     get_narratives
 )
-
 from src.utils.monitoring import get_ongoing_extended_overdue_events, get_routine_sites
-from src.utils.surficial import get_sites_with_ground_meas
-from src.utils.manifestations_of_movements import get_moms_report
+from src.utils.analysis import check_ground_data_and_return_noun
 
 set_data_to_memcache(name="COMMS_CLIENTS", data=[])
 set_data_to_memcache(name="ROOM_MOBILE_IDS", data={})
@@ -532,17 +531,17 @@ def process_no_ground_narrative_writing(ts, site_id, timedelta_hour, event_id, m
             site_id, ts, narrative, 1, default_user_id, event_id=event_id)
 
 
-def check_ground_data_and_return_noun(site_id, timestamp, hour, minute):
-    ground_data_noun = get_ground_data_noun(site_id=site_id)
+# def check_ground_data_and_return_noun(site_id, timestamp, hour, minute):
+#     ground_data_noun = get_ground_data_noun(site_id=site_id)
 
-    if ground_data_noun == "ground measurement":
-        result = get_sites_with_ground_meas(timestamp,
-                                            timedelta_hour=hour, minute=minute, site_id=site_id)
-    else:
-        result = get_moms_report(timestamp,
-                                 timedelta_hour=hour, minute=hour, site_id=site_id)
+#     if ground_data_noun == "ground measurement":
+#         result = get_sites_with_ground_meas(timestamp,
+#                                             timedelta_hour=hour, minute=minute, site_id=site_id)
+#     else:
+#         result = get_moms_report(timestamp,
+#                                  timedelta_hour=hour, minute=hour, site_id=site_id)
 
-    return ground_data_noun, result
+#     return ground_data_noun, result
 
 
 @CELERY.task(name="no_ewi_acknowledgement_bg_task", ignore_results=True)

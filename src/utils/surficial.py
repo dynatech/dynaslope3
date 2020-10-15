@@ -5,16 +5,18 @@
 
 from datetime import datetime, timedelta
 from connection import DB
+
 from src.models.analysis import (
     SiteMarkers, MarkerData as md,
     MarkerObservations as mo, MarkerAlerts as ma,
     Markers, MarkerHistory, MarkerNames)
 from src.models.sites import Sites
+
+from src.utils.sites import get_sites_data
+
 from src.utils.extra import (
     var_checker, round_to_nearest_release_time,
     retrieve_data_from_memcache)
-from src.utils.sites import get_sites_data
-from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 
 
 def check_if_site_has_active_surficial_markers(site_code=None, site_id=None):
@@ -39,6 +41,8 @@ def check_if_site_has_active_surficial_markers(site_code=None, site_id=None):
 def get_surficial_data_presence_old():
     """
     """
+
+    from src.utils.monitoring import get_ongoing_extended_overdue_events
 
     now = datetime.now()
     release_interval_hours = retrieve_data_from_memcache(

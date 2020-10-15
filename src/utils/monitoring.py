@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, time, date
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from connection import DB
+
 from src.models.analysis import AlertStatus
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
@@ -20,10 +21,13 @@ from src.models.monitoring import (
     MonitoringMoms, MomsInstances, MonitoringTriggersSchema,
     BulletinTracker, MonitoringReleasePublishers, MonitoringTriggersMisc,
     EndOfShiftAnalysis, MonitoringReleasesSchema)
-from src.utils.narratives import write_narratives_to_db, get_narratives
 from src.models.sites import Seasons, RoutineSchedules, Sites
 from src.models.inbox_outbox import SmsInboxUsers
 from src.models.narratives import Narratives
+
+from src.utils.narratives import write_narratives_to_db, get_narratives
+from src.utils.analysis import check_ground_data_and_return_noun
+
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
     round_to_nearest_release_time)
@@ -349,8 +353,8 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}." +
-                      f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}."
+                      + f"Trigger ID [{trigger_id}] is tagged as {alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -380,17 +384,18 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, for_qa
     """
     Check sms range by 4-hour interval
     """
+
     global RELEASE_INTERVAL_HOURS
     release_interval_hours = RELEASE_INTERVAL_HOURS
     is_sms_sent = False
     is_bulletin_sent = False
+
     if for_qa:
         is_sms_sent = "---"
         is_bulletin_sent = "---"
     fyi = "---"
     rainfall_info = "---"
     ground_meas = "---"
-
 
     if not is_onset_release or \
             (is_onset_release and start_ts.hour % 4 == 3 and start_ts.minute == 30):
@@ -419,6 +424,7 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, for_qa
                 is_bulletin_sent = item_ts
             else:
                 is_bulletin_sent = True
+
         if for_qa:
             if "Sent surficial ground data reminder" in item.narrative:
                 ground_meas = item_ts
@@ -428,6 +434,7 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, for_qa
 
             if "Sent rainfall information" in item.narrative:
                 rainfall_info = item_ts
+
     final = {
         "is_sms_sent": is_sms_sent, "is_bulletin_sent": is_bulletin_sent
     }
@@ -438,7 +445,8 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, for_qa
             "fyi": fyi,
             "rainfall_info": rainfall_info,
             "nearest_release_ts": limit_start.strftime("%Y-%m-%d %H:%M:%S"),
-            })
+        })
+
     return final
 
 
@@ -830,9 +838,11 @@ def get_monitoring_releases_by_data_ts(site_code, data_ts):
 
     return return_data
 
+
 def get_qa_data(ts_start=None, ts_end=None):
     """
     """
+
     exclude_list = ["moms_releases", "triggers", "release_publishers"]
     release_schema = MonitoringReleasesSchema(many=True, exclude=exclude_list)
     mr = MonitoringReleases
@@ -858,17 +868,24 @@ def get_qa_data(ts_start=None, ts_end=None):
 
     return_data = base.all()
     result = release_schema.dump(return_data).data
+
     i = 0
     for row in return_data:
         event_id = row.event_alert.event.event_id
         start_ts = row.data_ts
         is_onset_release = True
+
         if row.event_alert.public_alert_symbol.alert_type == "event":
             is_onset_release = True
-        sent_status = check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, True)
+
+        sent_status = check_ewi_narrative_sent_status(
+            is_onset_release, event_id, start_ts, True)
+
         result[i].update(sent_status)
         result[i].update({"ground_data": "YYYY-MM-DD | Markers"})
+
         i += 1
+
     return result
 
 
@@ -1614,12 +1631,12 @@ def fix_internal_alert(alert_entry, internal_source_id):
     """
     Changes the internal alert string of each alert entry.
     """
+
     event_triggers = alert_entry["event_triggers"]
     internal_alert = alert_entry["internal_alert"]
     valid_alert_levels = []
     invalid_triggers = []
     trigger_list_str = None
-
 
     for trigger in event_triggers:
         alert_symbol = trigger["alert"]
