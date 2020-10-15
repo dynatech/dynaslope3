@@ -1,25 +1,34 @@
-import React, { Fragment } from "react";
+import React, { useState, useEffect } from "react";
 import Highcharts from "highcharts/highcharts.src";
 import HighchartsReact from "highcharts-react-official";
 
-function stackedBarChartOptions (processed_data) {
-    processed_data.reverse();
+function getStackedBarChartOptions (processed_data, input) {
+    const { site, year } = input;
+    const subtitle = `Year: <b>${year}</b><br/>` +
+    `Site: <b>${site ? site.label : "All"}</b>`;
 
     return {
         chart: {
             type: "column"
         },
         title: {
-            text: "Stacked column chart"
+            text: "<b>Monthly Monitoring Event Alerts</b>",
+            y: 22
         },
+        subtitle: {
+            text: subtitle,
+            style: { fontSize: "0.75rem" }
+        },
+        series: processed_data,
         xAxis: {
             categories: ["January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"]
+                "July", "August", "September", "October", "November", "December"],
+            // text: "Month"
         },
         yAxis: {
             min: 0,
             title: {
-                text: "Alerts total"
+                text: "<b>Number of heightened alerts</b>"
             },
             stackLabels: {
                 enabled: true,
@@ -33,16 +42,17 @@ function stackedBarChartOptions (processed_data) {
             }
         },
         legend: {
-            align: "right",
-            x: -30,
-            verticalAlign: "top",
-            y: 25,
-            floating: true,
+            // align: "right",
+            // x: -30,
+            // verticalAlign: "top",
+            // y: 25,
+            // floating: true,
             backgroundColor:
                 Highcharts.defaultOptions.legend.backgroundColor || "white",
             borderColor: "#CCC",
             borderWidth: 1,
-            shadow: false
+            shadow: false,
+            reversed: true
         },
         tooltip: {
             headerFormat: "<b>{point.x}</b><br/>",
@@ -52,11 +62,23 @@ function stackedBarChartOptions (processed_data) {
             column: {
                 stacking: "normal",
                 dataLabels: {
-                    enabled: true
+                    enabled: true,
+                    formatter () {
+                        if (this.y === 0) return "";
+                        return this.y;
+                    },
                 }
             }
         },
-        series: processed_data
+        loading: {
+            hideDuration: 2000
+        },
+        lang: {
+            noData: "No alert within this period"
+        },
+        credits: {
+            enabled: false
+        }
     };
 }
 
@@ -73,14 +95,44 @@ function applyColor (processed_data, colors) {
 }
 
 function StackedBarChart (props) {
-    const { highcharts, processed_data, colors } = props;
-    const data_with_color = applyColor(processed_data, colors);
-    const chart_option = stackedBarChartOptions(data_with_color);
+    const { 
+        highcharts, data, colors,
+        isLoading, input
+    } = props;
+    const [chart, setChart] = useState(null);
+
+    let data_with_color = [];
+    if (data !== null) {
+        data_with_color = applyColor(data, colors);
+        data_with_color.reverse();
+    }
+    const [chart_option, setChartOption] = useState(getStackedBarChartOptions(data_with_color, input));
+
+    useEffect(() => {
+        if (chart !== null) {
+            if (isLoading) chart.showLoading();
+            else chart.hideLoading();
+        }
+    }, [chart, isLoading]);
+
+    useEffect(() => {
+        let to_show = false;
+        if (chart !== null && data !== null) {
+            setChartOption(getStackedBarChartOptions(data_with_color, input));
+
+            if (data.length === 0) to_show = true;
+
+            if (to_show) chart.showNoData();
+            else chart.hideNoData();
+        }
+    }, [chart, data]);
 
     return (
-        <Fragment>
-            <HighchartsReact highcharts={highcharts} options={chart_option} />
-        </Fragment>
+        <HighchartsReact
+            highcharts={highcharts}
+            options={chart_option}
+            callback={x => setChart(x)}
+        />
     );
 }
 

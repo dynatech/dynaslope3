@@ -349,9 +349,9 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}. " +
-                      f"Trigger ID [{trigger_id}] is tagged as " +
-                      f"{alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}. "
+                      + f"Trigger ID [{trigger_id}] is tagged as "
+                      + f"{alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
 
             except Exception as err:
@@ -2045,16 +2045,20 @@ def get_monitoring_analytics(data):
         end_ts = inputs["end_ts"]
         query = mea.query.join(me).with_entities(
             func.count(mea.pub_sym_id),
-            mea.pub_sym_id).join(sites).filter(
-                me.event_start.between(
-                    start_ts, end_ts)
-        ).filter(mea.pub_sym_id != 1).group_by(
-            mea.pub_sym_id)
+            mea.pub_sym_id
+        ).join(sites).filter(
+            me.event_start
+            .between(
+                start_ts, end_ts)
+        ).filter(mea.pub_sym_id != 1) \
+            .group_by(mea.pub_sym_id)
+
         if site:
             site_id = inputs["site_id"]
             query = query.filter(sites.site_id == site_id)
 
         query = query.all()
+
         for count in query:
             alert_level = count[1] - 1
             data = {
@@ -2082,11 +2086,16 @@ def get_monitoring_analytics(data):
         query = mea.query.with_entities(
             extract("month", mea.ts_start),
             func.count(mea.pub_sym_id).label('number'),
-            mea.pub_sym_id).join(me).join(sites).filter(
+            mea.pub_sym_id).join(me).join(sites) \
+            .filter(
                 mea.ts_start.between(
-                    f"{year}-01-01 00:00:00", f"{year}-12-31 23:59:59")
-        ).filter(mea.pub_sym_id != 1).group_by(
-                extract("month", mea.ts_start)).group_by(mea.pub_sym_id)
+                    f"{year}-01-01 00:00:00",
+                    f"{year}-12-31 23:59:59"
+                )) \
+            .filter(mea.pub_sym_id != 1) \
+            .group_by(
+                extract("month", mea.ts_start)) \
+            .group_by(mea.pub_sym_id)
 
         if site:
             site_id = inputs["site_id"]

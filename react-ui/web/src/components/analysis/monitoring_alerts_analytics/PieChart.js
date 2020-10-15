@@ -1,7 +1,14 @@
-import React, { Fragment } from "react";
+import React, { useState, useEffect } from "react";
 import HighchartsReact from "highcharts-react-official";
+import moment from "moment";
 
-function pieChartOption (processed_data) {
+function getPieChartOption (processed_data, input) {
+    const { site, start_ts, end_ts } = input;
+
+    const ts_format = "DD MMM YYYY, HH:mm";
+    const subtitle = `Range: <b>${moment(start_ts).format(ts_format)} - ${moment(end_ts).format(ts_format)}</b><br/>` +
+    `Site: <b>${site ? site.label : "All"}</b>`;
+
     return {
         chart: {
             plotBackgroundColor: null,
@@ -10,7 +17,12 @@ function pieChartOption (processed_data) {
             type: "pie"
         },
         title: {
-            text: "Alert Summary based on date specified"
+            text: "<b>Monitoring Event Alerts Summary</b>",
+            y: 22
+        },
+        subtitle: {
+            text: subtitle,
+            style: { fontSize: "0.75rem" }
         },
         tooltip: {
             pointFormat: "<b>{point.percentage:.1f}%</b>"
@@ -26,7 +38,7 @@ function pieChartOption (processed_data) {
                 cursor: "pointer",
                 dataLabels: {
                     enabled: true,
-                    format: "{point.name}: {point.percentage:.1f} %"
+                    format: "{point.name}: {point.y}"
                 }
             }
         },
@@ -34,7 +46,16 @@ function pieChartOption (processed_data) {
             name: "Count",
             colorByPoint: true,
             data: processed_data
-        }]
+        }],
+        loading: {
+            hideDuration: 2000
+        },
+        lang: {
+            noData: "No alert within this period"
+        },
+        credits: {
+            enabled: false
+        }
     };
 }
 
@@ -51,15 +72,42 @@ function applyColor (processed_data, colors) {
 }
 
 function PieChart (props) {
-    const { highcharts, processed_data, colors } = props;
-    const data_with_color = applyColor(processed_data, colors);
-    const chart_option = pieChartOption(data_with_color);
+    const {
+        highcharts, data, colors,
+        isLoading, input
+    } = props;
+    const [chart, setChart] = useState(null);
+
+    let data_with_color = [];
+    if (data !== null) data_with_color = applyColor(data, colors);
+    const [chart_option, setChartOption] = useState(getPieChartOption(data_with_color, input));
+
+    useEffect(() => {
+        if (chart !== null) {
+            if (isLoading) chart.showLoading();
+            else chart.hideLoading();
+        }
+    }, [chart, isLoading]);
+
+    useEffect(() => {
+        let to_show = false;
+        if (chart !== null && data !== null) {
+            setChartOption(getPieChartOption(data_with_color, input));
+
+            if (data.length === 0) to_show = true;
+
+            if (to_show) chart.showNoData();
+            else chart.hideNoData();
+        }
+    }, [chart, data]);
+    
     return (
-        <Fragment>
-            <HighchartsReact highcharts={highcharts} options={chart_option} />
-        </Fragment>
+        <HighchartsReact
+            highcharts={highcharts}
+            options={chart_option}
+            callback={x => setChart(x)}
+        />
     );
-     
 }
 
 export default (PieChart);
