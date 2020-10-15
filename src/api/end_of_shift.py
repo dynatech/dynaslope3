@@ -12,20 +12,21 @@ from flask import Blueprint, jsonify, request
 from connection import DB
 from config import APP_CONFIG
 from instance.config import EMAILS
+
 from src.models.monitoring import (
     MonitoringEventsSchema, EndOfShiftAnalysis
 )
+
 from src.utils.monitoring import (
     get_monitoring_events, get_internal_alert_symbols, build_internal_alert_level,
     get_monitoring_releases, get_monitoring_triggers, check_if_has_moms_or_earthquake_trigger,
     write_eos_data_analysis_to_db, get_active_monitoring_events)
 from src.utils.emails import get_email_subject
 from src.utils.narratives import get_narratives
-from src.utils.subsurface import get_site_subsurface_columns, check_if_subsurface_columns_has_data
+from src.utils.subsurface import check_if_subsurface_columns_has_data
 from src.utils.surficial import (
     check_if_site_has_active_surficial_markers, get_surficial_data,
     get_surficial_markers, get_marker_alerts)
-from src.models.analysis import TSMSensorsSchema
 from src.utils.chart_rendering import render_charts
 from src.utils.extra import var_checker
 

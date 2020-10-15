@@ -531,19 +531,6 @@ def process_no_ground_narrative_writing(ts, site_id, timedelta_hour, event_id, m
             site_id, ts, narrative, 1, default_user_id, event_id=event_id)
 
 
-# def check_ground_data_and_return_noun(site_id, timestamp, hour, minute):
-#     ground_data_noun = get_ground_data_noun(site_id=site_id)
-
-#     if ground_data_noun == "ground measurement":
-#         result = get_sites_with_ground_meas(timestamp,
-#                                             timedelta_hour=hour, minute=minute, site_id=site_id)
-#     else:
-#         result = get_moms_report(timestamp,
-#                                  timedelta_hour=hour, minute=hour, site_id=site_id)
-
-#     return ground_data_noun, result
-
-
 @CELERY.task(name="no_ewi_acknowledgement_bg_task", ignore_results=True)
 def no_ewi_acknowledgement_bg_task():
     """

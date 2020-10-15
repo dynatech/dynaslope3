@@ -183,13 +183,12 @@ def get_extended_and_event_site_code(event, extended):
     return event_site_code, extended_site_code
 
 
-def get_surficial_data(
-    site_code=None, marker_id=None,
-    data_id=None, mo_id=None,
-    ts_order="asc", end_ts=None,
-    start_ts=None, limit=None,
-    anchor="marker_data"
-):
+def get_surficial_data(site_code=None, site_id=None, marker_id=None,
+                       data_id=None, mo_id=None,
+                       ts_order="asc", end_ts=None,
+                       start_ts=None, limit=None,
+                       anchor="marker_data"
+                       ):
     """
     Returns surficial data of a site or marker specified.
     You can filter data more using start, end timestamps and a limit.
@@ -219,6 +218,10 @@ def get_surficial_data(
     if site_code:
         filtered_query = base_query.join(Sites).filter(
             Sites.site_code == site_code)
+
+    if site_id:
+        filtered_query = base_query.join(Sites).filter(
+            Sites.site_id == site_id)
 
     if end_ts:
         if not isinstance(end_ts, datetime):

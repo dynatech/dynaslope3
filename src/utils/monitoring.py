@@ -871,7 +871,9 @@ def get_qa_data(ts_start=None, ts_end=None):
 
     i = 0
     for row in return_data:
-        event_id = row.event_alert.event.event_id
+        event = row.event_alert.event
+        event_id = event.event_id
+        site_id = event.site_id
         start_ts = row.data_ts
         is_onset_release = True
 
@@ -881,25 +883,25 @@ def get_qa_data(ts_start=None, ts_end=None):
         sent_status = check_ewi_narrative_sent_status(
             is_onset_release, event_id, start_ts, True)
 
+        noun, g_data = check_ground_data_and_return_noun(
+            site_id=site_id, timestamp=ts_end, hour=12, minute=0)
+        ground_data = "---"
+        if g_data:
+            if noun == "ground measurement":
+                ts = g_data.ts
+                n = "Surficial"
+            else:
+                ts = g_data.observance_ts
+                n = "MOMS"
+
+            ground_data = f"{str(ts)} | {n}"
+
         result[i].update(sent_status)
-        result[i].update({"ground_data": "YYYY-MM-DD | Markers"})
+        result[i].update({"ground_data": ground_data})
 
         i += 1
 
     return result
-
-
-# def check_ground_data_and_return_noun(site_id, timestamp, hour, minute):
-#     ground_data_noun = get_ground_data_noun(site_id=site_id)
-
-#     if ground_data_noun == "ground measurement":
-#         result = get_sites_with_ground_meas(timestamp,
-#                                             timedelta_hour=hour, minute=minute, site_id=site_id)
-#     else:
-#         result = get_moms_report(timestamp,
-#                                  timedelta_hour=hour, minute=hour, site_id=site_id)
-
-#     return ground_data_noun, result
 
 
 def get_monitoring_releases(
