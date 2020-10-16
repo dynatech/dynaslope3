@@ -386,6 +386,9 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
     merged_db_alerts_list_copy = latest + overdue
 
+    # HOTFIX
+    umi_routine_temp = {}
+
     if without_alerts:
         for site_wo_alert in without_alerts:
             general_status = "routine"
@@ -435,6 +438,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 candidate_alerts_list.append(formatted_alert_entry)
             else:
                 if site_code in routine_sites_list:
+                    if site_code == "umi":
+                        umi_routine_temp = site_wo_alert
                     ts = datetime.strptime(
                         site_wo_alert["ts"], "%Y-%m-%d %H:%M:%S")
 
@@ -481,44 +486,44 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                     nd_routine_list.append(site_id)
 
     if routine_sites_list:
-        has_routine_data = a0_routine_list != [] and nd_routine_list != []
+        has_routine_data = a0_routine_list != [] or nd_routine_list != []
 
         if has_routine_data:
-            routine_data_ts = a0_routine_list[0]["ts"]
+            routine_data_ts = query_end_ts
 
             public_alert_symbol = retrieve_data_from_memcache(
                 "public_alert_symbols", {"alert_level": 0}, retrieve_attr="alert_symbol")
 
-            routine_candidates = {
-                "public_alert_level": 0,
+            # BUILD
+            routine_alert = {
+                **umi_routine_temp,
+                "alert_level": 0,
+                "trigger_list_str": "",
+                "is_release_time": True,
                 "public_alert_symbol": public_alert_symbol,
-                "data_ts": str(routine_data_ts),
-                "general_status": "routine",
-                "routine_details": [
-                    {
-                        "site_id_list": a0_routine_list,
-                        "internal_alert_level": build_internal_alert_level(0, None),
-                        "trigger_list_str": None
-                    },
-                    {
-                        "site_id_list": nd_routine_list,
-                        "internal_alert_level": build_internal_alert_level(0, nd_internal_alert_sym),
-                        "trigger_list_str": nd_internal_alert_sym
-                    }
-                ],
-                "non_triggering_moms": routine_non_triggering_moms
+                "data_ts": datetime.strftime(query_end_ts, "%Y-%m-%d 11:30:00"),
+                "release_schedule": datetime.strftime(query_end_ts, "%Y-%m-%d 11:30:00")
             }
+<<<<<<< HEAD
 <<<<<<< Updated upstream
             candidate_alerts_list.append(routine_candidates)
 =======
 
             formatted_alert_entry = format_alerts_for_ewi_insert(
                 routine_alert, "routine")
+=======
+
+            formatted_alert_entry = format_alerts_for_ewi_insert(
+                site_w_alert, "routine")
+>>>>>>> 1a70575189f8b9c43ce983e914aef6a9f6645eb3
 
             var_checker("formatted_alert_entry", formatted_alert_entry)
 
             candidate_alerts_list.append(formatted_alert_entry)
+<<<<<<< HEAD
 >>>>>>> Stashed changes
+=======
+>>>>>>> 1a70575189f8b9c43ce983e914aef6a9f6645eb3
 
     return candidate_alerts_list
 

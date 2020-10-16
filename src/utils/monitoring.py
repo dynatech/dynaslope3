@@ -753,9 +753,15 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     overdue = []
     routine = []
     for event_alert in active_event_alerts:
+<<<<<<< HEAD
         event = event_alert.event
         validity = event.validity
         event_id = event.event_id
+=======
+        validity = event_alert.event.validity
+        event_id = event_alert.event.event_id
+        
+>>>>>>> 1a70575189f8b9c43ce983e914aef6a9f6645eb3
         latest_release = event_alert.releases.order_by(
             DB.desc(MonitoringReleases.data_ts)).first()
 
@@ -875,7 +881,11 @@ def get_ongoing_extended_overdue_events(run_ts=None):
 
     db_alerts = {
         "latest": latest,
+<<<<<<< HEAD
         "extended": sorted(extended, key=lambda x: x["day"], reverse=True),
+=======
+        "extended": extended,
+>>>>>>> 1a70575189f8b9c43ce983e914aef6a9f6645eb3
         "overdue": overdue,
         "routine": routine
     }
