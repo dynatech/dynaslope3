@@ -508,7 +508,17 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 ],
                 "non_triggering_moms": routine_non_triggering_moms
             }
+<<<<<<< Updated upstream
             candidate_alerts_list.append(routine_candidates)
+=======
+
+            formatted_alert_entry = format_alerts_for_ewi_insert(
+                routine_alert, "routine")
+
+            var_checker("formatted_alert_entry", formatted_alert_entry)
+
+            candidate_alerts_list.append(formatted_alert_entry)
+>>>>>>> Stashed changes
 
     return candidate_alerts_list
 

@@ -782,6 +782,11 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         event_alert_data["event"]["validity"] = str(datetime.strptime(
             event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
 
+        # HOTFIX
+        routine_sites = get_routine_sites()
+        if event_alert.event.site.site_code in routine_sites:
+            routine.append(event_alert_data)
+            return
 
         # NOTE: LOUIE SPECIAL intervention to add all triggers of the whole event.
         # Bypassing the use of MonitoringEvent instead
@@ -789,7 +794,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         latest_triggers_per_kind = get_unique_triggers(trigger_list=all_event_triggers)
         mtS_m = MonitoringTriggersSchema(many=True)
         event_alert_data["latest_event_triggers"] = mtS_m.dump(latest_triggers_per_kind).data
-
 
         if run_ts <= validity:
             # On time release
@@ -872,8 +876,8 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     db_alerts = {
         "latest": latest,
         "extended": sorted(extended, key=lambda x: x["day"], reverse=True),
-        "overdue": overdue
-        # "routine": routine
+        "overdue": overdue,
+        "routine": routine
     }
 
     script_end = datetime.now()
