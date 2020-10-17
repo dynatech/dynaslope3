@@ -379,7 +379,7 @@ def wrap_get_qa_data(ts_start=None):
             "ground_measurement": g_m,
             "ground_data": g_data,
             "rainfall_info": rain_info,
-            "fyi_permissio": fyi,
+            "fyi_permission": fyi,
             "ts_limit_start": near_ts_release
         }
 
