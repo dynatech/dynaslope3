@@ -53,7 +53,7 @@ const MyLoader = () => (
     </ContentLoader>
 );
 
-function createDateTime ({ label, value, id }, handleDateTime) {
+export function createDateTime ({ label, value, id }, handleDateTime) {
     return (
         <KeyboardDatePicker
             required
@@ -78,7 +78,7 @@ function createDateTime ({ label, value, id }, handleDateTime) {
 
 
 // eslint-disable-next-line max-params
-function prepareEOSRequest (start_ts, shift_time, setEosData) {
+export function prepareEOSRequest (start_ts, shift_time, setEosData) {
     const time = shift_time === "am" ? "07:30:00" : "19:30:00"; 
     const moment_start_ts = moment(start_ts).format(`YYYY-MM-DD ${time}`);
     const input = {
@@ -88,7 +88,6 @@ function prepareEOSRequest (start_ts, shift_time, setEosData) {
     getEndOfShiftReports(input, ret => {
         setEosData(ret);
     });
-
     return moment_start_ts;
 }
 
