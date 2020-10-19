@@ -99,6 +99,8 @@ def get_sites_with_ground_meas(ts, timedelta_hour=1, minute=30, site_id=None):
 
 
 def get_surficial_data_presence():
+    from src.utils.monitoring import get_ongoing_extended_overdue_events
+
     now = datetime.now()
     release_interval_hours = retrieve_data_from_memcache(
         "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
