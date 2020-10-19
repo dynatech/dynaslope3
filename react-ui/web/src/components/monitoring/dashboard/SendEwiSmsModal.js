@@ -8,7 +8,7 @@ import { Close } from "@material-ui/icons";
 import SendMessageForm from "../../communication/chatterbox/SendMessageForm";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 
-function SendEwiSmsMessageModal (props) {
+function SendEwiSmsModal (props) {
     const {
         fullScreen, modalStateHandler,
         modalState, textboxValue, releaseDetail,
@@ -66,4 +66,4 @@ function SendEwiSmsMessageModal (props) {
     );
 }
 
-export default withMobileDialog()(SendEwiSmsMessageModal);
+export default withMobileDialog()(SendEwiSmsModal);

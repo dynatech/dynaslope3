@@ -63,13 +63,15 @@ def handle_update_insert_tags():
         # TODO: change tags when new tags came or use tag_ids
         if tag_description in [
                 "#GroundMeas", "#GroundObs", "#EwiResponse",
-                "#RainInfo", "#EwiMessage"]:
+                "#RainInfo", "#EwiMessage", "#AlertFYI"]:
             get_process_status_log(key="Writing narratives", status="request")
 
             try:
                 additional_data = contact_person
                 if tag_description in ["#GroundObs", "#EwiResponse"]:
                     additional_data += f" - {message}"
+                elif tag_description == "#AlertFYI":
+                    additional_data = message
 
                 narrative = get_narrative_text(
                     narrative_type="sms_tagging", details={

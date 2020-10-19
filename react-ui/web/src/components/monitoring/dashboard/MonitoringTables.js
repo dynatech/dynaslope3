@@ -452,7 +452,7 @@ function LatestSiteAlertsAccordion (props) {
         event, internal_alert_level, releases,
         day, sent_statuses, public_alert_symbol,
         is_onset_release, prescribed_release_time,
-        has_alert_release_today
+        has_alert_release_today, highest_event_alert_level
     } = siteAlert;
     const { alert_level } = public_alert_symbol;
     const { server_time } = useContext(ServerTimeContext);
@@ -594,7 +594,7 @@ function LatestSiteAlertsAccordion (props) {
                         startIcon={<PhoneAndroid />}
                         onClick={smsHandler({
                             release_id, site_code, site_id,
-                            type, public_alert_symbol
+                            type, public_alert_symbol, highest_event_alert_level
                         })}
                         endIcon={sms_end_icon}
                         className={not_yet_sending_time && classes.dyna_error}

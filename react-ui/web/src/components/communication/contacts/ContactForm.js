@@ -476,7 +476,7 @@ function ContactForm (props) {
             <Grid item xs={6}>
                 <TextField
                     label="Middle Name"
-                    value={user_details.middle_name}
+                    value={user_details.middle_name || ""}
                     onChange={nameChangeHandler("middle_name")}
                     margin="dense"
                 />
@@ -485,7 +485,7 @@ function ContactForm (props) {
             <Grid item xs={6}>
                 <TextField
                     label="Nickname"
-                    value={user_details.nickname}
+                    value={user_details.nickname || ""}
                     onChange={nameChangeHandler("nickname")}
                     margin="dense"
                 />

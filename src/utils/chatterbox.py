@@ -136,21 +136,27 @@ def get_user_mobile_details(mobile_id):
     """
     """
 
-    user = joinedload("user_details").joinedload(
+    user = DB.subqueryload("users").joinedload(
         "user", innerjoin=True)
     org = user.subqueryload("organizations")
 
-    mobile_details = MobileNumbers.query.options(
+    query = MobileNumbers.query.options(
         org.joinedload("site", innerjoin=True).raiseload("*"),
         org.joinedload("organization", innerjoin=True),
         user.subqueryload("teams").joinedload(
             "team", innerjoin=True), raiseload("*")
-    ).filter_by(mobile_id=mobile_id).first()
+    ).filter_by(mobile_id=mobile_id)
+
+    # if not include_inactive_numbers:
+    #     query = query.join(UserMobiles).filter(UserMobiles.status == 1).options(
+    #         DB.contains_eager(MobileNumbers.users))
+
+    mobile_details = query.first()
 
     mobile_schema = MobileNumbersSchema(exclude=[
-        "user_details.user.landline_numbers",
-        "user_details.user.emails",
-        "user_details.user.ewi_restriction",
+        "users.user.landline_numbers",
+        "users.user.emails",
+        "users.user.ewi_restriction",
         "blocked_mobile"
     ]).dump(mobile_details).data
 
@@ -415,11 +421,11 @@ def get_search_results(obj):
             "messages": msgs_schema,
             "mobile_details": {
                 **mobile_number,
-                "user_details": {
+                "users": [{
                     "user": contact["user"],
                     "priority": contact["priority"],
                     "status": contact["status"]
-                }
+                }]
             }
         }
 

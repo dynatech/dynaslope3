@@ -384,7 +384,7 @@ def process_eos_data_analysis(
                     data_list.append(temp)
 
                 delta = timedelta(hours=alert_data[0].time_delta)
-                last_sending_ts = latest_ts - timedelta(seconds=delta.seconds)
+                last_sending_ts = latest_ts - delta
 
                 surf = (f"Latest data received last <b>"
                         f"{datetime.strftime(latest_ts, '%B %d, %Y, %I:%M %p')}</b>. ")

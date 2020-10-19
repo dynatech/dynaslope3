@@ -342,36 +342,3 @@ class SmsOutboxUserTagsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = SmsOutboxUserTags
-
-
-# class SmsOutboxUserStatusRelationshipSchema(MARSHMALLOW.ModelSchema):
-#     """
-#     Schema representation of Users class
-#     """
-#     sms_outbox = fields.Nested(SmsOutboxUsersSchema, exclude=("outbox",))
-
-#     class Meta:
-#         """Saves table class structure as schema model"""
-#         model = SmsOutboxUserStatusRelationship
-
-
-# class SmsInboxUnregisterRelationshipSchema(MARSHMALLOW.ModelSchema):
-#     """
-#     Schema representation of Users class
-#     """
-#     mobile_number = fields.Nested("UserMobileSchema")
-
-#     class Meta:
-#         """Saves table class structure as schema model"""
-#         model = SmsInboxUnregisterRelationship
-
-
-# class SmsQuickInboxRelationshipSchema(MARSHMALLOW.ModelSchema):
-#     """
-#     Schema representation of Users class
-#     """
-#     mobile_number = fields.Nested("UserMobileSchema")
-
-#     class Meta:
-#         """Saves table class structure as schema model"""
-#         model = SmsQuickInboxRelationship

@@ -469,6 +469,10 @@ def process_ground_data_reminder_sending(ts, site_id, timedelta_hour, event_id, 
     """
     """
 
+    # NOTE: UMI special case
+    if site_id == 50:
+        return
+
     ground_data_noun, result = check_ground_data_and_return_noun(
         site_id, ts, timedelta_hour, 30)
 

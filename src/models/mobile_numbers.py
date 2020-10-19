@@ -45,13 +45,15 @@ class UserMobiles(DB.Model):
     priority = DB.Column(TINYINT)
     status = DB.Column(TINYINT, nullable=False)
 
-    user = DB.relationship(UsersRelationship, backref=DB.backref(
-        "mobile_numbers", lazy="raise"),
-        lazy="joined", innerjoin=True)
-        
-    mobile_number = DB.relationship(MobileNumbers, backref=DB.backref(
-        "user_details", lazy="joined", uselist=False),
-        lazy="joined", innerjoin=True)
+    user = DB.relationship(
+        UsersRelationship, backref=DB.backref(
+            "mobile_numbers", lazy="raise"
+        ), lazy="joined", innerjoin=True)
+
+    mobile_number = DB.relationship(
+        MobileNumbers, backref=DB.backref(
+            "users", lazy="subquery",
+        ), lazy="joined", innerjoin=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> User ID: {self.user_id}"
@@ -93,8 +95,8 @@ class MobileNumbersSchema(MARSHMALLOW.ModelSchema):
     Schema representation of MobileNumbers class
     """
 
-    user_details = fields.Nested(
-        "UserMobilesSchema", exclude=["mobile_number"])
+    users = fields.Nested(
+        "UserMobilesSchema", exclude=["mobile_number"], many=True)
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -108,7 +110,7 @@ class UserMobilesSchema(MARSHMALLOW.ModelSchema):
 
     user = fields.Nested(UsersRelationshipSchema, exclude=["mobile_numbers"])
     mobile_number = fields.Nested(
-        MobileNumbersSchema, exclude=["user_details"])
+        MobileNumbersSchema, exclude=["users"])
 
     class Meta:
         """Saves table class structure as schema model"""
