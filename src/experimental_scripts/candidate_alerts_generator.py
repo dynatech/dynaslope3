@@ -504,26 +504,14 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 "data_ts": datetime.strftime(query_end_ts, "%Y-%m-%d 11:30:00"),
                 "release_schedule": datetime.strftime(query_end_ts, "%Y-%m-%d 11:30:00")
             }
-<<<<<<< HEAD
-<<<<<<< Updated upstream
             candidate_alerts_list.append(routine_candidates)
-=======
 
             formatted_alert_entry = format_alerts_for_ewi_insert(
                 routine_alert, "routine")
-=======
-
-            formatted_alert_entry = format_alerts_for_ewi_insert(
-                site_w_alert, "routine")
->>>>>>> 1a70575189f8b9c43ce983e914aef6a9f6645eb3
 
             var_checker("formatted_alert_entry", formatted_alert_entry)
 
             candidate_alerts_list.append(formatted_alert_entry)
-<<<<<<< HEAD
->>>>>>> Stashed changes
-=======
->>>>>>> 1a70575189f8b9c43ce983e914aef6a9f6645eb3
 
     return candidate_alerts_list
 
