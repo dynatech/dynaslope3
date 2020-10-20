@@ -747,11 +747,18 @@ def get_ongoing_extended_overdue_events(run_ts=None):
         run_ts = datetime.now()
 
     active_event_alerts = get_active_monitoring_events()
+    routine_event_alerts = get_routine_monitoring_events()
 
     latest = []
     extended = []
     overdue = []
     routine = []
+
+    # HOTFIX
+    routine_sites = get_routine_sites()
+    if routine_sites and routine_event_alerts:
+        var_checker("routine_sites", routine_sites)
+        routine.append(routine_event_alerts[0])
     for event_alert in active_event_alerts:
         event = event_alert.event
         validity = event.validity
@@ -781,12 +788,6 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             public_alert_level, trigger_list)
         event_alert_data["event"]["validity"] = str(datetime.strptime(
             event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
-
-        # HOTFIX
-        routine_sites = get_routine_sites()
-        if routine_sites:
-            var_checker("routine_sites", routine_sites)
-            routine.append(event_alert_data)
 
         # NOTE: LOUIE SPECIAL intervention to add all triggers of the whole event.
         # Bypassing the use of MonitoringEvent instead
@@ -1247,6 +1248,19 @@ def get_active_monitoring_events():
 
     return active_events
 
+def get_routine_monitoring_events():
+    """
+    Gets Active Events based on MonitoringEventAlerts data.
+    """
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+
+    # Ignore the pylinter error on using "== None" vs "is None",
+    # since SQLAlchemy interprets "is None" differently.
+    routine_events = mea.query.join(me).order_by(
+        DB.desc(mea.ts_start)).filter(and_(me.status == 1, mea.ts_end == None)).all()
+
+    return routine_events
 
 def get_current_monitoring_instance_per_site(site_id):
     """
