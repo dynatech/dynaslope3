@@ -758,7 +758,16 @@ def get_ongoing_extended_overdue_events(run_ts=None):
     routine_sites = get_routine_sites()
     if routine_sites and routine_event_alerts:
         var_checker("routine_sites", routine_sites)
+        event_alert_data = MonitoringEventAlertsSchema(
+            many=False).dump(event_alert).data
+        public_alert_level = event_alert.public_alert_symbol.alert_level
+        trigger_list = latest_release.trigger_list
+        event_alert_data["internal_alert_level"] = build_internal_alert_level(
+            public_alert_level, trigger_list)
+        event_alert_data["event"]["validity"] = str(datetime.strptime(
+            event_alert_data["event"]["validity"], "%Y-%m-%d %H:%M:%S"))
         routine.append(routine_event_alerts[0])
+
     for event_alert in active_event_alerts:
         event = event_alert.event
         validity = event.validity
