@@ -13,7 +13,7 @@ CURRENT_DATE = date.today()
 
 @SOCKETIO.on('/socket/routine_controller/get_routine_sites')
 @ROUTINE_BLUEPRINT.route("/sites", methods=["GET"])
-def get_routine_sites():
+def get_routine_sites_api():
     routine_sites = get_routine_sites()
     # get_sites = get_sites_data()
     # schema = SitesSchema(many=True).dump(get_sites).data
