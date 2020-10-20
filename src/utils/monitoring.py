@@ -784,9 +784,9 @@ def get_ongoing_extended_overdue_events(run_ts=None):
 
         # HOTFIX
         routine_sites = get_routine_sites()
-        if event_alert.event.site.site_code in routine_sites:
+        if routine_sites:
+            var_checker("routine_sites", routine_sites)
             routine.append(event_alert_data)
-            return
 
         # NOTE: LOUIE SPECIAL intervention to add all triggers of the whole event.
         # Bypassing the use of MonitoringEvent instead
