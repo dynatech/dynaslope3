@@ -500,11 +500,12 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 "alert_level": 0,
                 "trigger_list_str": "",
                 "is_release_time": True,
+                "trigger_list_arr": [],
                 "public_alert_symbol": public_alert_symbol,
                 "data_ts": datetime.strftime(query_end_ts, "%Y-%m-%d 11:30:00"),
                 "release_schedule": datetime.strftime(query_end_ts, "%Y-%m-%d 11:30:00")
             }
-            candidate_alerts_list.append(routine_candidates)
+            candidate_alerts_list.append(routine_alert)
 
             formatted_alert_entry = format_alerts_for_ewi_insert(
                 routine_alert, "routine")
