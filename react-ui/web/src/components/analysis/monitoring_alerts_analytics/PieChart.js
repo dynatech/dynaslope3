@@ -2,13 +2,51 @@ import React, { useState, useEffect } from "react";
 import HighchartsReact from "highcharts-react-official";
 import moment from "moment";
 
+function donutChartOption (processed_data) {
+    const categories = [
+        "Alert 1",
+        "Alert 2",
+        "Alert 3"
+    ];
+    const data = processed_data;
+    const alerts_data = [];
+    const trigger_count = [];
+    let i;
+    let j;
+    const data_length = data.length;
+    let drill_data_length;
+
+    // Build the data arrays
+    for (i = 0; i < data_length; i += 1) {
+
+        // add alert data
+        alerts_data.push({
+            name: categories[i],
+            y: data[i].y,
+            color: data[i].color
+        });
+  
+        // add drilldown data
+        drill_data_length = data[i].drilldown.data.length;
+        for (j = 0; j < drill_data_length; j += 1) {
+            trigger_count.push({
+                name: data[i].drilldown.categories[j],
+                y: data[i].drilldown.data[j],
+                color: data[i].color
+            });
+        }
+    }
+
+    return { alerts_data, trigger_count };
+}
+
 function getPieChartOption (processed_data, input) {
     const { site, start_ts, end_ts } = input;
 
     const ts_format = "DD MMM YYYY, HH:mm";
     const subtitle = `Range: <b>${moment(start_ts).format(ts_format)} - ${moment(end_ts).format(ts_format)}</b><br/>` +
     `Site: <b>${site ? site.label : "All"}</b>`;
-
+    const { alerts_data, trigger_count } = donutChartOption(processed_data);
     return {
         chart: {
             plotBackgroundColor: null,
@@ -24,9 +62,6 @@ function getPieChartOption (processed_data, input) {
             text: subtitle,
             style: { fontSize: "0.75rem" }
         },
-        tooltip: {
-            pointFormat: "<b>{point.percentage:.1f}%</b>"
-        },
         accessibility: {
             point: {
                 valueSuffix: "%"
@@ -34,18 +69,37 @@ function getPieChartOption (processed_data, input) {
         },
         plotOptions: {
             pie: {
-                allowPointSelect: true,
-                cursor: "pointer",
-                dataLabels: {
-                    enabled: true,
-                    format: "{point.name}: {point.y}"
-                }
+                shadow: false,
+                center: ["50%", "50%"]
             }
         },
         series: [{
+            name: "Alerts",
+            data: alerts_data,
+            size: "60%",
+            tooltip: {
+                pointFormat: "<b>{point.percentage:.1f}%</b>"
+            },
+            dataLabels: {
+                formatter () {
+                    return this.y > 5 ? this.point.name : null;
+                },
+                color: "#ffffff",
+                distance: -30
+            }
+        }, {
             name: "Count",
-            colorByPoint: true,
-            data: processed_data
+            data: trigger_count,
+            size: "80%",
+            innerSize: "60%",
+            dataLabels: {
+                formatter () {
+                // display only if larger than 1
+                    return this.y > 1 ? `<b>${ this.point.name }:</b> ${ 
+                        this.y}` : null;
+                }
+            },
+            id: "versions"
         }],
         loading: {
             hideDuration: 2000
@@ -58,6 +112,7 @@ function getPieChartOption (processed_data, input) {
         }
     };
 }
+
 
 function applyColor (processed_data, colors) {
     const temp = [];

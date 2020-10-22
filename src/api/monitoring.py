@@ -14,7 +14,8 @@ from connection import DB
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases,
     MonitoringEventAlerts, MonitoringShiftSchedule,
-    MonitoringShiftScheduleSchema, Sites)
+    MonitoringShiftScheduleSchema, Sites, MonitoringTriggers,
+    InternalAlertSymbols)
 from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
     InternalAlertSymbolsSchema, EndOfShiftAnalysisSchema)
@@ -31,6 +32,7 @@ from src.utils.monitoring import (
     get_latest_release_per_site, get_saved_event_triggers,
     get_monitoring_triggers, build_internal_alert_level,
     get_monitoring_releases_by_data_ts, get_unreleased_routine_sites,
+    get_unique_triggers_per_event_id,
 
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
@@ -1391,3 +1393,15 @@ def get_monitoring_analytics_data():
 
     return jsonify(final_data)
 
+
+@MONITORING_BLUEPRINT.route("/monitoring/unique_triggers", methods=["GET"])
+def unique_triggers():
+    """
+    """
+    table_data, donut_chart_data = get_unique_triggers_per_event_id(start_ts="2017-03-13 00:00:00", end_ts="2017-05-14 23:59:59")
+            
+    feedback = {
+        "table_data": table_data,
+        "donut_chart_data": donut_chart_data
+    }
+    return jsonify(feedback)
