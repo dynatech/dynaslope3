@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, time, date
 from sqlalchemy import func, extract
 from sqlalchemy.orm import joinedload
 from connection import DB
+
 from src.models.analysis import AlertStatus
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases, MonitoringEventAlerts,
@@ -19,15 +20,18 @@ from src.models.monitoring import (
     MonitoringEventAlertsSchema, OperationalTriggers,
     MonitoringMoms, MomsInstances, MonitoringTriggersSchema,
     BulletinTracker, MonitoringReleasePublishers, MonitoringTriggersMisc,
-    EndOfShiftAnalysis)
-from src.utils.narratives import write_narratives_to_db, get_narratives
+    EndOfShiftAnalysis, MonitoringReleasesSchema)
 from src.models.sites import (
     Seasons, RoutineSchedules, Sites, SitesSchema)
 from src.models.inbox_outbox import SmsInboxUsers
+from src.models.narratives import Narratives
+
+from src.utils.narratives import write_narratives_to_db, get_narratives
+from src.utils.analysis import check_ground_data_and_return_noun
+
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log,
     round_to_nearest_release_time)
-
 
 #####################################################
 # DYNAMIC Protocol Values starts here. For querying #
@@ -354,7 +358,6 @@ def update_alert_status(as_details):
                       + f"Trigger ID [{trigger_id}] is tagged as "
                       + f"{alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
-
             except Exception as err:
                 print(err)
                 DB.session.rollback()
@@ -377,14 +380,22 @@ def update_alert_status(as_details):
     return return_data
 
 
-def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
+def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts, for_qa=None):
     """
     Check sms range by 4-hour interval
     """
+
     global RELEASE_INTERVAL_HOURS
     release_interval_hours = RELEASE_INTERVAL_HOURS
     is_sms_sent = False
     is_bulletin_sent = False
+
+    if for_qa:
+        is_sms_sent = "---"
+        is_bulletin_sent = "---"
+    fyi = "---"
+    rainfall_info = "---"
+    ground_meas = "---"
 
     if not is_onset_release or \
             (is_onset_release and start_ts.hour % 4 == 3 and start_ts.minute == 30):
@@ -394,19 +405,49 @@ def check_ewi_narrative_sent_status(is_onset_release, event_id, start_ts):
     end_ts = round_to_nearest_release_time(
         start_ts, interval=release_interval_hours)
 
+    limit_start = round_to_nearest_release_time(
+        start_ts - timedelta(minutes=30), interval=release_interval_hours)
+
     narrative_list = get_narratives(
         event_id=event_id, start=start_ts, end=end_ts)
 
     for item in narrative_list:
+        item_ts = item.timestamp.strftime("%Y-%m-%d %H:%M:%S")
         if "EWI SMS" in item.narrative:
-            is_sms_sent = True
+            if for_qa:
+                is_sms_sent = item_ts
+            else:
+                is_sms_sent = True
 
         if "EWI BULLETIN" in item.narrative:
-            is_bulletin_sent = True
+            if for_qa:
+                is_bulletin_sent = item_ts
+            else:
+                is_bulletin_sent = True
 
-    return {
+        if for_qa:
+            if "Sent surficial ground data reminder" in item.narrative:
+                ground_meas = item_ts
+
+            if "FYI" in item.narrative:
+                fyi = item_ts
+
+            if "Sent rainfall information" in item.narrative:
+                rainfall_info = item_ts
+
+    final = {
         "is_sms_sent": is_sms_sent, "is_bulletin_sent": is_bulletin_sent
     }
+
+    if for_qa:
+        final.update({
+            "ground_measurement": ground_meas,
+            "fyi": fyi,
+            "rainfall_info": rainfall_info,
+            "nearest_release_ts": limit_start.strftime("%Y-%m-%d %H:%M:%S"),
+        })
+
+    return final
 
 
 def get_ongoing_extended_overdue_events(run_ts=None):
@@ -800,6 +841,71 @@ def get_monitoring_releases_by_data_ts(site_code, data_ts):
     return return_data
 
 
+def get_qa_data(ts_start=None, ts_end=None):
+    """
+    """
+
+    exclude_list = ["moms_releases", "triggers", "release_publishers"]
+    release_schema = MonitoringReleasesSchema(many=True, exclude=exclude_list)
+    mr = MonitoringReleases
+    base = mr.query.order_by(DB.desc(mr.data_ts)) \
+        .order_by(DB.desc(mr.release_time))
+    return_data = None
+
+    ea_load = DB.joinedload("event_alert", innerjoin=True)
+    base = base.options(
+        ea_load.joinedload("releases", innerjoin=True)
+        .raiseload("*"),
+        ea_load.joinedload("event", innerjoin=True)
+        .joinedload("site", innerjoin=True)
+        .raiseload("*"),
+        ea_load.joinedload("public_alert_symbol", innerjoin=True)
+    )
+
+    if ts_start and ts_end:
+        base = base.filter(DB.and_(
+            ts_start <= mr.data_ts,
+            mr.data_ts <= ts_end
+        ))
+
+    return_data = base.all()
+    result = release_schema.dump(return_data).data
+
+    i = 0
+    for row in return_data:
+        event = row.event_alert.event
+        event_id = event.event_id
+        site_id = event.site_id
+        start_ts = row.data_ts
+        is_onset_release = True
+
+        if row.event_alert.public_alert_symbol.alert_type == "event":
+            is_onset_release = True
+
+        sent_status = check_ewi_narrative_sent_status(
+            is_onset_release, event_id, start_ts, True)
+
+        noun, g_data = check_ground_data_and_return_noun(
+            site_id=site_id, timestamp=ts_end, hour=12, minute=0)
+        ground_data = "---"
+        if g_data:
+            if noun == "ground measurement":
+                ts = g_data.ts
+                n = "Surficial"
+            else:
+                ts = g_data.observance_ts
+                n = "MOMS"
+
+            ground_data = f"{str(ts)} | {n}"
+
+        result[i].update(sent_status)
+        result[i].update({"ground_data": ground_data})
+
+        i += 1
+
+    return result
+
+
 def get_monitoring_releases(
         release_id=None, ts_start=None, ts_end=None,
         event_id=None, user_id=None, exclude_routine=False,
@@ -843,10 +949,22 @@ def get_monitoring_releases(
             ea_load.joinedload("public_alert_symbol", innerjoin=True),
             DB.raiseload("*")
         )
+    elif load_options == "quality_assurance":
+        ea_load = DB.joinedload("event_alert", innerjoin=True)
+        base = base.options(
+            ea_load.joinedload("releases", innerjoin=True)
+            .raiseload("*"),
+            ea_load.joinedload("event", innerjoin=True)
+            .joinedload("site", innerjoin=True)
+            .raiseload("*"),
+            ea_load.joinedload("public_alert_symbol", innerjoin=True),
+            DB.raiseload("*")
+        )
 
     if release_id:
         return_data = base.filter(
             mr.release_id == release_id).first()
+
     else:
         if ts_start and ts_end:
             base = base.filter(DB.and_(
@@ -1517,24 +1635,12 @@ def fix_internal_alert(alert_entry, internal_source_id):
     """
     Changes the internal alert string of each alert entry.
     """
+
     event_triggers = alert_entry["event_triggers"]
     internal_alert = alert_entry["internal_alert"]
     valid_alert_levels = []
     invalid_triggers = []
     trigger_list_str = None
-
-    # for trigger in trigger_list_arr:
-    #     alert_level = trigger["alert_level"]
-    #     alert_symbol = trigger["alert_symbol"]
-    #     internal_sym_id = trigger["internal_sym_id"]
-    #     trigger_type = trigger["trigger_type"]
-
-    #     try:
-    #         if True:
-    #             print("Oh yes!")
-    #     except Exception as err:
-    #         print(err)
-    #         raise
 
     for trigger in event_triggers:
         alert_symbol = trigger["alert"]

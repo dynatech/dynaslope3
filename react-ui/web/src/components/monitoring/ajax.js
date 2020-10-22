@@ -1,4 +1,5 @@
 import axios from "axios";
+import moment from "moment";
 import { func } from "prop-types";
 import { host } from "../../config";
 import { makeGETAxiosRequest, makePOSTAxiosRequest } from "../../UtilityFunctions";
@@ -18,7 +19,6 @@ export function getEndOfShiftReports (input, callback) {
     const {
         shift_start
     } = input;
-
     const api_link = `${host}/api/end_of_shift/get_end_of_shift_reports/${shift_start}`;
 
     axios.get(api_link)
@@ -31,6 +31,27 @@ export function getEndOfShiftReports (input, callback) {
         console.error("Problem in Axios request");
         console.error(error);
     });
+}
+
+export function getMonitoringReleases (input, callback) {
+    const {
+        shift_time, start_ts
+    } = input;
+    const time = shift_time === "am" ? "08:00:00" : "20:00:00"; 
+
+    const moment_start_ts = moment(start_ts).format(`YYYY-MM-DD ${time}`);
+    const api_link = `${host}/api/monitoring/get_monitoring_releases_for_qa/${moment_start_ts}`;
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("Releases", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error("Problem in Axios request");
+        console.error(error);
+    });
+    return moment_start_ts;
 }
 
 export function getNarratives (input, callback) {

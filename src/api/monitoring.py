@@ -23,7 +23,7 @@ from src.models.narratives import (NarrativesSchema)
 from src.utils.narratives import (write_narratives_to_db, get_narratives)
 from src.utils.monitoring import (
     # GET functions
-    get_pub_sym_id, get_event_count,
+    get_pub_sym_id, get_event_count, get_qa_data,
     get_moms_id_list, get_internal_alert_symbols,
     get_monitoring_events, get_active_monitoring_events,
     get_monitoring_releases, get_monitoring_events_table,
@@ -60,7 +60,6 @@ from src.utils.extra import (
 )
 from src.utils.bulletin import create_monitoring_bulletin, render_monitoring_bulletin
 from src.utils.sites import build_site_address
-
 # from src.websocket.monitoring_ws import update_alert_gen
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
@@ -343,13 +342,91 @@ def wrap_get_monitoring_releases_by_data_ts(site_code, data_ts):
     return jsonify(releases_data)
 
 
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases_for_qa/<ts_start>", methods=["GET"])
+def wrap_get_qa_data(ts_start=None):
+    """
+    """
+    ts_end = datetime.strptime(
+        ts_start, "%Y-%m-%d %H:%M:%S") + timedelta(hours=12)
+    q_a = get_qa_data(ts_start, ts_end)
+
+    routine_temp = []
+    event_temp = []
+    extended_temp = []
+    lowering_temp = []
+    raising_temp = []
+
+    for row in q_a:
+        event = row["event_alert"]["event"]
+        status = event["status"]
+
+        data_ts = row["data_ts"]
+        release_time = row["release_time"]
+        site_code = event["site"]["site_code"]
+        rain_info = row["rainfall_info"]
+        ts_start = row["event_alert"]["ts_start"]
+        g_m = row["ground_measurement"]
+        sms = row["is_sms_sent"]
+        bulletin = row["is_bulletin_sent"]
+        near_ts_release = row["nearest_release_ts"]
+        g_data = row["ground_data"]
+        fyi = row["fyi"]
+
+        pub_alert_level = row["event_alert"]["public_alert_symbol"]["alert_level"]
+
+        start_dt_ts = datetime.strptime(data_ts,
+                                        "%Y-%m-%d %H:%M:%S")
+
+        temp = {
+            "ewi_web_release": release_time,
+            "site_name": site_code.upper(),
+            "ewi_sms": sms,
+            "ewi_bulletin_release": bulletin,
+            "ground_measurement": g_m,
+            "ground_data": g_data,
+            "rainfall_info": rain_info,
+            "fyi_permission": fyi,
+            "ts_limit_start": near_ts_release
+        }
+
+        # status 1 = Routine , 2 = Event
+        if status == "1":
+            routine_temp.append(temp)
+
+        if status == "2":
+            end_val_data_ts = datetime.strptime(event["validity"],
+                                                "%Y-%m-%d %H:%M:%S") - timedelta(minutes=30)
+
+            if end_val_data_ts > start_dt_ts:
+                event_temp.append(temp)
+
+            if end_val_data_ts < start_dt_ts:
+                extended_temp.append(temp)
+
+            if end_val_data_ts == start_dt_ts and pub_alert_level == 0:
+                lowering_temp.append(temp)
+
+            if start_dt_ts == ts_start:
+                raising_temp.append(temp)
+
+    final_data = {
+        "routine": routine_temp,
+        "event": event_temp,
+        "extended": extended_temp,
+        "lowering": lowering_temp,
+        "raising": raising_temp
+    }
+    return jsonify(final_data)
+
+
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases", methods=["GET"])
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases/<release_id>", methods=["GET"])
-def wrap_get_monitoring_releases(release_id=None):
+def wrap_get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, load_options=None):
     """
     Gets a single release with the specificied ID
     """
-    release = get_monitoring_releases(release_id)
+    release = get_monitoring_releases(
+        release_id, ts_start, ts_end, load_options)
     release_schema = MonitoringReleasesSchema()
 
     if release_id is None:
@@ -938,7 +1015,7 @@ def insert_ewi(internal_json=None):
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
                         and site_monitoring_instance.validity \
-                    == datetime_data_ts + timedelta(minutes=30):
+                == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 

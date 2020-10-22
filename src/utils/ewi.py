@@ -4,12 +4,13 @@
 import re
 import copy
 from datetime import timedelta, datetime, time, date
+
 from src.utils.monitoring import (
     get_monitoring_releases, check_if_onset_release,
     get_next_ground_data_reporting, get_next_ewi_release_ts,
     process_trigger_list)
 from src.utils.sites import build_site_address
-from src.utils.surficial import check_if_site_has_active_surficial_markers
+from src.utils.analysis import get_ground_data_noun
 from src.utils.extra import (
     retrieve_data_from_memcache, format_timestamp_to_string,
     round_to_nearest_release_time, convert_ampm_to_noon_midnight
@@ -185,14 +186,6 @@ def create_ewi_message(release_id=None):
                    f"{third_line}Salamat.")
 
     return ewi_message
-
-
-def get_ground_data_noun(site_id):
-    has_active_markers = check_if_site_has_active_surficial_markers(
-        site_id=site_id)
-    g_data = "ground measurement" if has_active_markers else "ground observation"
-
-    return g_data
 
 
 def create_ground_measurement_reminder(site_id, monitoring_type, ts, ground_data_noun=None):

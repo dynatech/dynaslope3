@@ -613,7 +613,7 @@ def write_bulletin_sending_narrative(recipients, sender_id, site_id, narrative_d
         tmp_rcp = recipient
         if tmp_rcp == "rusolidum@phivolcs.dost.gov.ph":
             tmp_rcp = "RUS"
-        elif tmp_rcp == "asdaag48@gmail.com":
+        elif tmp_rcp == "arturo.daag@phivolcs.dost.gov.ph":
             tmp_rcp = "ASD"
 
         str_recipients = str_recipients + tmp_rcp

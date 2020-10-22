@@ -62,7 +62,6 @@ const navigation_labels = [
             {
                 label: "Quality Assurance",
                 link: "/monitoring/qa",
-                soon: true
             }
         ]
     },
