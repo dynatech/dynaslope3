@@ -6,7 +6,7 @@ Contains functions for getting and accesing monitoring-related tables only
 import re
 import traceback
 from datetime import datetime, timedelta, time, date
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from sqlalchemy.orm import joinedload
 from connection import DB
 
@@ -21,7 +21,8 @@ from src.models.monitoring import (
     MonitoringMoms, MomsInstances, MonitoringTriggersSchema,
     BulletinTracker, MonitoringReleasePublishers, MonitoringTriggersMisc,
     EndOfShiftAnalysis, MonitoringReleasesSchema)
-from src.models.sites import Seasons, RoutineSchedules, Sites
+from src.models.sites import (
+    Seasons, RoutineSchedules, Sites, SitesSchema)
 from src.models.inbox_outbox import SmsInboxUsers
 from src.models.narratives import Narratives
 
@@ -353,9 +354,9 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}. " +
-                      f"Trigger ID [{trigger_id}] is tagged as " +
-                      f"{alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}. "
+                      + f"Trigger ID [{trigger_id}] is tagged as "
+                      + f"{alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
             except Exception as err:
                 print(err)
@@ -2134,3 +2135,195 @@ def get_next_ewi_release_ts(data_ts, is_onset=False):
             timedelta(hours=RELEASE_INTERVAL_HOURS)
 
     return next_ewi_release_ts
+
+
+def get_monitoring_analytics(data):
+    chart_type = data["chart_type"]
+    inputs = data["inputs"]
+    
+    mea = MonitoringEventAlerts
+    me = MonitoringEvents
+    sites = Sites
+
+    site = inputs["site"]
+    final_data = []
+    if chart_type == "pie":
+        start_ts = inputs["start_ts"]
+        end_ts = inputs["end_ts"]
+        table_data, donut_chart_data = get_unique_triggers_per_event_id(start_ts, end_ts, site=site)
+        query = mea.query.join(me).with_entities(
+            func.count(mea.pub_sym_id),
+            mea.pub_sym_id
+        ).join(sites).filter(
+            me.event_start
+            .between(
+                start_ts, end_ts)
+        ).filter(mea.pub_sym_id != 1) \
+            .group_by(mea.pub_sym_id)
+        
+        if site:
+            site_id = inputs["site_id"]
+            query = query.filter(sites.site_id == site_id)
+
+        query = query.all()
+        
+        for count in query:
+            alert_level = count[1] - 1
+            chart_data = donut_chart_data[f"alert_{alert_level}"]
+            categories = {}
+            drilldown_data = {}
+            if "categories" in chart_data:
+                categories = donut_chart_data[f"alert_{alert_level}"]["categories"]
+                drilldown_data = donut_chart_data[f"alert_{alert_level}"]["data"]
+                
+            data = {
+                "name": f"Alert {alert_level}",
+                "y": count[0],
+                "drilldown": {
+                    "name": f"Alert {alert_level}",
+                    "categories": categories,
+                    "data": drilldown_data
+                }
+            }
+            final_data.append(data)
+    elif chart_type == "stacked":
+        year = inputs["year"]
+        data = [
+            {
+                "name": "Alert 1",
+                "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            },
+            {
+                "name": "Alert 2",
+                "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            },
+            {
+                "name": "Alert 3",
+                "data": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            }
+        ]
+
+        query = mea.query.with_entities(
+            extract("month", mea.ts_start),
+            func.count(mea.pub_sym_id).label('number'),
+            mea.pub_sym_id).join(me).join(sites) \
+            .filter(
+                mea.ts_start.between(
+                    f"{year}-01-01 00:00:00",
+                    f"{year}-12-31 23:59:59"
+                )) \
+            .filter(mea.pub_sym_id != 1) \
+            .group_by(
+                extract("month", mea.ts_start)) \
+            .group_by(mea.pub_sym_id)
+
+        if site:
+            site_id = inputs["site_id"]
+            query = query.filter(sites.site_id == site_id)
+
+        query = query.all()
+
+        for row in query:
+            month = row[0]
+            count = row[1]
+            pub_sym_id = row[2]
+            temp_data = data[pub_sym_id - 2]["data"]
+            temp_data[month - 1] = count
+
+        final_data = data
+
+    return final_data
+
+
+def get_unique_triggers_per_event_id(start_ts, end_ts, site=None):
+    """
+    Function that gets unique triggers per event_id
+    """
+    me = MonitoringEvents
+    mea = MonitoringEventAlerts
+    mr = MonitoringReleases
+    mt = MonitoringTriggers
+    ias = InternalAlertSymbols
+
+    query = me.query.with_entities(
+        me.event_id,
+        me.site_id,
+        me.event_start,
+        me.validity,
+        me.status,
+        ias.alert_symbol,
+        mt.internal_sym_id,
+        ias.trigger_sym_id,
+        func.count(mt.internal_sym_id),).join(mea).join(mr).join(mt).join(ias).filter(
+            mr.data_ts.between(start_ts, end_ts)
+                ).filter(
+                    mea.pub_sym_id != 0
+                ).group_by(me.event_id, mt.internal_sym_id)
+
+    if site:
+        site_id = site["value"]
+        query = query.filter(me.site_id == site_id)
+
+    query = query.all()
+    table_data, donut_chart_data = process_unique_triggers_data(query)
+
+    return table_data, donut_chart_data
+
+
+def process_unique_triggers_data(query):
+    """
+    Process unique triggers data
+    """
+    table_data = []
+    donut_chart_data = {
+        "alert_1": {},
+        "alert_2": {},
+        "alert_3": {}
+    }
+
+    for row in query:
+        site_id = row[1]
+        trigger_sym_id = row[7]
+        count = row[8]
+        alert_symbol = row[5]
+        alert_level = retrieve_data_from_memcache(
+            "operational_trigger_symbols", {
+                "trigger_sym_id": trigger_sym_id
+            }, retrieve_attr="alert_level")
+
+        data_per_alert_level = donut_chart_data[f"alert_{alert_level}"]
+        if alert_symbol in data_per_alert_level:
+            data_per_alert_level[str(alert_symbol)].append(trigger_sym_id)
+        else:
+            data_per_alert_level[str(alert_symbol)] = [trigger_sym_id]
+
+        site = Sites.query.filter(Sites.site_id == site_id).first()
+        site_result = SitesSchema().dump(site).data
+       
+        temp = {
+            "event_id": row[0],
+            "site_id": site_result,
+            "event_start": row[2],
+            "validity": row[3],
+            "status": row[4],
+            "alert_symbol": alert_symbol,
+            "internal_sym_id": row[6],
+            "count": count
+        }
+        table_data.append(temp)
+
+    for row in donut_chart_data:
+        categories = []
+        counts = []
+        row_data = donut_chart_data[row]
+        for data in row_data:
+            categories.append(data)
+            counts.append(len(row_data[data]))
+            donut_chart_data[row] = {
+                "categories": categories,
+                "data": counts
+            }
+
+    return table_data, donut_chart_data
+
+

@@ -9,6 +9,7 @@ import IssuesAndReminders from "./components/monitoring/issues_and_reminders/Con
 import QAContainer from "./components/monitoring/qa/Container";
 
 import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_site/Container";
+import MonitoringAlertsAnalytics from "./components/analysis/monitoring_alerts_analytics/Container";
 
 import ChatterboxContainer from "./components/communication/chatterbox/Container";
 import ContactsContainer from "./components/communication/contacts/Container";
@@ -37,6 +38,7 @@ function RoutesCollection (props) {
             <Route path={`${url}monitoring`} render={() => <h3> Not yet created</h3>} />
 
             <Route path={`${url}analysis/sites`} component={IntegratedSiteAnalysisContainer} />
+            <Route path={`${url}analysis/alerts`} component={MonitoringAlertsAnalytics} />
             <Route path={`${url}analysis`} render={() => <h3> Not yet created</h3>} />
 
             <Route path={`${url}communication/chatterbox`} component={ChatterboxContainer} />

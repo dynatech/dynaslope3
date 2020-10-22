@@ -9,11 +9,13 @@ NAMING CONVENTION
 import json
 from datetime import datetime, timedelta, time
 from flask import Blueprint, jsonify, request
+from sqlalchemy import func
 from connection import DB
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases,
     MonitoringEventAlerts, MonitoringShiftSchedule,
-    MonitoringShiftScheduleSchema)
+    MonitoringShiftScheduleSchema, Sites, MonitoringTriggers,
+    InternalAlertSymbols)
 from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
     InternalAlertSymbolsSchema, EndOfShiftAnalysisSchema)
@@ -30,6 +32,7 @@ from src.utils.monitoring import (
     get_latest_release_per_site, get_saved_event_triggers,
     get_monitoring_triggers, build_internal_alert_level,
     get_monitoring_releases_by_data_ts, get_unreleased_routine_sites,
+    get_unique_triggers_per_event_id,
 
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
@@ -45,7 +48,10 @@ from src.utils.monitoring import (
     write_monitoring_release_to_db, write_monitoring_release_publishers_to_db,
     write_monitoring_release_triggers_to_db, write_monitoring_triggers_misc_to_db,
     write_monitoring_moms_releases_to_db,
-    write_monitoring_on_demand_to_db, write_monitoring_earthquake_to_db
+    write_monitoring_on_demand_to_db, write_monitoring_earthquake_to_db,
+
+    #Monitoring Analytics Data
+    get_monitoring_analytics
 )
 from src.api.end_of_shift import (get_eos_data_analysis)
 from src.utils.extra import (
@@ -1440,3 +1446,39 @@ def get_monitoring_shifts():
     data = json.dumps(result)
 
     return data
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_analytics_data", methods=["GET", "POST"])
+def get_monitoring_analytics_data():
+    """
+    Function that get monitoring analytics data
+    """
+    status = None
+    message = ""
+
+    data = request.get_json()
+    if data is None:
+        data = request.form
+
+    final_data = []
+    try:
+        final_data = get_monitoring_analytics(data)
+        status = True
+    except Exception as err:
+        print(err)
+        status = False
+        message = f"Error: {err}"
+
+    return jsonify(final_data)
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/unique_triggers", methods=["GET"])
+def unique_triggers():
+    """
+    """
+    table_data, donut_chart_data = get_unique_triggers_per_event_id(start_ts="2017-03-13 00:00:00", end_ts="2017-05-14 23:59:59")
+            
+    feedback = {
+        "table_data": table_data,
+        "donut_chart_data": donut_chart_data
+    }
+    return jsonify(feedback)
