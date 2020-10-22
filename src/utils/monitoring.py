@@ -354,9 +354,9 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}. "
-                      + f"Trigger ID [{trigger_id}] is tagged as "
-                      + f"{alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
+                print(f"New alert status written with ID: {stat_id}. " +
+                      f"Trigger ID [{trigger_id}] is tagged as " +
+                      f"{alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
             except Exception as err:
                 print(err)
@@ -2140,7 +2140,7 @@ def get_next_ewi_release_ts(data_ts, is_onset=False):
 def get_monitoring_analytics(data):
     chart_type = data["chart_type"]
     inputs = data["inputs"]
-    
+
     mea = MonitoringEventAlerts
     me = MonitoringEvents
     sites = Sites
@@ -2150,41 +2150,25 @@ def get_monitoring_analytics(data):
     if chart_type == "pie":
         start_ts = inputs["start_ts"]
         end_ts = inputs["end_ts"]
-        table_data, donut_chart_data = get_unique_triggers_per_event_id(start_ts, end_ts, site=site)
-        query = mea.query.join(me).with_entities(
-            func.count(mea.pub_sym_id),
-            mea.pub_sym_id
-        ).join(sites).filter(
-            me.event_start
-            .between(
-                start_ts, end_ts)
-        ).filter(mea.pub_sym_id != 1) \
-            .group_by(mea.pub_sym_id)
-        
-        if site:
-            site_id = inputs["site_id"]
-            query = query.filter(sites.site_id == site_id)
+        table_data, donut_chart_data = get_unique_triggers_per_event_id(
+            start_ts, end_ts, site=site)
 
-        query = query.all()
-        
-        for count in query:
-            alert_level = count[1] - 1
-            chart_data = donut_chart_data[f"alert_{alert_level}"]
-            categories = {}
-            drilldown_data = {}
-            if "categories" in chart_data:
-                categories = donut_chart_data[f"alert_{alert_level}"]["categories"]
-                drilldown_data = donut_chart_data[f"alert_{alert_level}"]["data"]
-                
+        for alert in donut_chart_data.values():
+            alert_level = alert["alert_level"]
+            name = f"Alert {alert_level}"
+            trigger_count_arr = alert["data"]
+
             data = {
-                "name": f"Alert {alert_level}",
-                "y": count[0],
+                "name": name,
+                "y": sum(trigger_count_arr),
                 "drilldown": {
-                    "name": f"Alert {alert_level}",
-                    "categories": categories,
-                    "data": drilldown_data
+                    "name": name,
+                    "categories": alert["categories"],
+                    "data": trigger_count_arr,
+                    "trigger_events": alert["trigger_events"]
                 }
             }
+
             final_data.append(data)
     elif chart_type == "stacked":
         year = inputs["year"]
@@ -2239,6 +2223,7 @@ def get_unique_triggers_per_event_id(start_ts, end_ts, site=None):
     """
     Function that gets unique triggers per event_id
     """
+
     me = MonitoringEvents
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
@@ -2254,11 +2239,11 @@ def get_unique_triggers_per_event_id(start_ts, end_ts, site=None):
         ias.alert_symbol,
         mt.internal_sym_id,
         ias.trigger_sym_id,
-        func.count(mt.internal_sym_id),).join(mea).join(mr).join(mt).join(ias).filter(
-            mr.data_ts.between(start_ts, end_ts)
-                ).filter(
-                    mea.pub_sym_id != 0
-                ).group_by(me.event_id, mt.internal_sym_id)
+        func.count(mt.internal_sym_id)
+    ).join(mea).join(mr).join(mt).join(ias) \
+        .filter(mr.data_ts.between(start_ts, end_ts)) \
+        .filter(mea.pub_sym_id != 0) \
+        .group_by(me.event_id, mt.internal_sym_id)
 
     if site:
         site_id = site["value"]
@@ -2274,6 +2259,7 @@ def process_unique_triggers_data(query):
     """
     Process unique triggers data
     """
+
     table_data = []
     donut_chart_data = {
         "alert_1": {},
@@ -2291,39 +2277,44 @@ def process_unique_triggers_data(query):
                 "trigger_sym_id": trigger_sym_id
             }, retrieve_attr="alert_level")
 
-        data_per_alert_level = donut_chart_data[f"alert_{alert_level}"]
-        if alert_symbol in data_per_alert_level:
-            data_per_alert_level[str(alert_symbol)].append(trigger_sym_id)
-        else:
-            data_per_alert_level[str(alert_symbol)] = [trigger_sym_id]
-
-        site = Sites.query.filter(Sites.site_id == site_id).first()
+        site = Sites.query.options(DB.raiseload("*")) \
+            .filter(Sites.site_id == site_id).first()
         site_result = SitesSchema().dump(site).data
-       
+
         temp = {
             "event_id": row[0],
-            "site_id": site_result,
-            "event_start": row[2],
-            "validity": row[3],
+            "site": site_result,
+            "event_start": row[2].strftime("%Y-%m-%d %H:%M:%S"),
+            "validity": row[3].strftime("%Y-%m-%d %H:%M:%S"),
             "status": row[4],
             "alert_symbol": alert_symbol,
             "internal_sym_id": row[6],
             "count": count
         }
+
+        data_per_alert_level = donut_chart_data[f"alert_{alert_level}"]
+        data_per_alert_level.setdefault(
+            alert_symbol, []).append(temp)
+
         table_data.append(temp)
 
-    for row in donut_chart_data:
+    for key in donut_chart_data:
         categories = []
         counts = []
-        row_data = donut_chart_data[row]
-        for data in row_data:
-            categories.append(data)
-            counts.append(len(row_data[data]))
-            donut_chart_data[row] = {
-                "categories": categories,
-                "data": counts
-            }
+        trigger_events_arr = []
+        alert_row = donut_chart_data[key]
+
+        for internal_symbol in alert_row:
+            trigger_events = alert_row[internal_symbol]
+            trigger_events_arr.append(trigger_events)
+            categories.append(internal_symbol)
+            counts.append(len(trigger_events))
+
+        donut_chart_data[key] = {
+            "categories": categories,
+            "data": counts,
+            "trigger_events": trigger_events_arr,
+            "alert_level": int(key[-1])
+        }
 
     return table_data, donut_chart_data
-
-

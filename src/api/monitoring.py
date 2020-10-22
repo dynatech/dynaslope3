@@ -32,7 +32,6 @@ from src.utils.monitoring import (
     get_latest_release_per_site, get_saved_event_triggers,
     get_monitoring_triggers, build_internal_alert_level,
     get_monitoring_releases_by_data_ts, get_unreleased_routine_sites,
-    get_unique_triggers_per_event_id,
 
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
@@ -50,7 +49,7 @@ from src.utils.monitoring import (
     write_monitoring_moms_releases_to_db,
     write_monitoring_on_demand_to_db, write_monitoring_earthquake_to_db,
 
-    #Monitoring Analytics Data
+    # Monitoring Analytics Data
     get_monitoring_analytics
 )
 from src.api.end_of_shift import (get_eos_data_analysis)
@@ -1015,7 +1014,7 @@ def insert_ewi(internal_json=None):
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
                         and site_monitoring_instance.validity \
-                == datetime_data_ts + timedelta(minutes=30):
+                    == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
@@ -1447,6 +1446,7 @@ def get_monitoring_shifts():
 
     return data
 
+
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_analytics_data", methods=["GET", "POST"])
 def get_monitoring_analytics_data():
     """
@@ -1469,16 +1469,3 @@ def get_monitoring_analytics_data():
         message = f"Error: {err}"
 
     return jsonify(final_data)
-
-
-@MONITORING_BLUEPRINT.route("/monitoring/unique_triggers", methods=["GET"])
-def unique_triggers():
-    """
-    """
-    table_data, donut_chart_data = get_unique_triggers_per_event_id(start_ts="2017-03-13 00:00:00", end_ts="2017-05-14 23:59:59")
-            
-    feedback = {
-        "table_data": table_data,
-        "donut_chart_data": donut_chart_data
-    }
-    return jsonify(feedback)

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+
 import HighchartsReact from "highcharts-react-official";
 import moment from "moment";
+import Chroma from "chroma-js";
 
 function donutChartOption (processed_data) {
     const categories = [
@@ -18,21 +20,24 @@ function donutChartOption (processed_data) {
 
     // Build the data arrays
     for (i = 0; i < data_length; i += 1) {
-
+        const { y, color, drilldown } = data[i];
         // add alert data
         alerts_data.push({
             name: categories[i],
-            y: data[i].y,
-            color: data[i].color
+            y,
+            color
         });
   
         // add drilldown data
-        drill_data_length = data[i].drilldown.data.length;
+        const { data: d_data, categories: d_categories, trigger_events } = drilldown;
+        drill_data_length = d_data.length;
         for (j = 0; j < drill_data_length; j += 1) {
             trigger_count.push({
-                name: data[i].drilldown.categories[j],
-                y: data[i].drilldown.data[j],
-                color: data[i].color
+                name: d_categories[j],
+                y: d_data[j],
+                color: Chroma(color).brighten((j + 1) * 0.50)
+                .hex(),
+                alert_events: trigger_events[j]
             });
         }
     }
@@ -40,13 +45,15 @@ function donutChartOption (processed_data) {
     return { alerts_data, trigger_count };
 }
 
-function getPieChartOption (processed_data, input) {
+// eslint-disable-next-line max-params
+function getPieChartOption (processed_data, input, setSelectedTrigger, chart) {
     const { site, start_ts, end_ts } = input;
 
     const ts_format = "DD MMM YYYY, HH:mm";
     const subtitle = `Range: <b>${moment(start_ts).format(ts_format)} - ${moment(end_ts).format(ts_format)}</b><br/>` +
     `Site: <b>${site ? site.label : "All"}</b>`;
     const { alerts_data, trigger_count } = donutChartOption(processed_data);
+    
     return {
         chart: {
             plotBackgroundColor: null,
@@ -69,16 +76,16 @@ function getPieChartOption (processed_data, input) {
         },
         plotOptions: {
             pie: {
-                shadow: false,
+                // shadow: true,
                 center: ["50%", "50%"]
             }
         },
         series: [{
             name: "Alerts",
             data: alerts_data,
-            size: "60%",
+            size: "80%",
             tooltip: {
-                pointFormat: "<b>{point.percentage:.1f}%</b>"
+                pointFormat: "Count: <b>{point.y} ({point.percentage:.1f}%)</b>"
             },
             dataLabels: {
                 formatter () {
@@ -95,11 +102,21 @@ function getPieChartOption (processed_data, input) {
             dataLabels: {
                 formatter () {
                 // display only if larger than 1
-                    return this.y > 1 ? `<b>${ this.point.name }:</b> ${ 
+                    return this.y > 1 ? `<b>${this.point.name}:</b> ${ 
                         this.y}` : null;
                 }
             },
-            id: "versions"
+            point: {
+                events: {
+                    click (event) {
+                        const { point: {
+                            alert_events, name
+                        } } = event; 
+                        setSelectedTrigger({ alert_events, name });
+                        chart.reflow();
+                    }
+                }
+            }
         }],
         loading: {
             hideDuration: 2000
@@ -129,13 +146,13 @@ function applyColor (processed_data, colors) {
 function PieChart (props) {
     const {
         highcharts, data, colors,
-        isLoading, input
+        isLoading, input, setSelectedTrigger
     } = props;
     const [chart, setChart] = useState(null);
 
     let data_with_color = [];
     if (data !== null) data_with_color = applyColor(data, colors);
-    const [chart_option, setChartOption] = useState(getPieChartOption(data_with_color, input));
+    const [chart_option, setChartOption] = useState(getPieChartOption(data_with_color, input, setSelectedTrigger, chart));
 
     useEffect(() => {
         if (chart !== null) {
@@ -147,7 +164,7 @@ function PieChart (props) {
     useEffect(() => {
         let to_show = false;
         if (chart !== null && data !== null) {
-            setChartOption(getPieChartOption(data_with_color, input));
+            setChartOption(getPieChartOption(data_with_color, input, setSelectedTrigger, chart));
 
             if (data.length === 0) to_show = true;
 

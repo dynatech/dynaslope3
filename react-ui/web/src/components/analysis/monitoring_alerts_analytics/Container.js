@@ -21,6 +21,7 @@ import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInp
 import PieChart from "./PieChart";
 import StackedBarChart from "./StackedBarChart";
 import { getMonitoringAnalyticsData } from "../ajax";
+import TriggerEventsTable from "./TriggerEventsTable";
 
 
 window.Highcharts = Highcharts;
@@ -143,6 +144,8 @@ function MonitoringAlertsAnalytics (props) {
     const [pie_chart_filter_data, dispatchPie] = useReducer(reducerFunction, pie_chart_initial_data, initReducer);
     const [stacked_chart_filter_data, dispatchStacked] = useReducer(reducerFunction, stacked_chart_initial_data, initReducer);
     const year_list = listOfYears();
+    const [selected_trigger, setSelectedTrigger] = useState(null);
+
     const update_ts = (field, value) => dispatchPie({ 
         type: "UPDATE", field,
         value: moment(value).format("YYYY-MM-DD HH:mm:ss")
@@ -212,7 +215,6 @@ function MonitoringAlertsAnalytics (props) {
         });
     }, []);
 
-
     return (
         <Fragment>
             <div className={classes.pageContentMargin}>
@@ -221,7 +223,7 @@ function MonitoringAlertsAnalytics (props) {
                 />
 
                 <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12}>
                         <Card className={classes.card}>
                             <CardContent>
                                 <Typography variant="overline" display="block" gutterBottom>
@@ -229,7 +231,7 @@ function MonitoringAlertsAnalytics (props) {
                                 </Typography>
 
                                 <Grid container spacing={2} justify="space-between">
-                                    <Grid item xs={12} sm={6} md={12}>
+                                    <Grid item xs={12} sm={6}>
                                         <DynaslopeSiteSelectInputForm
                                             value={pie_chart_filter_data.site.value}
                                             changeHandler={e => updatePieChartSite(e)}
@@ -239,7 +241,7 @@ function MonitoringAlertsAnalytics (props) {
                                     </Grid>
 
                                     <MuiPickersUtilsProvider utils={MomentUtils}>
-                                        <Grid item xs={12} sm={3} md={12}>
+                                        <Grid item xs={12} sm={3}>
                                             <KeyboardDateTimePicker
                                                 required
                                                 autoOk
@@ -256,7 +258,7 @@ function MonitoringAlertsAnalytics (props) {
                                             />
                                         </Grid>
 
-                                        <Grid item xs={12} sm={3} md={12}>
+                                        <Grid item xs={12} sm={3}>
                                             <KeyboardDateTimePicker
                                                 required
                                                 autoOk
@@ -279,7 +281,8 @@ function MonitoringAlertsAnalytics (props) {
                                             size="small" 
                                             color="primary"
                                             variant="contained"
-                                            onClick={submitFilter("pie")}>
+                                            onClick={submitFilter("pie")}
+                                        >
                                             Submit
                                         </Button>
                                     </Grid>
@@ -288,7 +291,7 @@ function MonitoringAlertsAnalytics (props) {
                         </Card>
                     </Grid>
                     
-                    <Grid item xs={12} md={8}>   
+                    <Grid item xs={12}>   
                         <Card className={classes.card}>
                             <CardContent>
                                 <PieChart
@@ -297,12 +300,26 @@ function MonitoringAlertsAnalytics (props) {
                                     isLoading={pie_chart_data.is_loading}
                                     colors={colors}
                                     input={sanitizeData(pie_chart_filter_data)}
+                                    setSelectedTrigger={setSelectedTrigger}
                                 />
                             </CardContent>
                         </Card>
                     </Grid>
 
-                    <Grid item xs={12} md={4}>
+                    {
+                        selected_trigger && (
+                            <Grid item xs={12}>   
+                                <Card className={classes.card}>
+                                    <TriggerEventsTable
+                                        { ...props }
+                                        selectedTrigger={selected_trigger}
+                                    />
+                                </Card>
+                            </Grid>
+                        )
+                    }
+
+                    <Grid item xs={12}>
                         <Card className={classes.card}>
                             <CardContent>
                                 <Typography variant="overline" display="block" gutterBottom>
@@ -310,7 +327,7 @@ function MonitoringAlertsAnalytics (props) {
                                 </Typography>
 
                                 <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={8} md={12}>
+                                    <Grid item xs={12} sm={8}>
                                         <DynaslopeSiteSelectInputForm
                                             value={stacked_chart_filter_data.site.value || ""}
                                             changeHandler={e => updateStackedBarSite(e)}
@@ -319,7 +336,7 @@ function MonitoringAlertsAnalytics (props) {
                                         />
                                     </Grid>
 
-                                    <Grid item xs={12} sm={4} md={12}>
+                                    <Grid item xs={12} sm={4}>
                                         <FormControl required fullWidth>
                                             <InputLabel id="alert_level_label">Year</InputLabel>
                                             <Select
@@ -359,7 +376,7 @@ function MonitoringAlertsAnalytics (props) {
                         </Card>
                     </Grid>
 
-                    <Grid item xs={12} md={8}>
+                    <Grid item xs={12}>
                         <Card className={classes.card}>
                             <CardContent>
                                 <Grid container spacing={1} justify="space-between" alignItems="center">
