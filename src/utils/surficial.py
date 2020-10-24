@@ -247,7 +247,7 @@ def get_surficial_data(site_code=None, site_id=None, marker_id=None,
     return filtered_marker_data
 
 
-def get_marker_alerts(site_id, trigger_ts, alert_level=None):
+def get_marker_alerts(site_id, trigger_ts, alert_level=None, check_for_g0t_alerts=False):
     """
     """
     surficial_alerts_list = []
@@ -263,8 +263,12 @@ def get_marker_alerts(site_id, trigger_ts, alert_level=None):
     surficial_alerts = ma.query.join(md).filter(md.mo_id == obs.mo_id)
 
     if alert_level:
-        surficial_alerts = surficial_alerts.filter(
-            ma.alert_level == alert_level)
+        if check_for_g0t_alerts and alert_level == 2:
+            temp_filter = ma.alert_level.in_([1, 2])
+        else:
+            temp_filter = ma.alert_level == alert_level
+
+        surficial_alerts = surficial_alerts.filter(temp_filter)
 
     for item in surficial_alerts.all():
         if not item:
