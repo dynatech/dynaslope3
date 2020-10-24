@@ -51,7 +51,8 @@ function getPieChartOption (processed_data, input, setSelectedTrigger, chart) {
 
     const ts_format = "DD MMM YYYY, HH:mm";
     const subtitle = `Range: <b>${moment(start_ts).format(ts_format)} - ${moment(end_ts).format(ts_format)}</b><br/>` +
-    `Site: <b>${site ? site.label : "All"}</b>`;
+    `Site: <b>${site ? site.label : "All"}</b><br/>
+    <i>Note: Click on any alert triggers to show related monitoring events.</i>`;
     const { alerts_data, trigger_count } = donutChartOption(processed_data);
     
     return {
