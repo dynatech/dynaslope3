@@ -462,6 +462,7 @@ function ConversationWindow (props) {
                             <MessageInputTextbox 
                                 value={composed_message}
                                 disableSend={composed_message === ""}
+                                setComposedMessage={setComposedMessage}
                                 messageChangeHandler={handle_message_fn}
                                 sendButtonClickHandler={on_send_message_fn}
                             />
