@@ -183,13 +183,9 @@ def process_rainfall_information_message(rainfall_summary, sites, as_of, is_expr
 
             message = (
                 f"Rainfall Information for {site_info} as of {as_of}:\n{rain_info}")
-            data = {
-                "message": message
-            }
+            data = {"message": message}
         else:
-            data = {
-                "message": str("No data for " + site_info)
-            }
+            data = {"message": f"No data for {site_info}\n"}
 
         messages.append(data)
 
