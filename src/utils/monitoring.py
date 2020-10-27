@@ -2047,9 +2047,12 @@ def get_moms_id_list(moms_dictionary, site_id, event_id):
         moms_list = moms_dictionary["moms_list"]
 
         for item in moms_list:
-            moms_id = write_monitoring_moms_to_db(
-                item, site_id, event_id)
-            moms_id_list.append(moms_id)
+            try:
+                moms_id = item["moms_id"]
+            except KeyError:
+                moms_id = write_monitoring_moms_to_db(
+                    item, site_id, event_id)
+                moms_id_list.append(moms_id)
     except KeyError as err:
         print(err)
         if not has_moms_ids:
