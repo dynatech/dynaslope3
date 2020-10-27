@@ -1399,16 +1399,16 @@ def write_moms_instances_to_db(instance_details):
     return return_data
 
 
-def search_single_letter_feature_name(feature_id):
+def search_last_feature_name_letter(feature_id, site_id):
     """
-    TODO: This needs to be improved in the future. When characters reach Z, 
+    TODO: This needs to be improved in the future. When characters reach Z,
     this code will not work properly anymore.
     Limited to A-Z only. AA to be worked on.
     """
     mi = MomsInstances
     instance_list = None
     instance_list = mi.query.order_by(DB.desc(mi.feature_name)).filter(
-        mi.feature_id == feature_id).filter(func.char_length(mi.feature_name) == 1).all()
+        mi.feature_id == feature_id, mi.site_id == site_id).filter(func.char_length(mi.feature_name) == 1).all()
 
     return instance_list
 
@@ -1473,7 +1473,7 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             pass
         moms_narrative_id = write_narratives_to_db(
             site_id=site_id,
-            timestamp=observance_ts,
+            timestamp=datetime.now(),
             narrative=narrative,
             type_id=2,  # NOTE: STATIC VALUE TYPE FOR MOMS
             event_id=event_id,
@@ -1485,11 +1485,10 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             moms_instance_id = moms_details["instance_id"]
         except KeyError:
             pass
+
         if not moms_instance_id:
             # Create new instance of moms
             feature_type = moms_details["feature_type"]
-            feature_name = moms_details["feature_name"]
-
             moms_feature = search_if_feature_exists(feature_type)
 
             # Mainly used by CBEWS-L; Central doesn't add moms_features
@@ -1503,14 +1502,15 @@ def write_monitoring_moms_to_db(moms_details, site_id, event_id=None):
             else:
                 feature_id = moms_feature.feature_id
 
+            feature_name = moms_details["feature_name"]
             if feature_name:
                 moms_instance = search_if_feature_name_exists(
                     site_id, feature_id, feature_name)
             else:
                 moms_instance = False
                 # Create new feature name based on the latest letter in DB
-                feature_names_list = search_single_letter_feature_name(
-                    feature_id)
+                feature_names_list = search_last_feature_name_letter(
+                    feature_id, site_id)
 
                 if feature_names_list:
                     # Get feature names with only letters
