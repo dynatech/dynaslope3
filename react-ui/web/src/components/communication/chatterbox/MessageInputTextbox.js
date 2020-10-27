@@ -1,15 +1,8 @@
 import React, { Fragment, useState } from "react";
-import { IconButton, TextField, makeStyles, Typography, Grid } from "@material-ui/core";
+import { IconButton, TextField, Typography, Grid } from "@material-ui/core";
 import { SendRounded, MoreVert } from "@material-ui/icons";
 import LoadTemplateModal from "./LoadTemplateModal";
 
-const useStyles = makeStyles(theme => ({
-    textBox: {
-        width: "100%",
-        flexGrow: 2,
-        margin: 0,
-    }
-}));
 
 function MessageInputTextbox (props) {
     const {
@@ -17,7 +10,6 @@ function MessageInputTextbox (props) {
         messageChangeHandler, sendButtonClickHandler,
         setComposedMessage, disableTemplateLoader
     } = props;
-    const classes = useStyles();
     const limit = limitRows === undefined ? true : limitRows;
     const [is_modal_open, set_is_modal_open] = useState(false);
 
@@ -34,11 +26,9 @@ function MessageInputTextbox (props) {
                         rows="4"
                         rowsMax={ limit ? 4 : 10 }
                         fullWidth
-                        className={classes.textBox}
                         margin="dense"
                         variant="filled"
                         inputProps={{ maxLength: 1000 }}
-                        maxLe
                         value={value}
                         onChange={messageChangeHandler}
                     />
@@ -47,7 +37,7 @@ function MessageInputTextbox (props) {
                     </Typography>        
                 </Grid>
 
-                <Grid item xs container direction="column">
+                <Grid item xs={1} container direction="column">
                     <IconButton
                         color="primary"
                         aria-label="Send message"

@@ -10,7 +10,7 @@ import { getCurrentUser } from "../../sessions/auth";
 
 function SendMessageForm (props) {
     const {
-        isMobile, textboxValue, disableQuickSelect,
+        textboxValue, disableQuickSelect,
         releaseId, siteCode, // if siteCode is given, it came from EWISmsModal
         fromEWIModal,
         modalStateHandler,
@@ -258,10 +258,6 @@ function SendMessageForm (props) {
                 closeHandler={value => setQuickSelect(false)}
                 setRecipients={setRecipients}
             />
-
-            {
-                !isMobile && <div style={{ height: 80 }} />
-            }
                 
             <div style={{ marginTop: 16 }}>
                 <MessageInputTextbox
