@@ -34,13 +34,14 @@ def logger_response(sms,log_type,log='False'):
     :type sms: str, Default(False)
 
     """ 
+    conn = mem.get('DICT_DB_CONNECTIONS')
     if log:
-        query = ("INSERT INTO logger_response (`logger_Id`, `inbox_id`, `log_type`)"
-         "values((Select logger_id from logger_mobile where sim_num = %s order by"
+        query = ("INSERT INTO %s.logger_response (`logger_Id`, `inbox_id`, `log_type`)"
+         "values((Select logger_id from %s.logger_mobile where sim_num = %s order by"
           " date_activated desc limit 1),'%s','%s')" 
-         % (sms.sim_num,sms.inbox_id,log_type))
+         % (conn['analysis']['schema'],conn['common']['schema'],sms.sim_num,sms.inbox_id,log_type))
                     
-        dbio.write(query, resource="sensor_data")
+        dbio.write(query, resource="sensor_analysis")
         print ('>> Log response')
     else:
         return False
@@ -167,10 +168,10 @@ def process_piezometer(sms):
     return True
 
 def check_logger_model(logger_name):
-    query = ("SELECT model_id FROM senslopedb.loggers where "
+    query = ("SELECT model_id FROM loggers where "
         "logger_name = '%s'") % logger_name
 
-    return dbio.read(query, resource="sensor_data")[0][0]
+    return dbio.read(query, resource="common_data")[0][0]
     
 def spawn_alert_gen(tsm_name, timestamp):
     """
@@ -351,9 +352,9 @@ def process_surficial_observation(sms):
     # spawn surficial measurement analysis
     if enable_analysis:
         obv = obv["obv"]
-        surf_cmd_line = "python %s %d '%s' > %s 2>&1" % (sc['fileio']['gndalert1'],
+        surf_cmd_line = "%s %s %d '%s' > %s 2>&1" % (sc['fileio']['python_path'], sc['fileio']['gndalert1'],
             obv['site_id'], obv['ts'], sc['fileio']['surfscriptlogs'])
-        subprocess.Popen(surf_cmd_line, stdout=subprocess.PIPE, shell=True, 
+        subprocess.run(surf_cmd_line, stdout=subprocess.PIPE, shell=True, 
             stderr=subprocess.STDOUT)
 
     return True
@@ -547,6 +548,7 @@ def parse_all_messages(args,allmsgs=[]):
                 else:
                     is_msg_proc_success = False
             elif re.search("^ACK \d+ .+",sms.msg.upper()):
+                print('##############ACK##############')
                 is_msg_proc_success = amsg.process_ack_to_alert(sms)   
             elif re.search("^ *(R(O|0)*U*TI*N*E )|(EVE*NT )", sms.msg.upper()):
                 is_msg_proc_success = process_surficial_observation(sms)                  
@@ -595,7 +597,7 @@ def get_router_ids():
         " in (SELECT `model_id` FROM `logger_models` where "
         "`logger_type`='router') and `logger_name` is not null")
 
-    nums = dbio.read(query, resource="sensor_data")
+    nums = dbio.read(query, resource="common_data")
     nums = {key: value for (value, key) in nums}
 
     return nums

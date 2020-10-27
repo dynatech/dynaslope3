@@ -16,8 +16,10 @@ smsdb2 = sandbox
 sensor_data = analysis
 sms_data = gsm_pi
 common_data = common
+website_data = website
 sensor_analysis = common,analysis
 sms_analysis = common,gsm_pi
+website_analysis = common,website
 ops = common,analysis,gsm_pi,website
 
 
@@ -51,6 +53,7 @@ FailObvEN = Error! You did not put your name on the text message. Please check y
 FailOobEN = Error! Your date or time value is either too late or too early. Please check your SMS and try again.
 
 [FileIO]
+python_path = /home/analysis-server/miniconda3/bin/python
 querylatestreportoutput = /home/analysis-server/Desktop/query_latest_report_output.txt
 alertgenscript = /home/analysis-server/updews-pycodes/analysis/subsurface/alertgen.py
 gndalert1 = /home/analysis-server/updews-pycodes/analysis/surficial/markeralerts.py
@@ -124,8 +127,8 @@ print_meas_plot = True
 meas_plot_window = 30					;Surificial ground measurement plot window in days
 surficial_num_pts = 10					;number of points to include to trending analysis
 enable_analysis = True  				;enable/disable spawing analysis scripts upon sms receipt
-ct_sim_num = 639176023735
-send_reply_to_community = False
+ct_sim_num = 639175048863
+send_reply_to_community = True
 send_ack_to_ct_phone = True
 
 

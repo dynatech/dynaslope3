@@ -37,10 +37,12 @@ def get_unprocessed():
     return df
 
 def get_sites():
-    query = ("SELECT s.site_id, site_code, latitude, longitude FROM "
-        "loggers as l left join sites as s on s.site_id = l.site_id ")
+    query = ("SELECT site_id, site_code, latitude, longitude FROM "
+        "loggers left join sites using (site_id) "
+        "where logger_name not like '%%g'")
+    print(query)
     df = dynadb.df_read(query=query, resource="common_data")
-    df = df.drop_duplicates('site_id',keep='last').dropna()
+    df = df.drop_duplicates('site_id',keep='first').dropna()
     return df
     
 def get_alert_symbol():
@@ -103,7 +105,7 @@ def main():
         ts = cur.ts
            
         critdist = get_crit_dist(mag)
-    
+        print(critdist)
         if False in np.isfinite([mag,eq_lat,eq_lon]): #has NaN value in mag, lat, or lon 
             query = "UPDATE %s SET processed = -1 where eq_id = %s" % (EVENTS_TABLE, i)
             dynadb.write(query=query, resource="sensor_data")
@@ -119,7 +121,7 @@ def main():
 
         # magnitude is big enough to consider
         sites = dfg.apply(get_distance_to_eq,eq_lat=eq_lat,eq_lon=eq_lon)
-
+        print(sites)
         crits = sites.loc[sites.distance <= critdist, :]
 
         if len(crits) == 0: 
