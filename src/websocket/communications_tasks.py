@@ -407,6 +407,9 @@ def no_ground_data_narrative_bg_task():
 
 
 def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_delta_hour, process_fn, is_no_ground_fn=False):
+    release_interval_hours = retrieve_data_from_memcache(
+        "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
+
     events = get_ongoing_extended_overdue_events(ts)
     latest_events = events["latest"]
 
@@ -422,8 +425,16 @@ def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_del
         site_id = event["site_id"]
         event_id = event["event_id"]
         alert_level = row["public_alert_symbol"]["alert_level"]
+        validity = datetime.strptime(event["validity"], "%Y-%m-%d %H:%M:%S")
 
-        if alert_level != 0:
+        within_end_of_validity_release = True
+        if not is_no_ground_fn:
+            delta = validity - ts
+            hr_delta = delta.seconds / 3600
+            within_end_of_validity_release = release_interval_hours > hr_delta
+
+        if alert_level != 0 and (alert_level < 3 or
+                                 (alert_level == 3 and within_end_of_validity_release)):
             process_fn(
                 ts, site_id, event_delta_hour, event_id, "event")
         elif is_no_ground_fn:  # runs only if is_no_ground_fn and alert_level is 0
