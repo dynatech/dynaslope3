@@ -37,7 +37,7 @@ from src.utils.narratives import(
     write_narratives_to_db, find_narrative_event_id,
     get_narratives
 )
-from src.utils.monitoring import get_ongoing_extended_overdue_events, get_routine_sites
+from src.utils.monitoring import get_ongoing_extended_overdue_events, get_routine_sites, compute_event_validity
 from src.utils.analysis import check_ground_data_and_return_noun
 
 set_data_to_memcache(name="COMMS_CLIENTS", data=[])
@@ -425,27 +425,50 @@ def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_del
         site_id = event["site_id"]
         event_id = event["event_id"]
         alert_level = row["public_alert_symbol"]["alert_level"]
-        validity = datetime.strptime(event["validity"], "%Y-%m-%d %H:%M:%S")
+        actual_validity = datetime.strptime(
+            event["validity"], "%Y-%m-%d %H:%M:%S")
 
-        within_end_of_validity_release = True
-        if not is_no_ground_fn:
-            delta = validity - ts
-            hr_delta = delta.seconds / 3600
-            within_end_of_validity_release = release_interval_hours > hr_delta
+        last_data_ts = datetime.strptime(
+            row["releases"][0]["data_ts"],
+            "%Y-%m-%d %H:%M:%S"
+        )
+        diff = ts - last_data_ts
+        hours = diff.seconds / 3600
+        is_recent_release = hours < 1  # check if recent release
+
+        is_within_eov_release = False
+        if alert_level == 3:
+            def check_if_within_end_of_validity_release(val):
+                delta = val - ts
+                hr_delta = delta.seconds / 3600
+                return release_interval_hours > hr_delta
+
+            validity_to_use = actual_validity
+            if is_no_ground_fn and is_recent_release:
+                    # always in desc order
+                latest_trigger = row["latest_event_triggers"][0]
+                last_trigger_ts = datetime.strptime(
+                    latest_trigger["ts"], "%Y-%m-%d %H:%M:%S")
+                computed_validity = compute_event_validity(
+                    last_trigger_ts, alert_level)
+
+                if actual_validity > computed_validity:
+                    val_to_use = actual_validity
+                else:
+                    val_to_use = computed_validity
+
+                validity_to_use = val_to_use - \
+                    timedelta(hours=release_interval_hours)
+
+            is_within_eov_release = check_if_within_end_of_validity_release(
+                validity_to_use)
 
         if alert_level != 0 and (alert_level < 3 or
-                                 (alert_level == 3 and within_end_of_validity_release)):
+                                 (alert_level == 3 and is_within_eov_release)):
             process_fn(
                 ts, site_id, event_delta_hour, event_id, "event")
         elif is_no_ground_fn:  # runs only if is_no_ground_fn and alert_level is 0
-            last_data_ts = datetime.strptime(
-                row["releases"][0]["data_ts"],
-                "%Y-%m-%d %H:%M:%S"
-            )
-            diff = ts - last_data_ts
-            hours = diff.seconds / 3600
-
-            if hours < 1:  # check if recent release
+            if is_recent_release:
                 process_fn(
                     ts, site_id, event_delta_hour, event_id, "event")
 
