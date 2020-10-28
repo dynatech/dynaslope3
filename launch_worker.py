@@ -80,7 +80,7 @@ def setup_periodic_tasks(sender, **kwargs):
 
     if ENABLE_ALERT_GEN:
         sender.add_periodic_task(
-            crontab(minute="1-59/5"),
+            crontab(minute="6-59/5"),
             alert_generation_background_task.s(),
             name="monitoring-background-task"
         )
