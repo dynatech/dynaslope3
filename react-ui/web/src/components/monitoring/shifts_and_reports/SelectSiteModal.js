@@ -5,7 +5,7 @@ import {
     Button, withMobileDialog, Checkbox,
     FormControl, FormControlLabel,
     Typography, IconButton, Grid,
-    CircularProgress
+    CircularProgress, Box
 } from "@material-ui/core";
 import { DoneAll } from "@material-ui/icons";
 
@@ -79,9 +79,9 @@ function SelectSiteModal (props) {
                     <DialogContentText>Select sites to create end-of-shift report.</DialogContentText>
                     {
                         eosData === null && (
-                            <CircularProgress style={{
-                                position: "absolute", left: "50%", top: "50%"
-                            }}/>
+                            <Box display="flex" justifyContent="center">
+                                <CircularProgress />
+                            </Box>
                         )
                     }
                     {
