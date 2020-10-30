@@ -235,9 +235,10 @@ function MomsInsertModal (props) {
             };
         });
 
+        const { data: { site_code: sc } } = site;
         const payload = {
             moms_list,
-            site_code
+            site_code: sc
         };
 
         console.log("PAYLOAD", payload);
@@ -247,7 +248,7 @@ function MomsInsertModal (props) {
             let message = "MOMs input success!";
             let variant = "success";
             if (response.status) {
-                sendWSMessage("run_alert_generation", { site_code });
+                sendWSMessage("run_alert_generation", { site_code: sc });
             } else {
                 const { message: msg } = response;
                 message = msg;
