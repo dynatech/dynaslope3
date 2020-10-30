@@ -893,7 +893,7 @@ def get_qa_data(ts_start=None, ts_end=None):
                 ts = g_data.ts
                 n = "Surficial"
             else:
-                ts = g_data.observance_ts
+                ts = g_data[0]["observance_ts"]
                 n = "MOMS"
 
             ground_data = f"{str(ts)} | {n}"
