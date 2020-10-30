@@ -463,10 +463,10 @@ def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_del
             is_within_eov_release = check_if_within_end_of_validity_release(
                 validity_to_use)
 
-        if alert_level != 0 and (alert_level < 3 or
-                                 (alert_level == 3 and is_within_eov_release)):
-            process_fn(
-                ts, site_id, event_delta_hour, event_id, "event")
+        if alert_level != 0:
+            if alert_level < 3 or (alert_level == 3 and is_within_eov_release):
+                process_fn(
+                    ts, site_id, event_delta_hour, event_id, "event")
         elif is_no_ground_fn:  # runs only if is_no_ground_fn and alert_level is 0
             if is_recent_release:
                 process_fn(
