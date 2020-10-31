@@ -7,6 +7,7 @@ NAMING CONVENTION
 """
 
 import json
+import traceback
 from datetime import datetime, timedelta, time
 from flask import Blueprint, jsonify, request
 from sqlalchemy import func
@@ -711,7 +712,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                         type_id=1, user_id=publisher_details["publisher_ct_id"], event_id=event_id
                     )
 
-                    od_id = write_monitoring_on_demand_to_db(od_details)
+                    od_id = write_monitoring_on_demand_to_db(od_details, info)
                     eq_id = None
                     has_moms = False
 
@@ -1073,6 +1074,7 @@ def insert_ewi(internal_json=None):
     except Exception as err:
         print(f"{get_system_time()} | Insert EWI FAILED!")
         print(err)
+        print(traceback.format_exc())
         message = "ERROR: Insert EWI release!"
         status = False
 

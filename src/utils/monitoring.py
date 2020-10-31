@@ -1324,7 +1324,7 @@ def get_latest_monitoring_event_per_site(site_id, raise_load=False):
 ##########################################################
 
 
-def write_monitoring_on_demand_to_db(od_details):
+def write_monitoring_on_demand_to_db(od_details, tech_info):
     """
     Simply writes on_demand trigger to DB
     """
@@ -1333,7 +1333,7 @@ def write_monitoring_on_demand_to_db(od_details):
             request_ts=od_details["request_ts"],
             narrative_id=od_details["narrative_id"],
             reporter_id=od_details["reporter_id"],
-            tech_info=od_details["tech_info"]
+            tech_info=tech_info
         )
         DB.session.add(on_demand)
         DB.session.flush()
