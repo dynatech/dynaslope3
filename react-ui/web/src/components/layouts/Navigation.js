@@ -75,8 +75,7 @@ const navigation_labels = [
             },
             {
                 label: "Communications Analytics",
-                link: "/analysis/communications",
-                soon: true
+                link: "/analysis/communications"
             },
             {
                 label: "Monitoring Alerts Analytics",
