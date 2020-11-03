@@ -142,6 +142,19 @@ function EndOfShiftGenerator (props) {
         }
     };
 
+    const DisplayEOS = () => {
+        return (
+            selectedEosData.map((row, index) => (
+                <DetailedExpansionPanels
+                    data={row}
+                    key={index}
+                    shiftStartTs={shift_start_ts}
+                    currentUser={current_user}
+                />
+            ))
+        );
+    };
+
     return (
         <div className={ hidden ? classes.hidden : "" }>
             <MuiPickersUtilsProvider utils={MomentUtils}>
@@ -212,14 +225,15 @@ function EndOfShiftGenerator (props) {
                             {
                                 selectedEosData !== null && (
                                     selectedEosData.length > 0 ? (
-                                        selectedEosData.map((row, index) => (
-                                            <DetailedExpansionPanels
-                                                data={row}
-                                                key={index}
-                                                shiftStartTs={shift_start_ts}
-                                                currentUser={current_user}
-                                            />
-                                        ))
+                                        <DisplayEOS/>
+                                        // selectedEosData.map((row, index) => (
+                                        //     <DetailedExpansionPanels
+                                        //         data={row}
+                                        //         key={index}
+                                        //         shiftStartTs={shift_start_ts}
+                                        //         currentUser={current_user}
+                                        //     />
+                                        // ))
                                     ) : (
                                         <EoSRNoData />
                                     ) 
