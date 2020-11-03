@@ -132,6 +132,9 @@ def process_rainfall_plot_data(rainfall_data):
 
 
 def get_all_site_rainfall_data(site_codes_string='', end_ts=None):
+    """
+    """
+
     if not end_ts:
         end_ts = datetime.now()
 
@@ -163,36 +166,23 @@ def process_rainfall_information_message(rainfall_summary, sites, as_of, is_expr
             one_day = int(one_day_cml / half_of_2yr_max * 100)
             three_day = int(three_day_cml / two_year_max * 100)
 
-            one_day_percentage = (
-                f"One-day cumulative rainfall percentage: {str(one_day)}%\n")
-            one_day_cumulative = (
-                f"One-day cumulative rainfall: {str(one_day_cml)} mm\n")
-            one_day_threshold = (
-                f"One-day rainfall threshold: {str(half_of_2yr_max)} mm\n")
-            three_day_percentage = (
-                f"Three-day cumulative rainfall percentage: {str(three_day)}%\n")
-            three_day_cumulative = (
-                f"Three-day cumulative rainfall: {str(three_day_cml)} mm\n")
-            three_day_threshold = (
-                f"Three-day rainfall threshold: {str(two_year_max)} mm\n")
             if is_express:
-                rain_info = (f"{one_day_percentage}{three_day_percentage}")
+                header = "cumulative rainfall percentage"
+                rain_info = (
+                    f"One-day: {str(one_day)}%\nThree-day: {str(three_day)}%")
             else:
-                rain_info = (f"{one_day_cumulative}{one_day_threshold}\n"
-                             f"{three_day_cumulative}{three_day_threshold}")
+                header = "cumulative rainfall data"
+                rain_info = (f"One-day: {str(one_day_cml)}mm (threshold - {str(half_of_2yr_max)}mm)\n"
+                             f"Three-day: {str(three_day_cml)}mm (threshold - {str(two_year_max)}mm)")
 
             message = (
-                f"Rainfall Information for {site_info} as of {as_of}:\n{rain_info}")
-            data = {"message": message}
+                f"Rainfall info for {site_info} as of {as_of} ({header}):\n{rain_info}")
         else:
-            data = {"message": f"No data for {site_info}\n"}
+            message = f"No data for {site_info}"
 
-        messages.append(data)
+        messages.append(message)
 
-    final_message = ""
-    for row in messages:
-        final_message += "\n" + str(row["message"])
-
+    final_message = "\n\n".join(messages)
     return final_message
 
 

@@ -2,6 +2,7 @@ import React, { Fragment, useState } from "react";
 import { IconButton, TextField, Typography, Grid } from "@material-ui/core";
 import { SendRounded, MoreVert } from "@material-ui/icons";
 import LoadTemplateModal from "./LoadTemplateModal";
+import { getCurrentUser } from "../../sessions/auth";
 
 
 function MessageInputTextbox (props) {
@@ -14,6 +15,11 @@ function MessageInputTextbox (props) {
     const [is_modal_open, set_is_modal_open] = useState(false);
 
     const setIsModalOpen = bool => () => set_is_modal_open(bool);
+    const { nickname } = getCurrentUser();
+    const message_ender = ` - ${nickname} from PHIVOLCS-DYNASLOPE`;
+
+    const max_chars = 1000;
+    const total_length = value.length + message_ender.length;
 
     return (
         <Fragment>
@@ -28,12 +34,12 @@ function MessageInputTextbox (props) {
                         fullWidth
                         margin="dense"
                         variant="filled"
-                        inputProps={{ maxLength: 1000 }}
+                        inputProps={{ maxLength: max_chars }}
                         value={value}
                         onChange={messageChangeHandler}
                     />
                     <Typography variant="caption" align="right" component="div">
-                        <strong>Character count: {value.length}/1000</strong>
+                        <strong>Character count (including signature): {total_length}/{max_chars}</strong>
                     </Typography>        
                 </Grid>
 
@@ -64,6 +70,8 @@ function MessageInputTextbox (props) {
                 isOpen={is_modal_open} 
                 setComposedMessage={setComposedMessage}
                 clickHandler={setIsModalOpen(false)}
+                maxCharacters={max_chars}
+                inputFieldLength={max_chars - message_ender.length}
             />
         </Fragment>
     );
