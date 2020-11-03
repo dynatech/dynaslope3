@@ -238,8 +238,8 @@ function AlertReleaseFormModal (props) {
     useEffect(() => {
         const { dataTimestamp: input_data_ts, siteCode } = generalData;
 
-        if (typeof input_data_ts === "object" && input_data_ts !== null) {
-            const temp_ts = moment(input_data_ts).format("YYYY-MM-DD HH:mm:ss");
+        if (typeof input_data_ts === "object" && moment.isMoment(input_data_ts)) {
+            const temp_ts = moment(input_data_ts).format("YYYY-MM-DD HH:mm:00");
 
             getMonitoringReleaseByDataTS(siteCode, temp_ts, latest_release => {
                 if (Object.entries(latest_release).length > 1) {

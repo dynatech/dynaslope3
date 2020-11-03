@@ -334,6 +334,7 @@ def wrap_get_monitoring_releases_by_data_ts(site_code, data_ts):
     """
     Gets a single release with the specificied site_code and data_ts
     """
+
     release = get_monitoring_releases_by_data_ts(site_code, data_ts)
     release_schema = MonitoringReleasesSchema()
 
@@ -1014,8 +1015,7 @@ def insert_ewi(internal_json=None):
                         event_alert_details)
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
-                        and site_monitoring_instance.validity \
-                    == datetime_data_ts + timedelta(minutes=30):
+                        and site_monitoring_instance.validity == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 

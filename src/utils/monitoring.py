@@ -823,15 +823,13 @@ def get_monitoring_releases_by_data_ts(site_code, data_ts):
     """
     Function getting release by site_code and data_ts
     """
+
     me = MonitoringEvents
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
     si = Sites
 
-    return_data = mr.query.options(
-        DB.joinedload("event_alert", innerjoin=True).
-        raiseload("*"), DB.raiseload("*")
-    ).join(mea).join(me).join(si) \
+    return_data = mr.query.join(mea).join(me).join(si) \
         .filter(
             DB.and_(
                 si.site_code == site_code,
