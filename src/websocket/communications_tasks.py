@@ -473,9 +473,10 @@ def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_del
                     ts, site_id, event_delta_hour, event_id, "event")
 
         if routine_sites:
-            index = next(index for index, site in enumerate(routine_sites)
-                         if site.site_id == site_id)
-            del routine_sites[index]
+            index = next((index for index, site in enumerate(routine_sites)
+                         if site.site_id == site_id), None)
+            if index is not None:
+                del routine_sites[index]
 
     processed_sites = []
     if is_routine_extended_processing:
