@@ -447,18 +447,16 @@ function BulletinTemplate (props) {
                                             
                                             let NoDataComponent = "";
                                             if (no_data_triggers.includes(curr_trig_source)) {
-                                                if ((!to_print_header && is_ground) || !is_ground) {
-                                                    NoDataComponent = (
-                                                        <Grid item xs={12} style={{ paddingTop: "0 !important" }}>
-                                                            <Typography 
-                                                                variant="body2" 
-                                                                className={`${classes.sectionDetails} ${classes.indent}`}
-                                                            >
-                                                                Currently, no data available.
-                                                            </Typography>
-                                                        </Grid>
-                                                    );
-                                                }
+                                                NoDataComponent = (
+                                                    <Grid item xs={12} style={{ paddingTop: "0 !important" }}>
+                                                        <Typography 
+                                                            variant="body2" 
+                                                            className={`${classes.sectionDetails} ${classes.indent}`}
+                                                        >
+                                                            Currently, no data available.
+                                                        </Typography>
+                                                    </Grid>
+                                                );
                                             }
 
                                             return (
