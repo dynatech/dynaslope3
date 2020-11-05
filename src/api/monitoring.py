@@ -786,7 +786,10 @@ def update_event_validity(new_validity, event_id):
     try:
         event = MonitoringEvents.query.filter(
             MonitoringEvents.event_id == event_id).first()
-        event.validity = new_validity
+        old_validity = event.validity
+
+        if old_validity and new_validity > old_validity:
+            event.validity = new_validity
     except Exception as err:
         print(err)
         raise
@@ -977,7 +980,7 @@ def insert_ewi(internal_json=None):
                     "event_details": {
                         "site_id": site_id,
                         "event_start": datetime_data_ts,
-                        "validity": validity,
+                        "validity": None,
                         "status": 2
                     },
                     "event_alert_details": {
