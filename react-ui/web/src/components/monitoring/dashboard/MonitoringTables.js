@@ -15,7 +15,7 @@ import AccordionActions from "@material-ui/core/AccordionActions";
 import Tooltip from "@material-ui/core/Tooltip";
 import {
     Publish, Description, PhoneAndroid,
-    Done, Timeline, PanTool, Warning
+    Done, Timeline, PanTool, Warning, Help
 } from "@material-ui/icons";
 
 import GeneralStyles from "../../../GeneralStyles";
@@ -849,6 +849,51 @@ function MonitoringTables (props) {
                 </Grid>
 
                 <Grid item xs={12}>
+                    <Typography className={classes.sectionHead} variant="h5" component={Grid} container alignItems="center">
+                        Overdue Event Monitoring
+                        
+                        <Tooltip
+                            title="This section shows all monitoring events that are beyond their validities. Possible causes of not updated validity: no latest release, wrong internal alert to extend validity (for cases like ND)."
+                            style={{ marginLeft: 8 }}
+                            arrow
+                        >
+                            <Help color="primary" />
+                        </Tooltip>
+                    </Typography>
+                </Grid>
+
+                <Grid item xs={12} style={{ marginBottom: 22 }}>
+                    {
+                        // eslint-disable-next-line no-nested-ternary
+                        alertsFromDbData === null ? (
+                            <MyLoader />
+                        ) : (
+                            overdue_db_alerts.length > 0 ? (
+                                overdue_db_alerts.map((row, index) => (
+                                    <LatestSiteAlertsAccordion
+                                        key={`overdue-alert-${index + 1}`}
+                                        keyName={`overdue-alert-${index + 1}`}
+                                        classes={classes}
+                                        siteAlert={row}
+                                        expanded={expanded}
+                                        handleExpansion={handleExpansion}
+                                        smsHandler={smsHandler}
+                                        index={index}
+                                        bulletinHandler={bulletinHandler}
+                                        type="overdue"
+                                        history={history}
+                                    />
+                                ))
+                            ) : (
+                                <Typography variant="body1" align="center">
+                                    No sites with monitoring events beyond their validity
+                                </Typography>
+                            )
+                        )
+                    }
+                </Grid>
+
+                <Grid item xs={12}>
                     <Typography className={classes.sectionHead} variant="h5">Extended Monitoring</Typography>
                 </Grid>
 
@@ -912,41 +957,6 @@ function MonitoringTables (props) {
                         )
                     )
                 }
-
-                <Grid item xs={12}>
-                    <Typography className={classes.sectionHead} variant="h5">Overdue Event Monitoring</Typography>
-                </Grid>
-
-                <Grid item xs={12} style={{ marginBottom: 22 }}>
-                    {
-                        // eslint-disable-next-line no-nested-ternary
-                        alertsFromDbData === null ? (
-                            <MyLoader />
-                        ) : (
-                            overdue_db_alerts.length > 0 ? (
-                                overdue_db_alerts.map((row, index) => (
-                                    <LatestSiteAlertsAccordion
-                                        key={`overdue-alert-${index + 1}`}
-                                        keyName={`overdue-alert-${index + 1}`}
-                                        classes={classes}
-                                        siteAlert={row}
-                                        expanded={expanded}
-                                        handleExpansion={handleExpansion}
-                                        smsHandler={smsHandler}
-                                        index={index}
-                                        bulletinHandler={bulletinHandler}
-                                        type="overdue"
-                                        history={history}
-                                    />
-                                ))
-                            ) : (
-                                <Typography variant="body1" align="center">
-                                    No sites under overdue alerts
-                                </Typography>
-                            )
-                        )
-                    }
-                </Grid>
 
                 <BulletinModal 
                     classes={classes}
