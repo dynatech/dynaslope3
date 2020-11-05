@@ -786,7 +786,10 @@ def update_event_validity(new_validity, event_id):
     try:
         event = MonitoringEvents.query.filter(
             MonitoringEvents.event_id == event_id).first()
-        event.validity = new_validity
+        old_validity = event.validity
+
+        if new_validity > old_validity:
+            event.validity = new_validity
     except Exception as err:
         print(err)
         raise
