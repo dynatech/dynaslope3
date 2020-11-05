@@ -366,7 +366,7 @@ function BulletinTemplate (props) {
                             total_height += sub_h;
                         } else {
                             total_height += sub_h;
-                            excess.push(sub);
+                            excess.push(sub.children[0]);
                             sub.setAttribute("style", "display: none");
                         }
                     });
@@ -570,13 +570,22 @@ function BulletinTemplate (props) {
 
                                         <Grid container spacing={is_md ? 2 : 1} id="excess-content">
                                             {
-                                                excess_divs.map((row, i) => (
-                                                    <Grid
+                                                excess_divs.map((row, i) => {
+                                                    const new_classes = [];
+                                                    row.classList.forEach(x => { 
+                                                        if (x.includes("makeStyles")) {
+                                                            const a = x.split("-");
+                                                            const p = a[1];
+                                                            new_classes.push(classes[p]);
+                                                        } else new_classes.push(x);
+                                                    });
+                                                    const temp = row.outerHTML.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, `"${new_classes.join(" ")}"`);
+                                                    return <Grid
                                                         key={`key-${i + 1}`}
                                                         item xs={12} 
-                                                        dangerouslySetInnerHTML={{ __html: row.innerHTML }}
-                                                    />
-                                                ))
+                                                        dangerouslySetInnerHTML={{ __html: temp }}
+                                                    />;
+                                                })
                                             }
                                         </Grid>
                                     </div>

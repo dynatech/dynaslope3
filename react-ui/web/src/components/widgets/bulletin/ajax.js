@@ -18,6 +18,7 @@ export function getBulletinDetails (release_id, callback) {
     axios.get(api_link)
     .then((response) => {
         const { data } = response;
+        console.log("Bulletin details", data);
         callback(data);
     })
     .catch((error) => {
