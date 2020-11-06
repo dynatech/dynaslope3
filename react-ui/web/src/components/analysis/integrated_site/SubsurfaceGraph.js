@@ -640,6 +640,7 @@ function createGeneralNodeChart (series_name, data, input) {
             verticalAlign: "middle",
             borderWidth: 0
         },
+        time: { timezoneOffset: -8 * 60 },
         credits: {
             enabled: false
         }
@@ -653,50 +654,42 @@ function NodeLevelChart (props) {
         setData(null);
     };
     return (
-        <div >
-            <Dialog
-                open={show}
-                onClose={handleClose}
-                maxWidth="lg"
-                fullWidth
-            >
-                <Grid container justify="center" alignItems="center" alignContent="center">
-                    <Grid item xs={12}>
-                        { data !== null ? (
-                            <div>
-                                <DialogContent>
-                                    {
-                                        data.map((option, i) => {
-                                            const chart_update = true;
-                                            return (
-                                                <Grid item xs={12} md={12} key={i}>
-                                                    <Paper>
-                                                        <HighchartsReact
-                                                            highcharts={Highcharts}
-                                                            options={option}
-                                                            allowChartUpdate={chart_update}
-                                                        />
-                                                    </Paper>
-                                                </Grid>
-                                            );
-                                        })
-                                    }
-                                </DialogContent>
-                                <DialogActions>
-                                    <Button onClick={handleClose} color="secondary" autoFocus>
-                                        Close
-                                    </Button>
-                                </DialogActions>
-                            </div>
-                        ) :
-                            (
-                                <LinearProgress />
-                            )
-                        }
-                    </Grid>
-                </Grid>
-            </Dialog>
-        </div>
+        <Dialog
+            open={show}
+            onClose={handleClose}
+            maxWidth="lg"
+            fullWidth
+        >
+            { 
+                data !== null ? (
+                    <Fragment>
+                        <DialogContent>
+                            <Grid container spacing={1}>
+                                {
+                                    data.map((option, i) => (
+                                        <Grid item xs={12} key={i}>
+                                            <Paper>
+                                                <HighchartsReact
+                                                    highcharts={Highcharts}
+                                                    options={option}
+                                                    allowChartUpdate
+                                                    callback={chart => chart.reflow()}
+                                                />
+                                            </Paper>
+                                        </Grid>
+                                    ))
+                                }
+                            </Grid>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={handleClose} color="secondary" autoFocus>
+                                Close
+                            </Button>
+                        </DialogActions>
+                    </Fragment>
+                ) : <LinearProgress />
+            }
+        </Dialog>
     );
 }
 
@@ -842,12 +835,6 @@ function SubsurfaceGraph (props) {
 
     return (
         <Fragment>
-            <NodeLevelChart 
-                show={node_level_chart} 
-                setNodeLevelChart={setNodeLevelChart}
-                data={node_level_data}
-                setData={setNodeLevelData}
-            />
             <Grid container spacing={1} justify="space-between">
                 {
                     !disable_back && <Grid item sm><BackToMainButton 
@@ -964,6 +951,13 @@ function SubsurfaceGraph (props) {
                     </Hidden>
                 )
             }
+
+            <NodeLevelChart 
+                show={node_level_chart} 
+                setNodeLevelChart={setNodeLevelChart}
+                data={node_level_data}
+                setData={setNodeLevelData}
+            />
         </Fragment>
     );
 }
