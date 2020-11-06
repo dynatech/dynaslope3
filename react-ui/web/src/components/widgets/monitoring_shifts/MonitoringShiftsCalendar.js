@@ -145,7 +145,7 @@ function MonitoringShiftsCalendar (props) {
         const moment_date = moment(date);
         const day_before = now.clone().subtract(1, "day");
         const is_pm_early_morn = hr < 8 && day_before.isSame(moment_date, "day");
-        const is_today = hr > 8 && moment_date.isSame(now, "day");
+        const is_today = hr >= 8 && moment_date.isSame(now, "day");
 
         if (is_pm_early_morn || is_today) {
             const color = (hr >= 8 && hr < 20) ? color_day : color_night;
