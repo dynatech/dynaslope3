@@ -788,7 +788,7 @@ def update_event_validity(new_validity, event_id):
             MonitoringEvents.event_id == event_id).first()
         old_validity = event.validity
 
-        if old_validity and new_validity > old_validity:
+        if not old_validity or new_validity > old_validity:
             event.validity = new_validity
     except Exception as err:
         print(err)
