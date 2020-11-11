@@ -128,13 +128,12 @@ const navigation_labels = [
         sub: [
             {
                 label: "Protocols",
-                link: "/knowlegde/protocols",
-                soon: true
+                link: "/knowledge/protocols",
+                //soon: true
             },
             {
                 label: "Papers",
                 link: "/knowledge/papers",
-                soon: true
             }
         ]
     }

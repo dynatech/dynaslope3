@@ -26,7 +26,10 @@ const styles = theme => ({
         minHeight: "85vh",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between"
+        justifyContent: "space-between",
+        "&.scroll": {
+            backgroundColor:"red",
+        }
     },
     body: { 
         // Margin to accomodate sticky nature of header and navigation
