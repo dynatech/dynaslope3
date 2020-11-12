@@ -614,7 +614,7 @@ def create_release_details():
     for unique_trigger in sorted_by_hierarchy:
         trigger_list_final = trigger_list_final + unique_trigger["symbol"]
 
-    if has_no_ground_data:
+    if public_alert_level <= 1 and has_no_ground_data:
         nd_trig_hie = retrieve_data_from_memcache(
             "trigger_hierarchies", {"trigger_source": "internal"})
         nd_internal_sym = retrieve_data_from_memcache(
