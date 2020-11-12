@@ -237,10 +237,10 @@ function TriggersInputForm (props) {
                             triggersReleased={triggersReleased}
                         />
 
-                        <MomsTriggerGroup
+                        {/* <MomsTriggerGroup
                             triggersState={triggersState}
                             setTriggersState={setTriggersState}
-                        />
+                        /> */}
 
                         <Grid item xs={12} style={{ paddingTop: 20 }}>
                             <Typography variant="h6" color="secondary">Secondary Triggers</Typography>
