@@ -51,8 +51,8 @@ function processTriggers (triggers) {
                     });
                 } else if (trigger_source === "on demand") {
                     const { trigger_misc: { on_demand } } = trigger;
-                    // # TODO: ihabol yung on demand details
-                    // wala pa yung reporter ids
+                    const { narrative: { narrative } } = on_demand;
+                    additional.push(<ul key="od"><li>Reason:</li><ul><li>{narrative}</li></ul></ul>);
                 }
 
                 return <Fragment key={trigger_id}>

@@ -463,19 +463,20 @@ def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_del
             is_within_eov_release = check_if_within_end_of_validity_release(
                 validity_to_use)
 
-        if alert_level != 0 and (alert_level < 3 or
-                                 (alert_level == 3 and is_within_eov_release)):
-            process_fn(
-                ts, site_id, event_delta_hour, event_id, "event")
+        if alert_level != 0:
+            if alert_level < 3 or (alert_level == 3 and is_within_eov_release):
+                process_fn(
+                    ts, site_id, event_delta_hour, event_id, "event")
         elif is_no_ground_fn:  # runs only if is_no_ground_fn and alert_level is 0
             if is_recent_release:
                 process_fn(
                     ts, site_id, event_delta_hour, event_id, "event")
 
         if routine_sites:
-            index = next(index for index, site in enumerate(routine_sites)
-                         if site.site_id == site_id)
-            del routine_sites[index]
+            index = next((index for index, site in enumerate(routine_sites)
+                         if site.site_id == site_id), None)
+            if index is not None:
+                del routine_sites[index]
 
     processed_sites = []
     if is_routine_extended_processing:

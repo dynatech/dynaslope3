@@ -823,15 +823,13 @@ def get_monitoring_releases_by_data_ts(site_code, data_ts):
     """
     Function getting release by site_code and data_ts
     """
+
     me = MonitoringEvents
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
     si = Sites
 
-    return_data = mr.query.options(
-        DB.joinedload("event_alert", innerjoin=True).
-        raiseload("*"), DB.raiseload("*")
-    ).join(mea).join(me).join(si) \
+    return_data = mr.query.join(mea).join(me).join(si) \
         .filter(
             DB.and_(
                 si.site_code == site_code,
@@ -893,7 +891,7 @@ def get_qa_data(ts_start=None, ts_end=None):
                 ts = g_data.ts
                 n = "Surficial"
             else:
-                ts = g_data.observance_ts
+                ts = g_data[0]["observance_ts"]
                 n = "MOMS"
 
             ground_data = f"{str(ts)} | {n}"
@@ -1324,7 +1322,7 @@ def get_latest_monitoring_event_per_site(site_id, raise_load=False):
 ##########################################################
 
 
-def write_monitoring_on_demand_to_db(od_details):
+def write_monitoring_on_demand_to_db(od_details, tech_info):
     """
     Simply writes on_demand trigger to DB
     """
@@ -1333,7 +1331,7 @@ def write_monitoring_on_demand_to_db(od_details):
             request_ts=od_details["request_ts"],
             narrative_id=od_details["narrative_id"],
             reporter_id=od_details["reporter_id"],
-            tech_info=od_details["tech_info"]
+            tech_info=tech_info
         )
         DB.session.add(on_demand)
         DB.session.flush()

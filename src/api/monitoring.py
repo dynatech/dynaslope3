@@ -7,6 +7,7 @@ NAMING CONVENTION
 """
 
 import json
+import traceback
 from datetime import datetime, timedelta, time
 from flask import Blueprint, jsonify, request
 from sqlalchemy import func
@@ -333,6 +334,7 @@ def wrap_get_monitoring_releases_by_data_ts(site_code, data_ts):
     """
     Gets a single release with the specificied site_code and data_ts
     """
+
     release = get_monitoring_releases_by_data_ts(site_code, data_ts)
     release_schema = MonitoringReleasesSchema()
 
@@ -612,7 +614,7 @@ def create_release_details():
     for unique_trigger in sorted_by_hierarchy:
         trigger_list_final = trigger_list_final + unique_trigger["symbol"]
 
-    if has_no_ground_data:
+    if public_alert_level <= 1 and has_no_ground_data:
         nd_trig_hie = retrieve_data_from_memcache(
             "trigger_hierarchies", {"trigger_source": "internal"})
         nd_internal_sym = retrieve_data_from_memcache(
@@ -711,7 +713,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                         type_id=1, user_id=publisher_details["publisher_ct_id"], event_id=event_id
                     )
 
-                    od_id = write_monitoring_on_demand_to_db(od_details)
+                    od_id = write_monitoring_on_demand_to_db(od_details, info)
                     eq_id = None
                     has_moms = False
 
@@ -784,7 +786,10 @@ def update_event_validity(new_validity, event_id):
     try:
         event = MonitoringEvents.query.filter(
             MonitoringEvents.event_id == event_id).first()
-        event.validity = new_validity
+        old_validity = event.validity
+
+        if not old_validity or new_validity > old_validity:
+            event.validity = new_validity
     except Exception as err:
         print(err)
         raise
@@ -975,7 +980,7 @@ def insert_ewi(internal_json=None):
                     "event_details": {
                         "site_id": site_id,
                         "event_start": datetime_data_ts,
-                        "validity": validity,
+                        "validity": None,
                         "status": 2
                     },
                     "event_alert_details": {
@@ -1013,8 +1018,7 @@ def insert_ewi(internal_json=None):
                         event_alert_details)
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
-                        and site_monitoring_instance.validity \
-                    == datetime_data_ts + timedelta(minutes=30):
+                        and site_monitoring_instance.validity == datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
@@ -1073,6 +1077,7 @@ def insert_ewi(internal_json=None):
     except Exception as err:
         print(f"{get_system_time()} | Insert EWI FAILED!")
         print(err)
+        print(traceback.format_exc())
         message = "ERROR: Insert EWI release!"
         status = False
 

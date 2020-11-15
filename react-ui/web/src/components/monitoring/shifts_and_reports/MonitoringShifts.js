@@ -90,7 +90,7 @@ function processShiftData (classes, raw_data) {
                         <span className={classes.valueFont}>Alert {public_alert_level} ({internal_alert})</span>
                     </Typography>
                     <Typography variant="body2" color="textSecondary" align="center">
-                            Monitoring status: <span className={classes.valueFont}>{capitalizeFirstLetter(general_status)}</span>
+                        Monitoring status: <span className={classes.valueFont}>{capitalizeFirstLetter(general_status)}</span>
                     </Typography>
                 </Grid>
             );
@@ -142,7 +142,7 @@ function processShiftData (classes, raw_data) {
                         </Grid>
                         <Grid item xs={4}>
                             <Typography variant="body1" color="textSecondary" align="center">
-                                    CT Personnel
+                                CT Personnel
                             </Typography>
                             <Typography variant="body1" color="textPrimary" align="center">
                                 {ct}
@@ -175,7 +175,7 @@ function createDateTime ({ label, value, id }, handleDateTime) {
             ampm={false}
             placeholder="2010/01/01 00:00"
             format="YYYY/MM/DD HH:mm"
-            mask="__/__/____ __:__"
+            mask="____/__/__ __:__"
             clearable
             disableFuture
             inputVariant="outlined"
