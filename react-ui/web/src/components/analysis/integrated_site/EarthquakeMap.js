@@ -72,7 +72,7 @@ function EarthquakeMap (props) {
                 eqEvents.map((event, i) => {
                     const {
                         latitude, longitude, magnitude,
-                        depth, critical_distance, eq_id
+                        depth, critical_distance, eq_id, processed
                     } = event;
                     const center = [latitude, longitude];
                     const distance = critical_distance === null ? 0 : parseFloat(critical_distance);
@@ -84,7 +84,8 @@ function EarthquakeMap (props) {
                                 <Popup>
                                     Magnitude: <strong>{magnitude.replace(rule, "")}</strong> <br/>
                                     Depth: <strong>{depth.replace(rule, "")}</strong> <br/>
-                                    Critical Distance: <strong>{distance} km</strong>
+                                    Critical Distance: <strong>{distance} km</strong> <br/>
+                                    Processed: <strong>{processed ? "Yes" : "No"}</strong>
                                 </Popup>
                             </Marker>
                         </Fragment>
