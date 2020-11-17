@@ -89,8 +89,9 @@ function getSiteCodes (site_list) {
 
 function LoadTemplateModal (props) {
     const {
-        fullScreen, isOpen,
-        clickHandler, setComposedMessage
+        fullScreen, isOpen, inputFieldLength,
+        clickHandler, setComposedMessage,
+        maxCharacters
     } = props;
 
     const classes = useStyles();
@@ -126,18 +127,19 @@ function LoadTemplateModal (props) {
             date_time,
             as_of
         };
+
         getRainInformation(final_data, data => {
             const { status, message, ewi } = data;
-            setComposedMessage(ewi.slice(0, 1000));
+            setComposedMessage(ewi.slice(0, inputFieldLength));
             
             let snackbar_message = message;
             let variant = "error";
             if (status === true) {
                 clickHandler();
                 variant = "success";
-                if (ewi.length > 1000) {
+                if (ewi.length > inputFieldLength) {
                     variant = "warning";
-                    snackbar_message = "Rainfall information message is trimmed down because of length restrictions (max characters: 1000)";
+                    snackbar_message = `Rainfall information message is trimmed down because of length restrictions (max characters: ${maxCharacters})`;
                 }
             }
 
