@@ -5,11 +5,10 @@ import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { CircularProgress, Typography, Paper, Button } from "@material-ui/core";
 import { withStyles, createMuiTheme, MuiThemeProvider } from "@material-ui/core/styles";
 import { compose } from "recompose";
-import { Route, Switch, Link, Redirect } from "react-router-dom";
+import { Route, Switch, Redirect } from "react-router-dom";
 
 import CustomSearchRender from "./CustomSearchRender";
 import EventTimeline from "../../monitoring/events_table/EventTimeline";
-import PageTitle from "../../reusables/PageTitle";
 import GeneralStyles from "../../../GeneralStyles";
 import { getMonitoringEvents } from "../../monitoring/ajax";
 
@@ -22,7 +21,6 @@ const styles = theme => ({
 function prepareEventTimelineLink (url, event_id, setRedirect) {
     return (
         <Button
-            // to={`${url}/${event_id}`}
             onClick={ret => setRedirect(`/monitoring/events/${event_id}`)}
         >
             {event_id}
@@ -70,7 +68,7 @@ const getMuiTheme = createMuiTheme({
 function SiteEventsTable (props) {
     const {
         classes, width, location,
-        match: { path, url },
+        match: { url },
         siteId
     } = props;
 
@@ -89,12 +87,7 @@ function SiteEventsTable (props) {
 
     const [redirect, setRedirect] = useState(0);
 
-    // useEffect(() => {
-    //     setFilters([{ name: "site_ids", data: [siteId] }]);
-    // }, []);
-
     useEffect(() => {
-        // setTotalEventCount(setCount);
         setIsLoading(true);
 
         const offset = page * rowsPerPage;
@@ -279,17 +272,17 @@ function SiteEventsTable (props) {
                                         <MUIDataTable
                                             title={
                                                 <Typography variant="h5" component="div">
-                                                        Monitoring Events Table
+                                                    Monitoring Events Table
                                                     {
                                                         isLoading &&
-                                                        <CircularProgress
-                                                            size={24}
-                                                            style={{
-                                                                marginLeft: 15,
-                                                                position: "relative",
-                                                                top: 4
-                                                            }}
-                                                        />
+                                                            <CircularProgress
+                                                                size={24}
+                                                                style={{
+                                                                    marginLeft: 15,
+                                                                    position: "relative",
+                                                                    top: 4
+                                                                }}
+                                                            />
                                                     }
                                                 </Typography>
                                             }

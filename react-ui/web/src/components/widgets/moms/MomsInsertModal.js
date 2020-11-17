@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer } from "react";
+import React, { useState, useEffect, useReducer, useContext } from "react";
 import moment from "moment";
 import {
     Dialog, DialogTitle, DialogContent,
@@ -13,8 +13,8 @@ import { reducerFunction, moms_entry } from "./state_handlers";
 import { insertMomsToDB, getMOMsFeatures } from "./ajax";
 import { getCurrentUser } from "../../sessions/auth";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
-
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
+import { GeneralContext } from "../../contexts/GeneralContext";
 
 const useStyles = makeStyles(theme => ({
     form_message_style: {
@@ -138,8 +138,11 @@ function MomsInsertModal (props) {
         closeHandler, match
     } = props;
     const classes = useStyles();
+    const { sites } = useContext(GeneralContext);
+
     const [site, setSite] = useState(null);
     const [site_code, setSiteCode] = useState(null);
+    const [to_select_site, setToSelectSite] = useState(true);
     const [moms_entries, setMomsEntries] = useReducer(reducerFunction, []);
     const [submit_button_state, setSubmitButtonState] = useState(false);
     const [moms_form_message, setMomsFormMessage] = useState("");
@@ -147,16 +150,17 @@ function MomsInsertModal (props) {
     useEffect(() => {
         if (typeof match !== "undefined") {
             const { params: { site_code: sc } } = match;
+            setToSelectSite(false);
             setSiteCode(sc);
         } 
     }, [match]);
     
     useEffect(() => {
-        if (site !== null) setSiteCode(site.data.site_code);
-    }, [site]);
+        const row = sites.find(x => x.site_code === site_code);
+        if (row) setSite({ value: row.site_id, data: row });
+    }, [sites, site_code]);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-
     const snackBarActionFn = key => {
         return (<Button
             color="primary"
@@ -168,8 +172,8 @@ function MomsInsertModal (props) {
     
     const [moms_feature_types, setMomsFeatureTypes] = useState([]);
     useEffect(() => {
-        if (site_code !== null) {
-            getMOMsFeatures(site_code, data => {
+        if (site !== null) {
+            getMOMsFeatures(site.data.site_code, data => {
                 const feature_types = data.map(feat => {
                     const { feature_id, feature_type, instances, alerts } = feat;
                     const cap = capitalizeFirstLetter(feature_type);
@@ -185,10 +189,10 @@ function MomsInsertModal (props) {
                 setMomsEntries({ action: "OVERWRITE", value: is });
             });
         }
-    }, [site_code]);
+    }, [site]);
 
     useEffect(() => {
-        console.log(moms_entries);
+        // console.log(moms_entries);
         const { button_state, form_messsage } = momsFormValidation(moms_entries);
         setSubmitButtonState(button_state);
         setMomsFormMessage(form_messsage);
@@ -231,36 +235,34 @@ function MomsInsertModal (props) {
             };
         });
 
+        const { data: { site_code: sc } } = site;
         const payload = {
             moms_list,
-            site_code
+            site_code: sc
         };
 
         console.log("PAYLOAD", payload);
 
         closeHandler();
         insertMomsToDB(payload, response => {
+            let message = "MOMs input success!";
+            let variant = "success";
             if (response.status) {
-                sendWSMessage("run_alert_generation", { site_code });
-
-                enqueueSnackbar(
-                    "MOMs input success!",
-                    {
-                        variant: "success",
-                        autoHideDuration: 7000,
-                        action: snackBarActionFn
-                    }
-                );
+                sendWSMessage("run_alert_generation", { site_code: sc });
             } else {
-                enqueueSnackbar(
-                    response.message,
-                    {
-                        variant: "error",
-                        autoHideDuration: 7000,
-                        action: snackBarActionFn
-                    }
-                );
+                const { message: msg } = response;
+                message = msg;
+                variant = "error";
             }
+
+            enqueueSnackbar(
+                message, 
+                {
+                    variant,
+                    autoHideDuration: 7000,
+                    action: snackBarActionFn
+                }
+            );
         }, () => {
             enqueueSnackbar(
                 "Error MOMS input...",
@@ -290,26 +292,24 @@ function MomsInsertModal (props) {
                 <MomsForm
                     momsEntries={moms_entries}
                     setMomsEntries={setMomsEntries}
-                    siteCode={site_code}
                     site={site}
                     setSite={setSite}
-                    selectSite
+                    selectSite={to_select_site}
                 />
             </DialogContent>
             <DialogActions>
-                <Grid container spacing={0}>
-                    <Grid item xs={12} sm={8}>
+                <Grid container spacing={2} justify="center" alignItems="center">
+                    <Grid item xs={12} sm={8} align="center">
                         <Typography
                             variant="caption"
-                            display="block"
                             className={classes.form_message_style}
                             gutterBottom
-                            align="left">
+                        >
                             {moms_form_message}
                         </Typography>
                     </Grid>
-                    <Grid item xs={12} sm={4}>
-                        <Button onClick={closeHandler} color="primary" >
+                    <Grid item xs={12} sm={4} align="right">
+                        <Button onClick={closeHandler} color="primary">
                             Cancel
                         </Button>
                         <Button 

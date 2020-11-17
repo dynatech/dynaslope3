@@ -211,7 +211,8 @@ def process_displacement_data(disp_group):
 
 
 def get_point_cml_base(point, cml_base):
-    return (point - cml_base) * 1000
+    y = (point - cml_base) * 1000
+    return float("{:.2f}".format(y))
 
 
 def process_velocity_alerts_data(vel_alerts, ts_per_node):

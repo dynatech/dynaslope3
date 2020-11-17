@@ -1,22 +1,23 @@
 import React, { useState, useEffect } from "react";
 
-import { useSnackbar } from "notistack";
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withMobileDialog, Slide,
-    Fade, withStyles, Grid, Tooltip,
+    Button, withMobileDialog, 
+    makeStyles, Grid, Tooltip,
     FormControl, FormControlLabel, Checkbox
 } from "@material-ui/core";
+
+import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 import MomentUtils from "@date-io/moment";
 import moment from "moment";
-import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
-import { compose } from "recompose";
+import { useSnackbar } from "notistack";
+
 import { getRainInformation } from "../ajax";
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 
-const styles = theme => ({
+const useStyles = makeStyles(theme => ({
     inputGridContainer: {
         marginTop: 6,
         marginBottom: 6
@@ -42,7 +43,7 @@ const styles = theme => ({
         marginBottom: 1,
     },
     link: { textDecoration: "none" }
-});
+}));
 
 function useFetchTagOptions (tag_selection) {
     const [tags, update_tags] = useState([]);
@@ -88,9 +89,12 @@ function getSiteCodes (site_list) {
 
 function LoadTemplateModal (props) {
     const {
-        classes, fullScreen, isOpen,
-        clickHandler, setComposedMessage
+        fullScreen, isOpen, inputFieldLength,
+        clickHandler, setComposedMessage,
+        maxCharacters
     } = props;
+
+    const classes = useStyles();
 
     const [date_time, setDateTime] = useState(moment().format("YYYY-MM-DD HH:mm:ss"));
     const [site_list, setSiteList] = useState(null);
@@ -123,31 +127,37 @@ function LoadTemplateModal (props) {
             date_time,
             as_of
         };
+
         getRainInformation(final_data, data => {
             const { status, message, ewi } = data;
-            setComposedMessage(ewi);
+            setComposedMessage(ewi.slice(0, inputFieldLength));
+            
+            let snackbar_message = message;
+            let variant = "error";
             if (status === true) {
                 clickHandler();
-                enqueueSnackbar(
-                    message,
-                    {
-                        variant: "success",
-                        autoHideDuration: 3000,
-                        action: snackBarActionFn
-                    }
-                );
-            } else {
-                enqueueSnackbar(
-                    message,
-                    {
-                        variant: "error",
-                        autoHideDuration: 3000,
-                        action: snackBarActionFn
-                    }
-                );
+                variant = "success";
+                if (ewi.length > inputFieldLength) {
+                    variant = "warning";
+                    snackbar_message = `Rainfall information message is trimmed down because of length restrictions (max characters: ${maxCharacters})`;
+                }
             }
+
+            enqueueSnackbar(
+                snackbar_message,
+                {
+                    variant,
+                    autoHideDuration: 3000,
+                    action: snackBarActionFn
+                }
+            );
         });
     };
+
+    const [is_disabled, setIsDisabled] = useState(true);
+    useEffect(() => {
+        setIsDisabled(date_time === null || site_list === null);
+    }, [date_time, site_list]);
 
     return (
         <Dialog
@@ -158,11 +168,11 @@ function LoadTemplateModal (props) {
             TransitionComponent={fullScreen ? SlideTransition : FadeTransition}      
         >
             <DialogTitle id="form-dialog-title">
-                Load Templates
+                Load Rainfall Information
             </DialogTitle>
             <DialogContent>
                 <DialogContentText>
-                    Select template to be loaded.
+                    Fill-up the form with needed data.
                 </DialogContentText>
                 <Grid
                     container 
@@ -221,7 +231,7 @@ function LoadTemplateModal (props) {
             </DialogContent>
                
             <DialogActions>
-                <Button color="primary" onClick={() => getRainInformationFunction()}>
+                <Button color="primary" onClick={() => getRainInformationFunction()} disabled={is_disabled}>
                     Select
                 </Button>
                 <Button onClick={clickHandler}>
@@ -232,4 +242,4 @@ function LoadTemplateModal (props) {
     );
 }
 
-export default compose(withStyles(styles), withMobileDialog())(LoadTemplateModal);
+export default withMobileDialog()(LoadTemplateModal);

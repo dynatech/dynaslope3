@@ -564,7 +564,7 @@ class EndOfShiftAnalysis(DB.Model):
     event_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['ewi_db']}.monitoring_events.event_id"), primary_key=True, nullable=False)
     shift_start = DB.Column(DB.DateTime, primary_key=True, nullable=False)
-    analysis = DB.Column(DB.String(1500))
+    analysis = DB.Column(DB.String(3000))
 
     # event = DB.relationship(
     #     "MonitoringEvents", backref="eos_analysis", lazy="joined")

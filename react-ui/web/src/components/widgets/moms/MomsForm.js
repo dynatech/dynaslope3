@@ -173,11 +173,9 @@ function MomsInputFields (props) {
 function MomsForm (props) {
     const {
         momsEntries, setMomsEntries,
-        siteCode, site, setSite,
-        selectSite
+        selectSite, site, setSite
     } = props;
 
-    const select_site = typeof selectSite === "undefined" ? false : selectSite;
     const [isAddingNewInstance, setIsAddingNewInstance] = useState(false);
     const [isNoneEntrySelected, setIsNoneEntrySelected] = useState(false);
 
@@ -211,7 +209,7 @@ function MomsForm (props) {
     return (
         <Fragment>
             {
-                select_site && (
+                selectSite && (
                     <div style={{ marginBottom: 12 }}>
                         <DynaslopeSiteSelectInputForm
                             value={site}
@@ -222,7 +220,7 @@ function MomsForm (props) {
             }
 
             {
-                (!select_site || (select_site && site !== null)) ? (
+                site !== null && (
                     <Fragment>
                         <MuiPickersUtilsProvider utils={MomentUtils}>
                             {
@@ -231,7 +229,7 @@ function MomsForm (props) {
                                     const is_last = momsEntries.length === key + 1;
 
                                     return (
-                                        <Fragment key={key}>
+                                        <Fragment key={`moms_${key}`}>
                                             <div style={{ 
                                                 display: "flex", 
                                                 justifyContent: "space-between", 
@@ -258,7 +256,7 @@ function MomsForm (props) {
                                                 updateField={updateField(key)}
                                                 isAddingNewInstance={isAddingNewInstance}
                                                 setIsNoneEntrySelected={setIsNoneEntrySelected}
-                                                site_code={siteCode}
+                                                site_code={site.data.site_code}
                                             />
 
                                             {
@@ -290,8 +288,6 @@ function MomsForm (props) {
                             )
                         }
                     </Fragment>
-                ) : (
-                    <div style={{ height: 200 }} />
                 )
             }
         </Fragment>

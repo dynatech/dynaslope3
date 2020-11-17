@@ -295,12 +295,40 @@ export function saveLoggerDeployment (input, callback) {
     });
 }
 
+export function saveUnreliableMarkerData (input, callback) {
+    const api_link = `${host}/api/surficial/save_unreliable_marker_data`;
+    
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save unreliable data", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function saveDataUpdate (input, callback) {
     const api_link = `${host}/api/sensor_deployment/save_data_update`;
     axios.post(api_link, input)
     .then(response => {
         const { data } = response;
         console.log("Save data update reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function getMonitoringAnalyticsData (input, callback) {
+    const api_link = `${host}/api/monitoring/get_monitoring_analytics_data`;
+    
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Monitoring analytics data", data);
         callback(data);
     })
     .catch(error => {

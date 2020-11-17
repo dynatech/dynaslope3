@@ -69,14 +69,13 @@ def get_site_code(text):
     """
     err_val = 0
     site_id = 0
-    mc = mem.get_handle()
 
     site_code_match = re.split(" ", text, maxsplit = 1)[0].lower()[0:3]
-    sites_dict = mc.get('sites_dict')
+    df_sites = mem.get('df_sites')
     site_code = adjust_site_code(site_code_match)
     try:
-        site_id = sites_dict['site_id'][site_code]
-    except KeyError:
+        site_id = df_sites.loc[df_sites.site_code == site_code.lower(), 'site_id'].values[0]
+    except IndexError:
         print ("No site_code record for %s" % (site_code))
         err_val = SURFICIAL_PARSER_ERROR_VALUE["site_code"]
 
@@ -120,7 +119,7 @@ def get_date(text):
     MON_RE1 = "[JFMASOND][AEPUCO][NBRYLGTVCP]"
     MON_RE2 = "[A-Z]{4,9}"
     DAY_RE1 = "(([0-3]{0,1})([0-9]{1}))"
-    YEAR_RE1 = "(201[6789]){0,1}"
+    YEAR_RE1 = "((20)([12]{0,1})([1234567890]{0,1}))"
 
     cur_year = str(dt.today().year)
 
@@ -390,7 +389,7 @@ def observation(text):
     text = re.sub(";", ":", text)
     text = re.sub("\n", " ", text)
     text = text.strip()
-
+    print(text)
     # find values in patterns
     obv["meas_type"], text = find_match_in_text(get_obv_type, text)
     obv["site_id"], text = find_match_in_text(get_site_code, text)

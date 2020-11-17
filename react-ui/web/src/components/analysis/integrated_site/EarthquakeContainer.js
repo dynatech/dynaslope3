@@ -53,7 +53,6 @@ const eq_al_tbl_columns = [
     }
 ];
 
-
 function EarthquakeContainer (props) {
     const {
         eqEvents, eqAlerts,

@@ -5,16 +5,19 @@
 
 from datetime import datetime, timedelta
 from connection import DB
+
 from src.models.analysis import (
     SiteMarkers, MarkerData as md,
     MarkerObservations as mo, MarkerAlerts as ma,
-    Markers, MarkerHistory, MarkerNames)
+    Markers, MarkerHistory, MarkerNames,
+    MarkerDataTags, MarkerDataTagsSchema)
 from src.models.sites import Sites
+
+from src.utils.sites import get_sites_data
+
 from src.utils.extra import (
     var_checker, round_to_nearest_release_time,
     retrieve_data_from_memcache)
-from src.utils.sites import get_sites_data
-from src.utils.monitoring import get_routine_sites, get_ongoing_extended_overdue_events
 
 
 def check_if_site_has_active_surficial_markers(site_code=None, site_id=None):
@@ -39,6 +42,8 @@ def check_if_site_has_active_surficial_markers(site_code=None, site_id=None):
 def get_surficial_data_presence_old():
     """
     """
+
+    from src.utils.monitoring import get_ongoing_extended_overdue_events
 
     now = datetime.now()
     release_interval_hours = retrieve_data_from_memcache(
@@ -94,6 +99,8 @@ def get_sites_with_ground_meas(ts, timedelta_hour=1, minute=30, site_id=None):
 
 
 def get_surficial_data_presence():
+    from src.utils.monitoring import get_ongoing_extended_overdue_events
+
     now = datetime.now()
     release_interval_hours = retrieve_data_from_memcache(
         "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
@@ -179,13 +186,12 @@ def get_extended_and_event_site_code(event, extended):
     return event_site_code, extended_site_code
 
 
-def get_surficial_data(
-    site_code=None, marker_id=None,
-    data_id=None, mo_id=None,
-    ts_order="asc", end_ts=None,
-    start_ts=None, limit=None,
-    anchor="marker_data"
-):
+def get_surficial_data(site_code=None, site_id=None, marker_id=None,
+                       data_id=None, mo_id=None,
+                       ts_order="asc", end_ts=None,
+                       start_ts=None, limit=None,
+                       anchor="marker_data"
+                       ):
     """
     Returns surficial data of a site or marker specified.
     You can filter data more using start, end timestamps and a limit.
@@ -216,6 +222,10 @@ def get_surficial_data(
         filtered_query = base_query.join(Sites).filter(
             Sites.site_code == site_code)
 
+    if site_id:
+        filtered_query = base_query.join(Sites).filter(
+            Sites.site_id == site_id)
+
     if end_ts:
         if not isinstance(end_ts, datetime):
             end_ts = datetime.strptime(end_ts, "%Y-%m-%d %H:%M:%S")
@@ -237,7 +247,7 @@ def get_surficial_data(
     return filtered_marker_data
 
 
-def get_marker_alerts(site_id, trigger_ts, alert_level=None):
+def get_marker_alerts(site_id, trigger_ts, alert_level=None, check_for_g0t_alerts=False):
     """
     """
     surficial_alerts_list = []
@@ -253,8 +263,12 @@ def get_marker_alerts(site_id, trigger_ts, alert_level=None):
     surficial_alerts = ma.query.join(md).filter(md.mo_id == obs.mo_id)
 
     if alert_level:
-        surficial_alerts = surficial_alerts.filter(
-            ma.alert_level == alert_level)
+        if check_for_g0t_alerts and alert_level == 2:
+            temp_filter = ma.alert_level.in_([1, 2])
+        else:
+            temp_filter = ma.alert_level == alert_level
+
+        surficial_alerts = surficial_alerts.filter(temp_filter)
 
     for item in surficial_alerts.all():
         if not item:
@@ -413,3 +427,17 @@ def insert_new_marker_name(history_id, marker_name):
     )
 
     DB.session.add(name)
+
+
+def insert_unreliable_data(data):
+    data_id = data["data_id"]
+    tagger_id = data["tagger_id"]
+    remarks = data["remarks"]
+
+    insert_query = MarkerDataTags(
+        data_id=data_id,
+        tagger_id=tagger_id,
+        remarks=remarks
+    )
+
+    DB.session.add(insert_query)

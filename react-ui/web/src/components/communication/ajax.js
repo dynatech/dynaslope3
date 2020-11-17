@@ -113,7 +113,7 @@ export function getRecipientsList (payload, callback) {
 }
 
 export function getBlockedContacts (callback) {
-    const api_link = `${host}/api/contacts/blocked_numbers`;
+    const api_link = `${host}/api/contacts/get_blocked_numbers`;
 
     axios.get(api_link)
     .then(response => {

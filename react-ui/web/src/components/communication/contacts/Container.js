@@ -441,12 +441,11 @@ function BlockedContact (props) {
     }
 
     const { mobile_number, reporter, ts, reason } = chosenContact;
-    const { sim_num, user_details } = mobile_number;
+    const { sim_num, users } = mobile_number;
     const { first_name: reporter_first_name, last_name: reporter_last_name } = reporter;
     let contact_name = "No contact details";
-    if (user_details !== null) {
-        const { user: { first_name, last_name } } = user_details;
-        contact_name = `${last_name}, ${first_name}`;
+    if (users.length > 0) {
+        contact_name = users.map(x => `${x.user.last_name}, ${x.user.first_name}`).join(" | ");
     }
     const date_reported = moment(ts).format("MMMM D, YYYY, HH:mm:ss");
     return (

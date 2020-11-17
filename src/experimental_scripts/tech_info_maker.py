@@ -336,7 +336,7 @@ def main(trigger, special_details=None):
 
     elif trigger_source == 'surficial':
         surficial_alert_details = get_marker_alerts(
-            site_id, latest_trigger_ts, alert_level)
+            site_id, latest_trigger_ts, alert_level, check_for_g0t_alerts=True)
         technical_info = get_surficial_tech_info(
             surficial_alert_details, site_id)
 

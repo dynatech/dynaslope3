@@ -239,6 +239,7 @@ class MarkerData(DB.Model):
 
     marker = DB.relationship("Markers", backref=DB.backref(
         "marker_data", lazy="dynamic"), lazy="select")
+
     marker_observation = DB.relationship(
         "MarkerObservations", backref=DB.backref("marker_data", lazy="subquery"), lazy="select")
 
@@ -731,6 +732,71 @@ def tilt_table_schema(table):
     schema = GenericTiltTableSchema
     return schema
 
+
+def get_rain_table(table_name, schema="senslopedb"):
+    """
+    """
+
+    class GenericRainTable(DB.Model):
+
+        """
+        """
+
+        __tablename__ = table_name
+        __bind_key__ = schema
+        __table_args__ = {
+            "schema": SCHEMA_DICT[__bind_key__], "extend_existing": True}
+
+        data_id = DB.Column(DB.Integer, primary_key=True)
+        ts = DB.Column(DB.DateTime, nullable=False)
+        rain = DB.Column(DB.Float)
+        temperature = DB.Column(DB.Float)
+        humidity = DB.Column(DB.Float)
+        battery1 = DB.Column(DB.Float)
+        battery2 = DB.Column(DB.Float)
+        csq = DB.Column(DB.Integer)
+
+        def __repr__(self):
+            return (f"Type <{self.__class__.__name__}> data_id: {self.data_id}"
+                    f" ts: {self.ts}")
+
+    model = GenericRainTable
+    return model
+
+
+class MarkerDataTags(DB.Model):
+    """
+    Class representation of marker_data_tags
+    """
+
+    __tablename__ = "marker_data_tags"
+    __bind_key__ = "senslopedb"
+    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
+
+    marker_tag_id = DB.Column(DB.Integer, primary_key=True)
+    data_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['senslopedb']}.marker_data.data_id"))
+    ts = DB.Column(DB.DateTime)
+    tagger_id = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['commons_db']}.users.user_id"))
+    remarks = DB.Column(DB.String(250))
+
+    marker_data = DB.relationship(
+        "MarkerData", backref=DB.backref(
+            "marker_data_tags", lazy="subquery",
+            innerjoin=False, uselist=False
+        ),
+        lazy="subquery", innerjoin=False, uselist=False)
+    tagger = DB.relationship(
+        "Users", backref=DB.backref("marker_tags", lazy="dynamic"),
+        lazy="joined", innerjoin=True)
+
+    def __repr__(self):
+        return (f"Type <{self.__class__.__name__}> marker_tag_id: {self.marker_tag_id}"
+                f" data_id: {self.data_id} ts: {self.ts}"
+                f" tagger_id: {self.tagger_id} remarks: {self.remarks}")
+
+
 #############################
 # End of Class Declarations #
 #############################
@@ -882,6 +948,8 @@ class MarkerDataSchema(MARSHMALLOW.ModelSchema):
     """
 
     # marker = fields.Nested("Markers", exclude=("marker_data",))
+    marker_data_tags = fields.Nested(
+        "Marker_data_tags", exclude=("marker_data",))
     marker_observation_report = fields.Nested(
         "MarkerObservationsSchema", exclude=("marker_data",))
 
@@ -1043,3 +1111,16 @@ class DataPresenceLoggersSchema(MARSHMALLOW.ModelSchema):
         """Saves table class structure as schema model"""
         model = DataPresenceLoggers
 
+
+class MarkerDataTagsSchema(MARSHMALLOW.ModelSchema):
+    """
+    Schema representation of MarkerDataTags class
+    """
+
+    ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    data_id = fields.Integer()
+    tagger = fields.Nested(UsersSchema, exclude=("marker_tags", ))
+
+    class Meta:
+        """Saves table class structure as schema model"""
+        model = MarkerDataTags

@@ -38,15 +38,18 @@ def main(mc):
 		mc.set('alertgenlist',[])
 		mc.set('alertgenlist',alertgenlist)
 
-		command = "python %s %s '%s'" % (sc["fileio"]["alertgenscript"], 
-			alert_info['tsm_name'], alert_info['ts'])
+		python_path = sc['fileio']['python_path']
+		alertgen = sc["fileio"]["alertgenscript"]
+		command = '{} {} {} "{}"'.format(python_path, alertgen, alert_info['tsm_name'], alert_info['ts'])
 
 		print ("Running", alert_info['tsm_name'], "alertgen")
         
 		if lockscript.get_lock('alertgen for %s' % alert_info['tsm_name'], 
 			exitifexist=False):
-			subprocess.Popen(command, stdout=subprocess.PIPE, shell=True, 
+			print('execute:', command)
+			run_out = subprocess.run(command, stdout=subprocess.PIPE, shell=True, 
 				stderr=subprocess.STDOUT)
+			print(run_out)
 		else:
 			continue
 
@@ -71,4 +74,3 @@ if __name__ == "__main__":
 	except KeyboardInterrupt:
 		print ('Unexpected Error')
 	mc.set('alertgenexec', False)
-	    	

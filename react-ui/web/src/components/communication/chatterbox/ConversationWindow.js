@@ -6,7 +6,10 @@ import {
     Button, Menu, MenuItem, Box,
     Tooltip
 } from "@material-ui/core";
-import { KeyboardArrowLeft, MoreVert, AssignmentLate } from "@material-ui/icons";
+import {
+    KeyboardArrowLeft, MoreVert, AssignmentLate,
+    MobileOff
+} from "@material-ui/icons";
 
 import ContentLoader from "react-content-loader";
 import { useSnackbar } from "notistack";
@@ -121,17 +124,18 @@ const ChatLoader = props => {
   
 function RecipientFormatter (props) {
     const { mobile_details, classes, saveNumberModal, searchFilters } = props;
-    const { user_details, sim_num } = mobile_details;
+    const { users, sim_num } = mobile_details;
     const sim_number = simNumFormatter(sim_num);
-    let sender = sim_number;
-    let orgs = [];
     const [anchorEl, setAnchor] = useState(null);
     
-    const is_unknown = user_details === null;
+    let senders = [{ sender: sim_number, org: sim_number, inactive: false }];
+    let orgs = [];
+
+    const is_unknown = users.length === 0; // users === null;
     if (!is_unknown) {
-        const { sender: s, orgs: o } = mobileUserFormatter(user_details);
-        sender = s;
-        orgs = o;
+        const { sender_arr, orgs_arr } = mobileUserFormatter(users);
+        senders = sender_arr;
+        orgs = orgs_arr;
     }
 
     const handleClick = event => {
@@ -147,10 +151,14 @@ function RecipientFormatter (props) {
         saveNumberModal();
     };
 
+    const InactiveIcon = <MobileOff
+        style={{ color: "red", marginRight: 6 }}
+        fontSize="small" titleAccess="Inactive number"/>;
+
     return (
         <Grid container alignItems="center">
             <div style={{ marginRight: 12 }}>
-                <Avatar alt={sender} src={GenericAvatar} className={classes.bigAvatar} />
+                <Avatar alt="User" src={GenericAvatar} className={classes.bigAvatar} />
             </div>
             
             <div>
@@ -163,10 +171,22 @@ function RecipientFormatter (props) {
 
                     <Grid item xs>
                         <Typography 
-                            variant="body1" 
-                            style={{ marginRight: 8 }}
+                            variant="body1"
+                            component="div"
+                            style={{ display: "flex", alignItems: "center" }}
                         >
-                            {sender}
+                            {senders.map((row, i) => {
+                                return (
+                                    <Fragment key={row.sender}>
+                                        {senders.length > 1 && row.inactive && InactiveIcon}
+                                        <span title={row.org} 
+                                            style={{ paddingRight: 4 }}
+                                        >
+                                            {row.sender}{i < senders.length - 1 && ","}
+                                        </span>
+                                    </Fragment>
+                                );
+                            })}
                         </Typography>
                     </Grid>
                     {
@@ -183,12 +203,18 @@ function RecipientFormatter (props) {
 
                 {
                     !is_unknown && (
-                        <Typography 
-                            variant="subtitle2" 
-                            color="textSecondary"
-                        >
-                            {sim_number}
-                        </Typography>
+                        <Grid container alignItems="center">
+                            {
+                                (senders.length === 1 && senders[0].inactive) && InactiveIcon
+                            }
+
+                            <Typography 
+                                variant="subtitle2" 
+                                color="textSecondary"
+                            >
+                                {sim_number}
+                            </Typography>
+                        </Grid>
                     )
                 }
             </div>
@@ -436,6 +462,7 @@ function ConversationWindow (props) {
                             <MessageInputTextbox 
                                 value={composed_message}
                                 disableSend={composed_message === ""}
+                                setComposedMessage={setComposedMessage}
                                 messageChangeHandler={handle_message_fn}
                                 sendButtonClickHandler={on_send_message_fn}
                             />

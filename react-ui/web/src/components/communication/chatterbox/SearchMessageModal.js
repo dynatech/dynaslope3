@@ -1,5 +1,5 @@
 import React, {
-    useState, useEffect, useContext
+    useState, useEffect, useContext, Fragment
 } from "react";
 import { Link } from "react-router-dom";
 
@@ -66,6 +66,7 @@ function SearchMessageModal (props) {
     const [sites, setSites] = useState([]);
     const [organizations, setOrganizations] = useState([]);
     const [only_ewi_recipients, setOnlyEwiRecipients] = useState(false);
+    const [include_inactive_numbers, setIncludeInactiveNumbers] = useState(false);
     const [ts_start, setTsStart] = useState(null);
     const [ts_end, setTsEnd] = useState(null);
 
@@ -137,26 +138,7 @@ function SearchMessageModal (props) {
                         />
                     </Grid>
 
-                    {
-                        has_site_or_org && <Grid item xs={12}>
-                            <FormControlLabel
-                                control={
-                                    <Checkbox
-                                        checked={only_ewi_recipients}
-                                        onChange={x => setOnlyEwiRecipients(x.target.checked)}
-                                        name="onlyEWIRecipients"
-                                    />
-                                }
-                                label="Only EWI Recipients"
-                            />  
-                        </Grid>
-                    }
-
-                    <Grid 
-                        item xs={12}
-                        style={{ marginTop: has_site_or_org ? 0 : 12, marginBottom: 8 }}>
-                        <Divider />
-                    </Grid>
+                    <Grid item xs={12}><Divider /></Grid>
 
                     <Typography
                         variant="subtitle1"
@@ -214,6 +196,38 @@ function SearchMessageModal (props) {
                             />
                         </Grid>
                     </MuiPickersUtilsProvider>
+                    
+                    <Grid item xs={12}><Divider /></Grid>
+
+                    {
+                        !is_search_disabled && <Fragment>
+                            <Grid item xs={12} sm={6}>
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={only_ewi_recipients}
+                                            onChange={x => setOnlyEwiRecipients(x.target.checked)}
+                                            name="onlyEWIRecipients"
+                                        />
+                                    }
+                                    label="Only EWI recipients"
+                                />  
+                            </Grid>
+
+                            <Grid item xs={12} sm={6}>
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={include_inactive_numbers}
+                                            onChange={x => setIncludeInactiveNumbers(x.target.checked)}
+                                            name="includeInactiveNumbers"
+                                        />
+                                    }
+                                    label="Include inactive numbers"
+                                />  
+                            </Grid>
+                        </Fragment>
+                    }
                 </Grid>
 
                 {
@@ -232,7 +246,7 @@ function SearchMessageModal (props) {
                     to={{
                         pathname: `${url}/search_results`,
                         state: {
-                            sites, organizations, only_ewi_recipients,
+                            sites, organizations, only_ewi_recipients, include_inactive_numbers,
                             ts_start: ts_start ? moment(ts_start).format("YYYY-MM-DD HH:mm:ss") : ts_start,
                             ts_end: ts_end ? moment(ts_end).format("YYYY-MM-DD HH:mm:ss") : ts_end
                         }

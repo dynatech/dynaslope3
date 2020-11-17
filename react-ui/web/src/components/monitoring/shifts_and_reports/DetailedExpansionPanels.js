@@ -1,4 +1,4 @@
-import React, { useState, Fragment } from "react";
+import React, { useState, useEffect, Fragment } from "react";
 import moment from "moment";
 import { useSnackbar } from "notistack";
 import Accordion from "@material-ui/core/Accordion";
@@ -10,8 +10,8 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
 import Tooltip from "@material-ui/core/Tooltip";
-import { Grid, makeStyles, Chip, Paper } from "@material-ui/core";
-import { Refresh, SaveAlt, Send, Info, Attachment } from "@material-ui/icons";
+import { Grid, makeStyles, Chip, Paper, CircularProgress } from "@material-ui/core";
+import { Refresh, SaveAlt, Send, Info, Attachment, CheckCircle } from "@material-ui/icons";
 
 // import CKEditor from "@ckeditor/ckeditor5-react";
 // import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
@@ -21,7 +21,6 @@ import "react-quill/dist/quill.snow.css";
 
 import CheckboxesGroup from "../../reusables/CheckboxGroup";
 // import { useInterval, remapCkeditorEnterKey } from "../../../UtilityFunctions";
-import { useInterval } from "../../../UtilityFunctions";
 import { saveEOSDataAnalysis, downloadEosCharts, getNarrative } from "../ajax";
 import { sendEOSEmail } from "../../communication/mailbox/ajax";
 
@@ -74,28 +73,6 @@ const useStyles = makeStyles(theme => ({
     },
 }));
 
-function callSnackbar (enqueueSnackbar, snackBarActionFn, response) {
-    if (["saved", "up to date", "updated"].includes(response)) {
-        enqueueSnackbar(
-            `EOS data analysis ${response}`,
-            {
-                variant: "success",
-                autoHideDuration: 7000,
-                action: snackBarActionFn
-            }
-        );
-    } else {
-        enqueueSnackbar(
-            "Error saving End-of-Shift analysis...",
-            {
-                variant: "error",
-                autoHideDuration: 7000,
-                action: snackBarActionFn
-            }
-        );
-    }    
-}
-
 function extractSelectedCharts (checkboxStatus) {
     const chart_list = Object.keys(checkboxStatus).filter(key => checkboxStatus[key] === true);
     return chart_list;
@@ -127,7 +104,6 @@ function DetailedAccordion (props) {
     const [dataAnalysis, setDataAnalysis] = useState(data_analysis);
     const [analysis_char_count, setAnalysisCharCount] = useState(data_analysis.length);
     const [shiftNarratives, setShiftNarratives] = useState(narratives);
-    const [clear_interval, setClearInterval] = useState(false);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     // const [narrative_editor, setNarrativeEditor] = useState(null);
     const [attachedFiles, setAttachedFiles] = useState([]);
@@ -174,17 +150,35 @@ function DetailedAccordion (props) {
         };
     });
 
-    useInterval(() => {
-        const temp = {
-            shift_ts: shiftStartTs,
-            event_id,
-            dataAnalysis
-        };
-        saveEOSDataAnalysis(temp, response => {
-            console.log("response", response);
-            // callSnackbar(enqueueSnackbar, snackBarActionFn, response);
-        });
-    }, 10000, clear_interval);
+    const [start_saving_countdown, setStartSavingCountdown] = useState(false);
+    const [interval_id, setIntervalID] = useState(null);
+    const [saving_status, setSavingStatus] = useState(null);
+
+    useEffect(() => {
+        if (start_saving_countdown) {
+            if (interval_id !== null) clearTimeout(interval_id);
+            setSavingStatus("typing");
+
+            const tying_delay_id = setTimeout(() => {
+                setSavingStatus("saving");
+                const saving_delay_id = setTimeout(() => {
+                    const temp = {
+                        shift_ts: shiftStartTs,
+                        event_id,
+                        dataAnalysis
+                    };
+
+                    saveEOSDataAnalysis(temp, response => {
+                        console.log("response", response);
+                        setSavingStatus("saved");
+                        setStartSavingCountdown(false);
+                    });
+                }, 3000);
+                setIntervalID(saving_delay_id);
+            }, 3000);
+            setIntervalID(tying_delay_id);
+        }
+    }, [dataAnalysis]);
 
     const shift_ts_end = moment(shiftStartTs).add(12, "hours");
     const moment_validity = moment(validity);
@@ -280,8 +274,6 @@ function DetailedAccordion (props) {
                 }
             );
         });
-
-        setClearInterval(true);
     };
 
     const handleDownload = () => {
@@ -356,7 +348,7 @@ function DetailedAccordion (props) {
         }
     ];
 
-    const is_analysis_over_limit = analysis_char_count > 1500;
+    const is_analysis_over_limit = analysis_char_count > 3000;
 
     return (
         <Accordion>
@@ -467,6 +459,9 @@ function DetailedAccordion (props) {
                                         onChange={e => {
                                             if (label === "Data Analysis") {
                                                 setAnalysisCharCount(e.length);
+                                                if (interval_id !== null) {
+                                                    setStartSavingCountdown(true);
+                                                } else { setIntervalID(1); }
                                             }
                                             updateFn(e);
                                         }}
@@ -490,9 +485,28 @@ function DetailedAccordion (props) {
                                             >
                                                 <div><Info color="primary" fontSize="small"/>&nbsp;</div>
                                             </Tooltip>
-                                            <Typography variant="caption" >
-                                                <strong>Character count (including HTML): {analysis_char_count}/1500</strong>
-                                            </Typography>        
+                                            <Typography variant="caption">
+                                                <strong>Character count (including HTML): {analysis_char_count}/3000</strong>
+                                            </Typography>
+
+                                            {
+                                                saving_status !== null && <Typography 
+                                                    variant="caption" component="div"
+                                                    style={{
+                                                        marginLeft: 24, display: "flex", alignItems: "center",
+                                                        color: ["typing", "saving"].includes(saving_status) ? "orange" : "green"
+                                                    }}
+                                                >
+                                                    <div style={{ marginRight: 6 }}>
+                                                        <strong>{saving_status.toUpperCase()}</strong>
+                                                    </div>
+                                                    {
+
+                                                        ["typing", "saving"].includes(saving_status) ? <CircularProgress size={20}/>
+                                                            : <CheckCircle />
+                                                    }
+                                                </Typography>  
+                                            }      
                                         </Grid>
                                     )
                                 }

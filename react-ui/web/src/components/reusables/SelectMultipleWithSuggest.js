@@ -191,7 +191,7 @@ function SelectMultipleWithSuggest (props) {
                 font: "inherit"
             }
         }),
-   
+        menuPortal: provided => ({ ...provided, zIndex: 9999 })
     };
 
     const components = {
@@ -229,6 +229,7 @@ function SelectMultipleWithSuggest (props) {
                             shrink: true,
                         }
                     }}
+                    menuPortalTarget={document.body}
                     options={options}
                     components={components}
                     value={value}
