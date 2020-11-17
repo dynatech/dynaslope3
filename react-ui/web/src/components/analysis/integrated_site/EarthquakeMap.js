@@ -4,7 +4,7 @@ import React, {
 } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Map as LeafletMap, TileLayer, Marker, Popup, Circle, CircleMarker } from "react-leaflet";
+import { Map as LeafletMap, TileLayer, Marker, Popup, Circle, CircleMarker, Pane } from "react-leaflet";
 import MarkerIcon from "leaflet/dist/images/marker-icon.png";
 import ShadowIcon from "leaflet/dist/images/marker-shadow.png";
 import RetinaIcon from "leaflet/dist/images/marker-icon-2x.png";
@@ -72,7 +72,7 @@ function EarthquakeMap (props) {
                 eqEvents.map((event, i) => {
                     const {
                         latitude, longitude, magnitude,
-                        depth, critical_distance, eq_id
+                        depth, critical_distance, eq_id, processed
                     } = event;
                     const center = [latitude, longitude];
                     const distance = critical_distance === null ? 0 : parseFloat(critical_distance);
@@ -84,7 +84,8 @@ function EarthquakeMap (props) {
                                 <Popup>
                                     Magnitude: <strong>{magnitude.replace(rule, "")}</strong> <br/>
                                     Depth: <strong>{depth.replace(rule, "")}</strong> <br/>
-                                    Critical Distance: <strong>{distance} km</strong>
+                                    Critical Distance: <strong>{distance} km</strong> <br/>
+                                    Processed: <strong>{processed ? "Yes" : "No"}</strong>
                                 </Popup>
                             </Marker>
                         </Fragment>
@@ -92,7 +93,7 @@ function EarthquakeMap (props) {
                 })
             }
 
-            {
+            <Pane style={{ zIndex: 550 }}>{
                 sites.map(site => (
                     <CircleMarker
                         key={site.site_id}
@@ -110,7 +111,7 @@ function EarthquakeMap (props) {
                         </Popup>
                     </CircleMarker>
                 ))
-            }
+            }</Pane>
 
             {/* <Marker icon={marker} position={position}>
                 <Popup>
