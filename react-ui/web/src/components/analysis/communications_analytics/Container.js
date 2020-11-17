@@ -55,10 +55,75 @@ function CommunicationsAnalytics (props) {
         <Fragment>
             <div className={classes.pageContentMargin}>
                 <PageTitle
-                    title="Analysis | Communications Analytics"
+                    title="Analysis | Monitoring Alerts Analytics"
                 />
+
+                <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                        <Card className={classes.card}>
+                            <CardContent>
+                                <Typography variant="overline" display="block" gutterBottom>
+                                    Alerts Summary
+                                </Typography>
+
+                                <Grid container spacing={2} justify="space-between">
+                                    <Grid item xs={12} sm={3} container>
+                                        <MuiPickersUtilsProvider utils={MomentUtils}>
+                                            <Grid item xs={12} sm={12}>
+                                                <KeyboardDateTimePicker
+                                                    required
+                                                    autoOk
+                                                    label="Start Timestamp"
+                                                    ampm={false}
+                                                    placeholder="2010/01/01 00:00"
+                                                    format="YYYY/MM/DD HH:mm"
+                                                    mask="____/__/__ __:__"
+                                                    clearable
+                                                    disableFuture
+                                                    fullWidth
+                                                />
+                                            </Grid>
+
+                                            <Grid item xs={12} sm={12} style={{ marginTop: 16 }}>
+                                                <KeyboardDateTimePicker
+                                                    required
+                                                    autoOk
+                                                    label="End Timestamp"
+                                                    ampm={false}
+                                                    placeholder="2010/01/01 00:00"
+                                                    format="YYYY/MM/DD HH:mm"
+                                                    mask="____/__/__ __:__"
+                                                    clearable
+                                                    disableFuture
+                                                    fullWidth
+                                                />
+                                            </Grid>
+                                        </MuiPickersUtilsProvider>
+                                        <Grid item xs={12} align="right" style={{ marginTop: 16 }}>
+                                            <Button 
+                                                size="small" 
+                                                color="primary"
+                                                variant="contained"
+                                            >
+                                                Submit
+                                            </Button>
+                                        </Grid>
+                                    </Grid>
+                                    <Grid item xs={12} sm={8}>
+                                        <Typography variant="overline" display="block" gutterBottom>
+                                            data here
+                                        </Typography>
+                                    </Grid>
+                                    
+
+                                    
+                                </Grid>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
             </div>
-        </Fragment>        
+        </Fragment>   
     );
 }
 
