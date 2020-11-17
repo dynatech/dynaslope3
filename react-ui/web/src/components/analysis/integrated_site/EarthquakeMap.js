@@ -4,7 +4,7 @@ import React, {
 } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Map as LeafletMap, TileLayer, Marker, Popup, Circle, CircleMarker } from "react-leaflet";
+import { Map as LeafletMap, TileLayer, Marker, Popup, Circle, CircleMarker, Pane } from "react-leaflet";
 import MarkerIcon from "leaflet/dist/images/marker-icon.png";
 import ShadowIcon from "leaflet/dist/images/marker-shadow.png";
 import RetinaIcon from "leaflet/dist/images/marker-icon-2x.png";
@@ -93,7 +93,7 @@ function EarthquakeMap (props) {
                 })
             }
 
-            {
+            <Pane style={{ zIndex: 550 }}>{
                 sites.map(site => (
                     <CircleMarker
                         key={site.site_id}
@@ -111,7 +111,7 @@ function EarthquakeMap (props) {
                         </Popup>
                     </CircleMarker>
                 ))
-            }
+            }</Pane>
 
             {/* <Marker icon={marker} position={position}>
                 <Popup>
