@@ -10,10 +10,12 @@ import QAContainer from "./components/monitoring/qa/Container";
 
 import IntegratedSiteAnalysisContainer from "./components/analysis/integrated_site/Container";
 import MonitoringAlertsAnalytics from "./components/analysis/monitoring_alerts_analytics/Container";
+import LoggersAndSensorsFormContainer from "./components/analysis/loggers_and_sensors_form/Container";
 
 import ChatterboxContainer from "./components/communication/chatterbox/Container";
 import ContactsContainer from "./components/communication/contacts/Container";
 import MailBoxContainer from "./components/communication/mailbox/MailBoxContainer";
+
 import SitesInformationContainer from "./components/community/site_information/Container";
 
 import ProfileContainer from "./components/member_profile/Container";
@@ -39,6 +41,7 @@ function RoutesCollection (props) {
 
             <Route path={`${url}analysis/sites`} component={IntegratedSiteAnalysisContainer} />
             <Route path={`${url}analysis/alerts`} component={MonitoringAlertsAnalytics} />
+            <Route path={`${url}analysis/forms/loggers_and_sensors`} component={LoggersAndSensorsFormContainer} />
             <Route path={`${url}analysis`} render={() => <h3> Not yet created</h3>} />
 
             <Route path={`${url}communication/chatterbox`} component={ChatterboxContainer} />
@@ -52,6 +55,8 @@ function RoutesCollection (props) {
             <Route path={`${url}profile/create`} component={CreateDynaUser} />
             <Route path={`${url}profile`} component={ProfileContainer} />
             
+
+
             <Route render={() => <h3> Not found</h3>} />
         </Switch>
 

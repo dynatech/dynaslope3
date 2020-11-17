@@ -270,6 +270,31 @@ export function saveInvalidRainfallTag (input, callback) {
     });
 }
 
+export function getLoggersAndSensorsData (callback) {
+    axios.get(`${host}/api/sensor_deployment/get_loggers_data`)
+    .then(response => {
+        const { data } = response;
+        console.log("Loggers and Sensors Data", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.log(error);
+    });
+}
+
+export function saveLoggerDeployment (input, callback) {
+    const api_link = `${host}/api/sensor_deployment/save_logger_deployment`;
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save deployment logs reponse", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
 export function saveUnreliableMarkerData (input, callback) {
     const api_link = `${host}/api/surficial/save_unreliable_marker_data`;
     
@@ -277,6 +302,19 @@ export function saveUnreliableMarkerData (input, callback) {
     .then(response => {
         const { data } = response;
         console.log("Save unreliable data", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
+
+export function saveDataUpdate (input, callback) {
+    const api_link = `${host}/api/sensor_deployment/save_data_update`;
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Save data update reponse", data);
         callback(data);
     })
     .catch(error => {
@@ -297,4 +335,3 @@ export function getMonitoringAnalyticsData (input, callback) {
         console.error(error);
     });
 }
-

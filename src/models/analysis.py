@@ -5,10 +5,12 @@ Analysis tables
 
 import datetime
 from marshmallow import fields
+from sqlalchemy.dialects.mysql import DECIMAL, TEXT
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
 from src.models.users import UsersSchema
 from src.models.monitoring import OperationalTriggers
+from src.models.loggers import LoggersSchema
 
 
 ###############################
@@ -448,6 +450,7 @@ class TSMSensors(DB.Model):
         f"{SCHEMA_DICT['commons_db']}.sites.site_id"), nullable=False)
     logger_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['commons_db']}.loggers.logger_id"), nullable=False)
+    tsm_name = DB.Column(DB.String(7))
     date_activated = DB.Column(DB.Date)
     date_deactivated = DB.Column(DB.Date)
     segment_length = DB.Column(DB.Float)
@@ -462,7 +465,11 @@ class TSMSensors(DB.Model):
         lazy="dynamic")
 
     logger = DB.relationship(
-        "Loggers", backref="tsm_sensor", lazy="joined", innerjoin=True)
+        "Loggers", backref=DB.backref(
+            "tsm_sensor", lazy="joined",
+            innerjoin=False, uselist=False
+        ),
+        lazy="joined", innerjoin=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> TSM ID: {self.tsm_id}"
@@ -517,7 +524,12 @@ class Accelerometers(DB.Model):
     in_use = DB.Column(DB.Integer)
 
     status = DB.relationship(
-        "AccelerometerStatus", backref="accelerometers", lazy="joined", innerjoin=True)
+        "AccelerometerStatus", backref="accelerometers", lazy="joined")
+
+    tsm_sensor = DB.relationship("TSMSensors", backref=DB.backref(
+        "accelerometers", lazy="subquery",
+        order_by="[Accelerometers.node_id, Accelerometers.accel_number]"
+    ), lazy="joined")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> ACCELEROMETER: {self.accel_id}"
@@ -555,60 +567,6 @@ class NodeAlerts(DB.Model):
                 f" disp_alert: {self.disp_alert}"
                 f" vel_alert: {self.vel_alert} na_status: {self.na_status}"
                 f" || tsm_sensor: {self.tsm_sensor}")
-
-
-class Loggers(DB.Model):
-    """
-    Class representation of loggers table
-    """
-
-    __tablename__ = "loggers"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    logger_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['commons_db']}.sites.site_id"), nullable=False)
-    logger_name = DB.Column(DB.String(7))
-    date_activated = DB.Column(DB.Date)
-    date_deactivated = DB.Column(DB.Date)
-    latitude = DB.Column(DB.Float)
-    longitude = DB.Column(DB.Float)
-    model_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['commons_db']}.logger_models.model_id"), nullable=False)
-
-    site = DB.relationship("Sites", backref=DB.backref(
-        "loggers", lazy="dynamic"))
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Logger ID: {self.logger_id}"
-                f" Site_ID: {self.site_id} Logger NAme: {self.logger_name}"
-                f" Date Activated: {self.date_activated} Latitude: {self.latitude}")
-
-
-class LoggerModels(DB.Model):
-    """
-    Class representation of logger_models table
-    """
-
-    __tablename__ = "logger_models"
-    __bind_key__ = "commons_db"
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    model_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    has_tilt = DB.Column(DB.Integer)
-    has_rain = DB.Column(DB.Integer)
-    has_piezo = DB.Column(DB.Integer)
-    has_soms = DB.Column(DB.Integer)
-    logger_type = DB.Column(DB.String(10))
-
-    loggers = DB.relationship(
-        "Loggers", backref="logger_model", lazy="subquery")
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> TSM ID: {self.tsm_id}"
-                f" TSM Name: {self.tsm_name} Number of Segments: {self.number_of_segments}"
-                f"Date Activated: {self.date_activated}")
 
 
 class AlertStatus(DB.Model):
@@ -838,6 +796,7 @@ class MarkerDataTags(DB.Model):
                 f" data_id: {self.data_id} ts: {self.ts}"
                 f" tagger_id: {self.tagger_id} remarks: {self.remarks}")
 
+
 #############################
 # End of Class Declarations #
 #############################
@@ -866,6 +825,8 @@ class AccelerometerStatusSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Analysis Accelerometer Status class
     """
+
+    ts_flag = fields.DateTime("%Y-%m-%d %H:%M:%S")
     class Meta:
         """Saves table class structure as schema model"""
         model = AccelerometerStatus
@@ -875,6 +836,7 @@ class AccelerometersSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Analysis Accelerometer Status class
     """
+    tsm_id = fields.Integer()
     status = fields.Nested("AccelerometerStatusSchema",
                            many=True, exclude=["accelerometers"])
 
@@ -1066,36 +1028,12 @@ class RainfallPrioritiesSchema(MARSHMALLOW.ModelSchema):
         model = RainfallPriorities
 
 
-class LoggersSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of Loggers class
-    """
-
-    model_id = fields.Integer()
-    logger_model = fields.Nested("LoggerModelsSchema", exclude=("loggers", ))
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = Loggers
-        exclude = ["data_presence"]
-
-
-class LoggerModelsSchema(MARSHMALLOW.ModelSchema):
-    """
-    Schema representation of LoggerModels class
-    """
-    loggers = fields.Nested(LoggersSchema, exclude=("logger_model", ))
-
-    class Meta:
-        """Saves table class structure as schema model"""
-        model = LoggerModels
-
-
 class TSMSensorsSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of TSMSensors class
     """
     logger = fields.Nested(LoggersSchema, exclude=("site", "tsm_sensor"))
+    accelerometers = fields.Nested("AccelerometersSchema", many=True)
 
     class Meta:
         """Saves table class structure as schema model"""
