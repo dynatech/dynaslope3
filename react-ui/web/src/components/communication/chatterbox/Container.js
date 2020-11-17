@@ -225,7 +225,6 @@ function Container (comp_props) {
                                             width={width}
                                             url={url}
                                             messagesArr={message_collection.inbox}
-                                            async
                                             hidden={chosen_tab !== 0}
                                             is_desktop={is_desktop}
                                         />
@@ -241,7 +240,6 @@ function Container (comp_props) {
                                                 width={width}
                                                 url={url}
                                                 messagesArr={message_collection.unsent}
-                                                async
                                                 hidden={chosen_tab !== 1}
                                                 is_desktop={is_desktop}
                                             />

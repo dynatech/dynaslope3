@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
+
 import {
     AppBar, Toolbar, Typography,
     Menu, MenuItem, IconButton,
     Badge, Button, makeStyles,
+    Paper, Slide, Backdrop
 } from "@material-ui/core";
 import {
     Menu as MenuIcon,
@@ -11,9 +13,12 @@ import {
     Notifications as NotificationsIcon,
     ExitToApp
 } from "@material-ui/icons";
+
+import NotificationsTab from "../widgets/notifications/NotificationsTab";
 import PhivolcsDynaslopeLogo from "../../images/phivolcs-dynaslope-logo.png";
 import GeneralStyles from "../../GeneralStyles";
 import { logout, getCurrentUser } from "../sessions/auth";
+import { NotificationsContext } from "../contexts/NotificationsContext";
 
 const useStyles = makeStyles(theme => ({
     ...GeneralStyles(theme),
@@ -67,7 +72,24 @@ const useStyles = makeStyles(theme => ({
         width: 250,
     },
     menu: { marginTop: 40 },
-    icon: { paddingRight: theme.spacing(2) }
+    icon: { paddingRight: theme.spacing(2) },
+    paper: {
+        position: "fixed",
+        right: 0,
+        width: "45vw",
+        [theme.breakpoints.down("sm")]: {
+            width: "55vw"
+        },
+        [theme.breakpoints.up("lg")]: {
+            width: "40vw"
+        },
+        height: "100vh",
+        zIndex: 1300,
+        padding: 24,
+        overflowY: "auto",
+        boxSizing: "border-box"
+    },
+    backdrop: { zIndex: 1299 }
 }));
   
 function Header (props) {
@@ -98,7 +120,21 @@ function Header (props) {
         });
     };
 
-    const { first_name } = getCurrentUser();
+    const { user_id, first_name } = getCurrentUser();
+    const { notifications_object, setNotificationCountToZero } = useContext(NotificationsContext);
+    const { count } = notifications_object;
+    const [is_notif_open, setIsNotifOpen] = useState(false);
+
+    const handleOpenNotif = () => {
+        setIsNotifOpen(true);
+        document.body.style.overflow = "hidden";
+    };
+
+    const handleCloseNotif = () => {
+        setIsNotifOpen(false);
+        document.body.style.overflow = "auto";
+        setNotificationCountToZero(user_id);
+    };
 
     return (
         <div className={classes.root}>
@@ -134,12 +170,14 @@ function Header (props) {
                             <Badge badgeContent={4} color="secondary">
                                 <MailIcon />
                             </Badge>
-                        </IconButton>
-                        <IconButton color="inherit">
-                            <Badge badgeContent={17} color="secondary">
+                        </IconButton> */}
+
+                        <IconButton color="inherit" onClick={handleOpenNotif}>
+                            <Badge badgeContent={count} color="secondary">
                                 <NotificationsIcon />
                             </Badge>
-                        </IconButton> */}
+                        </IconButton>
+
                         <Button
                             aria-owns="menu-list-grow"
                             aria-haspopup="true"
@@ -168,6 +206,17 @@ function Header (props) {
                     <ExitToApp className={classes.icon} /> Logout
                 </MenuItem>
             </Menu>
+
+            <Slide direction="left" in={is_notif_open} mountOnEnter>
+                <Paper 
+                    elevation={4}
+                    className={classes.paper}
+                >
+                    <NotificationsTab history={history} handleCloseNotif={handleCloseNotif} />
+                </Paper>
+            </Slide>
+
+            <Backdrop open={is_notif_open} className={classes.backdrop} onClick={handleCloseNotif} />
         </div>
     );
 }
