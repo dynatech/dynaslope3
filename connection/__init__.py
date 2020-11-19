@@ -111,6 +111,9 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
     #
     # Also register your blueprints with url_prefix="/api"
     #####################################################
+    from src.api.knowledge_management import KNOWLEDGE_MANAGEMENT_BLUEPRINT
+    app.register_blueprint(KNOWLEDGE_MANAGEMENT_BLUEPRINT, url_prefix="/api")
+
     from src.api.sites import SITES_BLUEPRINT
     app.register_blueprint(SITES_BLUEPRINT, url_prefix="/api")
 
