@@ -71,3 +71,5 @@ APP_CONFIG = {
     "smtp_server": "smtp.gmail.com",
     "port": 587
 }
+
+MOBILE_IDS_BANNED_NOTIFS = [31, 631, 553, 554]
