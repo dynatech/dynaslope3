@@ -57,7 +57,8 @@ const useStyles = makeStyles(theme => ({
     },
     previewText: {
         padding: "12px",
-        fontSize: "14px"
+        fontSize: "14px",
+        minHeight: 68
     },
     tile: {
         border: "0.5px solid #b2b2b2",
@@ -130,7 +131,7 @@ function prepareTileData (classes, processed_i_n_r, handleInfoExpand) {
     return processed_i_n_r.map((tile, index) => {
         const { 
             site_list, detail, 
-            issue_reporter 
+            issue_reporter, iar_id
         } = tile;
         
         const item_title = prepareTileTitle(site_list);
@@ -146,7 +147,7 @@ function prepareTileData (classes, processed_i_n_r, handleInfoExpand) {
                 </Typography>
                 <GridListTileBar
                     className={classes.tileBar}
-                    title={item_title}
+                    title={`${iar_id} ${item_title}`}
                     subtitle={`${issue_reporter.first_name} ${issue_reporter.last_name}`}
                     actionIcon={
                         <Tooltip title="Expand card">
@@ -239,7 +240,6 @@ function IssuesAndReminderList (props) {
                 const processed_i_n_r = includeSiteList(issues_and_reminders);
                 final_tile_data = prepareTileData(classes, processed_i_n_r, handleInfoExpand);
                 setHasActiveIssues(true);
-               
             }
 
             setTileData(final_tile_data);

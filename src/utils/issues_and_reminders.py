@@ -175,7 +175,7 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_expiration
         print(err)
         raise
 
-    return "success"
+    return issue_and_reminder_id
 
 
 def get_issues_and_reminders(

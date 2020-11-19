@@ -5,6 +5,7 @@ Utility file for Notifications table.
 import traceback
 from datetime import datetime, timedelta
 from connection import DB
+from config import MOBILE_IDS_BANNED_NOTIFS
 
 from src.models.users import Users
 from src.models.sites import Sites
@@ -88,12 +89,16 @@ def prepare_notification(notif_type, data):
     message = ""
     link = None
     if notif_type == "incoming_message":
+        mobile_user = data["mobile_user"]
+        mobile_id = mobile_user["mobile_id"]
+
+        if mobile_id in MOBILE_IDS_BANNED_NOTIFS:
+            return None, []
+
         notif_receivers = get_monitoring_personnel()
 
         latest_message = data["message"][0]
         sms_msg = latest_message["sms_msg"]
-        mobile_user = data["mobile_user"]
-        mobile_id = mobile_user["mobile_id"]
         users = mobile_user["users"]
 
         sender = "+" + mobile_user["sim_num"]
@@ -134,6 +139,16 @@ def prepare_notification(notif_type, data):
                        f"Extended monitoring on the site will begin tomorrow.")
 
         link = f'/monitoring/events/{data["event_id"]}'
+    elif notif_type == "issues_and_reminders":
+        notif_receivers = get_active_dynaslope_user_ids()
+        link = "/"
+
+        detail = data["detail"]
+        final_detail = detail
+        if len(detail) > 100:
+            final_detail = detail[0:100] + "..."
+        message = (f'ISSUES AND REMINDERS: A new issue/reminder '
+                   f'has been posted (no. {data["iar_id"]}) "{final_detail}"')
 
     notif_object = {
         "message": message,
