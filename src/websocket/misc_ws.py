@@ -16,7 +16,6 @@ from src.utils.notifications import (
 from src.utils.extra import set_data_to_memcache, retrieve_data_from_memcache
 
 set_data_to_memcache(name="MONITORING_SHIFTS", data=json.dumps([]))
-set_data_to_memcache(name="MISC_CLIENTS", data={})
 
 
 @SOCKETIO.on("disconnect", namespace="/communications")
@@ -96,7 +95,14 @@ def wrap_get_user_notifications(user_id):
     sid = request.sid
 
     clients = retrieve_data_from_memcache("MISC_CLIENTS")
+    if not clients:
+        clients = {}
+
     clients[int(user_id)] = sid
+
+    print("")
+    print("New misc client:", user_id, sid)
+    print("")
     set_data_to_memcache(name="MISC_CLIENTS", data=clients)
 
     notifs = get_user_notifications(user_id=user_id)

@@ -311,7 +311,7 @@ def get_sms_user_updates():
     """
     # TODO: Group updates by mobile_id and source
     DB.session.flush()
-    results = DB.session.query(SmsUserUpdates).order_by(
+    results = DB.session.query(SmsUserUpdates).filter_by(processed=0).order_by(
         SmsUserUpdates.update_id).limit(10).all()
     DB.session.commit()
 
@@ -336,11 +336,12 @@ def delete_sms_user_update(updates=None):
     """
     """
 
-    if updates:
-        for row in updates:
-            DB.session.delete(row)
-    else:
-        SmsUserUpdates.query.delete()
+    if not updates:
+        # SmsUserUpdates.query.delete()
+        updates = SmsUserUpdates.query.filter_by(processed=1).all()
+
+    for row in updates:
+        row.processed = 1
 
     DB.session.commit()
 
