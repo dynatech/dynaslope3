@@ -267,7 +267,8 @@ class MarkerAlerts(DB.Model):
     alert_level = DB.Column(DB.Integer)
 
     marker_data = DB.relationship(
-        "MarkerData", backref=DB.backref("marker_alert", lazy="select"), lazy="select")
+        "MarkerData", backref=DB.backref("marker_alert", lazy="select"),
+        lazy="select", viewonly=True)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> MA ID: {self.ma_id}"
@@ -827,6 +828,7 @@ class AccelerometerStatusSchema(MARSHMALLOW.ModelSchema):
     """
 
     ts_flag = fields.DateTime("%Y-%m-%d %H:%M:%S")
+
     class Meta:
         """Saves table class structure as schema model"""
         model = AccelerometerStatus
