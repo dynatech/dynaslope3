@@ -66,6 +66,7 @@ const NotificationCard = React.memo((props) => {
                             color="primary" disableRipple disableFocusRipple edge="end"
                             size="small"
                             onClick={goToLink(link, notification_id, !ts_read)}
+                            title="Go to link"
                         >
                             <CallMade />
                         </IconButton>
