@@ -45,7 +45,7 @@ def wrap_write_issue_reminder_to_db():
         except KeyError:
             postings = None
 
-        result = write_issue_reminder_to_db(
+        result, is_insert = write_issue_reminder_to_db(
             iar_id=json_data["iar_id"],
             detail=json_data["detail"],
             user_id=json_data["user_id"],
@@ -63,8 +63,10 @@ def wrap_write_issue_reminder_to_db():
             DB.session.commit()
             status = True
             issues_and_reminder_bg_task.apply_async()
-            send_notification(
-                notif_type="issues_and_reminders", data=json_data)
+
+            if is_insert:
+                send_notification(
+                    notif_type="issues_and_reminders", data=json_data)
         else:
             status = False
             DB.session.rollback()
