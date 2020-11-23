@@ -94,8 +94,9 @@ def wrap_get_user_notifications(user_id):
 
     sid = request.sid
 
-    clients = retrieve_data_from_memcache("MISC_CLIENTS")
-    if not clients:
+    try:
+        clients = retrieve_data_from_memcache("MISC_CLIENTS")
+    except Exception:
         clients = {}
 
     clients[int(user_id)] = sid
