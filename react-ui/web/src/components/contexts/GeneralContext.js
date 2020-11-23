@@ -1,6 +1,5 @@
 import React, {
-    createContext, useState,
-    useEffect
+    createContext, useState, useEffect
 } from "react";
 import { useSnackbar } from "notistack";
 import { getSites, getUsers, getOrganizations } from "./ajax";
@@ -8,14 +7,9 @@ import { getSites, getUsers, getOrganizations } from "./ajax";
 export const GeneralContext = createContext();
 
 export const GeneralProvider = ({ children }) => {
-    const [refresh_users, setRefreshUser] = useState(true);
-    const [refresh_sites, setRefreshSites] = useState(true);
-    const [users, setUsers] = useState([]);
     const [sites, setSites] = useState([]);
     const [all_sites_including_inactive, SetAllSites] = useState([]);
-    const [organizations, setOrganizations] = useState([]);
-    const [is_reconnecting, setIsReconnecting] = useState(null);
-
+    const [refresh_sites, setRefreshSites] = useState(true);
     useEffect(() => {
         if (refresh_sites) {
             getSites(data => {
@@ -27,6 +21,8 @@ export const GeneralProvider = ({ children }) => {
         }
     }, [refresh_sites]);
 
+    const [users, setUsers] = useState([]);
+    const [refresh_users, setRefreshUser] = useState(true);
     useEffect(() => {
         if (refresh_users) {
             getUsers(data => {
@@ -36,15 +32,16 @@ export const GeneralProvider = ({ children }) => {
         }
     }, [refresh_users]);
 
+    const [organizations, setOrganizations] = useState([]);
     useEffect(() => {
         getOrganizations(data => {
             setOrganizations(data);
         });
     }, []);
 
+    const [is_reconnecting, setIsReconnecting] = useState(null);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const [key, setKey] = useState(null);
-
     useEffect(() => {
         if (is_reconnecting !== null) {
             if (is_reconnecting === true) {

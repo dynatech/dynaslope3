@@ -37,8 +37,13 @@ from src.utils.narratives import(
     write_narratives_to_db, find_narrative_event_id,
     get_narratives
 )
-from src.utils.monitoring import get_ongoing_extended_overdue_events, get_routine_sites, compute_event_validity
+from src.utils.monitoring import (
+    get_ongoing_extended_overdue_events, get_routine_sites,
+    compute_event_validity
+)
 from src.utils.analysis import check_ground_data_and_return_noun
+
+from src.websocket.misc_ws import send_notification
 
 set_data_to_memcache(name="COMMS_CLIENTS", data=[])
 set_data_to_memcache(name="ROOM_MOBILE_IDS", data={})
@@ -118,6 +123,11 @@ def communication_background_task():
                     update_mobile_id_room(mobile_id)
                     messages["inbox"] = inbox_messages_arr
                     set_data_to_memcache(name="CB_MESSAGES", data=messages)
+
+                    send_notification(notif_type="incoming_message", data={
+                        "message": msgs_schema,
+                        "mobile_user": message_row["mobile_details"]
+                    })
                 elif update_source == "outbox":
                     if inbox_index > -1 and not is_blocked:
                         msgs_schema = get_formatted_latest_mobile_id_message(
@@ -474,7 +484,7 @@ def process_ground_data(ts, routine_extended_hour, event_delta_hour, routine_del
 
         if routine_sites:
             index = next((index for index, site in enumerate(routine_sites)
-                         if site.site_id == site_id), None)
+                          if site.site_id == site_id), None)
             if index is not None:
                 del routine_sites[index]
 

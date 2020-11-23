@@ -6,11 +6,14 @@ import json
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from connection import DB
-# from src.models.monitoring import (IssuesAndRemindersSchema)
-from src.models.issues_and_reminders import (IssuesAndRemindersSchema)
+
+from src.models.issues_and_reminders import IssuesAndRemindersSchema
 from src.utils.issues_and_reminders import (
     get_issues_and_reminders, write_issue_reminder_to_db
 )
+
+from src.websocket.misc_ws import send_notification
+
 from src.utils.extra import var_checker
 
 
@@ -42,7 +45,7 @@ def wrap_write_issue_reminder_to_db():
         except KeyError:
             postings = None
 
-        result = write_issue_reminder_to_db(
+        result, is_insert = write_issue_reminder_to_db(
             iar_id=json_data["iar_id"],
             detail=json_data["detail"],
             user_id=json_data["user_id"],
@@ -56,10 +59,14 @@ def wrap_write_issue_reminder_to_db():
             postings=postings
         )
 
-        if result == "success":
+        if result:
             DB.session.commit()
             status = True
             issues_and_reminder_bg_task.apply_async()
+
+            if is_insert:
+                send_notification(
+                    notif_type="issues_and_reminders", data=json_data)
         else:
             status = False
             DB.session.rollback()

@@ -210,6 +210,9 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
     from src.api.shift_checker import SHIFT_CHECKER_BLUEPRINT
     app.register_blueprint(SHIFT_CHECKER_BLUEPRINT, url_prefix="/api")
 
+    from src.api.notifications import NOTIFICATIONS_BLUEPRINT
+    app.register_blueprint(NOTIFICATIONS_BLUEPRINT, url_prefix="/api")
+
     return app
 
 

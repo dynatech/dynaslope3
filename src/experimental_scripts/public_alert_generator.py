@@ -12,7 +12,9 @@ from datetime import datetime, timedelta, time
 from sqlalchemy import and_, or_
 from connection import DB, create_app
 from config import APP_CONFIG
+
 from src.experimental_scripts import tech_info_maker
+
 from src.models.monitoring import (
     PublicAlerts as pa,
     OperationalTriggers as ot, OperationalTriggerSymbols as ots,
@@ -20,6 +22,7 @@ from src.models.monitoring import (
 from src.models.analysis import (
     TSMAlerts, RainfallAlerts as ra,
     AlertStatusSchema)
+
 from src.utils.sites import get_sites_data
 from src.utils.rainfall import get_rainfall_gauge_name
 from src.utils.earthquake import get_earthquake_alerts
@@ -28,6 +31,9 @@ from src.utils.surficial import check_if_site_has_active_surficial_markers
 from src.utils.monitoring import (
     round_down_data_ts, get_site_moms_alerts,
     round_to_nearest_release_time, get_max_possible_alert_level)
+
+from src.websocket.misc_ws import send_notification
+
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache, get_process_status_log)
 
@@ -1409,6 +1415,13 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
             "pub_alert_symbol": public_alert_symbol
         }
 
+        ######################
+        # !!!! PRINTERS !!!! #
+        ######################
+        site_public_alert = public_alert_symbol
+        var_checker(f"{site_code.upper()}",
+                    f"Public Alert: {site_public_alert}", True)
+
         ####################################
         # TRY TO WRITE TO DB PUBLIC_ALERTS #
         ####################################
@@ -1426,22 +1439,18 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
                     for_db_public_dict, latest_site_pa)
                 if public_alert_result == "exists":
                     print(
-                        f"Active Public alert with ID: {current_pa_id} on Database.")
+                        f"Existing public alert (ID): {current_pa_id}")
                 else:
                     print(
-                        f"NEW PUBLIC ALERT WRITTEN with ID: {public_alert_result}")
+                        f"NEW PUBLIC ALERT (ID): {public_alert_result}")
+                    if highest_public_alert > 0:
+                        send_notification(
+                            notif_type="generated_heightened_alert", data=public_dict)
 
             except Exception as err:
                 print(err)
                 DB.session.rollback()
                 raise
-
-        ######################
-        # !!!! PRINTERS !!!! #
-        ######################
-        site_public_alert = public_alert_symbol
-        var_checker(f"{site_code.upper()}",
-                    f"Public Alert: {site_public_alert}", True)
 
         site_public_alerts_list.append(public_dict)
 
