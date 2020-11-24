@@ -1,0 +1,906 @@
+SELECT st.tag, st.tag_id, su.*, um.user_id, uo.* FROM `smsinbox_user_tags` as sut 
+INNER JOIN sms_tags as st ON sut.tag_id = st.tag_id
+INNER JOIN smsinbox_users as su ON sut.inbox_id = su.inbox_id
+INNER JOIN user_mobiles as um ON su.mobile_id = um.mobile_id
+INNER JOIN mia_commons_db.user_organizations as uo ON um.user_id = uo.user_id
+WHERE st.tag_id = 9
+AND su.ts_sms BETWEEN (4 hours when event, rest of the day if routine)
+AND uo.site_id = <id>
+ORDER BY su.inbox_id desc LIMIT 10
+
+
+
+
+
+
+
+
+
+
+# SMSINBOX_USER
+
+SELECT
+  su.inbox_id AS convo_id,
+  agg.max_time,
+  agg.mobile_id,
+  su.sms_msg,
+  su.gsm_id,
+  "inbox" as "source"
+FROM
+  mia_comms_db_3.smsinbox_users AS su
+INNER JOIN
+  (
+  SELECT
+    si.mobile_id,
+    MAX(ts_sms) AS max_time
+  FROM
+    mia_comms_db_3.smsinbox_users as si
+  INNER JOIN
+    mia_comms_db_3.user_mobile AS um
+  ON
+    si.mobile_id = um.mobile_id
+  INNER JOIN
+    mia_commons_db.users AS u
+  ON
+      um.user_id = u.user_id
+  WHERE
+    u.first_name NOT LIKE "%UNKNOWN_%"
+    AND u.user_id IS NOT NULL
+  AND
+    u.user_id IS NOT NULL
+  GROUP BY
+    si.mobile_id
+  ORDER BY
+    max_time DESC
+  LIMIT 20
+) AS agg
+WHERE
+  su.mobile_id = agg.mobile_id AND su.ts_sms = agg.max_time
+
+
+# SMSOUTBOX_USER
+SELECT
+  agg.convo_id,
+  su.ts_written AS max_time,
+  agg.mobile_id,
+  su.sms_msg,
+  NULL as gsm_id,
+  "outbox" as "source"
+FROM
+  mia_comms_db_3.smsoutbox_users AS su
+INNER JOIN
+  (
+  SELECT
+    sus.mobile_id,
+    MAX(sus.outbox_id) AS convo_id
+  FROM
+    mia_comms_db_3.smsoutbox_user_status AS sus
+  INNER JOIN
+    mia_comms_db_3.user_mobile AS um ON sus.mobile_id = um.mobile_id
+  INNER JOIN
+    mia_commons_db.users AS u ON um.user_id = u.user_id
+  WHERE
+    u.first_name NOT LIKE "%UNKNOWN_%"
+  GROUP BY
+    sus.mobile_id
+  ORDER BY
+    convo_id DESC
+  LIMIT 20
+) AS agg ON su.outbox_id = agg.convo_id
+
+
+# UNION
+
+SELECT
+  *
+FROM
+  (
+  SELECT
+    agg.convo_id,
+    su.ts_written AS max_time,
+    agg.mobile_id,
+    su.sms_msg,
+    NULL AS gsm_id,
+    "outbox" AS "source"
+  FROM
+    mia_comms_db_3.smsoutbox_users AS su
+  INNER JOIN
+    (
+    SELECT
+      sus.mobile_id,
+      MAX(sus.outbox_id) AS convo_id
+    FROM
+      mia_comms_db_3.smsoutbox_user_status AS sus
+    INNER JOIN
+      mia_comms_db_3.user_mobile AS um ON sus.mobile_id = um.mobile_id
+    INNER JOIN
+      mia_commons_db.users AS u ON um.user_id = u.user_id
+    WHERE
+      u.first_name NOT LIKE "%UNKNOWN_%"
+    GROUP BY
+      sus.mobile_id
+    ORDER BY
+      convo_id DESC
+    LIMIT 20
+  ) AS agg ON su.outbox_id = agg.convo_id
+UNION
+SELECT
+  su.inbox_id AS convo_id,
+  agg.max_time,
+  agg.mobile_id,
+  su.sms_msg,
+  su.gsm_id,
+  "inbox" AS "source"
+FROM
+  mia_comms_db_3.smsinbox_users AS su
+INNER JOIN
+  (
+  SELECT
+    si.mobile_id,
+    MAX(ts_sms) AS max_time
+  FROM
+    mia_comms_db_3.smsinbox_users AS si
+  INNER JOIN
+    mia_comms_db_3.user_mobile AS um ON si.mobile_id = um.mobile_id
+  INNER JOIN
+    mia_commons_db.users AS u ON um.user_id = u.user_id
+  WHERE
+    u.first_name NOT LIKE "%UNKNOWN_%" AND u.user_id IS NOT NULL AND u.user_id IS NOT NULL
+  GROUP BY
+    si.mobile_id
+  ORDER BY
+    max_time DESC
+  LIMIT 20
+) AS agg
+WHERE
+  su.mobile_id = agg.mobile_id AND su.ts_sms = agg.max_time
+) as latest_messages
+ORDER BY
+  max_time DESC
+
+
+
+##### SOME
+SELECT
+  *
+FROM
+  (
+  SELECT
+    agg.convo_id,
+    su.ts_written AS max_time,
+    agg.mobile_id,
+    su.sms_msg,
+    NULL AS gsm_id,
+    "outbox" AS "source"
+  FROM
+    mia_comms_db_3.smsoutbox_users AS su
+  INNER JOIN
+    (
+    SELECT
+      sus.mobile_id,
+      MAX(sus.outbox_id) AS convo_id
+    FROM
+      mia_comms_db_3.smsoutbox_user_status AS sus
+    INNER JOIN
+      mia_comms_db_3.user_mobile AS um ON sus.mobile_id = um.mobile_id
+    INNER JOIN
+      mia_comms_db_3.users AS u ON um.user_id = u.user_id
+    WHERE
+      u.firstname NOT LIKE "%UNKNOWN_%"
+    GROUP BY
+      sus.mobile_id
+    ORDER BY
+      convo_id DESC
+    LIMIT 50
+  ) AS agg ON su.outbox_id = agg.convo_id
+UNION
+SELECT
+  su.inbox_id AS convo_id,
+  agg.max_time,
+  agg.mobile_id,
+  su.sms_msg,
+  su.gsm_id,
+  "inbox" AS "source"
+FROM
+  mia_comms_db_3.smsinbox_users AS su
+INNER JOIN
+  (
+  SELECT
+    si.mobile_id,
+    MAX(ts_sms) AS max_time
+  FROM
+    mia_comms_db_3.smsinbox_users AS si
+  INNER JOIN
+    mia_comms_db_3.user_mobile AS um ON si.mobile_id = um.mobile_id
+  INNER JOIN
+    mia_comms_db_3.users AS u ON um.user_id = u.user_id
+  WHERE
+    u.firstname NOT LIKE "%UNKNOWN_%" AND u.user_id IS NOT NULL AND u.user_id IS NOT NULL
+  GROUP BY
+    si.mobile_id
+  ORDER BY
+    max_time DESC
+  LIMIT 50
+) AS agg
+WHERE
+  su.mobile_id = agg.mobile_id AND su.ts_sms = agg.max_time
+) as latest_messages
+GROUP BY mobile_id
+ORDER BY
+  latest_messages.max_time DESC
+LIMIT 50
+
+##### TEMPORARY TABLE
+
+CREATE TEMPORARY TABLE latest_messages
+SELECT
+  *
+FROM
+  (
+    (
+    SELECT
+      agg.convo_id,
+      su.ts_written AS max_time,
+      agg.mobile_id,
+      su.sms_msg,
+      NULL AS gsm_id,
+      "outbox" AS "source"
+    FROM
+      mia_comms_db_3.smsoutbox_users AS su
+    INNER JOIN
+      (
+      SELECT
+        sus.mobile_id,
+        MAX(sus.outbox_id) AS convo_id
+      FROM
+        mia_comms_db_3.smsoutbox_user_status AS sus
+      INNER JOIN
+        mia_comms_db_3.user_mobile AS um ON sus.mobile_id = um.mobile_id
+      INNER JOIN
+        mia_commons_db.users AS u ON um.user_id = u.user_id
+      WHERE
+        u.first_name NOT LIKE "%UNKNOWN_%"
+      GROUP BY
+        sus.mobile_id
+      ORDER BY
+        convo_id DESC
+      LIMIT 50
+    ) AS agg ON su.outbox_id = agg.convo_id
+  )
+UNION
+  (
+  SELECT
+    su.inbox_id AS convo_id,
+    agg.max_time,
+    agg.mobile_id,
+    su.sms_msg,
+    su.gsm_id,
+    "inbox" AS "source"
+  FROM
+    mia_comms_db_3.smsinbox_users AS su
+  INNER JOIN
+    (
+    SELECT
+      si.mobile_id,
+      MAX(ts_sms) AS max_time
+    FROM
+      mia_comms_db_3.smsinbox_users AS si
+    INNER JOIN
+      mia_comms_db_3.user_mobile AS um ON si.mobile_id = um.mobile_id
+    INNER JOIN
+      mia_commons_db.users AS u ON um.user_id = u.user_id
+    WHERE
+      u.first_name NOT LIKE "%UNKNOWN_%" AND u.user_id IS NOT NULL AND u.user_id IS NOT NULL
+    GROUP BY
+      si.mobile_id
+    ORDER BY
+      max_time DESC
+    LIMIT 50
+  ) AS agg
+WHERE
+  su.mobile_id = agg.mobile_id AND su.ts_sms = agg.max_time
+)
+  ) latest_messages;
+CREATE TEMPORARY TABLE grouped_lm
+SELECT
+  mobile_id,
+  MAX(max_time) AS max_ts
+FROM
+  latest_messages
+GROUP BY
+  mobile_id;
+SELECT
+  latest_messages.*
+FROM
+  latest_messages
+INNER JOIN
+  grouped_lm ON latest_messages.mobile_id = grouped_lm.mobile_id AND latest_messages.max_time = grouped_lm.max_ts
+ORDER BY
+  latest_messages.max_time DESC
+LIMIT 50;
+
+#### SOME
+
+SELECT
+  latest_messages.*
+FROM
+  mia_comms_db_3.view_pre_latest_messages AS latest_messages
+INNER JOIN
+  (
+  SELECT
+    mobile_id,
+    MAX(max_time) AS max_ts
+  FROM
+    mia_comms_db_3.view_pre_latest_messages AS latest_messages
+  GROUP BY
+    mobile_id
+) AS grouped_lm ON latest_messages.mobile_id = grouped_lm.mobile_id AND latest_messages.max_time = grouped_lm.max_ts
+ORDER BY
+  latest_messages.max_time DESC
+
+
+
+
+##### LONG VERSION
+SELECT
+  latest_messages.*
+FROM
+  (
+  SELECT
+    *
+  FROM
+    (
+      (
+      SELECT
+        agg.convo_id,
+        su.ts_written AS max_time,
+        agg.mobile_id,
+        su.sms_msg,
+        NULL AS gsm_id,
+        "outbox" AS "source"
+      FROM
+        mia_comms_db_3.smsoutbox_users AS su
+      INNER JOIN
+        (
+        SELECT
+          sus.mobile_id,
+          MAX(sus.outbox_id) AS convo_id
+        FROM
+          mia_comms_db_3.smsoutbox_user_status AS sus
+        INNER JOIN
+          mia_comms_db_3.user_mobile AS um ON sus.mobile_id = um.mobile_id
+        INNER JOIN
+          mia_commons_db.users AS u ON um.user_id = u.user_id
+        WHERE
+          u.first_name NOT LIKE "%UNKNOWN_%"
+        GROUP BY
+          sus.mobile_id
+        ORDER BY
+          convo_id DESC
+        LIMIT 50
+      ) AS agg ON su.outbox_id = agg.convo_id
+    )
+  UNION
+    (
+    SELECT
+      su.inbox_id AS convo_id,
+      agg.max_time,
+      agg.mobile_id,
+      su.sms_msg,
+      su.gsm_id,
+      "inbox" AS "source"
+    FROM
+      mia_comms_db_3.smsinbox_users AS su
+    INNER JOIN
+      (
+      SELECT
+        si.mobile_id,
+        MAX(ts_sms) AS max_time
+      FROM
+        mia_comms_db_3.smsinbox_users AS si
+      INNER JOIN
+        mia_comms_db_3.user_mobile AS um ON si.mobile_id = um.mobile_id
+      INNER JOIN
+        mia_commons_db.users AS u ON um.user_id = u.user_id
+      WHERE
+        u.first_name NOT LIKE "%UNKNOWN_%" AND u.user_id IS NOT NULL AND u.user_id IS NOT NULL
+      GROUP BY
+        si.mobile_id
+      ORDER BY
+        max_time DESC
+      LIMIT 50
+    ) AS agg
+  WHERE
+    su.mobile_id = agg.mobile_id AND su.ts_sms = agg.max_time
+  )
+    ) sd
+) AS latest_messages
+INNER JOIN
+  (
+  SELECT
+    mobile_id,
+    MAX(max_time) AS max_ts
+  FROM
+    (
+    SELECT
+      *
+    FROM
+      (
+        (
+        SELECT
+          agg.convo_id,
+          su.ts_written AS max_time,
+          agg.mobile_id,
+          su.sms_msg,
+          NULL AS gsm_id,
+          "outbox" AS "source"
+        FROM
+          mia_comms_db_3.smsoutbox_users AS su
+        INNER JOIN
+          (
+          SELECT
+            sus.mobile_id,
+            MAX(sus.outbox_id) AS convo_id
+          FROM
+            mia_comms_db_3.smsoutbox_user_status AS sus
+          INNER JOIN
+            mia_comms_db_3.user_mobile AS um ON sus.mobile_id = um.mobile_id
+          INNER JOIN
+            mia_commons_db.users AS u ON um.user_id = u.user_id
+          WHERE
+            u.first_name NOT LIKE "%UNKNOWN_%"
+          GROUP BY
+            sus.mobile_id
+          ORDER BY
+            convo_id DESC
+          LIMIT 50
+        ) AS agg ON su.outbox_id = agg.convo_id
+      )
+    UNION
+      (
+      SELECT
+        su.inbox_id AS convo_id,
+        agg.max_time,
+        agg.mobile_id,
+        su.sms_msg,
+        su.gsm_id,
+        "inbox" AS "source"
+      FROM
+        mia_comms_db_3.smsinbox_users AS su
+      INNER JOIN
+        (
+        SELECT
+          si.mobile_id,
+          MAX(ts_sms) AS max_time
+        FROM
+          mia_comms_db_3.smsinbox_users AS si
+        INNER JOIN
+          mia_comms_db_3.user_mobile AS um ON si.mobile_id = um.mobile_id
+        INNER JOIN
+          mia_commons_db.users AS u ON um.user_id = u.user_id
+        WHERE
+          u.first_name NOT LIKE "%UNKNOWN_%" AND u.user_id IS NOT NULL AND u.user_id IS NOT NULL
+        GROUP BY
+          si.mobile_id
+        ORDER BY
+          max_time DESC
+        LIMIT 50
+      ) AS agg
+    WHERE
+      su.mobile_id = agg.mobile_id AND su.ts_sms = agg.max_time
+    )
+      ) sc
+  ) AS latest_messages
+GROUP BY
+  mobile_id
+) AS grouped_lm ON latest_messages.mobile_id = grouped_lm.mobile_id AND latest_messages.max_time = grouped_lm.max_ts
+ORDER BY
+  latest_messages.max_time DESC
+LIMIT 50
+
+
+#### VIEW LATEST MESSAGES mobile_id
+SELECT
+  mobile_id,
+  MAX(max_time) AS max_ts
+FROM
+  (
+  SELECT
+    *
+  FROM
+    (
+      (
+      SELECT
+        agg.convo_id,
+        su.ts_written AS max_time,
+        agg.mobile_id,
+        su.sms_msg,
+        NULL AS gsm_id,
+        "outbox" AS "source"
+      FROM
+        mia_comms_db_3.smsoutbox_users AS su
+      INNER JOIN
+        (
+        SELECT
+          sus.mobile_id,
+          MAX(sus.outbox_id) AS convo_id
+        FROM
+          mia_comms_db_3.smsoutbox_user_status AS sus
+        INNER JOIN
+          mia_comms_db_3.user_mobile AS um ON sus.mobile_id = um.mobile_id
+        INNER JOIN
+          mia_commons_db.users AS u ON um.user_id = u.user_id
+        WHERE
+          u.first_name NOT LIKE "%UNKNOWN_%"
+        GROUP BY
+          sus.mobile_id
+        ORDER BY
+          convo_id DESC
+      ) AS agg ON su.outbox_id = agg.convo_id
+    )
+  UNION
+    (
+    SELECT
+      su.inbox_id AS convo_id,
+      agg.max_time,
+      agg.mobile_id,
+      su.sms_msg,
+      su.gsm_id,
+      "inbox" AS "source"
+    FROM
+      mia_comms_db_3.smsinbox_users AS su
+    INNER JOIN
+      (
+      SELECT
+        si.mobile_id,
+        MAX(ts_sms) AS max_time
+      FROM
+        mia_comms_db_3.smsinbox_users AS si
+      INNER JOIN
+        mia_comms_db_3.user_mobile AS um ON si.mobile_id = um.mobile_id
+      INNER JOIN
+        mia_commons_db.users AS u ON um.user_id = u.user_id
+      WHERE
+        u.first_name NOT LIKE "%UNKNOWN_%" AND u.user_id IS NOT NULL
+      GROUP BY
+        si.mobile_id
+      ORDER BY
+        max_time DESC
+    ) AS agg
+  WHERE
+    su.mobile_id = agg.mobile_id AND su.ts_sms = agg.max_time
+  )
+    ) sc
+) AS latest_messages
+GROUP BY
+  mobile_id
+ORDER BY
+  max_ts
+
+
+
+
+  ############### AASASASA
+
+  SELECT
+  anon_1.convo_id AS anon_1_convo_id,
+  anon_1.comms_db_3_smsinbox_users_inbox_id AS anon_1_comms_db_3_smsinbox_users_inbox_id,
+  anon_1.outbox_id AS anon_1_outbox_id,
+  anon_1.comms_db_3_smsinbox_users_mobile_id AS anon_1_comms_db_3_smsinbox_users_mobile_id,
+  anon_1.comms_db_3_smsinbox_users_sms_msg AS anon_1_comms_db_3_smsinbox_users_sms_msg,
+  anon_1.ts AS anon_1_ts,
+  anon_1.ts_received AS anon_1_ts_received,
+  anon_1.ts_written AS anon_1_ts_written,
+  anon_1.ts_sent AS anon_1_ts_sent,
+  anon_1.source AS anon_1_source,
+  anon_1.comms_db_3_smsinbox_user_tags_siu_tag_id AS anon_1_comms_db_3_smsinbox_user_tags_siu_tag_id,
+  anon_1.sou_tag_id AS anon_1_sou_tag_id
+FROM
+  (
+    (
+    SELECT
+      mia_comms_db_3.smsinbox_users.inbox_id AS convo_id,
+      mia_comms_db_3.smsinbox_users.inbox_id AS comms_db_3_smsinbox_users_inbox_id,
+      NULL AS outbox_id,
+      mia_comms_db_3.smsinbox_users.mobile_id AS comms_db_3_smsinbox_users_mobile_id,
+      mia_comms_db_3.smsinbox_users.sms_msg AS comms_db_3_smsinbox_users_sms_msg,
+      mia_comms_db_3.smsinbox_users.ts_sms AS ts,
+      mia_comms_db_3.smsinbox_users.ts_sms AS ts_received,
+      NULL AS ts_written,
+      NULL AS ts_sent,
+      "inbox" AS SOURCE,
+      mia_comms_db_3.smsinbox_user_tags.siu_tag_id AS comms_db_3_smsinbox_user_tags_siu_tag_id,
+      NULL AS sou_tag_id
+    FROM
+      mia_comms_db_3.smsinbox_users
+    LEFT OUTER JOIN
+      mia_comms_db_3.smsinbox_user_tags ON mia_comms_db_3.smsinbox_users.inbox_id = mia_comms_db_3.smsinbox_user_tags.inbox_id
+    WHERE
+      mia_comms_db_3.smsinbox_users.mobile_id = 1012
+    ORDER BY
+      mia_comms_db_3.smsinbox_users.ts_sms DESC
+  )
+UNION
+  (
+  SELECT
+    mia_comms_db_3.smsoutbox_user_status.stat_id AS convo_id,
+    NULL AS inbox_id,
+    mia_comms_db_3.smsoutbox_user_status.outbox_id AS comms_db_3_smsoutbox_user_status_outbox_id,
+    mia_comms_db_3.smsoutbox_user_status.mobile_id AS comms_db_3_smsoutbox_user_status_mobile_id,
+    mia_comms_db_3.smsoutbox_users.sms_msg AS comms_db_3_smsoutbox_users_sms_msg,
+    mia_comms_db_3.smsoutbox_users.ts_written AS ts,
+    NULL AS ts_received,
+    mia_comms_db_3.smsoutbox_users.ts_written AS comms_db_3_smsoutbox_users_ts_written,
+    mia_comms_db_3.smsoutbox_user_status.ts_sent AS comms_db_3_smsoutbox_user_status_ts_sent,
+    "outbox" AS SOURCE,
+    NULL AS siu_tag_id,
+    mia_comms_db_3.smsoutbox_user_tags.sou_tag_id AS comms_db_3_smsoutbox_user_tags_sou_tag_id
+  FROM
+    mia_comms_db_3.smsoutbox_user_status
+  INNER JOIN
+    mia_comms_db_3.smsoutbox_users ON mia_comms_db_3.smsoutbox_users.outbox_id = mia_comms_db_3.smsoutbox_user_status.outbox_id
+  LEFT OUTER JOIN
+    mia_comms_db_3.smsoutbox_user_tags ON mia_comms_db_3.smsoutbox_users.outbox_id = mia_comms_db_3.smsoutbox_user_tags.outbox_id
+  WHERE
+    mia_comms_db_3.smsoutbox_user_status.mobile_id = 1012
+  ORDER BY
+    mia_comms_db_3.smsoutbox_user_status.outbox_id DESC
+)
+  ) AS anon_1
+ORDER BY
+  anon_1_ts DESC
+LIMIT 20
+
+
+### MAGIC QUERY
+SELECT
+  mia_comms_db_3.smsoutbox_user_status.stat_id AS convo_id,
+  NULL AS inbox_id,
+  mia_comms_db_3.smsoutbox_user_status.outbox_id AS comms_db_3_smsoutbox_user_status_outbox_id,
+  mia_comms_db_3.smsoutbox_user_status.mobile_id AS comms_db_3_smsoutbox_user_status_mobile_id,
+  mia_comms_db_3.smsoutbox_users.sms_msg AS comms_db_3_smsoutbox_users_sms_msg,
+  mia_comms_db_3.smsoutbox_users.ts_written AS ts,
+  NULL AS ts_received,
+  mia_comms_db_3.smsoutbox_users.ts_written AS comms_db_3_smsoutbox_users_ts_written,
+  mia_comms_db_3.smsoutbox_user_status.ts_sent AS comms_db_3_smsoutbox_user_status_ts_sent,
+  "outbox" AS SOURCE,
+  NULL AS siu_tag_id,
+  sub.sou_tag_id
+FROM
+  mia_comms_db_3.smsoutbox_user_status
+INNER JOIN
+  mia_comms_db_3.smsoutbox_users ON mia_comms_db_3.smsoutbox_users.outbox_id = mia_comms_db_3.smsoutbox_user_status.outbox_id
+LEFT JOIN
+  (
+  SELECT
+    mia_comms_db_3.smsoutbox_user_tags.*
+  FROM
+    mia_comms_db_3.smsoutbox_users
+  INNER JOIN
+    mia_comms_db_3.smsoutbox_user_tags ON mia_comms_db_3.smsoutbox_users.outbox_id = mia_comms_db_3.smsoutbox_user_tags.outbox_id
+) sub ON mia_comms_db_3.smsoutbox_users.outbox_id = sub.outbox_id
+WHERE
+  mia_comms_db_3.smsoutbox_user_status.mobile_id = 1005
+ORDER BY
+  mia_comms_db_3.smsoutbox_user_status.outbox_id DESC
+LIMIT 30
+
+###### GET LATEST UNSENT MESSAGES
+
+SELECT
+  agg.*
+FROM
+  (
+  SELECT
+    sus.mobile_id,
+    MAX(sus.outbox_id) AS convo_id
+  FROM
+    mia_comms_db_3.smsoutbox_user_status AS sus
+  INNER JOIN
+    mia_comms_db_3.user_mobile AS um ON sus.mobile_id = um.mobile_id
+  INNER JOIN
+    mia_commons_db.users AS u ON um.user_id = u.user_id
+  WHERE
+    u.user_id IS NOT NULL
+  GROUP BY
+    sus.mobile_id
+  ORDER BY
+    convo_id DESC
+) agg
+INNER JOIN
+  mia_comms_db_3.smsoutbox_user_status AS sus ON agg.mobile_id = sus.mobile_id AND agg.convo_id = sus.outbox_id
+WHERE
+  sus.send_status <= 0 OR sus.send_status > 5
+ORDER BY
+  agg.convo_id DESC
+
+
+  ### UPDATED QUERIES INBOX WITH BLOCK (USING REFACTORED MOBILE TABLES)
+
+SELECT
+  `si`.`mobile_id` AS `mobile_id`,
+  MAX(`si`.`ts_sms`) AS `max_ts`
+FROM
+  `mia_comms_db_3`.`smsinbox_users` `si`
+JOIN
+  `mia_comms_db_3`.`mobile_numbers` `um` ON((`si`.`mobile_id` = `um`.`mobile_id`))
+LEFT JOIN
+  `mia_comms_db_3`.`blocked_mobile_numbers` `bmn` ON `um`.`mobile_id` = `bmn`.`mobile_id`
+WHERE
+  `bmn`.`mobile_id` IS NULL
+GROUP BY
+  `si`.`mobile_id`
+ORDER BY
+  `max_ts` DESC
+
+
+
+##### UPDATED INBOX BUT PARTIAL PA LANG
+SELECT
+  *
+FROM
+  (
+    (
+    SELECT
+      siu.inbox_id AS "convo_id",
+      siu.inbox_id,
+      NULL AS "outbox_id",
+      siu.mobile_id,
+      siu.sms_msg,
+      siu.ts_sms AS "ts",
+      siu.ts_sms AS "ts_received",
+      NULL AS "ts_written",
+      NULL AS "ts_sent",
+      "inbox" AS "source",
+      NULL AS "send_status"
+    FROM
+      comms_db_3.smsinbox_users AS siu
+    WHERE
+      siu.mobile_id = 402
+    ORDER BY
+      siu.ts_sms DESC
+    LIMIT 1
+  )
+UNION ALL
+  (
+  SELECT
+    sous.stat_id AS "convo_id",
+    NULL AS "inbox_id",
+    sous.outbox_id,
+    sous.mobile_id,
+    sou.sms_msg,
+    sou.ts_written AS "ts",
+    NULL AS "ts_received",
+    sou.ts_written,
+    sous.ts_sent,
+    "outbox" AS "source",
+    sous.send_status
+  FROM
+    comms_db_3.smsoutbox_user_status AS sous
+  INNER JOIN
+    comms_db_3.smsoutbox_users AS sou ON sous.outbox_id = sou.outbox_id
+  WHERE
+    sous.mobile_id = 402
+  ORDER BY
+    sou.ts_written DESC
+  LIMIT 1
+)
+  ) AS agg
+ORDER BY
+  agg.ts DESC
+LIMIT 1
+
+
+#### UPDATED SEMI-PARTIAL
+SELECT
+  *
+FROM
+  (
+    (
+    SELECT
+      siu.inbox_id AS "convo_id",
+      siu.inbox_id,
+      NULL AS "outbox_id",
+      siu.mobile_id,
+      siu.sms_msg,
+      siu.ts_sms AS "ts",
+      siu.ts_sms AS "ts_received",
+      NULL AS "ts_written",
+      NULL AS "ts_sent",
+      "inbox" AS "source",
+      NULL AS "send_status"
+    FROM
+      comms_db_3.smsinbox_users AS siu
+    INNER JOIN
+      (
+      SELECT
+        `si`.`mobile_id` AS `mobile_id`,
+        MAX(`si`.`ts_sms`) AS `max_ts`
+      FROM
+        (
+          (
+            `comms_db_3`.`smsinbox_users` `si`
+          JOIN
+            `comms_db_3`.`mobile_numbers` `um` ON((`si`.`mobile_id` = `um`.`mobile_id`))
+          )
+        LEFT JOIN
+          `comms_db_3`.`blocked_mobile_numbers` `bmn` ON((`um`.`mobile_id` = `bmn`.`mobile_id`))
+        )
+      WHERE
+        ISNULL(`bmn`.`mobile_id`)
+      GROUP BY
+        `si`.`mobile_id`
+      ORDER BY
+        `max_ts` DESC
+    ) AS latest_inbox ON siu.mobile_id = latest_inbox.mobile_id AND siu.ts_sms = latest_inbox.max_ts
+  ORDER BY
+    siu.ts_sms DESC
+  LIMIT 10
+  )
+UNION
+  (
+  SELECT
+    sous.stat_id AS "convo_id",
+    NULL AS "inbox_id",
+    sous.outbox_id,
+    sous.mobile_id,
+    sou.sms_msg,
+    sou.ts_written AS "ts",
+    NULL AS "ts_received",
+    sou.ts_written,
+    sous.ts_sent,
+    "outbox" AS "source",
+    sous.send_status
+  FROM
+    comms_db_3.smsoutbox_user_status AS sous
+  INNER JOIN
+    comms_db_3.smsoutbox_users AS sou ON sous.outbox_id = sou.outbox_id
+  INNER JOIN
+    (
+    SELECT
+      latest_inbox.mobile_id,
+      MAX(sou.ts_written) AS "max_outbox_ts"
+    FROM
+      (
+      SELECT
+        `si`.`mobile_id` AS `mobile_id`,
+        MAX(`si`.`ts_sms`) AS `max_ts`
+      FROM
+        (
+          (
+            `comms_db_3`.`smsinbox_users` `si`
+          JOIN
+            `comms_db_3`.`mobile_numbers` `um` ON((`si`.`mobile_id` = `um`.`mobile_id`))
+          )
+        LEFT JOIN
+          `comms_db_3`.`blocked_mobile_numbers` `bmn` ON((`um`.`mobile_id` = `bmn`.`mobile_id`))
+        )
+      WHERE
+        ISNULL(`bmn`.`mobile_id`)
+      GROUP BY
+        `si`.`mobile_id`
+      ORDER BY
+        `max_ts` DESC
+    ) AS latest_inbox
+  INNER JOIN
+    comms_db_3.smsoutbox_user_status AS sous ON sous.mobile_id = latest_inbox.mobile_id
+  INNER JOIN
+    comms_db_3.smsoutbox_users AS sou ON sou.outbox_id = sous.outbox_id
+  GROUP BY
+    latest_inbox.mobile_id
+  ORDER BY
+    max_outbox_ts
+  ) AS latest_outbox ON sous.mobile_id = latest_outbox.mobile_id AND sou.ts_written = latest_outbox.max_outbox_ts
+ORDER BY
+  sou.ts_written DESC
+LIMIT 10
+)
+  ) AS agg
+ORDER BY
+  agg.ts DESC
+LIMIT 20
+
+
+NOTE:
+
+trigger id 142160
