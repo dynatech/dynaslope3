@@ -453,30 +453,6 @@ class OperationalTriggers(DB.Model):
                 f" | TRIGGER SYMBOL alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}")
 
 
-class OperationalTriggersSync(DB.Model):
-    """
-    Class representation of operational_triggers
-    """
-
-    __tablename__ = "operational_triggers_sync"
-    __bind_key__ = "ewi_db"
-    __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
-
-    update_id = DB.Column(DB.Integer, primary_key=True, nullable=False)
-    trigger_id = DB.Column(DB.Integer, nullable=False)
-    ts = DB.Column(DB.DateTime, nullable=False)
-    site_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['commons_db']}.sites.site_id"), nullable=False)
-    trigger_sym_id = DB.Column(DB.Integer, nullable=False)
-    ts_updated = DB.Column(DB.DateTime, nullable=False)
-
-    def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> Update ID: {self.update_id} Trigger_ID: {self.trigger_id}"
-                f" Site_ID: {self.site_id} trigger_sym_id: {self.trigger_sym_id}"
-                f" ts: {self.ts} ts_updated: {self.ts_updated}"
-                f" | TRIGGER SYMBOL alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}")
-
-
 class OperationalTriggerSymbols(DB.Model):
     """
     Class representation of operational_triggers table
@@ -494,7 +470,8 @@ class OperationalTriggerSymbols(DB.Model):
         f"{SCHEMA_DICT['ewi_db']}.trigger_hierarchies.source_id"), nullable=False)
 
     trigger_hierarchy = DB.relationship(
-        "TriggerHierarchies", backref="trigger_symbols", lazy="joined", innerjoin=True)  # lazy="select")
+        "TriggerHierarchies", backref="trigger_symbols",
+        lazy="joined", innerjoin=True)  # lazy="select")
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Trigger Symbol ID: {self.trigger_sym_id}"

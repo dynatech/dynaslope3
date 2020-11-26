@@ -215,6 +215,7 @@ def get_site_moms_alerts(site_id, ts_start, ts_end):
         latest_moms (List of SQLAlchemy classes) - list of moms found
         highest_moms_alert (Int) - highest alert level among moms found
     """
+
     moms = MonitoringMoms
     mi = MomsInstances
     site_moms_alerts_list = moms.query.join(mi).options(
@@ -256,6 +257,7 @@ def round_down_data_ts(date_time):
 
 def get_saved_event_triggers(event_id):
     """
+    Returns a tuple of (internal_sym_id, max trigger timestamp)
     """
 
     mt = MonitoringTriggers
@@ -266,7 +268,8 @@ def get_saved_event_triggers(event_id):
         mt.internal_sym_id, DB.func.max(mt.ts)) \
         .join(mr).join(mea).join(me) \
         .filter(me.event_id == event_id) \
-        .group_by(mt.internal_sym_id).all()
+        .group_by(mt.internal_sym_id) \
+        .order_by(DB.func.max(mt.ts).desc()).all()
 
     return event_triggers
 
@@ -354,8 +357,8 @@ def update_alert_status(as_details):
                 DB.session.add(alert_stat)
 
                 stat_id = alert_stat.stat_id
-                print(f"New alert status written with ID: {stat_id}. " +
-                      f"Trigger ID [{trigger_id}] is tagged as " +
+                print(f"New alert status written with ID: {stat_id}. "
+                      f"Trigger ID [{trigger_id}] is tagged as "
                       f"{alert_status} [{val_map[alert_status]}]. Remarks: \"{remarks}\"")
                 return_data = "success"
             except Exception as err:
