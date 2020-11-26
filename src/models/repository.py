@@ -7,7 +7,7 @@ from datetime import datetime
 from marshmallow import fields
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
-
+from src.models.users import Users
 
 class KnowledgeFolder(DB.Model):
     """
@@ -21,8 +21,9 @@ class KnowledgeFolder(DB.Model):
     folder_id = DB.Column(DB.String, primary_key=True, nullable=False)
     folder_name = DB.Column(DB.String(50))
     ts_created = DB.Column(DB.DateTime, default=datetime.now, nullable=False)
-    modified_by = DB.Column(DB.Integer)
-
+    modified_by = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
+    is_active = DB.Column(DB.Boolean)
     files = DB.relationship(
         "KnowledgeFiles",
         backref=DB.backref("folders", lazy="joined"),
@@ -48,8 +49,13 @@ class KnowledgeFiles(DB.Model):
     folder_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['commons_db']}.knowledge_folders.folder_id"), nullable=False)
     ts_uploaded = DB.Column(DB.DateTime, default=datetime.now, nullable=False)
-    modified_by = DB.Column(DB.Integer)
+    modified_by = DB.Column(DB.Integer, DB.ForeignKey(
+        f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
     record_type = DB.Column(DB.String(20))
+    link = DB.Column(DB.String(500))
+    dir = DB.Column(DB.String(200))
+    ext = DB.Column(DB.String(20))
+    is_active = DB.Column(DB.Boolean)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> FILE_ID: {self.file_id}"

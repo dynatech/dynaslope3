@@ -1,12 +1,36 @@
 import { host } from "../../config";
-import { makeGETAxiosRequest } from "../../UtilityFunctions";
+import { makeGETAxiosRequest, makePOSTAxiosRequest } from "../../UtilityFunctions";
 
 export function getFolders (callback) {
     const api_link = `${host}/api/knowledge/get_folders`;
     makeGETAxiosRequest(api_link, callback);
 }
 
-export function getFiles (callback) {
-    const api_link = `${host}/api/sites/get_sites_data?include_inactive=true`;
-    makeGETAxiosRequest(api_link, callback);
+export function saveFile (form, callback) {
+    const api_link = `${host}/api/knowledge/save_file`;
+    makePOSTAxiosRequest(api_link, form, callback);
+}
+
+export function create_folder (input, callback) {
+    const api_link = `${host}/api/knowledge/create_folder`;
+    makePOSTAxiosRequest(api_link, input, callback);
+}
+export function rename_folder (input, callback) {
+    const api_link = `${host}/api/knowledge/rename_folder`;
+    makePOSTAxiosRequest(api_link, input, callback);
+}
+
+export function update_file (input, callback) {
+    const api_link = `${host}/api/knowledge/update_file`;
+    makePOSTAxiosRequest(api_link, input, callback);
+}
+
+export function delete_folder (input, callback) {
+    const api_link = `${host}/api/knowledge/delete_folder`;
+    makePOSTAxiosRequest(api_link, input, callback);
+}
+
+export function delete_file (input, callback) {
+    const api_link = `${host}/api/knowledge/delete_file`;
+    makePOSTAxiosRequest(api_link, input, callback);
 }

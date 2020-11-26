@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import ClickAwayListener from "@material-ui/core/ClickAwayListener";
 import Grow from "@material-ui/core/Grow";
 import Paper from "@material-ui/core/Paper";
@@ -17,7 +17,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 export default function MenuListComposition (props) {
-    const { open, setOpen, anchorRef, setAnchor } = props;
+    const { open, setOpen, anchorRef, setAnchor, parent, setOpenDialog, setDeleteAction } = props;
     const classes = useStyles();
 
     const handleClose = (event) => {
@@ -25,7 +25,16 @@ export default function MenuListComposition (props) {
         setAnchor(null);
     };
 
-    // return focus to the button when we transitioned from !open -> open
+    const handleClick = (event) => {
+        setOpenDialog(true);
+    };
+    
+    const handleDelete = () => {
+        parent === "file" ? 
+            setDeleteAction("removeFile") : 
+            setDeleteAction("removeFolder");
+        handleClose();
+    };
 
     return (
         <div className={classes.root}>
@@ -39,8 +48,9 @@ export default function MenuListComposition (props) {
                             <Paper>
                                 <ClickAwayListener onClickAway={handleClose}>
                                     <MenuList autoFocusItem={open} id="menu-list-grow">
-                                        <MenuItem onClick={handleClose}>Edit</MenuItem>
-                                        <MenuItem onClick={handleClose}>Delete</MenuItem>
+                            
+                                        <MenuItem onClick={handleClick}>{parent === "file" ? "edit" : "rename"}</MenuItem>
+                                        <MenuItem onClick={handleDelete}>delete</MenuItem>
                                     </MenuList>
                                 </ClickAwayListener>
                             </Paper>

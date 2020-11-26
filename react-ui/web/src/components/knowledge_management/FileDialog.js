@@ -15,8 +15,14 @@ import FormControlLabel from "@material-ui/core/FormControlLabel";
 import FormControl from "@material-ui/core/FormControl";
 import FormLabel from "@material-ui/core/FormLabel";
 import { useDropzone } from "react-dropzone";
-import AttachmentIcon from "@material-ui/icons/Attachment";
 import CloudUploadIcon from "@material-ui/icons/CloudUpload";
+import { getCurrentUser } from "../sessions/auth";
+//
+import { 
+    saveFile, create_folder, 
+    rename_folder, update_file,
+    delete_folder, delete_file
+} from "./ajax";
 
 const styles = (theme) => ({
     root: {
@@ -82,48 +88,97 @@ function reducer (state, action) {
             return { ...state, folder_id: action.value };
         case "type":
             return { ...state, type: action.value };
+        case "link":
+            return { ...state, link: action.value };
         default:
             throw new Error();
     }
 }
 
-const init = {
-    folder_name: "",
-    file_name: "",
-    file_id: "",
-    folder_id: "",
-    link: "",
-    type: "file",
-};
+
+
 export default function UploadDialog (props) {
-    const { open, setOpen, folderName, parent } = props;
-    const classes = myStyles();
-    const [type, setUploadType] = useState("link");
-    const [attachedFile, setAttachedFile] = useState(null);
+    const { open, setOpen, folderName, 
+        parent, setReload, folderID,
+        menuparent, setMenuParent, selectedFile,
+        deleteAction
+    } = props;
+    const current_user = getCurrentUser();
 
-    const [inputs, dispatch] = useReducer(reducer, init);
-
-    useEffect(() => {
-        console.log(inputs);
-    }, [inputs]);
-
-    const handleClickOpen = () => {
-        setOpen(true);
+    const init = {
+        folder_name: "",
+        file_name: "",
+        file_id: "",
+        folder_id: "",
+        link: "",
+        type: "link",
+        user_id: current_user.user_id,
     };
+    
+    const classes = myStyles();
+    const [attachedFile, setAttachedFile] = useState(null);
+    const [inputs, dispatch] = useReducer(reducer, init);
+    const form_data = new FormData();
+  
     const handleClose = () => {
         setOpen(false);
-    };
-
-    const handleFileChange = event => {
-        const { files } = event.target;
-        setAttachedFile(files.item(0));
+        setMenuParent(null);
     };
 
     useEffect(() => {
-        if (attachedFile !== null ) {
-            console.log(attachedFile.name);
+        if (deleteAction !== null) {
+            if (deleteAction === "removeFolder") {
+                delete_folder({ ...inputs });
+            } else if (deleteAction === "removeFile") {
+                delete_file({ ...inputs });
+            } 
         }
-    }, [attachedFile]);
+    }, [deleteAction]);
+
+
+    const handleSave = () => {
+        if (!menuparent && parent !== "Folder") {
+            if (attachedFile !== null) form_data.append("attached_file", attachedFile);
+            // eslint-disable-next-line no-restricted-syntax
+            for (const [key, value] of Object.entries(inputs)) {
+                form_data.append(key, value);
+            }
+            saveFile(form_data);
+        } 
+        if (menuparent && menuparent === "folder") {
+            rename_folder({ 
+                ...inputs
+            });
+        }
+        if (!menuparent && inputs.folder_name !== "") {
+            create_folder({
+                user_id: current_user.user_id,
+                folder_name: inputs.folder_name
+            });
+        }
+        if (menuparent && menuparent === "file") {
+            update_file({ 
+                ...inputs
+            });
+        }
+
+        handleClose();
+        setReload(true);
+    };
+
+    useEffect(() => {
+        dispatch({ type: "folderID", value: folderID });
+        dispatch({ type: "folderName", value: folderName });
+    }, [folderID]); 
+
+    useEffect(() => {
+        if (selectedFile !== null) {
+            dispatch({ type: "fileID", value: selectedFile.file_id });
+            dispatch({ type: "fileName", value: selectedFile.file_display_name });
+            dispatch({ type: "type", value: selectedFile.record_type });
+            dispatch({ type: "link", value: selectedFile.link });
+        }
+    }, [selectedFile]); 
 
     const onDrop = useCallback((acceptedFiles) => {
         acceptedFiles.forEach((file) => {
@@ -135,61 +190,77 @@ export default function UploadDialog (props) {
 
     return (
         <div>
-            <Dialog onClose={handleClose} maxWidth={parent === "file" ? "md" : "sm"} open={open}>
+            <Dialog onClose={handleClose} maxWidth={parent === "File" ? "md" : "sm"} open={open}>
                 <DialogTitle id="customized-dialog-title" onClose={handleClose}>
                     <Typography variant="caption">
-                        {parent === "Folder" ? "Create new folder" : 
-                            `Upload file/link to ${folderName} folder`
+                        {parent === "Folder" || menuparent === "folder" ? 
+                            (<span>{menuparent ? "Rename" : "Create new folder"} </span>)
+                            : 
+                            (<span>{menuparent ? "Rename file" : `Upload file/link to ${folderName} folder`}</span>)
                         }
-           
                     </Typography>
                 </DialogTitle>
                 <DialogContent dividers>
-                    { parent === "Folder" ? 
+                    { parent === "Folder" || menuparent === "folder" ? 
                         <TextField 
-                            label="Folder name" 
-                            variant="outlined"
+                            label="enter folder name" 
+                            
                             style={{ minWidth: 300 }} 
                             inputProps={{
                                 maxLength: 30,
                             }}
+                            value={inputs.folder_name}
                             onChange={e=> dispatch({ type: "folderName", value: e.target.value })}
                         /> : (
                             <div>
-                                <Typography gutterBottom>
-                                    File name
-                                </Typography>
+                                <Typography gutterBottom> File name</Typography>
+
                                 <TextField 
                                     placeholder="e.g. monitoring ops manual" 
                                     fullWidth
                                     margin="dense" 
-                                    variant="outlined"/>
+                                    onChange={e=>dispatch({ type: "fileName", value: e.target.value })}
+                                    variant="outlined"
+                                    value={inputs.file_name}
+                                />
                                 <FormControl component="fieldset" fullWidth margin="normal" >
-                                    <FormLabel component="legend">Type</FormLabel>
-                                    <RadioGroup 
-                                        aria-label="gender" 
-                                        onChange={e=> dispatch({ type: "type", value: e.target.value })}
-                                        name="gender1"
-                                        value={inputs.type}
-                                    >
-                                        <FormControlLabel value="link" control={<Radio />} label="Link" />
-                                        <FormControlLabel value="file" control={<Radio />} label="File" />
-                                    </RadioGroup>
-                                    {inputs.type === "file" ? (
-                                        <div {...getRootProps()} className={classes.dropArea}>
-                                            <div style={{ margin: "auto" }}>
-                                                <input {...getInputProps()} />
-                                                <Typography style={{ width: "100%" }} textAlign="center" variant="h6" color="textSecondary">
-                                                    Drag and a drop file here
-                                                </Typography>
-                                                <Button style={{ textTransform: "none" }} disableElevation variant="contained" startIcon={<CloudUploadIcon/>}>
-                                                    {attachedFile !== null ? attachedFile.name : "Choose File"}
-                                                </Button>
-                                            </div>
+                                    { !menuparent &&
+                                        <div> 
+                                            <FormLabel component="legend">Type</FormLabel>
+                                            <RadioGroup 
+                                                aria-label="gender" 
+                                                onChange={e=> dispatch({ type: "type", value: e.target.value })}
+                                                name="gender1"
+                                                value={inputs.type}
+                                            >
+                                                <FormControlLabel value="link" control={<Radio />} label="Link" />
+                                                <FormControlLabel value="file" control={<Radio />} label="File" />
+                                            </RadioGroup>
+                                        </div>
+                                    }
+                                    { inputs.type === "file" ? (
+                                        <div>
+                                            { !menuparent && 
+                                                <div {...getRootProps()} className={classes.dropArea}>
+                                                    <div style={{ margin: "auto" }}>
+                                                        <input {...getInputProps()} />
+                                                        <Typography style={{ width: "100%" }} textAlign="center" variant="h6" color="textSecondary">
+                                                            Drag and drop a file here
+                                                        </Typography>
+                                                        <Button style={{ textTransform: "none" }} disableElevation variant="contained" startIcon={<CloudUploadIcon/>}>
+                                                            {attachedFile !== null ? attachedFile.name : "Choose File"}
+                                                        </Button>
+                                                    </div>
+                                                </div>}
                                         </div>
                                     ) : (
                                         <div>
-                                            <TextField variant="outlined" fullWidth placeholder="paste link here: e.g. https://drive.google.com/file/d/1......"/>
+                                            <TextField 
+                                                variant="outlined" 
+                                                value={inputs.link}
+                                                onChange={e => dispatch({ type: "link", value: e.target.value })} 
+                                                fullWidth placeholder="paste link here: e.g. https://drive.google.com/file/d/1......"
+                                            />
                                         </div>
                                     )}
                                 </FormControl>
@@ -199,8 +270,13 @@ export default function UploadDialog (props) {
         
                 </DialogContent>
                 <DialogActions>
-                    <Button autoFocus onClick={handleClose} color="secondary" variant="contained">
-                        Save now
+                    <Button 
+                        autoFocus 
+                        onClick={handleSave} 
+                        color={parent === "Folder" ? "primary" : "secondary"} 
+                        variant="contained"
+                    >
+                        {parent === "Folder" ? "create" : "save"}
                     </Button>
                 </DialogActions>
             </Dialog>
