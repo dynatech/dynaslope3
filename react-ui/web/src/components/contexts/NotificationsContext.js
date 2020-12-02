@@ -41,10 +41,10 @@ export const NotificationsProvider = ({ children }) => {
         setAllUnseenNotifications(user_id);
     }
 
-    function toggleReadTS (notification_id, toggle_to) {
+    function toggleReadTS (user_id, notification_id, toggle_to) {
         const value = toggle_to === "read" ? moment().format("YYYY-MM-DD HH:mm:ss") : null;
         setNotificationsObject({ action: "UPDATE_NOTIFICATION", data: { notification_id, value } });
-        updateTSRead(notification_id, value);
+        updateTSRead(user_id, notification_id, value);
     }
 
     const return_obj = {

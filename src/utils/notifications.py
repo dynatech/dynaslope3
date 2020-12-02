@@ -60,13 +60,14 @@ def set_all_unseen_notifications(user_id):
     return status
 
 
-def update_ts_read(notification_id, ts_read):
+def update_ts_read(user_id, notification_id, ts_read):
     """
     Updates ts_read of given notification_id
     """
 
     try:
         row = Notifications.query.filter_by(
+            receiver_id=user_id,
             notification_id=notification_id).first()
         row.ts_read = ts_read
 

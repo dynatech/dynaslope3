@@ -10,6 +10,7 @@ import { CallMade, FiberManualRecord, FiberManualRecordTwoTone } from "@material
 import moment from "moment";
 
 import { NotificationsContext } from "../../contexts/NotificationsContext";
+import { getCurrentUser } from "../../sessions/auth";
 
 const useStyles = makeStyles(theme => ({
     divider: {
@@ -91,6 +92,8 @@ function NotificationsTab (props) {
     const { history, handleCloseNotif } = props;
     const classes = useStyles();
 
+    const { user_id } = getCurrentUser();
+
     const { notifications_object, toggleReadTS } = useContext(NotificationsContext);
     const { notifications } = notifications_object;
 
@@ -111,18 +114,18 @@ function NotificationsTab (props) {
     const markAllAsRead = () => {
         unread_notifs.forEach(row => {
             const { notification_id } = row;
-            toggleReadTS(notification_id, "read");
+            toggleReadTS(user_id, notification_id, "read");
         });
     };
 
     const toggleNotifStatus = React.useCallback((notification_id, toggle_to) => () => {
-        toggleReadTS(notification_id, toggle_to);
+        toggleReadTS(user_id, notification_id, toggle_to);
     }, []);
 
     const goToLink = (link, notification_id, is_unread) => () => {
         handleCloseNotif();
         history.push(link);
-        if (is_unread) { toggleReadTS(notification_id, "read"); }
+        if (is_unread) { toggleReadTS(user_id, notification_id, "read"); }
     };
 
     return (

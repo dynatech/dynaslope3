@@ -6,7 +6,7 @@ export function setAllUnseenNotifications (user_id) {
     makePOSTAxiosRequest(api_link, { user_id });
 }
 
-export function updateTSRead (notification_id, ts_read) {
+export function updateTSRead (user_id, notification_id, ts_read) {
     const api_link = `${host}/api/notifications/update_ts_read`;
-    makePOSTAxiosRequest(api_link, { notification_id, ts_read });
+    makePOSTAxiosRequest(api_link, { user_id, notification_id, ts_read });
 }

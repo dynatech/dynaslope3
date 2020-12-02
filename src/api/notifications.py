@@ -32,6 +32,7 @@ def wrap_update_ts_read():
     """
 
     json_data = request.get_json()
-    status = update_ts_read(json_data["notification_id"], json_data["ts_read"])
+    status = update_ts_read(
+        json_data["user_id"], json_data["notification_id"], json_data["ts_read"])
 
     return status
