@@ -1618,6 +1618,7 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
     find_and_fix_invalid_surficial_triggers(query_ts_end, active_sites)
 
+    active_sites = get_sites_data(site_code)  # site_code is default to None
     generated_alerts = get_site_public_alerts(
         active_sites, query_ts_start, query_ts_end, do_not_write_to_db)
 
