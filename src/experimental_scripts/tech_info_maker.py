@@ -152,8 +152,8 @@ def get_rainfall_tech_info(rainfall_alert_details):
     three_day_data = None
 
     if not rainfall_alert_details:
-        raise Exception("Code flow reaching rainfall tech info WITHOUT any" +
-                        "ENTRY on rainfall_alerts table.")
+        raise Exception(f"Code flow reaching rainfall tech info WITHOUT any "
+                        f"ENTRY on rainfall_alerts table.")
 
     for item in rainfall_alert_details:
         days = []
@@ -186,8 +186,8 @@ def get_rainfall_tech_info(rainfall_alert_details):
 
     rain_tech_info = {}
     rain_tech_info["rain_gauge"] = rain_gauge_name
-    rain_tech_info[
-        "tech_info_string"] = f"{rain_gauge_name}: {day} cumulative rainfall ({cumulative} mm) exceeded threshold ({threshold} mm)"
+    rain_tech_info["tech_info_string"] = (f"{rain_gauge_name}: {day} cumulative rainfall "
+                                          f"({cumulative} mm) exceeded threshold ({threshold} mm)")
 
     return rain_tech_info
 
@@ -205,8 +205,8 @@ def get_subsurface_node_alerts(site_id, start_ts, latest_trigger_ts, alert_level
         for sensor in tsm_sensors:
             sensor_node_alerts = sensor.node_alerts.filter(
                 DB.or_(na.disp_alert == alert_level, na.vel_alert == alert_level)) \
-                .order_by(DB.desc(na.na_id)).filter(
-                start_ts <= na.ts, na.ts <= latest_trigger_ts).all()
+                .order_by(DB.desc(na.na_id)) \
+                .filter(start_ts <= na.ts, na.ts <= latest_trigger_ts).all()
 
             if sensor_node_alerts:  # If there are no node alerts on sensor, skip.
                 # If there is, remove duplicate node alerts. We only need the latest.
@@ -319,22 +319,26 @@ def main(trigger, special_details=None):
     latest_trigger_ts = trigger.ts_updated
     trigger_source = trigger.trigger_symbol.trigger_hierarchy.trigger_source
     alert_level = trigger.trigger_symbol.alert_level
-    start_ts = round_to_nearest_release_time(
-        latest_trigger_ts) - timedelta(hours=release_interval)
 
     if trigger_source == 'subsurface':
+        # According to Meryll update_ts - 3 hours so mas malawak pa ito
+        start_ts = latest_trigger_ts - timedelta(hours=release_interval)
         subsurface_node_alerts = get_subsurface_node_alerts(
             site_id, start_ts, latest_trigger_ts, alert_level)
         technical_info = get_subsurface_tech_info(
             subsurface_node_alerts)
 
     elif trigger_source == 'rainfall':
-        rainfall_alerts = get_rainfall_alerts(site_id, latest_trigger_ts)
         # Something special with rainfall. Attaches data source with the tech_info
-        technical_info = get_rainfall_tech_info(
-            rainfall_alerts)
+        # technical_info = {
+        #     "rain_gauge": "Sample",
+        #     "tech_info_string": "Sample"
+        # }
+        rainfall_alerts = get_rainfall_alerts(site_id, latest_trigger_ts)
+        technical_info = get_rainfall_tech_info(rainfall_alerts)
 
     elif trigger_source == 'surficial':
+        # technical_info = "Sample tech info"
         surficial_alert_details = get_marker_alerts(
             site_id, latest_trigger_ts, alert_level, check_for_g0t_alerts=True)
         technical_info = get_surficial_tech_info(
