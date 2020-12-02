@@ -1190,6 +1190,7 @@ def find_and_fix_invalid_surficial_triggers(ts, active_sites):
         # pub_sym_id based on trigger level. This is faulty because
         # if ground data has been corrected, trigger level will be 0
         public_alert_row = pa.query.filter(DB.and_(
+            pa.site_id == site_id,
             pa.pub_sym_id != a0_pub_sym,
             pa.ts <= trigger_ts,
             trigger_ts <= pa.ts_updated
