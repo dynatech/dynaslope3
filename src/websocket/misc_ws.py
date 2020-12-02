@@ -25,8 +25,11 @@ def disconnect():
 
     try:
         user_id = next(
-            (user_id for user_id, dict_sid in clients.items() if dict_sid == sid), None)
-        del clients[user_id]
+            (user_id for user_id, sids in clients.items() if sid in sids), None)
+        clients[user_id].remove(sid)
+
+        if not clients[user_id]:
+            del clients[user_id]
     except KeyError:
         print("MISC - Cannot find user with sid:", sid)
 
@@ -93,13 +96,15 @@ def wrap_get_user_notifications(user_id):
     """
 
     sid = request.sid
+    user_id = int(user_id)
 
     try:
         clients = retrieve_data_from_memcache("MISC_CLIENTS")
     except Exception:
         clients = {}
 
-    clients[int(user_id)] = sid
+    clients.setdefault(user_id, [])
+    clients[user_id].append(sid)
 
     print("")
     print("New misc client:", user_id, sid)
@@ -122,11 +127,12 @@ def send_notification(notif_type, data):
         insert_notification(receiver_id=receiver_id,
                             message=notif_object["message"], link=notif_object["link"])
         try:
-            sid = clients[receiver_id]
+            sids = clients[receiver_id]
         except Exception:
-            sid = None
+            sids = None
 
-        if sid:
+        if sids:
             notifs = get_user_notifications(user_id=receiver_id)
-            emit_data(keyword="receive_user_notifications",
-                      sid=sid, data_to_emit=notifs)
+            for sid in sids:
+                emit_data(keyword="receive_user_notifications",
+                          sid=sid, data_to_emit=notifs)
