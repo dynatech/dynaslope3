@@ -1240,7 +1240,7 @@ def find_and_fix_invalid_surficial_triggers(ts, active_sites):
                     "Public alert has other triggers (regardless of valid or invalid)")
 
 
-def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_write_to_db):
+def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, d_n_t_b):
     ######################################
     # LOOP THROUGH ACTIVE SITES PROVIDED #
     ######################################
@@ -1258,6 +1258,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, do_not_wr
         active_sites = [active_sites]
 
     for site in active_sites:
+        do_not_write_to_db = d_n_t_b
         site_id = site.site_id
         site_code = site.site_code
 
