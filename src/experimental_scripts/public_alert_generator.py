@@ -1289,12 +1289,12 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, d_n_t_b):
         # The date filter on routine to save computing time
         # because there's no point in getting retroactive triggers
         # on sites under routine for a very long time
-        if monitoring_type == "event" or (
-                monitoring_type == "routine" and
-                monitoring_start_ts >= query_ts_end - timedelta(days=2)):
-            retroactive_triggers, has_retroactive_moms = get_retroactive_triggers(
-                s_op_triggers_query, monitoring_start_ts)
-            op_triggers_list.extend(retroactive_triggers)
+        # if monitoring_type == "event" or (
+        #         monitoring_type == "routine" and
+        #         monitoring_start_ts >= query_ts_end - timedelta(days=2)):
+        #     retroactive_triggers, has_retroactive_moms = get_retroactive_triggers(
+        #         s_op_triggers_query, monitoring_start_ts)
+        #     op_triggers_list.extend(retroactive_triggers)
 
         positive_triggers_list = extract_positive_triggers_list(
             op_triggers_list)
@@ -1614,9 +1614,9 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
     # query_ts_end will be rounded off at this point
     query_ts_end = round_down_data_ts(query_ts_end)
-    active_sites = get_sites_data(site_code)  # site_code is default to None
+    # active_sites = get_sites_data(site_code)  # site_code is default to None
 
-    find_and_fix_invalid_surficial_triggers(query_ts_end, active_sites)
+    # find_and_fix_invalid_surficial_triggers(query_ts_end, active_sites)
 
     active_sites = get_sites_data(site_code)  # site_code is default to None
     generated_alerts = get_site_public_alerts(
