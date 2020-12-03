@@ -1289,6 +1289,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, d_n_t_b):
         # The date filter on routine to save computing time
         # because there's no point in getting retroactive triggers
         # on sites under routine for a very long time
+        has_retroactive_moms = False
         # if monitoring_type == "event" or (
         #         monitoring_type == "routine" and
         #         monitoring_start_ts >= query_ts_end - timedelta(days=2)):
