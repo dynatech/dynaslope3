@@ -117,11 +117,11 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
         # latest_site_pa_id = previous_latest_site_pa.public_id
         prev_pub_sym_id = previous_latest_site_pa.pub_sym_id
         new_pub_sym_id = output_dict["pub_sym_id"]
-
         new_alert_level = retrieve_data_from_memcache(
             "public_alert_symbols",
             {"pub_sym_id": new_pub_sym_id}, retrieve_attr="alert_level")
         is_new_public_alert = prev_pub_sym_id != new_pub_sym_id
+
         prev_l_s_pa_ts_updated = previous_latest_site_pa.ts_updated
         new_l_s_pa_ts_updated = output_dict["ts_updated"]
         no_alerts_wtn_30_mins = new_l_s_pa_ts_updated - timedelta(minutes=30) > \
@@ -147,7 +147,6 @@ def write_to_db_public_alerts(output_dict, previous_latest_site_pa):
             DB.session.flush()
             new_public_id = new_pub_alert.public_id
             return_data = new_public_id
-
         else:
             return_data = "exists"
 
@@ -499,8 +498,8 @@ def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
         if any(trig_source == trigger_source for trig_source in no_data_list):
             # If positive trigger is not within release time interval,
             # replace symbol to its respective ND symbol.
-            if not (ts_updated >= round_to_nearest_release_time(query_ts_end, interval) -
-                    timedelta(hours=interval)):
+            if not (ts_updated >= round_to_nearest_release_time(query_ts_end, interval)
+                    - timedelta(hours=interval)):
                 nd_row = retrieve_data_from_memcache(
                     "operational_trigger_symbols", {
                         "alert_level": -1,
@@ -1034,8 +1033,11 @@ def get_retroactive_triggers(
         .order_by(DB.desc(ot.ts_updated)).filter(
             and_(
                 two_day_ts_before <= ot.ts,
-                ot.ts_updated < monitoring_start_ts
-            )).join(ots).filter(ots.alert_level >= 2).all()
+                ot.ts_updated < monitoring_start_ts,
+            )) \
+        .join(ots).filter(ots.alert_level >= 2) \
+        .outerjoin(AlertStatus).filter(AlertStatus.alert_status.notin_([0, -1])) \
+        .all()
 
     retroactive_triggers = []
     has_retroactive_moms = False
@@ -1178,7 +1180,7 @@ def find_and_fix_invalid_surficial_triggers(ts, active_sites):
         a_s.ts_last_retrigger <= ts,
         a_s.ts_last_retrigger >= ts - timedelta(days=1)
     )).order_by(a_s.stat_id.desc()).all()
-    # var_checker("invalid", invalid, True)
+    # var_checker("invalid", invalids, True)
 
     for invalid in invalids:
         site_id = invalid.trigger.site_id
@@ -1259,6 +1261,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, d_n_t_b):
 
     for site in active_sites:
         do_not_write_to_db = d_n_t_b
+        ts_onset = None
+
         site_id = site.site_id
         site_code = site.site_code
 
@@ -1286,16 +1290,11 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, d_n_t_b):
             s_op_triggers_query, monitoring_start_ts, query_ts_end)
         op_triggers_list = op_triggers_query.all()
 
-        # The date filter on routine to save computing time
-        # because there's no point in getting retroactive triggers
-        # on sites under routine for a very long time
         has_retroactive_moms = False
-        # if monitoring_type == "event" or (
-        #         monitoring_type == "routine" and
-        #         monitoring_start_ts >= query_ts_end - timedelta(days=2)):
-        #     retroactive_triggers, has_retroactive_moms = get_retroactive_triggers(
-        #         s_op_triggers_query, monitoring_start_ts)
-        #     op_triggers_list.extend(retroactive_triggers)
+        if monitoring_type == "event":
+            retroactive_triggers, has_retroactive_moms = get_retroactive_triggers(
+                s_op_triggers_query, monitoring_start_ts)
+            op_triggers_list.extend(retroactive_triggers)
 
         positive_triggers_list = extract_positive_triggers_list(
             op_triggers_list)
@@ -1538,10 +1537,9 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, d_n_t_b):
             "unreleased_moms_list": unreleased_moms_list
         }
 
-        try:
+        public_alert_ts = query_ts_end
+        if ts_onset:
             public_alert_ts = round_down_data_ts(ts_onset)
-        except:
-            public_alert_ts = query_ts_end
 
         # writes public alert to database
         pub_sym_id = public_alert_th_row["pub_sym_id"]
@@ -1615,11 +1613,9 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
     # query_ts_end will be rounded off at this point
     query_ts_end = round_down_data_ts(query_ts_end)
-    # active_sites = get_sites_data(site_code)  # site_code is default to None
-
-    # find_and_fix_invalid_surficial_triggers(query_ts_end, active_sites)
-
     active_sites = get_sites_data(site_code)  # site_code is default to None
+
+    find_and_fix_invalid_surficial_triggers(query_ts_end, active_sites)
     generated_alerts = get_site_public_alerts(
         active_sites, query_ts_start, query_ts_end, do_not_write_to_db)
 
@@ -1648,8 +1644,8 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 if __name__ == "__main__":
     config_name = os.getenv("FLASK_CONFIG")
     app = create_app(config_name)
-    main(site_code="bak", query_ts_end="2020-11-25 11:40:00",
-         query_ts_start="2020-11-25 11:40:00", is_test=True)
+    main(site_code=["blc", "bol"], query_ts_end="2020-12-03 08:06:00",
+         query_ts_start="2020-12-03 08:06:00", is_test=False)
 
     # TEST MAIN
     # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")
