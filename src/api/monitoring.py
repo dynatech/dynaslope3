@@ -10,17 +10,17 @@ import json
 import traceback
 from datetime import datetime, timedelta, time
 from flask import Blueprint, jsonify, request
-from sqlalchemy import func
 from connection import DB
+
 from src.models.monitoring import (
     MonitoringEvents, MonitoringReleases,
     MonitoringEventAlerts, MonitoringShiftSchedule,
-    MonitoringShiftScheduleSchema, Sites, MonitoringTriggers,
-    InternalAlertSymbols)
+    MonitoringShiftScheduleSchema)
 from src.models.monitoring import (
     MonitoringEventsSchema, MonitoringReleasesSchema, MonitoringEventAlertsSchema,
     InternalAlertSymbolsSchema, EndOfShiftAnalysisSchema)
 from src.models.narratives import (NarrativesSchema)
+
 from src.utils.narratives import (write_narratives_to_db, get_narratives)
 from src.utils.monitoring import (
     # GET functions
@@ -53,14 +53,15 @@ from src.utils.monitoring import (
     # Monitoring Analytics Data
     get_monitoring_analytics
 )
-from src.api.end_of_shift import (get_eos_data_analysis)
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache,
     get_process_status_log, get_system_time
 )
 from src.utils.bulletin import create_monitoring_bulletin, render_monitoring_bulletin
 from src.utils.sites import build_site_address
-# from src.websocket.monitoring_ws import update_alert_gen
+
+from src.api.end_of_shift import get_eos_data_analysis
+
 
 MONITORING_BLUEPRINT = Blueprint("monitoring_blueprint", __name__)
 
@@ -716,13 +717,11 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     od_id = write_monitoring_on_demand_to_db(od_details, info)
                     eq_id = None
                     has_moms = False
-
                 elif trigger_type == "earthquake":
                     od_id = None
                     eq_id = write_monitoring_earthquake_to_db(
                         trigger["eq_details"])
                     has_moms = False
-
                 elif trigger_type == "moms":
                     moms_id_list = get_moms_id_list(trigger, site_id, event_id)
                     od_id = None
@@ -750,11 +749,20 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
 
                 # Get the latest trigger timestamp to be used for
                 # computing validity
-                try:
-                    if latest_trigger_ts_updated < timestamp:
-                        latest_trigger_ts_updated = timestamp
-                except:
+                if latest_trigger_ts_updated is None or \
+                        latest_trigger_ts_updated < timestamp:
                     latest_trigger_ts_updated = timestamp
+
+            # Special step for A3
+            # To cater retroactive x3 triggers and adjust validity accordingly,
+            # compare the latest_trigger_ts_updated to the latest saved trigger
+            # on database
+            if public_alert_level == 3 and \
+                round_to_nearest_release_time(latest_release_data_ts) != \
+                    round_to_nearest_release_time(release_details["data_ts"]):
+                saved_triggers = get_saved_event_triggers(event_id)
+                if saved_triggers and saved_triggers[0][1] > latest_trigger_ts_updated:
+                    latest_trigger_ts_updated = saved_triggers[0][1]
 
             # UPDATE VALIDITY
             # NOTE: For CBEWS-L, a flag should be used here
@@ -816,11 +824,9 @@ def insert_ewi(internal_json=None):
             json_data = request.get_json()
 
         global MAX_POSSIBLE_ALERT_LEVEL
-        global ALERT_EXTENSION_LIMIT
         global NO_DATA_HOURS_EXTENSION
 
         max_possible_alert_level = MAX_POSSIBLE_ALERT_LEVEL
-        alert_extension_limit = ALERT_EXTENSION_LIMIT
         no_data_hours_extension = NO_DATA_HOURS_EXTENSION
 
         # Entry-related variables from JSON
@@ -970,6 +976,7 @@ def insert_ewi(internal_json=None):
             except:
                 pass
 
+            release_status = None
             # Default checks if not event i.e. site_status != 2
             if is_new_monitoring_instance(2, site_status):
                 # If the values are different, means new monitoring instance will be created
@@ -992,6 +999,7 @@ def insert_ewi(internal_json=None):
                     new_instance_details)
                 event_id = instance_ids["event_id"]
                 event_alert_id = instance_ids["event_alert_id"]
+                release_status = "raising"
 
             else:
                 # If the values are same, re-release will happen.
@@ -1010,7 +1018,7 @@ def insert_ewi(internal_json=None):
                         and pub_sym_id <= (max_possible_alert_level + 1):
                     # if pub_sym_id > current_event_alert.pub_sym_id and pub_sym_id <= 4:
                     # Now that you created a new event
-                    print("---RAISING")
+                    release_status = "raising"
 
                     end_current_monitoring_event_alert(
                         current_event_alert_id, datetime_data_ts)
@@ -1018,7 +1026,8 @@ def insert_ewi(internal_json=None):
                         event_alert_details)
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
-                        and site_monitoring_instance.validity == datetime_data_ts + timedelta(minutes=30):
+                        and site_monitoring_instance.validity == \
+                    datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
@@ -1038,17 +1047,21 @@ def insert_ewi(internal_json=None):
                         datetime_data_ts)
 
                     if release_time >= validity:
-                        # End of Heightened Alert
-                        end_current_monitoring_event_alert(
-                            current_event_alert_id, datetime_data_ts)
+                        release_status = "lowering"
+                    else:
+                        release_status = "premature lowering"
 
-                        event_alert_details = {
-                            "event_id": event_id,
-                            "pub_sym_id": pub_sym_id,
-                            "ts_start": datetime_data_ts
-                        }
-                        event_alert_id = write_monitoring_event_alert_to_db(
-                            event_alert_details)
+                    # End of Heightened Alert
+                    end_current_monitoring_event_alert(
+                        current_event_alert_id, datetime_data_ts)
+
+                    event_alert_details = {
+                        "event_id": event_id,
+                        "pub_sym_id": pub_sym_id,
+                        "ts_start": datetime_data_ts
+                    }
+                    event_alert_id = write_monitoring_event_alert_to_db(
+                        event_alert_details)
 
             # Append the chosen event_alert_id
             release_details["event_alert_id"] = event_alert_id
@@ -1062,6 +1075,13 @@ def insert_ewi(internal_json=None):
             insert_ewi_release(instance_details,
                                release_details, publisher_details, trigger_list_arr,
                                non_triggering_moms=non_triggering_moms)
+
+            if release_status:
+                from src.websocket.misc_ws import send_notification
+
+                temp_data = instance_details.copy()
+                temp_data["release_status"] = release_status
+                send_notification(notif_type="released_ewi", data=temp_data)
 
         elif entry_type == -1:
             print()

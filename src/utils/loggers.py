@@ -5,7 +5,8 @@ Contains functions for getting and accesing Sites table only
 
 from connection import DB
 from src.models.sites import Sites
-from src.models.analysis import TSMSensors, Loggers
+from src.models.analysis import TSMSensors
+from src.models.loggers import Loggers
 from sqlalchemy.orm import joinedload
 
 

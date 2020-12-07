@@ -204,11 +204,17 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
     from src.api.manifestations_of_movement import MOMS_BLUEPRINT
     app.register_blueprint(MOMS_BLUEPRINT, url_prefix="/api")
 
+    from src.api.sensor_deployment import SENSOR_DEPLOYMENT
+    app.register_blueprint(SENSOR_DEPLOYMENT, url_prefix="/api")
+
     from src.api.issues_and_reminders import ISSUES_AND_REMINDERS_BLUEPRINT
     app.register_blueprint(ISSUES_AND_REMINDERS_BLUEPRINT, url_prefix="/api")
 
     from src.api.shift_checker import SHIFT_CHECKER_BLUEPRINT
     app.register_blueprint(SHIFT_CHECKER_BLUEPRINT, url_prefix="/api")
+
+    from src.api.notifications import NOTIFICATIONS_BLUEPRINT
+    app.register_blueprint(NOTIFICATIONS_BLUEPRINT, url_prefix="/api")
 
     return app
 

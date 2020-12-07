@@ -286,9 +286,15 @@ function ConversationWindow (props) {
     const {
         history,
         match: { params: { mobile_id } },
-        location: { state: { async, search_filters } },
-        messageCollection, socket
+        location: { state }, socket
     } = props;
+
+    let search_filters = null;
+    if (typeof state !== "undefined") {
+        const { search_filters: sf } = state;
+        search_filters = sf;
+    }
+
     const classes = useStyles();
     const current_user = getCurrentUser();
 
@@ -302,7 +308,7 @@ function ConversationWindow (props) {
     const handle_message_fn = event => setComposedMessage(event.target.value);
 
     useEffect(() => {
-        if (async && typeof socket !== "undefined") {
+        if (typeof socket !== "undefined") {
             socket.emit("join_mobile_id_room", {
                 mobile_id, search_filters
             });
@@ -317,30 +323,14 @@ function ConversationWindow (props) {
         }
 
         return () => {
-            if (async && typeof socket !== "undefined") {
+            if (typeof socket !== "undefined") {
                 socket.emit("leave_mobile_id_room", mobile_id);
                 removeReceiveMobileIDRoomUpdateListener();
             }
         };
     }, [socket, mobile_id]);
 
-    let { mobile_details, message_list } = conversation_details;
-
-    if (!async) {
-        const { inbox } = messageCollection;
-        if (inbox !== null) {
-            const message_arr = [...messageCollection.inbox];
-            const filtered = message_arr.filter(row => row.mobile_details.mobile_id === parseInt(mobile_id, 10));
-
-            if (filtered.length > 0) {
-                const convo = filtered.pop();
-                const { mobile_details: mb, messages } = convo;
-            
-                mobile_details = mb;
-                message_list = messages;
-            }
-        }
-    }
+    const { mobile_details, message_list } = conversation_details;
 
     const snackBarActionFn = key => {
         return (<Button

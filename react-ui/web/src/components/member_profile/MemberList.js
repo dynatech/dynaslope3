@@ -1,6 +1,7 @@
-import React, { useState, useEffect, Fragment } from "react";
+import React, { useState, useEffect } from "react";
 import { makeStyles } from "@material-ui/core/styles";
-import { Grid, ListItemText, List, ListItem, OutlinedInput
+import {
+    ListItemText, List, ListItem, OutlinedInput
 } from "@material-ui/core";
 
 const useStyles = makeStyles(theme => ({

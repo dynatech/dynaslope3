@@ -173,17 +173,49 @@ function ScreenDrawer (props) {
                                     <Collapse in={open[key]} timeout="auto" unmountOnExit>
                                         <List component="div" disablePadding>
                                             {
-                                                sub.map(({ label: sublabel, link }) => (
-                                                    <Link to={link} key={sublabel} className={classes.link}>
-                                                        <ListItem button className={classes.nested} onClick={drawerHandler(false)}>
+                                                sub.map((row, i) => {
+                                                    const { label: sublabel, link, soon, divider } = row;
+                                                    const disabled = typeof soon !== "undefined";
+
+                                                    if (disabled) {
+                                                        const l = <span>{sublabel}<Typography
+                                                            component="span"
+                                                            variant="overline"
+                                                            style={{ paddingLeft: 4 }}
+                                                        >
+                                                            SOON
+                                                        </Typography></span>;
+                                                        
+                                                        return <ListItem key={sublabel} button className={classes.nested} disabled>
                                                             <ListItemText 
                                                                 primaryTypographyProps={{
                                                                     className: classes.nestedText
                                                                 }}
-                                                                primary={sublabel}/>
-                                                        </ListItem>
-                                                    </Link>
-                                                ))
+                                                                primary={l}/>
+                                                        </ListItem>;
+                                                    }
+                                                    
+                                                    if (typeof divider !== "undefined") {
+                                                        return (
+                                                            <ListItem
+                                                                key={i}
+                                                                divider button={false}
+                                                                style={{ paddingTop: 0, marginBottom: 8 }}/>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <Link to={link} key={sublabel} className={classes.link}>
+                                                            <ListItem button className={classes.nested} onClick={drawerHandler(false)}>
+                                                                <ListItemText 
+                                                                    primaryTypographyProps={{
+                                                                        className: classes.nestedText
+                                                                    }}
+                                                                    primary={sublabel}/>
+                                                            </ListItem>
+                                                        </Link>
+                                                    );
+                                                })
                                             }
                                         </List>
                                     </Collapse>

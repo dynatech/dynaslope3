@@ -81,6 +81,13 @@ const navigation_labels = [
             {
                 label: "Monitoring Alerts Analytics",
                 link: "/analysis/alerts"
+            },
+            {
+                divider: true
+            },
+            {
+                label: "Loggers and Sensors Form",
+                link: "/analysis/forms/loggers_and_sensors"
             }
         ]
     },
@@ -245,7 +252,8 @@ function Navigation (props) {
                             <ClickAwayListener onClickAway={handlePopperClickAway}>
                                 <MenuList>
                                     {
-                                        sub.map(({ label, link, soon }) => {
+                                        sub.map((row, i) => {
+                                            const { label, link, soon, divider } = row;
                                             const disabled = typeof soon !== "undefined";
                                             if (disabled) {
                                                 return (
@@ -265,6 +273,15 @@ function Navigation (props) {
                                                             </Typography>
                                                         }
                                                     </MenuItem>
+                                                );
+                                            }
+
+                                            if (typeof divider !== "undefined") {
+                                                return (
+                                                    <MenuItem
+                                                        key={i}
+                                                        divider button={false}
+                                                        style={{ paddingTop: 2, marginBottom: 8 }}/>
                                                 );
                                             }
 

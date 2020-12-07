@@ -131,6 +131,7 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_expiration
         print(err)
         pass
 
+    is_insert = False
     try:
         issue_reminder_row = IssuesAndReminders.query.filter_by(
             iar_id=iar_id).first()
@@ -152,6 +153,7 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_expiration
             print(get_process_status_log("update_issue_reminder_on_db", "end"))
         else:
             print(get_process_status_log("write_issue_reminder_to_db", "start"))
+            is_insert = True
 
             issue_and_reminder = IssuesAndReminders(
                 detail=detail,
@@ -175,7 +177,7 @@ def write_issue_reminder_to_db(iar_id, detail, user_id, ts_posted, ts_expiration
         print(err)
         raise
 
-    return "success"
+    return issue_and_reminder_id, is_insert
 
 
 def get_issues_and_reminders(

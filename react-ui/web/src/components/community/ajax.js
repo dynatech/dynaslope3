@@ -46,7 +46,6 @@ export function saveSiteInformation (input, callback) {
     .then(response => {
         const { data } = response;
         console.log("Save site info data reponse", data);
-        callback(data);
     })
     .catch(error => {
         console.error(error);

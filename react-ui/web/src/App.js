@@ -19,6 +19,7 @@ import ChartRenderingContainer from "./components/chart_rendering/Container";
 import { CTProvider } from "./components/monitoring/dashboard/CTContext";
 import { GeneralProvider } from "./components/contexts/GeneralContext";
 import { ServerTimeProvider } from "./components/contexts/ServerTimeContext";
+import { NotificationsProvider } from "./components/contexts/NotificationsContext";
 
 const styles = theme => ({
     app: {
@@ -109,17 +110,20 @@ function App (props) {
                                 <GeneralProvider>
                                     <CTProvider>
                                         <ServerTimeProvider>
-                                            <Header
-                                                {...r_props} 
-                                                drawerHandler={toggleDrawer}
-                                                onLogout={onLogout}
-                                            />
-                                            <Navigation
-                                                {...r_props}
-                                                drawerHandler={toggleDrawer}
-                                                drawer={drawer}
-                                                onLogout={onLogout}
-                                            />
+                                            <NotificationsProvider>
+                                                <Header
+                                                    {...r_props} 
+                                                    drawerHandler={toggleDrawer}
+                                                    onLogout={onLogout}
+                                                />
+                                            
+                                                <Navigation
+                                                    {...r_props}
+                                                    drawerHandler={toggleDrawer}
+                                                    drawer={drawer}
+                                                    onLogout={onLogout}
+                                                />
+                                            </NotificationsProvider>
                                     
                                             <div className={classes.app}>
                                                 <div className={classes.body}>

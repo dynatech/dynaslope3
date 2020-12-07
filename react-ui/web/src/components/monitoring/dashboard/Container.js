@@ -86,8 +86,8 @@ function Container (props) {
         receiveGeneratedAlerts(generated_alerts => setGeneratedAlerts(generated_alerts));
         receiveCandidateAlerts(candidate_alerts => setCandidateAlertsData(candidate_alerts));
         receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
-        receiveMonitoringShiftData(shift_data => setMonitoringShifts(shift_data));
         getMonitoringShifts();
+        receiveMonitoringShiftData(shift_data => setMonitoringShifts(shift_data));
         receiveEWIInsertResponse(response => {
             const { snackbar_key, message, status } = response;
             closeSnackbar(snackbar_key);

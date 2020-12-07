@@ -342,13 +342,14 @@ def delete_surficial_data(mo_id=None, site_id=None, ts=None, data_id=None):
     """
 
     if data_id:
-        row = md.query.filter_by(data_id=data_id).first()
-        obs = row.marker_observation
-        obs_data = obs.marker_data
+        md_query = md.query
+        row = md_query.filter_by(data_id=data_id).first()
+        mo_id = row.mo_id
         DB.session.delete(row)
+        DB.session.flush()
 
-        if (len(obs_data) == 1):
-            mo_id = obs.mo_id
+        remaining_data = md_query.filter_by(mo_id=mo_id).all()
+        if not remaining_data:
             mo.query.filter_by(mo_id=mo_id).delete()
     elif mo_id:
         mo.query.filter_by(mo_id=mo_id).delete()

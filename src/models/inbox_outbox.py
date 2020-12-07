@@ -170,6 +170,7 @@ class SmsUserUpdates(DB.Model):
     mobile_id = DB.Column(DB.Integer)
     update_source = DB.Column(DB.String(20))
     pk_id = DB.Column(DB.Integer)
+    processed = DB.Column(DB.Boolean, default=False)
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Update ID: {self.update_id}"

@@ -1,0 +1,3 @@
+[submodule "analysis_scripts"]
+	path = analysis_scripts
+	url = https://github.com/dynatech/updews-pycodes

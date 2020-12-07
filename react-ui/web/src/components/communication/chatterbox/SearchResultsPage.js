@@ -214,7 +214,6 @@ function SearchResultsPage (props) {
                             url={url}
                             messagesArr={searchResults}
                             searchFilters={{ ts_start, ts_end }}
-                            async
                             hidden={false}
                             is_desktop={is_desktop}
                         />

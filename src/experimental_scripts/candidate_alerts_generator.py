@@ -136,8 +136,8 @@ def process_totally_invalid_sites(totally_invalid_sites_list,
             generated_alert["ts"], "%Y-%m-%d %H:%M:%S")
         is_release_time = check_if_routine_extended_release_time(ts)
 
-        is_in_extended_alerts = list(filter(lambda x: x["event"]["site"]["site_code"] ==
-                                            site_code, extended))
+        is_in_extended_alerts = list(
+            filter(lambda x: x["event"]["site"]["site_code"] == site_code, extended))
         if is_in_extended_alerts:
             if is_release_time:
                 general_status = "extended"
@@ -316,8 +316,8 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         has_unresolved_moms = bool(
             formatted_alerts_for_ewi["unresolved_moms_list"])
         to_extend_validity = True if (
-            not alert_entry["has_ground_data"] or
-            has_unresolved_moms or has_nd_rx_trigger) else False
+            not alert_entry["has_ground_data"]
+            or has_unresolved_moms or has_nd_rx_trigger) else False
 
         try:
             saved_event_triggers = alert_entry["saved_event_triggers"]
@@ -492,8 +492,6 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
                 db_alert_level = site_db_alert["public_alert_symbol"]["alert_level"]
 
                 general_status = "on-going"
-                # saved_event_triggers = get_saved_event_triggers(
-                #     site_db_alert["event"]["event_id"])
                 saved_event_triggers = site_db_alert["latest_event_triggers"]
                 current_trigger_alerts = site_w_alert["current_trigger_alerts"]
 
@@ -505,9 +503,8 @@ def process_candidate_alerts(with_alerts, without_alerts, db_alerts_dict, query_
 
                     is_trigger_new = False
                     if saved_trigger:
-                        if datetime.strptime(saved_trigger["ts"], "%Y-%m-%d %H:%M:%S") \
-                            < datetime.strptime(
-                                event_trigger["ts_updated"], "%Y-%m-%d %H:%M:%S"):
+                        if datetime.strptime(saved_trigger["ts"], "%Y-%m-%d %H:%M:%S") < \
+                                datetime.strptime(event_trigger["ts_updated"], "%Y-%m-%d %H:%M:%S"):
                             is_trigger_new = True
 
                         # Check if current released trigger is in
