@@ -65,7 +65,7 @@ function getEWISmsChartOption (processed_data, input, type) {
             enabled: false
         },
         series: [{
-            name: "Queud",
+            name: "Queued",
             data: queud,
             pointPadding: 0
         }, {
