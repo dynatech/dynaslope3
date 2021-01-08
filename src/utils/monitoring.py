@@ -2118,7 +2118,8 @@ def get_next_ground_data_reporting(data_ts, is_onset=False, is_alert_0=False, in
     elif (hour == 15 and minute >= 30) or hour > 15:
         reporting = datetime.combine(
             data_ts.date(), time_comp) + timedelta(days=1)
-        modifier = "bukas"
+        if hour != 23 or (hour == 23 and minute < 30):
+            modifier = "bukas"
     else:
         reporting = round_to_nearest_release_time(data_ts)
         if is_onset:
