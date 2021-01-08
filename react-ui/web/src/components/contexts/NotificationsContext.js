@@ -32,7 +32,7 @@ export const NotificationsProvider = ({ children }) => {
     }
     const [notifications_object, setNotificationsObject] = useReducer(reducer, { notifications: [], count: 0 });
     useEffect(() => {
-        getUserNotifications(37);
+        getUserNotifications();
         receiveUserNotifications(data => setNotificationsObject({ action: "INSERT", data }));
     }, []);
 

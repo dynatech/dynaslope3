@@ -68,7 +68,8 @@ function removeReceiveMonitoringShiftData () {
     socket.removeListener("receive_monitoring_shifts");
 }
 
-function getUserNotifications (user_id) {
+function getUserNotifications () {
+    const { user_id } = getCurrentUser();
     connectToWebsocket();
     socket.emit("get_user_notifications", user_id);
 }
