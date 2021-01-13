@@ -39,6 +39,7 @@ export const NotificationsProvider = ({ children }) => {
     function setNotificationCountToZero (user_id) {
         setNotificationsObject({ action: "UPDATE_COUNT", data: 0 });
         setAllUnseenNotifications(user_id);
+        receiveUserNotifications(data => setNotificationsObject({ action: "INSERT", data }));
     }
 
     function toggleReadTS (user_id, notification_id, toggle_to) {
@@ -51,7 +52,8 @@ export const NotificationsProvider = ({ children }) => {
         notifications_object,
         setNotificationsObject,
         setNotificationCountToZero,
-        toggleReadTS
+        toggleReadTS,
+        getUserNotifications
     };
 
     return (
