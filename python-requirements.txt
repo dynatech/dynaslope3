@@ -41,7 +41,10 @@ pandas
 python-memcached
 serial
 python-gsmmodem
-pyfinance
+pyfinance**
 pymysql
 
+NOTES:
 *except for marshmallow, flask-marshmallow, and marshmallow-sqlalchemy. After installing packages, uninstall these files with recommended versions
+**pyfinance has bug in terms of import requirements as of January 2021; it is recommended to install v0.3.1 to make to server work
+***As of January 2021, an update on socketio makes compatibility problems on client socketio. Read here for fix and updates: https://github.com/miguelgrinberg/python-socketio/issues/578
