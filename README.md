@@ -25,18 +25,10 @@ Examples:
 > X Deleted old python script "too-old.py"
 > \* Fixed bug that causes a crash on the uploading proces of "XXX.py"
 
-## Running the Server
-
-Set the following system variables on command line then run the Flask App (use ***SET*** on Windows and ***export*** on Linux environment):
-```sh
-$ SET FLASK_CONFIG=environment
-$ SET FLASK_APP=run.py
-$ flask run
-```
-
 ## Requirements
 1. Install all required Python packages inside the ***python-requirements.txt***
 2. Get config.py (file containing database connections and credentials, and other sensitive info) then create ```instance``` folder on top-level and put it inside
+3. Install ```highcharts-export-server``` by following this link: https://www.highcharts.com/docs/export-module/setting-up-the-server
 
 ### Note: 
 Install Python packages using ***Conda*** first. Only use ***Pip*** if package is not available in Conda.
