@@ -9,8 +9,7 @@ You can safely ignore the version on installing packages.*
 
 Package                Version   
 ---------------------- ----------  
-autopep8               1.4.3        (dev)
-bcrypt                 3.1.6        
+autopep8               1.4.3        (dev)      
 Flask                  1.0.2     
 Flask-Bcrypt           0.7.1     
 Flask-Cors             3.0.7     
@@ -44,4 +43,4 @@ python-gsmmodem
 pyfinance
 pymysql
 
-*except for marshmallow amd flask-marshmallow. After installing packages, uninstall these two files and reinstall with the recommended versions
+*except for marshmallow amd flask-marshmallow. After installing packages, uninstall these two files and reinstall flask-marshmallow with recommended version. Reinstall also marshmallow-sqlalchemy which is uninstalled in the process
