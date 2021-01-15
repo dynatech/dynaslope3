@@ -222,9 +222,9 @@ def generate_alerts(site_code=None):
     """
 
     # site_code = ["agb", "bak", "cud", "ime"]
-    is_test = not APP_CONFIG["is_live_mode"]
+    save_generated_alert_to_db = APP_CONFIG["save_generated_alert_to_db"]
     generated_alerts_json = public_alert_generator.main(
-        site_code=site_code, is_test=is_test)
+        site_code=site_code, save_generated_alert_to_db=save_generated_alert_to_db)
 
     return generated_alerts_json
 
