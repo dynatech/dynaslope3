@@ -1242,7 +1242,7 @@ def find_and_fix_invalid_surficial_triggers(ts, active_sites):
                     "Public alert has other triggers (regardless of valid or invalid)")
 
 
-def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, d_n_t_b):
+def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_db):
     ######################################
     # LOOP THROUGH ACTIVE SITES PROVIDED #
     ######################################
@@ -1260,7 +1260,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, d_n_t_b):
         active_sites = [active_sites]
 
     for site in active_sites:
-        do_not_write_to_db = d_n_t_b
+        save_generated_alert_to_db = s_g_a_t_db
         ts_onset = None
 
         site_id = site.site_id
@@ -1455,7 +1455,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, d_n_t_b):
 
                     if is_release_time_run:
                         if not is_45_minute_beyond:
-                            do_not_write_to_db = True
+                            save_generated_alert_to_db = False
                 else:
                     is_alert_for_lowering = True
 
@@ -1567,7 +1567,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, d_n_t_b):
         # Internal Alert Symbol
         DB.session.rollback()
 
-        if not do_not_write_to_db:
+        if save_generated_alert_to_db:  # not do_not_write_to_db:
             try:
                 current_pa_id = latest_site_pa.public_id
 
@@ -1593,7 +1593,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, d_n_t_b):
     return site_public_alerts_list
 
 
-def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
+def main(query_ts_end=None, query_ts_start=None, save_generated_alert_to_db=True, site_code=None):  # is_test=False
     """
     """
     script_start = datetime.now()
@@ -1604,7 +1604,6 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
         query_ts_start = datetime.now()
 
     print(get_process_status_log("Alert Generation", "start"))
-    do_not_write_to_db = is_test
 
     if query_ts_end is None:
         query_ts_end = datetime.now()
@@ -1617,7 +1616,7 @@ def main(query_ts_end=None, query_ts_start=None, is_test=False, site_code=None):
 
     find_and_fix_invalid_surficial_triggers(query_ts_end, active_sites)
     generated_alerts = get_site_public_alerts(
-        active_sites, query_ts_start, query_ts_end, do_not_write_to_db)
+        active_sites, query_ts_start, query_ts_end, save_generated_alert_to_db)
 
     # Sort per alert level
     generated_alerts.sort(key=extract_alert_level, reverse=True)

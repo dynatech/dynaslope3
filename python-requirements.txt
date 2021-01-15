@@ -9,8 +9,7 @@ You can safely ignore the version on installing packages.*
 
 Package                Version   
 ---------------------- ----------  
-autopep8               1.4.3        (dev)
-bcrypt                 3.1.6        
+autopep8               1.4.3        (dev)      
 Flask                  1.0.2     
 Flask-Bcrypt           0.7.1     
 Flask-Cors             3.0.7     
@@ -18,7 +17,8 @@ Flask-JWT-Extended     3.16.0
 Flask-Login            0.4.1      
 Flask-SQLAlchemy       2.3.2
 flask-marshmallow*     0.9.0
-marshmallow-sqlalchemy 0.16.0       
+marshmallow*           2.21.0
+marshmallow-sqlalchemy* 0.16.0       
 mysqlclient            1.4.1     
 pep8                   1.7.1        (dev)
 pylint                 2.2.2        (dev)
@@ -41,7 +41,10 @@ pandas
 python-memcached
 serial
 python-gsmmodem
-pyfinance
+pyfinance**
 pymysql
 
-*except for marshmallow amd flask-marshmallow. After installing packages, uninstall these two files and reinstall with the recommended versions
+NOTES:
+*except for marshmallow, flask-marshmallow, and marshmallow-sqlalchemy. After installing packages, uninstall these files with recommended versions
+**pyfinance has bug in terms of import requirements as of January 2021; it is recommended to install v0.3.1 to make to server work
+***As of January 2021, an update on socketio makes compatibility problems on client socketio. Read here for fix and updates: https://github.com/miguelgrinberg/python-socketio/issues/578
