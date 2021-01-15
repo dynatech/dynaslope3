@@ -26,5 +26,5 @@ APP = create_app(CONFIG_NAME, skip_memcache=ARGS.skip_memcache,
 
 if __name__ == "__main__":
     print("Flask server is now running...")
-    SOCKETIO.run(APP, host='192.168.150.110', port=5000,
+    SOCKETIO.run(APP, host='192.168.150.253', port=5000,
                  debug=True, use_reloader=False)

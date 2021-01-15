@@ -69,6 +69,7 @@ APP_CONFIG = {
     "url": "http://192.168.150.110",
     "is_live_mode": True,  # used mainly in comms (e.g. bulletin)
     "save_generated_alert_to_db": True,
+    "save_generated_alert_to_db": True,
     "smtp_server": "smtp.gmail.com",
     "port": 587
 }
