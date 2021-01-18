@@ -121,19 +121,22 @@ function Header (props) {
     };
 
     const { user_id, first_name } = getCurrentUser();
-    const { notifications_object, setNotificationCountToZero } = useContext(NotificationsContext);
+    const { notifications_object, setNotificationCountToZero, getUserNotifications } = useContext(NotificationsContext);
     const { count } = notifications_object;
     const [is_notif_open, setIsNotifOpen] = useState(false);
 
     const handleOpenNotif = () => {
         setIsNotifOpen(true);
         document.body.style.overflow = "hidden";
+        getUserNotifications();
+        console.log("notifications_object open", notifications_object);
     };
 
     const handleCloseNotif = () => {
         setIsNotifOpen(false);
         document.body.style.overflow = "auto";
         setNotificationCountToZero(user_id);
+        console.log("notifications_object close", notifications_object);
     };
 
     return (

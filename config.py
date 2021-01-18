@@ -66,8 +66,9 @@ APP_CONFIG = {
     "attachment_path": f"{ROOT_PATH}/temp/attachments",
     "logs_path": f"{ROOT_PATH}/logs",
     # "url": "http://192.168.150.167:3000",
-    "url": "http://192.168.150.253",
-    "is_live_mode": False,
+    "url": "http://192.168.150.110",
+    "is_live_mode": True,  # used mainly in comms (e.g. bulletin)
+    "save_generated_alert_to_db": True,
     "smtp_server": "smtp.gmail.com",
     "port": 587
 }
