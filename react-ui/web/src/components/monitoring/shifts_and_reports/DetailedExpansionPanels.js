@@ -310,14 +310,17 @@ function DetailedAccordion (props) {
     const handleFileChange = event => {
         const { files } = event.target;
         for (let i = 0; i < files.length; i += 1) {
-            attachedFiles.push(files.item(i));
+            const temp = files.item(i);
+            if (!attachedFiles.some(x => x.name === temp.name)) {
+                attachedFiles.push(temp);
+            }
         }
         setAttachedFiles([...attachedFiles]);
     };
 
     const handleRemoveFile = index => () => {
         const files = attachedFiles;
-        files.pop(files[index]);
+        files.splice(index, 1);
         setAttachedFiles([...files]);
     };
     
@@ -395,9 +398,9 @@ function DetailedAccordion (props) {
                             }}>
                                 {
                                     attachedFiles.length > 0 
-                                        ? attachedFiles.map( (file, index )=> {
+                                        ? attachedFiles.map((file, index) => {
                                             return (
-                                                <Chip key={index} label={file.name} onDelete={handleRemoveFile(index)} color="primary" />
+                                                <Chip key={file.name} label={file.name} onDelete={handleRemoveFile(index)} color="primary" />
                                             );
                                         })
                                         : <Typography variant="body2"><i>None</i></Typography>
@@ -411,9 +414,10 @@ function DetailedAccordion (props) {
                                 multiple
                                 type="file"
                                 onChange={handleFileChange}
-                                id="raised-button-file"
+                                onClick={event => { event.target.value = null; }}
+                                id={`input-file-${site_code}`}
                             />
-                            <label htmlFor="raised-button-file">
+                            <label htmlFor={`input-file-${site_code}`}>
                                 <Button 
                                     startIcon={<Attachment />} 
                                     variant="contained"
