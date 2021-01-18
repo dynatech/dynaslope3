@@ -94,101 +94,44 @@ def check_if_ampm(hour):
     return is_am_pm
 
 
-def group_by_date(releases_list):
+def group_by_shift(releases_list):
     """
-    REFACTOR
+    Function thats group events per shift.
     """
-    unique_release_dates = []
-
-    unique_set = {}
-    un_ea_list = []
-    index = -1
+    final_data = []
+    events_per_shift = {}
     for release in releases_list:
         ts = release.data_ts
         release_date = ts.strftime("%Y-%m-%d")
-        prev_date_entry = (ts + timedelta(days=1)
-                           ).strftime("%Y-%m-%d")
-        ea_id = release.event_alert_id
         publishers = get_release_publisher_names(release)
         is_am_pm = check_if_ampm(ts.hour)
 
+        if is_am_pm == "PM":
+            rounded_ts = round_to_nearest_release_time(ts)
+            release_date = (rounded_ts - timedelta(days=1)
+                            ).strftime("%Y-%m-%d")
         data_for_ui = prepare_data_for_ui(release)
-        if release_date not in unique_set:
-            # Create an index as reference where the release was
-            # placed on the array.
-            if prev_date_entry not in unique_set and un_ea_list not in un_ea_list:
-                index += 1
-                unique_set[release_date] = index
+        site_code = data_for_ui["site_code"]
+        shift = f"{release_date}_{is_am_pm}"
 
-                if is_am_pm == "PM":
-                    rounded_ts = round_to_nearest_release_time(ts)
-                    release_date = (rounded_ts - timedelta(days=1)
-                                    ).strftime("%Y-%m-%d")
-
-                unique_release_dates.append({
-                    "date": release_date,
-                    "ampm": is_am_pm,
-                    "data": [data_for_ui],
-                    "mt": publishers["mt"],
-                    "ct": publishers["ct"]
-                })
-                un_ea_list.append(ea_id)
-        else:
-            date_index = unique_set[release_date]
-
-            # The following three lines of code up to the if statement
-            # makes the script return only the latest releases with the
-            # assumption that the utils already sorted the releases
-            # by release_time
-            data_list = unique_release_dates[date_index]["data"]
-            site_code = data_for_ui["site_code"]
-            if not list(filter(lambda data: data["site_code"] == site_code, data_list)):
-                data_list.append(data_for_ui)
-
-    return unique_release_dates
-
-
-def group_by_alert(releases_list):
-    """
-    REFACTOR
-    """
-    unique_release_alerts = []
-    unique_set = {}
-    index = -1
-    for release in releases_list:
-        event_alert = release.event_alert
-        publishers = get_release_publisher_names(release)
-        public_alert_level = event_alert.public_alert_symbol.alert_level
-        public_alert_symbol = event_alert.public_alert_symbol.alert_symbol
-        ts = release.data_ts
-        is_am_pm = check_if_ampm(ts.hour)
-
-        data_for_ui = prepare_data_for_ui(release)
-        if public_alert_level not in unique_set:
-            index += 1
-            unique_set[public_alert_level] = index
-
-            unique_release_alerts.append({
-                "public_alert_symbol": public_alert_symbol,
-                "public_alert_level": public_alert_level,
+        if shift not in events_per_shift:
+            events_per_shift[shift] = [{
+                "date": release_date,
                 "ampm": is_am_pm,
                 "data": [data_for_ui],
                 "mt": publishers["mt"],
                 "ct": publishers["ct"]
-            })
+            }]
         else:
-            date_index = unique_set[public_alert_level]
+            data_list = events_per_shift[shift][0]["data"]
 
-            # The following three lines of code up to the if statement
-            # makes the script return only the latest releases with the
-            # assumption that the utils already sorted the releases
-            # by release_time
-            data_list = unique_release_alerts[date_index]["data"]
-            site_code = data_for_ui["site_code"]
             if not list(filter(lambda data: data["site_code"] == site_code, data_list)):
                 data_list.append(data_for_ui)
 
-    return unique_release_alerts
+    for row in events_per_shift:
+        final_data.append(events_per_shift[row][0])
+
+    return final_data
 
 
 @SHIFT_CHECKER_BLUEPRINT.route("/shift_checker/get_shift_data", methods=["POST"])
@@ -197,10 +140,11 @@ def wrap_get_shift_data():
     Gets a single release with the specificied ID
     """
     json_input = request.get_json()
+    print("JSON", json_input)
 
     if not json_input:
         return
-    # Search releases by
+
     if "ts_start" in json_input and "ts_end" in json_input:
         user_id = None
         try:
@@ -216,10 +160,6 @@ def wrap_get_shift_data():
             user_id=user_id, exclude_routine=True)
     else:
         var_checker("NO SHIFTS", "no shifts", True)
-
-    if "user_id" in json_input:
-        releases_data = group_by_date(releases_list)
-    else:
-        releases_data = group_by_alert(releases_list)
-
+    
+    releases_data = group_by_shift(releases_list)
     return jsonify(releases_data)
