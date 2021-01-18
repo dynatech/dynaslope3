@@ -706,7 +706,6 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     request_ts = datetime.strptime(
                         od_details["request_ts"], "%Y-%m-%d %H:%M:%S")
                     narrative = od_details["narrative"]
-                    info = narrative
                     timestamp = request_ts
 
                     od_details["narrative_id"] = write_narratives_to_db(
@@ -714,7 +713,8 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                         type_id=1, user_id=publisher_details["publisher_ct_id"], event_id=event_id
                     )
 
-                    od_id = write_monitoring_on_demand_to_db(od_details, info)
+                    od_id = write_monitoring_on_demand_to_db(
+                        od_details, narrative)
                     eq_id = None
                     has_moms = False
                 elif trigger_type == "earthquake":
@@ -1027,7 +1027,7 @@ def insert_ewi(internal_json=None):
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
                         and site_monitoring_instance.validity == \
-                    datetime_data_ts + timedelta(minutes=30):
+                datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
