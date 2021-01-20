@@ -335,3 +335,17 @@ export function getMonitoringAnalyticsData (input, callback) {
         console.error(error);
     });
 }
+
+export function getCommsAnalyticsData (input, callback) {
+    const api_link = `${host}/api/comms_analytics/get_comms_analytics_data`;
+
+    axios.post(api_link, input)
+    .then(response => {
+        const { data } = response;
+        console.log("Comms analytics data", data);
+        callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}
