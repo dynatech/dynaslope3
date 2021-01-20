@@ -12,8 +12,9 @@ from src.models.sites import Sites
 
 def get_ewi_sms(start_ts, end_ts):
     """
-    Function that get ewi sms sent and queud
+    Function that get ewi sms sent and queued
     """
+
     ts_format = "%Y-%m-%d %H:%M:%S"
     data = ewi_sms(start=datetime.strptime(start_ts, ts_format),
                    end=datetime.strptime(end_ts, ts_format))
@@ -59,6 +60,7 @@ def get_ewi_ack(start_ts, end_ts, site_filter=None):
     """
     Function that get ewi acknowledgement
     """
+
     ts_format = "%Y-%m-%d %H:%M:%S"
     data = ewi_ack(start=datetime.strptime(start_ts, ts_format),
                    end=datetime.strptime(end_ts, ts_format))
@@ -117,7 +119,6 @@ def get_ewi_ack(start_ts, end_ts, site_filter=None):
         total = sum(data_per_day[key])
         sum_per_day[index] = total
 
-
     feedback = {
         "per_day": {
             "days": [
@@ -147,6 +148,7 @@ def get_gnd_meas(start_ts, end_ts):
     """
     Function that gets ground measurement count per site
     """
+
     ts_format = "%Y-%m-%d %H:%M:%S"
 
     sites = Sites.query.filter(Sites.active == 1).all()

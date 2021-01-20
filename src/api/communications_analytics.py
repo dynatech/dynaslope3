@@ -2,8 +2,8 @@
 Communications Analytics Util
 """
 
+import traceback
 from flask import Blueprint, jsonify, request
-from connection import DB
 
 from src.utils.communications_analytics import (
     get_ewi_sms, get_ewi_ack, get_gnd_meas
@@ -38,13 +38,14 @@ def get_comms_analytics_data():
             site_filter = None
             if site:
                 site_filter = site["data"]["site_code"]
-            charts_data = get_ewi_ack(start_ts, end_ts, site_filter=site_filter)
+            charts_data = get_ewi_ack(
+                start_ts, end_ts, site_filter=site_filter)
         elif chart_type == "ground_meas":
             charts_data = get_gnd_meas(start_ts, end_ts)
 
         status = True
     except Exception as err:
-        print(err)
+        print(traceback.format_exc())
         status = False
         message = f"Error: {err}"
 

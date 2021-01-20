@@ -5,17 +5,21 @@ import moment from "moment";
 
 function getEWISmsChartOption (processed_data, input, type) {
     const { start_ts, end_ts } = input;
-    const subtitle = `Range <b>${moment(start_ts).format("DD MMM YYYY, HH:ss")} - ${moment(end_ts).format("DD MMM YYYY, HH:ss")}<br>All sites</b>`;
+    const subtitle = `Range <b>${moment(start_ts).format("DD MMM YYYY, HH:ss")} - ${moment(end_ts).format("DD MMM YYYY, HH:ss")}</b>`;
     const { month, sent, queud } = processed_data;
     return {
         chart: {
             type: "column"
         },
         title: {
-            text: `${type} count of DSL EWI sent according to protocol`
+            text: `<b>${type} Count of DSL EWI Sent According to Protocol</b>`,
+            style: { fontSize: "14px" },
+            margin: 20,
+            y: 16
         },
         subtitle: {
-            text: subtitle
+            text: subtitle,
+            style: { fontSize: "12px" },
         },
         xAxis: {
             categories: month
@@ -23,7 +27,7 @@ function getEWISmsChartOption (processed_data, input, type) {
         yAxis: {
             min: 0,
             title: {
-                text: "EWI SMS Percentage"
+                text: "<b>EWI SMS Percentage (%)</b>"
             },
             stackLabels: {
                 enabled: false,
@@ -113,4 +117,4 @@ function EwiChart (props) {
     );
 }
 
-export default (EwiChart);
+export default EwiChart;

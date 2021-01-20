@@ -7,9 +7,9 @@ function getEwiAckChartOption (processed_data, input, type) {
     const { start_ts, end_ts, site } = input;
 
     let site_label = "All sites";
-    let title = "Day of the week";
+    let title = "Day of the Week";
     if (type === "hour") {
-        title = "Time of the day";
+        title = "Time of the Day";
         if (site !== "" && site !== null) {
             const { label } = site;
             if (label !== undefined) site_label = `${label}`;
@@ -23,10 +23,14 @@ function getEwiAckChartOption (processed_data, input, type) {
             type: "column"
         },
         title: {
-            text: `${title} most responsive`
+            text: `<b>${title} Stakeholders are Most Responsive</b>`,
+            style: { fontSize: "14px" },
+            margin: 20,
+            y: 16
         },
         subtitle: {
-            text: subtitle
+            text: subtitle,
+            style: { fontSize: "12px" }
         },
         xAxis: {
             categories: days || hours
@@ -34,7 +38,7 @@ function getEwiAckChartOption (processed_data, input, type) {
         yAxis: {
             min: 0,
             title: {
-                text: "EWI SMS Acknowledgement"
+                text: "<b>EWI SMS Acknowledgement</b>"
             },
             stackLabels: {
                 enabled: false,
@@ -114,4 +118,4 @@ function EwiAckChart (props) {
     );
 }
 
-export default (EwiAckChart);
+export default EwiAckChart;

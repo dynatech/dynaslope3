@@ -111,7 +111,7 @@ function sanitizeData (data) {
     return clean_data;
 }
 
-function CommunicationsAnalytics (props) {
+function CommunicationsAnalyticsContainer (props) {
     const classes = useStyles();
 
     const current_date_time = moment().format("YYYY-MM-DD HH:mm:ss");
@@ -231,260 +231,271 @@ function CommunicationsAnalytics (props) {
     }, []);
 
     return (
-        <Fragment>
-            <div className={classes.pageContentMargin}>
-                <PageTitle
-                    title="Analysis | Monitoring Alerts Analytics"
-                />
+        <div className={classes.pageContentMargin}>
+            <PageTitle
+                title="Analysis | Communications Analytics"
+            />
 
-                <Grid container spacing={2}>
-                    <Grid item xs={12}>
-                        <Card className={classes.card}>
-                            <CardContent>
-                                <Typography variant="overline" display="block" gutterBottom>
-                                    Percentage DSL EWI sent
-                                </Typography>
+            <Grid container spacing={2}>
+                <Grid item xs={12}>
+                    <Card className={classes.card}>
+                        <CardContent>
+                            <Typography variant="overline" display="block" gutterBottom>
+                                Percentage of EWI SMS Sent
+                            </Typography>
 
-                                <Grid container spacing={2} justify="space-between">
-                                    <Grid item xs={12} sm={12} container>
-                                        <MuiPickersUtilsProvider utils={MomentUtils}>
-                                            <Grid item xs={12} sm={3}>
-                                                <KeyboardDateTimePicker
-                                                    required
-                                                    autoOk
-                                                    label="Start Timestamp"
-                                                    ampm={false}
-                                                    value={sms_filter_data.start_ts.value}
-                                                    onChange={e => update_ts("start_ts", e, "sms")}
-                                                    placeholder="2010/01/01 00:00"
-                                                    format="YYYY/MM/DD HH:mm"
-                                                    mask="____/__/__ __:__"
-                                                    clearable
-                                                    disableFuture
-                                                    fullWidth
-                                                />
-                                            </Grid>
-
-                                            <Grid item xs={12} sm={3} style={{ marginLeft: 16 }}>
-                                                <KeyboardDateTimePicker
-                                                    required
-                                                    autoOk
-                                                    label="End Timestamp"
-                                                    ampm={false}
-                                                    value={sms_filter_data.end_ts.value}
-                                                    onChange={e => update_ts("end_ts", e, "sms")}
-                                                    placeholder="2010/01/01 00:00"
-                                                    format="YYYY/MM/DD HH:mm"
-                                                    mask="____/__/__ __:__"
-                                                    clearable
-                                                    disableFuture
-                                                    fullWidth
-                                                />
-                                            </Grid>
-                                        </MuiPickersUtilsProvider>
-                                        <Grid item xs={3} style={{ marginLeft: 16, marginTop: 16 }}>
-                                            <Button 
-                                                size="small" 
-                                                color="primary"
-                                                variant="contained"
-                                                onClick={submitFilter("sms")}
-                                            >
-                                                Submit
-                                            </Button>
-                                        </Grid>
-                                    </Grid>
-                                    <Grid item xs={12} sm={12} container>
-                                        <Grid item xs={12} sm={12}>
-                                            <EwiChart
-                                                highcharts={Highcharts}
-                                                data={per_month_ewi_sms.data}
-                                                isLoading={per_month_ewi_sms.is_loading}
-                                                type="Monthly"
-                                                input={sanitizeData(sms_filter_data)}
-                                            />
-                                        </Grid> 
-                                        <Grid item xs={12} sm={12}>   
-                                            <EwiChart
-                                                highcharts={Highcharts}
-                                                data={per_quarter_ewi_sms.data}
-                                                isLoading={per_quarter_ewi_sms.is_loading}
-                                                type="Quarterly"
-                                                input={sanitizeData(sms_filter_data)}
+                            <Grid container spacing={2} justify="space-between">
+                                <Grid 
+                                    item xs={12}
+                                    container justify="space-between"
+                                    spacing={2} alignItems="center"
+                                >
+                                    <MuiPickersUtilsProvider utils={MomentUtils}>
+                                        <Grid item xs={12} sm>
+                                            <KeyboardDateTimePicker
+                                                required
+                                                autoOk
+                                                label="Start Timestamp"
+                                                ampm={false}
+                                                value={sms_filter_data.start_ts.value}
+                                                onChange={e => update_ts("start_ts", e, "sms")}
+                                                placeholder="2010/01/01 00:00"
+                                                format="YYYY/MM/DD HH:mm"
+                                                mask="____/__/__ __:__"
+                                                clearable
+                                                disableFuture
+                                                fullWidth
                                             />
                                         </Grid>
+
+                                        <Grid item xs={12} sm>
+                                            <KeyboardDateTimePicker
+                                                required
+                                                autoOk
+                                                label="End Timestamp"
+                                                ampm={false}
+                                                value={sms_filter_data.end_ts.value}
+                                                onChange={e => update_ts("end_ts", e, "sms")}
+                                                placeholder="2010/01/01 00:00"
+                                                format="YYYY/MM/DD HH:mm"
+                                                mask="____/__/__ __:__"
+                                                clearable
+                                                disableFuture
+                                                fullWidth
+                                            />
+                                        </Grid>
+                                    </MuiPickersUtilsProvider>
+
+                                    <Grid item xs={12} sm={1} align="right">
+                                        <Button 
+                                            size="small" 
+                                            color="primary"
+                                            variant="contained"
+                                            onClick={submitFilter("sms")}
+                                        >
+                                            Submit
+                                        </Button>
                                     </Grid>
                                 </Grid>
-                            </CardContent>
-                        </Card>
-                    </Grid>
 
-                    <Grid item xs={12}>
-                        <Card className={classes.card}>
-                            <CardContent>
-                                <Typography variant="overline" display="block" gutterBottom>
-                                    EWI Acknowledgement
-                                </Typography>
-
-
-                                <Grid container spacing={2} justify="space-between">
-                                    <Grid item xs={12} sm={12} container>
-                                        <MuiPickersUtilsProvider utils={MomentUtils}>
-                                            <Grid item xs={12} sm={3} style={{ marginTop: 5 }}>
-                                                <DynaslopeSiteSelectInputForm
-                                                    value={ack_filter_data.site.value}
-                                                    changeHandler={e => updateSite(e)}
-                                                    isClearable
-                                                    customPlaceholder="If no input, all sites"
-                                                />
-                                            </Grid>
-                                            <Grid item xs={12} sm={3}>
-                                                <KeyboardDateTimePicker
-                                                    required
-                                                    autoOk
-                                                    label="Start Timestamp"
-                                                    value={ack_filter_data.start_ts.value}
-                                                    ampm={false}
-                                                    placeholder="2010/01/01 00:00"
-                                                    onChange={e => update_ts("start_ts", e, "ack")}
-                                                    format="YYYY/MM/DD HH:mm"
-                                                    mask="____/__/__ __:__"
-                                                    clearable
-                                                    disableFuture
-                                                    fullWidth
-                                                />
-                                            </Grid>
-
-                                            <Grid item xs={12} sm={3} style={{ marginLeft: 16 }}>
-                                                <KeyboardDateTimePicker
-                                                    required
-                                                    autoOk
-                                                    label="End Timestamp"
-                                                    value={ack_filter_data.end_ts.value}
-                                                    ampm={false}
-                                                    placeholder="2010/01/01 00:00"
-                                                    onChange={e => update_ts("end_ts", e, "ack")}
-                                                    format="YYYY/MM/DD HH:mm"
-                                                    mask="____/__/__ __:__"
-                                                    clearable
-                                                    disableFuture
-                                                    fullWidth
-                                                />
-                                            </Grid>
-                                        </MuiPickersUtilsProvider>
-                                        <Grid item xs={3} sm={2} style={{ marginLeft: 16, marginTop: 16 }}>
-                                            <Button 
-                                                size="small" 
-                                                color="primary"
-                                                variant="contained"
-                                                onClick={submitFilter("ack")}
-                                            >
-                                                Submit
-                                            </Button>
-                                        </Grid>
+                                <Grid item xs={12} container>
+                                    <Grid item xs={12}>
+                                        <EwiChart
+                                            highcharts={Highcharts}
+                                            data={per_month_ewi_sms.data}
+                                            isLoading={per_month_ewi_sms.is_loading}
+                                            type="Monthly"
+                                            input={sanitizeData(sms_filter_data)}
+                                        />
                                     </Grid>
-                                    <Grid item xs={12} sm={12} container>
-                                        <Grid item xs={12} sm={12}>
-                                            <EwiAckChart
-                                                highcharts={Highcharts}
-                                                data={per_day_ack.data}
-                                                isLoading={per_day_ack.is_loading}
-                                                type="day"
-                                                input={sanitizeData(ack_filter_data)}
-                                            />
 
-                                        </Grid>
-                                        <Grid item xs={12} sm={12}>
-                                            <EwiAckChart
-                                                highcharts={Highcharts}
-                                                data={per_hour_ack.data}
-                                                isLoading={per_hour_ack.is_loading}
-                                                type="hour"
-                                                input={sanitizeData(ack_filter_data)}
-                                            />
-                                        </Grid>
+                                    <Grid item xs={12}>   
+                                        <EwiChart
+                                            highcharts={Highcharts}
+                                            data={per_quarter_ewi_sms.data}
+                                            isLoading={per_quarter_ewi_sms.is_loading}
+                                            type="Quarterly"
+                                            input={sanitizeData(sms_filter_data)}
+                                        />
                                     </Grid>
                                 </Grid>
-                                
-                            </CardContent>
-                        </Card>
-                    </Grid>
-
-                    <Grid item xs={12}>
-                        <Card className={classes.card}>
-                            <CardContent>
-                                <Typography variant="overline" display="block" gutterBottom>
-                                    Percentage of ground measurement per site
-                                </Typography>
-
-                                <Grid container spacing={2} justify="space-between">
-                                    <Grid item xs={12} sm={12} container>
-                                        <MuiPickersUtilsProvider utils={MomentUtils}>
-                                            <Grid item xs={12} sm={3}>
-                                                <KeyboardDateTimePicker
-                                                    required
-                                                    autoOk
-                                                    label="Start Timestamp"
-                                                    ampm={false}
-                                                    value={ground_meas_filter_data.start_ts.value}
-                                                    onChange={e => update_ts("start_ts", e, "ground_meas")}
-                                                    placeholder="2010/01/01 00:00"
-                                                    format="YYYY/MM/DD HH:mm"
-                                                    mask="____/__/__ __:__"
-                                                    clearable
-                                                    disableFuture
-                                                    fullWidth
-                                                />
-                                            </Grid>
-
-                                            <Grid item xs={12} sm={3} style={{ marginLeft: 16 }}>
-                                                <KeyboardDateTimePicker
-                                                    required
-                                                    autoOk
-                                                    label="End Timestamp"
-                                                    ampm={false}
-                                                    value={ground_meas_filter_data.end_ts.value}
-                                                    onChange={e => update_ts("end_ts", e, "ground_meas")}
-                                                    placeholder="2010/01/01 00:00"
-                                                    format="YYYY/MM/DD HH:mm"
-                                                    mask="____/__/__ __:__"
-                                                    clearable
-                                                    disableFuture
-                                                    fullWidth
-                                                />
-                                            </Grid>
-                                        </MuiPickersUtilsProvider>
-                                        <Grid item xs={3} style={{ marginLeft: 16, marginTop: 16 }}>
-                                            <Button 
-                                                size="small" 
-                                                color="primary"
-                                                variant="contained"
-                                                onClick={submitFilter("ground_meas")}
-                                            >
-                                                Submit
-                                            </Button>
-                                        </Grid>
-                                    </Grid>
-                                    <Grid item xs={12} sm={12} container>
-                                        <Grid item xs={12} sm={12}>
-                                            <GroundMeasChart
-                                                highcharts={Highcharts}
-                                                data={ground_meas_data.data}
-                                                isLoading={ground_meas_data.is_loading}
-                                                input={sanitizeData(ground_meas_filter_data)}
-                                            />
-                                        </Grid> 
-                                    </Grid>
-                                    
-
-                                    
-                                </Grid>
-                            </CardContent>
-                        </Card>
-                    </Grid>
+                            </Grid>
+                        </CardContent>
+                    </Card>
                 </Grid>
-            </div>
-        </Fragment>   
+
+                <Grid item xs={12}>
+                    <Card className={classes.card}>
+                        <CardContent>
+                            <Typography variant="overline" display="block" gutterBottom>
+                                EWI Acknowledgement
+                            </Typography>
+
+                            <Grid container spacing={2} justify="space-between">
+                                <Grid
+                                    item xs={12}
+                                    container justify="space-between"
+                                    spacing={2} alignItems="center"
+                                >
+                                    <MuiPickersUtilsProvider utils={MomentUtils}>
+                                        <Grid item xs={12} sm>
+                                            <DynaslopeSiteSelectInputForm
+                                                value={ack_filter_data.site.value}
+                                                changeHandler={e => updateSite(e)}
+                                                isClearable
+                                                customPlaceholder="If no input, all sites"
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={12} sm>
+                                            <KeyboardDateTimePicker
+                                                required
+                                                autoOk
+                                                label="Start Timestamp"
+                                                value={ack_filter_data.start_ts.value}
+                                                ampm={false}
+                                                placeholder="2010/01/01 00:00"
+                                                onChange={e => update_ts("start_ts", e, "ack")}
+                                                format="YYYY/MM/DD HH:mm"
+                                                mask="____/__/__ __:__"
+                                                clearable
+                                                disableFuture
+                                                fullWidth
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={12} sm>
+                                            <KeyboardDateTimePicker
+                                                required
+                                                autoOk
+                                                label="End Timestamp"
+                                                value={ack_filter_data.end_ts.value}
+                                                ampm={false}
+                                                placeholder="2010/01/01 00:00"
+                                                onChange={e => update_ts("end_ts", e, "ack")}
+                                                format="YYYY/MM/DD HH:mm"
+                                                mask="____/__/__ __:__"
+                                                clearable
+                                                disableFuture
+                                                fullWidth
+                                            />
+                                        </Grid>
+                                    </MuiPickersUtilsProvider>
+
+                                    <Grid item xs={12} sm={1} align="right">
+                                        <Button 
+                                            size="small" 
+                                            color="primary"
+                                            variant="contained"
+                                            onClick={submitFilter("ack")}
+                                        >
+                                            Submit
+                                        </Button>
+                                    </Grid>
+                                </Grid>
+
+                                <Grid item xs={12} container>
+                                    <Grid item xs={12}>
+                                        <EwiAckChart
+                                            highcharts={Highcharts}
+                                            data={per_day_ack.data}
+                                            isLoading={per_day_ack.is_loading}
+                                            type="day"
+                                            input={sanitizeData(ack_filter_data)}
+                                        />
+                                    </Grid>
+
+                                    <Grid item xs={12}>
+                                        <EwiAckChart
+                                            highcharts={Highcharts}
+                                            data={per_hour_ack.data}
+                                            isLoading={per_hour_ack.is_loading}
+                                            type="hour"
+                                            input={sanitizeData(ack_filter_data)}
+                                        />
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </CardContent>
+                    </Card>
+                </Grid>
+
+                <Grid item xs={12}>
+                    <Card className={classes.card}>
+                        <CardContent>
+                            <Typography variant="overline" display="block" gutterBottom>
+                                Percentage of ground measurement per site
+                            </Typography>
+
+                            <Grid container spacing={2} justify="space-between">
+                                <Grid
+                                    item xs={12}
+                                    container justify="space-between"
+                                    spacing={2} alignItems="center"
+                                >
+                                    <MuiPickersUtilsProvider utils={MomentUtils}>
+                                        <Grid item xs={12} sm>
+                                            <KeyboardDateTimePicker
+                                                required
+                                                autoOk
+                                                label="Start Timestamp"
+                                                ampm={false}
+                                                value={ground_meas_filter_data.start_ts.value}
+                                                onChange={e => update_ts("start_ts", e, "ground_meas")}
+                                                placeholder="2010/01/01 00:00"
+                                                format="YYYY/MM/DD HH:mm"
+                                                mask="____/__/__ __:__"
+                                                clearable
+                                                disableFuture
+                                                fullWidth
+                                            />
+                                        </Grid>
+
+                                        <Grid item xs={12} sm>
+                                            <KeyboardDateTimePicker
+                                                required
+                                                autoOk
+                                                label="End Timestamp"
+                                                ampm={false}
+                                                value={ground_meas_filter_data.end_ts.value}
+                                                onChange={e => update_ts("end_ts", e, "ground_meas")}
+                                                placeholder="2010/01/01 00:00"
+                                                format="YYYY/MM/DD HH:mm"
+                                                mask="____/__/__ __:__"
+                                                clearable
+                                                disableFuture
+                                                fullWidth
+                                            />
+                                        </Grid>
+                                    </MuiPickersUtilsProvider>
+
+                                    <Grid item xs={12} sm={1} align="right">
+                                        <Button 
+                                            size="small" 
+                                            color="primary"
+                                            variant="contained"
+                                            onClick={submitFilter("ground_meas")}
+                                        >
+                                            Submit
+                                        </Button>
+                                    </Grid>
+                                </Grid>
+
+                                <Grid item xs={12}>
+                                    <GroundMeasChart
+                                        highcharts={Highcharts}
+                                        data={ground_meas_data.data}
+                                        isLoading={ground_meas_data.is_loading}
+                                        input={sanitizeData(ground_meas_filter_data)}
+                                    />
+                                </Grid>
+                            </Grid>
+                        </CardContent>
+                    </Card>
+                </Grid>
+            </Grid>
+        </div>
     );
 }
 
-export default (CommunicationsAnalytics);
+export default CommunicationsAnalyticsContainer;

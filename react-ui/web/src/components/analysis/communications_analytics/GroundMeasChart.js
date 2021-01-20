@@ -5,26 +5,33 @@ import moment from "moment";
 
 function getGroundMeasSiteOptions (processed_data, input) {
     const { start_ts, end_ts } = input;
-    const subtitle = `Range <b>${moment(start_ts).format("DD MMM YYYY, HH:ss")} - ${moment(end_ts).format("DD MMM YYYY, HH:ss")}<br>All sites</b>`;
+    const subtitle = `Range <b>${moment(start_ts).format("DD MMM YYYY, HH:ss")} - ${moment(end_ts).format("DD MMM YYYY, HH:ss")}</b>`;
     const { sites, expected, received } = processed_data;
     return {
         chart: {
             type: "column"
         },
         title: {
-            text: "Ground Measurement received per site"
+            text: "<b>Ground Measurement Data Received per Site</b>",
+            style: { fontSize: "14px" },
+            margin: 20,
+            y: 16
         },
         subtitle: {
-            text: subtitle
+            text: subtitle,
+            style: { fontSize: "12px" }
         },
         xAxis: {
-            categories: sites
+            categories: sites,
+            title: {
+                text: "<b>Sites</b>"
+            },
         },
         yAxis: {
             min: 0,
             // max: 100,
             title: {
-                text: "Ground Measurement"
+                text: "<b>No. of Ground Measurement Data</b>"
             },
             stackLabels: {
                 enabled: false,
@@ -111,4 +118,4 @@ function GroundMeasChart (props) {
     );
 }
 
-export default (GroundMeasChart);
+export default GroundMeasChart;
