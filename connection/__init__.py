@@ -213,6 +213,10 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
     from src.api.notifications import NOTIFICATIONS_BLUEPRINT
     app.register_blueprint(NOTIFICATIONS_BLUEPRINT, url_prefix="/api")
 
+    from src.api.communications_analytics import COMMUNICATIONS_ANALYTICS_BLUEPRINT
+    app.register_blueprint(
+        COMMUNICATIONS_ANALYTICS_BLUEPRINT, url_prefix="/api")
+
     return app
 
 
