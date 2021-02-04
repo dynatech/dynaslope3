@@ -189,97 +189,97 @@ export default function UploadDialog (props) {
     const { getRootProps, getInputProps } = useDropzone({ onDrop });
 
     return (
-        <div>
-            <Dialog onClose={handleClose} maxWidth={parent === "File" ? "md" : "sm"} open={open}>
-                <DialogTitle id="customized-dialog-title" onClose={handleClose}>
-                    <Typography variant="caption">
-                        {parent === "Folder" || menuparent === "folder" ? 
-                            (<span>{menuparent ? "Rename" : "Create new folder"} </span>)
-                            : 
-                            (<span>{menuparent ? "Rename file" : `Upload file/link to ${folderName} folder`}</span>)
-                        }
-                    </Typography>
-                </DialogTitle>
-                <DialogContent dividers>
-                    { parent === "Folder" || menuparent === "folder" ? 
-                        <TextField 
-                            label="enter folder name" 
-                            
-                            style={{ minWidth: 300 }} 
-                            inputProps={{
-                                maxLength: 30,
-                            }}
-                            value={inputs.folder_name}
-                            onChange={e=> dispatch({ type: "folderName", value: e.target.value })}
-                        /> : (
-                            <div>
-                                <Typography gutterBottom> File name</Typography>
+        <Dialog onClose={handleClose} fullWidth open={open}>
+            <DialogTitle id="customized-dialog-title" onClose={handleClose}>
+                {
+                    // eslint-disable-next-line no-nested-ternary
+                    parent === "Folder" || menuparent === "folder" ? 
+                        menuparent ? "Rename folder" : "Create new folder"
+                        : 
+                        menuparent ? "Rename file" : `Upload to "${folderName}" folder`
+                }
+            </DialogTitle>
 
-                                <TextField 
-                                    placeholder="e.g. monitoring ops manual" 
-                                    fullWidth
-                                    margin="dense" 
-                                    onChange={e=>dispatch({ type: "fileName", value: e.target.value })}
-                                    variant="outlined"
-                                    value={inputs.file_name}
-                                />
-                                <FormControl component="fieldset" fullWidth margin="normal" >
-                                    { !menuparent &&
-                                        <div> 
-                                            <FormLabel component="legend">Type</FormLabel>
-                                            <RadioGroup 
-                                                aria-label="gender" 
-                                                onChange={e=> dispatch({ type: "type", value: e.target.value })}
-                                                name="gender1"
-                                                value={inputs.type}
-                                            >
-                                                <FormControlLabel value="link" control={<Radio />} label="Link" />
-                                                <FormControlLabel value="file" control={<Radio />} label="File" />
-                                            </RadioGroup>
-                                        </div>
-                                    }
-                                    { inputs.type === "file" ? (
-                                        <div>
-                                            { !menuparent && 
-                                                <div {...getRootProps()} className={classes.dropArea}>
-                                                    <div style={{ margin: "auto" }}>
-                                                        <input {...getInputProps()} />
-                                                        <Typography style={{ width: "100%" }} textAlign="center" variant="h6" color="textSecondary">
-                                                            Drag and drop a file here
-                                                        </Typography>
-                                                        <Button style={{ textTransform: "none" }} disableElevation variant="contained" startIcon={<CloudUploadIcon/>}>
-                                                            {attachedFile !== null ? attachedFile.name : "Choose File"}
-                                                        </Button>
-                                                    </div>
-                                                </div>}
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            <TextField 
-                                                variant="outlined" 
-                                                value={inputs.link}
-                                                onChange={e => dispatch({ type: "link", value: e.target.value })} 
-                                                fullWidth placeholder="paste link here: e.g. https://drive.google.com/file/d/1......"
-                                            />
-                                        </div>
-                                    )}
-                                </FormControl>
-                            </div>
-                        )
-                    }
+            <DialogContent dividers>
+                { parent === "Folder" || menuparent === "folder" ? 
+                    <TextField 
+                        label="enter folder name" 
+                            
+                        style={{ minWidth: 300 }} 
+                        inputProps={{
+                            maxLength: 30,
+                        }}
+                        value={inputs.folder_name}
+                        onChange={e=> dispatch({ type: "folderName", value: e.target.value })}
+                    /> : (
+                        <div>
+                            <Typography gutterBottom> File name</Typography>
+
+                            <TextField 
+                                placeholder="e.g. monitoring ops manual" 
+                                fullWidth
+                                margin="dense" 
+                                onChange={e=>dispatch({ type: "fileName", value: e.target.value })}
+                                variant="outlined"
+                                value={inputs.file_name}
+                            />
+                            <FormControl component="fieldset" fullWidth margin="normal" >
+                                { !menuparent &&
+                                    <div> 
+                                        <FormLabel component="legend">Type</FormLabel>
+                                        <RadioGroup 
+                                            aria-label="gender" 
+                                            onChange={e=> dispatch({ type: "type", value: e.target.value })}
+                                            name="gender1"
+                                            value={inputs.type}
+                                        >
+                                            <FormControlLabel value="link" control={<Radio />} label="Link" />
+                                            <FormControlLabel value="file" control={<Radio />} label="File" />
+                                        </RadioGroup>
+                                    </div>
+                                }
+
+                                { inputs.type === "file" ? (
+                                    <div>
+                                        { !menuparent && 
+                                            <div {...getRootProps()} className={classes.dropArea}>
+                                                <div style={{ margin: "auto" }}>
+                                                    <input {...getInputProps()} />
+                                                    <Typography style={{ width: "100%" }} textAlign="center" variant="h6" color="textSecondary">
+                                                        Drag and drop a file here
+                                                    </Typography>
+                                                    <Button style={{ textTransform: "none" }} disableElevation variant="contained" startIcon={<CloudUploadIcon/>}>
+                                                        {attachedFile !== null ? attachedFile.name : "Choose File"}
+                                                    </Button>
+                                                </div>
+                                            </div>}
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <TextField 
+                                            variant="outlined" 
+                                            value={inputs.link}
+                                            onChange={e => dispatch({ type: "link", value: e.target.value })} 
+                                            fullWidth placeholder="paste link here: e.g. https://drive.google.com/file/d/1......"
+                                        />
+                                    </div>
+                                )}
+                            </FormControl>
+                        </div>
+                    )
+                }
         
-                </DialogContent>
-                <DialogActions>
-                    <Button 
-                        autoFocus 
-                        onClick={handleSave} 
-                        color={parent === "Folder" ? "primary" : "secondary"} 
-                        variant="contained"
-                    >
-                        {parent === "Folder" ? "create" : "save"}
-                    </Button>
-                </DialogActions>
-            </Dialog>
-        </div>
+            </DialogContent>
+            <DialogActions>
+                <Button 
+                    autoFocus 
+                    onClick={handleSave} 
+                    color={parent === "Folder" ? "primary" : "secondary"} 
+                    variant="contained"
+                >
+                    {parent === "Folder" ? "create" : "save"}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 }

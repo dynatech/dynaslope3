@@ -1,13 +1,13 @@
 """
 File containing class representation of
-Issues and Reminders tables
+Knowledge Management tables
 """
 
 from datetime import datetime
 from marshmallow import fields
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
-from src.models.users import Users
+
 
 class KnowledgeFolder(DB.Model):
     """
@@ -21,18 +21,12 @@ class KnowledgeFolder(DB.Model):
     folder_id = DB.Column(DB.String, primary_key=True, nullable=False)
     folder_name = DB.Column(DB.String(50))
     ts_created = DB.Column(DB.DateTime, default=datetime.now, nullable=False)
-    modified_by = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
-    is_active = DB.Column(DB.Boolean)
-    files = DB.relationship(
-        "KnowledgeFiles",
-        backref=DB.backref("folders", lazy="joined"),
-        lazy="subquery")
+    parent_folder_id = DB.Column(DB.String)
 
     def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> FOLDER_ID: {self.folder_id}"
+        return (f"Type <{self.__class__.__name__}> Folder ID: {self.folder_id}"
                 f" Folder Name: {self.folder_name} ts_created: {self.ts_created}"
-                f" modified_by: {self.modified_by}")
+                f" Parent Folder: {self.parent_folder_id}")
 
 
 class KnowledgeFiles(DB.Model):
@@ -45,32 +39,30 @@ class KnowledgeFiles(DB.Model):
     __table_args__ = {"schema": SCHEMA_DICT[__bind_key__]}
 
     file_id = DB.Column(DB.String, primary_key=True, nullable=False)
-    file_display_name = DB.Column(DB.String(100))
-    folder_id = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['commons_db']}.knowledge_folders.folder_id"), nullable=False)
+    folder_id = DB.Column(DB.String)
+    display_name = DB.Column(DB.String(100))
     ts_uploaded = DB.Column(DB.DateTime, default=datetime.now, nullable=False)
-    modified_by = DB.Column(DB.Integer, DB.ForeignKey(
-        f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
-    record_type = DB.Column(DB.String(20))
-    link = DB.Column(DB.String(500))
-    dir = DB.Column(DB.String(200))
-    ext = DB.Column(DB.String(20))
-    is_active = DB.Column(DB.Boolean)
+    entry_type = DB.Column(DB.String(20))
+    location = DB.Column(DB.String(500))
+    ext = DB.Column(DB.String(10))
 
     def __repr__(self):
-        return (f"Type <{self.__class__.__name__}> FILE_ID: {self.file_id}"
-                f" Display Name: {self.file_display_name} ts_uploaded: {self.ts_upload}"
-                f" modified_by: {self.modified_by}")
+        return (f"Type <{self.__class__.__name__}> File ID: {self.file_id}"
+                f" Display Name: {self.display_name} ts_uploaded: {self.ts_uploaded}"
+                f" Entry Type: {self.entry_type}")
+
 
 class KnowledgeFilesSchema(MARSHMALLOW.ModelSchema):
     """
     Schema representation of Common IssuesAndReminders class
     """
+
     ts_uploaded = fields.DateTime("%Y-%m-%d %H:%M:%S")
 
     class Meta:
         """Saves table class structure as schema model"""
         model = KnowledgeFiles
+
 
 class KnowledgeFolderSchema(MARSHMALLOW.ModelSchema):
     """
@@ -79,12 +71,6 @@ class KnowledgeFolderSchema(MARSHMALLOW.ModelSchema):
 
     ts_created = fields.DateTime("%Y-%m-%d %H:%M:%S")
     files = fields.Nested("KnowledgeFilesSchema", many=True)
-    # ts_expiration = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    # user_id = fields.Integer()
-    # issue_reporter = fields.Nested(
-    #     "UsersSchema", exclude=("issue_and_reminder", ))
-    # postings = fields.Nested(
-    #     "IssuesRemindersSitePostingsSchema", many=True, exclude=("issue_and_reminder", ))
 
     class Meta:
         """Saves table class structure as schema model"""

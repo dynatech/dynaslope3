@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import ClickAwayListener from "@material-ui/core/ClickAwayListener";
 import Grow from "@material-ui/core/Grow";
 import Paper from "@material-ui/core/Paper";
@@ -49,8 +49,8 @@ export default function MenuListComposition (props) {
                                 <ClickAwayListener onClickAway={handleClose}>
                                     <MenuList autoFocusItem={open} id="menu-list-grow">
                             
-                                        <MenuItem onClick={handleClick}>{parent === "file" ? "edit" : "rename"}</MenuItem>
-                                        <MenuItem onClick={handleDelete}>delete</MenuItem>
+                                        <MenuItem onClick={handleClick}>{parent === "file" ? "Edit" : "Rename"}</MenuItem>
+                                        <MenuItem onClick={handleDelete}>Delete</MenuItem>
                                     </MenuList>
                                 </ClickAwayListener>
                             </Paper>

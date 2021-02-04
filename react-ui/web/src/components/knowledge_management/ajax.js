@@ -1,6 +1,11 @@
 import { host } from "../../config";
 import { makeGETAxiosRequest, makePOSTAxiosRequest } from "../../UtilityFunctions";
 
+export function getFolderContents (folder_id, callback) {
+    const api_link = `${host}/api/knowledge_management/get_folder_contents/${folder_id}`;
+    makeGETAxiosRequest(api_link, callback);
+}
+
 export function getFolders (callback) {
     const api_link = `${host}/api/knowledge/get_folders`;
     makeGETAxiosRequest(api_link, callback);

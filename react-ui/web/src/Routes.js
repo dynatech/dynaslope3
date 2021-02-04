@@ -22,8 +22,7 @@ import ProfileContainer from "./components/member_profile/Container";
 import UpdateCredentialsForm from "./components/member_profile/UpdateCredentialsForm";
 import CreateDynaUser from "./components/member_profile/CreateDynaUser";
 
-import PapersContainer from "./components/knowledge_management/papers/Container";
-import ProtocolsContainer from "./components/knowledge_management/protocols/Container";
+import KnowledgeManagementContainer from "./components/knowledge_management/Container";
 
 function RoutesCollection (props) {
     const { 
@@ -57,8 +56,7 @@ function RoutesCollection (props) {
             <Route path={`${url}profile/create`} component={CreateDynaUser} />
             <Route path={`${url}profile`} component={ProfileContainer} />
             
-            <Route path={`${url}knowledge/papers`} component={PapersContainer} />
-            <Route path={`${url}knowledge/protocols`} component={ProtocolsContainer} />
+            <Route path={`${url}knowledge_management`} component={KnowledgeManagementContainer} />
 
             <Route render={() => <h3> Not found</h3>} />
         </Switch>

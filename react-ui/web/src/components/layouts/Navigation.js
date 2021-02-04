@@ -134,13 +134,8 @@ const navigation_labels = [
         main: "Knowledge Management",
         sub: [
             {
-                label: "Protocols",
-                link: "/knowledge/protocols",
-                //soon: true
-            },
-            {
-                label: "Papers",
-                link: "/knowledge/papers",
+                label: "Browser",
+                link: "/knowledge_management"
             }
         ]
     }

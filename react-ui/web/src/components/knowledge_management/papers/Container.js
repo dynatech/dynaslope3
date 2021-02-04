@@ -47,6 +47,7 @@ const FolderList = (props) => {
         isMobile, selectedFolder, setSelectedFolder, setParent, 
         open, handleToggle, setMenuParent
     } = props;
+
     return (
         <div style={{ overflow: "scroll", height: isMobile ? "100%" : "70vh", padding: 5 }}>
             <Button 
@@ -57,10 +58,12 @@ const FolderList = (props) => {
                 onClick={() => {
                     setOpenDialog(true); 
                     setParent("Folder");
-                }} 
+                }}
+                align="right"
             >
-                New
+                New folder
             </Button>
+
             <List component="nav" aria-label="main mailbox folders">
                 {data !== null && data.map((folder, index) => (
                     <ListItem 
@@ -72,24 +75,26 @@ const FolderList = (props) => {
                         }}
                     >
                         <ListItemIcon>
-                            {selectedFolder === index ?
-                                <FolderOpenIcon style={{ color: "#ff751a", fontWeight: "bold" }}/>
-                                :
-                                <FolderIcon style={{ color: "#ff751a" }}/>
+                            {
+                                selectedFolder === index ?
+                                    <FolderOpenIcon style={{ color: "#ff751a", fontWeight: "bold" }}/>
+                                    :
+                                    <FolderIcon style={{ color: "#ff751a" }}/>
                             }
                         </ListItemIcon>
                         <ListItemText primary={folder.folder_name} />
-                        { selectedFolder === index &&
-                            <IconButton 
-                                ria-controls={open ? "menu-list-grow" : undefined}
-                                aria-haspopup="true"
-                                onClick={e=>{
-                                    setMenuParent("folder");
-                                    handleToggle(e, folder.folder_id);
-                                }}
-                            >
-                                <MoreVertIcon/>
-                            </IconButton>
+                        {
+                            selectedFolder === index &&
+                                <IconButton 
+                                    aria-controls={open ? "menu-list-grow" : undefined}
+                                    aria-haspopup="true"
+                                    onClick={e => {
+                                        setMenuParent("folder");
+                                        handleToggle(e, folder.folder_id);
+                                    }}
+                                >
+                                    <MoreVertIcon/>
+                                </IconButton>
                         }
                     </ListItem>
                 ))}
@@ -114,6 +119,7 @@ export default function QAContainer () {
     const [menuparent, setMenuParent] = useState(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [deleteAction, setDeleteAction] = useState(null);
+
     const handleToggle = (e, id) => {
         setOpen(true);
         setAnchor(e.currentTarget);
@@ -125,7 +131,7 @@ export default function QAContainer () {
         if (type === "link") {
             window.open(link);
         } else {
-            window.location.assign(`${host}/api/download?f=${file_id}&fdn=${file_display_name}&t=${ext}`);
+            window.open(`${host}/api/download?f=${file_id}&fdn=${file_display_name}&t=${ext}`, "_blank");
         }
     };
 
@@ -162,18 +168,6 @@ export default function QAContainer () {
 
     return (
         <Fragment>
-            <FileUploadDialog 
-                open={openDialog} 
-                setOpen={setOpenDialog}
-                folderName={folderName}
-                folderID={folderID}
-                parent={parent}
-                setReload={setReload}
-                menuparent={menuparent}
-                setMenuParent={setMenuParent}
-                selectedFile={selectedFile}
-                deleteAction={deleteAction}
-            />  
             <div className={classes.pageContentMargin}>
                 <PageTitle 
                     title={
@@ -194,8 +188,7 @@ export default function QAContainer () {
                         </Button>
                     }
                 />
-            </div>
-            <div className={classes.pageContentMargin} style={{ height: "70vh" }}>
+
                 <Grid container spacing={2}>
                     <Hidden smDown>
                         <Grid item md={3} xs={12}>
@@ -213,61 +206,87 @@ export default function QAContainer () {
                             />
                         </Grid>
                     </Hidden>
+
                     <Grid item md={9} xs={12}>
                         <List component="nav" aria-label="main mailbox folders">
                             <Hidden mdUp>
-                                <IconButton onClick={()=>setFolderDrawer(true)}>
+                                <IconButton onClick={() => setFolderDrawer(true)}>
                                     <ViewListIcon color="primary"/>
                                 </IconButton>
                             </Hidden>
+
                             <Typography color="textSecondary" variant="overline" >
                                 {`Total record(s): ${data !== null && data[selectedFolder].files.length}`}
                             </Typography>
-                            {data !== null && data[selectedFolder].files.map((file, index) => {
 
-                                const { 
-                                    record_type, ext, file_id, 
-                                    file_display_name, ts_uploaded,
-                                    modified_by 
-                                } = file;
-                                return (
-                                    <div>
-                                        <ListItem key={file.file_id}>
-                                            <ListItemIcon>
-                                                <Typography>{`${index + 1}.  `}</Typography>
-                                            </ListItemIcon>
-                                            <ListItemText 
-                                                primary={`${file_display_name}${ext !== null ? ext : ""}`} 
-                                                secondary={`updated by ${modified_by} ${TimeAgo(ts_uploaded)}`} 
-                                            />
-                                            <Button 
-                                                onClick={e=>openFileLink(record_type, file)} 
-                                                size="small" 
-                                                color="primary" 
-                                                style={{ textTransform: "none", width: 100 }}
-                                            >
-                                                {record_type === "link" ? "open" : "download"}
-                                            </Button>
-                                            <IconButton 
-                                                ria-controls={open ? "menu-list-grow" : undefined}
-                                                aria-haspopup="true"
-                                                onClick={e=>{
-                                                    handleToggle(e, file_id);
-                                                    setMenuParent("file");
-                                                    setSelectedFile(file);
-                                                }}
-                                            >
-                                                <MoreVertIcon/>
-                                            </IconButton>
-                                        </ListItem>
-                                        <Divider/>
-                                    </div>
-                                );
-                            })}
+                            <Divider />
+
+                            {
+                                data !== null && data[selectedFolder].files.map((file, index) => {
+                                    const { 
+                                        record_type, ext, file_id, 
+                                        file_display_name, ts_uploaded,
+                                        user
+                                    } = file;
+                                    const { first_name, last_name } = user;
+
+                                    return (
+                                        <div key={file_id}>
+                                            <ListItem>
+                                                <ListItemIcon>
+                                                    <Typography>{`${index + 1}`}</Typography>
+                                                </ListItemIcon>
+
+                                                <ListItemText 
+                                                    primary={`${file_display_name}${ext !== null ? ext : ""}`} 
+                                                    secondary={`Updated by ${first_name} ${last_name} ${TimeAgo(ts_uploaded)}`} 
+                                                />
+
+                                                <Button 
+                                                    onClick={e => openFileLink(record_type, file)} 
+                                                    size="small" 
+                                                    color="primary" 
+                                                    style={{ textTransform: "none", width: 100 }}
+                                                >
+                                                    {record_type === "link" ? "Open" : "Download"}
+                                                </Button>
+
+                                                <IconButton 
+                                                    ria-controls={open ? "menu-list-grow" : undefined}
+                                                    aria-haspopup="true"
+                                                    onClick={e=>{
+                                                        handleToggle(e, file_id);
+                                                        setMenuParent("file");
+                                                        setSelectedFile(file);
+                                                    }}
+                                                >
+                                                    <MoreVertIcon/>
+                                                </IconButton>
+                                            </ListItem>
+
+                                            <Divider />
+                                        </div>
+                                    );
+                                })
+                            }
                         </List>
                     </Grid>
                 </Grid>
             </div>
+
+            <FileUploadDialog 
+                open={openDialog} 
+                setOpen={setOpenDialog}
+                folderName={folderName}
+                folderID={folderID}
+                parent={parent}
+                setReload={setReload}
+                menuparent={menuparent}
+                setMenuParent={setMenuParent}
+                selectedFile={selectedFile}
+                deleteAction={deleteAction}
+            />  
+
             <SwipeableDrawer
                 anchor="left"
                 open={folderDrawer}
@@ -294,7 +313,8 @@ export default function QAContainer () {
                     selectedFile={selectedFile}
                     deleteAction={deleteAction}
                 />
-            </SwipeableDrawer> 
+            </SwipeableDrawer>
+
             <PopupMenu
                 open={open}
                 setOpen={setOpen}
