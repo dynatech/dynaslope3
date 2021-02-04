@@ -40,7 +40,7 @@
     "react-virtualized-auto-sizer": "^1.0.2",
     "react-window": "^1.8.5",
     "recompose": "^0.30.0",
-    "socket.io-client": "^2.3.0",
+    "socket.io-client": "^3.1.0",
     "string-mask": "^0.3.0",
     "text-mask-addons": "^3.8.0",
     "verify": "^0.1.2",
@@ -70,5 +70,9 @@
     "not dead",
     "not ie <= 11",
     "not op_mini all"
-  ]
+  ],
+  "description": "This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).",
+  "main": ".eslintrc.js",
+  "author": "",
+  "license": "ISC"
 }
