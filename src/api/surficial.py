@@ -38,7 +38,7 @@ def wrap_get_surficial_markers(site_code=None, get_complete_data=None):
     markers = get_surficial_markers(
         site_code, get_complete_data)
 
-    marker_data = markers_schema.dump(markers).data
+    marker_data = markers_schema.dump(markers)
 
     return jsonify(marker_data)
 
@@ -95,7 +95,7 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
         in_use = marker_row.in_use
 
         marker_history = MarkerHistorySchema(
-            many=True).dump(marker_row.history).data
+            many=True).dump(marker_row.history)
 
         data_set = list(filter(lambda x: x.marker_id ==
                                marker_id, surficial_data))
@@ -111,8 +111,7 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
         for item in data_set:
             ts = item.marker_observation.ts
             final_ts = int(ts.timestamp() * 1000)
-            unreliable_data = MarkerDataTagsSchema(
-                exclude=["marker_data"]).dump(item.marker_data_tags).data
+            unreliable_data = MarkerDataTagsSchema().dump(item.marker_data_tags) #NOTE EXCLUDE: exclude=["marker_data"]
 
             new_list.append({
                 "x": final_ts, "y": item.measurement,

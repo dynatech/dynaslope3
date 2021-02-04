@@ -4,7 +4,7 @@ tables of users
 """
 
 from flask_login import UserMixin
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
 from src.models.sites import Sites
@@ -241,23 +241,24 @@ class UserEwiRestrictions(DB.Model):
                 f" Alert Level: {self.alert_level}")
 
 
-class UsersSchema(MARSHMALLOW.ModelSchema):
+class UsersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
 
-    birthday = fields.DateTime("%Y-%m-%d %H:%M:%S")
+    birthday = MARSHMALLOW.auto_field()
 
     class Meta:
         """Saves table class structure as schema model"""
         model = Users
-        exclude = [
+        unknown = EXCLUDE
+        EXCLUDE = [
             "mobile_numbers", "landline_numbers", "account",
             "marker_tags", "rainfall_tags", "issue_and_reminder"
         ]
 
 
-class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
+class UsersRelationshipSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users Relationships
     """
@@ -275,50 +276,51 @@ class UsersRelationshipSchema(MARSHMALLOW.ModelSchema):
 
     birthday = fields.DateTime("%Y-%m-%d")
 
-    mobile_numbers = fields.Nested(
+    mobile_numbers = MARSHMALLOW.Nested(
         "UserMobilesSchema", many=True, exclude=("user",))
 
-    organizations = fields.Nested(
-        UserOrganizationsSchema, many=True, exclude=("user",))
+    organizations = MARSHMALLOW.Nested(
+        UserOrganizationsSchema, many=True) #NOTE EXCLUDE: exclude=("user",)
 
-    ewi_restriction = fields.Nested(
+    ewi_restriction = MARSHMALLOW.Nested(
         "UserEwiRestrictionsSchema", exclude=("user",))
 
-    teams = fields.Nested(
-        "UserTeamMembersSchema", many=True, exclude=("user",))
+    teams = MARSHMALLOW.Nested(
+        "UserTeamMembersSchema", many=True) #NOTE EXCLUDE: exclude=("user",)
 
-    landline_numbers = fields.Nested(
+    landline_numbers = MARSHMALLOW.Nested(
         "UserLandlinesSchema", many=True, exclude=("user",))
 
-    emails = fields.Nested(
+    emails = MARSHMALLOW.Nested(
         "UserEmailsSchema", many=True, exclude=("user",))
 
-    account = fields.Nested(
+    account = MARSHMALLOW.Nested(
         "UserAccountsSchema", many=False, exclude=("user",))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = UsersRelationship
+        # unknown = EXCLUDE
         exclude = ["account"]
 
 
-class UserOrganizationSchema(MARSHMALLOW.ModelSchema):
+class UserOrganizationSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of User Organization class
     """
-    site = fields.Nested("SitesSchema")
+    site = MARSHMALLOW.Nested("SitesSchema")
 
     class Meta:
         """Saves table class structure as schema model"""
         model = UserOrganization
 
 
-class UserLandlinesSchema(MARSHMALLOW.ModelSchema):
+class UserLandlinesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of user_landlines class
     """
 
-    user = fields.Nested(UsersRelationshipSchema,
+    user = MARSHMALLOW.Nested(UsersRelationshipSchema,
                          exclude=("landline_numbers",))
 
     class Meta:
@@ -327,12 +329,12 @@ class UserLandlinesSchema(MARSHMALLOW.ModelSchema):
         model = UserLandlines
 
 
-class UserEmailsSchema(MARSHMALLOW.ModelSchema):
+class UserEmailsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of user_emails class
     """
 
-    user = fields.Nested(UsersRelationshipSchema, exclude=("emails",))
+    user = MARSHMALLOW.Nested(UsersRelationshipSchema, exclude=("emails",))
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -340,12 +342,12 @@ class UserEmailsSchema(MARSHMALLOW.ModelSchema):
         model = UserEmails
 
 
-class UserTeamsSchema(MARSHMALLOW.ModelSchema):
+class UserTeamsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
 
-    team_members = fields.Nested(
+    team_members = MARSHMALLOW.Nested(
         "UserTeamMembersSchema", many=True, exclude=["team"])
 
     class Meta:
@@ -353,30 +355,31 @@ class UserTeamsSchema(MARSHMALLOW.ModelSchema):
         model = UserTeams
 
 
-class UserTeamMembersSchema(MARSHMALLOW.ModelSchema):
+class UserTeamMembersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
-    team = fields.Nested("UserTeamsSchema", exclude=("team_members",))
+    team = MARSHMALLOW.Nested("UserTeamsSchema", exclude=("team_members",))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = UserTeamMembers
 
 
-class UserAccountsSchema(MARSHMALLOW.ModelSchema):
+
+class UserAccountsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
 
-    user = fields.Nested(UsersSchema)
+    user = MARSHMALLOW.Nested(UsersSchema)
 
     class Meta:
         """Saves table class structure as schema model"""
         model = UserAccounts
 
 
-class PendingAccountsSchema(MARSHMALLOW.ModelSchema):
+class PendingAccountsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
@@ -386,11 +389,11 @@ class PendingAccountsSchema(MARSHMALLOW.ModelSchema):
         model = PendingAccounts
 
 
-class UserEwiRestrictionsSchema(MARSHMALLOW.ModelSchema):
+class UserEwiRestrictionsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of UserEwiRestrictions class
     """
-    user = fields.Nested(UsersRelationshipSchema)
+    user = MARSHMALLOW.Nested(UsersRelationshipSchema)
 
     class Meta:
         """Saves table class structure as schema model"""

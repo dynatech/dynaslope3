@@ -276,13 +276,13 @@ def create_table_for_sensors_data(data):
 def get_loggers_data():
     loggers_query = Loggers.query.order_by(Loggers.logger_name).all()
     loggers_result = LoggersSchema(
-        many=True, exclude=["site"]).dump(loggers_query).data
+        many=True).dump(loggers_query) #NOTE EXCLUDE: site
 
     rainfall_gauges_query = RainfallGauges.query.filter_by(
         data_source="senslope").all()
     rainfall_gauges_result = RainfallGaugesSchema(
-        many=True, exclude=["data_presence", "rainfall_alerts",
-                            "rainfall_priorities"]).dump(rainfall_gauges_query).data
+        many=True).dump(rainfall_gauges_query)
+    #NOTE EXCLUDE: ["data_presence", "rainfall_alerts","rainfall_priorities"]
 
     datas = {
         "loggers": loggers_result,

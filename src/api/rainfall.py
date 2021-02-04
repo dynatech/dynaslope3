@@ -40,7 +40,7 @@ def wrap_get_rainfall_plot_data(site_code, end_ts=None, days_diff=3):
             ts_start=start_ts,
             ts_end=ts
         )
-        invalid_list = RainfallDataTagsSchema(many=True).dump(tags).data
+        invalid_list = RainfallDataTagsSchema(many=True).dump(tags)
         row["invalid_data"] = invalid_list
 
     return jsonify(plot_data)

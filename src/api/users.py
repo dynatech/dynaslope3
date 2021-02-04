@@ -38,7 +38,7 @@ def wrap_get_community_orgs_by_site(site_code):
         if name != "lewc":
             key = f"{scopes[scope]} {name}"
 
-        user_data = UsersSchema().dump(user_org.user).data
+        user_data = UsersSchema().dump(user_org.user)
         user_data["primary_contact"] = user_org.primary_contact
 
         if key not in temp:
@@ -61,7 +61,7 @@ def wrap_get_community_users_by_site(site_code):
         community_users = get_community_users_simple(site_code=site_code)
 
         community_users_data = UsersSchema(
-            many=True).dump(community_users).data
+            many=True).dump(community_users)
 
     return jsonify(community_users_data)
 
@@ -141,7 +141,7 @@ def get_organizations():
     ).all()
 
     result = OrganizationsSchema(many=True, exclude=["users"]) \
-        .dump(orgs).data
+        .dump(orgs)
 
     return jsonify(result)
 

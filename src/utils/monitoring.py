@@ -522,7 +522,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                 "releases.moms_releases",
                 "releases.release_publishers",
                 "releases.triggers"
-            ]).dump(event_alert).data
+            ]).dump(event_alert)
         public_alert_level = event_alert.public_alert_symbol.alert_level
         trigger_list = latest_release.trigger_list
         event_alert_data["internal_alert_level"] = build_internal_alert_level(
@@ -547,7 +547,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             "release", "trigger_misc.moms_releases.moms_details.narrative.site",
             "trigger_misc.moms_releases.moms_details.moms_instance.site"])
         event_alert_data["latest_event_triggers"] = mts.dump(
-            latest_triggers_per_kind).data
+            latest_triggers_per_kind)
 
         highest_event_alert_level = max(
             map(lambda x: x.public_alert_symbol.alert_level, event.event_alerts))
@@ -870,7 +870,7 @@ def get_qa_data(ts_start=None, ts_end=None):
         ))
 
     return_data = base.all()
-    result = release_schema.dump(return_data).data
+    result = release_schema.dump(return_data)
 
     i = 0
     for row in return_data:
@@ -2284,7 +2284,7 @@ def process_unique_triggers_data(query):
 
         site = Sites.query.options(DB.raiseload("*")) \
             .filter(Sites.site_id == site_id).first()
-        site_result = SitesSchema().dump(site).data
+        site_result = SitesSchema().dump(site)
 
         temp = {
             "event_id": row[0],

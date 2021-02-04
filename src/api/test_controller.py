@@ -26,7 +26,7 @@ def get_one_member():
 
     member = Membership.query.all()
     membership_schema = MembershipSchema()
-    output = membership_schema.dump(member).data
+    output = membership_schema.dump(member)
     return jsonify(output)
 
 
@@ -37,7 +37,7 @@ def get_all_members():
     """
     members = Membership.query.all()
     membership_schema = MembershipSchema(many=True)
-    output = membership_schema.dump(members).data
+    output = membership_schema.dump(members)
     return jsonify(output)
 
 
@@ -49,7 +49,7 @@ def get_all_event_ids_only():
     events = DB.session.query(MonitoringEvents.event_id).order_by(DB.desc(
         MonitoringEvents.event_id)).filter(MonitoringEvents.status == 2).all()
 
-    event_data = MonitoringEventsSchema(many=True).dump(events).data
+    event_data = MonitoringEventsSchema(many=True).dump(events)
     return jsonify(event_data)
 
 
@@ -61,7 +61,7 @@ def get_all_events():
     events = MonitoringEvents.query.order_by(DB.desc(
         MonitoringEvents.event_id)).filter(MonitoringEvents.status == 2).all()
 
-    event_data = MonitoringEventsSchema(many=True).dump(events).data
+    event_data = MonitoringEventsSchema(many=True).dump(events)
     return jsonify(event_data)
 
 
@@ -74,7 +74,7 @@ def get_all_events_wo_relationship():
         MonitoringEvents.status == "finished").order_by(DB.desc(MonitoringEvents.event_id)).all()
 
     event_data = MonitoringEventsSchema(
-        many=True, exclude=("releases", )).dump(events).data
+        many=True, exclude=("releases", )).dump(events)
     return jsonify(event_data)
 
 
@@ -86,7 +86,7 @@ def get_releases_of_an_event(event_id):
     releases = MonitoringReleases.query.join(MonitoringEvents).order_by(DB.desc(
         MonitoringEvents.event_id)).filter(MonitoringEvents.event_id == event_id).all()
 
-    releases_data = MonitoringReleasesSchema(many=True).dump(releases).data
+    releases_data = MonitoringReleasesSchema(many=True).dump(releases)
     return jsonify(releases_data)
 
 
@@ -115,7 +115,7 @@ def get_releases_of_an_event_args():
     releases = MonitoringReleases.query.join(MonitoringEvents).order_by(DB.desc(
         MonitoringEvents.event_id)).filter(MonitoringEvents.event_id == event_id).all()
 
-    releases_data = MonitoringReleasesSchema(many=True).dump(releases).data
+    releases_data = MonitoringReleasesSchema(many=True).dump(releases)
     return jsonify(releases_data)
 
 
@@ -137,7 +137,7 @@ def get_releases_of_shift(start, end):
     releases = MonitoringReleases.query.filter(
         MonitoringReleases.data_ts > start, MonitoringReleases.data_ts <= end).all()[0:5]
 
-    releases_data = MonitoringReleasesSchema(many=True).dump(releases).data
+    releases_data = MonitoringReleasesSchema(many=True).dump(releases)
     return jsonify(releases_data)
 
 
@@ -162,7 +162,7 @@ def get_trigger_by_id(trigger_id):
     """
     trigger_details = MonitoringTriggers.query.filter(
         MonitoringTriggers.trigger_id == trigger_id).first()
-    trigger = MonitoringTriggersSchema().dump(trigger_details).data
+    trigger = MonitoringTriggersSchema().dump(trigger_details)
     # release["alert_description"] = a.alert_description
     return jsonify(trigger)
 

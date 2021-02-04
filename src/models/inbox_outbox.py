@@ -241,14 +241,14 @@ class ViewLatestUnsentMsgsPerMobileID(DB.Model):
                 f" Max TS: {self.max_ts}")
 
 
-class SmsInboxUsersSchema(MARSHMALLOW.ModelSchema):
+class SmsInboxUsersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
 
     mobile_id = fields.Integer()
-    mobile_details = fields.Nested(UserMobilesSchema)
-    sms_tags = fields.Nested("SmsInboxUserTagsSchema",
+    mobile_details = MARSHMALLOW.Nested(UserMobilesSchema)
+    sms_tags = MARSHMALLOW.Nested("SmsInboxUserTagsSchema",
                              many=True, exclude=["inbox_message"])
 
     class Meta:
@@ -256,12 +256,12 @@ class SmsInboxUsersSchema(MARSHMALLOW.ModelSchema):
         model = SmsInboxUsers
 
 
-class SmsOutboxUsersSchema(MARSHMALLOW.ModelSchema):
+class SmsOutboxUsersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
-    send_status = fields.Nested("SmsOutboxUserStatusSchema", many=True)
-    sms_tags = fields.Nested("SmsOutboxUserTagsSchema",
+    send_status = MARSHMALLOW.Nested("SmsOutboxUserStatusSchema", many=True)
+    sms_tags = MARSHMALLOW.Nested("SmsOutboxUserTagsSchema",
                              many=True, exclude=["outbox_message"])
 
     class Meta:
@@ -269,7 +269,7 @@ class SmsOutboxUsersSchema(MARSHMALLOW.ModelSchema):
         model = SmsOutboxUsers
 
 
-class SmsOutboxUserStatusSchema(MARSHMALLOW.ModelSchema):
+class SmsOutboxUserStatusSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
@@ -279,7 +279,7 @@ class SmsOutboxUserStatusSchema(MARSHMALLOW.ModelSchema):
         model = SmsOutboxUserStatus
 
 
-class ViewLatestMessagesSchema(MARSHMALLOW.ModelSchema):
+class ViewLatestMessagesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
@@ -289,7 +289,7 @@ class ViewLatestMessagesSchema(MARSHMALLOW.ModelSchema):
         model = ViewLatestMessages
 
 
-class TempLatestMessagesSchema(MARSHMALLOW.ModelSchema):
+class TempLatestMessagesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
@@ -308,7 +308,7 @@ class TempLatestMessagesSchema(MARSHMALLOW.ModelSchema):
     msg_source = fields.String()
 
 
-class SmsTagsSchema(MARSHMALLOW.ModelSchema):
+class SmsTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
@@ -319,12 +319,12 @@ class SmsTagsSchema(MARSHMALLOW.ModelSchema):
         exclude = ["smsinbox_user_tags", "smsoutbox_user_tags"]
 
 
-class SmsInboxUserTagsSchema(MARSHMALLOW.ModelSchema):
+class SmsInboxUserTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
     tag_id = fields.Integer()
-    tag = fields.Nested("SmsTagsSchema")
+    tag = MARSHMALLOW.Nested("SmsTagsSchema")
     user_id = fields.Integer()
 
     class Meta:
@@ -332,12 +332,12 @@ class SmsInboxUserTagsSchema(MARSHMALLOW.ModelSchema):
         model = SmsInboxUserTags
 
 
-class SmsOutboxUserTagsSchema(MARSHMALLOW.ModelSchema):
+class SmsOutboxUserTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
     tag_id = fields.Integer()
-    tag = fields.Nested("SmsTagsSchema")
+    tag = MARSHMALLOW.Nested("SmsTagsSchema")
     user_id = fields.Integer()
 
     class Meta:

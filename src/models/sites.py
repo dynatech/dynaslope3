@@ -5,7 +5,7 @@ Sites table (and related tables)
 
 from instance.config import SCHEMA_DICT
 from sqlalchemy.dialects.mysql import TINYINT
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 from connection import DB, MARSHMALLOW
 
 
@@ -93,7 +93,7 @@ class RoutineSchedules(DB.Model):
                 f" ISO Week Day: {self.iso_week_day}")
 
 
-class SitesSchema(MARSHMALLOW.ModelSchema):
+class SitesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Sites class
     """
@@ -108,25 +108,23 @@ class SitesSchema(MARSHMALLOW.ModelSchema):
             for field_name in self.include:
                 self.fields[field_name] = self._declared_fields[field_name]
 
-    season = fields.Integer()
-    season_months = fields.Nested("SeasonsSchema", exclude=("sites",))
-
+    season = MARSHMALLOW.Integer()
+    season_months = MARSHMALLOW.Nested("SeasonsSchema") #NOTE EXCLUDE:exclude=("sites",)
     class Meta:
         """Saves table class structure as schema model"""
         model = Sites
-        exclude = (
-            "season_months", "moms_instance",
-            "issues_reminders_site_posting")
         ordered = False
+        # unknown = EXCLUDE
+        exclude = ["season_months"]
+        # EXCLUDE = ["season_months"]
 
 
-class SeasonsSchema(MARSHMALLOW.ModelSchema):
+class SeasonsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Seasons class
     """
 
-    routine_schedules = fields.Nested("RoutineSchedulesSchema", many=True,
-                                      exclude=["seasons"])
+    routine_schedules = MARSHMALLOW.Nested("RoutineSchedulesSchema", many=True) #NOTE EXCLUDE: exclude=("seasons",)
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -134,7 +132,7 @@ class SeasonsSchema(MARSHMALLOW.ModelSchema):
         ordered = False
 
 
-class RoutineSchedulesSchema(MARSHMALLOW.ModelSchema):
+class RoutineSchedulesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of RoutineSchedules class
     """

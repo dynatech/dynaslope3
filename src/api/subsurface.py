@@ -26,7 +26,7 @@ def wrap_get_site_subsurface_columns(site_code=None):
     tsm_sensors = get_site_subsurface_columns(
         site_code, include_deactivated=True)
 
-    tsm_sensors_data = tsm_sensors_schema.dump(tsm_sensors).data
+    tsm_sensors_data = tsm_sensors_schema.dump(tsm_sensors)
 
     return jsonify(tsm_sensors_data)
 
@@ -46,7 +46,7 @@ def wrap_get_subsurface_column_versions(site_column=None):
     site_column_version = get_subsurface_column_versions(site_column)
 
     site_column_version_data = tsm_sensors_schema.dump(
-        site_column_version).data
+        site_column_version)
 
     return jsonify(site_column_version_data)
 

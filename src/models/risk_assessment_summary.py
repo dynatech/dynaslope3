@@ -20,7 +20,7 @@ class RiskAssessmentSummary(DB.Model):
         return f"Class Representation"
 
 
-class RiskAssessmentSummarySchema(MARSHMALLOW.ModelSchema):
+class RiskAssessmentSummarySchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of RiskAssessmentSummary class
     """

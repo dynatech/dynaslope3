@@ -22,6 +22,6 @@ def get_moms_report(timestamp, timedelta_hour=1, minute=59, site_id=0):
     ).all()
 
     excluded = ["reporter", "moms_instance.feature", "validator", "narrative"]
-    result = MonitoringMomsSchema(many=True, exclude=excluded).dump(query).data
+    result = MonitoringMomsSchema(many=True, exclude=excluded).dump(query)
 
     return result

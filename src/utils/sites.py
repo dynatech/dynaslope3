@@ -27,7 +27,7 @@ def get_sites_data(site_code=None, include_inactive=False, raise_load=False):
             site = final_query.filter(Sites.site_code.in_(site_code)).all()
         else:
             site = final_query.filter_by(site_code=site_code).first()
-
+    
     return site
 
 
@@ -90,7 +90,7 @@ def get_site_season(site_code=None, site_id=None, return_schema_format=True):
         .subqueryload("routine_schedules"),
         DB.raiseload("*")
     )
-
+    
     is_many = True
     if site_code or site_id:
         is_many = False
@@ -107,8 +107,8 @@ def get_site_season(site_code=None, site_id=None, return_schema_format=True):
 
     if return_schema_format:
         schema = SitesSchema(many=is_many, include=["season_months"])
-        result = schema.dump(result).data
-
+        result = schema.dump(result)
+    
     return result
 
 
@@ -121,7 +121,7 @@ def get_seasons():
         exclude=[
             "routine_schedules", "sites"
         ]
-    ).dump(query).data
+    ).dump(query)
 
     return result
 

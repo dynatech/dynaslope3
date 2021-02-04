@@ -35,7 +35,7 @@ def wrap_get_sites_data(site_code=None):
     if site_code is None:
         site_schema = SitesSchema(many=True)
 
-    output = site_schema.dump(site).data
+    output = site_schema.dump(site)
 
     if isinstance(output, list):
         for site in output:
@@ -56,7 +56,7 @@ def wrap_get_sites_data(site_code=None):
 
             site["latitude"] = lat
             site["longitude"] = long
-
+    
     return jsonify(output)
 
 
@@ -67,8 +67,8 @@ def wrap_get_site_events(site_code):
     """
     site, events = get_site_events(site_code=site_code)
     events_json = MonitoringEventsSchema(many=True, exclude=(
-        "releases", "site")).dump(events).data
-    site_json = SitesSchema().dump(site).data
+        "releases", "site")).dump(events)
+    site_json = SitesSchema().dump(site)
     return jsonify({"site": site_json, "events": events_json})
 
 
@@ -82,7 +82,7 @@ def wrap_g_a_g_s_p_c(category):
 
     selection = get_all_geographical_selection_per_category(
         category, include_inactive)
-    site_json = SitesSchema(many=True).dump(selection).data
+    site_json = SitesSchema(many=True).dump(selection)
 
     return jsonify(site_json)
 
@@ -92,7 +92,6 @@ def wrap_g_a_g_s_p_c(category):
 def wrap_get_site_season(site_code=None):
     """
     """
-
     result = get_site_season(site_code, return_schema_format=True)
     return jsonify(result)
 

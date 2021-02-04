@@ -58,26 +58,26 @@ class BulletinTriggers(DB.Model):
                 f" template: {self.template} sms: {self.sms}")
 
 
-class BulletinResponsesSchema(MARSHMALLOW.ModelSchema):
+class BulletinResponsesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of BulletinResponses class
     """
 
     pub_sym_id = fields.Integer()
-    public_alert_symbol = fields.Nested("PublicAlertSymbolsSchema")
+    public_alert_symbol = MARSHMALLOW.Nested("PublicAlertSymbolsSchema")
 
     class Meta:
         """Saves table class structure as schema model"""
         model = BulletinResponses
 
 
-class BulletinTriggersSchema(MARSHMALLOW.ModelSchema):
+class BulletinTriggersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of BulletinTriggers class
     """
 
     internal_sym_id = fields.Integer()
-    internal_sym = fields.Nested("InternalAlertSymbolsSchema")
+    internal_sym = MARSHMALLOW.Nested("InternalAlertSymbolsSchema")
 
     class Meta:
         """Saves table class structure as schema model"""

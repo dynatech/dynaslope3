@@ -550,7 +550,7 @@ def create_monitoring_bulletin(release_id):
     next_ewi_release_ts = get_next_ewi_release_ts(data_ts, is_onset)
 
     schema = MonitoringReleasesSchema(
-        exclude=["event_alert.event.eos_analysis"]).dump(release).data
+        exclude=["event_alert.event.eos_analysis"]).dump(release)
 
     schema = {
         **schema,

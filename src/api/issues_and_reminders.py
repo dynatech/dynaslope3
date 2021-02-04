@@ -25,7 +25,7 @@ ISSUES_AND_REMINDERS_BLUEPRINT = Blueprint(
 def wrap_get_issue_reminder():
     issues = get_issues_and_reminders(
         include_count=False, include_expired=False)
-    data = IssuesAndRemindersSchema(many=True).dump(issues).data
+    data = IssuesAndRemindersSchema(many=True).dump(issues)
 
     # return data
     return json.dumps(data)
@@ -119,7 +119,7 @@ def wrap_get_issues_and_reminders(start=None, end=None):
         issues_and_reminders = return_val
 
     issues_and_reminders_data = issues_and_reminders_schema.dump(
-        issues_and_reminders).data
+        issues_and_reminders)
 
     if include_count:
         issues_and_reminders_data = {

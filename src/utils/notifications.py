@@ -27,7 +27,7 @@ def get_user_notifications(user_id, return_schema=True):
         receiver_id=user_id, ts_seen=None).count()
 
     if return_schema:
-        all_notifs = NotificationsSchema(many=True).dump(all_notifs).data
+        all_notifs = NotificationsSchema(many=True).dump(all_notifs)
 
     return_obj = {
         "notifications": all_notifs,

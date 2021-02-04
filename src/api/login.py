@@ -105,7 +105,7 @@ def __login_user():
     return_obj = {
         "ok": True,
         "data": {
-            "user": UsersSchema().dump(user).data,
+            "user": UsersSchema().dump(user),
             "tokens": {
                 "access_token": access_token,
                 "refresh_token": refresh_token

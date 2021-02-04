@@ -84,7 +84,7 @@ def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None, org_
     mobile_numbers = base_query.all()
 
     if return_schema:
-        mobile_numbers = UserMobilesSchema(many=True).dump(mobile_numbers).data
+        mobile_numbers = UserMobilesSchema(many=True).dump(mobile_numbers)
 
     return mobile_numbers
 
@@ -121,8 +121,8 @@ def get_recipients_option(site_ids=None, site_codes=None,
 
     mobile_numbers = get_mobile_numbers(
         site_ids=site_ids, org_ids=org_ids, only_ewi_recipients=only_ewi_recipients)
-    result = UserMobilesSchema(many=True, exclude=["mobile_number.blocked_mobile", "landline_numbers", "emails"]) \
-        .dump(mobile_numbers).data
+    result = UserMobilesSchema(many=True) \
+        .dump(mobile_numbers) #NOTE EXCLUDE: "mobile_number.blocked_mobile" exclude=["landline_numbers", "emails"]
 
     recipients_options = []
     for row in result:
@@ -220,7 +220,7 @@ def get_ewi_recipients(site_ids=None, site_codes=None, alert_level=0):
     user_per_site_query = query.all()
     user_per_site_result = UsersRelationshipSchema(
         many=True, exclude=["emails", "teams", "landline_numbers", "ewi_restriction"]
-    ).dump(user_per_site_query).data
+    ).dump(user_per_site_query)
 
     return user_per_site_result
 
@@ -511,7 +511,7 @@ def get_gsm_id_by_prefix(mobile_number):
     sim_prefix_query = SimPrefixes.query.filter(
         SimPrefixes.prefix == prefix).first()
 
-    result = SimPrefixesSchema().dump(sim_prefix_query).data
+    result = SimPrefixesSchema().dump(sim_prefix_query)
     gsm_id = 0
 
     result_length = len(result)
@@ -561,7 +561,7 @@ def get_blocked_numbers(return_schema=True):
     query = BlockedMobileNumbers.query.all()
 
     if return_schema:
-        result = BlockedMobileNumbersSchema(many=True).dump(query).data
+        result = BlockedMobileNumbersSchema(many=True).dump(query)
     else:
         result = query
 
@@ -596,7 +596,7 @@ def get_all_sim_prefix():
     """
 
     query = SimPrefixes.query.all()
-    result = SimPrefixesSchema(many=True).dump(query).data
+    result = SimPrefixesSchema(many=True).dump(query)
 
     return result
 
@@ -619,7 +619,8 @@ def get_recipients(site_ids=None,
         DB.subqueryload("landline_numbers"),
         DB.subqueryload("organizations").joinedload(
             "organization").raiseload("*"),
-        DB.subqueryload("organizations").joinedload("site").raiseload("*"),
+        DB.subqueryload("organizations").joinedload("site")
+        .raiseload("*"),
         DB.subqueryload("emails"),
         DB.raiseload("*"))
 
@@ -627,8 +628,8 @@ def get_recipients(site_ids=None,
         query = query.join(UserOrganizations).join(
             Sites).join(Organizations).join(UserMobiles)
 
-    schema_exclusions = ["teams", "ewi_restriction",
-                         "mobile_numbers.mobile_number.blocked_mobile"]
+    schema_exclusions = ["teams", "ewi_restriction"] #"mobile_numbers.mobile_number.blocked_mobile"]
+                         
 
     if site_ids:
         query = query.filter(Sites.site_id.in_(site_ids))
@@ -665,7 +666,7 @@ def get_recipients(site_ids=None,
     if return_schema_format:
         user_per_site_result = UsersRelationshipSchema(
             many=True, exclude=schema_exclusions) \
-            .dump(user_per_site_result).data
+            .dump(user_per_site_result)
 
     return user_per_site_result
 

@@ -232,7 +232,7 @@ def wrap_get_internal_alert_symbols():
     return_data = []
     for alert_symbol, trigger_source in ias:
         ias_data = InternalAlertSymbolsSchema(
-            exclude=("trigger",)).dump(alert_symbol).data
+            exclude=("trigger",)).dump(alert_symbol)
         ias_data["trigger_type"] = trigger_source
         return_data.append(ias_data)
 
@@ -306,7 +306,7 @@ def wrap_get_monitoring_events(value=None):
         if value is None:
             event_schema = MonitoringEventsSchema(many=True)
 
-        return_data = event_schema.dump(event).data
+        return_data = event_schema.dump(event)
     elif filter_type == "complete":
         offset = request.args.get('offset', default=0, type=int)
         limit = request.args.get('limit', default=5, type=int)
@@ -339,7 +339,7 @@ def wrap_get_monitoring_releases_by_data_ts(site_code, data_ts):
     release = get_monitoring_releases_by_data_ts(site_code, data_ts)
     release_schema = MonitoringReleasesSchema()
 
-    releases_data = release_schema.dump(release).data
+    releases_data = release_schema.dump(release)
 
     return jsonify(releases_data)
 
@@ -434,7 +434,7 @@ def wrap_get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, lo
     if release_id is None:
         release_schema = MonitoringReleasesSchema(many=True)
 
-    releases_data = release_schema.dump(release).data
+    releases_data = release_schema.dump(release)
 
     return jsonify(releases_data)
 
@@ -447,7 +447,7 @@ def wrap_get_active_monitoring_events():
     active_events = get_active_monitoring_events()
 
     active_events_data = MonitoringEventAlertsSchema(
-        many=True).dump(active_events).data
+        many=True).dump(active_events)
 
     return jsonify(active_events_data)
 
@@ -1329,7 +1329,7 @@ def get_event_timeline_data(event_id):
     event_collection_data = get_monitoring_events(event_id=event_id)
     end_ts = datetime.now()
     print("RUNTIME: ", end_ts - start_ts)
-    # event_collection_data = me_schema.dump(event_collection_obj).data
+    # event_collection_data = me_schema.dump(event_collection_obj)
 
     # CORE VALUES
     # event_details: this contains the values needed mostly for the UI
@@ -1395,7 +1395,7 @@ def get_event_timeline_data(event_id):
                 release_data = MonitoringReleasesSchema(
                     exclude=["event_alert.event", f"{trig_moms}.{inst_site}",
                              f"{trig_moms}.{nar_site}", f"{rel_moms}.{inst_site}",
-                             f"{rel_moms}.{nar_site}"]).dump(release).data
+                             f"{rel_moms}.{nar_site}"]).dump(release)
                 alert_level = event_alert.public_alert_symbol.alert_level
                 ial = build_internal_alert_level(
                     alert_level, release.trigger_list)
@@ -1417,7 +1417,7 @@ def get_event_timeline_data(event_id):
         # Narratives
         narratives_list = get_narratives(event_id=event_id)
         narratives_data_list = NarrativesSchema(
-            many=True, exclude=["site"]).dump(narratives_list).data
+            many=True, exclude=["site"]).dump(narratives_list)
         if narratives_data_list:
             for narrative in narratives_data_list:
                 timestamp = narrative["timestamp"]
@@ -1431,7 +1431,7 @@ def get_event_timeline_data(event_id):
         eos_analysis_list = get_eos_data_analysis(
             event_id=event_id, analysis_only=False)
         eos_analysis_data_list = EndOfShiftAnalysisSchema(
-            many=True).dump(eos_analysis_list).data
+            many=True).dump(eos_analysis_list)
 
         if eos_analysis_data_list:
             # var_checker("eos data", eos_analysis_data_list, True)
@@ -1466,7 +1466,7 @@ def get_monitoring_shifts():
 
     shift_sched = MonitoringShiftSchedule.query.order_by(
         MonitoringShiftSchedule.ts.asc()).all()
-    result = MonitoringShiftScheduleSchema(many=True).dump(shift_sched).data
+    result = MonitoringShiftScheduleSchema(many=True).dump(shift_sched)
     data = json.dumps(result)
 
     return data

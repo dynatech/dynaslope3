@@ -14,7 +14,7 @@ CURRENT_DATE = date.today()
 @ROUTINE_BLUEPRINT.route("/sites", methods=["GET"])
 def get_routine_sites():
     get_sites = get_sites_data()
-    schema = SitesSchema(many=True).dump(get_sites).data
+    schema = SitesSchema(many=True).dump(get_sites)
     day = calendar.day_name[CURRENT_DATE.weekday()]
     wet_season = [[1, 2, 6, 7, 8, 9, 10, 11, 12], [5, 6, 7, 8, 9, 10]]
     dry_season = [[3, 4, 5], [1, 2, 3, 4, 11, 12]]

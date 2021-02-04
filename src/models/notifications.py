@@ -33,7 +33,7 @@ class Notifications(DB.Model):
                 f" Read: {self.ts_read} Seen: {self.ts_seen}")
 
 
-class NotificationsSchema(MARSHMALLOW.ModelSchema):
+class NotificationsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Notifications class
     """

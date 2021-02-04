@@ -106,7 +106,6 @@ def get_narratives(
 
     if raise_site:
         base = base.options(DB.raiseload("site"))
-
     if start is None and end is None:
         pass
     else:
