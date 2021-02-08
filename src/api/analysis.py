@@ -42,7 +42,7 @@ def get_latest_data_presence(group, item_name="all"):
         table = DataPresenceRainGauges
         options = DB.joinedload("rain_gauge").raiseload("*")
         schema = DataPresenceRainGaugesSchema(
-            many=is_many) #NOTE EXCLUDE: exclude=("rain_gauge.rainfall_alerts", "rain_gauge.rainfall_priorities")
+            many=is_many)  # NOTE EXCLUDE: exclude=("rain_gauge.rainfall_alerts", "rain_gauge.rainfall_priorities")
         join_table = [RainfallGauges]
         order = RainfallGauges.gauge_name
         filter_attr = RainfallGauges.gauge_name
@@ -62,8 +62,8 @@ def get_latest_data_presence(group, item_name="all"):
     elif group == "surficial":
         pass
     else:
-        return (f"Data group inputs for querying data presence can " +
-                f"only be 'rain_gauges', 'surficial', 'tsm' or 'loggers'")
+        return (f"Data group inputs for querying data presence can "
+                + f"only be 'rain_gauges', 'surficial', 'tsm' or 'loggers'")
 
     if group != "surficial":
         query = DB.session.query(table)

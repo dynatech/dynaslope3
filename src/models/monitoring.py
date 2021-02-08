@@ -614,14 +614,14 @@ class MonitoringEventsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     validity = fields.DateTime("%Y-%m-%d %H:%M:%S")
     event_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
     site = fields.Nested("SitesSchema", exclude=(
-        "active", "psgc")) #NOTE EXCLUDE: "events",
+        "active", "psgc"))  # NOTE EXCLUDE: "events",
     site_id = fields.Integer()
 
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringEvents
         unknown = EXCLUDE
-        EXCLUDE = ["issues_reminders_site_posting"]
+        # exclude = ["issues_reminders_site_posting"] NOTE EXCLUDE
 
 
 class MonitoringEventAlertsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -645,13 +645,16 @@ class MonitoringReleasesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring Releases class
     """
-    event_alert = fields.Nested(MonitoringEventAlertsSchema,exclude=("releases",))
+    event_alert = fields.Nested(
+        MonitoringEventAlertsSchema, exclude=("releases",))
     data_ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     triggers = fields.Nested("MonitoringTriggersSchema",
-                             many=True, exclude=("release",)) #NOTE EXCLUDE: "event"
-    release_publishers = fields.Nested("MonitoringReleasePublishersSchema", many=True) #NOTE EXCLUDE: exclude=("releases",)
+                             many=True, exclude=("release",))  # NOTE EXCLUDE: "event"
+    # NOTE EXCLUDE: exclude=("releases",)
+    release_publishers = fields.Nested(
+        "MonitoringReleasePublishersSchema", many=True)
     moms_releases = fields.Nested(
-        "MonitoringMomsReleasesSchema", many=True) #NOTE EXCLUDE: exclude=["release"]
+        "MonitoringMomsReleasesSchema", many=True)  # NOTE EXCLUDE: exclude=["release"]
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -669,7 +672,7 @@ class MonitoringTriggersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     internal_sym = fields.Nested(
         "InternalAlertSymbolsSchema")  # only=("alert_symbol",)
     trigger_misc = fields.Nested(
-        "MonitoringTriggersMiscSchema") #NOTE EXCLUDE: exclude=("trigger_parent",)
+        "MonitoringTriggersMiscSchema")  # NOTE EXCLUDE: exclude=("trigger_parent",)
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -681,7 +684,7 @@ class MonitoringReleasePublishersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     Schema representation of Monitoring Release Publishers class
     """
 
-    user_details = fields.Nested(UsersSchema) #NOTE EXCLUDE: exclude=("pu",)
+    user_details = fields.Nested(UsersSchema)  # NOTE EXCLUDE: exclude=("pu",)
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -694,9 +697,10 @@ class MonitoringTriggersMiscSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
 
     on_demand = fields.Nested(
-        "MonitoringOnDemandSchema", exclude=( "od_id",)) #NOTE EXCLUDE: "trigger_misc",
+        "MonitoringOnDemandSchema", exclude=("od_id",))  # NOTE EXCLUDE: "trigger_misc",
     od_id = fields.Integer()
-    eq = fields.Nested("MonitoringEarthquakeSchema") #NOTE EXCLUDE: exclude=("trigger_misc",)
+    # NOTE EXCLUDE: exclude=("trigger_misc",)
+    eq = fields.Nested("MonitoringEarthquakeSchema")
     eq_id = fields.Integer()
     moms_releases = fields.Nested("MonitoringMomsReleasesSchema", many=True)
 
@@ -763,7 +767,7 @@ class MonitoringMomsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
         """Saves table class structure as schema model"""
         model = MonitoringMoms
         unknown = EXCLUDE
-        EXCLUDE = ["moms_release"]
+        exclude = ["moms_release"]
 
 
 class MomsInstancesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -827,8 +831,8 @@ class PublicAlertSymbolsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
         """Saves table class structure as schema model"""
         model = PublicAlertSymbols
         unknown = EXCLUDE
-        EXCLUDE = ["public_alerts", "event_alerts", "bulletin_response"]
-
+        # NOTE EXCLUDE "bulletin_response"
+        exclude = ["public_alerts", "event_alerts"]
 
 
 class OperationalTriggerSymbolsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -839,13 +843,14 @@ class OperationalTriggerSymbolsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     source_id = MARSHMALLOW.auto_field()
     trigger_hierarchy = MARSHMALLOW.Nested(
         "TriggerHierarchiesSchema", exclude=("trigger_symbols",))
-    internal_alert_symbol = MARSHMALLOW.Nested("InternalAlertSymbolsSchema", exclude=("trigger_symbol",))
+    internal_alert_symbol = MARSHMALLOW.Nested(
+        "InternalAlertSymbolsSchema", exclude=("trigger_symbol",))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = OperationalTriggerSymbols
         unknown = EXCLUDE
-        EXCLUDE = ["operational_triggers"]
+        exclude = ["operational_triggers"]
 
 
 class TriggerHierarchiesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -854,7 +859,9 @@ class TriggerHierarchiesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
 
     source_id = MARSHMALLOW.auto_field()
-    trigger_symbols = MARSHMALLOW.Nested(OperationalTriggerSymbolsSchema(many=True))
+    trigger_symbols = MARSHMALLOW.Nested(
+        OperationalTriggerSymbolsSchema(many=True))
+
     class Meta:
         """Saves table class structure as schema model"""
         model = TriggerHierarchies
@@ -867,13 +874,13 @@ class InternalAlertSymbolsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     trigger_sym_id = MARSHMALLOW.auto_field()
     trigger_symbol = MARSHMALLOW.Nested("OperationalTriggerSymbolsSchema",
-                                   exclude=("internal_alert_symbol",))
+                                        exclude=("internal_alert_symbol",))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = InternalAlertSymbols
         unknown = EXCLUDE
-        EXCLUDE = ["monitoring_triggers", "bulletin_trigger"]
+        exclude = ["monitoring_triggers"]  # NOTE EXCLUDE  "bulletin_trigger"
 
 
 class EndOfShiftAnalysisSchema(MARSHMALLOW.SQLAlchemyAutoSchema):

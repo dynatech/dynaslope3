@@ -56,7 +56,7 @@ def wrap_get_sites_data(site_code=None):
 
             site["latitude"] = lat
             site["longitude"] = long
-    
+
     return jsonify(output)
 
 

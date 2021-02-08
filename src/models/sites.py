@@ -3,9 +3,9 @@ File containing class representation of
 Sites table (and related tables)
 """
 
-from instance.config import SCHEMA_DICT
 from sqlalchemy.dialects.mysql import TINYINT
 from marshmallow import fields, EXCLUDE
+from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
 
 
@@ -63,7 +63,8 @@ class Seasons(DB.Model):
         TINYINT, DB.ForeignKey(f"{SCHEMA_DICT['commons_db']}.routine_schedules.sched_group_id"))
 
     sites = DB.relationship(
-        "Sites", backref=DB.backref("season_months", lazy="raise"), lazy="subquery", order_by="Sites.site_code")
+        "Sites", backref=DB.backref("season_months", lazy="raise"),
+        lazy="subquery", order_by="Sites.site_code")
     routine_schedules = DB.relationship(
         "RoutineSchedules", backref=DB.backref("seasons", lazy="subquery"),
         uselist=True, lazy="subquery")
@@ -98,25 +99,25 @@ class SitesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     Schema representation of Sites class
     """
 
-    def __init__(self, *args, **kwargs):
-        self.include = kwargs.pop("include", None)
-        super().__init__(*args, **kwargs)
+    # def __init__(self, *args, **kwargs):
+    #     self.include = kwargs.pop("include", None)
+    #     super().__init__(*args, **kwargs)
 
-    def _update_fields(self, *args, **kwargs):
-        super()._update_fields(*args, **kwargs)
-        if self.include:
-            for field_name in self.include:
-                self.fields[field_name] = self._declared_fields[field_name]
+    # def _update_fields(self, *args, **kwargs):
+    #     super()._update_fields(*args, **kwargs)
+    #     if self.include:
+    #         for field_name in self.include:
+    #             self.fields[field_name] = self._declared_fields[field_name]
 
     season = MARSHMALLOW.Integer()
-    season_months = MARSHMALLOW.Nested("SeasonsSchema") #NOTE EXCLUDE:exclude=("sites",)
+    season_months = MARSHMALLOW.Nested("SeasonsSchema", exclude=("sites",))
+
     class Meta:
         """Saves table class structure as schema model"""
         model = Sites
+        unknown = EXCLUDE
         ordered = False
-        # unknown = EXCLUDE
         exclude = ["season_months"]
-        # EXCLUDE = ["season_months"]
 
 
 class SeasonsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -124,7 +125,10 @@ class SeasonsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     Schema representation of Seasons class
     """
 
-    routine_schedules = MARSHMALLOW.Nested("RoutineSchedulesSchema", many=True) #NOTE EXCLUDE: exclude=("seasons",)
+    routine_schedules = MARSHMALLOW.Nested(
+        "RoutineSchedulesSchema", many=True, exclude=("seasons",))
+    sites = MARSHMALLOW.Nested(
+        SitesSchema, many=True, exclude=["season_months"])
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -136,6 +140,9 @@ class RoutineSchedulesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of RoutineSchedules class
     """
+
+    seasons = MARSHMALLOW.Nested(
+        "SeasonsSchema", exclude=("routine_schedules",))
 
     class Meta:
         """Saves table class structure as schema model"""

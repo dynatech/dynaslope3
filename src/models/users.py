@@ -252,10 +252,11 @@ class UsersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
         """Saves table class structure as schema model"""
         model = Users
         unknown = EXCLUDE
-        EXCLUDE = [
-            "mobile_numbers", "landline_numbers", "account",
-            "marker_tags", "rainfall_tags", "issue_and_reminder"
-        ]
+        # NOTE EXCLUDE
+        # exclude = [
+        #     "mobile_numbers", "landline_numbers", "account",
+        #     "marker_tags", "rainfall_tags", "issue_and_reminder"
+        # ]
 
 
 class UsersRelationshipSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -280,13 +281,13 @@ class UsersRelationshipSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
         "UserMobilesSchema", many=True, exclude=("user",))
 
     organizations = MARSHMALLOW.Nested(
-        UserOrganizationsSchema, many=True) #NOTE EXCLUDE: exclude=("user",)
+        UserOrganizationsSchema, many=True)  # NOTE EXCLUDE: exclude=("user",)
 
     ewi_restriction = MARSHMALLOW.Nested(
         "UserEwiRestrictionsSchema", exclude=("user",))
 
     teams = MARSHMALLOW.Nested(
-        "UserTeamMembersSchema", many=True) #NOTE EXCLUDE: exclude=("user",)
+        "UserTeamMembersSchema", many=True)  # NOTE EXCLUDE: exclude=("user",)
 
     landline_numbers = MARSHMALLOW.Nested(
         "UserLandlinesSchema", many=True, exclude=("user",))
@@ -321,7 +322,7 @@ class UserLandlinesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
 
     user = MARSHMALLOW.Nested(UsersRelationshipSchema,
-                         exclude=("landline_numbers",))
+                              exclude=("landline_numbers",))
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -364,7 +365,6 @@ class UserTeamMembersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = UserTeamMembers
-
 
 
 class UserAccountsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):

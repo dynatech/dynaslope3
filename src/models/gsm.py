@@ -132,7 +132,8 @@ class GsmModulesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     gsm_server_id = fields.Integer()
     network_id = fields.Integer()
     gsm_server = MARSHMALLOW.Nested(GsmServersSchema, exclude=["gsm_modules"])
-    network = MARSHMALLOW.Nested("NetworkCarrierSchema", exclude=["gsm_modules"])
+    network = MARSHMALLOW.Nested(
+        "NetworkCarrierSchema", exclude=["gsm_modules"])
     # sim_prefixes = MARSHMALLOW.Nested(
     #     "SimPrefixesSchema", many=True, exclude=["gsm_module"])
 
@@ -167,11 +168,12 @@ class SimPrefixesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 
     network_id = fields.Integer()
     gsm_id = fields.Integer()
-    network = MARSHMALLOW.Nested(NetworkCarriersSchema, exclude=["sim_prefixes"])
+    network = MARSHMALLOW.Nested(
+        NetworkCarriersSchema, exclude=["sim_prefixes"])
     # gsm_module = MARSHMALLOW.Nested(GsmModulesSchema, exclude=["sim_prefixes"])
 
     class Meta:
         """Saves table class structure as schema model"""
         model = SimPrefixes
         unknown = EXCLUDE
-        EXCLUDE = ["gsm_server"]
+        exclude = ["gsm_server"]

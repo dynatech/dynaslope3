@@ -1,4 +1,7 @@
-import datetime
+"""
+Model for Loggers
+"""
+
 from marshmallow import fields, EXCLUDE
 from sqlalchemy.dialects.mysql import DECIMAL, TEXT
 from instance.config import SCHEMA_DICT
@@ -7,6 +10,8 @@ from connection import DB, MARSHMALLOW
 ################################
 # Start of Class Declarations #
 ################################
+
+
 class Loggers(DB.Model):
     """
     Class representation of loggers table
@@ -60,7 +65,7 @@ class LoggerModels(DB.Model):
                 f" TSM Name: {self.tsm_name} Number of Segments: {self.number_of_segments}"
                 f"Date Activated: {self.date_activated}")
 
-    
+
 class DeploymentLogs(DB.Model):
     """
     Class representation of deployment_logs
@@ -133,7 +138,7 @@ class LoggerMobile(DB.Model):
         return (f"Type <{self.__class__.__name__}> mobile_id: {self.mobile_id}"
                 f" logger_id: {self.logger_id} date_activated: {self.date_activated}"
                 f" sim_num: {self.sim_num} gsm_id: {self.gsm_id}")
-    
+
 
 def get_rain_table(table_name, schema="senslopedb"):
     """
@@ -265,14 +270,16 @@ class LoggersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 
     model_id = fields.Integer()
     tsm_sensor = MARSHMALLOW.Nested("TSMSensorsSchema", exclude=("logger", ))
-    logger_mobile = MARSHMALLOW.Nested("LoggerMobileSchema", exclude=("logger", ))
-    logger_model = MARSHMALLOW.Nested("LoggerModelsSchema", exclude=("loggers", ))
+    logger_mobile = MARSHMALLOW.Nested(
+        "LoggerMobileSchema", exclude=("logger", ))
+    logger_model = MARSHMALLOW.Nested(
+        "LoggerModelsSchema", exclude=("loggers", ))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = Loggers
         unknown = EXCLUDE
-        EXCLUDE = ["data_presence"]
+        # exclude = ["data_presence"]
 
 
 class LoggerModelsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -321,4 +328,3 @@ class LoggerMobileSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
         """Saves table class structure as schema model"""
         model = LoggerMobile
         unknown = EXCLUDE
-
