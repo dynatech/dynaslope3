@@ -1,7 +1,8 @@
 import React, { Fragment } from "react";
 import {
     Grid, withStyles, FormControl,
-    FormLabel, Switch, TextField
+    Switch, TextField,
+    FormControlLabel
 } from "@material-ui/core";
 
 import { handleChange, handleEventChange, handleSwitchChange } from "./state_handlers";
@@ -12,10 +13,8 @@ const styles = theme => ({
         width: "-webkit-fill-available"
     },
     formLabel: {
-        display: "flex",
-        alignItems: "center",
         justifyContent: "space-between",
-        width: "100%"
+        marginLeft: 0,
     },
     groupGridContainer: {
         marginTop: 0,
@@ -52,7 +51,7 @@ function EarthquakeTriggerGroup (props) {
         <Fragment>
             <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
                 <FormControl component="fieldset" className={classes.formControl}>
-                    <FormLabel component="legend" className={classes.formLabel}>
+                    {/* <FormLabel component="legend" className={classes.formLabel}>
                         <span>Earthquake</span>
 
                         <Switch
@@ -60,7 +59,18 @@ function EarthquakeTriggerGroup (props) {
                             onChange={handleSwitchChange(setTriggersState, "earthquake")}
                             value="switch_earthquake"
                         />
-                    </FormLabel>
+                    </FormLabel> */}
+
+                    <FormControlLabel
+                        className={classes.formLabel}
+                        control={<Switch
+                            checked={switchState}
+                            onChange={handleSwitchChange(setTriggersState, "earthquake")}
+                            value="switch_earthquake"
+                        />}
+                        label="Earthquake"
+                        labelPlacement="start"
+                    />
                 </FormControl>
             </Grid>
 

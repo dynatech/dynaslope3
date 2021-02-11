@@ -3,8 +3,9 @@ import moment from "moment";
 import MomentUtils from "@date-io/moment";
 import {
     TextField, Grid,
-    FormControl, FormLabel, Switch,
-    Divider, makeStyles, CircularProgress
+    FormControl, Switch,
+    Divider, makeStyles, CircularProgress,
+    FormControlLabel
 } from "@material-ui/core";
 import {
     MuiPickersUtilsProvider,
@@ -20,7 +21,7 @@ import Typography from "@material-ui/core/Typography";
 // Form Related Imports
 import SubsurfaceTriggerGroup from "./SubsurfaceTriggerGroup";
 import SurficialTriggerGroup from "./SurficialTriggerGroup";
-import MomsTriggerGroup from "./MomsTriggerGroup";
+// import MomsTriggerGroup from "./MomsTriggerGroup";
 import RainfallTriggerGroup from "./RainfallTriggerGroup";
 import EarthquakeTriggerGroup from "./EarthquakeTriggerGroup";
 import OnDemandTriggerGroup from "./OnDemandTriggerGroup";
@@ -50,6 +51,14 @@ const useStyles = makeStyles(theme => ({
     },
     root: {
         width: "90%",
+    },
+    formControl: {
+        width: "100%"
+    },
+    formLabel: {
+        justifyContent: "space-between",
+        marginLeft: 0,
+        color: "#f50057"
     },
     backButton: {
         marginRight: 1
@@ -192,14 +201,25 @@ function TriggersInputForm (props) {
                 alert_level !== 0 && (
                     <Grid item xs={12} className={isAlert0 ? classes.groupGridContainer : ""}>
                         <FormControl component="fieldset" className={classes.formControl}>
-                            <FormLabel component="legend" className={classes.formLabel}>
+                            {/* <FormLabel component="legend" className={classes.formLabel}>
                                 <span style={{ color: "#f50057" }}>Lower to Alert 0</span>
                                 <Switch
                                     checked={isAlert0}
                                     onChange={event => setAlert0(event.target.checked)}
-                                    value="has_no_ground_data"
+                                    value="lower_to_a0"
                                 />
-                            </FormLabel>
+                            </FormLabel> */}
+
+                            <FormControlLabel
+                                className={classes.formLabel}
+                                control={<Switch
+                                    checked={isAlert0}
+                                    onChange={event => setAlert0(event.target.checked)}
+                                    value="lower_to_a0"
+                                />}
+                                label="Lower to Alert 0"
+                                labelPlacement="start"
+                            />
                         </FormControl>
                     </Grid>
                 )
@@ -208,14 +228,24 @@ function TriggersInputForm (props) {
                 !subs_switch_state && !surf_switch_state && !moms_switch_state && alert_level <= 1 && (
                     <Grid item xs={12} className={hasNoGroundData ? classes.groupGridContainer : ""}>
                         <FormControl component="fieldset" className={classes.formControl}>
-                            <FormLabel component="legend" className={classes.formLabel}>
+                            {/* <FormLabel component="legend" className={classes.formLabel}>
                                 <span style={{ color: "#f50057" }}>No Ground Data (ND)</span>
                                 <Switch
                                     checked={hasNoGroundData}
                                     onChange={event => setHasNoGroundData(event.target.checked)}
                                     value="has_no_ground_data"
                                 />
-                            </FormLabel>
+                            </FormLabel> */}
+                            <FormControlLabel
+                                className={classes.formLabel}
+                                control={<Switch
+                                    checked={hasNoGroundData}
+                                    onChange={event => setHasNoGroundData(event.target.checked)}
+                                    value="has_no_ground_data"
+                                />}
+                                label="No Ground Data (ND)"
+                                labelPlacement="start"
+                            />
                         </FormControl>
                     </Grid>
                 )
