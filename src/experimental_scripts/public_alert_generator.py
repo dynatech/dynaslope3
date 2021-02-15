@@ -435,6 +435,10 @@ def get_ground_alert_level(highest_public_alert, current_trigger_alerts,
     Identifies the summarized ground alert level for all
     ground triggers.
 
+    processed_triggers_list: contains all unique positive triggers
+        and their update data presence; used on Alerts 2 and 3
+        for exclusive lowering (see logic below)
+
     returns 0 or -1 (0 if has data, -1 if no data)
     """
     if highest_public_alert <= 1:
@@ -457,6 +461,7 @@ def get_ground_alert_level(highest_public_alert, current_trigger_alerts,
             is_ground_trigger = op_trigger_th.is_ground
             if is_ground_trigger:
                 cta_alert_level = current_trigger_alerts[trigger_source]["alert_level"]
+                # Exclusive lowering logic
                 if cta_alert_level == -1:
                     ground_alert_level = -1
 
@@ -838,8 +843,10 @@ def get_tsm_alerts(site_tsm_sensors, query_ts_end):
         if tsm_alert_entries:
             entry = next(
                 (item for item in tsm_alert_entries if item.alert_level > -1), tsm_alert_entries[0])
-            subsurface_ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
-                                                             "alert_level": entry.alert_level, "source_id": subsurface_source_id})
+            subsurface_ots_row = retrieve_data_from_memcache(
+                "operational_trigger_symbols", {
+                    "alert_level": entry.alert_level, "source_id": subsurface_source_id
+                })
             alert_symbol = subsurface_ots_row["alert_symbol"]
 
             formatted = {
@@ -1079,7 +1086,8 @@ def get_operational_triggers_within_monitoring_period(
     op_trigger_of_site = s_op_triggers_query.order_by(DB.desc(ot.ts)).filter(
         and_(
             ot.ts_updated >= monitoring_start_ts,
-            ot.ts <= query_ts_end
+            ot.ts < query_ts_end +
+            timedelta(minutes=30)
         )).join(ots).filter(ots.alert_level != -1)
 
     return op_trigger_of_site
@@ -1412,12 +1420,17 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_d
 
             #############
             # LOWERING CONDITIONS STARTS HERE
+            #
+            # is_55_minute_beyond is IMPORTANT at end of validity
+            # because x:56 is the last run before release;
+            # Lowered public alert MUST NOT HAVE the same ts_update
+            # as its previous heightened query (see logic of get_latest_public_alerts_per_site)
             #############
+            is_55_minute_beyond = int(query_ts_start.strftime("%M")) > 55
             is_release_time_run = query_ts_end == release_time - \
                 timedelta(minutes=30)
-            is_45_minute_beyond = int(query_ts_start.strftime("%M")) > 45
             is_not_yet_write_time = not (
-                is_release_time_run and is_45_minute_beyond)
+                is_release_time_run and is_55_minute_beyond)
 
             # Check first if rainfall trigger is active, if key does not
             # exist, is_rainfall_rx is automatically False
@@ -1441,8 +1454,9 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_d
             has_no_ground_alert = ground_alert_level == -1
             # This code checks if moms alerts are lowered to non-triggering
             # earlier than the release time period of end of validity
-            if has_positive_moms_trigger and not has_unresolved_moms:
-                has_no_ground_alert = False
+            # NOTE: MIGHT BE CBEWS-L LOGIC
+            # if has_positive_moms_trigger and not has_unresolved_moms:
+            #    has_no_ground_alert = False
 
             if is_end_of_validity:
                 # Checks all lowering conditions before lowering
@@ -1454,7 +1468,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_d
                         interval=no_data_hours_extension)
 
                     if is_release_time_run:
-                        if not is_45_minute_beyond:
+                        if not is_55_minute_beyond:
                             save_generated_alert_to_db = False
                 else:
                     is_alert_for_lowering = True
@@ -1643,11 +1657,10 @@ def main(query_ts_end=None, query_ts_start=None, save_generated_alert_to_db=True
 if __name__ == "__main__":
     config_name = os.getenv("FLASK_CONFIG")
     app = create_app(config_name)
-    main(site_code=["blc", "bol"], query_ts_end="2020-12-03 08:06:00",
-         query_ts_start="2020-12-03 08:06:00", is_test=False)
+    # main(site_code=["agb"], query_ts_end="2020-12-03 08:06:00",
+    #      query_ts_start="2020-12-03 08:06:00", save_generated_alert_to_db=False)
 
     # TEST MAIN
-    # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", is_test=True, site_code="umi")
-    # main(query_ts_end="2019-09-05 15:50:00", query_ts_start="2019-09-05 15:50:00", is_test=True, site_code="umi")
-    # main(query_ts_end="2019-05-22 11:00:00", query_ts_start="2019-05-22 11:00:00", is_test=True, site_code="hum")
-    # main(is_test=True)
+    # main(query_ts_end="<timestamp>", query_ts_start="<timestamp>", save_generated_alert_to_db=True, site_code="umi")
+    # main(query_ts_end="2019-09-05 15:50:00", query_ts_start="2019-09-05 15:50:00", save_generated_alert_to_db=True, site_code="umi")
+    # main(query_ts_end="2019-05-22 11:00:00", query_ts_start="2019-05-22 11:00:00", save_generated_alert_to_db=True, site_code="hum")

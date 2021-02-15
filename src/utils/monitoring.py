@@ -1051,7 +1051,8 @@ def get_monitoring_triggers(
         base = base.filter(ts_start <= mt.ts)
 
     if ts_end:
-        base = base.filter(mt.ts <= ts_end)
+        # Added 30 minutes to accomodate data before next data_ts
+        base = base.filter(mt.ts < ts_end + timedelta(minutes=30))
 
     if event_id:
         base = base.join(mr).join(mea).join(me).filter(me.event_id == event_id)
