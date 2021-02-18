@@ -1070,7 +1070,7 @@ class AlertStatusSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     Schema representation of AlertStatus class
     """
 
-    user = MARSHMALLOW.Nested(UsersSchema, exclude=("alert_status_ack", ))
+    user = MARSHMALLOW.Nested(UsersSchema)
     ts_ack = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_last_retrigger = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_set = fields.DateTime("%Y-%m-%d %H:%M:%S")
@@ -1078,6 +1078,7 @@ class AlertStatusSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = AlertStatus
+        unknown = EXCLUDE
 
 
 class DataPresenceRainGaugesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):

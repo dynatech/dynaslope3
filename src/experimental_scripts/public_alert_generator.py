@@ -1421,16 +1421,16 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_d
             #############
             # LOWERING CONDITIONS STARTS HERE
             #
-            # is_55_minute_beyond is IMPORTANT at end of validity
-            # because x:56 is the last run before release;
+            # is_45_minute_beyond is IMPORTANT at end of validity
+            # because x:50 onwards is the EWI release time;
             # Lowered public alert MUST NOT HAVE the same ts_update
             # as its previous heightened query (see logic of get_latest_public_alerts_per_site)
             #############
-            is_55_minute_beyond = int(query_ts_start.strftime("%M")) > 55
+            is_45_minute_beyond = int(query_ts_start.strftime("%M")) > 45
             is_release_time_run = query_ts_end == release_time - \
                 timedelta(minutes=30)
             is_not_yet_write_time = not (
-                is_release_time_run and is_55_minute_beyond)
+                is_release_time_run and is_45_minute_beyond)
 
             # Check first if rainfall trigger is active, if key does not
             # exist, is_rainfall_rx is automatically False
@@ -1468,7 +1468,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_d
                         interval=no_data_hours_extension)
 
                     if is_release_time_run:
-                        if not is_55_minute_beyond:
+                        if not is_45_minute_beyond:
                             save_generated_alert_to_db = False
                 else:
                     is_alert_for_lowering = True
