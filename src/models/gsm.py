@@ -139,7 +139,8 @@ class GsmModulesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 
     class Meta:
         model = GsmModules
-        exlude = ["gsm_server", "sim_prefixes"]
+        unknown = EXCLUDE
+        exlude = ["gsm_server"]
 
 
 class GsmCsqLogsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -176,4 +177,4 @@ class SimPrefixesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
         """Saves table class structure as schema model"""
         model = SimPrefixes
         unknown = EXCLUDE
-        exclude = ["gsm_server"]
+        # exclude = ["gsm_server"]
