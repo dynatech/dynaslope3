@@ -1,24 +1,23 @@
 import React, { Fragment } from "react";
 import {
     Grid, withStyles, FormControl,
-    FormLabel, Switch, TextField
+    Switch, TextField,
+    FormControlLabel
 } from "@material-ui/core";
 
 import { handleChange, handleEventChange, handleSwitchChange } from "./state_handlers";
 import TriggerTimestampAndTechInfoCombo from "./TriggerTimestampAndTechInfoCombo";
-import SelectInputForm from "../../reusables/SelectInputForm";
+// import SelectInputForm from "../../reusables/SelectInputForm";
 
-const community_contacts = [{ user_id: 1, name: "MLGU Something" }, { user_id: 2, name: "LEWC Chenes" }, { user_id: 3, name: "BLGU Chos" }];
+// const community_contacts = [{ user_id: 1, name: "MLGU Something" }, { user_id: 2, name: "LEWC Chenes" }, { user_id: 3, name: "BLGU Chos" }];
 
 const styles = theme => ({
     formControl: {
         width: "-webkit-fill-available"
     },
     formLabel: {
-        display: "flex",
-        alignItems: "center",
         justifyContent: "space-between",
-        width: "100%"
+        marginLeft: 0,
     },
     groupGridContainer: {
         marginTop: 0,
@@ -42,7 +41,7 @@ function OnDemandTriggerGroup (props) {
         timestamp: null,
         tech_info: "",
         reason: "",
-        reporterId: ""
+        reporterId: 1
     };
     if (triggers.length !== 0) {
         od_trig = { ...triggers[0] };// There is always only ONE on demand trigger
@@ -50,13 +49,13 @@ function OnDemandTriggerGroup (props) {
         // console.log(contact_person);
     }
 
-    const { timestamp, tech_info, reason, reporterId } = od_trig;
+    const { timestamp, tech_info, reason } = od_trig;
 
     return (
         <Fragment>
             <Grid item xs={12} className={switchState ? classes.groupGridContainer : ""}>
                 <FormControl component="fieldset" className={classes.formControl}>
-                    <FormLabel component="legend" className={classes.formLabel}>
+                    {/* <FormLabel component="legend" className={classes.formLabel}>
                         <span>On Demand</span>
 
                         <Switch
@@ -64,7 +63,18 @@ function OnDemandTriggerGroup (props) {
                             onChange={handleSwitchChange(setTriggersState, "on_demand")}
                             value="switch_on_demand"
                         />
-                    </FormLabel>
+                    </FormLabel> */}
+
+                    <FormControlLabel
+                        className={classes.formLabel}
+                        control={<Switch
+                            checked={switchState}
+                            onChange={handleSwitchChange(setTriggersState, "on_demand")}
+                            value="switch_on_demand"
+                        />}
+                        label="On Demand"
+                        labelPlacement="start"
+                    />
                 </FormControl>
             </Grid>
 
@@ -91,7 +101,7 @@ function OnDemandTriggerGroup (props) {
                                 fullWidth
                             />
                         </Grid>
-                        <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+                        {/* <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
                             <SelectInputForm
                                 label="Reporter"
                                 div_id="reporter_id"
@@ -100,8 +110,7 @@ function OnDemandTriggerGroup (props) {
                                 list={community_contacts}
                                 mapping={{ id: "user_id", label: "name" }}
                             />
-                        </Grid>
-
+                        </Grid> */}
                     </Fragment>
                 ) : (
                     <div />
