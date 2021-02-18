@@ -1148,7 +1148,7 @@ def get_latest_public_alerts_per_site(s_pub_alerts_query, query_ts_end, max_poss
 
     limit = max_possible_alert_level
     most_recent = s_pub_alerts_query \
-        .order_by(DB.desc(pa.ts_updated), DB.desc(pa.pub_sym_id)).filter(
+        .order_by(DB.desc(pa.ts_updated), DB.desc(pa.ts)).filter(
             or_(
                 pa.ts_updated <= query_ts_end,
                 and_(
