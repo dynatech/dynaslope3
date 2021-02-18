@@ -17,7 +17,7 @@ def get_all_hazard_data():
         HazardData.hazard_data_id.desc()).all()
 
     result = HazardDataSchema(
-        many=True).dump(query).data
+        many=True).dump(query)
     data = []
     for row in result:
         data.append({
@@ -40,7 +40,7 @@ def get_hazard_data():
     query = HazardData.query.filter(
         HazardData.hazard_data_id == hazard_data_id).first()
 
-    result = HazardDataSchema().dump(query).data
+    result = HazardDataSchema().dump(query)
 
     return jsonify(result)
 

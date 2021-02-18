@@ -376,13 +376,13 @@ class OldNarratives(DB.Model):
 
 # START OF SCHEMAS DECLARATIONS
 
-# class OldMonitoringEventsSchema(MARSHMALLOW.ModelSchema):
+# class OldMonitoringEventsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Events class
 #     """
-#     releases = fields.Nested("OldMonitoringReleasesSchema",
+#     releases = MARSHMALLOW.Nested("OldMonitoringReleasesSchema",
 #                              many=True, exclude=("event", ))
-#     site = fields.Nested("SitesSchema", exclude=[
+#     site = MARSHMALLOW.Nested("SitesSchema", exclude=[
 #         "events", "active", "psgc"])
 #     site_id = fields.Integer()
 
@@ -391,22 +391,22 @@ class OldNarratives(DB.Model):
 #         model = OldMonitoringEvents
 
 
-# class OldMonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
+# class OldMonitoringReleasesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Releases class
 #     """
-#     event = fields.Nested(OldMonitoringEventsSchema,
+#     event = MARSHMALLOW.Nested(OldMonitoringEventsSchema,
 #                           exclude=("releases", "triggers"))
 
-#     manifestation_details = fields.Nested(
+#     manifestation_details = MARSHMALLOW.Nested(
 #         "OldMonitoringManifestationSchema", many=True)
 
-#     triggers = fields.Nested("OldMonitoringTriggersSchema",
+#     triggers = MARSHMALLOW.Nested("OldMonitoringTriggersSchema",
 #                              many=True, exclude=("release", "event"))
 
-#     reporter_mt = fields.Nested(
+#     reporter_mt = MARSHMALLOW.Nested(
 #         OldUsersSchema, only=["user_id", "first_name", "last_name"])
-#     reporter_ct = fields.Nested(
+#     reporter_ct = MARSHMALLOW.Nested(
 #         OldUsersSchema, only=["user_id", "first_name", "last_name"])
 
 #     class Meta:
@@ -414,15 +414,15 @@ class OldNarratives(DB.Model):
 #         model = OldMonitoringReleases
 
 
-# class OldMonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
+# class OldMonitoringTriggersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Trigger class
 #     """
 #     release_id = fields.Integer()
-#     release = fields.Nested(OldMonitoringReleasesSchema,
+#     release = MARSHMALLOW.Nested(OldMonitoringReleasesSchema,
 #                             exclude=("triggers", ))
-#     on_demand_details = fields.Nested("OldMonitoringOnDemandSchema")
-#     eq_details = fields.Nested("OldMonitoringEQSchema")
+#     on_demand_details = MARSHMALLOW.Nested("OldMonitoringOnDemandSchema")
+#     eq_details = MARSHMALLOW.Nested("OldMonitoringEQSchema")
 
 #     class Meta:
 #         """Saves table class structure as schema model"""
@@ -430,7 +430,7 @@ class OldNarratives(DB.Model):
 
 
 # Moved
-# class MonitoringBulletinTrackerSchema(MARSHMALLOW.ModelSchema):
+# class MonitoringBulletinTrackerSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Bulletin Tracker class
 #     """
@@ -440,7 +440,7 @@ class OldNarratives(DB.Model):
 
 
 # Moved and removed MOnitoring word
-# class MonitoringOperationalTriggersSchema(MARSHMALLOW.ModelSchema):
+# class MonitoringOperationalTriggersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Operational Triggers class
 #     """
@@ -450,7 +450,7 @@ class OldNarratives(DB.Model):
 
 
 # # Moved and removed MOnitoring word
-# class MonitoringOperationalTriggersSymbolsSchema(MARSHMALLOW.ModelSchema):
+# class MonitoringOperationalTriggersSymbolsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Operational Triggers Symbols class
 #     """
@@ -460,7 +460,7 @@ class OldNarratives(DB.Model):
 
 
 # Moved
-# class MonitoringTriggerHierarchiesSchema(MARSHMALLOW.ModelSchema):
+# class MonitoringTriggerHierarchiesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Trigger Hierarchies class
 #     """
@@ -470,7 +470,7 @@ class OldNarratives(DB.Model):
 
 
 # moved
-# class MonitoringInternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
+# class MonitoringInternalAlertSymbolsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Internal Alert Symbols class
 #     """
@@ -479,7 +479,7 @@ class OldNarratives(DB.Model):
 #         model = MonitoringInternalAlertSymbols
 
 
-# class MonitoringEndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
+# class MonitoringEndOfShiftAnalysisSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring End of Shift Analysis class
 #     """
@@ -489,7 +489,7 @@ class OldNarratives(DB.Model):
 
 
 # Moved
-# class MonitoringIssuesAndRemindersSchema(MARSHMALLOW.ModelSchema):
+# class MonitoringIssuesAndRemindersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Issues And Reminders class
 #     """
@@ -499,7 +499,7 @@ class OldNarratives(DB.Model):
 
 
 # Moved
-# class LUTResponsesSchema(MARSHMALLOW.ModelSchema):
+# class LUTResponsesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Lookup Table Responses class
 #     """
@@ -509,7 +509,7 @@ class OldNarratives(DB.Model):
 
 
 # Moved
-# class LUTTriggersSchema(MARSHMALLOW.ModelSchema):
+# class LUTTriggersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Lookup Table Triggers class
 #     """
@@ -518,7 +518,7 @@ class OldNarratives(DB.Model):
 #         model = LUTTriggers
 
 
-class OldMonitoringManifestationFeaturesSchema(MARSHMALLOW.ModelSchema):
+class OldMonitoringManifestationFeaturesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring Manifestation Features class
     """
@@ -527,7 +527,7 @@ class OldMonitoringManifestationFeaturesSchema(MARSHMALLOW.ModelSchema):
         model = OldMonitoringManifestationFeatures
 
 
-class OldMonitoringEQSchema(MARSHMALLOW.ModelSchema):
+class OldMonitoringEQSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring EQ class
     """
@@ -540,11 +540,11 @@ class OldMonitoringEQSchema(MARSHMALLOW.ModelSchema):
         model = OldMonitoringEQ
 
 
-class OldMonitoringManifestationSchema(MARSHMALLOW.ModelSchema):
+class OldMonitoringManifestationSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring Manifestation class
     """
-    manifestation_feature = fields.Nested(
+    manifestation_feature = MARSHMALLOW.Nested(
         "OldMonitoringManifestationFeaturesSchema", many=True)
 
     class Meta:
@@ -552,7 +552,7 @@ class OldMonitoringManifestationSchema(MARSHMALLOW.ModelSchema):
         model = OldMonitoringManifestation
 
 
-class OldMonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
+class OldMonitoringOnDemandSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring On Demand class
     """
@@ -562,7 +562,7 @@ class OldMonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
 
 
 # Renamed as PublicAlertSymbolsSchema
-# class MonitoringAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
+# class MonitoringAlertSymbolsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 #     """
 #     Schema representation of Monitoring Alert Symbols class
 #     """

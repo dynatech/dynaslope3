@@ -235,7 +235,7 @@ def wrap_get_monitoring_events(event_id):
     Sample
     """
     event = get_monitoring_events(event_id=event_id)
-    ev_data = MonitoringEventsSchema().dump(event).data
+    ev_data = MonitoringEventsSchema().dump(event)
     return jsonify(ev_data)
 
 

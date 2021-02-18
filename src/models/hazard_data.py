@@ -20,7 +20,7 @@ class HazardData(DB.Model):
         return f"Class Representation"
 
 
-class HazardDataSchema(MARSHMALLOW.ModelSchema):
+class HazardDataSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of HazardData class
     """

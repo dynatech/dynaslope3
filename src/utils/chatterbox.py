@@ -61,7 +61,7 @@ def get_formatted_latest_mobile_id_message(mobile_id, limit_inbox_outbox=True, t
     msgs = get_latest_messages(
         mobile_id, limit_inbox_outbox=limit_inbox_outbox,
         ts_start=ts_start, ts_end=ts_end)
-    msgs_schema = TempLatestMessagesSchema(many=True).dump(msgs).data
+    msgs_schema = TempLatestMessagesSchema(many=True).dump(msgs)
 
     return msgs_schema
 
@@ -100,7 +100,7 @@ def get_messages_schema_dict(msgs):
     query_tag_start = datetime.now()
 
     for msg in msgs:
-        msg_schema = TempLatestMessagesSchema().dump(msg).data
+        msg_schema = TempLatestMessagesSchema().dump(msg)
         msg_schema["tags"] = get_message_tags(msg)
         msgs_schema.append(msg_schema)
 
@@ -120,7 +120,7 @@ def format_unsent_messages(message_arr):
     for row in message_arr:
         mobile_id = row.mobile_id
         mobile_schema = get_user_mobile_details(mobile_id)
-        msg_schema = TempLatestMessagesSchema().dump(row).data
+        msg_schema = TempLatestMessagesSchema().dump(row)
 
         formatted = {
             "mobile_details": mobile_schema,
@@ -156,9 +156,9 @@ def get_user_mobile_details(mobile_id):
     mobile_schema = MobileNumbersSchema(exclude=[
         "users.user.landline_numbers",
         "users.user.emails",
-        "users.user.ewi_restriction",
-        "blocked_mobile"
-    ]).dump(mobile_details).data
+        "users.user.ewi_restriction"
+    ]).dump(mobile_details)
+       #NOTE EXCLUDE: "blocked_mobile"
 
     return mobile_schema
 
@@ -286,14 +286,14 @@ def get_message_tags(message):
             raiseload("*")
         ).filter_by(inbox_id=message.inbox_id).all()
         tags_list = SmsInboxUserTagsSchema(
-            many=True, exclude=["inbox_message"]).dump(sms_tags).data
+            many=True).dump(sms_tags) #NOTE EXCLUDE: exclude=["inbox_message"]
     elif message.source == "outbox":
         sms_tags = DB.session.query(SmsOutboxUserTags).options(
             joinedload(SmsOutboxUserTags.tag, innerjoin=True),
             raiseload("*")
         ).filter_by(outbox_id=message.outbox_id).all()
         tags_list = SmsOutboxUserTagsSchema(
-            many=True, exclude=["outbox_message"]).dump(sms_tags).data
+            many=True).dump(sms_tags) #NOTE EXCLUDE: exclude=["outbox_message"]
 
     return tags_list
 

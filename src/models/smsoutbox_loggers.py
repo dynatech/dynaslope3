@@ -16,6 +16,6 @@ class SmsOutboxLoggers(DB.Model):
         return f"Type <{self.sms_msg}>"
 
 
-class SmsOutboxLoggersSchema(MARSHMALLOW.ModelSchema):
+class SmsOutboxLoggersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     class Meta:
         model = SmsOutboxLoggers

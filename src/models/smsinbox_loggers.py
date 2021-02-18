@@ -21,6 +21,6 @@ class SmsInboxLoggers(DB.Model):
         return f"Type <{self.__class__.__name__}>"
 
 
-class SmsInboxLoggersSchema(MARSHMALLOW.ModelSchema):
+class SmsInboxLoggersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     class Meta:
         model = SmsInboxLoggers

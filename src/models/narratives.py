@@ -39,15 +39,15 @@ class Narratives(DB.Model):
                 f" Narrative: {self.narrative} Type ID: {self.type_id}")
 
 
-class NarrativesSchema(MARSHMALLOW.ModelSchema):
+class NarrativesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Narratives class
     """
 
     site_id = fields.Integer()
     user_id = fields.Integer()
-    site = fields.Nested(SitesSchema)
-    user_details = fields.Nested(UsersSchema)
+    site = MARSHMALLOW.Nested(SitesSchema)
+    user_details = MARSHMALLOW.Nested(UsersSchema)
     timestamp = fields.DateTime("%Y-%m-%d %H:%M:%S")
 
     class Meta:

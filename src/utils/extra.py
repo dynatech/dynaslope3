@@ -75,7 +75,6 @@ def retrieve_data_from_memcache(table_name, filters_dict=None, retrieve_one=True
     """
 
     return_data = []
-
     if filters_dict is None:
         filters_dict = []
 

@@ -162,7 +162,7 @@ def wrap_get_narratives(start=None, end=None):
     else:
         narratives = return_val
 
-    narratives_data = narrative_schema.dump(narratives).data
+    narratives_data = narrative_schema.dump(narratives)
 
     if include_count:
         narratives_data = {

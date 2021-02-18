@@ -4,7 +4,7 @@ Monitoring tables
 """
 
 import datetime
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE, Schema
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
 from src.models.users import UsersSchema
@@ -605,7 +605,7 @@ class BulletinTracker(DB.Model):
 #################################
 # START OF SCHEMAS DECLARATIONS #
 #################################
-class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
+class MonitoringEventsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring Events class
     """
@@ -614,16 +614,17 @@ class MonitoringEventsSchema(MARSHMALLOW.ModelSchema):
     validity = fields.DateTime("%Y-%m-%d %H:%M:%S")
     event_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
     site = fields.Nested("SitesSchema", exclude=(
-        "events", "active", "psgc"))
+        "active", "psgc"))  # NOTE EXCLUDE: "events",
     site_id = fields.Integer()
 
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringEvents
-        exclude = ["issues_reminders_site_posting"]
+        unknown = EXCLUDE
+        # exclude = ["issues_reminders_site_posting"] NOTE EXCLUDE
 
 
-class MonitoringEventAlertsSchema(MARSHMALLOW.ModelSchema):
+class MonitoringEventAlertsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring Event Alerts class
     """
@@ -640,26 +641,27 @@ class MonitoringEventAlertsSchema(MARSHMALLOW.ModelSchema):
         model = MonitoringEventAlerts
 
 
-class MonitoringReleasesSchema(MARSHMALLOW.ModelSchema):
+class MonitoringReleasesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring Releases class
     """
-    event_alert = fields.Nested(MonitoringEventAlertsSchema,
-                                exclude=("releases",))
+    event_alert = fields.Nested(
+        MonitoringEventAlertsSchema, exclude=("releases",))
     data_ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     triggers = fields.Nested("MonitoringTriggersSchema",
-                             many=True, exclude=("release", "event"))
+                             many=True, exclude=("release",))  # NOTE EXCLUDE: "event"
+    # NOTE EXCLUDE: exclude=("releases",)
     release_publishers = fields.Nested(
-        "MonitoringReleasePublishersSchema", many=True, exclude=("releases",))
+        "MonitoringReleasePublishersSchema", many=True)
     moms_releases = fields.Nested(
-        "MonitoringMomsReleasesSchema", many=True, exclude=["release"])
+        "MonitoringMomsReleasesSchema", many=True)  # NOTE EXCLUDE: exclude=["release"]
 
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringReleases
 
 
-class MonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
+class MonitoringTriggersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring Triggers class
     """
@@ -670,34 +672,35 @@ class MonitoringTriggersSchema(MARSHMALLOW.ModelSchema):
     internal_sym = fields.Nested(
         "InternalAlertSymbolsSchema")  # only=("alert_symbol",)
     trigger_misc = fields.Nested(
-        "MonitoringTriggersMiscSchema", exclude=("trigger_parent",))
+        "MonitoringTriggersMiscSchema")  # NOTE EXCLUDE: exclude=("trigger_parent",)
 
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringTriggers
 
 
-class MonitoringReleasePublishersSchema(MARSHMALLOW.ModelSchema):
+class MonitoringReleasePublishersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring Release Publishers class
     """
 
-    user_details = fields.Nested(UsersSchema, exclude=("pu"))
+    user_details = fields.Nested(UsersSchema)  # NOTE EXCLUDE: exclude=("pu",)
 
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringReleasePublishers
 
 
-class MonitoringTriggersMiscSchema(MARSHMALLOW.ModelSchema):
+class MonitoringTriggersMiscSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of MonitoringTriggersMisc class
     """
 
     on_demand = fields.Nested(
-        "MonitoringOnDemandSchema", exclude=("trigger_misc", "od_id"))
+        "MonitoringOnDemandSchema", exclude=("od_id",))  # NOTE EXCLUDE: "trigger_misc",
     od_id = fields.Integer()
-    eq = fields.Nested("MonitoringEarthquakeSchema", exclude=("trigger_misc",))
+    # NOTE EXCLUDE: exclude=("trigger_misc",)
+    eq = fields.Nested("MonitoringEarthquakeSchema")
     eq_id = fields.Integer()
     moms_releases = fields.Nested("MonitoringMomsReleasesSchema", many=True)
 
@@ -706,7 +709,7 @@ class MonitoringTriggersMiscSchema(MARSHMALLOW.ModelSchema):
         model = MonitoringTriggersMisc
 
 
-class MonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
+class MonitoringOnDemandSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring On Demand class
     """
@@ -720,7 +723,7 @@ class MonitoringOnDemandSchema(MARSHMALLOW.ModelSchema):
         model = MonitoringOnDemand
 
 
-class MonitoringEarthquakeSchema(MARSHMALLOW.ModelSchema):
+class MonitoringEarthquakeSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring Earthquake class
     """
@@ -733,7 +736,7 @@ class MonitoringEarthquakeSchema(MARSHMALLOW.ModelSchema):
         model = MonitoringEarthquake
 
 
-class MonitoringMomsReleasesSchema(MARSHMALLOW.ModelSchema):
+class MonitoringMomsReleasesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of MonitoringMomsReleases class
     """
@@ -748,7 +751,7 @@ class MonitoringMomsReleasesSchema(MARSHMALLOW.ModelSchema):
         model = MonitoringMomsReleases
 
 
-class MonitoringMomsSchema(MARSHMALLOW.ModelSchema):
+class MonitoringMomsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring Moms class
     """
@@ -763,10 +766,11 @@ class MonitoringMomsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = MonitoringMoms
+        unknown = EXCLUDE
         exclude = ["moms_release"]
 
 
-class MomsInstancesSchema(MARSHMALLOW.ModelSchema):
+class MomsInstancesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Moms Instance class
     """
@@ -782,7 +786,7 @@ class MomsInstancesSchema(MARSHMALLOW.ModelSchema):
         model = MomsInstances
 
 
-class MomsFeaturesSchema(MARSHMALLOW.ModelSchema):
+class MomsFeaturesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of MomsFeatures class
     """
@@ -796,7 +800,7 @@ class MomsFeaturesSchema(MARSHMALLOW.ModelSchema):
         model = MomsFeatures
 
 
-class MomsFeatureAlertsSchema(MARSHMALLOW.ModelSchema):
+class MomsFeatureAlertsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of MomsFeatureAlerts class
     """
@@ -808,7 +812,7 @@ class MomsFeatureAlertsSchema(MARSHMALLOW.ModelSchema):
         model = MomsFeatureAlerts
 
 
-class BulletinTrackerSchema(MARSHMALLOW.ModelSchema):
+class BulletinTrackerSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of BulletinTracker class
     """
@@ -818,7 +822,7 @@ class BulletinTrackerSchema(MARSHMALLOW.ModelSchema):
         model = BulletinTracker
 
 
-class PublicAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
+class PublicAlertSymbolsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Monitoring Alert Symbols class
     """
@@ -826,55 +830,60 @@ class PublicAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = PublicAlertSymbols
-        exclude = ["public_alerts", "event_alerts", "bulletin_response"]
+        unknown = EXCLUDE
+        # NOTE EXCLUDE "bulletin_response"
+        exclude = ["public_alerts", "event_alerts"]
 
 
-class OperationalTriggerSymbolsSchema(MARSHMALLOW.ModelSchema):
+class OperationalTriggerSymbolsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of OperationalTriggerSymbols class
     """
 
-    source_id = fields.Integer()
-    trigger_hierarchy = fields.Nested(
+    source_id = MARSHMALLOW.auto_field()
+    trigger_hierarchy = MARSHMALLOW.Nested(
         "TriggerHierarchiesSchema", exclude=("trigger_symbols",))
-    internal_alert_symbol = fields.Nested(
+    internal_alert_symbol = MARSHMALLOW.Nested(
         "InternalAlertSymbolsSchema", exclude=("trigger_symbol",))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = OperationalTriggerSymbols
+        unknown = EXCLUDE
         exclude = ["operational_triggers"]
 
 
-class TriggerHierarchiesSchema(MARSHMALLOW.ModelSchema):
+class TriggerHierarchiesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Trigger Hierarchies class
     """
 
-    source_id = fields.Integer()
-    trigger_symbols = fields.Nested(
-        "OperationalTriggerSymbolsSchema", many=True, exclude=("trigger_symbols",))
+    source_id = MARSHMALLOW.auto_field()
+    trigger_symbols = MARSHMALLOW.Nested(
+        OperationalTriggerSymbolsSchema(many=True))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = TriggerHierarchies
+        unknown = EXCLUDE
 
 
-class InternalAlertSymbolsSchema(MARSHMALLOW.ModelSchema):
+class InternalAlertSymbolsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Internal Alert Symbols class
     """
-    trigger_sym_id = fields.Integer()
-    trigger_symbol = fields.Nested("OperationalTriggerSymbolsSchema",
-                                   exclude=("internal_alert_symbol",))
+    trigger_sym_id = MARSHMALLOW.auto_field()
+    trigger_symbol = MARSHMALLOW.Nested("OperationalTriggerSymbolsSchema",
+                                        exclude=("internal_alert_symbol",))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = InternalAlertSymbols
-        exclude = ["monitoring_triggers", "bulletin_trigger"]
+        unknown = EXCLUDE
+        exclude = ["monitoring_triggers"]  # NOTE EXCLUDE  "bulletin_trigger"
 
 
-class EndOfShiftAnalysisSchema(MARSHMALLOW.ModelSchema):
+class EndOfShiftAnalysisSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of EndOfShiftAnalysis class
     """
@@ -909,7 +918,7 @@ class MonitoringShiftSchedule(DB.Model):
                 f" ts: {self.ts}")
 
 
-class MonitoringShiftScheduleSchema(MARSHMALLOW.ModelSchema):
+class MonitoringShiftScheduleSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """

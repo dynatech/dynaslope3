@@ -31,6 +31,7 @@ def main():
 
     for key in table_list:
         table = table_list[key][0].query.all()
-        table_data = table_list[key][1].dump(table).data
+        table_data = table_list[key][1].dump(table)
+        
         set_data_to_memcache(
             name=key.upper(), data=table_data, raise_if_empty=True)

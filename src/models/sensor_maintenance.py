@@ -40,7 +40,7 @@ class HardwareMaintenance(DB.Model):
         return f"Class Representation"
 
 
-class HardwareMaintenanceSchema(MARSHMALLOW.ModelSchema):
+class HardwareMaintenanceSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of HardwareMaintenance class
     """
@@ -50,7 +50,7 @@ class HardwareMaintenanceSchema(MARSHMALLOW.ModelSchema):
         model = HardwareMaintenance
 
 
-class SensorMaintenanceSchema(MARSHMALLOW.ModelSchema):
+class SensorMaintenanceSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of SensorMaintenance class
     """

@@ -22,7 +22,7 @@ class FieldSurveyLog(DB.Model):
         return f"Class Representation"
 
 
-class FieldSurveyLogSchema(MARSHMALLOW.ModelSchema):
+class FieldSurveyLogSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of FieldSurveyLog class
     """

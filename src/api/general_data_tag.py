@@ -22,7 +22,7 @@ GENERAL_DATA_TAG_BLUEPRINT = Blueprint("general_data_tag_blueprint", __name__)
 def get_general_data_tag():
     general_data_tag = get_all_tag(tag_id=None)
     schema = GeneralDataTagManagerSchema(
-        many=True).dump(general_data_tag).data
+        many=True).dump(general_data_tag)
 
     return jsonify(schema)
 

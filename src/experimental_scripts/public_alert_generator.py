@@ -207,7 +207,7 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
             final_invalids_dict = {}
             try:
                 invalid_entry = invalid_dicts[item.trigger_sym_id]
-                invalid_details_dict = AlertStatusSchema().dump(invalid_entry).data
+                invalid_details_dict = AlertStatusSchema().dump(invalid_entry)
 
                 final_invalids_dict = {
                     "invalid": True,
@@ -261,7 +261,7 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                     moms_list = []
                     if sorted_moms_details:
                         sorted_moms_details_data = MONITORING_MOMS_SCHEMA.dump(
-                            sorted_moms_details).data
+                            sorted_moms_details)
                         moms_list = sorted_moms_details_data
 
                     trigger_tech_info = tech_info_maker.main(
@@ -309,7 +309,7 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                     trigger_tech_info = latest_on_demand.tech_info
 
                     latest_on_demand_data = ON_DEMAND_SCHEMA.dump(
-                        latest_on_demand).data
+                        latest_on_demand)
 
                     on_demand_special_details = {
                         "tech_info": trigger_tech_info,
@@ -365,14 +365,14 @@ def check_if_has_unreleased_and_unresolved_moms_instance(site_moms_alerts_list):
         # to any trigger or release
         if not site_moms.moms_release:
             moms_data = MonitoringMomsSchema(
-                exclude=MOMS_SCHEMA_EXCLUSION).dump(site_moms).data
+                exclude=MOMS_SCHEMA_EXCLUSION).dump(site_moms)
             unreleased_moms_list.append(moms_data)
 
         if not instance_id in unique_moms_instance_set:
             if site_moms.op_trigger > 0:
                 if moms_data is None:
                     moms_data = MonitoringMomsSchema(exclude=MOMS_SCHEMA_EXCLUSION) \
-                        .dump(site_moms).data
+                        .dump(site_moms)
                 unresolved_moms_list.append(moms_data)
 
             unique_moms_instance_set.add(instance_id)
@@ -679,7 +679,7 @@ def add_special_case_details(trigger_source, accessory_detail):
 
         if current_moms_list:
             current_moms_list_data = MONITORING_MOMS_SCHEMA.dump(
-                current_moms_list).data
+                current_moms_list)
             highest_row = next(iter(sorted(current_moms_list, key=lambda x: x.op_trigger,
                                            reverse=True)))
             highest_moms_alert_for_release_period = highest_row.op_trigger

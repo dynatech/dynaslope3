@@ -106,8 +106,13 @@ def get_site_season(site_code=None, site_id=None, return_schema_format=True):
         result = query.all()
 
     if return_schema_format:
-        schema = SitesSchema(many=is_many, include=["season_months"])
-        result = schema.dump(result).data
+        # NOTE INCLUDE include=["season_months"]
+        schema = SitesSchema(many=is_many)
+        temp = schema.dump(result)
+        if not is_many:
+            temp["season_months"] = SeasonsSchema(
+                exclude=["sites"]).dump(result.season_months)
+        result = temp
 
     return result
 
@@ -121,7 +126,7 @@ def get_seasons():
         exclude=[
             "routine_schedules", "sites"
         ]
-    ).dump(query).data
+    ).dump(query)
 
     return result
 

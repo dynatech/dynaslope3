@@ -17,7 +17,7 @@ def get_all_sensor_maintenance():
         SensorMaintenance.sensor_maintenance_id.desc()).all()
 
     result = SensorMaintenanceSchema(
-        many=True).dump(query).data
+        many=True).dump(query)
     data = []
     for row in result:
         data.append({
@@ -37,7 +37,7 @@ def get_last_sensor_maintenance():
         HardwareMaintenance.hardware_maintenance_id.desc()).all()
 
     result = HardwareMaintenanceSchema(
-        many=True).dump(query).data
+        many=True).dump(query)
     data = []
     for row in result:
         data.append({

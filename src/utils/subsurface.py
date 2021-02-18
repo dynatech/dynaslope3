@@ -282,7 +282,7 @@ def get_node_status(tsm_id, node_id=None):
     if node_id:
         schema = AccelerometersSchema(many=True)
 
-    return schema.dump(result).data
+    return schema.dump(result)
 
 
 def get_node_details(logger_name):
@@ -504,7 +504,7 @@ def get_subsurface_node_health(column_name):
 
 def check_if_subsurface_columns_has_data(site_code, start_ts, end_ts):
     tsm_sensors = get_site_subsurface_columns(site_code)
-    subsurface_columns = TSMSensorsSchema(many=True).dump(tsm_sensors).data
+    subsurface_columns = TSMSensorsSchema(many=True).dump(tsm_sensors)
 
     for tsm in subsurface_columns:
         name = tsm["logger"]["logger_name"]

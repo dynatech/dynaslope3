@@ -138,7 +138,7 @@ def wrap_get_message_tag_options(source):
     """
 
     tags = get_message_tag_options(source)
-    sms_tags = SmsTagsSchema(many=True).dump(tags).data
+    sms_tags = SmsTagsSchema(many=True).dump(tags)
 
     return jsonify(sms_tags)
 

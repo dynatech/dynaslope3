@@ -67,7 +67,7 @@ class GeneralDataTagManager(DB.Model):
         return f"Class Representation"
 
 
-class GeneralDataReferencesSchema(MARSHMALLOW.ModelSchema):
+class GeneralDataReferencesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of GeneralDataReferences class
     """
@@ -76,11 +76,11 @@ class GeneralDataReferencesSchema(MARSHMALLOW.ModelSchema):
         model = GeneralDataReferences
 
 
-class GeneralDataTagManagerSchema(MARSHMALLOW.ModelSchema):
+class GeneralDataTagManagerSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of GeneraDataTagManager class
     """
-    tag_manager_reference = fields.Nested(
+    tag_manager_reference = MARSHMALLOW.Nested(
         GeneralDataReferencesSchema, exclude=("reference",))
 
     class Meta:
@@ -88,7 +88,7 @@ class GeneralDataTagManagerSchema(MARSHMALLOW.ModelSchema):
         model = GeneralDataTagManager
 
 
-class GeneralDataTagSchema(MARSHMALLOW.ModelSchema):
+class GeneralDataTagSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of GeneralDataTag class
     """

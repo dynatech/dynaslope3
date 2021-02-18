@@ -26,7 +26,7 @@ class GndmeasAutomation(DB.Model):
         return f"{self.msg}\n"
 
 
-class GndmeasAutomationSchema(MARSHMALLOW.ModelSchema):
+class GndmeasAutomationSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of GndmeasAutomation class
     """

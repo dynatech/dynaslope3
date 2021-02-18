@@ -74,7 +74,7 @@ class IssuesRemindersSitePostings(DB.Model):
                 f" iar_id: {self.iar_id}")
 
 
-class IssuesAndRemindersSchema(MARSHMALLOW.ModelSchema):
+class IssuesAndRemindersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Common IssuesAndReminders class
     """
@@ -82,26 +82,23 @@ class IssuesAndRemindersSchema(MARSHMALLOW.ModelSchema):
     ts_posted = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_expiration = fields.DateTime("%Y-%m-%d %H:%M:%S")
     user_id = fields.Integer()
-    issue_reporter = fields.Nested(
-        "UsersSchema", exclude=("issue_and_reminder", ))
-    postings = fields.Nested(
-        "IssuesRemindersSitePostingsSchema", many=True, exclude=("issue_and_reminder", ))
+    issue_reporter = MARSHMALLOW.Nested("UsersSchema") #NOTE EXCLUDE: exclude issue_and_reminder
+    postings = MARSHMALLOW.Nested("IssuesRemindersSitePostingsSchema", many=True) #NOTE EXCLUDE: exclude issue_and_reminder
 
     class Meta:
         """Saves table class structure as schema model"""
         model = IssuesAndReminders
 
 
-class IssuesRemindersSitePostingsSchema(MARSHMALLOW.ModelSchema):
+class IssuesRemindersSitePostingsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Commons IssuesAndReminders class
     """
     event_id = fields.Integer()
     site_id = fields.Integer()
-    event = fields.Nested(
-        "MonitoringEventsSchema", exclude=("issues_reminders_posting", "event_alerts", "site", "narratives"))
-    site = fields.Nested(
-        "SitesSchema", exclude=("issues_reminders_posting", ))
+    event = MARSHMALLOW.Nested(
+        "MonitoringEventsSchema", exclude=("event_alerts", "site")) #NOTE EXCLUDE: exclude issues_reminders_posting, narratives
+    site = MARSHMALLOW.Nested("SitesSchema") #NOTE EXCLUDE: exclude issue_and_reminder
 
     class Meta:
         """Saves table class structure as schema model"""
