@@ -24,7 +24,7 @@ const handleSwitchChange = (setTriggersState, trigger_type) => event => {
         let internal_sym_id = null;
         // hardcoded internal_sym_id from database
         if (trigger_type === "on_demand") {
-            special_case_states = { reason: "", reporterId: "" };
+            special_case_states = { reason: "", reporterId: 2 };
             internal_sym_id = 12;
         } else if (trigger_type === "earthquake") {
             special_case_states = { magnitude: "", longitude: "", latitude: "" };
