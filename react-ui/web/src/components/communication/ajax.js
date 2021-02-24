@@ -207,3 +207,17 @@ export function resendMessage (outbox_status_id, callback) {
         console.error(error);
     });
 }
+
+export function getAllTags (callback) {
+    const api_link = `${host}/api/chatterbox/get_all_tags`;
+
+    axios.get(api_link)
+    .then(response => {
+        const { data } = response;
+        console.log("All Tags", data);
+        if (typeof callback !== "undefined") callback(data);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+}

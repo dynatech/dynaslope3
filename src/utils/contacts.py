@@ -4,6 +4,7 @@ Contacts Functions Utility File
 
 from datetime import datetime
 from sqlalchemy.orm import joinedload, contains_eager
+from sqlalchemy import or_
 from connection import DB
 from src.models.users import (
     Users, UserEmails, UserLandlines,
@@ -48,7 +49,9 @@ def get_org_ids(scopes=None, org_names=None):
     return org_id_list
 
 
-def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None, org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True):
+def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None,
+                    org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True,
+                    mobile_number=None, last_names=None, first_names=None):
     """
     """
 
@@ -76,6 +79,13 @@ def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None, org_
 
     if only_ewi_recipients:
         base_query = base_query.filter(Users.ewi_recipient == 1)
+
+    if first_names:
+        base_query = base_query.filter(or_(Users.first_name.in_(first_names),
+                                            Users.last_name.in_(last_names)))
+
+    if mobile_number:
+        base_query = base_query.join(MobileNumbers).filter(MobileNumbers.sim_num.ilike("%" + mobile_number + "%"))
 
     # default is to get only active mobile numbers
     if only_active_mobile_numbers:

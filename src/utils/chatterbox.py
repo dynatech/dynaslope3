@@ -4,20 +4,24 @@
 from datetime import datetime, timedelta
 from sqlalchemy import bindparam, literal, text
 from sqlalchemy.orm import joinedload, raiseload
+from sqlalchemy import or_
 from connection import DB
 from src.models.inbox_outbox import (
     SmsInboxUsers, SmsOutboxUsers, SmsOutboxUserStatus,
     ViewLatestMessagesMobileID, TempLatestMessagesSchema,
     SmsInboxUserTags, SmsInboxUserTagsSchema,
     SmsTags, SmsOutboxUserTags, SmsOutboxUserTagsSchema,
-    SmsUserUpdates, ViewLatestUnsentMsgsPerMobileID
+    SmsUserUpdates, ViewLatestUnsentMsgsPerMobileID,
+    SmsInboxUsersSchema, SmsTagsSchema, SmsOutboxUsersSchema,
+    SmsOutboxUserStatusSchema
 )
 from src.models.users import Users, UserOrganizations
+from src.models.sites import Sites
 from src.models.mobile_numbers import (
     UserMobiles, MobileNumbers, MobileNumbersSchema)
 
 from src.utils.contacts import get_mobile_numbers
-from src.utils.extra import var_checker
+from src.utils.extra import var_checker, retrieve_data_from_memcache
 
 
 def get_quick_inbox(inbox_limit=50, limit_inbox_outbox=True, ts_start=None, ts_end=None):
@@ -170,7 +174,6 @@ def get_latest_messages(
 ):
     """
     """
-
     query_start = datetime.now()
 
     offset = messages_per_convo * batch
@@ -298,11 +301,16 @@ def get_message_tags(message):
     return tags_list
 
 
-def get_message_tag_options(source):
+def get_message_tag_options(source=None):
     """
     """
 
-    tags = SmsTags.query.filter_by(source=source).all()
+    tags = SmsTags.query
+
+    if source:
+        tags = tags.filter_by(source=source)
+
+    tags = tags.all()
     return tags
 
 
@@ -395,7 +403,12 @@ def get_search_results(obj):
     only_active_mobile_numbers = not obj["include_inactive_numbers"]
     ts_start = obj["ts_start"]
     ts_end = obj["ts_end"]
-
+    string = obj["string_search"]
+    tag = obj["tag_search"]
+    mobile_number = obj["mobile_number_search"]
+    names = obj["name_search"]
+    offset = obj["updated_offset"]
+    print(obj)
     # search for mobile_ids using ts range given
     # if site_ids OR org_ids not given
     # (yes OR, because lower code would just apply date filter)
@@ -405,34 +418,55 @@ def get_search_results(obj):
             ts_start=ts_start, ts_end=ts_end)
         mobile_ids = list(map(lambda x: x[0], result))
 
-    contacts = get_mobile_numbers(
-        return_schema=True, mobile_ids=mobile_ids,
-        site_ids=site_ids, org_ids=org_ids,
-        only_ewi_recipients=only_ewi_recipients,
-        only_active_mobile_numbers=only_active_mobile_numbers)
-
     search_results = []
-    for contact in contacts:
-        mobile_number = contact["mobile_number"]
-        mobile_id = mobile_number["mobile_id"]
-        msgs_schema = get_formatted_latest_mobile_id_message(
-            mobile_id, limit_inbox_outbox=True, ts_start=ts_start, ts_end=ts_end)
+    first_names, last_names = get_first_and_last_names(names)
+    if string or tag:
+        search_results = smart_search(
+            string=string, tag=tag, org_ids=org_ids,
+            site_ids=site_ids, only_ewi_recipients=only_ewi_recipients,
+            first_names=first_names,last_names=last_names, offset=offset)
+    else:
+        contacts = get_mobile_numbers(
+            return_schema=True, mobile_ids=mobile_ids,
+            site_ids=site_ids, org_ids=org_ids,
+            only_ewi_recipients=only_ewi_recipients,
+            only_active_mobile_numbers=only_active_mobile_numbers,
+            mobile_number=mobile_number, first_names=first_names,
+            last_names=last_names)
+        for contact in contacts:
+            mobile_number = contact["mobile_number"]
+            mobile_id = mobile_number["mobile_id"]
+            msgs_schema = get_formatted_latest_mobile_id_message(
+                mobile_id, limit_inbox_outbox=True, ts_start=ts_start, ts_end=ts_end)
 
-        temp = {
-            "messages": msgs_schema,
-            "mobile_details": {
-                **mobile_number,
-                "users": [{
-                    "user": contact["user"],
-                    "priority": contact["priority"],
-                    "status": contact["status"]
-                }]
+            temp = {
+                "messages": msgs_schema,
+                "mobile_details": {
+                    **mobile_number,
+                    "users": [{
+                        "user": contact["user"],
+                        "priority": contact["priority"],
+                        "status": contact["status"]
+                    }]
+                }
             }
-        }
 
-        search_results.append(temp)
+            search_results.append(temp)
 
     return search_results
+
+
+def get_first_and_last_names(names):
+    first_names = []
+    last_names = []
+    for row in names:
+        first_name = row["first_name"]
+        last_name = row["last_name"]
+
+        first_names.append(first_name)
+        last_names.append(last_name)
+
+    return first_names, last_names
 
 
 def resend_message(outbox_status_id):
@@ -469,3 +503,167 @@ def get_ewi_acknowledgements_from_tags(site_id, ts_start, ts_end):
     result = query.all()
 
     return result
+
+
+def get_multiple_filter_search_result(string=None, tags=[], mobile_number=None):
+    """
+    TODO: join user, user mobile and user org
+    """
+    query = DB.session.query(SmsOutboxUserStatus).options(DB.subqueryload("outbox_message").joinedload("sms_tags").raiseload("*")).join(SmsOutboxUsers).filter(SmsOutboxUsers.sms_msg.ilike("%system%")).limit(20).all()
+    result = SmsOutboxUserStatusSchema(many=True).dump(query)
+    return result
+
+
+def smart_search(
+        string="magandang umaga", tag=None,
+        org_ids=[], site_ids=[], offset=0,
+        limit=20, only_ewi_recipients=False,
+        ts_start=None, ts_end=None,
+        first_names=None,  last_names=None
+        ):
+    """
+    """
+
+    sms_inbox = SmsInboxUsers.query\
+        .options(
+            DB.joinedload("sms_tags").subqueryload("tag").raiseload("*"),
+            DB.joinedload("mobile_details").subqueryload("mobile_number").raiseload("*")
+    ).join(SmsInboxUserTags).join(SmsTags).join(UserMobiles).join(Users).join(UserOrganizations).join(Sites)
+
+    sms_outbox = SmsOutboxUserStatus.query\
+        .options(
+            DB.joinedload("mobile_details").joinedload("mobile_number", innerjoin=True).raiseload("*"),
+            DB.joinedload("outbox_message", innerjoin=True).subqueryload("sms_tags").joinedload("tag", innerjoin=True).raiseload("*")
+    ).join(SmsOutboxUsers).join(SmsOutboxUserTags).join(SmsTags).join(UserMobiles).join(Users).join(UserOrganizations).join(Sites)
+    
+    if string:
+        sms_inbox = sms_inbox.filter(SmsInboxUsers.sms_msg.ilike("%" + string + "%"))
+        sms_outbox = sms_outbox.filter(SmsOutboxUsers.sms_msg.ilike("%" + string + "%"))
+
+    if tag:
+        sms_inbox = sms_inbox.filter(SmsTags.tag.ilike("%" + tag + "%"))
+        sms_outbox = sms_outbox.filter(SmsTags.tag.ilike("%" + tag + "%"))
+
+    if only_ewi_recipients:
+        sms_inbox = sms_inbox.filter(Users.ewi_recipient == 1)
+        sms_outbox = sms_outbox.filter(Users.ewi_recipient == 1)
+
+    if first_names:
+        sms_inbox = sms_inbox.filter(or_(Users.first_name.in_(first_names),
+                                            Users.last_name.in_(last_names)))
+        sms_outbox = sms_outbox.filter(or_(Users.first_name.in_(first_names),
+                                            Users.last_name.in_(last_names)))
+
+    if org_ids:
+        sms_inbox = sms_inbox.filter(UserOrganizations.org_id.in_(org_ids))
+        sms_outbox = sms_outbox.filter(UserOrganizations.org_id.in_(org_ids))
+
+    if site_ids:
+        sms_inbox = sms_inbox.filter(Sites.site_id.in_(site_ids))
+        sms_outbox = sms_outbox.filter(Sites.site_id.in_(site_ids))
+    
+    if ts_start:
+        sms_inbox = sms_inbox.filter(SmsInboxUsers.ts_sms >= ts_start)
+        sms_outbox = sms_outbox.filter(SmsOutboxUsers.ts_written >= ts_start)
+
+    if ts_end:
+        sms_inbox = sms_inbox.filter(SmsInboxUsers.ts_sms <= ts_end)
+        sms_outbox = sms_outbox.filter(SmsOutboxUsers.ts_written >= ts_start)
+
+    sms_inbox = sms_inbox.order_by(SmsInboxUsers.ts_sms.desc()).limit(limit).offset(offset)
+    sms_outbox = sms_outbox.order_by(SmsOutboxUsers.ts_written.desc()).limit(limit).offset(offset)
+    
+    sms_inbox_result = SmsInboxUsersSchema(many=True).dump(sms_inbox)
+    sms_outbox_result = SmsOutboxUserStatusSchema(many=True).dump(sms_outbox)
+    all_data = sms_inbox_result + sms_outbox_result
+
+    search_results = format_conversation_results(all_data)
+    
+    return search_results
+    
+
+def format_conversation_results(all_data):
+    """
+    """
+    search_results= []
+    for row in all_data:
+        if "read_status" in row:
+            inbox_data = {
+                "convo_id": row["inbox_id"],
+                "inbox_id": row["inbox_id"],
+                "outbox_id": None,
+                "mobile_id": row["mobile_id"],
+                "sms_msg": row["sms_msg"],
+                "sms_tags": row["sms_tags"],
+                "ts": row["ts_sms"],
+                "ts_received": row["ts_sms"],
+                "ts_written": None,
+                "ts_sent": None,
+                "source": "inbox",
+                "send_status": None,
+                "is_per_convo": True
+            }
+            mobile_details = row["mobile_details"]
+            mobile_number = mobile_details["mobile_number"]
+            user = []
+            if "user" in mobile_details:
+                user = row["mobile_details"]["user"]
+            
+            if mobile_number:
+                inbox_details = {
+                    "messages": [inbox_data],
+                    "mobile_details": {
+                        "gsm_id": mobile_details["mobile_number"]["gsm_id"],
+                        "mobile_id": mobile_details["mobile_number"]["mobile_id"],
+                        "sim_num": mobile_details["mobile_number"]["sim_num"],
+                        "users": [{
+                            "user": user,
+                            "priority": row["mobile_details"]["priority"],
+                            "status": row["mobile_details"]["status"]
+                        }]
+                    }
+                }
+                search_results.append(inbox_details)
+        else:
+            outbox_data = {
+                "convo_id": row["outbox_message"]["outbox_id"],
+                "inbox_id": None,
+                "outbox_id": row["outbox_message"]["outbox_id"],
+                "mobile_id": row["mobile_id"],
+                "sms_msg": row["outbox_message"]["sms_msg"],
+                "sms_tags": row["outbox_message"]["sms_tags"],
+                "ts": row["outbox_message"]["ts_written"],
+                "ts_received": None,
+                "ts_written": row["outbox_message"]["ts_written"],
+                "ts_sent": row["ts_sent"],
+                "source": "outbox",
+                "is_per_convo": True
+            }
+            mobile_details = row["mobile_details"]
+            mobile_number = mobile_details["mobile_number"]
+            user = []
+            if "user" in mobile_details:
+                user = row["mobile_details"]["user"]
+
+            if mobile_number:
+                outbox_details = {
+                    "messages": [outbox_data],
+                    "mobile_details": {
+                        "gsm_id": mobile_details["mobile_number"]["gsm_id"],
+                        "mobile_id": mobile_details["mobile_number"]["mobile_id"],
+                        "sim_num": mobile_details["mobile_number"]["sim_num"],
+                        "users": [{
+                            "user": user,
+                            "priority": row["mobile_details"]["priority"],
+                            "status": row["mobile_details"]["status"]
+                        }]
+                    }
+                }
+                search_results.append(outbox_details)
+    if search_results:
+        search_results.sort(key=lambda a: a["messages"][0]["ts"])
+        search_results.reverse()
+
+    return search_results
+
+    

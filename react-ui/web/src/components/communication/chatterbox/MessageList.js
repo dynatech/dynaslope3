@@ -38,10 +38,9 @@ const useStyles = makeStyles(theme => ({
     sentIcon: { fontSize: "1.10rem" }
 }));
 
-export function mobileUserFormatter (users) {
+export function mobileUserFormatter (users, first_message) {
     const sender_arr = [];
     let orgs_arr = [];
-
     users.forEach(row => {
         const { user, status } = row;
         const { first_name, last_name, organizations } = user;
@@ -122,6 +121,7 @@ function SecondaryInformation (classes, first_message) {
 function MessageListItem (row, props, openOptionsModal, index) {
     const { messages, mobile_details } = row;
     const [first_message] = messages;
+    const { is_per_convo, ts} = first_message;
     const { classes, url, width, async, is_desktop, searchFilters } = props;
 
     const { mobile_id, sim_num, users } = mobile_details;
@@ -139,8 +139,12 @@ function MessageListItem (row, props, openOptionsModal, index) {
     let search_filters = null;
     if (typeof searchFilters !== "undefined") {
         search_filters = { ...searchFilters };
+       
+        if (is_per_convo){
+            search_filters.ts_end = ts;
+        }
     }
-
+    
     const no_convo_message = searchFilters ? "No conversations" : "No conversation yet";
     
     const on_option_button_click = e => {
@@ -157,7 +161,8 @@ function MessageListItem (row, props, openOptionsModal, index) {
             to={{
                 pathname: `${url}/${mobile_id}`,
                 state: {
-                    async, search_filters
+                    async, search_filters,
+                    test: "data"
                 }
             }} 
             key={`${index}-${mobile_id}`} 

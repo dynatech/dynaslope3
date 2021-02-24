@@ -96,29 +96,51 @@ function GeneralDataTagModal (props) {
     const [tags, update_tags] = useState(null);
     const [orig_tags, setOrigTags] = useState([]);
     const [has_fyi_tag, setHasFyiTag] = useState(false);
+    const [has_permission_tag, setHasPermissionTag] = useState(false);
     const [sites, setSites] = useState(null);
     const [fyi_purpose, setFyiPurspose] = useState("");
+    const [permission_purpose, setPermissionPurpose] = useState("");
 
     const is_saved_number = mobileDetails.users.length > 0;
 
     useEffect(() => {
-        let bool = false;
-        if (tags !== null) bool = tags.some(x => x.label === "#AlertFYI");
-        setHasFyiTag(bool);
+        let fyi_bool = false;
+        let permission_bool = false;
+        if (tags !== null) {
+            fyi_bool = tags.some(x => x.label === "#AlertFYI");
+            permission_bool = tags.some(x => x.label === "#Permission");
+
+            if(fyi_bool){
+                permission_bool = false;
+                
+            } else if (permission_bool){
+                fyi_bool = false;
+            }
+
+
+        }
+        setHasFyiTag(fyi_bool);
+        setHasPermissionTag(permission_bool);
+        // console.log(tags)
     }, [tags]);
 
     const [is_disabled, setIsDisabled] = useState(false);
+
     useEffect(() => {
         let bool = false;
         if (is_saved_number) {
             if (has_fyi_tag) {
                 if (sites === null || fyi_purpose === "") bool = true;
             }
+
+            if(has_permission_tag) {
+                if (sites === null || permission_purpose === "") bool = true;
+            }
         } else {
             bool = true;
         }
         setIsDisabled(bool);
-    }, [has_fyi_tag, sites, fyi_purpose]);
+    }, [has_fyi_tag, sites, fyi_purpose, has_permission_tag, permission_purpose]);
 
     useEffect(() =>{
         const tag_arr = preparePassedTags(tagObject);
@@ -187,10 +209,17 @@ function GeneralDataTagModal (props) {
             const tag_id_list = new_tags.map(tag => {
                 return tag.value;
             });
+
+            let final_message = message
+            if(has_fyi_tag){
+                final_message = fyi_purpose;
+            }else if(has_permission_tag){
+                final_message = permission_purpose;
+            }
             const payload = {
                 tag_type: `sms${source}_user_tags`,
                 contact_person,
-                message: has_fyi_tag ? fyi_purpose : message,
+                message: final_message,
                 tag_details: {
                     user_id: getCurrentUser().user_id,
                     [var_key_id]: id,
@@ -201,6 +230,7 @@ function GeneralDataTagModal (props) {
                 }
             };
             console.log("PAYLOAD", payload);
+            console.log(tags)
             handleUpdateInsertTags(payload, response => {
                 console.log("tag response", response);
             });
@@ -272,6 +302,38 @@ function GeneralDataTagModal (props) {
                     </Fragment>
                 }
 
+                {
+                    has_permission_tag && <Fragment>
+                        <DialogContentText color="textPrimary">
+                            Permission
+                        </DialogContentText>
+
+                        
+                        <DynaslopeSiteSelectInputForm
+                            value={sites}
+                            changeHandler={value => setSites(value)}
+                            isMulti
+                            required
+                        />
+
+
+                        <FormLabel component="legend" style={{ marginTop: 24 }}>Purpose</FormLabel>
+                        <RadioGroup
+                            aria-label="permission-purpose"
+                            name="permission-purpose"
+                            row
+                            style={{ justifyContent: "space-around" }}
+                            value={permission_purpose}
+                            onChange={e => setPermissionPurpose(e.target.value)}
+                        >
+                            <FormControlLabel value="alert raising" control={<Radio />} label="Alert raising" />
+                            <FormControlLabel value="alert lowering" control={<Radio />} label="Alert lowering" />
+                            <FormControlLabel value="alert 3 raising" control={<Radio />} label="Alert 3 raising" />
+                            <FormControlLabel value="on demand alert" control={<Radio />} label="On demand alert" />
+                        </RadioGroup>
+                    </Fragment>
+                }
+                
                 {
                     !isMobile && <div style={{ height: 240 }} />
                 }

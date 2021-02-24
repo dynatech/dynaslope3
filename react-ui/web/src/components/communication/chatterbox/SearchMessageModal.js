@@ -8,7 +8,8 @@ import {
     DialogContentText, DialogActions,
     Button, withMobileDialog, IconButton,
     makeStyles, FormControlLabel,
-    Checkbox, Grid, Divider, Typography
+    Checkbox, Grid, Divider, Typography,
+    TextField, FormControl
 } from "@material-ui/core";
 import { Close } from "@material-ui/icons";
 import MomentUtils from "@date-io/moment";
@@ -28,7 +29,8 @@ function SearchMessageModal (props) {
     const {
         fullScreen, modalStateHandler,
         setSearchResultsToEmpty,
-        modalState, url, isMobile
+        modalState, url, isMobile,
+        recipientsList, tagList
     } = props;
     const classes = useStyles();
 
@@ -37,6 +39,7 @@ function SearchMessageModal (props) {
     } = useContext(GeneralContext);
 
     const [org_options, setOrgOptions] = useState([]);
+    const [options, setOptions] = useState([]);
     useEffect(() => {
         const temp = orgs_list.map(row => {
             let pre = "";
@@ -69,6 +72,10 @@ function SearchMessageModal (props) {
     const [include_inactive_numbers, setIncludeInactiveNumbers] = useState(false);
     const [ts_start, setTsStart] = useState(null);
     const [ts_end, setTsEnd] = useState(null);
+    const [string_search, setString] = useState("")
+    const [tag_search, setTags] = useState({label: ""})
+    const [mobile_number_search, setMobileNumber] = useState("")
+    const [name_search, setName] = useState("")
 
     const [is_search_disabled, setIsSearchDisabled] = useState(true);
     const has_site_or_org = sites.length > 0 || organizations.length > 0;
@@ -86,9 +93,40 @@ function SearchMessageModal (props) {
         if (has_site_or_org) {
             if (has_message_filters) bool = false;
         } else if (has_message_filters && !are_ts_all_null) bool = false;
+
+        if(mobile_number_search || name_search || string_search || tag_search.label){
+            bool = false
+        }
         
         setIsSearchDisabled(bool);
-    }, [sites, organizations, ts_start, ts_end]);
+    }, [sites, organizations, ts_start, ts_end,
+        mobile_number_search, name_search, string_search,
+        tag_search]);
+
+    useEffect(() => {
+        if (typeof recipientsList !== "undefined") {
+            
+            const temp = recipientsList.map(row => {
+                const { label, mobile_id, org, sim_num } = row;
+                let fin_label = label;
+                if (org !== "") fin_label = `${label} (${org})`;
+
+                const chip_label = `${label}`;
+                const name = chip_label.split(",");
+                return {
+                    label: fin_label,
+                    chipLabel: chip_label,
+                    value: mobile_id,
+                    sim_num,
+                    data: row,
+                    first_name: name[1],
+                    last_name: name[0]
+                };
+            });
+
+            setOptions(temp);
+        }
+    }, [recipientsList]);
 
     return (
         <Dialog
@@ -103,7 +141,7 @@ function SearchMessageModal (props) {
                 Search Chatterbox
             </DialogTitle>
 
-            <DialogContent style={{ overflowY: "hidden" }}>
+            <DialogContent>
                 <DialogContentText>
                     Fill in at least one field from any of the filters. NOTE: the broader the search 
                     filters, the longer the query might run.
@@ -198,6 +236,94 @@ function SearchMessageModal (props) {
                     </MuiPickersUtilsProvider>
                     
                     <Grid item xs={12}><Divider /></Grid>
+                    <Typography
+                        variant="subtitle1"
+                        component={Grid} item xs={12}
+                    >
+                        STRING FILTER
+                    </Typography>
+                    
+                    <Grid item xs={12}>
+                        <FormControl fullWidth> 
+                            <TextField
+                                id="string-filter"
+                                label="String"
+                                value={string_search}
+                                onChange={e => setString(e.target.value)}
+                                placeholder="Enter string"
+                                InputLabelProps={{
+                                    shrink: true,
+                                }}
+                            />
+                        </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12}><Divider /></Grid>
+                    <Typography
+                        variant="subtitle1"
+                        component={Grid} item xs={12}
+                    >
+                        TAG FILTER
+                    </Typography>
+                    
+                    <Grid item xs={12}>
+                        <SelectMultipleWithSuggest
+                            label="Tags"
+                            options={tagList}
+                            value={tag_search}
+                            changeHandler={value => setTags(value)}
+                            placeholder="Select tags"
+                            renderDropdownIndicator={false}
+                            openMenuOnClick
+                        />
+                    </Grid>
+
+                    <Grid item xs={12}><Divider /></Grid>
+                    <Typography
+                        variant="subtitle1"
+                        component={Grid} item xs={12}
+                    >
+                        MOBILE NUMBER FILTER
+                    </Typography>
+                    
+                    <Grid item xs={12}>
+                        <FormControl fullWidth> 
+                            <TextField
+                                id="mobile-number-filter"
+                                label="Mobile Number"
+                                type="number"
+                                value={mobile_number_search}
+                                onChange={e => setMobileNumber(e.target.value)}
+                                placeholder="Enter mobile number"
+                                InputLabelProps={{
+                                    shrink: true,
+                                }}
+                            />
+                        </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12}><Divider /></Grid>
+                    <Typography
+                        variant="subtitle1"
+                        component={Grid} item xs={12}
+                    >
+                        NAME FILTER
+                    </Typography>
+                    
+                    <Grid item xs={12}>
+                        <SelectMultipleWithSuggest
+                            label="Contacts"
+                            options={options}
+                            value={name_search}
+                            changeHandler={value => setName(value)}
+                            placeholder="Select contact"
+                            renderDropdownIndicator
+                            openMenuOnClick
+                            isMulti
+                        />
+                    </Grid>
+
+                    <Grid item xs={12}><Divider /></Grid>
 
                     {
                         !is_search_disabled && <Fragment>
@@ -248,7 +374,11 @@ function SearchMessageModal (props) {
                         state: {
                             sites, organizations, only_ewi_recipients, include_inactive_numbers,
                             ts_start: ts_start ? moment(ts_start).format("YYYY-MM-DD HH:mm:ss") : ts_start,
-                            ts_end: ts_end ? moment(ts_end).format("YYYY-MM-DD HH:mm:ss") : ts_end
+                            ts_end: ts_end ? moment(ts_end).format("YYYY-MM-DD HH:mm:ss") : ts_end,
+                            string_search,
+                            tag_search,
+                            mobile_number_search,
+                            name_search
                         }
                     }} 
                 >

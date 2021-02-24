@@ -29,6 +29,7 @@ import {
     removeReceiveAllMobileNumbers, receiveAllContacts,
     removeReceiveAllContacts
 } from "../../../websocket/communications_ws";
+import { getAllTags } from "../ajax";
 
 const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
@@ -114,6 +115,7 @@ function Container (comp_props) {
     ]);
     const [search_results, setSearchResults] = useState([]);
     const [recipients_list, setRecipientsList] = useState([]);
+    const [tag_list, setTagList] = useState([]);
     const [contacts, setContacts] = useState([]);
     const [is_open_info_modal, setIsOpenInfoModal] = useState(false);
 
@@ -158,6 +160,16 @@ function Container (comp_props) {
             removeReceiveAllMobileNumbers();
             removeReceiveAllContacts();
         };
+    }, []);
+
+    useEffect(() => {
+        getAllTags(all_tags => {
+            const tags = all_tags.map(row => ({
+                value: row.tag_id,
+                label: row.tag
+            }));
+            setTagList(tags)
+        });
     }, []);
 
     const is_desktop = isWidthUp("md", width);
@@ -262,6 +274,9 @@ function Container (comp_props) {
                             modalState={is_open_search_modal}
                             setSearchResultsToEmpty={() => setSearchResults([])}
                             url={url}
+                            contactList={contacts}
+                            recipientsList={recipients_list}
+                            tagList={tag_list}
                         />
 
                         <ChatterboxInfoModal

@@ -1,5 +1,5 @@
 import React, {
-    useState, useEffect
+    useState, useEffect, Fragment
 } from "react";
 
 import { 
@@ -7,7 +7,7 @@ import {
     makeStyles, Button, Box,
     Grid, Hidden, Divider
 } from "@material-ui/core";
-import { ArrowBackIos } from "@material-ui/icons";
+import { ArrowBackIos, NavigateNext, NavigateBefore} from "@material-ui/icons";
 import { isWidthDown } from "@material-ui/core/withWidth";
 
 import GeneralStyles from "../../../GeneralStyles";
@@ -83,30 +83,51 @@ function SearchResultsPage (props) {
     const classes = useStyles();
     const { state: {
         sites, organizations, only_ewi_recipients,
-        include_inactive_numbers, ts_start, ts_end
+        include_inactive_numbers, ts_start, ts_end,
+        string_search, tag_search,
+        mobile_number_search, name_search
     } } = location;
 
     const [is_loading, setIsLoading] = useState(false);
     const has_no_input = sites === null && organizations === null;
+    const has_string_or_tag = string_search !== "" || tag_search.label !== "";
+    const offset = 0;
+    const [updated_offset, setUpdateOffset] = useState(offset);
+
+    const previousButtonHandler = () => {
+        if(updated_offset > 0){
+            const temp_offset = updated_offset - 20;
+            setUpdateOffset(temp_offset);
+        }
+    };
+    
+    const nextButtonHandler = () => {
+        const temp_offset = updated_offset + 20;
+        setUpdateOffset(temp_offset);
+    };
 
     useEffect(() => {
         const has_no_search_results = searchResults.length === 0;
-
-        if (!has_no_input && has_no_search_results) {
+        if (!has_no_input && has_no_search_results || has_string_or_tag) {
             setIsLoading(true);
-
+            
             const input = {
                 site_ids: sites.map(s => s.value),
                 org_ids: organizations.map(o => o.value),
                 only_ewi_recipients,
                 include_inactive_numbers,
                 ts_start,
-                ts_end
+                ts_end,
+                string_search,
+                tag_search: tag_search.label,
+                mobile_number_search,
+                name_search,
+                updated_offset
             };
 
             if (typeof socket !== "undefined") {
                 socket.emit("get_search_results", input);
-    
+
                 receiveSearchResults(data => {
                     setIsLoading(false);
                     setSearchResults(data);
@@ -121,7 +142,7 @@ function SearchResultsPage (props) {
         };
     }, [
         socket, sites, organizations,
-        ts_start, ts_end
+        ts_start, ts_end, updated_offset
     ]);
 
     return (
@@ -178,6 +199,30 @@ function SearchResultsPage (props) {
                     </Box>
                 }
 
+                {
+                    string_search && <Box mr={2}>
+                        <Typography variant="subtitle2"><strong>String: </strong>{string_search}</Typography>
+                    </Box>
+                }
+
+                {
+                    tag_search.label && <Box mr={2}>
+                        <Typography variant="subtitle2"><strong>Tag: </strong>{tag_search.label}</Typography>
+                    </Box>
+                }
+
+                {
+                    mobile_number_search && <Box mr={2}>
+                        <Typography variant="subtitle2"><strong>Mobile Number: </strong>{mobile_number_search}</Typography>
+                    </Box>
+                }
+
+                {
+                    name_search. length != 0 && <Box mr={2}>
+                        <Typography variant="subtitle2"><strong>Has name search</strong></Typography>
+                    </Box>
+                }
+
                 <Box mr={2}>
                     <Typography variant="subtitle2">
                         <strong>Only EWI Recipients:</strong> {capitalizeFirstLetter(only_ewi_recipients.toString())}
@@ -190,9 +235,31 @@ function SearchResultsPage (props) {
                     </Typography>
                 </Box>
             </Box>
-
+            
             <Divider style={{ marginTop: 12 }} />
-
+            {
+                searchResults.length > 0 && has_string_or_tag && (
+                    <Box display="flex" flexDirection="row-reverse">
+                        <Button
+                            size="small"
+                            style={{ margin: 10 }}
+                            onClick={nextButtonHandler}
+                            variant="contained"
+                            color="primary"
+                            endIcon={<NavigateNext />}
+                        > Next </Button>
+                        <Button
+                            size="small"
+                            style={{ margin: 10 }}
+                            onClick={previousButtonHandler}
+                            variant="contained"
+                            color="primary"
+                            startIcon={<NavigateBefore />}
+                        > Previous </Button>
+                    </Box>
+                )
+            }
+            
             {
                 has_no_input && (
                     <Typography variant="h6" align="center">
