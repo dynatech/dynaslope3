@@ -168,7 +168,7 @@ function Container (comp_props) {
                 value: row.tag_id,
                 label: row.tag
             }));
-            setTagList(tags)
+            setTagList(tags);
         });
     }, []);
 

@@ -2,9 +2,10 @@
 """
 
 from datetime import datetime, timedelta
-from sqlalchemy import bindparam, literal, text
+from sqlalchemy import (
+    bindparam, literal, text, or_
+)
 from sqlalchemy.orm import joinedload, raiseload
-from sqlalchemy import or_
 from connection import DB
 from src.models.inbox_outbox import (
     SmsInboxUsers, SmsOutboxUsers, SmsOutboxUserStatus,
@@ -12,8 +13,7 @@ from src.models.inbox_outbox import (
     SmsInboxUserTags, SmsInboxUserTagsSchema,
     SmsTags, SmsOutboxUserTags, SmsOutboxUserTagsSchema,
     SmsUserUpdates, ViewLatestUnsentMsgsPerMobileID,
-    SmsInboxUsersSchema, SmsTagsSchema, SmsOutboxUsersSchema,
-    SmsOutboxUserStatusSchema
+    SmsInboxUsersSchema, SmsOutboxUserStatusSchema
 )
 from src.models.users import Users, UserOrganizations
 from src.models.sites import Sites
@@ -162,7 +162,7 @@ def get_user_mobile_details(mobile_id):
         "users.user.emails",
         "users.user.ewi_restriction"
     ]).dump(mobile_details)
-       #NOTE EXCLUDE: "blocked_mobile"
+    # NOTE EXCLUDE: "blocked_mobile"
 
     return mobile_schema
 
@@ -289,14 +289,14 @@ def get_message_tags(message):
             raiseload("*")
         ).filter_by(inbox_id=message.inbox_id).all()
         tags_list = SmsInboxUserTagsSchema(
-            many=True).dump(sms_tags) #NOTE EXCLUDE: exclude=["inbox_message"]
+            many=True).dump(sms_tags)  # NOTE EXCLUDE: exclude=["inbox_message"]
     elif message.source == "outbox":
         sms_tags = DB.session.query(SmsOutboxUserTags).options(
             joinedload(SmsOutboxUserTags.tag, innerjoin=True),
             raiseload("*")
         ).filter_by(outbox_id=message.outbox_id).all()
         tags_list = SmsOutboxUserTagsSchema(
-            many=True).dump(sms_tags) #NOTE EXCLUDE: exclude=["outbox_message"]
+            many=True).dump(sms_tags)  # NOTE EXCLUDE: exclude=["outbox_message"]
 
     return tags_list
 
@@ -408,7 +408,7 @@ def get_search_results(obj):
     mobile_number = obj["mobile_number_search"]
     names = obj["name_search"]
     offset = obj["updated_offset"]
-    print(obj)
+
     # search for mobile_ids using ts range given
     # if site_ids OR org_ids not given
     # (yes OR, because lower code would just apply date filter)
@@ -419,12 +419,16 @@ def get_search_results(obj):
         mobile_ids = list(map(lambda x: x[0], result))
 
     search_results = []
+
+    # COMMENT: UNNECESSARY! GAMITIN NA LANG YUNG MOBILE ID
     first_names, last_names = get_first_and_last_names(names)
+
     if string or tag:
+        # COMMENT: bakit di ginagamit yung mga ts dito??
         search_results = smart_search(
             string=string, tag=tag, org_ids=org_ids,
             site_ids=site_ids, only_ewi_recipients=only_ewi_recipients,
-            first_names=first_names,last_names=last_names, offset=offset)
+            first_names=first_names, last_names=last_names, offset=offset)
     else:
         contacts = get_mobile_numbers(
             return_schema=True, mobile_ids=mobile_ids,
@@ -456,6 +460,7 @@ def get_search_results(obj):
     return search_results
 
 
+# COMMENT: Delete this
 def get_first_and_last_names(names):
     first_names = []
     last_names = []
@@ -505,63 +510,55 @@ def get_ewi_acknowledgements_from_tags(site_id, ts_start, ts_end):
     return result
 
 
-def get_multiple_filter_search_result(string=None, tags=[], mobile_number=None):
-    """
-    TODO: join user, user mobile and user org
-    """
-    query = DB.session.query(SmsOutboxUserStatus).options(DB.subqueryload("outbox_message").joinedload("sms_tags").raiseload("*")).join(SmsOutboxUsers).filter(SmsOutboxUsers.sms_msg.ilike("%system%")).limit(20).all()
-    result = SmsOutboxUserStatusSchema(many=True).dump(query)
-    return result
-
-
+# COMMENT: Tanggalin yung mga unnecesary parameters
 def smart_search(
         string="magandang umaga", tag=None,
         org_ids=[], site_ids=[], offset=0,
         limit=20, only_ewi_recipients=False,
         ts_start=None, ts_end=None,
-        first_names=None,  last_names=None
-        ):
+        first_names=None, last_names=None
+):
     """
     """
 
-    sms_inbox = SmsInboxUsers.query\
+    sms_inbox = SmsInboxUsers.query \
         .options(
             DB.joinedload("sms_tags").subqueryload("tag").raiseload("*"),
-            DB.joinedload("mobile_details").subqueryload("mobile_number").raiseload("*")
-    ).join(SmsInboxUserTags).join(SmsTags).join(UserMobiles).join(Users).join(UserOrganizations).join(Sites)
+            DB.joinedload("mobile_details").subqueryload(
+                "mobile_number").raiseload("*")
+        )
 
-    sms_outbox = SmsOutboxUserStatus.query\
+    sms_outbox = SmsOutboxUserStatus.query \
         .options(
-            DB.joinedload("mobile_details").joinedload("mobile_number", innerjoin=True).raiseload("*"),
-            DB.joinedload("outbox_message", innerjoin=True).subqueryload("sms_tags").joinedload("tag", innerjoin=True).raiseload("*")
-    ).join(SmsOutboxUsers).join(SmsOutboxUserTags).join(SmsTags).join(UserMobiles).join(Users).join(UserOrganizations).join(Sites)
-    
+            DB.joinedload("mobile_details").joinedload(
+                "mobile_number", innerjoin=True).raiseload("*"),
+            DB.joinedload("outbox_message", innerjoin=True).subqueryload(
+                "sms_tags").joinedload("tag", innerjoin=True).raiseload("*")
+        ).join(SmsOutboxUsers)
+
     if string:
-        sms_inbox = sms_inbox.filter(SmsInboxUsers.sms_msg.ilike("%" + string + "%"))
-        sms_outbox = sms_outbox.filter(SmsOutboxUsers.sms_msg.ilike("%" + string + "%"))
+        sms_inbox = sms_inbox.filter(
+            SmsInboxUsers.sms_msg.ilike("%" + string + "%"))
+        sms_outbox = sms_outbox.filter(
+            SmsOutboxUsers.sms_msg.ilike("%" + string + "%"))
 
     if tag:
-        sms_inbox = sms_inbox.filter(SmsTags.tag.ilike("%" + tag + "%"))
-        sms_outbox = sms_outbox.filter(SmsTags.tag.ilike("%" + tag + "%"))
+        # COMMENT: CHANGE THIS TO TAG_ID
+        tag_filter = SmsTags.tag.ilike("%" + tag + "%")
+        sms_inbox = sms_inbox.join(SmsInboxUserTags) \
+            .join(SmsTags).filter(tag_filter)
+        sms_outbox = sms_outbox.join(SmsOutboxUserTags) \
+            .join(SmsTags).filter(tag_filter)
 
-    if only_ewi_recipients:
-        sms_inbox = sms_inbox.filter(Users.ewi_recipient == 1)
-        sms_outbox = sms_outbox.filter(Users.ewi_recipient == 1)
-
+    # COMMENT: change this! Yung sa original na recipients list,
+    # given na nga yung monile_id dun eh. Pinahirapan mo pa na yung first_name
+    # yung i-search. Edit this
     if first_names:
         sms_inbox = sms_inbox.filter(or_(Users.first_name.in_(first_names),
-                                            Users.last_name.in_(last_names)))
+                                         Users.last_name.in_(last_names)))
         sms_outbox = sms_outbox.filter(or_(Users.first_name.in_(first_names),
-                                            Users.last_name.in_(last_names)))
+                                           Users.last_name.in_(last_names)))
 
-    if org_ids:
-        sms_inbox = sms_inbox.filter(UserOrganizations.org_id.in_(org_ids))
-        sms_outbox = sms_outbox.filter(UserOrganizations.org_id.in_(org_ids))
-
-    if site_ids:
-        sms_inbox = sms_inbox.filter(Sites.site_id.in_(site_ids))
-        sms_outbox = sms_outbox.filter(Sites.site_id.in_(site_ids))
-    
     if ts_start:
         sms_inbox = sms_inbox.filter(SmsInboxUsers.ts_sms >= ts_start)
         sms_outbox = sms_outbox.filter(SmsOutboxUsers.ts_written >= ts_start)
@@ -570,22 +567,44 @@ def smart_search(
         sms_inbox = sms_inbox.filter(SmsInboxUsers.ts_sms <= ts_end)
         sms_outbox = sms_outbox.filter(SmsOutboxUsers.ts_written >= ts_start)
 
-    sms_inbox = sms_inbox.order_by(SmsInboxUsers.ts_sms.desc()).limit(limit).offset(offset)
-    sms_outbox = sms_outbox.order_by(SmsOutboxUsers.ts_written.desc()).limit(limit).offset(offset)
-    
+    if only_ewi_recipients or org_ids or site_ids:
+        sms_inbox = sms_inbox.join(UserMobiles).join(Users)
+        sms_outbox = sms_outbox.join(UserMobiles).join(
+            Users)
+
+        if only_ewi_recipients:
+            temp_filter = Users.ewi_recipient == 1
+            sms_inbox = sms_inbox.filter(temp_filter)
+            sms_outbox = sms_outbox.filter(temp_filter)
+
+        if org_ids:
+            org_filter = UserOrganizations.org_id.in_(org_ids)
+            sms_inbox = sms_inbox.join(UserOrganizations).filter(org_filter)
+            sms_outbox = sms_outbox.join(UserOrganizations).filter(org_filter)
+
+        if site_ids:
+            site_filter = Sites.site_id.in_(site_ids)
+            sms_inbox = sms_inbox.join(Sites).filter(site_filter)
+            sms_outbox = sms_outbox.join(Sites).filter(site_filter)
+
+    sms_inbox = sms_inbox.order_by(
+        SmsInboxUsers.ts_sms.desc()).limit(limit).offset(offset)
+    sms_outbox = sms_outbox.order_by(
+        SmsOutboxUsers.ts_written.desc()).limit(limit).offset(offset)
+
     sms_inbox_result = SmsInboxUsersSchema(many=True).dump(sms_inbox)
     sms_outbox_result = SmsOutboxUserStatusSchema(many=True).dump(sms_outbox)
     all_data = sms_inbox_result + sms_outbox_result
 
     search_results = format_conversation_results(all_data)
-    
+
     return search_results
-    
+
 
 def format_conversation_results(all_data):
     """
     """
-    search_results= []
+    search_results = []
     for row in all_data:
         if "read_status" in row:
             inbox_data = {
@@ -608,7 +627,7 @@ def format_conversation_results(all_data):
             user = []
             if "user" in mobile_details:
                 user = row["mobile_details"]["user"]
-            
+
             if mobile_number:
                 inbox_details = {
                     "messages": [inbox_data],
@@ -660,10 +679,9 @@ def format_conversation_results(all_data):
                     }
                 }
                 search_results.append(outbox_details)
+
     if search_results:
         search_results.sort(key=lambda a: a["messages"][0]["ts"])
         search_results.reverse()
 
     return search_results
-
-    

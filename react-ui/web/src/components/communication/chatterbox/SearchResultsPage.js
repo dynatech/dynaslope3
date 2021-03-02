@@ -1,5 +1,5 @@
 import React, {
-    useState, useEffect, Fragment
+    useState, useEffect
 } from "react";
 
 import { 
@@ -7,7 +7,7 @@ import {
     makeStyles, Button, Box,
     Grid, Hidden, Divider
 } from "@material-ui/core";
-import { ArrowBackIos, NavigateNext, NavigateBefore} from "@material-ui/icons";
+import { ArrowBackIos, NavigateNext, NavigateBefore } from "@material-ui/icons";
 import { isWidthDown } from "@material-ui/core/withWidth";
 
 import GeneralStyles from "../../../GeneralStyles";
@@ -95,7 +95,7 @@ function SearchResultsPage (props) {
     const [updated_offset, setUpdateOffset] = useState(offset);
 
     const previousButtonHandler = () => {
-        if(updated_offset > 0){
+        if (updated_offset > 0) {
             const temp_offset = updated_offset - 20;
             setUpdateOffset(temp_offset);
         }
@@ -231,7 +231,7 @@ function SearchResultsPage (props) {
 
                 <Box mr={2}>
                     <Typography variant="subtitle2">
-                        <strong>Include Invalid Numbers:</strong> {capitalizeFirstLetter(include_inactive_numbers.toString())}
+                        <strong>Include Inactive Numbers:</strong> {capitalizeFirstLetter(include_inactive_numbers.toString())}
                     </Typography>
                 </Box>
             </Box>
@@ -285,7 +285,10 @@ function SearchResultsPage (props) {
                             is_desktop={is_desktop}
                         />
                     ) : (
-                        <Typography variant="h6" align="center">
+                        <Typography 
+                            variant="h6" align="center"
+                            style={{ paddingTop: "5em" }}
+                        >
                             <strong>No results found</strong>
                         </Typography>
                     )

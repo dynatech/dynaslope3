@@ -110,14 +110,11 @@ function GeneralDataTagModal (props) {
             fyi_bool = tags.some(x => x.label === "#AlertFYI");
             permission_bool = tags.some(x => x.label === "#Permission");
 
-            if(fyi_bool){
-                permission_bool = false;
-                
-            } else if (permission_bool){
+            if (fyi_bool) {
+                permission_bool = false;                
+            } else if (permission_bool) {
                 fyi_bool = false;
             }
-
-
         }
         setHasFyiTag(fyi_bool);
         setHasPermissionTag(permission_bool);
@@ -133,7 +130,7 @@ function GeneralDataTagModal (props) {
                 if (sites === null || fyi_purpose === "") bool = true;
             }
 
-            if(has_permission_tag) {
+            if (has_permission_tag) {
                 if (sites === null || permission_purpose === "") bool = true;
             }
         } else {
@@ -210,10 +207,10 @@ function GeneralDataTagModal (props) {
                 return tag.value;
             });
 
-            let final_message = message
-            if(has_fyi_tag){
+            let final_message = message;
+            if (has_fyi_tag) {
                 final_message = fyi_purpose;
-            }else if(has_permission_tag){
+            } else if (has_permission_tag) {
                 final_message = permission_purpose;
             }
             const payload = {
@@ -230,7 +227,7 @@ function GeneralDataTagModal (props) {
                 }
             };
             console.log("PAYLOAD", payload);
-            console.log(tags)
+            console.log(tags);
             handleUpdateInsertTags(payload, response => {
                 console.log("tag response", response);
             });

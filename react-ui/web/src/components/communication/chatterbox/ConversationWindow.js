@@ -288,7 +288,7 @@ function ConversationWindow (props) {
         match: { params: { mobile_id } },
         location: { state }, socket
     } = props;
-    console.log(props)
+
     let search_filters = null;
     if (typeof state !== "undefined") {
         const { search_filters: sf } = state;

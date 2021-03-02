@@ -121,7 +121,7 @@ function SecondaryInformation (classes, first_message) {
 function MessageListItem (row, props, openOptionsModal, index) {
     const { messages, mobile_details } = row;
     const [first_message] = messages;
-    const { is_per_convo, ts} = first_message;
+    const { is_per_convo, ts } = first_message;
     const { classes, url, width, async, is_desktop, searchFilters } = props;
 
     const { mobile_id, sim_num, users } = mobile_details;
@@ -140,7 +140,7 @@ function MessageListItem (row, props, openOptionsModal, index) {
     if (typeof searchFilters !== "undefined") {
         search_filters = { ...searchFilters };
        
-        if (is_per_convo){
+        if (is_per_convo) {
             search_filters.ts_end = ts;
         }
     }

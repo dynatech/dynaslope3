@@ -41,7 +41,6 @@ def get_narrative_text(narrative_type, details):
             narrative_text = f"Asked RUS, ASD and RANK permission to {data}"
         elif tag == "#Erratum":
             narrative_text = f"Sent EWI Erratum"
-        
 
     return narrative_text
 

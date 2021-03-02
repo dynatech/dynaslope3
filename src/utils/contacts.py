@@ -50,8 +50,8 @@ def get_org_ids(scopes=None, org_names=None):
 
 
 def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None,
-                    org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True,
-                    mobile_number=None, last_names=None, first_names=None):
+                       org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True,
+                       mobile_number=None, last_names=None, first_names=None):
     """
     """
 
@@ -82,10 +82,11 @@ def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None,
 
     if first_names:
         base_query = base_query.filter(or_(Users.first_name.in_(first_names),
-                                            Users.last_name.in_(last_names)))
+                                           Users.last_name.in_(last_names)))
 
     if mobile_number:
-        base_query = base_query.join(MobileNumbers).filter(MobileNumbers.sim_num.ilike("%" + mobile_number + "%"))
+        base_query = base_query.join(MobileNumbers).filter(
+            MobileNumbers.sim_num.ilike("%" + mobile_number + "%"))
 
     # default is to get only active mobile numbers
     if only_active_mobile_numbers:
@@ -132,7 +133,7 @@ def get_recipients_option(site_ids=None, site_codes=None,
     mobile_numbers = get_mobile_numbers(
         site_ids=site_ids, org_ids=org_ids, only_ewi_recipients=only_ewi_recipients)
     result = UserMobilesSchema(many=True) \
-        .dump(mobile_numbers) #NOTE EXCLUDE: "mobile_number.blocked_mobile" exclude=["landline_numbers", "emails"]
+        .dump(mobile_numbers)  # NOTE EXCLUDE: "mobile_number.blocked_mobile" exclude=["landline_numbers", "emails"]
 
     recipients_options = []
     for row in result:
@@ -638,8 +639,8 @@ def get_recipients(site_ids=None,
         query = query.join(UserOrganizations).join(
             Sites).join(Organizations).join(UserMobiles)
 
-    schema_exclusions = ["teams", "ewi_restriction"] #"mobile_numbers.mobile_number.blocked_mobile"]
-                         
+    # "mobile_numbers.mobile_number.blocked_mobile"]
+    schema_exclusions = ["teams", "ewi_restriction"]
 
     if site_ids:
         query = query.filter(Sites.site_id.in_(site_ids))

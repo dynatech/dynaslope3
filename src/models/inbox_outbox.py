@@ -254,11 +254,12 @@ class SmsInboxUsersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     mobile_id = fields.Integer()
     mobile_details = MARSHMALLOW.Nested(UserMobilesSchema)
     sms_tags = MARSHMALLOW.Nested("SmsInboxUserTagsSchema",
-                             many=True) #NOTE EXCLUDE exclude=["outbox_message"]
+                                  many=True)  # NOTE EXCLUDE exclude=["outbox_message"]
 
     class Meta:
         """Saves table class structure as schema model"""
         model = SmsInboxUsers
+        unknown = EXCLUDE
 
 
 class SmsOutboxUsersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -267,11 +268,12 @@ class SmsOutboxUsersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     send_status = MARSHMALLOW.Nested("SmsOutboxUserStatusSchema", many=True)
     sms_tags = MARSHMALLOW.Nested("SmsOutboxUserTagsSchema",
-                             many=True) #NOTE EXCLUDE exclude=["outbox_message"]
+                                  many=True)  # NOTE EXCLUDE exclude=["outbox_message"]
 
     class Meta:
         """Saves table class structure as schema model"""
         model = SmsOutboxUsers
+        unknown = EXCLUDE
 
 
 class SmsOutboxUserStatusSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -280,11 +282,13 @@ class SmsOutboxUserStatusSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     mobile_id = fields.Integer()
     outbox_message = fields.Nested(SmsOutboxUsersSchema,
-                          exclude=("send_status", ))
+                                   exclude=("send_status", ))
     mobile_details = MARSHMALLOW.Nested(UserMobilesSchema)
+
     class Meta:
         """Saves table class structure as schema model"""
         model = SmsOutboxUserStatus
+        unknown = EXCLUDE
 
 
 class ViewLatestMessagesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -325,6 +329,7 @@ class SmsTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
         """Saves table class structure as schema model"""
         model = SmsTags
         exclude = ["smsinbox_user_tags", "smsoutbox_user_tags"]
+        unknown = EXCLUDE
 
 
 class SmsInboxUserTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -338,6 +343,7 @@ class SmsInboxUserTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = SmsInboxUserTags
+        unknown = EXCLUDE
 
 
 class SmsOutboxUserTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -351,3 +357,4 @@ class SmsOutboxUserTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = SmsOutboxUserTags
+        unknown = EXCLUDE

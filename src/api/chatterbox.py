@@ -4,12 +4,11 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from connection import DB
-from src.models.inbox_outbox import SmsTagsSchema, SmsTags
+from src.models.inbox_outbox import SmsTagsSchema
 from src.utils.chatterbox import (
     get_quick_inbox, get_message_tag_options,
     insert_message_on_database, get_latest_messages,
     get_messages_schema_dict, resend_message,
-    get_formatted_unsent_messages, get_multiple_filter_search_result,
     smart_search
 )
 from src.utils.ewi import create_ewi_message, insert_ewi_sms_narrative
@@ -261,7 +260,5 @@ def test_search_string():
     """
     """
 
-    # data = get_tag_search_result(tags=["#EwiResponse", "#RainInfo"])
-    # data = get_multiple_filter_search_result(string="system")
     data = smart_search()
     return jsonify(data)
