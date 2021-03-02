@@ -2373,7 +2373,8 @@ def save_monitoring_on_demand_data(data):
             timestamp=ts,
             narrative=tech_info,
             type=1,
-            user_id=user_id
+            user_id=user_id,
+            event_id=event_id
         )
         data["narrative_id"] = narrative_id
         write_monitoring_on_demand_to_db(data, tech_info)
