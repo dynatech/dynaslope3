@@ -51,7 +51,9 @@ from src.utils.monitoring import (
     write_monitoring_on_demand_to_db, write_monitoring_earthquake_to_db,
 
     # Monitoring Analytics Data
-    get_monitoring_analytics
+    get_monitoring_analytics,
+
+    get_narrative_site_id_on_demand, save_monitoring_on_demand_data
 )
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache,
@@ -1494,3 +1496,38 @@ def get_monitoring_analytics_data():
         message = f"Error: {err}"
 
     return jsonify(final_data)
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/get_narrative_site_id_on_demand", methods=["GET"])
+def cross_check_narrative_id_on_demand():
+    """
+    """
+    data = get_narrative_site_id_on_demand()
+    return jsonify(data)
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/save_on_demand_data", methods=["POST", "GET"])
+def save_on_demand_data():
+    """
+    """
+    status = None
+    message = ""
+
+    data = request.get_json()
+    if data is None:
+        data = request.form
+
+    try:
+        status, message = save_monitoring_on_demand_data(data)
+        DB.session.commit()
+    except Exception as err:
+        print(err)
+        status = False
+        message = f"Error: {err}"
+
+    feedback = {
+        "status": status,
+        "message": message
+    }
+
+    return jsonify(feedback)

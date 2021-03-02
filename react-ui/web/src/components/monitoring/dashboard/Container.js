@@ -33,7 +33,9 @@ import {
 } from "../../../websocket/monitoring_ws";
 import { getMonitoringShifts, receiveMonitoringShiftData, removeReceiveMonitoringShiftData } from "../../../websocket/misc_ws";
 import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
+import OnDemandInsertModal from "../../widgets/on_demand/OnDemandInsertModal";
 import InsertMomsButton from "../../widgets/moms/InsertMomsButton";
+import InsertOnDemandButton from "../../widgets/on_demand/InsertOnDemandButton";
 import { GeneralContext } from "../../contexts/GeneralContext";
 
 const useStyles = makeStyles(theme => {
@@ -76,7 +78,9 @@ function Container (props) {
     const [isOpenIssueReminderModal, setIsOpenIssueReminderModal] = useState(false);
     const [isIandRUpdateNeeded, setIsIandRUpdateNeeded] = useState(false);
     const [is_moms_modal_open, setMomsModal] = useState(false);
+    const [is_on_demand_modal_open, setOnDemandModal] = useState(false);
     const set_moms_modal_fn = bool => () => setMomsModal(bool);
+    const set_on_demand_modal_fn = bool => () => setOnDemandModal(bool);
     const { setIsReconnecting } = useContext(GeneralContext);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     
@@ -141,6 +145,7 @@ function Container (props) {
     const actions = [
         { icon: <AddAlert />, name: "Release alert", action: releaseAlertHandler(null) },
         { icon: <Landscape />, name: "Insert MOMs", action: set_moms_modal_fn(true) },
+        { icon: <Landscape />, name: "Insert On demand", action: set_on_demand_modal_fn(true) },
         { icon: <Warning />, name: "Add issue/reminder", action: handleBoolean("is_open_issues_modal", true) }
     ];
 
@@ -158,6 +163,9 @@ function Container (props) {
         </Button>
         <span style={{ marginRight: 8 }}>
             <InsertMomsButton clickHandler={set_moms_modal_fn(true)} />
+        </span>
+        <span style={{ marginRight: 8 }}>
+            <InsertOnDemandButton clickHandler={set_on_demand_modal_fn(true)} />
         </span>
         <Button
             aria-label="Release alert"
@@ -292,6 +300,11 @@ function Container (props) {
             <MomsInsertModal
                 isOpen={is_moms_modal_open}
                 closeHandler={set_moms_modal_fn(false)}
+            />
+
+            <OnDemandInsertModal
+                isOpen={is_on_demand_modal_open}
+                closeHandler={set_on_demand_modal_fn(false)}
             />
         </Fragment>
     );
