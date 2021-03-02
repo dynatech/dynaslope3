@@ -2369,12 +2369,8 @@ def save_monitoring_on_demand_data(data):
         latest_event = get_latest_monitoring_event_per_site(site_id=site_id)
         event_id = latest_event.event_id
         narrative_id = write_narratives_to_db(
-            site_id=site_id,
-            timestamp=ts,
-            narrative=tech_info,
-            type=1,
-            user_id=user_id,
-            event_id=event_id
+            site_id, ts, tech_info, 1,
+            user_id, event_id
         )
         data["narrative_id"] = narrative_id
         write_monitoring_on_demand_to_db(data, tech_info)
