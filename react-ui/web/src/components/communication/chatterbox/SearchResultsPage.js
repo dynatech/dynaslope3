@@ -90,7 +90,7 @@ function SearchResultsPage (props) {
 
     const [is_loading, setIsLoading] = useState(false);
     const has_no_input = sites === null && organizations === null;
-    const has_string_or_tag = string_search !== "" || tag_search.label !== "";
+    const has_string_or_tag = string_search !== "" || tag_search.value !== "";
     const offset = 0;
     const [updated_offset, setUpdateOffset] = useState(offset);
 
@@ -119,12 +119,12 @@ function SearchResultsPage (props) {
                 ts_start,
                 ts_end,
                 string_search,
-                tag_search: tag_search.label,
+                tag_search: tag_search.value,
                 mobile_number_search,
                 name_search,
                 updated_offset
             };
-
+            
             if (typeof socket !== "undefined") {
                 socket.emit("get_search_results", input);
 

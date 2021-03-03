@@ -408,35 +408,34 @@ def get_search_results(obj):
     mobile_number = obj["mobile_number_search"]
     names = obj["name_search"]
     offset = obj["updated_offset"]
-
+    print(obj)
     # search for mobile_ids using ts range given
     # if site_ids OR org_ids not given
     # (yes OR, because lower code would just apply date filter)
-    mobile_ids = None
+    mobile_ids = []
     if ts_start and ts_end and (not site_ids or not org_ids):
         result = get_message_users_within_ts_range(
             ts_start=ts_start, ts_end=ts_end)
         mobile_ids = list(map(lambda x: x[0], result))
 
+    if names:
+        temp_mobile_id = list(map(lambda x: x["value"], names))
+        mobile_ids = mobile_ids + temp_mobile_id
+
     search_results = []
 
-    # COMMENT: UNNECESSARY! GAMITIN NA LANG YUNG MOBILE ID
-    first_names, last_names = get_first_and_last_names(names)
-
     if string or tag:
-        # COMMENT: bakit di ginagamit yung mga ts dito??
         search_results = smart_search(
             string=string, tag=tag, org_ids=org_ids,
             site_ids=site_ids, only_ewi_recipients=only_ewi_recipients,
-            first_names=first_names, last_names=last_names, offset=offset)
+            offset=offset, ts_start=ts_start, ts_end=ts_end, mobile_ids=mobile_ids)
     else:
         contacts = get_mobile_numbers(
             return_schema=True, mobile_ids=mobile_ids,
             site_ids=site_ids, org_ids=org_ids,
             only_ewi_recipients=only_ewi_recipients,
             only_active_mobile_numbers=only_active_mobile_numbers,
-            mobile_number=mobile_number, first_names=first_names,
-            last_names=last_names)
+            mobile_number=mobile_number)
         for contact in contacts:
             mobile_number = contact["mobile_number"]
             mobile_id = mobile_number["mobile_id"]
@@ -460,7 +459,6 @@ def get_search_results(obj):
     return search_results
 
 
-# COMMENT: Delete this
 def get_first_and_last_names(names):
     first_names = []
     last_names = []
@@ -510,13 +508,11 @@ def get_ewi_acknowledgements_from_tags(site_id, ts_start, ts_end):
     return result
 
 
-# COMMENT: Tanggalin yung mga unnecesary parameters
 def smart_search(
-        string="magandang umaga", tag=None,
+        string=None, tag=None,
         org_ids=[], site_ids=[], offset=0,
         limit=20, only_ewi_recipients=False,
-        ts_start=None, ts_end=None,
-        first_names=None, last_names=None
+        ts_start=None, ts_end=None, mobile_ids=[]
 ):
     """
     """
@@ -543,21 +539,11 @@ def smart_search(
             SmsOutboxUsers.sms_msg.ilike("%" + string + "%"))
 
     if tag:
-        # COMMENT: CHANGE THIS TO TAG_ID
-        tag_filter = SmsTags.tag.ilike("%" + tag + "%")
+        tag_filter = SmsTags.tag_id == tag
         sms_inbox = sms_inbox.join(SmsInboxUserTags) \
             .join(SmsTags).filter(tag_filter)
         sms_outbox = sms_outbox.join(SmsOutboxUserTags) \
             .join(SmsTags).filter(tag_filter)
-
-    # COMMENT: change this! Yung sa original na recipients list,
-    # given na nga yung monile_id dun eh. Pinahirapan mo pa na yung first_name
-    # yung i-search. Edit this
-    if first_names:
-        sms_inbox = sms_inbox.filter(or_(Users.first_name.in_(first_names),
-                                         Users.last_name.in_(last_names)))
-        sms_outbox = sms_outbox.filter(or_(Users.first_name.in_(first_names),
-                                           Users.last_name.in_(last_names)))
 
     if ts_start:
         sms_inbox = sms_inbox.filter(SmsInboxUsers.ts_sms >= ts_start)
@@ -567,7 +553,7 @@ def smart_search(
         sms_inbox = sms_inbox.filter(SmsInboxUsers.ts_sms <= ts_end)
         sms_outbox = sms_outbox.filter(SmsOutboxUsers.ts_written >= ts_start)
 
-    if only_ewi_recipients or org_ids or site_ids:
+    if only_ewi_recipients or org_ids or site_ids or mobile_ids:
         sms_inbox = sms_inbox.join(UserMobiles).join(Users)
         sms_outbox = sms_outbox.join(UserMobiles).join(
             Users)
@@ -586,6 +572,11 @@ def smart_search(
             site_filter = Sites.site_id.in_(site_ids)
             sms_inbox = sms_inbox.join(Sites).filter(site_filter)
             sms_outbox = sms_outbox.join(Sites).filter(site_filter)
+
+        if mobile_ids:
+            mobile_id_filter = UserMobiles.mobile_id.in_(mobile_ids)
+            sms_inbox = sms_inbox.filter(mobile_id_filter)
+            sms_outbox = sms_outbox.filter(mobile_id_filter)
 
     sms_inbox = sms_inbox.order_by(
         SmsInboxUsers.ts_sms.desc()).limit(limit).offset(offset)

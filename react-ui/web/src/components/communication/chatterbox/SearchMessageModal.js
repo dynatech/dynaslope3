@@ -66,7 +66,7 @@ function SearchMessageModal (props) {
     const [ts_start, setTsStart] = useState(null);
     const [ts_end, setTsEnd] = useState(null);
     const [string_search, setString] = useState("");
-    const [tag_search, setTags] = useState({ label: "" });
+    const [tag_search, setTags] = useState({ value: "", });
     const [mobile_number_search, setMobileNumber] = useState("");
     const [name_search, setName] = useState("");
 
