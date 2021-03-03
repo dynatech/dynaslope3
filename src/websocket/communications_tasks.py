@@ -373,7 +373,7 @@ def wrap_get_all_contacts():
 
 @SOCKETIO.on("update_all_contacts", namespace="/communications")
 def wrap_update_all_contacts():
-    contacts_users = get_contacts(orientation="users")
+    contacts_users = get_contacts()
     contacts_mobile = get_recipients_option()
     set_data_to_memcache(name="CONTACTS_USERS", data=contacts_users)
     set_data_to_memcache(name="CONTACTS_MOBILE", data=contacts_mobile)
@@ -391,8 +391,8 @@ def get_inbox():
     return get_quick_inbox(inbox_limit=50, limit_inbox_outbox=True)
 
 
-def get_contacts(orientation):
-    return get_all_contacts(return_schema=True, orientation=orientation)
+def get_contacts():
+    return get_all_contacts(return_schema=True)
 
 
 @CELERY.task(name="ground_data_reminder_bg_task", ignore_results=True)
@@ -688,7 +688,7 @@ def initialize_comms_data():
     delete_sms_user_update()
 
     messages = get_inbox()
-    contacts_users = get_contacts(orientation="users")
+    contacts_users = get_contacts()
     contacts_mobile = get_recipients_option()
     blocked_contacts = get_blocked_numbers()
 
