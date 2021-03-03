@@ -408,7 +408,7 @@ def get_search_results(obj):
     mobile_number = obj["mobile_number_search"]
     names = obj["name_search"]
     offset = obj["updated_offset"]
-    print(obj)
+
     # search for mobile_ids using ts range given
     # if site_ids OR org_ids not given
     # (yes OR, because lower code would just apply date filter)
@@ -459,19 +459,6 @@ def get_search_results(obj):
     return search_results
 
 
-def get_first_and_last_names(names):
-    first_names = []
-    last_names = []
-    for row in names:
-        first_name = row["first_name"]
-        last_name = row["last_name"]
-
-        first_names.append(first_name)
-        last_names.append(last_name)
-
-    return first_names, last_names
-
-
 def resend_message(outbox_status_id):
     """
     """
@@ -510,9 +497,9 @@ def get_ewi_acknowledgements_from_tags(site_id, ts_start, ts_end):
 
 def smart_search(
         string=None, tag=None,
-        org_ids=[], site_ids=[], offset=0,
+        org_ids=None, site_ids=None, offset=0,
         limit=20, only_ewi_recipients=False,
-        ts_start=None, ts_end=None, mobile_ids=[]
+        ts_start=None, ts_end=None, mobile_ids=None
 ):
     """
     """

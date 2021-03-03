@@ -96,9 +96,7 @@ def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None,
     return mobile_numbers
 
 
-def get_all_contacts(
-        return_schema=False, site_ids=None,
-        org_ids=None, orientation="users"):
+def get_all_contacts(return_schema=False):
     """
     Function that get all contacts
     """
