@@ -19,7 +19,8 @@ function DynaslopeUserSelectInputForm (props) {
         variant, label, div_id,
         changeHandler, value, css,
         disabled, returnFullNameCallback,
-        isCommunityStaff
+        isCommunityStaff, required, error,
+        helperText
     } = props;
 
     const [users, setUsers] = useState([]);
@@ -57,12 +58,15 @@ function DynaslopeUserSelectInputForm (props) {
         if (typeof user !== "undefined") returnFullNameCallback(user.name);
     }
 
+    let final_label = label;
+    if (required) final_label += " *";
+
     return (
         <Fragment>
             {
                 variant === "standard" && (
                     <SelectInputForm
-                        label={label}
+                        label={final_label}
                         div_id={div_id}
                         changeHandler={changeHandler}
                         value={users.length === 0 ? "" : value}
@@ -70,6 +74,8 @@ function DynaslopeUserSelectInputForm (props) {
                         mapping={mapping}
                         css={css}
                         disabled={disabled}
+                        error={error}
+                        helperText={helperText}
                     />
                 )
             }
@@ -83,6 +89,8 @@ function DynaslopeUserSelectInputForm (props) {
                         list={users}
                         mapping={mapping}
                         css={css}
+                        error={error}
+                        helperText={helperText}
                     />
                 )
             }

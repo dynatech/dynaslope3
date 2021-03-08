@@ -1,9 +1,10 @@
 import React, {
-    Fragment, useContext, useState
+    Fragment, useContext
 } from "react";
 
 import {
-    Grid, Typography, TextField, Checkbox
+    Grid, Typography, TextField, Checkbox,
+    CircularProgress, Divider, capitalize
 } from "@material-ui/core";
 import {
     MuiPickersUtilsProvider, KeyboardDateTimePicker,
@@ -16,6 +17,7 @@ import FormControl from "@material-ui/core/FormControl";
 import FormLabel from "@material-ui/core/FormLabel";
 
 import MomentUtils from "@date-io/moment";
+import moment from "moment";
 
 import { Store } from "./store";
 import Actions from "./actions";
@@ -23,6 +25,22 @@ import Actions from "./actions";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 
+
+function LoadingComponent (props) {
+    const { message } = props;
+
+    return <Fragment>
+        <Grid item xs={12} container justify="center">
+            <CircularProgress />
+        </Grid>
+
+        <Grid item xs={12}>
+            <Typography variant="body1" align="center">
+                { message }
+            </Typography>
+        </Grid>
+    </Fragment>; 
+}
 
 function FirstStep (props) {
     const { state, dispatch } = useContext(Store);
@@ -34,6 +52,8 @@ function FirstStep (props) {
                     value={state.site}
                     changeHandler={value => Actions.updateSite({ dispatch, payload: value })}
                     required
+                    helperText={state.validation.site || ""}
+                    error={Boolean(state.validation.site)}
                 />                
             </Grid>
 
@@ -90,8 +110,10 @@ function FirstStep (props) {
                     label="CT Personnel"
                     div_id="reporter_id_ct"
                     value={state.iomp_ct}
-                    // changeHandler={e => Actions.updateReleaseTime({ dispatch, payload: e.target.value })}}
+                    changeHandler={e => Actions.updateCTPersonnel({ dispatch, payload: e.target.value })}
                     required
+                    helperText={state.validation.iomp_ct || ""}
+                    error={Boolean(state.validation.iomp_ct)}
                 />
             </Grid>
         </Fragment>
@@ -99,15 +121,94 @@ function FirstStep (props) {
 }
 
 function SecondStep (props) {
+    const { isLoading } = props;
 
-    return (
-        <Fragment>
-            <SubsurfaceSection />
-            <SurficialSection/>
-            <RainfallSection />
-            <EarthquakeSection />
-        </Fragment>
-    );
+    return <Fragment>
+        {
+            isLoading
+                ? <LoadingComponent message="Fetching current site alert..." /> 
+                : <Fragment>
+                    <LatestSiteDetailsSection />
+                    <SubsurfaceSection />
+                    <SurficialSection/>
+                    <RainfallSection />
+                    <EarthquakeSection />
+                    <Grid item xs={12}>
+                        <Divider />
+                    </Grid>
+                    <MOMsSection />
+                    <OnDemandSection />
+                </Fragment>
+        }
+    </Fragment>;
+}
+
+function LatestSiteDetailsSection (props) {
+    const { state } = useContext(Store);
+    const { previous_release } = state;
+    const { internal_alert, event_alert, data_ts } = previous_release;
+    const { alert_level } = event_alert.public_alert_symbol;
+
+    let warning_text = null;
+    if (moment(data_ts).isAfter(state.data_ts)) {
+        warning_text = `You entered a data timestamp (${state.data_ts.format("YYYY/MM/DD HH:mm")}) ` +
+        "that is prior to the last site alert release.\nReview your data timestamp entry.";
+    } else if (moment(data_ts).isSame(state.data_ts)) {
+        warning_text = "Note: You entered the same data timestamp from the last site alert release. " +
+        "Ignore this note if you want to overwrite the last alert release.";
+    }
+
+    return <Fragment>
+        <Grid item xs={12} container spacing={1}>
+            <Typography variant="h6" component={Grid} item xs={12} align="center">
+                Last Site Release Details: { event_alert.event.site.site_code.toUpperCase() }
+            </Typography>
+
+            <Grid item xs={12} container spacing={0} justify="center">
+                <Typography 
+                    variant="body1" component={Grid}
+                    item xs={12} sm={6} align="center"
+                >
+                    <strong>Internal Alert:</strong> {internal_alert}
+                </Typography>
+
+                <Typography 
+                    variant="body1" component={Grid}
+                    item xs={12} sm={6} align="center"
+                >
+                    <strong>Data Timestamp:</strong> {data_ts}
+                </Typography>
+
+                { alert_level !== 0 && <Typography 
+                    variant="body1" component={Grid}
+                    item xs={12} sm={6} align="center"
+                >
+                    <strong>Validity:</strong> {event_alert.event.validity}
+                </Typography> }
+
+                <Typography 
+                    variant="body1" component={Grid}
+                    item xs={12} sm={6} align="center"
+                >
+                    <strong>Release Time:</strong> {previous_release.release_time}
+                </Typography>
+            </Grid>
+        </Grid>
+
+        { warning_text && <Grid item xs={12}>
+            <Typography
+                variant="body1" component="p" color="error"
+                align="center" style={{ whiteSpace: "pre-line" }}
+                display="block"
+            >
+                { warning_text }
+            </Typography>
+        </Grid>}
+
+        <Grid item xs={12}>
+            <Divider />
+        </Grid>
+    </Fragment>;
 }
 
 function DataPresenceRadioInput (props) {
@@ -116,15 +217,16 @@ function DataPresenceRadioInput (props) {
     return (
         <FormControl component="fieldset" style={{ width: "100%" }}>
             <FormLabel component="legend">Choose the appropriate data situation for the release period.</FormLabel>
-            <Grid container>
+            <Grid container spacing={0}>
                 {
                     form.map(x => (
-                        <Grid item xs={12} sm={6} key={x.value}>
+                        <Grid item xs={12} sm={6} key={x.value} container justify="center">
                             <FormControlLabel
                                 value={x.value} label={x.label}
                                 control={<Radio 
                                     checked={value === x.value}
                                     onChange={changeHandler}
+                                    size="small"
                                 />}
                             />
                         </Grid>
@@ -208,8 +310,8 @@ function SubsurfaceSection (props) {
         const { checked } = trigger;
         const key = `s${alert_level}`;
 
-        return <Grid item xs={checked ? 12 : 6} container key={key}>
-            <Grid item xs={checked ? 4 : 6} sm={checked ? 3 : 6} justify="center" container>
+        return <Grid item xs={12} container key={key}>
+            <Grid item xs={checked ? 4 : 12} sm={checked ? 3 : 12} justify="center" container>
                 <FormControlLabel
                     value={alert_level}
                     control={<Checkbox 
@@ -239,7 +341,7 @@ function SubsurfaceSection (props) {
     return (
         <Fragment>
             <Grid item xs={12}>
-                <Typography variant="h6">Subsurface</Typography>
+                <Typography variant="h6">Subsurface (S/s)</Typography>
             </Grid>
 
             <Grid item xs={12}>
@@ -288,8 +390,8 @@ function SurficialSection (props) {
         const { checked } = trigger;
         const key = `g${alert_level}`;
 
-        return <Grid item xs={checked ? 12 : 6} container key={key}>
-            <Grid item xs={checked ? 4 : 6} sm={checked ? 3 : 6} justify="center" container>
+        return <Grid item xs={12} container key={key}>
+            <Grid item xs={checked ? 4 : 12} sm={checked ? 3 : 12} justify="center" container>
                 <FormControlLabel
                     value={alert_level}
                     control={<Checkbox 
@@ -319,7 +421,7 @@ function SurficialSection (props) {
     return (
         <Fragment>
             <Grid item xs={12}>
-                <Typography variant="h6">Surficial</Typography>
+                <Typography variant="h6">Surficial (G/g)</Typography>
             </Grid>
 
             <Grid item xs={12}>
@@ -333,6 +435,110 @@ function SurficialSection (props) {
             }
         </Fragment>
     );
+}
+
+function MOMsSection (props) {
+    const { state } = useContext(Store);
+    const {
+        moms: { value, triggers },
+        non_triggering_moms
+    } = state;
+
+    return (
+        <Fragment>
+            <Grid item xs={12}>
+                <Typography variant="h6">MOMS (M/m)</Typography>
+                <Typography variant="caption">
+                    Note: MOMs triggers are inserted via MOMs Form.
+                    If you inserted a MOMs trigger for this site, wait for the trigger
+                    to be included on the site&apos;s candidate alert then release it.
+                </Typography>
+            </Grid>
+
+            {
+                value === "1" && <Fragment> {
+                    Object.keys(triggers).map(key => {
+                        const { checked, ts, tech_info, moms_list } = triggers[key];
+                        const preview = [
+                            { label: "Alert", value: `m${key}` },
+                            { label: "Trigger Timestamp", value: moment(ts).format("YYYY-MM-DD HH:mm") },
+                            { label: "Technical Information", value: tech_info }
+                        ];
+                            
+                        if (checked) {
+                            const initial = preview.map(x => <Grid item xs={12} 
+                                sm={x.label === "Technical Information" ? 6 : 3 }
+                                key={x.label}>
+                                { PreviewComp(x) }
+                            </Grid>);
+
+                            const intro = <Typography
+                                variant="body2" align="center"
+                                component={Grid} item xs={12}
+                            >
+                                <strong>MOMs List</strong>
+                            </Typography>;
+
+                            const list = MomsListFormatter(moms_list);
+
+                            return <Fragment key={key}>{initial}{intro}{list}</Fragment>;
+                        }
+                    })
+                } </Fragment>
+            }
+
+            {
+                value === "0" && <Typography
+                    variant="body1" align="center"
+                    component={Grid} item xs={12}
+                >
+                    This release HAS non-triggering MOMs data within release period (m).
+                </Typography>
+            }
+
+            {
+                non_triggering_moms && <Fragment>
+                    <Typography
+                        variant="body2" align="center"
+                        component={Grid} item xs={12}
+                    >
+                        <strong>Non-triggering MOMs</strong>
+                    </Typography>
+
+                    { MomsListFormatter(non_triggering_moms) }
+                </Fragment>
+            }
+
+            {
+                value === "-1" && <Typography
+                    variant="body1" align="center"
+                    component={Grid} item xs={12}
+                >
+                    No MOMs entry present for this release period (m0).
+                </Typography>
+            }
+        </Fragment>
+    );
+}
+
+function MomsListFormatter (moms_list) {
+    return moms_list.map(x => {
+        const {
+            moms_instance: { feature: f, feature_name },
+            remarks, observance_ts
+        } = x;
+        const temp = { label: "Feature", value: `${capitalize(f.feature_type)} ${feature_name}` };
+        const ts_comp = { label: "Observance Timestamp", value: observance_ts };
+        const rem = { label: "Remarks", value: remarks };
+
+        return <Grid item xs={12} key={x.moms_id}>
+            <Grid container item xs={12}>
+                <Grid item xs={3}>{ PreviewComp(temp) }</Grid>
+                <Grid item xs={3}>{ PreviewComp(ts_comp) }</Grid>
+                <Grid item xs={6}>{ PreviewComp(rem) }</Grid>
+            </Grid>
+        </Grid>; 
+    });
 }
 
 function RainfallSection (props) {
@@ -360,7 +566,7 @@ function RainfallSection (props) {
     return (
         <Fragment>
             <Grid item xs={12}>
-                <Typography variant="h6">Rainfall</Typography>
+                <Typography variant="h6">Rainfall (R)</Typography>
             </Grid>
 
             <Grid item xs={12}>
@@ -379,83 +585,278 @@ function RainfallSection (props) {
 }
 
 function EarthquakeSection (props) {
+    const { state, dispatch } = useContext(Store);
+    const { earthquake: { value, trigger } } = state;
+    const { magnitude, latitude, longitude } = trigger;
+
     const form = [
         { value: "1", label: "Recent trigger occured" },
         { value: "0", label: "No recent trigger" }
     ];
 
-    const [value, setValue] = useState("");
-    const changeHandler = e => setValue(e.target.value);
+    const valueChangeHandler = e => {
+        const temp = e.target.value;
+        Actions.updateEarthquakePresence({ dispatch, payload: temp });
+    };
+
+    const triggerDetailsHandler = (attr, val) => {
+        Actions.updateEarthquakeTriggerDetails({ dispatch, payload: {
+            value: val, attr
+        } });
+    };
 
     return (
         <Fragment>
             <Grid item xs={12}>
-                <Typography variant="h6">Earthquake</Typography>
+                <Typography variant="h6">Earthquake (E)</Typography>
             </Grid>
 
             <Grid item xs={12}>
-                <DataPresenceRadioInput form={form} value={value} changeHandler={changeHandler} />
+                <DataPresenceRadioInput form={form} value={value} changeHandler={valueChangeHandler} />
             </Grid>
+
+            {
+                value === "1" && <Fragment>
+                    <TriggerTimestampAndTechInfoCombo
+                        labelFor="e1"
+                        trigger={trigger}
+                        triggerHandler={triggerDetailsHandler}
+                    />
+                    
+                    <Grid item xs={12} sm={4}>
+                        <TextField
+                            required
+                            id="magnitude"
+                            label="Magnitude"
+                            value={magnitude}
+                            onChange={e => triggerDetailsHandler("magnitude", e.target.value)}
+                            type="number"
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                        <TextField
+                            required
+                            id="latitude"
+                            label="Latitude"
+                            value={latitude}
+                            onChange={e => triggerDetailsHandler("latitude", e.target.value)}
+                            type="number"
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                        <TextField
+                            required
+                            id="longitude"
+                            label="Longitude"
+                            value={longitude}
+                            onChange={e => triggerDetailsHandler("longitude", e.target.value)}
+                            type="number"
+                        />
+                    </Grid>
+                </Fragment>
+            }
         </Fragment>
     );
 }
 
-function ThirdStep (props) {
+function OnDemandSection (props) {
     const { state } = useContext(Store);
+    const { "on demand": { value, trigger } } = state;
 
-    const preview = [
-        { label: "Site", value: "Sample Site" },
-        { label: "Internal Alert", value: "A2-sg" },
-        { label: "Data Timestamp", value: "xxxx-xx-xx xx:xx" },
-        { label: "Release Time", value: "xx:xx" },
-        { label: "MT Personnel", value: "Juan dela Cruz" }
-    ];
-    
-    const PreviewComp = x => (
-        <Grid item xs={6} key={x.label}>
-            <Typography variant="body2" color="textSecondary" align="center">{x.label}</Typography>
-            <Typography variant="body1" color="textPrimary" align="center">
-                {x.value}
-            </Typography>
-        </Grid>
-    );
+    let preview = [];
+    if (value === "1") {
+        const { ts, tech_info } = trigger;
+        preview = [
+            { label: "Alert", value: "d1" },
+            { label: "Trigger Timestamp", value: moment(ts).format("YYYY-MM-DD HH:mm") },
+            { label: "Technical Information", value: tech_info }
+        ];
+    }
 
     return (
         <Fragment>
-            {
-                preview.map(x => {
-                    return PreviewComp(x);
-                })
-            }
-            
-            <Grid item xs={12} sm={6}>
-                <DynaslopeUserSelectInputForm
-                    variant="standard"
-                    label="CT Personnel"
-                    div_id="reporter_id_ct"
-                    value={state.iomp_ct}
-                    // changeHandler={e => Actions.updateReleaseTime({ dispatch, payload: e.target.value })}}
-                    required
-                />
+            <Grid item xs={12}>
+                <Typography variant="h6">On-Demand (D)</Typography>
+                <Typography variant="caption">
+                    Note: On-demand triggers are inserted via On-Demand Trigger Form.
+                    If you inserted a On-Demand trigger for this site, wait for the trigger
+                    to be included on the site&apos;s candidate alert then release it.
+                </Typography>
             </Grid>
 
-            <Grid item xs={12}>
-                <TextField
-                    label="Comments"
-                    multiline
-                    rowsMax="2"
-                    placeholder="Enter additional comments necessary"
-                    // value={comments}
-                    // onChange={handleEventChange("comments")}
-                    fullWidth
-                />
-            </Grid>
+            {
+                value === "1" && <Fragment> {    
+                    preview.map(x => <Grid item xs={12} 
+                        sm={x.label === "Technical Information" ? 6 : 3 }
+                        key={x.label}>
+                        { PreviewComp(x) }
+                    </Grid>)
+                } </Fragment>
+            }
+
+            {
+                value === "0" && <Typography
+                    variant="body1" align="center"
+                    component={Grid} item xs={12}
+                >
+                    This release has non-triggering MOMs data within release period (m).
+                </Typography>
+            }
+
+            {
+                value === "-1" && <Typography
+                    variant="body1" align="center"
+                    component={Grid} item xs={12}
+                >
+                    No on-demand entry present for this release period.
+                </Typography>
+            }
         </Fragment>
     );
+}
+
+const PreviewComp = x => (
+    <Fragment>
+        <Typography variant="body2" color="textSecondary" align="center">{x.label}</Typography>
+        <Typography variant="body1" color="textPrimary" align="center">
+            {x.value}
+        </Typography>
+    </Fragment>
+);
+
+function ThirdStep (props) {
+    const { isLoading } = props;
+    const { state, dispatch } = useContext(Store);
+
+    let internal_alert = "---";
+    let note = null;
+    const release_triggers = [];
+    if (state.post_computation) {
+        const { internal_alert: temp, note: n, trigger_list } = state.post_computation;
+        internal_alert = temp;
+        note = n;
+
+        release_triggers.push(...trigger_list);
+    }
+
+    const preview = [
+        { label: "Site", value: state.site.data.site_code.toUpperCase() },
+        { label: "Internal Alert", value: internal_alert },
+        { label: "Data Timestamp", value: moment(state.data_ts).format("YYYY-MM-DD HH:mm") },
+        { label: "Release Time", value: state.release_time.format("HH:mm") }
+    ];
+
+    const ReleaseTriggersSummary = rt => {
+        return <Fragment>
+            { rt.length !== 0 && <Grid item xs={12} container>
+                <Typography 
+                    variant="body1" 
+                    component={Grid} item xs={12}
+                    align="center"
+                >
+                    <strong>Release Triggers</strong>
+                </Typography>
+
+                {
+                    rt.map(x => {
+                        const alert_sym = `${x.alert_symbol}${x.alert_level}`;
+                        const preview_2 = [
+                            { label: "Source", value: `${capitalize(x.source)} (${alert_sym})` },
+                            { label: "Trigger Timestamp", value: moment(x.ts).format("YYYY-MM-DD HH:mm:00") },
+                            { label: "Technical Information", value: x.tech_info }
+                        ];
+                    
+                        return <Grid item xs={12} container key={alert_sym} spacing={1} style={{ margin: "1em 0" }}>
+                            {
+                                preview_2.map(y => 
+                                    <Grid item xs={12} 
+                                        sm={y.label === "Technical Information" ? 6 : 3 } 
+                                        key={y.label}>
+                                        { PreviewComp(y)}
+                                    </Grid>
+                                )
+                            }
+                        </Grid>; 
+                    } )
+                }
+            </Grid> }
+        </Fragment>;
+    };
+
+    return <Fragment>
+        {
+            isLoading ? <LoadingComponent message="Calculating internal alert..." />
+                : <Fragment>
+                    <Typography 
+                        variant="h6"
+                        component={Grid} item xs={12}
+                        align="center"
+                    >
+                        Alert Release Summary
+                    </Typography>
+
+                    {
+                        note && <Typography 
+                            variant="body1" color="error"
+                            component={Grid} item xs={12}
+                            align="center"
+                        >
+                            { note }
+                        </Typography>
+                    }
+
+                    {
+                        preview.map(x => <Grid item xs={6} sm={3} key={x.label}>
+                            { PreviewComp(x) }
+                        </Grid>)
+                    }
+
+                    { ReleaseTriggersSummary(release_triggers) }
+
+                    <Grid item xs={12} sm={6}>
+                        <DynaslopeUserSelectInputForm
+                            variant="standard"
+                            label="MT Personnel"
+                            div_id="reporter_id_mt"
+                            value={state.iomp_mt}
+                            disabled
+                            required
+                        />
+                    </Grid>
+            
+                    <Grid item xs={12} sm={6}>
+                        <DynaslopeUserSelectInputForm
+                            variant="standard"
+                            label="CT Personnel"
+                            div_id="reporter_id_ct"
+                            value={state.iomp_ct}
+                            changeHandler={e => Actions.updateCTPersonnel({ dispatch, payload: e.target.value })}
+                            required
+                            helperText={state.validation.iomp_ct || ""}
+                            error={Boolean(state.validation.iomp_ct)}
+                        />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <TextField
+                            label="Comments"
+                            multiline
+                            rowsMax="2"
+                            placeholder="Enter additional comments necessary"
+                            value={state.comments}
+                            onChange={e => Actions.updateComments({ dispatch, payload: e.target.value })}
+                            fullWidth
+                        />
+                    </Grid>
+                </Fragment>
+        }
+    </Fragment>;
 }
 
 function AlertReleaseForm (props) {
-    const { activeStep } = props;
+    const { activeStep, isLoading } = props;
 
     return (
         <MuiPickersUtilsProvider utils={MomentUtils}>
@@ -469,10 +870,10 @@ function AlertReleaseForm (props) {
                     activeStep === 0 && <FirstStep />
                 }
                 {
-                    activeStep === 1 && <SecondStep />
+                    activeStep === 1 && <SecondStep isLoading={isLoading} />
                 }
                 {
-                    activeStep === 2 && <ThirdStep />
+                    activeStep === 2 && <ThirdStep isLoading={isLoading} />
                 }
             </Grid>
         </MuiPickersUtilsProvider>

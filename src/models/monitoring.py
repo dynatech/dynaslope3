@@ -279,7 +279,8 @@ class MonitoringMomsReleases(DB.Model):
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Moms Release ID: {self.moms_rel_id} "
-                f" MOMS ID: {self.moms_id} Trigger Misc ID: {self.trig_misc_id} Release ID: {self.release_id}")
+                f"MOMS ID: {self.moms_id} Trigger Misc ID: {self.trig_misc_id} "
+                f"Release ID: {self.release_id}")
 
 
 class MonitoringMoms(DB.Model):
@@ -714,6 +715,7 @@ class MonitoringOnDemandSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     Schema representation of Monitoring On Demand class
     """
 
+    reporter_id = fields.Integer()
     reporter = fields.Nested("UsersSchema",)
     request_ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     narrative = fields.Nested("NarrativesSchema")

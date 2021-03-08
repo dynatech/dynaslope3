@@ -86,7 +86,7 @@ def get_moms_tech_info(moms_alert_details):
 
     multiple = ""
     feature = "feature"
-    if len(moms_alert_details) > 1:
+    if sum(1 for d in moms_alert_details if d.op_trigger >= 2) > 1:
         multiple = "Multiple "
         feature = "features"
 

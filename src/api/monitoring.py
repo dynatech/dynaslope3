@@ -9,6 +9,7 @@ NAMING CONVENTION
 import json
 import traceback
 from datetime import datetime, timedelta, time
+import pytz
 from flask import Blueprint, jsonify, request
 from connection import DB
 
@@ -28,11 +29,11 @@ from src.utils.monitoring import (
     get_moms_id_list, get_internal_alert_symbols,
     get_monitoring_events, get_active_monitoring_events,
     get_monitoring_releases, get_monitoring_events_table,
-    get_latest_monitoring_event_per_site, get_public_alert,
+    get_latest_monitoring_event_per_site,
     get_ongoing_extended_overdue_events, get_max_possible_alert_level,
     get_latest_release_per_site, get_saved_event_triggers,
     get_monitoring_triggers, build_internal_alert_level,
-    get_monitoring_releases_by_data_ts, get_unreleased_routine_sites,
+    get_unreleased_routine_sites, get_latest_site_event_details,
 
     # Logic functions
     format_candidate_alerts_for_insert, update_alert_status,
@@ -53,9 +54,11 @@ from src.utils.monitoring import (
     # Monitoring Analytics Data
     get_monitoring_analytics
 )
+from src.utils.analysis import check_if_site_has_active_surficial_markers
 from src.utils.extra import (
     var_checker, retrieve_data_from_memcache,
-    get_process_status_log, get_system_time
+    get_process_status_log, get_system_time,
+    round_to_nearest_release_time
 )
 from src.utils.bulletin import create_monitoring_bulletin, render_monitoring_bulletin
 from src.utils.sites import build_site_address
@@ -239,55 +242,264 @@ def wrap_get_internal_alert_symbols():
     return jsonify(return_data)
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/get_site_alert_details", methods=["GET"])
-def wrap_get_site_alert_details():
-    # NOTE: Revisit this code, it doesn't make sense
-    site_id = request.args.get('site_id', default=1, type=int)
-    public_alert = get_public_alert(site_id)
-    public_alert_symbol = public_alert.alert_symbol
-    current_alert_level = public_alert.alert_level
+@MONITORING_BLUEPRINT.route("/monitoring/get_latest_site_event_details/<site_id>", methods=["GET"])
+def wrap_get_latest_site_event_details(site_id):
+    """
+    """
 
-    latest_release = get_latest_release_per_site(site_id)
-    trigger_list = latest_release.trigger_list
-    event_id = latest_release.event_alert.event.event_id
-    event_triggers = get_saved_event_triggers(event_id)
+    latest_release = get_latest_site_event_details(site_id)
+    return latest_release
 
-    trigger_sources = []
-    alert_level = 0
+
+@MONITORING_BLUEPRINT.route("/monitoring/process_release_internal_alert", methods=["POST"])
+def process_release_internal_alert():
+    """
+    Builds internal alert from alert release form inputs
+    """
+
+    json_data = request.get_json()
+
+    previous_release = json_data["previous_release"]
+    current_event_alert = previous_release["event_alert"]
+    current_alert_level = current_event_alert["public_alert_symbol"]["alert_level"]
+    site_code = current_event_alert["event"]["site"]["site_code"]
+
+    above_threshold = {}
+    above_threshold_list = []
+    below_threshold = []
+    no_data = []
+    is_rx = False
+    has_no_ground_data = False
+    to_lower = None
+    is_end_of_validity = False
+    note = None
+
+    def check_for_ground_data():
+        has_no_ground_data = False
+        if set(["subsurface", "surficial"]).issubset(set(no_data)):
+            if not check_if_site_has_active_surficial_markers(site_code=site_code):
+                if "moms" in set(no_data):
+                    has_no_ground_data = True
+            else:
+                has_no_ground_data = True
+
+        return has_no_ground_data
+
+    def get_internal_alert_symbol(alert_level, source_id):
+        trigger_sym = retrieve_data_from_memcache(
+            "operational_trigger_symbols", {
+                "alert_level": alert_level,
+                "source_id": source_id
+            }, retrieve_one=True)
+        internal_sym = trigger_sym["internal_alert_symbol"]
+
+        return {
+            "alert_symbol": internal_sym["alert_symbol"],
+            "internal_sym_id": internal_sym["internal_sym_id"]
+        }
+
+    triggers_ref = retrieve_data_from_memcache("trigger_hierarchies")
+    for trig in triggers_ref:
+        source = trig["trigger_source"]
+        source_id = trig["source_id"]
+        hierarchy_id = trig["hierarchy_id"]
+
+        try:
+            trig_entry = json_data[source]
+        except KeyError:
+            # just to catch "internal" trigger source
+            continue
+
+        data_presence = int(trig_entry["value"])
+        if data_presence == 1:
+            try:
+                trigger = trig_entry["trigger"]
+                trigger["alert_level"] = 1
+                trigger["source_id"] = source_id
+                trigger["hierarchy_id"] = hierarchy_id
+                trigger["source"] = source
+                internal_sym = get_internal_alert_symbol(1, source_id)
+                trigger.update(internal_sym)
+                above_threshold[source] = trigger
+                above_threshold_list.append(trigger)
+            except KeyError:
+                triggers = trig_entry["triggers"]
+                for key, value in triggers.items():
+                    if value["checked"]:
+                        alert_level = int(key)
+                        value["alert_level"] = alert_level
+                        value["source_id"] = source_id
+                        value["hierarchy_id"] = hierarchy_id
+                        value["source"] = source
+                        internal_sym = get_internal_alert_symbol(
+                            alert_level, source_id)
+                        value.update(internal_sym)
+                        # x3 will always overwrite x2 due to ordering on JSON
+                        above_threshold[source] = value
+                        above_threshold_list.append(value)
+        elif data_presence == 0:
+            below_threshold.append(source)
+        elif data_presence == -1:
+            no_data.append(source)
+        elif data_presence == -2:  # for rx only currently
+            is_rx = True
+
+    public_alert_level = current_alert_level
+    for key, row in above_threshold.items():
+        alert_level = row["alert_level"]
+        if alert_level > public_alert_level:
+            public_alert_level = alert_level
+
+    triggers_above_threshold = above_threshold.copy()
     if current_alert_level > 0:
-        for temp in event_triggers:
-            a = retrieve_data_from_memcache("internal_alert_symbols", {
-                "internal_sym_id": temp[0]}, retrieve_one=True)
-            source = a["trigger_symbol"]["trigger_hierarchy"]["trigger_source"]
-            event_alert_level = a["trigger_symbol"]["alert_level"]
-            if event_alert_level >= alert_level:
-                alert_level = event_alert_level
+        event_triggers = get_saved_event_triggers(
+            current_event_alert["event"]["event_id"])
+        max_trigger_ts = event_triggers[0][1]
 
-            trigger_sources.append({
-                "trigger_source": source,
-                "alert_level": 0,  # default
-                "internal_sym": a
-            })
+        for saved_trigger in event_triggers:
+            internal_sym_id = saved_trigger[0]
 
-    internal_alert_level = public_alert_symbol
-    if alert_level > 0:
-        internal_alert_level = f"{public_alert_symbol}-{trigger_list}"
+            internal_sym = retrieve_data_from_memcache(
+                "internal_alert_symbols", {
+                    "internal_sym_id": internal_sym_id
+                })
+            trigger_symbol = internal_sym["trigger_symbol"]
+            trigger_hierarchy = trigger_symbol["trigger_hierarchy"]
+            source = trigger_hierarchy["trigger_source"]
+            source_id = trigger_symbol["source_id"]
+            alert_level = trigger_symbol["alert_level"]
+            alert_symbol = internal_sym["alert_symbol"]
 
-    return jsonify({
-        "alert_level": alert_level,
-        "internal_alert_level": internal_alert_level,
-        "public_alert_level": alert_level,
-        "public_alert_symbol": public_alert_symbol,
-        "trigger_list_str": trigger_list,
-        "trigger_sources": trigger_sources
-    })
+            # if event_trigger is present on above_threshold, automatically it has data
+            if source in triggers_above_threshold:
+                if triggers_above_threshold[source]["alert_level"] < alert_level:
+                    triggers_above_threshold[source].update({
+                        "alert_level": alert_level,
+                        "alert_symbol": alert_symbol,
+                        "internal_sym_id": internal_sym_id
+                    })
+            else:
+                # Check and convert symbol to no data counterpart
+                if source in no_data:
+                    trigger_sym = retrieve_data_from_memcache(
+                        "operational_trigger_symbols", {
+                            "alert_level": -1,
+                            "source_id": source_id
+                        }, retrieve_one=True)
+                    alert_symbol = trigger_sym["internal_alert_symbol"]["alert_symbol"]
+                    alert_symbol = alert_symbol.lower() if alert_level == 2 else alert_symbol
+                    alert_level = -1
 
+                temp = {
+                    "alert_level": alert_level,
+                    "source_id": source_id,
+                    "hierarchy_id": trigger_hierarchy["hierarchy_id"],
+                    "alert_symbol": alert_symbol,
+                    "internal_sym_id": internal_sym["internal_sym_id"]
+                }
 
-@MONITORING_BLUEPRINT.route("/monitoring/get_site_public_alert", methods=["GET"])
-def wrap_get_site_public_alert():
-    site_id = request.args.get('site_id', default=1, type=int)
-    return_data = get_public_alert(site_id)
-    return return_data
+                triggers_above_threshold[source] = temp
+
+        # Using public_alert_level here because if ever
+        # a x2/x3 trigger is present on above_threshold,
+        # the public_alert_level will be > 1
+        if public_alert_level == 1:
+            # check for ground data
+            has_no_ground_data = check_for_ground_data()
+
+        # if no retriggers from initial form input
+        # then it is safe to say no extension of validity will happen
+        if not above_threshold:
+            data_ts = datetime.strptime(
+                json_data["data_ts"], "%Y-%m-%dT%H:%M:%S.%fZ") \
+                .replace(second=0, microsecond=0, tzinfo=pytz.utc) \
+                .astimezone(pytz.timezone("Asia/Manila")) \
+                .replace(tzinfo=None)
+            current_validity = datetime.strptime(
+                current_event_alert["event"]["validity"], "%Y-%m-%d %H:%M:%S")
+            is_end_of_validity = current_validity == data_ts + \
+                timedelta(minutes=30)
+            original_validity = compute_event_validity(
+                max_trigger_ts, current_alert_level)
+            is_at_or_beyond_alert_extension_limit = original_validity + \
+                timedelta(hours=ALERT_EXTENSION_LIMIT) <= data_ts + \
+                timedelta(minutes=30)
+
+            # if end-of-validity release
+            if is_end_of_validity:
+                if is_rx:
+                    to_lower = False
+                    note = "Alert validity will be extended due to raifall intermediate threshold."
+                elif is_at_or_beyond_alert_extension_limit:
+                    to_lower = True
+                    has_no_ground_data = check_for_ground_data()
+                    note = "Alert will end because it reached/exceeded " + \
+                        "the maximum limit of validity extensions."
+                else:
+                    if current_alert_level > 1:
+                        if any((x["alert_level"] == -1) for x in triggers_above_threshold.values()):
+                            to_lower = False
+                            note = "Alert validity will be extended because " + \
+                                "one or more of the raised trigger(s) has no data."
+                        else:
+                            to_lower = True
+                    else:
+                        # check for ground data
+                        to_lower = not has_no_ground_data
+                        note = "Alert validity will be extended because there is " + \
+                            "no ground data (surficial and subsurface, MOMS included " + \
+                            "if both previous sources were already defunct)."
+    else:
+        has_no_ground_data = check_for_ground_data()
+        if not above_threshold:
+            to_lower = True     # Just to skip the else part of to_lower
+
+    trigger_string = None
+    if has_no_ground_data:
+        internal_source_id = retrieve_data_from_memcache(
+            "trigger_hierarchies", {
+                "trigger_source": "internal"
+            }, retrieve_one=True, retrieve_attr="source_id")
+        trigger_sym = retrieve_data_from_memcache(
+            "operational_trigger_symbols", {
+                "alert_level": -1,
+                "source_id": internal_source_id
+            }, retrieve_one=True)
+        nd_symbol = trigger_sym["internal_alert_symbol"]["alert_symbol"]
+        trigger_string = nd_symbol
+
+    if to_lower:
+        public_alert_level = 0
+    else:
+        temp = map(lambda x: x["alert_symbol"], sorted(
+            triggers_above_threshold.values(), key=lambda x: x["hierarchy_id"]))
+        temp = "".join(list(temp))
+
+        if public_alert_level == 1 and has_no_ground_data:
+            trigger_string = f"{nd_symbol}-{temp}"
+        else:
+            trigger_string = temp
+
+        # A0 will not enter this because is_end_of_validity will be false always
+        if is_rx and is_end_of_validity:
+            if "R" in trigger_string:
+                trigger_string = trigger_string.replace("R", "Rx")
+            else:
+                trigger_string += "rx"
+
+    internal_alert = build_internal_alert_level(
+        public_alert_level, trigger_string)
+
+    return_obj = {
+        "public_alert_level": public_alert_level,
+        "internal_alert": internal_alert,
+        "note": note,
+        "trigger_list": above_threshold_list,
+        "to_extend_validity": to_lower,
+        "trigger_list_str": trigger_string
+    }
+
+    return jsonify(return_obj)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_events", methods=["GET"])
@@ -328,20 +540,6 @@ def wrap_get_monitoring_events(value=None):
         raise Exception(KeyError)
 
     return jsonify(return_data)
-
-
-@MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases_by_data_ts/<site_code>/<data_ts>", methods=["GET"])
-def wrap_get_monitoring_releases_by_data_ts(site_code, data_ts):
-    """
-    Gets a single release with the specificied site_code and data_ts
-    """
-
-    release = get_monitoring_releases_by_data_ts(site_code, data_ts)
-    release_schema = MonitoringReleasesSchema()
-
-    releases_data = release_schema.dump(release)
-
-    return jsonify(releases_data)
 
 
 @MONITORING_BLUEPRINT.route("/monitoring/get_monitoring_releases_for_qa/<ts_start>", methods=["GET"])
@@ -491,165 +689,6 @@ def wrap_get_pub_sym_id(alert_level):
     return str(pub_sym)
 
 
-@MONITORING_BLUEPRINT.route("/monitoring/create_release_details", methods=["POST"])
-def create_release_details():
-    """
-    build internal alert level
-    """
-
-    json_data = request.get_json()
-
-    internal_alert_level = ""
-    public_alert_level = ""
-
-    # current is string
-    current = json_data["current_trigger_list"]
-    # latest is array
-    latest = json_data["latest_trigger_list"]
-    has_no_ground_data = json_data["has_no_ground_data"]
-    is_alert_0 = json_data["is_alert_0"]
-
-    current = list(
-        sorted(current, key=lambda x: x["internal_sym"]["trigger_symbol"]["alert_level"],
-               reverse=True))
-
-    counted_triggers_list = []
-    trigger_source_list = []
-
-    highest_alert_from_latest = 0
-    sorted_latest = list(
-        sorted(latest, key=lambda x: x["alert_level"], reverse=True))
-    if sorted_latest:
-        highest_alert_from_latest = sorted_latest[0]["alert_level"]
-
-    highest_alert_from_current = 0
-    if not is_alert_0:
-        for row in current:
-            internal_sym = row["internal_sym"]
-            internal_alert_symbol = internal_sym["alert_symbol"]
-            trigger_symbol = internal_sym["trigger_symbol"]
-            alert_level = trigger_symbol["alert_level"]
-            source_id = trigger_symbol["source_id"]
-            trigger_hierarchy = trigger_symbol["trigger_hierarchy"]
-            trigger_source = trigger_hierarchy["trigger_source"]
-            hierarchy_id = trigger_hierarchy["hierarchy_id"]
-
-            if highest_alert_from_current < alert_level:
-                highest_alert_from_current = alert_level
-
-            temp = {
-                "alert_level": alert_level,
-                "source": trigger_source,
-                "symbol": internal_alert_symbol,
-                "hierarchy_id": hierarchy_id
-            }
-
-            if source_id not in trigger_source_list:
-                trigger_source_list.append(source_id)
-                counted_triggers_list.append(temp)
-            else:
-                index = next((index for (index, d) in enumerate(
-                    counted_triggers_list) if d["source"] == trigger_source))
-                if temp["alert_level"] > counted_triggers_list[index]["alert_level"]:
-                    counted_triggers_list[index]["alert_level"] = temp["alert_level"]
-                    counted_triggers_list[index]["symbol"] = temp["symbol"]
-
-    public_alert_level = highest_alert_from_latest if \
-        highest_alert_from_latest > highest_alert_from_current \
-        else highest_alert_from_current
-
-    for trigger_source in sorted_latest:
-        alert_level = trigger_source["alert_level"]
-        trigger_type = trigger_source["trigger_type"]
-        trigger_hierarchy = retrieve_data_from_memcache(
-            "trigger_hierarchies", {"trigger_source": trigger_type})
-        source_id = trigger_hierarchy["source_id"]
-        hierarchy_id = trigger_hierarchy["hierarchy_id"]
-        trigger_sym_id = retrieve_data_from_memcache(
-            "operational_trigger_symbols", {
-                "alert_level": alert_level,
-                "source_id": source_id
-            },
-            retrieve_attr="trigger_sym_id")
-        internal_sym = retrieve_data_from_memcache(
-            "internal_alert_symbols", {
-                "trigger_sym_id": trigger_sym_id
-            },
-            retrieve_attr="alert_symbol")
-
-        temp = {
-            "alert_level": alert_level,
-            "source": trigger_type,
-            "symbol": internal_sym,
-            "hierarchy_id": hierarchy_id
-        }
-
-        if source_id not in trigger_source_list:
-            # check if rx (no rainfall trigger)
-            if temp["source"] == "rainfall" and temp["alert_level"] == -2:
-                temp["symbol"] = temp["symbol"].lower()
-
-            trigger_source_list.append(source_id)
-            counted_triggers_list.append(temp)
-        else:
-            index = next((index for (index, d) in enumerate(
-                counted_triggers_list) if d["source"] == trigger_type))  # take note of variable name trigger_type sa taas trigger_source
-            if temp["alert_level"] > counted_triggers_list[index]["alert_level"]:
-                counted_triggers_list[index]["alert_level"] = temp["alert_level"]
-                counted_triggers_list[index]["symbol"] = temp["symbol"]
-            elif temp["alert_level"] in [-1, -2]:
-                saved_alert_level = counted_triggers_list[index]["alert_level"]
-                if temp["source"] != "rainfall":
-                    if saved_alert_level == 3:
-                        temp["symbol"] = temp["symbol"].upper()
-                    else:
-                        temp["symbol"] = temp["symbol"].lower()
-
-                counted_triggers_list[index]["alert_level"] = temp["alert_level"]
-                counted_triggers_list[index]["symbol"] = temp["symbol"]
-
-    sorted_by_hierarchy = list(
-        sorted(counted_triggers_list, key=lambda x: x["hierarchy_id"]))
-
-    trigger_list_final = ""
-    for unique_trigger in sorted_by_hierarchy:
-        trigger_list_final = trigger_list_final + unique_trigger["symbol"]
-
-    if public_alert_level <= 1 and has_no_ground_data:
-        nd_trig_hie = retrieve_data_from_memcache(
-            "trigger_hierarchies", {"trigger_source": "internal"})
-        nd_internal_sym = retrieve_data_from_memcache(
-            "operational_trigger_symbols", {
-                "alert_level": -1,
-                "source_id": nd_trig_hie["source_id"]
-            }, retrieve_attr="internal_alert_symbol")
-        nd_symbol = nd_internal_sym["alert_symbol"]
-
-        temp_final = nd_symbol
-        if public_alert_level != 0:
-            temp_final += f"-{trigger_list_final}"
-
-        trigger_list_final = temp_final
-
-    internal_alert_level = build_internal_alert_level(
-        public_alert_level=public_alert_level,
-        trigger_list=trigger_list_final
-    )
-
-    public_alert_symbol = retrieve_data_from_memcache(
-        "public_alert_symbols", {
-            "alert_level": public_alert_level
-        },
-        retrieve_attr="alert_symbol")
-
-    return jsonify({
-        "internal_alert_level": internal_alert_level,
-        "public_alert_level": public_alert_level,
-        "public_alert_symbol": public_alert_symbol,
-        "trigger_list_str": trigger_list_final
-    })
-
-
 def insert_ewi_release(monitoring_instance_details, release_details, publisher_details, trigger_list_arr=None, non_triggering_moms=None):
     """
     Initiates the monitoring_release write to db plus it's corresponding details.
@@ -702,19 +741,20 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
                     trigger["ts_updated"], "%Y-%m-%d %H:%M:%S")
 
                 if trigger_type == "on demand":
-                    od_details = trigger["od_details"]
-                    request_ts = datetime.strptime(
-                        od_details["request_ts"], "%Y-%m-%d %H:%M:%S")
-                    narrative = od_details["narrative"]
-                    timestamp = request_ts
+                    # od_details = trigger["od_details"]
+                    # request_ts = datetime.strptime(
+                    #     od_details["request_ts"], "%Y-%m-%d %H:%M:%S")
+                    # narrative = od_details["narrative"]
+                    # timestamp = request_ts
 
-                    od_details["narrative_id"] = write_narratives_to_db(
-                        site_id=site_id, timestamp=request_ts, narrative=narrative,
-                        type_id=1, user_id=publisher_details["publisher_ct_id"], event_id=event_id
-                    )
+                    # od_details["narrative_id"] = write_narratives_to_db(
+                    #     site_id=site_id, timestamp=request_ts, narrative=narrative,
+                    #     type_id=1, user_id=publisher_details["publisher_ct_id"], event_id=event_id
+                    # )
 
-                    od_id = write_monitoring_on_demand_to_db(
-                        od_details, narrative)
+                    # od_id = write_monitoring_on_demand_to_db(
+                    #     od_details, narrative)
+                    od_id = trigger["od_details"]["od_id"]
                     eq_id = None
                     has_moms = False
                 elif trigger_type == "earthquake":
@@ -773,7 +813,8 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
 
         if non_triggering_moms:
             moms_id_list = get_moms_id_list(
-                non_triggering_moms, site_id, event_id)
+                {"moms_list": non_triggering_moms},
+                site_id, event_id)
 
             for moms_id in moms_id_list:
                 write_monitoring_moms_releases_to_db(
@@ -1035,7 +1076,7 @@ def insert_ewi(internal_json=None):
                             # Just a safety measure in case we attached a False
                             # in Front-End
                             # NOTE: SHOULD BE ATTACHED VIA FRONT-END
-                            new_validity = site_monitoring_instance.validity + \
+                            new_validity = round_to_nearest_release_time(datetime_data_ts) + \
                                 timedelta(hours=no_data_hours_extension)
                             update_event_validity(new_validity, event_id)
                     except:
@@ -1189,7 +1230,8 @@ def insert_cbewsl_ewi():
         json_data = request.get_json()
         public_alert_level = json_data["alert_level"]
         public_alert_symbol = retrieve_data_from_memcache(
-            "public_alert_symbols", {"alert_level": public_alert_level}, retrieve_attr="alert_symbol")
+            "public_alert_symbols", {"alert_level": public_alert_level},
+            retrieve_attr="alert_symbol")
         user_id = json_data["user_id"]
         data_ts = str(datetime.strptime(
             json_data["data_ts"], "%Y-%m-%d %H:%M:%S"))

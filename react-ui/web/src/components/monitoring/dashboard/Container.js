@@ -36,6 +36,8 @@ import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
 import InsertMomsButton from "../../widgets/moms/InsertMomsButton";
 import { GeneralContext } from "../../contexts/GeneralContext";
 
+import { StoreProvider } from "../../widgets/alert_release_form/store";
+
 const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
     return {
@@ -273,14 +275,16 @@ function Container (props) {
                 )
             }
 
-            <AlertReleaseFormModal
-                isOpen={isOpenReleaseModal}
-                closeHandler={handleBoolean("is_open_release_modal", false)}
-                setChosenCandidateAlert={setChosenCandidateAlert}
-                chosenCandidateAlert={chosenCandidateAlert}
-                alertsFromDbData={alertsFromDbData}
-                setIsOpenRoutineModal={routineReleaseHandler(null)}
-            />
+            <StoreProvider>
+                <AlertReleaseFormModal
+                    isOpen={isOpenReleaseModal}
+                    closeHandler={handleBoolean("is_open_release_modal", false)}
+                    chosenCandidateAlert={chosenCandidateAlert}
+                    setChosenCandidateAlert={setChosenCandidateAlert}
+                    // alertsFromDbData={alertsFromDbData}
+                    // setIsOpenRoutineModal={routineReleaseHandler(null)}
+                />
+            </StoreProvider>
 
             <RoutineReleaseFormModal
                 isOpen={isOpenRoutineModal}

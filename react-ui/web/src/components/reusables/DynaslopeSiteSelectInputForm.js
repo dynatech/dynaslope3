@@ -46,7 +46,7 @@ function DynaslopeSiteSelectInputForm (props) {
         renderDropdownIndicator, includeAddressOnOptions,
         returnSiteDataCallback, isFromSiteLogs,
         disabled, customPlaceholder, isClearable,
-        required
+        required, isError, helperText
     } = props;
     const { sites } = useContext(GeneralContext);
 
@@ -89,6 +89,8 @@ function DynaslopeSiteSelectInputForm (props) {
             isMulti={is_multi}
             isDisabled={Boolean(disabled)}
             isClearable={is_clearable}
+            isError={Boolean(isError)}
+            helperText={helperText}
         />
     );
 }

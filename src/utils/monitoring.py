@@ -920,6 +920,7 @@ def get_monitoring_releases(
         ts_start (Datetime) -
         ts_end (Datetime) -
     """
+
     me = MonitoringEvents
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
@@ -965,7 +966,6 @@ def get_monitoring_releases(
     if release_id:
         return_data = base.filter(
             mr.release_id == release_id).first()
-
     else:
         if ts_start and ts_end:
             base = base.filter(DB.and_(
@@ -1119,25 +1119,29 @@ def check_if_has_moms_or_earthquake_trigger(event_id):
 #   MONITORING_EVENT RELATED FUNCTIONS   #
 ##########################################
 
-def get_public_alert(site_id):
-    me = MonitoringEvents
-    mea = MonitoringEventAlerts
-    result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(
-        me).filter(me.site_id == site_id).first()
-    if result:
-        result = result.public_alert_symbol
-
-    return result
-
-
-def get_latest_release_per_site(site_id):
+def get_latest_release_per_site(site_id, load_options=False):
     """
     Searches latest release regardless of event type
+
+    Args:
+
+    site_id (int)
+    load_options (boolean)    currenty catered for get_latest_site_event_details
     """
+
     mr = MonitoringReleases
     me = MonitoringEvents
     mea = MonitoringEventAlerts
-    latest_release = mr.query.order_by(
+
+    query = mr.query
+    if load_options:
+        query = query.options(
+            DB.raiseload("triggers"),
+            DB.raiseload("release_publishers"),
+            DB.raiseload("moms_releases")
+        )
+
+    latest_release = query.order_by(
         DB.desc(mr.release_id)) \
         .join(mea).join(me).filter(me.site_id == site_id) \
         .first()
@@ -1320,6 +1324,32 @@ def get_latest_monitoring_event_per_site(site_id, raise_load=False):
         .filter(event.site_id == site_id).first()
 
     return latest_event
+
+
+def get_latest_site_event_details(site_id):
+    """
+    Function that gets the most recent release details (including event)
+    for the site
+    """
+
+    latest_release = get_latest_release_per_site(site_id, load_options=True)
+    latest_release_dump = MonitoringReleasesSchema(
+        exclude=["triggers", "release_publishers", "moms_releases"]).dump(latest_release)
+
+    pas = latest_release_dump["event_alert"]["public_alert_symbol"]
+    alert_level = pas["alert_level"]
+    public_alert_symbol = pas["alert_symbol"]
+
+    trigger_list = latest_release_dump["trigger_list"]
+    internal_alert = public_alert_symbol
+    if alert_level > 0:
+        internal_alert = f"{public_alert_symbol}-{trigger_list}"
+    elif trigger_list:
+        internal_alert = trigger_list
+
+    latest_release_dump["internal_alert"] = internal_alert
+
+    return latest_release_dump
 
 ##########################################################
 # List of Functions for early input before release times #
@@ -2017,7 +2047,7 @@ def write_monitoring_moms_releases_to_db(moms_id, trig_misc_id=None, release_id=
                 moms_id=moms_id
             )
         DB.session.add(moms_release)
-        # DB.session.flush()
+        DB.session.flush()
     except Exception as err:
         print(err)
         raise
@@ -2054,7 +2084,8 @@ def get_moms_id_list(moms_dictionary, site_id, event_id):
             except KeyError:
                 moms_id = write_monitoring_moms_to_db(
                     item, site_id, event_id)
-                moms_id_list.append(moms_id)
+
+            moms_id_list.append(moms_id)
     except KeyError as err:
         print(err)
         if not has_moms_ids:
