@@ -1,6 +1,4 @@
-import React, {
-    useState, useEffect
-} from "react";
+import React, { useState, useEffect } from "react";
 
 import { 
     IconButton, Typography,
@@ -16,6 +14,7 @@ import MessageList from "./MessageList";
 
 import { receiveSearchResults, removeReceiveSearchResults } from "../../../websocket/communications_ws";
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
+
 
 const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
@@ -81,18 +80,18 @@ function SearchResultsPage (props) {
         ListLoader
     } = props;
     const classes = useStyles();
-    const { state: {
+    const { state } = location;
+    const {
         sites, organizations, only_ewi_recipients,
         include_inactive_numbers, ts_start, ts_end,
         string_search, tag_search,
         mobile_number_search, name_search
-    } } = location;
+    } = state;
 
     const [is_loading, setIsLoading] = useState(false);
     const has_no_input = sites === null && organizations === null;
     const has_string_or_tag = string_search !== "" || tag_search.value !== "";
-    const offset = 0;
-    const [updated_offset, setUpdateOffset] = useState(offset);
+    const [updated_offset, setUpdateOffset] = useState(0);
 
     const previousButtonHandler = () => {
         if (updated_offset > 0) {
@@ -108,7 +107,7 @@ function SearchResultsPage (props) {
 
     useEffect(() => {
         const has_no_search_results = searchResults.length === 0;
-        if (!has_no_input && has_no_search_results || has_string_or_tag) {
+        if (!has_no_input && has_no_search_results) {
             setIsLoading(true);
             
             const input = {
@@ -189,13 +188,13 @@ function SearchResultsPage (props) {
 
                 {
                     ts_start && <Box mr={2}>
-                        <Typography variant="subtitle2"><strong>Start Date/Time:</strong>{ts_start}</Typography>
+                        <Typography variant="subtitle2"><strong>Start Date/Time: </strong>{ts_start}</Typography>
                     </Box>
                 }
 
                 {
                     ts_end && <Box mr={2}>
-                        <Typography variant="subtitle2"><strong>End Date/Time:</strong>{ts_end}</Typography>
+                        <Typography variant="subtitle2"><strong>End Date/Time: </strong>{ts_end}</Typography>
                     </Box>
                 }
 
@@ -218,7 +217,7 @@ function SearchResultsPage (props) {
                 }
 
                 {
-                    name_search. length != 0 && <Box mr={2}>
+                    name_search.length !== 0 && <Box mr={2}>
                         <Typography variant="subtitle2"><strong>Has name search</strong></Typography>
                     </Box>
                 }
@@ -238,7 +237,7 @@ function SearchResultsPage (props) {
             
             <Divider style={{ marginTop: 12 }} />
             {
-                has_string_or_tag && (
+                has_string_or_tag && !is_loading && (
                     <Box display="flex" flexDirection="row-reverse">
                         {
                             searchResults.length > 0 && (
@@ -249,17 +248,24 @@ function SearchResultsPage (props) {
                                     variant="contained"
                                     color="primary"
                                     endIcon={<NavigateNext />}
-                                > Next </Button>
+                                >
+                                    Next
+                                </Button>
                             )
                         }
-                        <Button
-                            size="small"
-                            style={{ margin: 10 }}
-                            onClick={previousButtonHandler}
-                            variant="contained"
-                            color="primary"
-                            startIcon={<NavigateBefore />}
-                        > Previous </Button>
+
+                        {
+                            updated_offset > 0 && <Button
+                                size="small"
+                                style={{ margin: 10 }}
+                                onClick={previousButtonHandler}
+                                variant="contained"
+                                color="primary"
+                                startIcon={<NavigateBefore />}
+                            >
+                                Previous
+                            </Button>
+                        }
                     </Box>
                 )
             }

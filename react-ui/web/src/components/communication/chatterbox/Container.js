@@ -1,6 +1,6 @@
 import React, {
     Fragment, useState,
-    useEffect, useContext, createContext
+    useEffect, useContext
 } from "react";
 import { Route, Switch } from "react-router-dom";
 
@@ -22,13 +22,14 @@ import SendMessageModal from "./SendMessageModal";
 import CircularAddButton from "../../reusables/CircularAddButton";
 import SearchMessageModal from "./SearchMessageModal";
 import SearchResultsPage from "./SearchResultsPage";
+
+import { CommsProvider } from "./CommsContext";
 import { GeneralContext } from "../../contexts/GeneralContext";
-import { StoreProvider } from "./store";
+
 import {
     socket, subscribeToWebSocket, removeReceiveLatestMessages,
     receiveAllMobileNumbers, receiveLatestMessages,
-    removeReceiveAllMobileNumbers, receiveAllContacts,
-    removeReceiveAllContacts
+    removeReceiveAllMobileNumbers
 } from "../../../websocket/communications_ws";
 import { getAllTags } from "../ajax";
 
@@ -97,7 +98,6 @@ function ChatterboxInfoModal (props) {
     );
 }
 
-export const CommsContext = createContext();
 function Container (comp_props) {
     const { location, match: { url }, width } = comp_props;
     const classes = useStyles();
@@ -115,7 +115,7 @@ function Container (comp_props) {
     const [search_results, setSearchResults] = useState([]);
     const [recipients_list, setRecipientsList] = useState([]);
     const [tag_list, setTagList] = useState([]);
-    const [contacts, setContacts] = useState([]);
+
     const [is_open_info_modal, setIsOpenInfoModal] = useState(false);
     const set_modal_fn = (key, bool) => () => {
         if (key === "send") setIsOpenSendModal(bool);
@@ -126,13 +126,14 @@ function Container (comp_props) {
     const { setIsReconnecting } = useContext(GeneralContext);
     useEffect(() => {
         subscribeToWebSocket(setIsReconnecting, "chatterbox");
+    }, [setIsReconnecting]);
 
+    useEffect(() => {
         receiveLatestMessages(data => {
             setMessagesCollection(data);
             
             const { unsent: { length } } = data;
             let label = "Unsent";
-            const index = tabs_array.findIndex(x => x.href === label);
             if (length > 0) {
                 label = <Badge
                     style={{ padding: "0 8px" }}
@@ -143,19 +144,21 @@ function Container (comp_props) {
                     Unsent
                 </Badge>;
             }
-            setTabsArray(prev => [...prev.slice(0, index), { label, href: "unsent" }]);
+            setTabsArray(prev => [...prev.slice(0, 1), { label, href: "unsent" }]);
         });
 
+        return () => {
+            removeReceiveLatestMessages();
+        };
+    }, []);
+
+    useEffect(() => {
         receiveAllMobileNumbers(data => {
             setRecipientsList(data);
         });
 
-        receiveAllContacts(data => setContacts(data));
-
         return () => {
-            removeReceiveLatestMessages();
             removeReceiveAllMobileNumbers();
-            removeReceiveAllContacts();
         };
     }, []);
 
@@ -168,7 +171,6 @@ function Container (comp_props) {
             setTagList(tags);
         });
     }, []);
-    
 
     const is_desktop = isWidthUp("md", width);
 
@@ -206,27 +208,27 @@ function Container (comp_props) {
     </span>;
 
     return (
-        <Switch location={location}>
-            <Route exact path={url} 
-                render={ props => (
-                    <Fragment>
-                        <div className={classes.pageContentMargin}>
-                            <PageTitle
-                                title="Communications | Chatterbox" 
-                                customButtons={is_desktop ? custom_buttons : false}
-                            />
-                        </div>
+        <CommsProvider>
+            <Switch location={location}>
+                <Route exact path={url} 
+                    render={ props => (
+                        <Fragment>
+                            <div className={classes.pageContentMargin}>
+                                <PageTitle
+                                    title="Communications | Chatterbox" 
+                                    customButtons={is_desktop ? custom_buttons : false}
+                                />
+                            </div>
 
-                        <div className={classes.tabBar}>
-                            <TabBar 
-                                chosenTab={chosen_tab}
-                                onSelect={tab => setChosenTab(tab)}
-                                tabsArray={tabs_array}
-                            />
-                        </div>
+                            <div className={classes.tabBar}>
+                                <TabBar 
+                                    chosenTab={chosen_tab}
+                                    onSelect={tab => setChosenTab(tab)}
+                                    tabsArray={tabs_array}
+                                />
+                            </div>
 
-                        <div className={`${classes.tabBar} ${classes.tabBarContent}`}>
-                            <CommsContext.Provider value={{ contacts }}>
+                            <div className={`${classes.tabBar} ${classes.tabBarContent}`}>
                                 {
                                     message_collection.inbox === null ? (
                                         <ListLoader />
@@ -256,66 +258,58 @@ function Container (comp_props) {
                                         )
                                     )
                                 }
-                            </CommsContext.Provider>
-                        </div>
+                            </div>
 
-                        { !is_desktop && <CircularAddButton clickHandler={set_modal_fn("send", true)} />}
+                            { !is_desktop && <CircularAddButton clickHandler={set_modal_fn("send", true)} />}
 
-                        <SendMessageModal
-                            modalStateHandler={set_modal_fn("send", false)} 
-                            modalState={is_open_send_modal}
-                            recipientsList={recipients_list}
-                        />
-                        <StoreProvider>
+                            <SendMessageModal
+                                modalStateHandler={set_modal_fn("send", false)} 
+                                modalState={is_open_send_modal}
+                                recipientsList={recipients_list}
+                            />
+
                             <SearchMessageModal 
                                 modalStateHandler={set_modal_fn("search", false)}
                                 modalState={is_open_search_modal}
                                 setSearchResultsToEmpty={() => setSearchResults([])}
                                 url={url}
-                                contactList={contacts}
                                 recipientsList={recipients_list}
                                 tagList={tag_list}
                             />
-                        </StoreProvider>
-                        <ChatterboxInfoModal
-                            modalStateHandler={set_modal_fn("info", false)} 
-                            modalState={is_open_info_modal}
-                        />
-                    </Fragment>
-                )}
-            />
+
+
+                            <ChatterboxInfoModal
+                                modalStateHandler={set_modal_fn("info", false)} 
+                                modalState={is_open_info_modal}
+                            />
+                        </Fragment>
+                    )}
+                />
             
-            <Route path={`${url}/search_results`} render={
-                props => <CommsContext.Provider value={{ contacts }}>
-                    <StoreProvider>
-                        <SearchResultsPage
-                            {...props}
-                            messageCollection={message_collection}
-                            socket={socket}
-                            url={url}
-                            width={width}
-                            is_desktop={is_desktop}
-                            searchResults={search_results}
-                            setSearchResults={setSearchResults}
-                            ListLoader={ListLoader}
-                        />
-
-                    </StoreProvider>
-                </CommsContext.Provider>
-            } 
-            />
-
-            <Route path={`${url}/:mobile_id`} render={
-                props => <CommsContext.Provider value={{ contacts }}>
-                    <ConversationWindow 
+                <Route path={`${url}/search_results`} render={
+                    props => <SearchResultsPage
                         {...props}
                         messageCollection={message_collection}
                         socket={socket}
+                        url={url}
+                        width={width}
+                        is_desktop={is_desktop}
+                        searchResults={search_results}
+                        setSearchResults={setSearchResults}
+                        ListLoader={ListLoader}
                     />
-                </CommsContext.Provider>
-            } 
-            />
-        </Switch>
+                } 
+                />
+
+                <Route path={`${url}/:mobile_id`} render={
+                    props => <ConversationWindow 
+                        {...props}
+                        messageCollection={message_collection}
+                        socket={socket}
+                    /> } 
+                />
+            </Switch>
+        </CommsProvider>
     );
 
 }

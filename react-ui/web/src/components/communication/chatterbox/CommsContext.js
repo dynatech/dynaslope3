@@ -1,8 +1,8 @@
-import React, { createContext, useReducer, useContext } from "react";
+import React, { createContext, useState, useEffect, useReducer } from "react";
+import { receiveAllContacts, removeReceiveAllContacts } from "../../../websocket/communications_ws";
 
+export const CommsContext = createContext();
 
-
-export const Store = createContext();
 const initial_state = {
     sites: [],
     orgs: [],
@@ -37,6 +37,7 @@ function reducer (state, action) {
             if (temp_value === null) {
                 temp_value = [];
             }
+
             return {
                 ...state,
                 orgs: temp_value
@@ -44,7 +45,6 @@ function reducer (state, action) {
         }
 
         case "UPDATE_ONLY_EWI_RECIPIENTS": {
-
             return {
                 ...state,
                 only_ewi_recipients: value
@@ -52,7 +52,6 @@ function reducer (state, action) {
         }
 
         case "UPDATE_INCLUDE_INACTIVE_NUMBERS": {
-
             return {
                 ...state,
                 include_inactive_numbers: value
@@ -60,7 +59,6 @@ function reducer (state, action) {
         }
 
         case "UPDATE_TS_START": {
-
             return {
                 ...state,
                 ts_start: value
@@ -68,7 +66,6 @@ function reducer (state, action) {
         }
 
         case "UPDATE_TS_END": {
-
             return {
                 ...state,
                 ts_end: value
@@ -76,7 +73,6 @@ function reducer (state, action) {
         }
 
         case "UPDATE_STRING_SEARCH": {
-
             return {
                 ...state,
                 string_search: value
@@ -96,7 +92,6 @@ function reducer (state, action) {
         }
 
         case "UPDATE_MOBILE_NUMBER_SEARCH": {
-
             return {
                 ...state,
                 mobile_number_search: value
@@ -108,29 +103,35 @@ function reducer (state, action) {
             if (temp_value === null) {
                 temp_value = "";
             }
+
             return {
                 ...state,
                 name_search: temp_value
             };
         }
 
-        case "UPDATE_ALL_DATA": {
-            return {
-                ...value
-            };
-        }
+        case "UPDATE_ALL_DATA":
+            return { ...value };
+
+        case "RESET":
+            return { ...initial_state };
 
         default: return { ...state };
     }
 }
 
-export function StoreProvider ({ children }) {
+export function CommsProvider ({ children }) {
+    const [contacts, setContacts] = useState([]);
+    const [search_state, search_dispatch] = useReducer(reducer, initial_state);
+    
+    useEffect(() => {
+        receiveAllContacts(data => setContacts(data));
 
-    const [state, dispatch] = useReducer(reducer, initial_state);
-    const value = { state, dispatch };
-    return <Store.Provider value={value}>{children}</Store.Provider>;
+        return () => { removeReceiveAllContacts(); };
+    }, []);
+
+    const value = { contacts, search_state, search_dispatch };
+    return <CommsContext.Provider value={value}>
+        {children}
+    </CommsContext.Provider>;
 }
-
-
-
-

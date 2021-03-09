@@ -120,8 +120,6 @@ function SecondaryInformation (classes, first_message) {
 // eslint-disable-next-line max-params
 function MessageListItem (row, props, openOptionsModal, index) {
     const { messages, mobile_details } = row;
-    const [first_message] = messages;
-    const { is_per_convo, ts } = first_message;
     const { classes, url, width, async, is_desktop, searchFilters } = props;
 
     const { mobile_id, sim_num, users } = mobile_details;
@@ -139,9 +137,14 @@ function MessageListItem (row, props, openOptionsModal, index) {
     let search_filters = null;
     if (typeof searchFilters !== "undefined") {
         search_filters = { ...searchFilters };
-       
-        if (is_per_convo) {
-            search_filters.ts_end = ts;
+
+        if (messages.length > 0) {
+            const [first_message] = messages;
+            const { is_per_convo, ts } = first_message;
+
+            if (is_per_convo) {
+                search_filters.ts_end = ts;
+            }
         }
     }
     
@@ -243,7 +246,7 @@ function MessageListItem (row, props, openOptionsModal, index) {
                     }}
                     secondary={
                         messages.length > 0 ? (
-                            SecondaryInformation(classes, first_message)
+                            SecondaryInformation(classes, messages[0])
                         ) : (
                             <div style={{ textAlign: "center" }}>{no_convo_message}</div>
                         )
