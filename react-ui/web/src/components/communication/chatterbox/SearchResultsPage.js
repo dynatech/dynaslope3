@@ -238,16 +238,20 @@ function SearchResultsPage (props) {
             
             <Divider style={{ marginTop: 12 }} />
             {
-                searchResults.length > 0 && has_string_or_tag && (
+                has_string_or_tag && (
                     <Box display="flex" flexDirection="row-reverse">
-                        <Button
-                            size="small"
-                            style={{ margin: 10 }}
-                            onClick={nextButtonHandler}
-                            variant="contained"
-                            color="primary"
-                            endIcon={<NavigateNext />}
-                        > Next </Button>
+                        {
+                            searchResults.length > 0 && (
+                                <Button
+                                    size="small"
+                                    style={{ margin: 10 }}
+                                    onClick={nextButtonHandler}
+                                    variant="contained"
+                                    color="primary"
+                                    endIcon={<NavigateNext />}
+                                > Next </Button>
+                            )
+                        }
                         <Button
                             size="small"
                             style={{ margin: 10 }}

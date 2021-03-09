@@ -22,7 +22,8 @@ import SendMessageModal from "./SendMessageModal";
 import CircularAddButton from "../../reusables/CircularAddButton";
 import SearchMessageModal from "./SearchMessageModal";
 import SearchResultsPage from "./SearchResultsPage";
-import { GeneralContext } from "../../contexts/GeneralContext"; 
+import { GeneralContext } from "../../contexts/GeneralContext";
+import { StoreProvider } from "./store";
 import {
     socket, subscribeToWebSocket, removeReceiveLatestMessages,
     receiveAllMobileNumbers, receiveLatestMessages,
@@ -97,11 +98,9 @@ function ChatterboxInfoModal (props) {
 }
 
 export const CommsContext = createContext();
-
 function Container (comp_props) {
     const { location, match: { url }, width } = comp_props;
     const classes = useStyles();
-
     const [chosen_tab, setChosenTab] = useState(0);
     const [is_open_send_modal, setIsOpenSendModal] = useState(false);
     const [is_open_search_modal, setIsOpenSearchModal] = useState(false);
@@ -118,7 +117,6 @@ function Container (comp_props) {
     const [tag_list, setTagList] = useState([]);
     const [contacts, setContacts] = useState([]);
     const [is_open_info_modal, setIsOpenInfoModal] = useState(false);
-
     const set_modal_fn = (key, bool) => () => {
         if (key === "send") setIsOpenSendModal(bool);
         else if (key === "search") setIsOpenSearchModal(bool);
@@ -126,7 +124,6 @@ function Container (comp_props) {
     };
 
     const { setIsReconnecting } = useContext(GeneralContext);
-
     useEffect(() => {
         subscribeToWebSocket(setIsReconnecting, "chatterbox");
 
@@ -171,6 +168,7 @@ function Container (comp_props) {
             setTagList(tags);
         });
     }, []);
+    
 
     const is_desktop = isWidthUp("md", width);
 
@@ -268,17 +266,17 @@ function Container (comp_props) {
                             modalState={is_open_send_modal}
                             recipientsList={recipients_list}
                         />
-
-                        <SearchMessageModal 
-                            modalStateHandler={set_modal_fn("search", false)}
-                            modalState={is_open_search_modal}
-                            setSearchResultsToEmpty={() => setSearchResults([])}
-                            url={url}
-                            contactList={contacts}
-                            recipientsList={recipients_list}
-                            tagList={tag_list}
-                        />
-
+                        <StoreProvider>
+                            <SearchMessageModal 
+                                modalStateHandler={set_modal_fn("search", false)}
+                                modalState={is_open_search_modal}
+                                setSearchResultsToEmpty={() => setSearchResults([])}
+                                url={url}
+                                contactList={contacts}
+                                recipientsList={recipients_list}
+                                tagList={tag_list}
+                            />
+                        </StoreProvider>
                         <ChatterboxInfoModal
                             modalStateHandler={set_modal_fn("info", false)} 
                             modalState={is_open_info_modal}
@@ -289,17 +287,20 @@ function Container (comp_props) {
             
             <Route path={`${url}/search_results`} render={
                 props => <CommsContext.Provider value={{ contacts }}>
-                    <SearchResultsPage
-                        {...props}
-                        messageCollection={message_collection}
-                        socket={socket}
-                        url={url}
-                        width={width}
-                        is_desktop={is_desktop}
-                        searchResults={search_results}
-                        setSearchResults={setSearchResults}
-                        ListLoader={ListLoader}
-                    />
+                    <StoreProvider>
+                        <SearchResultsPage
+                            {...props}
+                            messageCollection={message_collection}
+                            socket={socket}
+                            url={url}
+                            width={width}
+                            is_desktop={is_desktop}
+                            searchResults={search_results}
+                            setSearchResults={setSearchResults}
+                            ListLoader={ListLoader}
+                        />
+
+                    </StoreProvider>
                 </CommsContext.Provider>
             } 
             />

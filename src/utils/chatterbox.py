@@ -419,16 +419,20 @@ def get_search_results(obj):
         mobile_ids = list(map(lambda x: x[0], result))
 
     if names:
-        temp_mobile_id = list(map(lambda x: x["value"], names))
-        mobile_ids = mobile_ids + temp_mobile_id
+        mobile_ids = list(map(lambda x: x["value"], names))
 
     search_results = []
 
     if string or tag:
+        if not names:
+            mobile_ids = None
+
         search_results = smart_search(
             string=string, tag=tag, org_ids=org_ids,
             site_ids=site_ids, only_ewi_recipients=only_ewi_recipients,
-            offset=offset, ts_start=ts_start, ts_end=ts_end, mobile_ids=mobile_ids)
+            offset=offset, ts_start=ts_start, ts_end=ts_end, mobile_ids=mobile_ids,
+            only_active_mobile_numbers=only_active_mobile_numbers,
+            mobile_number=mobile_number)
     else:
         contacts = get_mobile_numbers(
             return_schema=True, mobile_ids=mobile_ids,
@@ -499,11 +503,12 @@ def smart_search(
         string=None, tag=None,
         org_ids=None, site_ids=None, offset=0,
         limit=20, only_ewi_recipients=False,
-        ts_start=None, ts_end=None, mobile_ids=None
+        ts_start=None, ts_end=None, mobile_ids=None,
+        only_active_mobile_numbers=False,
+        mobile_number=None
 ):
     """
     """
-
     sms_inbox = SmsInboxUsers.query \
         .options(
             DB.joinedload("sms_tags").subqueryload("tag").raiseload("*"),
@@ -513,8 +518,6 @@ def smart_search(
 
     sms_outbox = SmsOutboxUserStatus.query \
         .options(
-            DB.joinedload("mobile_details").joinedload(
-                "mobile_number", innerjoin=True).raiseload("*"),
             DB.joinedload("outbox_message", innerjoin=True).subqueryload(
                 "sms_tags").joinedload("tag", innerjoin=True).raiseload("*")
         ).join(SmsOutboxUsers)
@@ -527,10 +530,10 @@ def smart_search(
 
     if tag:
         tag_filter = SmsTags.tag_id == tag
-        sms_inbox = sms_inbox.join(SmsInboxUserTags) \
-            .join(SmsTags).filter(tag_filter)
-        sms_outbox = sms_outbox.join(SmsOutboxUserTags) \
-            .join(SmsTags).filter(tag_filter)
+        sms_inbox = sms_inbox.join(SmsInboxUserTags).join(
+            SmsTags).filter(tag_filter)
+        sms_outbox = sms_outbox.join(SmsOutboxUserTags).join(
+            SmsTags).filter(tag_filter)
 
     if ts_start:
         sms_inbox = sms_inbox.filter(SmsInboxUsers.ts_sms >= ts_start)
@@ -538,12 +541,11 @@ def smart_search(
 
     if ts_end:
         sms_inbox = sms_inbox.filter(SmsInboxUsers.ts_sms <= ts_end)
-        sms_outbox = sms_outbox.filter(SmsOutboxUsers.ts_written >= ts_start)
+        sms_outbox = sms_outbox.filter(SmsOutboxUsers.ts_written <= ts_end)
 
-    if only_ewi_recipients or org_ids or site_ids or mobile_ids:
+    if only_ewi_recipients or only_active_mobile_numbers or org_ids or site_ids or mobile_ids or mobile_number:
         sms_inbox = sms_inbox.join(UserMobiles).join(Users)
-        sms_outbox = sms_outbox.join(UserMobiles).join(
-            Users)
+        sms_outbox = sms_outbox.join(UserMobiles).join(Users)
 
         if only_ewi_recipients:
             temp_filter = Users.ewi_recipient == 1
@@ -556,6 +558,9 @@ def smart_search(
             sms_outbox = sms_outbox.join(UserOrganizations).filter(org_filter)
 
         if site_ids:
+            if not org_ids:
+                sms_inbox = sms_inbox.join(UserOrganizations)
+                sms_outbox = sms_outbox.join(UserOrganizations)
             site_filter = Sites.site_id.in_(site_ids)
             sms_inbox = sms_inbox.join(Sites).filter(site_filter)
             sms_outbox = sms_outbox.join(Sites).filter(site_filter)
@@ -564,6 +569,19 @@ def smart_search(
             mobile_id_filter = UserMobiles.mobile_id.in_(mobile_ids)
             sms_inbox = sms_inbox.filter(mobile_id_filter)
             sms_outbox = sms_outbox.filter(mobile_id_filter)
+
+        if mobile_number:
+            mobile_number_filter = MobileNumbers.sim_num.ilike(
+                "%" + mobile_number + "%")
+            sms_inbox = sms_inbox.join(
+                MobileNumbers).filter(mobile_number_filter)
+            sms_outbox = sms_outbox.join(
+                MobileNumbers).filter(mobile_number_filter)
+
+        if only_active_mobile_numbers:
+            status_filter = UserMobiles.status == 1
+            sms_inbox = sms_inbox.filter(status_filter)
+            sms_outbox = sms_outbox.filter(status_filter)
 
     sms_inbox = sms_inbox.order_by(
         SmsInboxUsers.ts_sms.desc()).limit(limit).offset(offset)
@@ -575,7 +593,6 @@ def smart_search(
     all_data = sms_inbox_result + sms_outbox_result
 
     search_results = format_conversation_results(all_data)
-
     return search_results
 
 

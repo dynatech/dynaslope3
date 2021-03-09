@@ -18,6 +18,7 @@ import SelectMultipleWithSuggest from "../../reusables/SelectMultipleWithSuggest
 import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
 import { GeneralContext } from "../../contexts/GeneralContext";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
+import { Store, StoreProvider } from "./store";
 
 
 function SearchMessageModal (props) {
@@ -30,6 +31,16 @@ function SearchMessageModal (props) {
     const {
         organizations: orgs_list
     } = useContext(GeneralContext);
+    
+    const {
+        state, dispatch
+    } = useContext(Store);
+
+    const { 
+        sites, orgs: organizations, only_ewi_recipients, include_inactive_numbers,
+        ts_start, ts_end, string_search, tag_search, mobile_number_search,
+        name_search
+    } = state;
 
     const [org_options, setOrgOptions] = useState([]);
     const [options, setOptions] = useState([]);
@@ -58,17 +69,6 @@ function SearchMessageModal (props) {
         });
         setOrgOptions(temp);
     }, [orgs_list]);
-
-    const [sites, setSites] = useState([]);
-    const [organizations, setOrganizations] = useState([]);
-    const [only_ewi_recipients, setOnlyEwiRecipients] = useState(false);
-    const [include_inactive_numbers, setIncludeInactiveNumbers] = useState(false);
-    const [ts_start, setTsStart] = useState(null);
-    const [ts_end, setTsEnd] = useState(null);
-    const [string_search, setString] = useState("");
-    const [tag_search, setTags] = useState({ value: "" });
-    const [mobile_number_search, setMobileNumber] = useState("");
-    const [name_search, setName] = useState("");
 
     const [is_search_disabled, setIsSearchDisabled] = useState(true);
     const has_site_or_org = sites.length > 0 || organizations.length > 0;
@@ -150,7 +150,7 @@ function SearchMessageModal (props) {
                     <Grid item xs={12}>
                         <DynaslopeSiteSelectInputForm
                             value={sites}
-                            changeHandler={value => setSites(value || [])}
+                            changeHandler={value => dispatch({ type: "UPDATE_SITES", value })}
                             isMulti
                             disabled={
                                 Boolean(mobile_number_search || name_search)
@@ -163,7 +163,7 @@ function SearchMessageModal (props) {
                             label="Organization(s)"
                             options={org_options}
                             value={organizations}
-                            changeHandler={value => setOrganizations(value || [])}
+                            changeHandler={value => dispatch({ type: "UPDATE_ORGS", value })}
                             placeholder="Select organization(s)"
                             renderDropdownIndicator={false}
                             openMenuOnClick
@@ -179,7 +179,7 @@ function SearchMessageModal (props) {
                             label="Saved Contact"
                             options={options}
                             value={name_search}
-                            changeHandler={value => setName(value)}
+                            changeHandler={value => dispatch({ type: "UPDATE_NAME_SEARCH", value })}
                             placeholder="Select contact"
                             renderDropdownIndicator
                             openMenuOnClick
@@ -195,7 +195,7 @@ function SearchMessageModal (props) {
                                 label="Mobile Number"
                                 type="number"
                                 value={mobile_number_search}
-                                onChange={e => setMobileNumber(e.target.value)}
+                                onChange={e => dispatch({ type: "UPDATE_MOBILE_NUMBER_SEARCH", value: e.target.value })}
                                 placeholder="Start number entry with 639 or enter last four digits"
                                 InputLabelProps={{
                                     shrink: true,
@@ -227,7 +227,7 @@ function SearchMessageModal (props) {
                                 autoOk
                                 label="Start Date/Time"
                                 value={ts_start}
-                                onChange={value => setTsStart(value)}
+                                onChange={value => dispatch({ type: "UPDATE_TS_START", value })}
                                 ampm={false}
                                 placeholder="2010/01/01 00:00"
                                 format="YYYY/MM/DD HH:mm"
@@ -251,7 +251,7 @@ function SearchMessageModal (props) {
                                 autoOk
                                 label="End Date/Time"
                                 value={ts_end}
-                                onChange={value => setTsEnd(value)}
+                                onChange={value => dispatch({ type: "UPDATE_TS_END", value })}
                                 ampm={false}
                                 placeholder="2010/01/01 00:00"
                                 format="YYYY/MM/DD HH:mm"
@@ -277,7 +277,7 @@ function SearchMessageModal (props) {
                                 id="string-filter"
                                 label="String"
                                 value={string_search}
-                                onChange={e => setString(e.target.value)}
+                                onChange={e => dispatch({ type: "UPDATE_STRING_SEARCH", value: e.target.value })}
                                 placeholder="Enter string"
                                 InputLabelProps={{
                                     shrink: true,
@@ -292,7 +292,7 @@ function SearchMessageModal (props) {
                             label="Tags"
                             options={tagList}
                             value={tag_search}
-                            changeHandler={value => setTags(value)}
+                            changeHandler={value => dispatch({ type: "UPDATE_TAG_SEARCH", value })}
                             placeholder="Select tags"
                             renderDropdownIndicator={false}
                             openMenuOnClick
@@ -309,7 +309,7 @@ function SearchMessageModal (props) {
                                     control={
                                         <Checkbox
                                             checked={only_ewi_recipients}
-                                            onChange={x => setOnlyEwiRecipients(x.target.checked)}
+                                            onChange={x => dispatch({ type: "UPDATE_ONLY_EWI_RECIPIENTS", value: x.target.checked })}
                                             name="onlyEWIRecipients"
                                         />
                                     }
@@ -322,7 +322,7 @@ function SearchMessageModal (props) {
                                     control={
                                         <Checkbox
                                             checked={include_inactive_numbers}
-                                            onChange={x => setIncludeInactiveNumbers(x.target.checked)}
+                                            onChange={x => dispatch({ type: "UPDATE_INCLUDE_INACTIVE_NUMBERS", value: x.target.checked })}
                                             name="includeInactiveNumbers"
                                         />
                                     }
@@ -337,26 +337,28 @@ function SearchMessageModal (props) {
                 <Button onClick={modalStateHandler}>
                     Cancel
                 </Button>
-                <Button
-                    onClick={compound_fn}
-                    color="secondary"
-                    disabled={is_search_disabled}
-                    component={Link}
-                    to={{
-                        pathname: `${url}/search_results`,
-                        state: {
-                            sites, organizations, only_ewi_recipients, include_inactive_numbers,
-                            ts_start: ts_start ? moment(ts_start).format("YYYY-MM-DD HH:mm:ss") : ts_start,
-                            ts_end: ts_end ? moment(ts_end).format("YYYY-MM-DD HH:mm:ss") : ts_end,
-                            string_search,
-                            tag_search,
-                            mobile_number_search,
-                            name_search
-                        }
-                    }} 
-                >
-                    Search
-                </Button>
+                <StoreProvider>
+                    <Button
+                        onClick={compound_fn}
+                        color="secondary"
+                        disabled={is_search_disabled}
+                        component={Link}
+                        to={{
+                            pathname: `${url}/search_results`,
+                            state: {
+                                sites, organizations, only_ewi_recipients, include_inactive_numbers,
+                                ts_start: ts_start ? moment(ts_start).format("YYYY-MM-DD HH:mm:ss") : ts_start,
+                                ts_end: ts_end ? moment(ts_end).format("YYYY-MM-DD HH:mm:ss") : ts_end,
+                                string_search,
+                                tag_search,
+                                mobile_number_search,
+                                name_search
+                            }
+                        }} 
+                    >
+                        Search
+                    </Button>
+                </StoreProvider>
             </DialogActions>
         </Dialog>
     );
