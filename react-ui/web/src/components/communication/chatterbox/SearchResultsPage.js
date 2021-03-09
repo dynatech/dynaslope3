@@ -92,22 +92,25 @@ function SearchResultsPage (props) {
     const has_no_input = sites === null && organizations === null;
     const has_string_or_tag = string_search !== "" || tag_search.value !== "";
     const [updated_offset, setUpdateOffset] = useState(0);
+    const [fetch_new_data, setFetchNewData] = useState(false);
 
     const previousButtonHandler = () => {
         if (updated_offset > 0) {
             const temp_offset = updated_offset - 20;
             setUpdateOffset(temp_offset);
+            setFetchNewData(true);
         }
     };
     
     const nextButtonHandler = () => {
         const temp_offset = updated_offset + 20;
         setUpdateOffset(temp_offset);
+        setFetchNewData(true);
     };
 
     useEffect(() => {
         const has_no_search_results = searchResults.length === 0;
-        if (!has_no_input && has_no_search_results) {
+        if ((!has_no_input && has_no_search_results) || fetch_new_data) {
             setIsLoading(true);
             
             const input = {
@@ -130,6 +133,7 @@ function SearchResultsPage (props) {
                 receiveSearchResults(data => {
                     setIsLoading(false);
                     setSearchResults(data);
+                    setFetchNewData(false);
                 });
             }
         }
@@ -141,7 +145,8 @@ function SearchResultsPage (props) {
         };
     }, [
         socket, sites, organizations,
-        ts_start, ts_end, updated_offset
+        ts_start, ts_end, updated_offset,
+        fetch_new_data
     ]);
 
     return (
@@ -240,7 +245,7 @@ function SearchResultsPage (props) {
                 has_string_or_tag && !is_loading && (
                     <Box display="flex" flexDirection="row-reverse">
                         {
-                            searchResults.length > 0 && (
+                            searchResults.length === 40 && (
                                 <Button
                                     size="small"
                                     style={{ margin: 10 }}
