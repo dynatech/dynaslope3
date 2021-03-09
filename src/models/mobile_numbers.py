@@ -109,14 +109,15 @@ class UserMobilesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     Schema representation of UserMobiles class
     """
 
-    user = MARSHMALLOW.Nested(UsersRelationshipSchema, exclude=["mobile_numbers"])
+    user = MARSHMALLOW.Nested(UsersRelationshipSchema,
+                              exclude=["mobile_numbers"])
     mobile_number = MARSHMALLOW.Nested(
         MobileNumbersSchema, exclude=["users"])
 
     class Meta:
         """Saves table class structure as schema model"""
         model = UserMobiles
-        # unknown = EXCLUDE
+        unknown = EXCLUDE
 
 
 class BlockedMobileNumbersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -127,7 +128,7 @@ class BlockedMobileNumbersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     reporter = MARSHMALLOW.Nested("UsersSchema")
     mobile_number = MARSHMALLOW.Nested(
-        "MobileNumbersSchema") #NOTE EXCLUDE: exclude=["blocked_mobile"]
+        "MobileNumbersSchema")  # NOTE EXCLUDE: exclude=["blocked_mobile"]
 
     class Meta:
         """Saves table class structure as schema model"""
