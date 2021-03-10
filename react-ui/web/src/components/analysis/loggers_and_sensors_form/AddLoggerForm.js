@@ -288,6 +288,14 @@ function AddLoggerForm (props) {
     };
 
     useEffect(() => {
+        const { logger_type } = deployment_data;
+        const { value: type } = logger_type;
+        
+        if (type === "router"){
+            deployment_data.logger_number = {required: false, helper_text: "", value: "has_value"}
+            deployment_data.network = {required: false, helper_text: "", value: "has_value"}
+        }
+        
         const isd = checkInputFields(deployment_data);
         setIsSubmitDisabled(isd);
     }, [deployment_data]);
@@ -354,23 +362,26 @@ function AddLoggerForm (props) {
                         error={Boolean(deployment_data.logger_name.helper_text)}
                     />
                 </Grid>
-
-                <Grid item xs={6} lg={4}>
-                    <TextField
-                        required
-                        fullWidth
-                        label="Logger Number"
-                        InputProps={{
-                            inputComponent: TextMaskCustom,
-                            inputProps: { mask: logger_number_mask }
-                        }}
-                        InputLabelProps={{ shrink: true }}
-                        value={deployment_data.logger_number.value}
-                        onChange={e => dispatch({ type: "UPDATE", field: "logger_number", value: e.target.value })}
-                        helperText={deployment_data.logger_number.helper_text || ""}
-                        error={Boolean(deployment_data.logger_number.helper_text)}
-                    />
-                </Grid>
+                {
+                    deployment_data.logger_type.value !== "router" && (
+                        <Grid item xs={6} lg={4}>
+                            <TextField
+                                required
+                                fullWidth
+                                label="Logger Number"
+                                InputProps={{
+                                    inputComponent: TextMaskCustom,
+                                    inputProps: { mask: logger_number_mask }
+                                }}
+                                InputLabelProps={{ shrink: true }}
+                                value={deployment_data.logger_number.value}
+                                onChange={e => dispatch({ type: "UPDATE", field: "logger_number", value: e.target.value })}
+                                helperText={deployment_data.logger_number.helper_text || ""}
+                                error={Boolean(deployment_data.logger_number.helper_text)}
+                            />
+                        </Grid>
+                    )
+                }
 
                 <MuiPickersUtilsProvider utils={MomentUtils}>
                     <Grid item xs={6} lg={4}>
@@ -418,6 +429,29 @@ function AddLoggerForm (props) {
                         error={Boolean(deployment_data.longitude.helper_text)}
                     />
                 </Grid>
+                {
+                    deployment_data.logger_type.value !== "router" && (
+                        <Grid item xs={12} sm={6} md={5} lg={3}>
+                            <FormControl required fullWidth error={Boolean(deployment_data.network.helper_text)}>
+                                <InputLabel id="network">Main Network of Location</InputLabel>
+                                <Select
+                                    labelId="network-select-label"
+                                    id="network-select-id"
+                                    value={deployment_data.network.value}
+                                    onChange={e => dispatch({ type: "UPDATE", field: "network", value: e.target.value })}
+                                    error={Boolean(deployment_data.network.helper_text)}
+                                >
+                                    <MenuItem value="">
+                                        <em>None</em>
+                                    </MenuItem>          
+                                    <MenuItem value="Globe" key="globe">Globe</MenuItem>
+                                    <MenuItem value="Smart" key="smart">Smart</MenuItem>
+                                </Select>
+                                <FormHelperText error>{deployment_data.network.helper_text}</FormHelperText>
+                            </FormControl>
+                        </Grid>
+                    )
+                }
 
                 <Grid item xs={12} sm={6} md={7} lg={9}>
                     <TextField
@@ -429,26 +463,6 @@ function AddLoggerForm (props) {
                         helperText={deployment_data.location_description.helper_text || ""}
                         error={Boolean(deployment_data.location_description.helper_text)}
                     />
-                </Grid>
-
-                <Grid item xs={12} sm={6} md={5} lg={3}>
-                    <FormControl required fullWidth error={Boolean(deployment_data.network.helper_text)}>
-                        <InputLabel id="network">Main Network of Location</InputLabel>
-                        <Select
-                            labelId="network-select-label"
-                            id="network-select-id"
-                            value={deployment_data.network.value}
-                            onChange={e => dispatch({ type: "UPDATE", field: "network", value: e.target.value })}
-                            error={Boolean(deployment_data.network.helper_text)}
-                        >
-                            <MenuItem value="">
-                                <em>None</em>
-                            </MenuItem>          
-                            <MenuItem value="Globe" key="globe">Globe</MenuItem>
-                            <MenuItem value="Smart" key="smart">Smart</MenuItem>
-                        </Select>
-                        <FormHelperText error>{deployment_data.network.helper_text}</FormHelperText>
-                    </FormControl>
                 </Grid>
 
                 <Grid item xs={12}><Divider style={{ margin: "8px 0" }}/></Grid>

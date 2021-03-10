@@ -24,11 +24,9 @@ from src.utils.contacts import get_gsm_id_by_prefix
 def save_all_deployment_data(data):
     status = None
     message = ""
-    print(data)
     
     try:
         installed_sensors = data["installed_sensors"]
-        site_id = data["site"]["site_id"]
 
         logger_model_status, model_id = save_logger_models(data)
         logger_data_status, logger_id = save_loggers_data(data, model_id)
@@ -77,7 +75,8 @@ def save_logger_models(data):
         logger_models = LoggerModels
         check_logger_models = logger_models.query.filter(
             logger_models.has_tilt == has_tilt, logger_models.has_rain == has_rain,
-            logger_models.has_piezo == has_piezo, logger_models.has_soms == has_soms).first()
+            logger_models.has_piezo == has_piezo, logger_models.has_soms == has_soms,
+            logger_models.logger_type == logger_type).first()
 
         if check_logger_models:
             model_id = check_logger_models.model_id
@@ -121,11 +120,17 @@ def save_deployment_logs_data(data, logger_id):
     deployment_logs_status = None
     deployment_logs_id = 0
 
-    personnel_list = data["personnel"]
-    personnel = ", ".join(personnel_list)
     try:
+        personnel_list = data["personnel"]
+        personnel = ", ".join(personnel_list)
+        logger_type = data["logger_type"]
+        network_type = data["network"]
+        
+        if logger_type == "router":
+            network_type = None
+
         query = DeploymentLogs(logger_id=logger_id, installation_date=data["date_installed"],
-                               location_description=data["location_description"], network_type=data["network"],
+                               location_description=data["location_description"], network_type=network_type,
                                personnel=personnel)
         DB.session.add(query)
         DB.session.flush()
@@ -200,10 +205,15 @@ def save_deployed_node_and_accelerometers(data, deployment_logs_id, tsm_id):
 
 def save_logger_mobile_data(data, logger_id):
     loggger_mobile_status = None
+    logger_type = data["logger_type"]
 
     date_activated = data["date_installed"]
     sim_num = data["logger_number"]
     gsm_id = get_gsm_id_by_prefix(sim_num)
+
+    if logger_type == "router":
+        sim_num = None
+        gsm_id = None
 
     try:
         query = LoggerMobile(logger_id=logger_id, date_activated=date_activated,
