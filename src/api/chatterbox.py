@@ -57,7 +57,12 @@ def wrap_send_routine_ewi_sms():
     for site in site_list:
         try:
             site_code = site["site_code"]
-            # site_id = site["site_id"]
+            site_id = site["site_id"]
+
+            # NOTE: UMI special case
+            if site_id == 50:
+                continue
+
             release_id = site["release_id"]
             event_id = site["event_id"]
 
