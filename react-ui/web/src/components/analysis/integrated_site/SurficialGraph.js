@@ -1091,7 +1091,7 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
         },
         yAxis: {
             title: {
-                text: "<b>Displacement (cm)</b>"
+                text: "<b>Measurement (cm)</b>"
             }
         },
         xAxis: {
