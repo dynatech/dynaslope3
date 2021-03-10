@@ -9,7 +9,7 @@ from src.utils.chatterbox import (
     get_quick_inbox, get_message_tag_options,
     insert_message_on_database, get_latest_messages,
     get_messages_schema_dict, resend_message,
-    smart_search
+    get_search_results
 )
 from src.utils.ewi import create_ewi_message, insert_ewi_sms_narrative
 from src.utils.general_data_tag import insert_data_tag
@@ -260,5 +260,18 @@ def test_search_string():
     """
     """
 
-    data = smart_search()
+    obj = {
+        "site_ids": [],
+        "org_ids": [],
+        "only_ewi_recipients": False,
+        "string_search": "maaraw",
+        "ts_start": "2020-09-08 00:36:00",
+        "ts_end": "2020-10-09 01:36:00",
+        "include_inactive_numbers": False,
+        "tag_search": "",
+        "mobile_number_search": "",
+        "name_search": "",
+        "updated_offset": 0
+    }
+    data = get_search_results(obj)
     return jsonify(data)

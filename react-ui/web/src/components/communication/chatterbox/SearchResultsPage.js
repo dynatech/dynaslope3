@@ -121,7 +121,7 @@ function SearchResultsPage (props) {
                 ts_start,
                 ts_end,
                 string_search,
-                tag_search: tag_search.value,
+                tag_search,
                 mobile_number_search,
                 name_search,
                 updated_offset
@@ -245,7 +245,9 @@ function SearchResultsPage (props) {
                 has_string_or_tag && !is_loading && (
                     <Box display="flex" flexDirection="row-reverse">
                         {
-                            searchResults.length === 40 && (
+                            // >= 20 because logic at the back says 20 from inbox
+                            // then 20 from outbox
+                            searchResults.length >= 20 && (
                                 <Button
                                     size="small"
                                     style={{ margin: 10 }}

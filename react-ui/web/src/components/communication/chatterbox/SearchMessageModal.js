@@ -296,6 +296,7 @@ function SearchMessageModal (props) {
                             renderDropdownIndicator={false}
                             openMenuOnClick
                             isDisabled={are_ts_all_null}
+                            isClearable
                         />
                     </Grid>
 

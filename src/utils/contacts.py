@@ -118,7 +118,7 @@ def get_all_contacts(return_schema=False):
     return mobile_numbers
 
 
-def get_recipients_option(site_ids=None, site_codes=None,
+def get_recipients_option(site_ids=None,
                           only_ewi_recipients=None, alert_level=None,
                           org_ids=None):
 
@@ -127,7 +127,8 @@ def get_recipients_option(site_ids=None, site_codes=None,
     mobile_numbers = get_mobile_numbers(
         site_ids=site_ids, org_ids=org_ids, only_ewi_recipients=only_ewi_recipients)
     result = UserMobilesSchema(many=True) \
-        .dump(mobile_numbers)  # NOTE EXCLUDE: "mobile_number.blocked_mobile" exclude=["landline_numbers", "emails"]
+        .dump(mobile_numbers)
+    # NOTE EXCLUDE: "mobile_number.blocked_mobile" exclude=["landline_numbers", "emails"]
 
     recipients_options = []
     for row in result:
