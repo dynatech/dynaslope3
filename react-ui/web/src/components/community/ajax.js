@@ -45,6 +45,7 @@ export function saveSiteInformation (input, callback) {
     axios.post(api_link, input)
     .then(response => {
         const { data } = response;
+        callback(data);
         console.log("Save site info data reponse", data);
     })
     .catch(error => {
