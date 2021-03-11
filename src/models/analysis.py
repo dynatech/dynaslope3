@@ -1020,7 +1020,7 @@ class RainfallDataTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_end = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    tagger = MARSHMALLOW.Nested(UsersSchema, exclude=("rainfall_tags", ))
+    tagger = MARSHMALLOW.Nested(UsersSchema) # exclude: rainfall_data_tags
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -1134,7 +1134,7 @@ class MarkerDataTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     data_id = fields.Integer()
-    tagger = MARSHMALLOW.Nested(UsersSchema, exclude=("marker_tags", ))
+    tagger = MARSHMALLOW.Nested(UsersSchema) # exclude=("marker_tags", )
 
     class Meta:
         """Saves table class structure as schema model"""

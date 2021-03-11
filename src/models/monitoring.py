@@ -205,6 +205,8 @@ class MonitoringOnDemand(DB.Model):
     reporter_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
     tech_info = DB.Column(DB.String(500))
+    site_id = DB.Column(DB.Integer)
+    alert_level = DB.Column(DB.Integer)
 
     reporter = DB.relationship(
         "Users", backref="od_reporter",

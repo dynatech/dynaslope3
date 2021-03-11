@@ -1365,7 +1365,9 @@ def write_monitoring_on_demand_to_db(od_details, tech_info):
             request_ts=od_details["request_ts"],
             narrative_id=od_details["narrative_id"],
             reporter_id=od_details["reporter_id"],
-            tech_info=tech_info
+            tech_info=tech_info,
+            site_id=od_details["site_id"],
+            alert_level=od_details["alert_level"]
         )
         DB.session.add(on_demand)
         DB.session.flush()
@@ -2355,3 +2357,64 @@ def process_unique_triggers_data(query):
         }
 
     return table_data, donut_chart_data
+
+
+def get_narrative_site_id_on_demand():
+    """
+    """
+    query = MonitoringOnDemand.query.all()
+    data = []
+    for row in query:
+        narrative_id = row.narrative_id
+        od_id = row.od_id
+        site_id = row.site_id
+        print("-------------------------")
+        print("updating.......")
+        print("narrative_id", narrative_id)
+        print("od_id", od_id)
+        print("site_id", site_id)
+        update = Narratives.query.get(narrative_id)
+        narrative_site_id = update.site_id
+        print("narrative_site_id", narrative_site_id)
+        update_on_demand = MonitoringOnDemand.query.get(od_id)
+        print("update_on_demand.site_id", update_on_demand)
+        update_on_demand.site_id = narrative_site_id
+        print("update sucess")
+    DB.session.commit()
+    return "success update on demand site_ids"
+    
+
+def save_monitoring_on_demand_data(data):
+    """
+    """
+    status = None
+    try:
+        tech_info = data["tech_info"]
+        site_id = data["site_id"]
+        alert_level =  int(data["alert_level"])
+        operational_trigger_symbols = retrieve_data_from_memcache("operational_trigger_symbols", {
+            "alert_level": alert_level, "source_id": 5})
+        trigger_sym_id = operational_trigger_symbols["trigger_sym_id"]
+        ts = data["request_ts"]
+        user_id = data["reporter_id"]
+        latest_event = get_latest_monitoring_event_per_site(site_id=site_id)
+        event_id = latest_event.event_id
+        narrative_id = write_narratives_to_db(
+            site_id, ts, tech_info, 1,
+            user_id, event_id
+        )
+        data["narrative_id"] = narrative_id
+        write_monitoring_on_demand_to_db(data, tech_info)
+        insert_op_trigger = OperationalTriggers(ts=ts, site_id=site_id,
+                                                trigger_sym_id=trigger_sym_id,
+                                                ts_updated=ts)
+        DB.session.add(insert_op_trigger)
+        status = True
+        message = "Successfully saved on demand data"
+    except Exception as err:
+        DB.session.rollback()
+        print(err)
+        status = False
+        message = f"Error: {err}"
+
+    return status, message
