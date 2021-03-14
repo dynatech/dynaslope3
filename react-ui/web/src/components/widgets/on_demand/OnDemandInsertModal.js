@@ -1,34 +1,24 @@
-import React, { useState, useEffect, useReducer, useContext } from "react";
-import moment from "moment";
+import React, { useState, useEffect, useContext } from "react";
+
 import {
     Dialog, DialogTitle, DialogContent,
     DialogContentText, DialogActions,
-    Button, withMobileDialog, Typography,
-    makeStyles, Grid
+    Button, withMobileDialog,
 } from "@material-ui/core";
 
+import moment from "moment";
 import { useSnackbar } from "notistack";
-import OnDemandForm from "./OnDemandForm";
-// import { reducerFunction, moms_entry } from "./state_handlers";
-import { insertOnDemandToDb } from "./ajax";
-import { getCurrentUser } from "../../sessions/auth";
-import { sendWSMessage } from "../../../websocket/monitoring_ws";
-import { capitalizeFirstLetter } from "../../../UtilityFunctions";
-import { GeneralContext } from "../../contexts/GeneralContext";
 
-const useStyles = makeStyles(theme => ({
-    form_message_style: {
-        color: "red",
-        fontStyle: "italic"
-    }
-}));
+import OnDemandForm from "./OnDemandForm";
+import { insertOnDemandToDb } from "./ajax";
+import { sendWSMessage } from "../../../websocket/monitoring_ws";
+import { GeneralContext } from "../../contexts/GeneralContext";
 
 function OnDemandInsertModal (props) {
     const {
         fullScreen, isOpen,
         closeHandler, match
     } = props;
-    const classes = useStyles();
     const { sites } = useContext(GeneralContext);
 
     const [site, setSite] = useState(null);
@@ -53,6 +43,10 @@ function OnDemandInsertModal (props) {
         const row = sites.find(x => x.site_code === site_code);
         if (row) setSite({ value: row.site_id, data: row });
     }, [sites, site_code]);
+
+    useEffect(() => {
+        setReporter("");
+    }, [site]);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     const snackBarActionFn = key => {
@@ -85,8 +79,8 @@ function OnDemandInsertModal (props) {
     }, [request_ts, reason, reporter_id, tech_info, alert_level]);
 
     const handleSubmit = () => {
-
         closeHandler();
+
         const on_demand_data = {
             tech_info,
             alert_level,
@@ -94,13 +88,14 @@ function OnDemandInsertModal (props) {
             reporter_id,
             request_ts: moment(request_ts).format("YYYY-MM-DD HH:mm:ss"),
             site_id: site.value
-        }
+        };
         
         insertOnDemandToDb(on_demand_data, response => {
             const { status, message } = response;
             let variant = "success";
             if (status) {
                 clearFields();
+                sendWSMessage("run_alert_generation", { site_code: site.data.site_code });
             } else {
                 variant = "error";
             }
@@ -124,7 +119,7 @@ function OnDemandInsertModal (props) {
             maxWidth="sm"
             aria-labelledby="form-dialog-title"
         >
-            <DialogTitle id="form-dialog-title">Insert On Demand Form</DialogTitle>
+            <DialogTitle id="form-dialog-title">Insert On-Demand Data Form</DialogTitle>
             <DialogContent>
                 <DialogContentText>
                     Provide on demand details to save information in our database.

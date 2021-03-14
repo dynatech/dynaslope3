@@ -22,7 +22,7 @@ from src.models.monitoring import (
     InternalAlertSymbolsSchema, EndOfShiftAnalysisSchema)
 from src.models.narratives import (NarrativesSchema)
 
-from src.utils.narratives import (write_narratives_to_db, get_narratives)
+from src.utils.narratives import get_narratives
 from src.utils.monitoring import (
     # GET functions
     get_pub_sym_id, get_event_count, get_qa_data,
@@ -48,8 +48,7 @@ from src.utils.monitoring import (
     write_monitoring_event_alert_to_db, update_monitoring_release_on_db,
     write_monitoring_release_to_db, write_monitoring_release_publishers_to_db,
     write_monitoring_release_triggers_to_db, write_monitoring_triggers_misc_to_db,
-    write_monitoring_moms_releases_to_db,
-    write_monitoring_on_demand_to_db, write_monitoring_earthquake_to_db,
+    write_monitoring_moms_releases_to_db, write_monitoring_earthquake_to_db,
 
     # Monitoring Analytics Data
     get_monitoring_analytics,
@@ -352,6 +351,7 @@ def process_release_internal_alert():
         if alert_level > public_alert_level:
             public_alert_level = alert_level
 
+    # triggers_above_threshold used only im building internal alert
     triggers_above_threshold = above_threshold.copy()
     if current_alert_level > 0:
         event_triggers = get_saved_event_triggers(
@@ -383,17 +383,27 @@ def process_release_internal_alert():
             else:
                 # Check and convert symbol to no data counterpart
                 if source in no_data:
+                    temp_alert_level = -1
+                    # check if the current release has other released triggers
+                    # if on demand; if yes, default on demand to 1 because it will not be
+                    # considered anymore for alert extension if no data
+                    # Also check if data_presence checking on trigger is 0 (like earthquake)
+                    # because it doesn't need ND representation; alert_level is 1
+                    # because below threshold has no equivalent on internal_alert_symbols
+                    if (source == "on demand" and len(event_triggers) > 1) or \
+                            trigger_hierarchy["data_presence"] == 0:
+                        temp_alert_level = 1
+
                     trigger_sym = retrieve_data_from_memcache(
                         "operational_trigger_symbols", {
-                            "alert_level": -1,
+                            "alert_level": temp_alert_level,
                             "source_id": source_id
                         }, retrieve_one=True)
                     alert_symbol = trigger_sym["internal_alert_symbol"]["alert_symbol"]
                     alert_symbol = alert_symbol.lower() if alert_level == 2 else alert_symbol
-                    alert_level = -1
 
                 temp = {
-                    "alert_level": alert_level,
+                    "alert_level": temp_alert_level,
                     "source_id": source_id,
                     "hierarchy_id": trigger_hierarchy["hierarchy_id"],
                     "alert_symbol": alert_symbol,
@@ -412,8 +422,13 @@ def process_release_internal_alert():
         # if no retriggers from initial form input
         # then it is safe to say no extension of validity will happen
         if not above_threshold:
-            data_ts = datetime.strptime(
-                json_data["data_ts"], "%Y-%m-%dT%H:%M:%S.%fZ") \
+            try:
+                data_ts = datetime.strptime(
+                    json_data["data_ts"], "%Y-%m-%dT%H:%M:%S.%fZ")
+            except ValueError:
+                data_ts = datetime.strptime(
+                    json_data["data_ts"], "%Y-%m-%d %H:%M:%S")
+            data_ts = data_ts \
                 .replace(second=0, microsecond=0, tzinfo=pytz.utc) \
                 .astimezone(pytz.timezone("Asia/Manila")) \
                 .replace(tzinfo=None)
@@ -431,7 +446,7 @@ def process_release_internal_alert():
             if is_end_of_validity:
                 if is_rx:
                     to_lower = False
-                    note = "Alert validity will be extended due to raifall intermediate threshold."
+                    note = "Alert validity will be extended due to rainfall intermediate threshold."
                 elif is_at_or_beyond_alert_extension_limit:
                     to_lower = True
                     has_no_ground_data = check_for_ground_data()

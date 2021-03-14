@@ -257,6 +257,9 @@ def round_down_data_ts(date_time):
 
 def get_saved_event_triggers(event_id):
     """
+    Gets all the unique triggers per internal symbol and their max timestamps
+    (e.g. g trigger is different from G trigger)
+
     Returns a tuple of (internal_sym_id, max trigger timestamp)
     """
 
@@ -1341,11 +1344,8 @@ def get_latest_site_event_details(site_id):
     public_alert_symbol = pas["alert_symbol"]
 
     trigger_list = latest_release_dump["trigger_list"]
-    internal_alert = public_alert_symbol
-    if alert_level > 0:
-        internal_alert = f"{public_alert_symbol}-{trigger_list}"
-    elif trigger_list:
-        internal_alert = trigger_list
+    internal_alert = build_internal_alert_level(
+        alert_level, trigger_list=trigger_list)
 
     latest_release_dump["internal_alert"] = internal_alert
 
@@ -2382,7 +2382,7 @@ def get_narrative_site_id_on_demand():
         print("update sucess")
     DB.session.commit()
     return "success update on demand site_ids"
-    
+
 
 def save_monitoring_on_demand_data(data):
     """
@@ -2391,7 +2391,7 @@ def save_monitoring_on_demand_data(data):
     try:
         tech_info = data["tech_info"]
         site_id = data["site_id"]
-        alert_level =  int(data["alert_level"])
+        alert_level = int(data["alert_level"])
         operational_trigger_symbols = retrieve_data_from_memcache("operational_trigger_symbols", {
             "alert_level": alert_level, "source_id": 5})
         trigger_sym_id = operational_trigger_symbols["trigger_sym_id"]

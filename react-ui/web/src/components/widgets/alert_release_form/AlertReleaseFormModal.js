@@ -32,7 +32,8 @@ const useStyles = makeStyles(() => {
 function AlertReleaseFormModal (props) {
     const {
         fullScreen, isOpen, closeHandler,
-        chosenCandidateAlert, setChosenCandidateAlert
+        chosenCandidateAlert, setChosenCandidateAlert,
+        setIsOpenRoutineModal
     } = props;
     const classes = useStyles();
 
@@ -137,6 +138,15 @@ function AlertReleaseFormModal (props) {
                 />
             </DialogContent>
             <DialogActions>
+                <Grid item xs style={{ 
+                    display: active_step === 0 && 
+                    chosenCandidateAlert === null ? "flex" : "none" 
+                }}>
+                    <Button onClick={setIsOpenRoutineModal} color="secondary">
+                        Release Routine Manually
+                    </Button>
+                </Grid>
+                                
                 <Grid item xs align="right">
                     {
                         active_step < 3 && <Button 

@@ -283,7 +283,7 @@ function MomsInsertModal (props) {
             maxWidth="sm"
             aria-labelledby="form-dialog-title"
         >
-            <DialogTitle id="form-dialog-title">Insert Manifestation of Movement Form</DialogTitle>
+            <DialogTitle id="form-dialog-title">Insert Manifestation of Movement Data Form</DialogTitle>
             <DialogContent>
                 <DialogContentText>
                     Provide manifestation of movement (MOMs) details to save information in our database.

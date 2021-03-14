@@ -57,7 +57,6 @@ def wrap_get_community_users_by_site(site_code):
     community_users_data = []
     if site_code:
         temp = [site_code]
-        var_checker("temp", temp, True)
         community_users = get_community_users_simple(site_code=site_code)
 
         community_users_data = UsersSchema(

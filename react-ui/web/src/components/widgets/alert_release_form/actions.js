@@ -72,6 +72,9 @@ const useCandidateAlert = ({ dispatch, payload }) => {
     return dispatch({ type: "USE_CANDIDATE_ALERT", payload });
 };
 
+const updateManuallyLowerAlert = ({ dispatch, payload }) => {
+    return dispatch({ type: "UPDATE_MANUALLY_LOWER_ALERT", payload });
+};
 
 const reset = ({ dispatch }) => {
     return dispatch({ type: "RESET" });
@@ -96,5 +99,6 @@ export default {
     saveLatestSiteEventDetail,
     savePostComputationDetails,
     useCandidateAlert,
+    updateManuallyLowerAlert,
     reset
 };

@@ -7,11 +7,12 @@ import withWidth, { isWidthUp } from "@material-ui/core/withWidth";
 import { 
     Button, Grid, makeStyles, 
     Hidden, Accordion, AccordionSummary,
-    AccordionDetails, Divider, Typography
+    AccordionDetails, Divider, Typography, MenuItem,
+    Popper, Grow, Paper, ClickAwayListener, MenuList
 } from "@material-ui/core";
 import { 
     AddAlert, Warning, ExpandMore,
-    Landscape
+    Landscape, NotificationImportant, DataUsage
 } from "@material-ui/icons";
 import { SpeedDial, SpeedDialAction, SpeedDialIcon } from "@material-ui/lab";
 
@@ -34,8 +35,6 @@ import {
 import { getMonitoringShifts, receiveMonitoringShiftData, removeReceiveMonitoringShiftData } from "../../../websocket/misc_ws";
 import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
 import OnDemandInsertModal from "../../widgets/on_demand/OnDemandInsertModal";
-import InsertMomsButton from "../../widgets/moms/InsertMomsButton";
-import InsertOnDemandButton from "../../widgets/on_demand/InsertOnDemandButton";
 import { GeneralContext } from "../../contexts/GeneralContext";
 
 import { StoreProvider } from "../../widgets/alert_release_form/store";
@@ -147,10 +146,12 @@ function Container (props) {
     const actions = [
         { icon: <AddAlert />, name: "Release alert", action: releaseAlertHandler(null) },
         { icon: <Landscape />, name: "Insert MOMs", action: set_moms_modal_fn(true) },
-        { icon: <Landscape />, name: "Insert On demand", action: set_on_demand_modal_fn(true) },
+        { icon: <NotificationImportant />, name: "Insert On-demand entry", action: set_on_demand_modal_fn(true) },
         { icon: <Warning />, name: "Add issue/reminder", action: handleBoolean("is_open_issues_modal", true) }
     ];
 
+    const anchorRef = React.useRef(null);
+    const [popper_open, setPopperOpen] = useState(false);
     const custom_buttons = <span>
         <Button
             aria-label="Add issue/reminder"
@@ -163,12 +164,19 @@ function Container (props) {
         >
             Add issue/reminder
         </Button>
-        <span style={{ marginRight: 8 }}>
-            <InsertMomsButton clickHandler={set_moms_modal_fn(true)} />
-        </span>
-        <span style={{ marginRight: 8 }}>
-            <InsertOnDemandButton clickHandler={set_on_demand_modal_fn(true)} />
-        </span>
+        <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            aria-label="select merge strategy"
+            aria-haspopup="menu"
+            ref={anchorRef}
+            onClick={() => setPopperOpen(true)}
+            style={{ marginRight: 8 }}
+            startIcon={<DataUsage />}
+        >
+            Insert trigger data
+        </Button>
         <Button
             aria-label="Release alert"
             variant="contained"
@@ -189,6 +197,40 @@ function Container (props) {
                     customButtons={is_desktop ? custom_buttons : false}
                 />
             </div>
+
+            <Popper open={popper_open} anchorEl={anchorRef.current} role={undefined} transition>
+                {({ TransitionProps, placement }) => (
+                    <Grow
+                        {...TransitionProps}
+                        style={{
+                            transformOrigin: placement === "bottom" ? "center top" : "center bottom",
+                        }}
+                    >
+                        <Paper>
+                            <ClickAwayListener onClickAway={() => setPopperOpen(false)}>
+                                <MenuList id="split-button-menu">
+                                    <MenuItem
+                                        onClick={() => {
+                                            setPopperOpen(false);
+                                            setMomsModal(true);
+                                        }}
+                                    >
+                                        Insert MOMs
+                                    </MenuItem>
+                                    <MenuItem
+                                        onClick={() => {
+                                            setPopperOpen(false);
+                                            setOnDemandModal(true);
+                                        }}
+                                    >
+                                        Insert On-Demand
+                                    </MenuItem>
+                                </MenuList>
+                            </ClickAwayListener>
+                        </Paper>
+                    </Grow>
+                )}
+            </Popper>
 
             <div className={classes.tabBar}>
                 <Grid container spacing={3}>
@@ -289,8 +331,7 @@ function Container (props) {
                     closeHandler={handleBoolean("is_open_release_modal", false)}
                     chosenCandidateAlert={chosenCandidateAlert}
                     setChosenCandidateAlert={setChosenCandidateAlert}
-                    // alertsFromDbData={alertsFromDbData}
-                    // setIsOpenRoutineModal={routineReleaseHandler(null)}
+                    setIsOpenRoutineModal={routineReleaseHandler(null)}
                 />
             </StoreProvider>
 

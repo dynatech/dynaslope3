@@ -237,14 +237,10 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
 
     current_triggers_status = []
     for row in current_trigger_alerts:
-        trigger_type = row["type"]
-        details = row["details"]
-
-        if details["alert_level"] < 0:  # accept only nd and rx
-            current_triggers_status.append({
-                "trigger_source": trigger_type,
-                **details
-            })
+        current_triggers_status.append({
+            "trigger_source": row["type"],
+            **row["details"]
+        })
 
     formatted_alerts_for_ewi = {
         **site_details,

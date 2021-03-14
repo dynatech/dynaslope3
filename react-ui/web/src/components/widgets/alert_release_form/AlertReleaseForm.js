@@ -4,17 +4,14 @@ import React, {
 
 import {
     Grid, Typography, TextField, Checkbox,
-    CircularProgress, Divider, capitalize
+    CircularProgress, Divider, capitalize,
+    FormControlLabel, Switch, FormControl,
+    FormLabel, Radio
 } from "@material-ui/core";
 import {
     MuiPickersUtilsProvider, KeyboardDateTimePicker,
     KeyboardTimePicker
 } from "@material-ui/pickers";
-
-import Radio from "@material-ui/core/Radio";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import FormControl from "@material-ui/core/FormControl";
-import FormLabel from "@material-ui/core/FormLabel";
 
 import MomentUtils from "@date-io/moment";
 import moment from "moment";
@@ -282,9 +279,9 @@ function SubsurfaceSection (props) {
     const { subsurface: { value, triggers } } = state;
 
     const form = [
-        { value: "1", label: "ABOVE threshold at a certain time" },
-        { value: "0", label: "BELOW threshold all throughout" },
-        { value: "-1", label: "No data all throughout" }
+        { value: "1", label: "ABOVE threshold at a certain time (s2/s3)" },
+        { value: "0", label: "BELOW threshold all throughout (s)" },
+        { value: "-1", label: "No data all throughout (s0)" }
     ];
 
     const valueChangeHandler = e => {
@@ -362,9 +359,9 @@ function SurficialSection (props) {
     const { surficial: { value, triggers } } = state;
 
     const form = [
-        { value: "1", label: "ABOVE threshold at a certain time" },
-        { value: "0", label: "BELOW threshold all throughout" },
-        { value: "-1", label: "No data all throughout" }
+        { value: "1", label: "ABOVE threshold at a certain time (g2/g3)" },
+        { value: "0", label: "BELOW threshold all throughout (g)" },
+        { value: "-1", label: "No data all throughout (g0)" }
     ];
 
     const valueChangeHandler = e => {
@@ -546,10 +543,10 @@ function RainfallSection (props) {
     const { rainfall: { value, trigger } } = state;
 
     const form = [
-        { value: "1", label: "ABOVE threshold at a certain time" },
-        { value: "0", label: "BELOW threshold all throughout" },
-        { value: "-2", label: "Currently BELOW threshold BUT above 75%" },
-        { value: "-1", label: "No data all throughout" }
+        { value: "1", label: "ABOVE threshold at a certain time (r1)" },
+        { value: "0", label: "BELOW threshold all throughout (r)" },
+        { value: "-2", label: "Currently BELOW threshold BUT above 75% (rx)" },
+        { value: "-1", label: "No data all throughout (r0)" }
     ];
 
     const valueChangeHandler = e => {
@@ -697,12 +694,21 @@ function OnDemandSection (props) {
             }
 
             {
-                value === "0" && <Typography
-                    variant="body1" align="center"
-                    component={Grid} item xs={12}
-                >
-                    This release has non-triggering MOMs data within release period (m).
-                </Typography>
+                value === "0" && <Grid item xs={12}>
+                    <Typography
+                        variant="body1" align="center" gutterBottom
+                    >
+                        This release has data request to end on-demand monitoring (d)
+                        OR the monitoring event has other positive triggers*.
+                    </Typography>
+
+                    <Typography
+                        variant="caption" align="center"
+                    >
+                        *If there is other released positive threshold aside form on-demand trigger, 
+                        data presence for this trigger is not observed (default to d).
+                    </Typography>
+                </Grid>
             }
 
             {
@@ -710,7 +716,7 @@ function OnDemandSection (props) {
                     variant="body1" align="center"
                     component={Grid} item xs={12}
                 >
-                    No on-demand entry present for this release period.
+                    No on-demand entry present for this release period (d0).
                 </Typography>
             }
         </Fragment>
@@ -733,8 +739,8 @@ function ThirdStep (props) {
     let internal_alert = "---";
     let note = null;
     const release_triggers = [];
-    if (state.post_computation) {
-        const { internal_alert: temp, note: n, trigger_list } = state.post_computation;
+    if (state.preview) {
+        const { internal_alert: temp, note: n, trigger_list } = state.preview;
         internal_alert = temp;
         note = n;
 
@@ -814,6 +820,22 @@ function ThirdStep (props) {
                     }
 
                     { ReleaseTriggersSummary(release_triggers) }
+
+                    {
+                        state.previous_release.event_alert.public_alert_symbol.alert_level 
+                        > 0 && <Grid item xs={12}>
+                            <FormControlLabel
+                                control={<Switch
+                                    checked={state.manually_lower_alert}
+                                    onChange={e => Actions.updateManuallyLowerAlert({
+                                        dispatch, payload: e.target.checked
+                                    })}
+                                    value="lower_to_a0"
+                                />}
+                                label="Manually Lower to Alert 0"
+                            />
+                        </Grid>
+                    }
 
                     <Grid item xs={12} sm={6}>
                         <DynaslopeUserSelectInputForm

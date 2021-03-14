@@ -52,7 +52,9 @@ const initial_state = {
     validation: {},
     previous_release: null,
     post_computation: null,
-    non_triggering_moms: []
+    non_triggering_moms: [],
+    manually_lower_alert: false,
+    preview: null
 };
 
 function reducer (state, action) {
@@ -233,12 +235,38 @@ function reducer (state, action) {
             return { ...state, previous_release: payload };
 
         case "SAVE_POST_COMPUTATION_DETAILS":
-            return { ...state, post_computation: { ...payload } };
+            return { ...state, 
+                post_computation: { ...payload },
+                preview: { ...payload } 
+            };
 
         case "USE_CANDIDATE_ALERT": {
             const temp = insertCandidateAlertDetails(payload);
             return temp;
-            // return { ...initial_state };
+        }
+
+        case "UPDATE_MANUALLY_LOWER_ALERT": {
+            const { subsurface, surficial, moms } = state;
+            const has_no_ground_data = [subsurface, surficial, moms].every(x => x.value === "-1");
+            const trigger_list_str = has_no_ground_data ? "ND" : "A0";
+
+            let temp = {
+                internal_alert: trigger_list_str,
+                trigger_list_str,
+                note: "You are manually lowering an alert. We are encouraging you to REVIEW ALL THE INPUTS in the previous section. " +
+                "Also, beware that if it is not yet end-of-validity, lowering an alert will cause the whole site monitoring event to be \"invalid\".",
+                trigger_list: [],
+                to_extend_validity: false
+            };
+            
+            if (!payload) {
+                temp = { ...state.post_computation };
+            }
+
+            return { ...state, 
+                manually_lower_alert: payload,
+                preview: { ...state.preview, ...temp }
+            };
         }
 
         case "RESET":
@@ -336,6 +364,15 @@ function insertCandidateAlertDetails (candidate_alert) {
         if (!source_set.has("earthquake")) state_copy.earthquake.value = "0";
     });
 
+    const temp = {
+        public_alert_level: candidate_alert.public_alert_level,
+        internal_alert: candidate_alert.internal_alert_level,
+        note: null,
+        trigger_list: candidate_alert.trigger_list_arr,
+        trigger_list_str: candidate_alert.release_details.trigger_list_str,
+        to_extend_validity: candidate_alert.to_extend_validity
+    };
+
     return {
         ...state_copy,
         data_ts: candidate_alert.release_details.data_ts,
@@ -345,35 +382,34 @@ function insertCandidateAlertDetails (candidate_alert) {
             data: { site_code: candidate_alert.site_code }
         },
         previous_release: { ...candidate_alert.previous_release },
-        post_computation: {
-            public_alert_level: candidate_alert.public_alert_level,
-            internal_alert: candidate_alert.internal_alert_level,
-            note: null,
-            trigger_list: candidate_alert.trigger_list_arr,
-            trigger_list_str: candidate_alert.release_details.trigger_list_str,
-            to_extend_validity: candidate_alert.to_extend_validity
-        },
+        post_computation: temp,
+        preview: temp,
         non_triggering_moms: candidate_alert.non_triggering_moms
     };
 }
 
 function preparePayload (state) {
+    let temp_comments = state.comments;
+    if (state.manually_lower_alert) {
+        temp_comments = `<MANUALLY LOWERED; this is added by system> ${ temp_comments}`;
+    }
+
     return {
         site_id: state.site.value,
         site_code: state.site.data.site_code,
-        public_alert_level: state.post_computation.public_alert_level,
+        public_alert_level: state.preview.public_alert_level,
         release_details: {
             data_ts: moment(state.data_ts).format("YYYY-MM-DD HH:mm:00"),
-            trigger_list_str: state.post_computation.trigger_list_str,
+            trigger_list_str: state.preview.trigger_list_str,
             release_time: moment(state.release_time).format("HH:mm:00"),
-            comments: state.comments
+            comments: temp_comments
         },
         publisher_details: {
             publisher_mt_id: state.iomp_mt,
             publisher_ct_id: state.iomp_ct
         },
-        to_extend_validity: state.post_computation.to_extend_validity,
-        trigger_list_arr: state.post_computation.trigger_list,
+        to_extend_validity: state.preview.to_extend_validity,
+        trigger_list_arr: state.preview.trigger_list,
         non_triggering_moms: state.non_triggering_moms
     };
 }

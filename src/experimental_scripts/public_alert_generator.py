@@ -303,7 +303,7 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                     raise Exception(
                         "Reaching EQ event trigger WITHOUT any earthquake alerts!")
             elif trigger_source == "on demand":
-                on_demand_alerts_list = get_on_demand(ts_updated)
+                on_demand_alerts_list = get_on_demand(site_id, ts_updated)
                 if on_demand_alerts_list:
                     latest_on_demand = on_demand_alerts_list[0]
                     trigger_tech_info = latest_on_demand.tech_info
@@ -487,12 +487,13 @@ def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
     based on the current no data presence (no_data_list)
     (e.g Entry on positive_triggers_list alert symbol => G will be replaced by G0)
 
-    returns updated highest_unique_positive_triggers_list
+    returns updated highest_unique_positive_triggers_list and has_no_data_positive_trigger (bool)
     """
 
     global RELEASE_INTERVAL_HOURS
     interval = RELEASE_INTERVAL_HOURS
 
+    has_no_data_positive_trigger = False
     for pos_trig in highest_unique_positive_triggers_list:
         ts_updated = pos_trig.ts_updated
         ots_row = retrieve_data_from_memcache("operational_trigger_symbols", {
@@ -500,11 +501,14 @@ def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
 
         source_id = ots_row["source_id"]
         trigger_source = ots_row["trigger_hierarchy"]["trigger_source"]
+
         if any(trig_source == trigger_source for trig_source in no_data_list):
             # If positive trigger is not within release time interval,
             # replace symbol to its respective ND symbol.
             if not (ts_updated >= round_to_nearest_release_time(query_ts_end, interval)
                     - timedelta(hours=interval)):
+                has_no_data_positive_trigger = True
+
                 nd_row = retrieve_data_from_memcache(
                     "operational_trigger_symbols", {
                         "alert_level": -1,
@@ -530,9 +534,8 @@ def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
                 # database changes before saving updates on public alerts
                 pos_trig_sym = pos_trig.trigger_symbol
                 pos_trig_sym.internal_alert_symbol.alert_symbol = nd_internal_symbol
-                # pos_trig_sym.alert_level = -1
 
-    return highest_unique_positive_triggers_list
+    return highest_unique_positive_triggers_list, has_no_data_positive_trigger
 
 
 def extract_no_data_triggers(release_op_triggers_list):
@@ -567,7 +570,7 @@ def extract_highest_unique_triggers_per_type(unique_positive_triggers_list):
     Get the highest trigger level per trigger type/source
     (i.e. "surficial", "rainfall")
 
-    Example: ["surficial", "l2"] and ["surficial", "l3"]
+    Example: ["surficial", "g2"] and ["surficial", "g3"]
     are not unique and the second instance will be returned
     """
     # Get a sorted list of historical triggers
@@ -615,10 +618,22 @@ def get_processed_internal_alert_symbols(
 
             if not has_data:
                 no_data_list.append(trig_source)
+        elif trig_source == "on demand" and \
+                len(highest_unique_positive_triggers_list) > 1:
+                # Check if on demand and if there are other positive triggers
+                # if yes, on demand data presence is not included on no_data_list
+                # and change current_trigger_alerts entry
+            th_row = current_trigger_alerts[trig_source]["th_row"]
+            od_source_id = th_row["source_id"]
+            od_below_threshold_symbol = retrieve_data_from_memcache("operational_trigger_symbols", {
+                "alert_level": 0, "source_id": od_source_id}, retrieve_attr="alert_symbol")
+
+            current_trigger_alerts[trig_source]["alert_level"] = 0
+            current_trigger_alerts[trig_source]["alert_symbol"] = od_below_threshold_symbol
         elif current_trigger_alerts[trig_source]["alert_level"] == -1:
             no_data_list.append(trig_source)
 
-    updated_h_u_p_t_list = update_positive_triggers_with_no_data(
+    updated_h_u_p_t_list, has_no_data_positive_trigger = update_positive_triggers_with_no_data(
         highest_unique_positive_triggers_list, no_data_list, query_ts_end)
 
     # Check first if rainfall trigger is active.
@@ -641,9 +656,10 @@ def get_processed_internal_alert_symbols(
 
             current_trigger_alerts["rainfall"]["alert_level"] = -2
             current_trigger_alerts["rainfall"]["alert_symbol"] = rainfall_rx_symbol
-            current_trigger_alerts["rainfall"]["has_positive_rainfall_trigger"] = has_positive_rainfall_trigger
+            current_trigger_alerts["rainfall"]["has_positive_rainfall_trigger"] = \
+                has_positive_rainfall_trigger
 
-    return updated_h_u_p_t_list, current_trigger_alerts
+    return updated_h_u_p_t_list, current_trigger_alerts, has_no_data_positive_trigger
 
 
 def get_validity_variables(positive_triggers_list, highest_public_alert, query_ts_end):
@@ -722,6 +738,7 @@ def get_rainfall_rx_symbol(rain_trigger_index):
     Returns:
         rainfall_rx_symbol (String): Rx if there is rainfall trigger; rx if no rainfall trigger
     """
+
     rain_source_id = retrieve_data_from_memcache(
         "trigger_hierarchies", {"trigger_source": "rainfall"}, retrieve_attr="source_id")
     rain_75_id = retrieve_data_from_memcache("operational_trigger_symbols", {
@@ -1389,9 +1406,10 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_d
             validity, is_end_of_validity = get_validity_variables(
                 positive_triggers_list, highest_public_alert, query_ts_end)
 
-            processed_triggers_list, current_trigger_alerts = get_processed_internal_alert_symbols(
-                unique_positive_triggers_list, current_trigger_alerts,
-                query_ts_end, is_end_of_validity, latest_rainfall_alert)
+            processed_triggers_list, current_trigger_alerts, has_no_data_positive_trigger = \
+                get_processed_internal_alert_symbols(
+                    unique_positive_triggers_list, current_trigger_alerts,
+                    query_ts_end, is_end_of_validity, latest_rainfall_alert)
 
         has_active_surficial_markers = check_if_site_has_active_surficial_markers(
             site_id=site_id)
@@ -1460,7 +1478,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_d
 
             if is_end_of_validity:
                 # Checks all lowering conditions before lowering
-                if is_rainfall_rx or (is_within_alert_extension_limit and has_no_ground_alert) \
+                if has_no_data_positive_trigger or \
+                    is_rainfall_rx or (is_within_alert_extension_limit and has_no_ground_alert) \
                     or is_not_yet_write_time or \
                         (is_within_alert_extension_limit and has_unresolved_moms):
                     validity = round_to_nearest_release_time(
@@ -1497,9 +1516,11 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_d
         # PREPARE DATA FOR JSON GENERATION #
         ####################################
 
-        # EVENT TRIGGERS: most recent retrigger of positive operational triggers
-        event_triggers = format_recent_retriggers(
-            unique_positive_triggers_list, invalids_dict, site_moms_alerts_list)
+        event_triggers = []
+        if highest_public_alert > 0:
+            # EVENT TRIGGERS: most recent retrigger of positive operational triggers
+            event_triggers = format_recent_retriggers(
+                unique_positive_triggers_list, invalids_dict, site_moms_alerts_list)
 
         # RELEASE TRIGGERS: current status prior to release time
         formatted_current_trigger_alerts = format_current_trigger_alerts(
