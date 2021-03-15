@@ -274,10 +274,10 @@ function SearchMessageModal (props) {
                         <FormControl fullWidth> 
                             <TextField
                                 id="string-filter"
-                                label="String"
+                                label="Keyword"
                                 value={string_search}
                                 onChange={e => search_dispatch({ type: "UPDATE_STRING_SEARCH", value: e.target.value })}
-                                placeholder="Enter string"
+                                placeholder="Enter keyword"
                                 InputLabelProps={{
                                     shrink: true,
                                 }}
