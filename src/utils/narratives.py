@@ -38,7 +38,7 @@ def get_narrative_text(narrative_type, details):
         elif tag == "#AlertFYI":
             narrative_text = f"Sent FYI message to RUS, ASD, RANK, and Dyna-GLOBE-GSM re {data}"
         elif tag == "#Permission":
-            narrative_text = f"Asked RUS, ASD and RANK permission to {data}"
+            narrative_text = f"Asked permission from RUS/ASD/RANK for {data}"
         elif tag == "#Erratum":
             narrative_text = f"Sent EWI Erratum"
 

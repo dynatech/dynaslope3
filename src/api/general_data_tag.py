@@ -40,7 +40,7 @@ def handle_update_insert_tags():
     tag_details = tag_data["tag_details"]
     tag_id_list = tag_details["tag_id_list"]
     site_id_list = tag_details["site_id_list"]
-    
+
     for tag_id in tag_id_list:
         tag_row = get_tag_by_type(tag_type, tag_details, tag_id)
         user_id = tag_details["user_id"]
@@ -71,7 +71,7 @@ def handle_update_insert_tags():
                 additional_data = contact_person
                 if tag_description in ["#GroundObs", "#EwiResponse"]:
                     additional_data += f" - {message}"
-                elif tag_description in ["#AlertFYI", "#Permission"]:
+                elif tag_description in ["#AlertFYI", "#Permission", "#Erratum"]:
                     additional_data = message
 
                 narrative = get_narrative_text(
@@ -79,7 +79,7 @@ def handle_update_insert_tags():
                         "tag": tag_description,
                         "additional_data": additional_data
                     })
-                
+
                 var_checker("narrative", narrative, True)
 
                 get_process_status_log(
