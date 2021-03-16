@@ -22,7 +22,7 @@ import DynaslopeSiteSelectInputForm from "../reusables/DynaslopeSiteSelectInputF
 
 const useStyles = makeStyles(theme => GeneralStyles(theme));
 
-function prepareContactPerson(mobileDetails) {
+function prepareContactPerson (mobileDetails) {
     const { sim_num, users } = mobileDetails;
     let name = sim_num;
 
@@ -45,7 +45,7 @@ function prepareContactPerson(mobileDetails) {
     return name;
 }
 
-function useFetchTagOptions(tag_selection) {
+function useFetchTagOptions (tag_selection) {
     const [tags, update_tags] = useState([]);
     const cancel_token = axios.CancelToken;
     const source = cancel_token.source();
@@ -54,17 +54,17 @@ function useFetchTagOptions(tag_selection) {
         const api_link = `${host}/api/chatterbox/get_message_tag_options/sms${tag_selection}_users`;
 
         axios.get(api_link, { cancelToken: source.token })
-            .then(({ data }) => {
-                const arr = data.map(row => ({
-                    value: row.tag_id,
-                    label: row.tag
-                }));
+        .then(({ data }) => {
+            const arr = data.map(row => ({
+                value: row.tag_id,
+                label: row.tag
+            }));
 
-                update_tags(arr);
-            })
-            .catch(error => {
-                console.log(error);
-            });
+            update_tags(arr);
+        })
+        .catch(error => {
+            console.log(error);
+        });
 
         // return source.cancel();
     }, [tag_selection]);
@@ -72,7 +72,7 @@ function useFetchTagOptions(tag_selection) {
     return tags;
 }
 
-function preparePassedTags(tag_obj) {
+function preparePassedTags (tag_obj) {
     const { tags } = tag_obj;
 
     const tag_arr = tags.map(x => ({
@@ -83,10 +83,10 @@ function preparePassedTags(tag_obj) {
     return tag_arr;
 }
 
-function GeneralDataTagModal(props) {
+function GeneralDataTagModal (props) {
     const {
         fullScreen, isOpen,
-        closeHandler, tagOption, isMobile,
+        closeHandler, tagOption,
         tagObject, mobileDetails, message
     } = props;
 
@@ -200,6 +200,7 @@ function GeneralDataTagModal(props) {
 
         // ADD NEW TAGS
         let new_tags = [];
+        // eslint-disable-next-line
         if (tags !== null) new_tags = tags.filter((i => a => a !== orig_tags[i] || !++i)(0));
         if (new_tags.length > null) {
             // console.log("new_tags", new_tags);
@@ -274,14 +275,12 @@ function GeneralDataTagModal(props) {
                             Alert FYI
                         </DialogContentText>
 
-
                         <DynaslopeSiteSelectInputForm
                             value={sites}
                             changeHandler={value => setSites(value)}
                             isMulti
                             required
                         />
-
 
                         <FormLabel component="legend" style={{ marginTop: 24 }}>Purpose</FormLabel>
                         <RadioGroup
@@ -304,14 +303,12 @@ function GeneralDataTagModal(props) {
                             Permission
                         </DialogContentText>
 
-
                         <DynaslopeSiteSelectInputForm
                             value={sites}
                             changeHandler={value => setSites(value)}
                             isMulti
                             required
                         />
-
 
                         <FormLabel component="legend" style={{ marginTop: 24 }}>Purpose</FormLabel>
                         <RadioGroup
@@ -322,16 +319,11 @@ function GeneralDataTagModal(props) {
                             value={permission_purpose}
                             onChange={e => setPermissionPurpose(e.target.value)}
                         >
-                            <FormControlLabel value="alert 3 raising" control={<Radio />} label="Alert 3 raising" />
-                            <FormControlLabel value="alert 3 lowering" control={<Radio />} label="Alert 3 lowering" />
-                            <FormControlLabel value="on demand raising" control={<Radio />} label="On demand raising" />
-                            <FormControlLabel value="on demand lowering" control={<Radio />} label="On demand lowering" />
+                            <FormControlLabel value="alert 3 raising" control={<Radio />} label="Alert 3 Raising" />
+                            <FormControlLabel value="alert 3 lowering" control={<Radio />} label="Alert 3 Lowering" />
+                            <FormControlLabel value="on demand raising" control={<Radio />} label="On Demand Raising" />
                         </RadioGroup>
                     </Fragment>
-                }
-
-                {
-                    !isMobile && <div style={{ height: 240 }} />
                 }
             </DialogContent>
             <DialogActions>
