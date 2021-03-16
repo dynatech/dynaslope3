@@ -1318,6 +1318,8 @@ def get_event_timeline_data(event_id):
         event_id (Integer) - variable name speaks for itself.
     """
 
+    release_interval_hours = retrieve_data_from_memcache(
+        "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
     event_id = int(event_id)
 
     timeline_data = {
@@ -1361,7 +1363,8 @@ def get_event_timeline_data(event_id):
         timeline_entries = []
 
         for event_alert in event_collection_data.event_alerts:
-            if event_collection_data.status == 1:  # If routine, update validity to end_ts of event_alert
+            # If routine, update validity to end_ts of event_alert
+            if event_collection_data.status == 1:
                 ts_end = event_alert.ts_end
                 str_validity = None
                 if ts_end:
@@ -1387,6 +1390,15 @@ def get_event_timeline_data(event_id):
                             release_type = "overdue"
                         else:
                             release_type = "extended"
+
+                rounded_data_ts = round_to_nearest_release_time(
+                    data_ts, release_interval_hours)
+                release_time = release.release_time
+                date = datetime.strftime(data_ts, "%Y-%m-%d")
+                if data_ts.hour == 23 and release_time.hour < release_interval_hours:
+                    date = datetime.strftime(
+                        rounded_data_ts, "%Y-%m-%d")
+                timestamp = f"{date} {release_time}"
 
                 trig_moms = "triggers.trigger_misc.moms_releases.moms_details"
                 rel_moms = "moms_releases.moms_details"
