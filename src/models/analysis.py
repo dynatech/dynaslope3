@@ -594,7 +594,7 @@ class AlertStatus(DB.Model):
         OperationalTriggers,
         backref=DB.backref(
             "alert_status", lazy="subquery",
-            order_by="desc(AlertStatus.trigger_id)"
+            order_by="desc(AlertStatus.stat_id)"
         ),
         primaryjoin="AlertStatus.trigger_id==OperationalTriggers.trigger_id",
         lazy="joined", innerjoin=True)
