@@ -1027,7 +1027,7 @@ def insert_ewi(internal_json=None):
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
                         and site_monitoring_instance.validity == \
-                    datetime_data_ts + timedelta(minutes=30):
+                datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
@@ -1317,7 +1317,7 @@ def get_event_timeline_data(event_id):
     Args:
         event_id (Integer) - variable name speaks for itself.
     """
-    print("HEREEE")
+
     release_interval_hours = retrieve_data_from_memcache(
         "dynamic_variables", {"var_name": "RELEASE_INTERVAL_HOURS"}, retrieve_attr="var_value")
     event_id = int(event_id)
@@ -1363,7 +1363,8 @@ def get_event_timeline_data(event_id):
         timeline_entries = []
 
         for event_alert in event_collection_data.event_alerts:
-            if event_collection_data.status == 1:  # If routine, update validity to end_ts of event_alert
+            # If routine, update validity to end_ts of event_alert
+            if event_collection_data.status == 1:
                 ts_end = event_alert.ts_end
                 str_validity = None
                 if ts_end:
@@ -1382,16 +1383,6 @@ def get_event_timeline_data(event_id):
                 if validity:
                     if release_ts < validity:
                         release_type = "latest"
-                        rounded_data_ts = round_to_nearest_release_time(
-                            data_ts, release_interval_hours)
-                        release_time = release.release_time
-                        date = datetime.strftime(data_ts, "%Y-%m-%d")
-                        time = release.release_time
-                        if data_ts.hour == 23 and release_time.hour < release_interval_hours:
-                            date = datetime.strftime(
-                                rounded_data_ts, "%Y-%m-%d")
-
-                        timestamp = f"{date} {time}"
                     elif release_ts == validity:
                         release_type = "end_of_validity"
                     elif validity <= release_ts:
@@ -1399,6 +1390,15 @@ def get_event_timeline_data(event_id):
                             release_type = "overdue"
                         else:
                             release_type = "extended"
+
+                rounded_data_ts = round_to_nearest_release_time(
+                    data_ts, release_interval_hours)
+                release_time = release.release_time
+                date = datetime.strftime(data_ts, "%Y-%m-%d")
+                if data_ts.hour == 23 and release_time.hour < release_interval_hours:
+                    date = datetime.strftime(
+                        rounded_data_ts, "%Y-%m-%d")
+                timestamp = f"{date} {release_time}"
 
                 trig_moms = "triggers.trigger_misc.moms_releases.moms_details"
                 rel_moms = "moms_releases.moms_details"
