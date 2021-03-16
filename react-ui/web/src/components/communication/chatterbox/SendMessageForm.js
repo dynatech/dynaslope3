@@ -89,7 +89,7 @@ function SendMessageForm (props) {
                 setIsLoadingRecipients(false);
             });
         }
-    }, [siteCode]);
+    }, [siteCode, updateSentStatusObj]);
 
     useEffect(() => {
         if (typeof recipientsList !== "undefined") {

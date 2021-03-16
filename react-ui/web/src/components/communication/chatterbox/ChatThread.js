@@ -354,7 +354,7 @@ function ChatThread (props) {
         setMessages(initial_messages);
         setLoadedMessages(initial_messages);
         setScrollToBottom(true);
-    }, [message_list]);
+    }, [message_list, setScrollToBottom]);
 
     const set_gdt_fn = (bool, obj = default_tag_obj, message) => () => {
         update_tag_object(obj);

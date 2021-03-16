@@ -22,7 +22,7 @@ import DynaslopeSiteSelectInputForm from "../reusables/DynaslopeSiteSelectInputF
 
 const useStyles = makeStyles(theme => GeneralStyles(theme));
 
-function prepareContactPerson (mobileDetails) {
+function prepareContactPerson(mobileDetails) {
     const { sim_num, users } = mobileDetails;
     let name = sim_num;
 
@@ -41,11 +41,11 @@ function prepareContactPerson (mobileDetails) {
         if (temp.length > 0) name = temp.join(", ");
         if (temp.length > 1) name += "(shared number)";
     }
-    
+
     return name;
 }
 
-function useFetchTagOptions (tag_selection) {
+function useFetchTagOptions(tag_selection) {
     const [tags, update_tags] = useState([]);
     const cancel_token = axios.CancelToken;
     const source = cancel_token.source();
@@ -54,17 +54,17 @@ function useFetchTagOptions (tag_selection) {
         const api_link = `${host}/api/chatterbox/get_message_tag_options/sms${tag_selection}_users`;
 
         axios.get(api_link, { cancelToken: source.token })
-        .then(({ data }) => {
-            const arr = data.map(row => ({
-                value: row.tag_id,
-                label: row.tag
-            }));
+            .then(({ data }) => {
+                const arr = data.map(row => ({
+                    value: row.tag_id,
+                    label: row.tag
+                }));
 
-            update_tags(arr);
-        })
-        .catch(error => {
-            console.log(error);
-        });
+                update_tags(arr);
+            })
+            .catch(error => {
+                console.log(error);
+            });
 
         // return source.cancel();
     }, [tag_selection]);
@@ -72,9 +72,9 @@ function useFetchTagOptions (tag_selection) {
     return tags;
 }
 
-function preparePassedTags (tag_obj) {
+function preparePassedTags(tag_obj) {
     const { tags } = tag_obj;
-    
+
     const tag_arr = tags.map(x => ({
         value: x.tag_id,
         label: x.tag.tag
@@ -83,7 +83,7 @@ function preparePassedTags (tag_obj) {
     return tag_arr;
 }
 
-function GeneralDataTagModal (props) {
+function GeneralDataTagModal(props) {
     const {
         fullScreen, isOpen,
         closeHandler, tagOption, isMobile,
@@ -96,31 +96,50 @@ function GeneralDataTagModal (props) {
     const [tags, update_tags] = useState(null);
     const [orig_tags, setOrigTags] = useState([]);
     const [has_fyi_tag, setHasFyiTag] = useState(false);
+    const [has_permission_tag, setHasPermissionTag] = useState(false);
     const [sites, setSites] = useState(null);
     const [fyi_purpose, setFyiPurspose] = useState("");
+    const [permission_purpose, setPermissionPurpose] = useState("");
 
     const is_saved_number = mobileDetails.users.length > 0;
 
     useEffect(() => {
-        let bool = false;
-        if (tags !== null) bool = tags.some(x => x.label === "#AlertFYI");
-        setHasFyiTag(bool);
+        let fyi_bool = false;
+        let permission_bool = false;
+        if (tags !== null) {
+            fyi_bool = tags.some(x => x.label === "#AlertFYI");
+            permission_bool = tags.some(x => x.label === "#Permission");
+
+            if (fyi_bool) {
+                permission_bool = false;
+            } else if (permission_bool) {
+                fyi_bool = false;
+            }
+        }
+        setHasFyiTag(fyi_bool);
+        setHasPermissionTag(permission_bool);
+        // console.log(tags)
     }, [tags]);
 
     const [is_disabled, setIsDisabled] = useState(false);
+
     useEffect(() => {
         let bool = false;
         if (is_saved_number) {
             if (has_fyi_tag) {
                 if (sites === null || fyi_purpose === "") bool = true;
             }
+
+            if (has_permission_tag) {
+                if (sites === null || permission_purpose === "") bool = true;
+            }
         } else {
             bool = true;
         }
         setIsDisabled(bool);
-    }, [has_fyi_tag, sites, fyi_purpose]);
+    }, [has_fyi_tag, sites, fyi_purpose, has_permission_tag, permission_purpose]);
 
-    useEffect(() =>{
+    useEffect(() => {
         const tag_arr = preparePassedTags(tagObject);
         update_tags(tag_arr);
         setOrigTags(tag_arr);
@@ -148,7 +167,7 @@ function GeneralDataTagModal (props) {
         } else if (has_fyi_tag) {
             site_id_list = sites.map(x => x.value);
         }
-        
+
         const var_key_id = source === "inbox" ? "inbox_id" : "outbox_id";
 
         // DELETE MISSING TAGS
@@ -182,15 +201,22 @@ function GeneralDataTagModal (props) {
         // ADD NEW TAGS
         let new_tags = [];
         if (tags !== null) new_tags = tags.filter((i => a => a !== orig_tags[i] || !++i)(0));
-        if (new_tags.length > null) {            
+        if (new_tags.length > null) {
             // console.log("new_tags", new_tags);
             const tag_id_list = new_tags.map(tag => {
                 return tag.value;
             });
+
+            let final_message = message;
+            if (has_fyi_tag) {
+                final_message = fyi_purpose;
+            } else if (has_permission_tag) {
+                final_message = permission_purpose;
+            }
             const payload = {
                 tag_type: `sms${source}_user_tags`,
                 contact_person,
-                message: has_fyi_tag ? fyi_purpose : message,
+                message: final_message,
                 tag_details: {
                     user_id: getCurrentUser().user_id,
                     [var_key_id]: id,
@@ -215,7 +241,7 @@ function GeneralDataTagModal (props) {
             fullScreen={fullScreen}
             open={isOpen}
             aria-labelledby="form-dialog-title"
-            TransitionComponent={fullScreen ? SlideTransition : FadeTransition}      
+            TransitionComponent={fullScreen ? SlideTransition : FadeTransition}
         >
             <DialogTitle id="form-dialog-title">
                 Chatterbox Message Tagging
@@ -226,10 +252,10 @@ function GeneralDataTagModal (props) {
                 </DialogContentText>
 
                 <DialogContentText className={classes.dyna_error}>
-                    NOTE: You must manually remove any site logs created (if any) 
+                    NOTE: You must manually remove any site logs created (if any)
                     by a tag when removing a tag to a message.
                 </DialogContentText>
-                
+
                 <div style={{ margin: "24px 0" }}>
                     <SelectMultipleWithSuggest
                         label="Tags"
@@ -248,7 +274,7 @@ function GeneralDataTagModal (props) {
                             Alert FYI
                         </DialogContentText>
 
-                        
+
                         <DynaslopeSiteSelectInputForm
                             value={sites}
                             changeHandler={value => setSites(value)}
@@ -273,11 +299,43 @@ function GeneralDataTagModal (props) {
                 }
 
                 {
+                    has_permission_tag && <Fragment>
+                        <DialogContentText color="textPrimary">
+                            Permission
+                        </DialogContentText>
+
+
+                        <DynaslopeSiteSelectInputForm
+                            value={sites}
+                            changeHandler={value => setSites(value)}
+                            isMulti
+                            required
+                        />
+
+
+                        <FormLabel component="legend" style={{ marginTop: 24 }}>Purpose</FormLabel>
+                        <RadioGroup
+                            aria-label="permission-purpose"
+                            name="permission-purpose"
+                            row
+                            style={{ justifyContent: "space-around" }}
+                            value={permission_purpose}
+                            onChange={e => setPermissionPurpose(e.target.value)}
+                        >
+                            <FormControlLabel value="alert 3 raising" control={<Radio />} label="Alert 3 raising" />
+                            <FormControlLabel value="alert 3 lowering" control={<Radio />} label="Alert 3 lowering" />
+                            <FormControlLabel value="on demand raising" control={<Radio />} label="On demand raising" />
+                            <FormControlLabel value="on demand lowering" control={<Radio />} label="On demand lowering" />
+                        </RadioGroup>
+                    </Fragment>
+                }
+
+                {
                     !isMobile && <div style={{ height: 240 }} />
                 }
             </DialogContent>
             <DialogActions>
-                <Button 
+                <Button
                     color="primary"
                     onClick={submitTagHandler}
                     disabled={is_disabled}

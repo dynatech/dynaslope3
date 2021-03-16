@@ -4,7 +4,7 @@ tables of smsinbox_users, smsoutbox_users and smsoutbox_user_status
 """
 
 from datetime import datetime
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
 from src.models.mobile_numbers import UserMobiles, UserMobilesSchema
@@ -125,6 +125,11 @@ class SmsOutboxUserStatus(DB.Model):
     ts_sent = DB.Column(DB.DateTime, default=None)
     send_status = DB.Column(DB.Integer, nullable=False, default=0)
     gsm_id = DB.Column(DB.Integer, nullable=False)
+
+    mobile_details = DB.relationship(UserMobiles,
+                                     backref=DB.backref(
+                                         "outbox_messages", lazy="dynamic"),
+                                     lazy="select")
 
     def __repr__(self):
         return f"Type <{self.__class__.__name__}>"
@@ -249,11 +254,12 @@ class SmsInboxUsersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     mobile_id = fields.Integer()
     mobile_details = MARSHMALLOW.Nested(UserMobilesSchema)
     sms_tags = MARSHMALLOW.Nested("SmsInboxUserTagsSchema",
-                             many=True, exclude=["inbox_message"])
+                                  many=True)  # NOTE EXCLUDE exclude=["outbox_message"]
 
     class Meta:
         """Saves table class structure as schema model"""
         model = SmsInboxUsers
+        unknown = EXCLUDE
 
 
 class SmsOutboxUsersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -262,21 +268,27 @@ class SmsOutboxUsersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     send_status = MARSHMALLOW.Nested("SmsOutboxUserStatusSchema", many=True)
     sms_tags = MARSHMALLOW.Nested("SmsOutboxUserTagsSchema",
-                             many=True, exclude=["outbox_message"])
+                                  many=True)  # NOTE EXCLUDE exclude=["outbox_message"]
 
     class Meta:
         """Saves table class structure as schema model"""
         model = SmsOutboxUsers
+        unknown = EXCLUDE
 
 
 class SmsOutboxUserStatusSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Users class
     """
+    mobile_id = fields.Integer()
+    outbox_message = fields.Nested(SmsOutboxUsersSchema,
+                                   exclude=("send_status", ))
+    mobile_details = MARSHMALLOW.Nested(UserMobilesSchema)
 
     class Meta:
         """Saves table class structure as schema model"""
         model = SmsOutboxUserStatus
+        unknown = EXCLUDE
 
 
 class ViewLatestMessagesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -317,6 +329,7 @@ class SmsTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
         """Saves table class structure as schema model"""
         model = SmsTags
         exclude = ["smsinbox_user_tags", "smsoutbox_user_tags"]
+        unknown = EXCLUDE
 
 
 class SmsInboxUserTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -330,6 +343,7 @@ class SmsInboxUserTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = SmsInboxUserTags
+        unknown = EXCLUDE
 
 
 class SmsOutboxUserTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
@@ -343,3 +357,4 @@ class SmsOutboxUserTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = SmsOutboxUserTags
+        unknown = EXCLUDE

@@ -29,14 +29,16 @@ def get_narrative_text(narrative_type, details):
                               f"from {data}")
         elif tag == "#EwiResponse":
             narrative_text = f"EWI SMS acknowledged by {data}"
-        elif tag == "#EwiResponse":
-            narrative_text = f"EWI SMS acknowledged by {data}"
         elif tag == "#EwiMessage":
             narrative_text = f"Sent EWI SMS (manually created and tagged)"
         elif tag == "#RainInfo":
             narrative_text = f"Sent rainfall information to {data}"
         elif tag == "#AlertFYI":
             narrative_text = f"Sent FYI message to RUS, ASD, RANK, and Dyna-GLOBE-GSM re {data}"
+        elif tag == "#Permission":
+            narrative_text = f"Asked permission from RUS/ASD/RANK for {data}"
+        elif tag == "#Erratum":
+            narrative_text = f"Sent EWI Erratum"
 
     return narrative_text
 

@@ -81,7 +81,7 @@ function inputComponent ({ inputRef, ...props }) {
 function Control (props) {
     const {
         selectProps, innerRef,
-        children, innerProps
+        children, innerProps, isDisabled
     } = props;
     
     return (
@@ -97,6 +97,7 @@ function Control (props) {
                 },
             }}
             {...selectProps.textFieldProps}
+            disabled={isDisabled}
         />
     );
 }

@@ -4,6 +4,7 @@ Contacts Functions Utility File
 
 from datetime import datetime
 from sqlalchemy.orm import joinedload, contains_eager
+from sqlalchemy import or_
 from connection import DB
 from src.models.users import (
     Users, UserEmails, UserLandlines,
@@ -48,7 +49,9 @@ def get_org_ids(scopes=None, org_names=None):
     return org_id_list
 
 
-def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None, org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True):
+def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None,
+                       org_ids=None, only_ewi_recipients=False, only_active_mobile_numbers=True,
+                       mobile_number=None):
     """
     """
 
@@ -77,6 +80,10 @@ def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None, org_
     if only_ewi_recipients:
         base_query = base_query.filter(Users.ewi_recipient == 1)
 
+    if mobile_number:
+        base_query = base_query.join(MobileNumbers).filter(
+            MobileNumbers.sim_num.ilike("%" + mobile_number + "%"))
+
     # default is to get only active mobile numbers
     if only_active_mobile_numbers:
         base_query = base_query.filter(UserMobiles.status == 1)
@@ -89,9 +96,7 @@ def get_mobile_numbers(return_schema=False, mobile_ids=None, site_ids=None, org_
     return mobile_numbers
 
 
-def get_all_contacts(
-        return_schema=False, site_ids=None,
-        org_ids=None, orientation="users"):
+def get_all_contacts(return_schema=False):
     """
     Function that get all contacts
     """
@@ -113,7 +118,7 @@ def get_all_contacts(
     return mobile_numbers
 
 
-def get_recipients_option(site_ids=None, site_codes=None,
+def get_recipients_option(site_ids=None,
                           only_ewi_recipients=None, alert_level=None,
                           org_ids=None):
 
@@ -122,7 +127,8 @@ def get_recipients_option(site_ids=None, site_codes=None,
     mobile_numbers = get_mobile_numbers(
         site_ids=site_ids, org_ids=org_ids, only_ewi_recipients=only_ewi_recipients)
     result = UserMobilesSchema(many=True) \
-        .dump(mobile_numbers) #NOTE EXCLUDE: "mobile_number.blocked_mobile" exclude=["landline_numbers", "emails"]
+        .dump(mobile_numbers)
+    # NOTE EXCLUDE: "mobile_number.blocked_mobile" exclude=["landline_numbers", "emails"]
 
     recipients_options = []
     for row in result:
@@ -628,8 +634,8 @@ def get_recipients(site_ids=None,
         query = query.join(UserOrganizations).join(
             Sites).join(Organizations).join(UserMobiles)
 
-    schema_exclusions = ["teams", "ewi_restriction"] #"mobile_numbers.mobile_number.blocked_mobile"]
-                         
+    # "mobile_numbers.mobile_number.blocked_mobile"]
+    schema_exclusions = ["teams", "ewi_restriction"]
 
     if site_ids:
         query = query.filter(Sites.site_id.in_(site_ids))

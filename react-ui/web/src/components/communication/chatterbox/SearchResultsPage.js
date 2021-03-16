@@ -1,13 +1,11 @@
-import React, {
-    useState, useEffect
-} from "react";
+import React, { useState, useEffect } from "react";
 
 import { 
     IconButton, Typography,
     makeStyles, Button, Box,
     Grid, Hidden, Divider
 } from "@material-ui/core";
-import { ArrowBackIos } from "@material-ui/icons";
+import { ArrowBackIos, NavigateNext, NavigateBefore } from "@material-ui/icons";
 import { isWidthDown } from "@material-ui/core/withWidth";
 
 import GeneralStyles from "../../../GeneralStyles";
@@ -16,6 +14,7 @@ import MessageList from "./MessageList";
 
 import { receiveSearchResults, removeReceiveSearchResults } from "../../../websocket/communications_ws";
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
+
 
 const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
@@ -81,35 +80,60 @@ function SearchResultsPage (props) {
         ListLoader
     } = props;
     const classes = useStyles();
-    const { state: {
+    const { state } = location;
+    const {
         sites, organizations, only_ewi_recipients,
-        include_inactive_numbers, ts_start, ts_end
-    } } = location;
+        include_inactive_numbers, ts_start, ts_end,
+        string_search, tag_search,
+        mobile_number_search, name_search
+    } = state;
 
     const [is_loading, setIsLoading] = useState(false);
     const has_no_input = sites === null && organizations === null;
+    const has_string_or_tag = string_search !== "" || tag_search.value !== "";
+    const [updated_offset, setUpdateOffset] = useState(0);
+    const [fetch_new_data, setFetchNewData] = useState(false);
+
+    const previousButtonHandler = () => {
+        if (updated_offset > 0) {
+            const temp_offset = updated_offset - 20;
+            setUpdateOffset(temp_offset);
+            setFetchNewData(true);
+        }
+    };
+    
+    const nextButtonHandler = () => {
+        const temp_offset = updated_offset + 20;
+        setUpdateOffset(temp_offset);
+        setFetchNewData(true);
+    };
 
     useEffect(() => {
         const has_no_search_results = searchResults.length === 0;
-
-        if (!has_no_input && has_no_search_results) {
+        if ((!has_no_input && has_no_search_results) || fetch_new_data) {
             setIsLoading(true);
-
+            
             const input = {
                 site_ids: sites.map(s => s.value),
                 org_ids: organizations.map(o => o.value),
                 only_ewi_recipients,
                 include_inactive_numbers,
                 ts_start,
-                ts_end
+                ts_end,
+                string_search,
+                tag_search,
+                mobile_number_search,
+                name_search,
+                updated_offset
             };
-
+            
             if (typeof socket !== "undefined") {
                 socket.emit("get_search_results", input);
-    
+
                 receiveSearchResults(data => {
                     setIsLoading(false);
                     setSearchResults(data);
+                    setFetchNewData(false);
                 });
             }
         }
@@ -121,7 +145,8 @@ function SearchResultsPage (props) {
         };
     }, [
         socket, sites, organizations,
-        ts_start, ts_end
+        ts_start, ts_end, updated_offset,
+        fetch_new_data
     ]);
 
     return (
@@ -168,13 +193,37 @@ function SearchResultsPage (props) {
 
                 {
                     ts_start && <Box mr={2}>
-                        <Typography variant="subtitle2"><strong>Start Date/Time:</strong>{ts_start}</Typography>
+                        <Typography variant="subtitle2"><strong>Start Date/Time: </strong>{ts_start}</Typography>
                     </Box>
                 }
 
                 {
                     ts_end && <Box mr={2}>
-                        <Typography variant="subtitle2"><strong>End Date/Time:</strong>{ts_end}</Typography>
+                        <Typography variant="subtitle2"><strong>End Date/Time: </strong>{ts_end}</Typography>
+                    </Box>
+                }
+
+                {
+                    string_search && <Box mr={2}>
+                        <Typography variant="subtitle2"><strong>String: </strong>{string_search}</Typography>
+                    </Box>
+                }
+
+                {
+                    tag_search.label && <Box mr={2}>
+                        <Typography variant="subtitle2"><strong>Tag: </strong>{tag_search.label}</Typography>
+                    </Box>
+                }
+
+                {
+                    mobile_number_search && <Box mr={2}>
+                        <Typography variant="subtitle2"><strong>Mobile Number: </strong>{mobile_number_search}</Typography>
+                    </Box>
+                }
+
+                {
+                    name_search.length !== 0 && <Box mr={2}>
+                        <Typography variant="subtitle2"><strong>Has name search</strong></Typography>
                     </Box>
                 }
 
@@ -186,13 +235,48 @@ function SearchResultsPage (props) {
 
                 <Box mr={2}>
                     <Typography variant="subtitle2">
-                        <strong>Include Invalid Numbers:</strong> {capitalizeFirstLetter(include_inactive_numbers.toString())}
+                        <strong>Include Inactive Numbers:</strong> {capitalizeFirstLetter(include_inactive_numbers.toString())}
                     </Typography>
                 </Box>
             </Box>
-
+            
             <Divider style={{ marginTop: 12 }} />
+            {
+                has_string_or_tag && !is_loading && (
+                    <Box display="flex" flexDirection="row-reverse">
+                        {
+                            // >= 20 because logic at the back says 20 from inbox
+                            // then 20 from outbox
+                            searchResults.length >= 20 && (
+                                <Button
+                                    size="small"
+                                    style={{ margin: 10 }}
+                                    onClick={nextButtonHandler}
+                                    variant="contained"
+                                    color="primary"
+                                    endIcon={<NavigateNext />}
+                                >
+                                    Next
+                                </Button>
+                            )
+                        }
 
+                        {
+                            updated_offset > 0 && <Button
+                                size="small"
+                                style={{ margin: 10 }}
+                                onClick={previousButtonHandler}
+                                variant="contained"
+                                color="primary"
+                                startIcon={<NavigateBefore />}
+                            >
+                                Previous
+                            </Button>
+                        }
+                    </Box>
+                )
+            }
+            
             {
                 has_no_input && (
                     <Typography variant="h6" align="center">
@@ -218,7 +302,10 @@ function SearchResultsPage (props) {
                             is_desktop={is_desktop}
                         />
                     ) : (
-                        <Typography variant="h6" align="center">
+                        <Typography 
+                            variant="h6" align="center"
+                            style={{ paddingTop: "5em" }}
+                        >
                             <strong>No results found</strong>
                         </Typography>
                     )
