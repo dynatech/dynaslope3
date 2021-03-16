@@ -296,7 +296,7 @@ function SearchMessageModal (props) {
         
                     <Grid item xs={12}>
                         <SelectMultipleWithSuggest
-                            label="Tags"
+                            label="Tag"
                             options={tagList}
                             value={tag_search}
                             changeHandler={value => search_dispatch({ type: "UPDATE_TAG_SEARCH", value })}
