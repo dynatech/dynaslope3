@@ -166,7 +166,7 @@ function Container (comp_props) {
         getAllTags(all_tags => {
             const tags = all_tags.map(row => ({
                 value: row.tag_id,
-                label: row.tag,
+                label: `${row.tag} (${row.source.match(/sms(.*)_/)[1]})`,
                 source: row.source
             }));
 

@@ -174,6 +174,10 @@ function SearchMessageModal (props) {
                     </Grid>
 
                     <Grid item xs={12}>
+                        <Typography variant="body1" align="center">OR</Typography>    
+                    </Grid>
+
+                    <Grid item xs={12}>
                         <SelectMultipleWithSuggest
                             label="Saved Contact"
                             options={options}
@@ -185,6 +189,10 @@ function SearchMessageModal (props) {
                             isMulti
                             isDisabled={Boolean(has_site_or_org || mobile_number_search)}
                         />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <Typography variant="body1" align="center">OR</Typography>    
                     </Grid>
 
                     <Grid item xs={12}>
