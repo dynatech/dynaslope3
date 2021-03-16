@@ -219,7 +219,7 @@ def format_recent_retriggers(unique_positive_triggers_list, invalid_dicts, site_
                 # entry, it will go here.
                 alert_status = item.alert_status
                 if alert_status:
-                    validating_status = alert_status.alert_status
+                    validating_status = alert_status[0].alert_status
                     final_invalids_dict.update(
                         {"validating_status": validating_status})
 
@@ -934,14 +934,15 @@ def get_invalid_triggers(positive_triggers_list):
         alert_status_entry = item.alert_status
 
         if alert_status_entry:
-            status_validity = alert_status_entry.alert_status
+            temp = alert_status_entry[0]
+            status_validity = temp.alert_status
             trigger_sym_id = item.trigger_sym_id
             # Check for latest invalidation entries
             if status_validity == -1:
                 if trigger_sym_id in invalids_dict:
-                    pass
+                    continue
                 elif trigger_sym_id not in not_invalid_set:
-                    invalids_dict[trigger_sym_id] = alert_status_entry
+                    invalids_dict[trigger_sym_id] = temp
             else:
                 if trigger_sym_id not in invalids_dict:
                     not_invalid_set.add(trigger_sym_id)

@@ -4,7 +4,7 @@ Monitoring tables
 """
 
 import datetime
-from marshmallow import fields, EXCLUDE, Schema
+from marshmallow import fields, EXCLUDE
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
 from src.models.users import UsersSchema

@@ -11,12 +11,9 @@ from src.models.analysis import (
     RainfallGauges, DataPresenceTSM, DataPresenceTSMSchema,
     DataPresenceLoggers, DataPresenceLoggersSchema,
     EarthquakeEvents, EarthquakeEventsSchema,
-    TSMSensors, TSMSensorsSchema)
-from src.models.loggers import (
-    Loggers, LoggersSchema
-)
+    TSMSensors)
+from src.models.loggers import Loggers
 from src.utils.surficial import get_surficial_data_presence
-from src.utils.chart_rendering import render_charts
 from src.utils.rainfall import get_all_site_rainfall_data
 from src.utils.earthquake import insert_earthquake_event_to_db
 

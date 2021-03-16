@@ -590,11 +590,14 @@ class AlertStatus(DB.Model):
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
 
-    trigger = DB.relationship(OperationalTriggers,
-                              backref=DB.backref(
-                                  "alert_status", lazy="select", uselist=False),
-                              primaryjoin="AlertStatus.trigger_id==OperationalTriggers.trigger_id",
-                              lazy="joined", innerjoin=True)
+    trigger = DB.relationship(
+        OperationalTriggers,
+        backref=DB.backref(
+            "alert_status", lazy="subquery",
+            order_by="desc(AlertStatus.trigger_id)"
+        ),
+        primaryjoin="AlertStatus.trigger_id==OperationalTriggers.trigger_id",
+        lazy="joined", innerjoin=True)
 
     user = DB.relationship(
         "Users", backref=DB.backref("alert_status_ack", lazy="dynamic"), lazy="select")
@@ -1020,7 +1023,7 @@ class RainfallDataTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_end = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    tagger = MARSHMALLOW.Nested(UsersSchema) # exclude: rainfall_data_tags
+    tagger = MARSHMALLOW.Nested(UsersSchema)  # exclude: rainfall_data_tags
 
     class Meta:
         """Saves table class structure as schema model"""
@@ -1134,7 +1137,7 @@ class MarkerDataTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
 
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     data_id = fields.Integer()
-    tagger = MARSHMALLOW.Nested(UsersSchema) # exclude=("marker_tags", )
+    tagger = MARSHMALLOW.Nested(UsersSchema)  # exclude=("marker_tags", )
 
     class Meta:
         """Saves table class structure as schema model"""
