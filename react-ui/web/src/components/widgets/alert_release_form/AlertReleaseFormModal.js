@@ -16,6 +16,7 @@ import { sendWSMessage } from "../../../websocket/monitoring_ws";
 
 import AlertReleaseForm from "./AlertReleaseForm";
 import { getLatestSiteEventDetails, processReleaseInternalAlert } from "./ajax";
+import { MonitoringShiftsContext } from "../../contexts/MonitoringShiftsContext";
 
 import { Store } from "./store";
 import Actions from "./actions";
@@ -37,6 +38,7 @@ function AlertReleaseFormModal (props) {
     } = props;
     const classes = useStyles();
 
+    const { current_ct } = useContext(MonitoringShiftsContext);
     const { enqueueSnackbar } = useSnackbar();
 
     const { 
@@ -47,8 +49,12 @@ function AlertReleaseFormModal (props) {
         if (isOpen) {
             const payload = moment();
             Actions.updateReleaseTime({ dispatch, payload });
+
+            if (current_ct) {
+                Actions.updateCTPersonnel({ dispatch, payload: current_ct.user_id });
+            }
         }
-    }, [isOpen, dispatch]);
+    }, [isOpen, dispatch, current_ct]);
 
     useEffect(() => {
         if (chosenCandidateAlert) {
@@ -105,7 +111,6 @@ function AlertReleaseFormModal (props) {
     };
     
     const handleReset = () => {
-        closeHandler();
         Actions.reset({ dispatch });
         setActiveStep(0);
         setChosenCandidateAlert(null);

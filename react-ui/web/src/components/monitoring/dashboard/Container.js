@@ -32,12 +32,11 @@ import {
     receiveGeneratedAlerts, receiveCandidateAlerts,
     receiveAlertsFromDB, receiveEWIInsertResponse
 } from "../../../websocket/monitoring_ws";
-import { getMonitoringShifts, receiveMonitoringShiftData, removeReceiveMonitoringShiftData } from "../../../websocket/misc_ws";
 import MomsInsertModal from "../../widgets/moms/MomsInsertModal";
 import OnDemandInsertModal from "../../widgets/on_demand/OnDemandInsertModal";
 import { GeneralContext } from "../../contexts/GeneralContext";
-
 import { StoreProvider } from "../../widgets/alert_release_form/store";
+
 
 const useStyles = makeStyles(theme => {
     const gen_style = GeneralStyles(theme);
@@ -70,7 +69,6 @@ function Container (props) {
 
     const [chosenTab, setChosenTab] = useState(0);
     const [generatedAlerts, setGeneratedAlerts] = useState(null);
-    const [monitoringShifts, setMonitoringShifts] = useState([]);
     const [candidateAlertsData, setCandidateAlertsData] = useState(null);
     const [alertsFromDbData, setAlertsFromDbData] = useState(null);
     const [isOpenReleaseModal, setIsOpenReleaseModal] = useState(false);
@@ -82,6 +80,7 @@ function Container (props) {
     const [is_on_demand_modal_open, setOnDemandModal] = useState(false);
     const set_moms_modal_fn = bool => () => setMomsModal(bool);
     const set_on_demand_modal_fn = bool => () => setOnDemandModal(bool);
+
     const { setIsReconnecting } = useContext(GeneralContext);
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     
@@ -91,8 +90,6 @@ function Container (props) {
         receiveGeneratedAlerts(generated_alerts => setGeneratedAlerts(generated_alerts));
         receiveCandidateAlerts(candidate_alerts => setCandidateAlertsData(candidate_alerts));
         receiveAlertsFromDB(alerts_from_db => setAlertsFromDbData(alerts_from_db));
-        getMonitoringShifts();
-        receiveMonitoringShiftData(shift_data => setMonitoringShifts(shift_data));
         receiveEWIInsertResponse(response => {
             const { snackbar_key, message, status } = response;
             closeSnackbar(snackbar_key);
@@ -107,7 +104,6 @@ function Container (props) {
 
         return function cleanup () {
             unsubscribeToWebSocket();
-            removeReceiveMonitoringShiftData();
         };
     }, []);
 
@@ -274,7 +270,7 @@ function Container (props) {
                     
                     <Grid item xs={12} md={9}>
                         <div style={{ marginBottom: 12 }}>
-                            <MonitoringShiftsPanel shiftData={monitoringShifts}/>
+                            <MonitoringShiftsPanel />
                         </div>
 
                         <TabBar

@@ -10,7 +10,7 @@ import moment from "moment";
 import { useSnackbar } from "notistack";
 
 import OnDemandForm from "./OnDemandForm";
-import { insertOnDemandToDb } from "./ajax";
+import { insertOnDemandToDb, checkLatestSiteEventIfHasOnDemand } from "./ajax";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
 import { GeneralContext } from "../../contexts/GeneralContext";
 
@@ -30,6 +30,8 @@ function OnDemandInsertModal (props) {
     const [request_ts, setRequestTs] = useState(null);
     const [reason, setReason] = useState("");
     const [reporter_id, setReporter] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [has_on_demand, setHasOnDemand] = useState(false);
 
     useEffect(() => {
         if (typeof match !== "undefined") {
@@ -46,6 +48,13 @@ function OnDemandInsertModal (props) {
 
     useEffect(() => {
         setReporter("");
+        if (site) {
+            setLoading(true);
+            checkLatestSiteEventIfHasOnDemand(site.value, result => {
+                setHasOnDemand(result.has_on_demand);
+                setLoading(false);
+            });
+        }
     }, [site]);
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -139,6 +148,8 @@ function OnDemandInsertModal (props) {
                     requestTs={request_ts}
                     reporter={reporter_id}
                     tecchInfo={tech_info}
+                    loading={loading}
+                    hasOnDemand={has_on_demand}
                 />
             </DialogContent>
             <DialogActions>

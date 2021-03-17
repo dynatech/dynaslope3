@@ -231,6 +231,7 @@ def wrap_get_internal_alert_symbols():
     """
     Returns  all alert symbols rows.
     """
+
     ias = get_internal_alert_symbols()
 
     return_data = []
@@ -299,6 +300,16 @@ def process_release_internal_alert():
             "internal_sym_id": internal_sym["internal_sym_id"]
         }
 
+    def format_ts(ts):
+        print(ts)
+        try:
+            ts = datetime.strptime(
+                ts, "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            pass
+
+        return ts
+
     triggers_ref = retrieve_data_from_memcache("trigger_hierarchies")
     for trig in triggers_ref:
         source = trig["trigger_source"]
@@ -315,10 +326,14 @@ def process_release_internal_alert():
         if data_presence == 1:
             try:
                 trigger = trig_entry["trigger"]
+                ts_formatted = format_ts(trigger["ts"])
                 trigger["alert_level"] = 1
                 trigger["source_id"] = source_id
                 trigger["hierarchy_id"] = hierarchy_id
                 trigger["source"] = source
+                trigger["trigger_type"] = source
+                trigger["ts_updated"] = ts_formatted
+                trigger["ts"] = ts_formatted
                 internal_sym = get_internal_alert_symbol(1, source_id)
                 trigger.update(internal_sym)
                 above_threshold[source] = trigger
@@ -332,6 +347,10 @@ def process_release_internal_alert():
                         value["source_id"] = source_id
                         value["hierarchy_id"] = hierarchy_id
                         value["source"] = source
+                        value["trigger_type"] = source
+                        ts_formatted = format_ts(value["ts"])
+                        value["ts_updated"] = ts_formatted
+                        value["ts"] = ts_formatted
                         internal_sym = get_internal_alert_symbol(
                             alert_level, source_id)
                         value.update(internal_sym)
@@ -381,7 +400,8 @@ def process_release_internal_alert():
                         "internal_sym_id": internal_sym_id
                     })
             else:
-                # Check and convert symbol to no data counterpart
+                temp_alert_level = alert_level
+
                 if source in no_data:
                     temp_alert_level = -1
                     # check if the current release has other released triggers
@@ -422,12 +442,7 @@ def process_release_internal_alert():
         # if no retriggers from initial form input
         # then it is safe to say no extension of validity will happen
         if not above_threshold:
-            try:
-                data_ts = datetime.strptime(
-                    json_data["data_ts"], "%Y-%m-%dT%H:%M:%S.%fZ")
-            except ValueError:
-                data_ts = datetime.strptime(
-                    json_data["data_ts"], "%Y-%m-%d %H:%M:%S")
+            data_ts = format_ts(json_data["data_ts"])
             data_ts = data_ts \
                 .replace(second=0, microsecond=0, tzinfo=pytz.utc) \
                 .astimezone(pytz.timezone("Asia/Manila")) \
@@ -525,6 +540,7 @@ def wrap_get_monitoring_events(value=None):
     """
     NOTE: ADD ASYNC OPTION ON MANY OPTION (TOO HEAVY)
     """
+
     filter_type = request.args.get('filter_type', default="event_id", type=str)
 
     return_data = []
@@ -563,6 +579,7 @@ def wrap_get_monitoring_events(value=None):
 def wrap_get_qa_data(ts_start=None):
     """
     """
+
     ts_end = datetime.strptime(
         ts_start, "%Y-%m-%d %H:%M:%S") + timedelta(hours=12)
     q_a = get_qa_data(ts_start, ts_end)
@@ -642,6 +659,7 @@ def wrap_get_monitoring_releases(release_id=None, ts_start=None, ts_end=None, lo
     """
     Gets a single release with the specificied ID
     """
+
     release = get_monitoring_releases(
         release_id, ts_start, ts_end, load_options)
     release_schema = MonitoringReleasesSchema()
@@ -659,6 +677,7 @@ def wrap_get_active_monitoring_events():
     """
         Get active monitoring events. Does not need any parameters, just get everything.
     """
+
     active_events = get_active_monitoring_events()
 
     active_events_data = MonitoringEventAlertsSchema(
@@ -701,8 +720,8 @@ def wrap_get_pub_sym_id(alert_level):
 
     Returns integer
     """
-    pub_sym = get_pub_sym_id(alert_level)
 
+    pub_sym = get_pub_sym_id(alert_level)
     return str(pub_sym)
 
 
@@ -710,6 +729,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
     """
     Initiates the monitoring_release write to db plus it's corresponding details.
     """
+
     try:
         site_id = monitoring_instance_details["site_id"]
         event_id = monitoring_instance_details["event_id"]
@@ -748,7 +768,7 @@ def insert_ewi_release(monitoring_instance_details, release_details, publisher_d
 
         if trigger_list_arr:
             latest_trigger_ts_updated = None
-            # The following could should be in a foreach so we can handle list of triggers
+            # The following could/should be in a foreach so we can handle list of triggers
             for trigger in trigger_list_arr:
                 trigger_type = trigger["trigger_type"]
 
@@ -1085,7 +1105,7 @@ def insert_ewi(internal_json=None):
 
                 elif pub_sym_id == current_event_alert.pub_sym_id \
                         and site_monitoring_instance.validity == \
-                datetime_data_ts + timedelta(minutes=30):
+                    datetime_data_ts + timedelta(minutes=30):
                     try:
                         to_extend_validity = json_data["to_extend_validity"]
 
@@ -1327,8 +1347,10 @@ def insert_cbewsl_ewi():
         if moms_trigger:
             highest_moms = next(iter(sorted(
                 moms_trigger["moms_list"], key=lambda x: x["op_trigger"], reverse=True)), None)
-            alert_symbol = retrieve_data_from_memcache("operational_trigger_symbols", {
-                "alert_level": highest_moms["op_trigger"], "source_id": 6}, retrieve_attr="alert_symbol")
+            alert_symbol = retrieve_data_from_memcache(
+                "operational_trigger_symbols",
+                {"alert_level": highest_moms["op_trigger"], "source_id": 6},
+                retrieve_attr="alert_symbol")
 
             moms_trigger["alert_level"] = highest_moms["op_trigger"]
             moms_trigger["alert"] = alert_symbol
@@ -1536,8 +1558,6 @@ def get_monitoring_analytics_data():
     """
     Function that get monitoring analytics data
     """
-    status = None
-    message = ""
 
     data = request.get_json()
     if data is None:
@@ -1546,11 +1566,8 @@ def get_monitoring_analytics_data():
     final_data = []
     try:
         final_data = get_monitoring_analytics(data)
-        status = True
     except Exception as err:
         print(err)
-        status = False
-        message = f"Error: {err}"
 
     return jsonify(final_data)
 
@@ -1567,6 +1584,7 @@ def cross_check_narrative_id_on_demand():
 def save_on_demand_data():
     """
     """
+
     status = None
     message = ""
 
@@ -1588,3 +1606,40 @@ def save_on_demand_data():
     }
 
     return jsonify(feedback)
+
+
+@MONITORING_BLUEPRINT.route("/monitoring/check_if_current_site_event_has_on_demand/<site_id>", methods=["GET"])
+def check_if_current_site_event_has_on_demand(site_id):
+    """
+    Used in on-demand trigger insert form
+    """
+
+    latest_release = get_latest_site_event_details(site_id=site_id)
+    event_alert = latest_release["event_alert"]
+    event_id = event_alert["event"]["event_id"]
+
+    public_alert_level = event_alert["public_alert_symbol"]["alert_level"]
+
+    # check only if alert level 1
+    if public_alert_level == 1:
+        saved_triggers = get_saved_event_triggers(event_id)
+
+        on_demand_source_id = retrieve_data_from_memcache(
+            "trigger_hierarchies", {"trigger_source": "on demand"},
+            retrieve_one=True, retrieve_attr="source_id"
+        )
+        on_demand_internal_symbol = retrieve_data_from_memcache(
+            "operational_trigger_symbols", {
+                "alert_level": 1, "source_id": on_demand_source_id
+            }, retrieve_one=True, retrieve_attr="internal_alert_symbol"
+        )
+
+        for row in saved_triggers:
+            if row[0] == on_demand_internal_symbol["internal_sym_id"]:
+                return {"has_on_demand": True, "note": None}
+
+        note = "No on-demand trigger"
+    else:
+        note = "Public alert not 1"
+
+    return {"has_on_demand": False, "note": note}

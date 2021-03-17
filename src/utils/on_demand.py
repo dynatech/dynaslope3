@@ -13,10 +13,12 @@ def get_on_demand(site_id, timestamp):
 
     m_od = MonitoringOnDemand
 
-    on_demand_alerts = m_od.query.order_by(
-        DB.desc(m_od.request_ts)).filter_by(
+    on_demand_alerts = m_od.query \
+        .order_by(
+            DB.desc(m_od.request_ts)) \
+        .filter_by(
             site_id=site_id,
             request_ts=timestamp
-    ).all()
+        ).all()
 
     return on_demand_alerts

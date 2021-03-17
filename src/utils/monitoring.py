@@ -1030,6 +1030,7 @@ def get_monitoring_triggers(
     """
     NOTE: To fill
     """
+
     mt = MonitoringTriggers
     me = MonitoringEvents
     mea = MonitoringEventAlerts
@@ -1165,6 +1166,7 @@ def format_events_table_data(events):
     """
     Organizes data required by the front end table
     """
+
     event_data = []
     for event in events:
         if event.status == 2:
@@ -1215,6 +1217,7 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
             include_count
             search
     """
+
     me = MonitoringEvents
     mea = MonitoringEventAlerts
 
@@ -1341,7 +1344,6 @@ def get_latest_site_event_details(site_id):
 
     pas = latest_release_dump["event_alert"]["public_alert_symbol"]
     alert_level = pas["alert_level"]
-    public_alert_symbol = pas["alert_symbol"]
 
     trigger_list = latest_release_dump["trigger_list"]
     internal_alert = build_internal_alert_level(

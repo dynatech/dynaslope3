@@ -4,7 +4,7 @@ Users Functions Controller File
 
 from flask import Blueprint, jsonify, request
 from connection import DB
-from src.models.users import UsersSchema
+from src.models.users import Users, UsersSchema
 from src.models.organizations import Organizations, OrganizationsSchema
 from src.utils.users import (
     get_dynaslope_users, get_community_users,
@@ -24,6 +24,7 @@ def wrap_get_community_orgs_by_site(site_code):
     """
     Route function that get all Dynaslope users by group
     """
+
     community_users = get_users_categorized_by_org(site_code)
 
     temp = {}
@@ -54,6 +55,7 @@ def wrap_get_community_users_by_site(site_code):
     """
     Route function that get all Dynaslope users by group
     """
+
     community_users_data = []
     if site_code:
         temp = [site_code]
@@ -72,6 +74,7 @@ def wrap_get_dynaslope_users(active_only="true", include_contacts=False):
     """
     Route function that get all Dynaslope users
     """
+
     active_only = active_only == "true"
     include_contacts = include_contacts == "true"
 
@@ -149,6 +152,7 @@ def get_organizations():
 def update_user_account():
     """
     """
+
     json_data = request.get_json()
     result = update_account(json_data)
 
@@ -159,6 +163,7 @@ def update_user_account():
 def create_user():
     """
     """
+
     json_data = request.get_json()
     try:
         user_id = save_user_information(json_data)
@@ -185,6 +190,7 @@ def create_user():
 def update_user_info():
     """
     """
+
     json_data = request.get_json()
 
     try:
@@ -210,3 +216,18 @@ def update_user_info():
     }
 
     return jsonify(feedback)
+
+
+@USERS_BLUEPRINT.route("/users/get_user_by_nickname/<nickname>", methods=["GET"])
+def wrap_get_user_by_nickname(nickname):
+    """
+    """
+
+    row = Users.query.options(DB.raiseload(
+        "*")).filter_by(nickname=nickname).first()
+
+    temp = {"message": "No user"}
+    if row:
+        temp = UsersSchema().dump(row)
+
+    return temp

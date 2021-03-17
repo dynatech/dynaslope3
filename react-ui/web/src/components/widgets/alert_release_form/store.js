@@ -241,7 +241,7 @@ function reducer (state, action) {
             };
 
         case "USE_CANDIDATE_ALERT": {
-            const temp = insertCandidateAlertDetails(payload);
+            const temp = insertCandidateAlertDetails(payload, state);
             return temp;
         }
 
@@ -319,7 +319,7 @@ function isNextButtonDisabled (step, state) {
     }
 }
 
-function insertCandidateAlertDetails (candidate_alert) {
+function insertCandidateAlertDetails (candidate_alert, current_state) {
     const state_copy = cloneDeep(initial_state);
 
     const source_set = new Set();
@@ -384,7 +384,8 @@ function insertCandidateAlertDetails (candidate_alert) {
         previous_release: { ...candidate_alert.previous_release },
         post_computation: temp,
         preview: temp,
-        non_triggering_moms: candidate_alert.non_triggering_moms
+        non_triggering_moms: candidate_alert.non_triggering_moms,
+        iomp_ct: current_state.iomp_ct
     };
 }
 

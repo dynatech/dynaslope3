@@ -16,10 +16,10 @@ import { access_refresh_interval } from "./config";
 import BulletinTemplate from "./components/widgets/bulletin/BulletinTemplate";
 import ChartRenderingContainer from "./components/chart_rendering/Container";
 
-import { CTProvider } from "./components/monitoring/dashboard/CTContext";
 import { GeneralProvider } from "./components/contexts/GeneralContext";
 import { ServerTimeProvider } from "./components/contexts/ServerTimeContext";
 import { NotificationsProvider } from "./components/contexts/NotificationsContext";
+import { MonitoringShiftsProvider } from "./components/contexts/MonitoringShiftsContext";
 
 const styles = theme => ({
     app: {
@@ -103,10 +103,9 @@ function App (props) {
                             <div>Loading...</div>
                         ) : (
                             is_logged ? (
-                                // <ConnectionNotifierProvider>
                                 <GeneralProvider>
-                                    <CTProvider>
-                                        <ServerTimeProvider>
+                                    <ServerTimeProvider>
+                                        <MonitoringShiftsProvider>
                                             <NotificationsProvider>
                                                 <Header
                                                     {...r_props} 
@@ -129,10 +128,9 @@ function App (props) {
                                             </div>
                             
                                             <Footer />
-                                        </ServerTimeProvider>
-                                    </CTProvider>
+                                        </MonitoringShiftsProvider>
+                                    </ServerTimeProvider>
                                 </GeneralProvider>
-                                // </ConnectionNotifierProvider>
                             ) : (
                                 <Redirect to="/login" />
                             )

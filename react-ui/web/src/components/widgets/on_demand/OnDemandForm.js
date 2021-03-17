@@ -2,7 +2,7 @@ import React, { Fragment, useState } from "react";
 import {
     Grid, TextField,
     Radio, FormControl, FormLabel,
-    RadioGroup, FormControlLabel
+    RadioGroup, FormControlLabel, CircularProgress
 } from "@material-ui/core";
 
 import MomentUtils from "@date-io/moment";
@@ -19,7 +19,8 @@ function OnDemandForm (props) {
         requestTs, setRequestTs,
         reason, setReason,
         reporter, setReporter,
-        techInfo, setTechInfo
+        techInfo, setTechInfo,
+        loading, hasOnDemand
     } = props;
 
     const initial_label = { label: "Reason", holder: "Enter reason (will appear on timeline)" };
@@ -49,7 +50,11 @@ function OnDemandForm (props) {
             }
 
             {
-                site !== null && (
+                loading && <Grid container justify="center"><CircularProgress /></Grid>
+            }
+
+            {
+                site !== null && !loading && (
                     <Fragment>
                         <FormControl component="fieldset" style={{ display: "flex", marginTop: 16 }}>
                             <FormLabel component="legend" style={{ textAlign: "center", marginBottom: 8 }}>
@@ -71,12 +76,14 @@ function OnDemandForm (props) {
                                     key="d1"
                                 />
 
-                                <FormControlLabel
-                                    value="0"
-                                    control={<Radio color="primary"/>}
-                                    label="Lower/End (d)"
-                                    key="d"
-                                />
+                                {
+                                    hasOnDemand && <FormControlLabel
+                                        value="0"
+                                        control={<Radio color="primary"/>}
+                                        label="Lower/End (d)"
+                                        key="d"
+                                    />
+                                }
                             </RadioGroup>
                         </FormControl>
 
