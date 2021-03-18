@@ -281,7 +281,9 @@ def check_if_alert_status_entry_in_db(trigger_id):
     alert_status_result = []
     try:
         alert_status_result = AlertStatus.query.filter(
-            AlertStatus.trigger_id == trigger_id).first()
+            AlertStatus.trigger_id == trigger_id) \
+            .order_by(AlertStatus.stat_id.desc()) \
+            .first()
     except Exception as err:
         print(err)
         raise
