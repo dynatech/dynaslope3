@@ -300,13 +300,16 @@ def process_release_internal_alert():
             "internal_sym_id": internal_sym["internal_sym_id"]
         }
 
-    def format_ts(ts):
-        print(ts)
+    def format_ts(ts, as_datetime=False):
         try:
             ts = datetime.strptime(
-                ts, "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%Y-%m-%d %H:%M:%S")
+                ts, "%Y-%m-%dT%H:%M:%S.%fZ")
         except ValueError:
-            pass
+            ts = datetime.strptime(
+                ts, "%Y-%m-%d %H:%M:%S")
+
+        if not as_datetime:
+            ts = ts.strftime("%Y-%m-%d %H:%M:%S")
 
         return ts
 
@@ -442,7 +445,7 @@ def process_release_internal_alert():
         # if no retriggers from initial form input
         # then it is safe to say no extension of validity will happen
         if not above_threshold:
-            data_ts = format_ts(json_data["data_ts"])
+            data_ts = format_ts(json_data["data_ts"], as_datetime=True)
             data_ts = data_ts \
                 .replace(second=0, microsecond=0, tzinfo=pytz.utc) \
                 .astimezone(pytz.timezone("Asia/Manila")) \
