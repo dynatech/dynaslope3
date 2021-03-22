@@ -29,7 +29,7 @@ def get_greeting(data_ts):
 
     if hour == 0:
         greeting = "gabi"
-    elif hour < 11:
+    elif hour <= 11:
         greeting = "umaga"
     elif hour == 12:
         greeting = "tanghali"
