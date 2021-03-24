@@ -40,11 +40,15 @@ const useStyle = releaseId => makeStyles(theme => {
             },
             body: {
                 padding: "0 44px",
-                height: 629, maxHeight: 629,
+                // NOTE: Change height and maxHeight accordingly depending
+                // on what is letter header height
+                // height: 629, maxHeight: 629,
+                height: 604, maxHeight: 604,
                 overflowY: "hidden",
                 [theme.breakpoints.only("md")]: {
                     padding: "0 91.6652px",
-                    height: 1310.3957, maxHeight: 1310.3957
+                    // height: 1310.3957, maxHeight: 1310.3957
+                    height: 1258.3132, maxHeight: 1258.3132,
                 },
                 [theme.breakpoints.up("lg")]: {
                     padding: "0 183.3304px",
