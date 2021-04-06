@@ -1,7 +1,7 @@
 import React, { Fragment } from "react";
 import {
     FormControl, InputLabel, Select,
-    MenuItem, withStyles
+    MenuItem, withStyles, FormHelperText
 } from "@material-ui/core";
 
 const styles = theme => ({
@@ -16,7 +16,7 @@ function SelectInputForm (props) {
         label, div_id,
         changeHandler, value, css,
         error, required,
-        disabled
+        disabled, helperText
     } = props;
 
     const is_required = typeof required !== "undefined" ? required : false;
@@ -49,6 +49,7 @@ function SelectInputForm (props) {
                         ))
                     }
                 </Select>
+                { Boolean(helperText) && <FormHelperText>{helperText}</FormHelperText> }
             </FormControl>
         </Fragment>
     );

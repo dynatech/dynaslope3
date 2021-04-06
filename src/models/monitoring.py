@@ -205,6 +205,8 @@ class MonitoringOnDemand(DB.Model):
     reporter_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
     tech_info = DB.Column(DB.String(500))
+    site_id = DB.Column(DB.Integer)
+    alert_level = DB.Column(DB.Integer)
 
     reporter = DB.relationship(
         "Users", backref="od_reporter",
@@ -279,7 +281,8 @@ class MonitoringMomsReleases(DB.Model):
 
     def __repr__(self):
         return (f"Type <{self.__class__.__name__}> Moms Release ID: {self.moms_rel_id} "
-                f" MOMS ID: {self.moms_id} Trigger Misc ID: {self.trig_misc_id} Release ID: {self.release_id}")
+                f"MOMS ID: {self.moms_id} Trigger Misc ID: {self.trig_misc_id} "
+                f"Release ID: {self.release_id}")
 
 
 class MonitoringMoms(DB.Model):
@@ -450,7 +453,8 @@ class OperationalTriggers(DB.Model):
         return (f"Type <{self.__class__.__name__}> Trigger_ID: {self.trigger_id}"
                 f" Site_ID: {self.site_id} trigger_sym_id: {self.trigger_sym_id}"
                 f" ts: {self.ts} ts_updated: {self.ts_updated}"
-                f" | TRIGGER SYMBOL alert_level: {self.trigger_symbol.alert_level} source_id: {self.trigger_symbol.source_id}")
+                f" | TRIGGER SYMBOL alert_level: {self.trigger_symbol.alert_level} "
+                f"source_id: {self.trigger_symbol.source_id}")
 
 
 class OperationalTriggerSymbols(DB.Model):
@@ -714,6 +718,7 @@ class MonitoringOnDemandSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     Schema representation of Monitoring On Demand class
     """
 
+    reporter_id = fields.Integer()
     reporter = fields.Nested("UsersSchema",)
     request_ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     narrative = fields.Nested("NarrativesSchema")

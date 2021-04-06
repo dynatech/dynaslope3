@@ -14,8 +14,7 @@ module.exports = {
     ],
     env: {
         browser: true,
-        es6: true,
-        jquery: true
+        es6: true
     },
     rules: {
         "react/prop-types": 0,

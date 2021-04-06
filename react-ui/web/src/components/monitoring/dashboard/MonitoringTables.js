@@ -25,8 +25,6 @@ import BulletinModal from "../../widgets/bulletin/BulletinModal";
 import { getEWIMessage, getRoutineEWIMessage } from "../ajax";
 import SendEwiSmsModal from "./SendEwiSmsModal";
 import SendRoutineEwiSmsModal from "./SendRoutineEwiSmsModal";
-import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
-import { CTContext } from "./CTContext";
 import { capitalizeFirstLetter } from "../../../UtilityFunctions";
 import { ServerTimeContext } from "../../contexts/ServerTimeContext";
 import { GeneralContext } from "../../contexts/GeneralContext";
@@ -716,7 +714,6 @@ function MonitoringTables (props) {
     const { isShowing: isShowingSendRoutineEWI, toggle: toggleSendRoutineEWI } = useModal();
     const [chosenReleaseDetail, setChosenReleaseDetail] = useState({});
     const [isOpenBulletinModal, setIsOpenBulletinModal] = useState(false);
-    const { reporter_id_ct, setReporterIdCt, setCTFullName } = React.useContext(CTContext);
     const [routine_sites_list, setRoutineSitesList] = useState({});
     
     const handleExpansion = panel => (event, isExpanded) => {
@@ -767,18 +764,6 @@ function MonitoringTables (props) {
     return (
         <div className={classes.root}>
             <Grid container className={classes.sectionHeadContainer}>
-                <Grid item xs={12} align="right" style={{ marginBottom: 22 }}>
-                    <DynaslopeUserSelectInputForm
-                        variant="standard"
-                        label="Monitoring Partner"
-                        div_id="reporter_id_ct"
-                        changeHandler={event => setReporterIdCt(event.target.value)}
-                        value={reporter_id_ct}
-                        css={classes.inputWidth}
-                        returnFullNameCallback={ret => setCTFullName(ret)}
-                    />
-                </Grid>
-
                 <Grid item xs={12}>
                     <Typography className={classes.sectionHead} variant="h5">Candidate Alerts</Typography>
                 </Grid>

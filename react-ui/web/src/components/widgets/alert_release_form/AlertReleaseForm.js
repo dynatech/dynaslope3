@@ -1,537 +1,884 @@
-import React, { Fragment, useEffect, useState } from "react";
-import moment from "moment";
-import MomentUtils from "@date-io/moment";
+import React, {
+    Fragment, useContext
+} from "react";
+
 import {
-    TextField, Grid,
-    FormControl, Switch,
-    Divider, makeStyles, CircularProgress,
-    FormControlLabel
+    Grid, Typography, TextField, Checkbox,
+    CircularProgress, Divider, capitalize,
+    FormControlLabel, Switch, FormControl,
+    FormLabel, Radio
 } from "@material-ui/core";
 import {
-    MuiPickersUtilsProvider,
-    KeyboardDateTimePicker, KeyboardTimePicker
+    MuiPickersUtilsProvider, KeyboardDateTimePicker,
+    KeyboardTimePicker
 } from "@material-ui/pickers";
 
-// Stepper Related Imports
-import Stepper from "@material-ui/core/Stepper";
-import Step from "@material-ui/core/Step";
-import StepLabel from "@material-ui/core/StepLabel";
-import Typography from "@material-ui/core/Typography";
+import MomentUtils from "@date-io/moment";
+import moment from "moment";
 
-// Form Related Imports
-import SubsurfaceTriggerGroup from "./SubsurfaceTriggerGroup";
-import SurficialTriggerGroup from "./SurficialTriggerGroup";
-// import MomsTriggerGroup from "./MomsTriggerGroup";
-import RainfallTriggerGroup from "./RainfallTriggerGroup";
-import EarthquakeTriggerGroup from "./EarthquakeTriggerGroup";
-import OnDemandTriggerGroup from "./OnDemandTriggerGroup";
+import { Store } from "./store";
+import Actions from "./actions";
 
-// Widgets
-import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
+import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
 
-import { getLatestSiteRelease } from "./ajax";
-import { getCurrentUser } from "../../sessions/auth";
-import { CTContext } from "../../monitoring/dashboard/CTContext";
 
-const useStyles = makeStyles(theme => ({
-    inputGridContainer: {
-        marginTop: 6,
-        marginBottom: 6
-    },
-    checkboxGridContainer: {
-        marginTop: 12,
-        marginBottom: 6
-    },
-    selectInput: {
-        width: "auto",
-        [theme.breakpoints.down("xs")]: {
-            width: "250px"
-        }
-    },
-    root: {
-        width: "90%",
-    },
-    formControl: {
-        width: "100%"
-    },
-    formLabel: {
-        justifyContent: "space-between",
-        marginLeft: 0,
-        color: "#f50057"
-    },
-    backButton: {
-        marginRight: 1
-    },
-    instructions: {
-        marginTop: 1,
-        marginBottom: 1,
-    }
-}));
+function LoadingComponent (props) {
+    const { message } = props;
 
-function returnUpdateWarning () {
-    return (
-        <Fragment>
-            <Grid item xs={12} >
-                <Typography variant="body2" color="secondary">
-                    You chose a data timestamp that has been released. 
-                    You are allowed to update release details but changes on triggers and alert level cannot be accepted. 
-                    For those kind of changes, please contact the Software Infra Devs. Thank you.
-                </Typography>
-            </Grid>
-        </Fragment>
-    );
+    return <Fragment>
+        <Grid item xs={12} container justify="center">
+            <CircularProgress />
+        </Grid>
+
+        <Grid item xs={12}>
+            <Typography variant="body1" align="center">
+                { message }
+            </Typography>
+        </Grid>
+    </Fragment>; 
 }
 
-function GeneralInputForm (props) {
-    const {
-        setModalTitle, generalData, classes,
-        handleEventChange, handleDateTime,
-        setGeneralData, isUpdatingRelease,
-        changeState
-    } = props;
-
-    const {
-        siteId, dataTimestamp, releaseTime,
-        reporterIdMt, reporterIdCt
-    } = generalData;
-
-    useEffect(() => {
-        setModalTitle("Provide information to the following fields.");
-    }, []);
-
-    const setSite = ret => {
-        const { label, data } = ret;
-        setGeneralData({
-            ...generalData,
-            siteId: ret,
-            address: label,
-            siteCode: data.site_code
-        });
-        changeState("siteId", ret);
-    };
+function FirstStep (props) {
+    const { state, dispatch } = useContext(Store);
 
     return (
         <Fragment>
-            {
-                isUpdatingRelease && returnUpdateWarning()
-            }
-            <Grid item xs={12} className={classes.inputGridContainer}>
+            <Grid item xs={12} md={6}>
                 <DynaslopeSiteSelectInputForm
-                    value={siteId}
-                    changeHandler={value => setSite(value)}
+                    value={state.site}
+                    changeHandler={value => Actions.updateSite({ dispatch, payload: value })}
+                    required
+                    helperText={state.validation.site || ""}
+                    error={Boolean(state.validation.site)}
                 />                
             </Grid>
 
-            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+            <Grid item xs={12} sm={6} md={4}>
                 <KeyboardDateTimePicker
                     required
                     autoOk
-                    label="Data timestamp"
-                    value={dataTimestamp}
-                    onChange={handleDateTime("dataTimestamp")}
+                    fullWidth
+                    label="Data Timestamp"
+                    value={state.data_ts}
+                    onChange={e => Actions.updateDataTS({ dispatch, payload: e })}
                     ampm={false}
                     placeholder="2010/01/01 00:00"
                     format="YYYY/MM/DD HH:mm"
                     mask="____/__/__ __:__"
                     clearable
                     disableFuture
+                    helperText={state.validation.data_ts || ""}
+                    error={Boolean(state.validation.data_ts)}
                 />
             </Grid>
 
-            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+            <Grid item xs={12} sm={6} md={2}>
                 <KeyboardTimePicker
                     required
                     autoOk
+                    fullWidth
                     ampm={false}
-                    label="Time of release"
+                    label="Time of Release"
                     mask="__:__"
                     placeholder="00:00"
-                    value={releaseTime}
-                    onChange={handleDateTime("releaseTime")}
+                    value={state.release_time}
+                    onChange={e => Actions.updateReleaseTime({ dispatch, payload: e })}
                     clearable
+                    helperText={state.validation.release_time || ""}
+                    error={Boolean(state.validation.release_time)}
                 />
             </Grid>
 
-            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+            <Grid item xs={12} sm={6}>
                 <DynaslopeUserSelectInputForm
                     variant="standard"
                     label="MT Personnel"
                     div_id="reporter_id_mt"
-                    changeHandler={handleEventChange("reporterIdMt")}
-                    value={reporterIdMt}
+                    value={state.iomp_mt}
                     disabled
+                    required
                 />
             </Grid>
 
-            <Grid item xs={12} sm={6} className={classes.inputGridContainer}>
+            <Grid item xs={12} sm={6}>
                 <DynaslopeUserSelectInputForm
                     variant="standard"
                     label="CT Personnel"
                     div_id="reporter_id_ct"
-                    changeHandler={handleEventChange("reporterIdCt")}
-                    value={reporterIdCt}
+                    value={state.iomp_ct}
+                    changeHandler={e => Actions.updateCTPersonnel({ dispatch, payload: e.target.value })}
+                    required
+                    helperText={state.validation.iomp_ct || ""}
+                    error={Boolean(state.validation.iomp_ct)}
                 />
             </Grid>
         </Fragment>
     );
 }
 
-function TriggersInputForm (props) {
-    const { 
-        classes, triggersState, setTriggersState,
-        setModalTitle, hasNoGroundData, setHasNoGroundData,
-        triggersReleased, alert_level, setAlert0, isAlert0
+function SecondStep (props) {
+    const { isLoading } = props;
+
+    return <Fragment>
+        {
+            isLoading
+                ? <LoadingComponent message="Fetching current site alert..." /> 
+                : <Fragment>
+                    <LatestSiteDetailsSection />
+                    <SubsurfaceSection />
+                    <SurficialSection/>
+                    <RainfallSection />
+                    <EarthquakeSection />
+                    <Grid item xs={12}>
+                        <Divider />
+                    </Grid>
+                    <MOMsSection />
+                    <OnDemandSection />
+                </Fragment>
+        }
+    </Fragment>;
+}
+
+function LatestSiteDetailsSection (props) {
+    const { state } = useContext(Store);
+    const { previous_release } = state;
+    const { internal_alert, event_alert, data_ts } = previous_release;
+    const { alert_level } = event_alert.public_alert_symbol;
+
+    let warning_text = null;
+    if (moment(data_ts).isAfter(state.data_ts)) {
+        warning_text = `You entered a data timestamp (${state.data_ts.format("YYYY/MM/DD HH:mm")}) ` +
+        "that is prior to the last site alert release.\nReview your data timestamp entry.";
+    } else if (moment(data_ts).isSame(state.data_ts)) {
+        warning_text = "Note: You entered the same data timestamp from the last site alert release. " +
+        "Ignore this note if you want to overwrite the last alert release.";
+    }
+
+    return <Fragment>
+        <Grid item xs={12} container spacing={1}>
+            <Typography variant="h6" component={Grid} item xs={12} align="center">
+                Last Site Release Details: { event_alert.event.site.site_code.toUpperCase() }
+            </Typography>
+
+            <Grid item xs={12} container spacing={0} justify="center">
+                <Typography 
+                    variant="body1" component={Grid}
+                    item xs={12} sm={6} align="center"
+                >
+                    <strong>Internal Alert:</strong> {internal_alert}
+                </Typography>
+
+                <Typography 
+                    variant="body1" component={Grid}
+                    item xs={12} sm={6} align="center"
+                >
+                    <strong>Data Timestamp:</strong> {data_ts}
+                </Typography>
+
+                { alert_level !== 0 && <Typography 
+                    variant="body1" component={Grid}
+                    item xs={12} sm={6} align="center"
+                >
+                    <strong>Validity:</strong> {event_alert.event.validity}
+                </Typography> }
+
+                <Typography 
+                    variant="body1" component={Grid}
+                    item xs={12} sm={6} align="center"
+                >
+                    <strong>Release Time:</strong> {previous_release.release_time}
+                </Typography>
+            </Grid>
+        </Grid>
+
+        { warning_text && <Grid item xs={12}>
+            <Typography
+                variant="body1" component="p" color="error"
+                align="center" style={{ whiteSpace: "pre-line" }}
+                display="block"
+            >
+                { warning_text }
+            </Typography>
+        </Grid>}
+
+        <Grid item xs={12}>
+            <Divider />
+        </Grid>
+    </Fragment>;
+}
+
+function DataPresenceRadioInput (props) {
+    const { form, value, changeHandler } = props;
+
+    return (
+        <FormControl component="fieldset" style={{ width: "100%" }}>
+            <FormLabel component="legend">Choose the appropriate data situation for the release period.</FormLabel>
+            <Grid container spacing={0}>
+                {
+                    form.map(x => (
+                        <Grid item xs={12} sm={6} key={x.value} container justify="center">
+                            <FormControlLabel
+                                value={x.value} label={x.label}
+                                control={<Radio 
+                                    checked={value === x.value}
+                                    onChange={changeHandler}
+                                    size="small"
+                                />}
+                            />
+                        </Grid>
+                    ))
+                }
+            </Grid>
+        </FormControl>
+    );
+}
+
+function TriggerTimestampAndTechInfoCombo (props) {
+    const {
+        triggerHandler, labelFor, trigger
     } = props;
 
-    const {
-        subsurface: { switchState: subs_switch_state },
-        surficial: { switchState: surf_switch_state },
-        moms: { switchState: moms_switch_state } 
-    } = triggersState;
-
-    useEffect(() => {
-        setModalTitle("Toggle ON all the triggers to be included in the internal alert computation, otherwise toggle them OFF. " +
-        "Fill in the required fields for each selected trigger.");
-    }, []);
-    
     return (
         <Fragment>
-            {
-                alert_level !== 0 && (
-                    <Grid item xs={12} className={isAlert0 ? classes.groupGridContainer : ""}>
-                        <FormControl component="fieldset" className={classes.formControl}>
-                            {/* <FormLabel component="legend" className={classes.formLabel}>
-                                <span style={{ color: "#f50057" }}>Lower to Alert 0</span>
-                                <Switch
-                                    checked={isAlert0}
-                                    onChange={event => setAlert0(event.target.checked)}
-                                    value="lower_to_a0"
-                                />
-                            </FormLabel> */}
+            <Grid item xs={12} sm={6}>
+                <KeyboardDateTimePicker
+                    required
+                    autoOk
+                    label={`Trigger Timestamp (${labelFor})`}
+                    value={trigger.ts}
+                    onChange={e => triggerHandler("ts", e)}
+                    ampm={false}
+                    placeholder="2010/01/01 00:00"
+                    format="YYYY/MM/DD HH:mm"
+                    mask="____/__/__ __:__"
+                    clearable
+                    disableFuture
+                    fullWidth
+                />
+            </Grid>
 
-                            <FormControlLabel
-                                className={classes.formLabel}
-                                control={<Switch
-                                    checked={isAlert0}
-                                    onChange={event => setAlert0(event.target.checked)}
-                                    value="lower_to_a0"
-                                />}
-                                label="Lower to Alert 0"
-                                labelPlacement="start"
-                            />
-                        </FormControl>
-                    </Grid>
-                )
-            }
-            {
-                !subs_switch_state && !surf_switch_state && !moms_switch_state && alert_level <= 1 && (
-                    <Grid item xs={12} className={hasNoGroundData ? classes.groupGridContainer : ""}>
-                        <FormControl component="fieldset" className={classes.formControl}>
-                            {/* <FormLabel component="legend" className={classes.formLabel}>
-                                <span style={{ color: "#f50057" }}>No Ground Data (ND)</span>
-                                <Switch
-                                    checked={hasNoGroundData}
-                                    onChange={event => setHasNoGroundData(event.target.checked)}
-                                    value="has_no_ground_data"
-                                />
-                            </FormLabel> */}
-                            <FormControlLabel
-                                className={classes.formLabel}
-                                control={<Switch
-                                    checked={hasNoGroundData}
-                                    onChange={event => setHasNoGroundData(event.target.checked)}
-                                    value="has_no_ground_data"
-                                />}
-                                label="No Ground Data (ND)"
-                                labelPlacement="start"
-                            />
-                        </FormControl>
-                    </Grid>
-                )
-            }
-            {
-                isAlert0 === false && (
-                    <Fragment>
-                        <Grid item xs={12}>
-                            <Typography variant="h6" color="secondary">Ground-Related Triggers</Typography>
-                        </Grid>
-                        <SubsurfaceTriggerGroup
-                            triggersState={triggersState}
-                            setTriggersState={setTriggersState}
-                            triggersReleased={triggersReleased}
-                        />
-                        <SurficialTriggerGroup
-                            triggersState={triggersState}
-                            setTriggersState={setTriggersState}
-                            triggersReleased={triggersReleased}
-                        />
-
-                        {/* <MomsTriggerGroup
-                            triggersState={triggersState}
-                            setTriggersState={setTriggersState}
-                        /> */}
-
-                        <Grid item xs={12} style={{ paddingTop: 20 }}>
-                            <Typography variant="h6" color="secondary">Secondary Triggers</Typography>
-                        </Grid>
-
-                        <RainfallTriggerGroup
-                            triggersState={triggersState}
-                            setTriggersState={setTriggersState}
-                            triggersReleased={triggersReleased}
-                        />
-
-                        <EarthquakeTriggerGroup
-                            triggersState={triggersState}
-                            setTriggersState={setTriggersState}
-                        />
-
-                        <OnDemandTriggerGroup
-                            triggersState={triggersState}
-                            setTriggersState={setTriggersState}
-                        />
-                    </Fragment>
-                )
-            }
-
-            
+            <Grid item xs={12} sm={6}>
+                <TextField
+                    required
+                    label={`Technical Information (${labelFor})`}
+                    multiline
+                    rowsMax="2"
+                    placeholder={`Enter technical info for "${labelFor}" trigger`}
+                    value={trigger.tech_info}
+                    onChange={e => triggerHandler("tech_info", e.target.value)}
+                    fullWidth
+                />
+            </Grid>
         </Fragment>
     );
 }
 
-function SummaryForm (props) {
-    const {
-        classes, handleEventChange,
-        generalData, internalAlertLevel, setModalTitle,
-        mtFullName, ctFullName, ewiPayload,
-        isAlertRecomputing
-    } = props;
-    const {
-        siteId, dataTimestamp, releaseTime, comments
-    } = generalData;
+function SubsurfaceSection (props) {
+    const { state, dispatch } = useContext(Store);
+    const { subsurface: { value, triggers } } = state;
 
-    const [triggers_display, setTriggersDisplay] = useState(null);
+    const form = [
+        { value: "1", label: "ABOVE threshold at a certain time (s2/s3)" },
+        { value: "0", label: "BELOW threshold all throughout (s)" },
+        { value: "-1", label: "No data all throughout (s0)" }
+    ];
 
-    useEffect(() => {
-        setModalTitle("Review release summary. Add comment if necessary.");
+    const valueChangeHandler = e => {
+        const temp = e.target.value;
+        Actions.updateSubsurfacePresence({ dispatch, payload: temp });
+    };
 
-        let arr = [];
-        if (typeof ewiPayload.trigger_list_arr !== "undefined") {
-            arr = ewiPayload.trigger_list_arr;
-        }
+    const triggersCboxHandler = alert_level => e => {
+        Actions.updateSubsurfaceTrigger({ dispatch, payload: {
+            value: e.target.checked, key: alert_level 
+        } });
+    };
 
-        let temp_list = <Typography variant="body2" color="textPrimary" align="center">
-            No triggers included in this release.
-        </Typography>;
+    const triggerDetailsHandler = alert_level => (attr, val) => {
+        Actions.updateSubsurfaceTriggerDetails({ dispatch, payload: {
+            value: val, key: alert_level, attr
+        } });
+    };
 
-        if (arr.length > 0) {
-            temp_list = arr.map((element, index) => {
-                const {
-                    ts_updated, alert_level, trigger_type,
-                    tech_info
-                } = element;
-    
-                const trig_source = trigger_type.charAt(0).toUpperCase() + trigger_type.slice(1);
-                const timestamp = moment(ts_updated).format("DD MMMM YYYY, HH:mm");
-                return (
-                    <Fragment key={`${index + 1}`}>
-                        <Grid item xs={6} align="center">
-                            <Typography variant="body2" color="textSecondary">Trigger</Typography>
-                            <Typography variant="body2" color="textPrimary">{`${trig_source} Alert ${alert_level}`}</Typography>
-                        </Grid>
-    
-                        <Grid item xs={6} align="center">
-                            <Typography variant="body2" color="textSecondary">Trigger timestamp</Typography>
-                            <Typography variant="body2" color="textPrimary">{timestamp}</Typography>
-                        </Grid>
-    
-                        <Grid item xs={12} align="center" style={{ paddingBottom: 20 }}>
-                            <Typography variant="body2" color="textSecondary">Tech info</Typography>
-                            <Typography variant="caption" color="textPrimary">{tech_info}</Typography>
-                        </Grid>
-                    </Fragment>
-                );
-            });
-        }
-        setTriggersDisplay(temp_list);
-    }, [ewiPayload]);
+    const TriggersComponents = Object.keys(triggers).map(x => {
+        const alert_level = parseInt(x, 10);
+        const trigger = triggers[x];
+        const { checked } = trigger;
+        const key = `s${alert_level}`;
 
-    const data_ts = moment(dataTimestamp).format("DD MMMM YYYY, HH:mm");
-    const release_time = moment(releaseTime).format("HH:mm");
+        return <Grid item xs={12} container key={key}>
+            <Grid item xs={checked ? 4 : 12} sm={checked ? 3 : 12} justify="center" container>
+                <FormControlLabel
+                    value={alert_level}
+                    control={<Checkbox 
+                        color="primary"
+                        checked={checked}
+                        onClick={triggersCboxHandler(alert_level)}
+                    />}
+                    label={`Trigger ${key}`}
+                />
+            </Grid>
+
+            {
+                checked && <Grid item xs={8} sm={9} container justify="space-evenly"
+                    alignItems="center"
+                    spacing={2}
+                >
+                    <TriggerTimestampAndTechInfoCombo
+                        labelFor={key}
+                        trigger={trigger}
+                        triggerHandler={triggerDetailsHandler(alert_level)}
+                    />
+                </Grid>
+            }
+        </Grid>;
+    });
 
     return (
         <Fragment>
+            <Grid item xs={12}>
+                <Typography variant="h6">Subsurface (S/s)</Typography>
+            </Grid>
+
+            <Grid item xs={12}>
+                <DataPresenceRadioInput form={form} value={value} changeHandler={valueChangeHandler} />
+            </Grid>
+
             {
-                isAlertRecomputing ? (
-                    <Grid item xs={6}>
-                        <CircularProgress />
-                    </Grid>
-                ) : (
-                    <Fragment>
-                        <Grid item xs={6}>
-                            <Typography variant="body2" color="textSecondary">Site</Typography>
-                            <Typography variant="body1" color="textPrimary">
-                                {siteId.label}
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                            <Typography variant="body2" color="textSecondary">Internal Alert</Typography>
-                            <Typography variant="body1" color="textPrimary">
-                                {internalAlertLevel}
-                            </Typography>
-                        </Grid>
-
-                        <Grid item xs={6}>
-                            <Typography variant="body2" color="textSecondary">Data Timestamp</Typography>
-                            <Typography variant="body1" color="textPrimary">
-                                {data_ts}
-                            </Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                            <Typography variant="body2" color="textSecondary">Release Time</Typography>
-                            <Typography variant="body1" color="textPrimary">
-                                {release_time}
-                            </Typography>
-                        </Grid>
-
-                        <Grid item xs={6}>
-                            <Typography variant="body2" color="textSecondary">MT Personnel</Typography>
-                            <Typography variant="body1" color="textPrimary">
-                                {mtFullName}
-                            </Typography>
-                        </Grid>
-
-                        <Grid item xs={6}>
-                            <Typography variant="body2" color="textSecondary">CT Personnel</Typography>
-                            <Typography variant="body1" color="textPrimary">
-                                {ctFullName}
-                            </Typography>
-                        </Grid>
-
-                        <Grid item xs={12}>
-                            <Divider className={classes.divider} /> 
-                        </Grid>
-            
-                        <Grid item xs={12} container spacing={1}>
-                            <Grid item xs={12}>
-                                <Typography variant="button" color="textSecondary">Triggers</Typography>
-                            </Grid>
-                            <Grid item xs={12} container spacing={1} align="center">
-                                {triggers_display}
-                            </Grid>
-                        </Grid>
-
-                        <Grid item xs={12}>
-                            <Divider className={classes.divider} /> 
-                        </Grid>
-
-                        <Grid item xs={12} className={classes.inputGridContainer}>
-                            <TextField
-                                label="Comments"
-                                multiline
-                                rowsMax="2"
-                                placeholder="Enter additional comments necessary"
-                                value={comments}
-                                onChange={handleEventChange("comments")}
-                                fullWidth
-                            />
-                        </Grid>
-                    </Fragment>
-                )
+                value === "1" && <Grid item xs={12} container spacing={1}>
+                    { TriggersComponents }
+                </Grid>
             }
         </Fragment>
     );
 }
 
-function AlertReleaseForm (comp_props) {
+function SurficialSection (props) {
+    const { state, dispatch } = useContext(Store);
+    const { surficial: { value, triggers } } = state;
+
+    const form = [
+        { value: "1", label: "ABOVE threshold at a certain time (g2/g3)" },
+        { value: "0", label: "BELOW threshold all throughout (g)" },
+        { value: "-1", label: "No data all throughout (g0)" }
+    ];
+
+    const valueChangeHandler = e => {
+        const temp = e.target.value;
+        Actions.updateSurficialPresence({ dispatch, payload: temp });
+    };
+
+    const triggersCboxHandler = alert_level => e => {
+        Actions.updateSurficialTrigger({ dispatch, payload: {
+            value: e.target.checked, key: alert_level 
+        } });
+    };
+
+    const triggerDetailsHandler = alert_level => (attr, val) => {
+        Actions.updateSurficialTriggerDetails({ dispatch, payload: {
+            value: val, key: alert_level, attr
+        } });
+    };
+
+    const TriggersComponents = Object.keys(triggers).map(x => {
+        const alert_level = parseInt(x, 10);
+        const trigger = triggers[x];
+        const { checked } = trigger;
+        const key = `g${alert_level}`;
+
+        return <Grid item xs={12} container key={key}>
+            <Grid item xs={checked ? 4 : 12} sm={checked ? 3 : 12} justify="center" container>
+                <FormControlLabel
+                    value={alert_level}
+                    control={<Checkbox 
+                        color="primary"
+                        checked={checked}
+                        onClick={triggersCboxHandler(alert_level)}
+                    />}
+                    label={`Trigger ${key}`}
+                />
+            </Grid>
+
+            {
+                checked && <Grid item xs={8} sm={9} container justify="space-evenly"
+                    alignItems="center"
+                    spacing={2}
+                >
+                    <TriggerTimestampAndTechInfoCombo
+                        labelFor={key}
+                        trigger={trigger}
+                        triggerHandler={triggerDetailsHandler(alert_level)}
+                    />
+                </Grid>
+            }
+        </Grid>;
+    });
+
+    return (
+        <Fragment>
+            <Grid item xs={12}>
+                <Typography variant="h6">Surficial (G/g)</Typography>
+            </Grid>
+
+            <Grid item xs={12}>
+                <DataPresenceRadioInput form={form} value={value} changeHandler={valueChangeHandler} />
+            </Grid>
+
+            {
+                value === "1" && <Grid item xs={12} container spacing={1}>
+                    { TriggersComponents }
+                </Grid>
+            }
+        </Fragment>
+    );
+}
+
+function MOMsSection (props) {
+    const { state } = useContext(Store);
     const {
-        activeStep, generalData,
-        setGeneralData, setInternalAlertLevel,
-        internalAlertLevel, // setTriggerList,
-        setPublicAlertLevel, isUpdatingRelease,
-        currentTriggersStatus, setDBSavedTriggers,
-        siteCurrentAlertLevel, setSiteCurrentAlertLevel
-    } = comp_props;
-    const classes = useStyles();
-    const props = { classes, ...comp_props };
+        moms: { value, triggers },
+        non_triggering_moms
+    } = state;
 
-    const current_user = getCurrentUser();
-    const { first_name, last_name } = current_user;
-    const mtFullName = `${last_name}, ${first_name}`;
-    const { ct_full_name: ctFullName } = React.useContext(CTContext);
+    return (
+        <Fragment>
+            <Grid item xs={12}>
+                <Typography variant="h6">MOMS (M/m)</Typography>
+                <Typography variant="caption">
+                    Note: MOMs triggers are inserted via MOMs Form.
+                    If you inserted a MOMs trigger for this site, wait for the trigger
+                    to be included on the site&apos;s candidate alert then release it.
+                </Typography>
+            </Grid>
 
-    const [triggersReleased, setTriggersReleased] = useState([...currentTriggersStatus]);
+            {
+                value === "1" && <Fragment> {
+                    Object.keys(triggers).map(key => {
+                        const { checked, ts, tech_info, moms_list } = triggers[key];
+                        const preview = [
+                            { label: "Alert", value: `m${key}` },
+                            { label: "Trigger Timestamp", value: moment(ts).format("YYYY-MM-DD HH:mm") },
+                            { label: "Technical Information", value: tech_info }
+                        ];
+                            
+                        if (checked) {
+                            const initial = preview.map(x => <Grid item xs={12} 
+                                sm={x.label === "Technical Information" ? 6 : 3 }
+                                key={x.label}>
+                                { PreviewComp(x) }
+                            </Grid>);
 
-    const changeState = (key, value) => {
-        if (key === "siteId") {
-            // get the current Internal alert level of site
-            const input = { site_id: value.value };
-            getLatestSiteRelease(input, ret => {
-                console.log(ret);
-                const {
-                    internal_alert_level, public_alert_level,
-                    trigger_sources, alert_level
-                } = ret;
-                setTriggersReleased(trigger_sources);
-                setDBSavedTriggers(trigger_sources);
-                setPublicAlertLevel(public_alert_level);
-                setInternalAlertLevel(internal_alert_level);
-                setSiteCurrentAlertLevel(alert_level);
-            });
-        } else {
-            setGeneralData({ ...generalData, [key]: value });
-        }
-    };
+                            const intro = <Typography
+                                variant="body2" align="center"
+                                component={Grid} item xs={12}
+                            >
+                                <strong>MOMs List</strong>
+                            </Typography>;
 
-    const handleDateTime = key => value => {
-        changeState(key, value);
-    };
+                            const list = MomsListFormatter(moms_list);
 
-    const handleEventChange = key => event => {
-        const { value } = event.target;
-        changeState(key, value);
-    };
+                            return <Fragment key={key}>{initial}{intro}{list}</Fragment>;
+                        }
+                    })
+                } </Fragment>
+            }
 
-    const getSteps = () => {
-        return ["What are the release details?", "List the triggers.", "Add Comments and Review Release Summary"];
-    };
-    const steps = getSteps();
+            {
+                value === "0" && <Typography
+                    variant="body1" align="center"
+                    component={Grid} item xs={12}
+                >
+                    This release HAS non-triggering MOMs data within release period (m).
+                </Typography>
+            }
 
-    const getStepContent = stepIndex => {
-        switch (stepIndex) {
-            case 0:
-                return <GeneralInputForm
-                    {...props}
-                    handleDateTime={handleDateTime}
-                    handleEventChange={handleEventChange}
-                    isUpdatingRelease={isUpdatingRelease}
-                    changeState={changeState}
-                />;
-            case 1:
-                return <TriggersInputForm 
-                    {...props}
-                    triggersReleased={triggersReleased}
-                    alert_level={siteCurrentAlertLevel}
-                />;
-            case 2:
-                return <SummaryForm {...props}
-                    mtFullName={mtFullName}
-                    ctFullName={ctFullName}
-                    internalAlertLevel={internalAlertLevel}
-                    handleEventChange={handleEventChange}
-                />;
-            case 3:
-                return (
-                    <Typography variant="body1">
-                        Early warning information released! Please wait for the dashboard to update or check the 
-                        site event timeline to confirm if EWI is released.
+            {
+                non_triggering_moms && <Fragment>
+                    <Typography
+                        variant="body2" align="center"
+                        component={Grid} item xs={12}
+                    >
+                        <strong>Non-triggering MOMs</strong>
                     </Typography>
-                );
-            default:
-                return "Uknown stepIndex";
-        }
+
+                    { MomsListFormatter(non_triggering_moms) }
+                </Fragment>
+            }
+
+            {
+                value === "-1" && <Typography
+                    variant="body1" align="center"
+                    component={Grid} item xs={12}
+                >
+                    No MOMs entry present for this release period (m0).
+                </Typography>
+            }
+        </Fragment>
+    );
+}
+
+function MomsListFormatter (moms_list) {
+    return moms_list.map(x => {
+        const {
+            moms_instance: { feature: f, feature_name },
+            remarks, observance_ts
+        } = x;
+        const temp = { label: "Feature", value: `${capitalize(f.feature_type)} ${feature_name}` };
+        const ts_comp = { label: "Observance Timestamp", value: observance_ts };
+        const rem = { label: "Remarks", value: remarks };
+
+        return <Grid item xs={12} key={x.moms_id}>
+            <Grid container item xs={12}>
+                <Grid item xs={3}>{ PreviewComp(temp) }</Grid>
+                <Grid item xs={3}>{ PreviewComp(ts_comp) }</Grid>
+                <Grid item xs={6}>{ PreviewComp(rem) }</Grid>
+            </Grid>
+        </Grid>; 
+    });
+}
+
+function RainfallSection (props) {
+    const { state, dispatch } = useContext(Store);
+    const { rainfall: { value, trigger } } = state;
+
+    const form = [
+        { value: "1", label: "ABOVE threshold at a certain time (r1)" },
+        { value: "0", label: "BELOW threshold all throughout (r)" },
+        { value: "-2", label: "Currently BELOW threshold BUT above 75% (rx)" },
+        { value: "-1", label: "No data all throughout (r0)" }
+    ];
+
+    const valueChangeHandler = e => {
+        const temp = e.target.value;
+        Actions.updateRainfallPresence({ dispatch, payload: temp });
     };
+
+    const triggerDetailsHandler = (attr, val) => {
+        Actions.updateRainfallTriggerDetails({ dispatch, payload: {
+            value: val, attr
+        } });
+    };
+
+    return (
+        <Fragment>
+            <Grid item xs={12}>
+                <Typography variant="h6">Rainfall (R)</Typography>
+            </Grid>
+
+            <Grid item xs={12}>
+                <DataPresenceRadioInput form={form} value={value} changeHandler={valueChangeHandler} />
+            </Grid>
+
+            {
+                value === "1" && <TriggerTimestampAndTechInfoCombo
+                    labelFor="r1"
+                    trigger={trigger}
+                    triggerHandler={triggerDetailsHandler}
+                />
+            }
+        </Fragment>
+    );
+}
+
+function EarthquakeSection (props) {
+    const { state, dispatch } = useContext(Store);
+    const { earthquake: { value, trigger } } = state;
+    const { magnitude, latitude, longitude } = trigger;
+
+    const form = [
+        { value: "1", label: "Recent trigger occured" },
+        { value: "0", label: "No recent trigger" }
+    ];
+
+    const valueChangeHandler = e => {
+        const temp = e.target.value;
+        Actions.updateEarthquakePresence({ dispatch, payload: temp });
+    };
+
+    const triggerDetailsHandler = (attr, val) => {
+        Actions.updateEarthquakeTriggerDetails({ dispatch, payload: {
+            value: val, attr
+        } });
+    };
+
+    return (
+        <Fragment>
+            <Grid item xs={12}>
+                <Typography variant="h6">Earthquake (E)</Typography>
+            </Grid>
+
+            <Grid item xs={12}>
+                <DataPresenceRadioInput form={form} value={value} changeHandler={valueChangeHandler} />
+            </Grid>
+
+            {
+                value === "1" && <Fragment>
+                    <TriggerTimestampAndTechInfoCombo
+                        labelFor="e1"
+                        trigger={trigger}
+                        triggerHandler={triggerDetailsHandler}
+                    />
+                    
+                    <Grid item xs={12} sm={4}>
+                        <TextField
+                            required
+                            id="magnitude"
+                            label="Magnitude"
+                            value={magnitude}
+                            onChange={e => triggerDetailsHandler("magnitude", e.target.value)}
+                            type="number"
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                        <TextField
+                            required
+                            id="latitude"
+                            label="Latitude"
+                            value={latitude}
+                            onChange={e => triggerDetailsHandler("latitude", e.target.value)}
+                            type="number"
+                        />
+                    </Grid>
+
+                    <Grid item xs={12} sm={4}>
+                        <TextField
+                            required
+                            id="longitude"
+                            label="Longitude"
+                            value={longitude}
+                            onChange={e => triggerDetailsHandler("longitude", e.target.value)}
+                            type="number"
+                        />
+                    </Grid>
+                </Fragment>
+            }
+        </Fragment>
+    );
+}
+
+function OnDemandSection (props) {
+    const { state } = useContext(Store);
+    const { "on demand": { value, trigger } } = state;
+
+    let preview = [];
+    if (value === "1") {
+        const { ts, tech_info } = trigger;
+        preview = [
+            { label: "Alert", value: "d1" },
+            { label: "Trigger Timestamp", value: moment(ts).format("YYYY-MM-DD HH:mm") },
+            { label: "Technical Information", value: tech_info }
+        ];
+    }
+
+    return (
+        <Fragment>
+            <Grid item xs={12}>
+                <Typography variant="h6">On-Demand (D)</Typography>
+                <Typography variant="caption">
+                    Note: On-demand triggers are inserted via On-Demand Trigger Form.
+                    If you inserted a On-Demand trigger for this site, wait for the trigger
+                    to be included on the site&apos;s candidate alert then release it.
+                </Typography>
+            </Grid>
+
+            {
+                value === "1" && <Fragment> {    
+                    preview.map(x => <Grid item xs={12} 
+                        sm={x.label === "Technical Information" ? 6 : 3 }
+                        key={x.label}>
+                        { PreviewComp(x) }
+                    </Grid>)
+                } </Fragment>
+            }
+
+            {
+                value === "0" && <Grid item xs={12}>
+                    <Typography
+                        variant="body1" align="center" gutterBottom
+                    >
+                        This release has data request to end on-demand monitoring (d)
+                        OR the monitoring event has other positive triggers*.
+                    </Typography>
+
+                    <Typography
+                        variant="caption" align="center"
+                    >
+                        *If there is other released positive threshold aside form on-demand trigger, 
+                        data presence for this trigger is not observed (default to d).
+                    </Typography>
+                </Grid>
+            }
+
+            {
+                value === "-1" && <Typography
+                    variant="body1" align="center"
+                    component={Grid} item xs={12}
+                >
+                    No on-demand entry present for this release period (d0).
+                </Typography>
+            }
+        </Fragment>
+    );
+}
+
+const PreviewComp = x => (
+    <Fragment>
+        <Typography variant="body2" color="textSecondary" align="center">{x.label}</Typography>
+        <Typography variant="body1" color="textPrimary" align="center">
+            {x.value}
+        </Typography>
+    </Fragment>
+);
+
+function ThirdStep (props) {
+    const { isLoading } = props;
+    const { state, dispatch } = useContext(Store);
+
+    let internal_alert = "---";
+    let note = null;
+    const release_triggers = [];
+    if (state.preview) {
+        const { internal_alert: temp, note: n, trigger_list } = state.preview;
+        internal_alert = temp;
+        note = n;
+
+        release_triggers.push(...trigger_list);
+    }
+
+    const preview = [
+        { label: "Site", value: state.site.data.site_code.toUpperCase() },
+        { label: "Internal Alert", value: internal_alert },
+        { label: "Data Timestamp", value: moment(state.data_ts).format("YYYY-MM-DD HH:mm") },
+        { label: "Release Time", value: state.release_time.format("HH:mm") }
+    ];
+
+    const ReleaseTriggersSummary = rt => {
+        return <Fragment>
+            { rt.length !== 0 && <Grid item xs={12} container>
+                <Typography 
+                    variant="body1" 
+                    component={Grid} item xs={12}
+                    align="center"
+                >
+                    <strong>Release Triggers</strong>
+                </Typography>
+
+                {
+                    rt.map(x => {
+                        const alert_sym = `${x.alert_symbol}${x.alert_level}`;
+                        const preview_2 = [
+                            { label: "Source", value: `${capitalize(x.source)} (${alert_sym})` },
+                            { label: "Trigger Timestamp", value: moment(x.ts).format("YYYY-MM-DD HH:mm:00") },
+                            { label: "Technical Information", value: x.tech_info }
+                        ];
+                    
+                        return <Grid item xs={12} container key={alert_sym} spacing={1} style={{ margin: "1em 0" }}>
+                            {
+                                preview_2.map(y => 
+                                    <Grid item xs={12} 
+                                        sm={y.label === "Technical Information" ? 6 : 3 } 
+                                        key={y.label}>
+                                        { PreviewComp(y)}
+                                    </Grid>
+                                )
+                            }
+                        </Grid>; 
+                    } )
+                }
+            </Grid> }
+        </Fragment>;
+    };
+
+    return <Fragment>
+        {
+            isLoading ? <LoadingComponent message="Calculating internal alert..." />
+                : <Fragment>
+                    <Typography 
+                        variant="h6"
+                        component={Grid} item xs={12}
+                        align="center"
+                    >
+                        Alert Release Summary
+                    </Typography>
+
+                    {
+                        note && <Typography 
+                            variant="body1" color="error"
+                            component={Grid} item xs={12}
+                            align="center"
+                        >
+                            { note }
+                        </Typography>
+                    }
+
+                    {
+                        preview.map(x => <Grid item xs={6} sm={3} key={x.label}>
+                            { PreviewComp(x) }
+                        </Grid>)
+                    }
+
+                    { ReleaseTriggersSummary(release_triggers) }
+
+                    {
+                        state.previous_release.event_alert.public_alert_symbol.alert_level 
+                        > 0 && <Grid item xs={12}>
+                            <FormControlLabel
+                                control={<Switch
+                                    checked={state.manually_lower_alert}
+                                    onChange={e => Actions.updateManuallyLowerAlert({
+                                        dispatch, payload: e.target.checked
+                                    })}
+                                    value="lower_to_a0"
+                                />}
+                                label="Manually Lower to Alert 0"
+                            />
+                        </Grid>
+                    }
+
+                    <Grid item xs={12} sm={6}>
+                        <DynaslopeUserSelectInputForm
+                            variant="standard"
+                            label="MT Personnel"
+                            div_id="reporter_id_mt"
+                            value={state.iomp_mt}
+                            disabled
+                            required
+                        />
+                    </Grid>
+            
+                    <Grid item xs={12} sm={6}>
+                        <DynaslopeUserSelectInputForm
+                            variant="standard"
+                            label="CT Personnel"
+                            div_id="reporter_id_ct"
+                            value={state.iomp_ct}
+                            changeHandler={e => Actions.updateCTPersonnel({ dispatch, payload: e.target.value })}
+                            required
+                            helperText={state.validation.iomp_ct || ""}
+                            error={Boolean(state.validation.iomp_ct)}
+                        />
+                    </Grid>
+
+                    <Grid item xs={12}>
+                        <TextField
+                            label="Comments"
+                            multiline
+                            rowsMax="2"
+                            placeholder="Enter additional comments necessary"
+                            value={state.comments}
+                            onChange={e => Actions.updateComments({ dispatch, payload: e.target.value })}
+                            fullWidth
+                        />
+                    </Grid>
+                </Fragment>
+        }
+    </Fragment>;
+}
+
+function AlertReleaseForm (props) {
+    const { activeStep, isLoading } = props;
 
     return (
         <MuiPickersUtilsProvider utils={MomentUtils}>
@@ -539,25 +886,20 @@ function AlertReleaseForm (comp_props) {
                 container
                 justify="space-evenly"
                 alignItems="center"
-                spacing={1}
+                spacing={2}
             >
-
-                {getStepContent(activeStep)}
-                <div className={classes.root}>
-                    <Typography className={classes.instructions} />
-
-                    <Stepper activeStep={activeStep} alternativeLabel>
-                        {steps.map(label => (
-                            <Step key={label}>
-                                <StepLabel />
-                            </Step>
-                        ))}
-                    </Stepper>
-                </div>
+                {
+                    activeStep === 0 && <FirstStep />
+                }
+                {
+                    activeStep === 1 && <SecondStep isLoading={isLoading} />
+                }
+                {
+                    activeStep === 2 && <ThirdStep isLoading={isLoading} />
+                }
             </Grid>
         </MuiPickersUtilsProvider>
     );
-
 }
 
 export default AlertReleaseForm;

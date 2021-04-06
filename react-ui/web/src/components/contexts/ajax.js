@@ -17,3 +17,8 @@ export function getOrganizations (callback) {
     makeGETAxiosRequest(api_link, callback);
 }
 
+export function getUserByNickname (nickname, callback) {
+    const api_link = `${host}/api/users/get_user_by_nickname/${nickname}`;
+    makeGETAxiosRequest(api_link, callback);
+}
+

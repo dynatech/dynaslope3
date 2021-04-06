@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Link } from "react-router-dom";
 
 import { makeStyles } from "@material-ui/core/styles";
@@ -11,9 +11,11 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import Button from "@material-ui/core/Button";
 import Divider from "@material-ui/core/Divider";
 import TodayIcon from "@material-ui/icons/Today";
+import Grid from "@material-ui/core/Grid";
 
 import moment from "moment";
-import { Grid } from "@material-ui/core";
+
+import { MonitoringShiftsContext } from "../../contexts/MonitoringShiftsContext";
 
 const useStyles = makeStyles((theme) => ({
     summary: {
@@ -32,12 +34,12 @@ const useStyles = makeStyles((theme) => ({
 
 // This function returns a component displaying current shift and next 2 shifts
 function MonitoringShiftsPanel (props) {
-    const { shiftData } = props;
+    const { monitoring_shifts: shiftData } = useContext(MonitoringShiftsContext);
     const classes = useStyles();
     const [shifts, setShifts] = useState([]);
 
-    useEffect(() => {    
-        if (shiftData !== null || shiftData !== "undefined") {
+    useEffect(() => {
+        if (shiftData !== null && typeof shiftData !== "undefined") {
             const data = shiftData.filter(row => {
                 if (moment(row.ts) > moment().subtract({ hours: 12 })) {
                     return row;

@@ -18,7 +18,6 @@ import Checkbox from "@material-ui/core/Checkbox";
 import Button from "@material-ui/core/Button";
 
 import DynaslopeUserSelectInputForm from "../../reusables/DynaslopeUserSelectInputForm";
-import { CTContext } from "../../monitoring/dashboard/CTContext";
 
 const useStyles = makeStyles(theme => ({
     inputGridContainer: {
@@ -72,8 +71,6 @@ function RoutineReleaseForm (comp_props) {
         dataTimestamp, setDataTimestamp
     } = comp_props;
     const classes = useStyles();
-    const { reporter_id_ct } = React.useContext(CTContext);
-
     const [form_release_time, setFormReleaseTime] = useState(null);
 
     useEffect(() => {
@@ -271,8 +268,8 @@ function RoutineReleaseForm (comp_props) {
                         variant="standard"
                         label="CT Personnel"
                         div_id="reporter_id_ct"
-                        value={reporter_id_ct}
-                        disabled
+                        value={routineData.reporter_id_ct}
+                        changeHandler={e => setRoutineData({ ...routineData, reporter_id_ct: e.target.value })}
                     />
                 </Grid>
             </Grid>
