@@ -153,6 +153,7 @@ def create_ewi_message(release_id=None):
 
     desc_and_response = ""
     next_ewi = ""
+    please_acknowledge = ""
 
     if alert_level > 0:
         trigger_list_str = release.trigger_list
@@ -176,6 +177,9 @@ def create_ewi_message(release_id=None):
 
         next_ewi += f"Ang susunod na early warning information ay mamayang {next_ts}."
 
+        if updated_data_ts.hour == 12:
+            please_acknowledge = "Paki-reply po kung natanggap ninyo itong EWI. "
+
     third_line = ""
     if ground_reminder != "" or next_ewi != "":
         third_line += f"{ground_reminder}{next_ewi}\n\n"
@@ -183,7 +187,7 @@ def create_ewi_message(release_id=None):
     ewi_message = (f"Magandang {greeting} po.\n\n"
                    f"Alert {alert_level} ang alert level sa {address} ngayong {ts_str}."
                    f"{desc_and_response}\n\n"
-                   f"{third_line}Salamat.")
+                   f"{third_line}{please_acknowledge}Salamat.")
 
     return ewi_message
 
