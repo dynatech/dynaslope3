@@ -1484,7 +1484,7 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_d
                     or is_not_yet_write_time or \
                         (is_within_alert_extension_limit and has_unresolved_moms):
                     validity = round_to_nearest_release_time(
-                        data_ts=query_ts_end + timedelta(minutes=30),
+                        data_ts=query_ts_end,
                         interval=no_data_hours_extension)
 
                     if is_release_time_run:
