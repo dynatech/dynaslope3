@@ -103,6 +103,7 @@ function AlertReleaseFormModal (props) {
             payload.snackbar_key = snackbar_key;
             console.log(payload);
             sendWSMessage("insert_ewi", payload);
+            closeHandler();
             handleReset();
             return;
         }
