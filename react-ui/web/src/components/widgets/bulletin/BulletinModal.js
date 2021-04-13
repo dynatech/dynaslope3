@@ -64,7 +64,12 @@ function BulletinModal (props) {
 
     const downloadHandler = release_id_input => () => {
         downloadBulletin(release_id_input, ret => {
-            console.log("LOG bulletin_download", ret);
+            const url = window.URL.createObjectURL(new Blob([ret]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", file_name);
+            document.body.appendChild(link);
+            link.click();
         });
     };
 

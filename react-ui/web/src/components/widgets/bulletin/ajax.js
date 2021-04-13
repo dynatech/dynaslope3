@@ -7,9 +7,16 @@ export function getBulletinEmailDetails (release_id, callback) {
     makeGETAxiosRequest(api_link, callback);
 }
 
-export function downloadBulletin (release_id, callback) {
+export async function downloadBulletin (release_id, callback) {
     const api_link = `${host}/api/bulletin/download_bulletin/${release_id}`;
-    makeGETAxiosRequest(api_link, callback);
+    axios.get(api_link, { responseType: "blob" })
+    .then((response) => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch((error) => {
+        console.log(error);
+    });
 }
 
 export function getBulletinDetails (release_id, callback) {
