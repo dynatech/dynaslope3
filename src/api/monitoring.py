@@ -304,6 +304,9 @@ def process_release_internal_alert():
         try:
             ts = datetime.strptime(
                 ts, "%Y-%m-%dT%H:%M:%S.%fZ")
+            ts = ts.replace(second=0, microsecond=0, tzinfo=pytz.utc) \
+                .astimezone(pytz.timezone("Asia/Manila")) \
+                .replace(tzinfo=None)
         except ValueError:
             ts = datetime.strptime(
                 ts, "%Y-%m-%d %H:%M:%S")
@@ -446,10 +449,10 @@ def process_release_internal_alert():
         # then it is safe to say no extension of validity will happen
         if not above_threshold:
             data_ts = format_ts(json_data["data_ts"], as_datetime=True)
-            data_ts = data_ts \
-                .replace(second=0, microsecond=0, tzinfo=pytz.utc) \
-                .astimezone(pytz.timezone("Asia/Manila")) \
-                .replace(tzinfo=None)
+            # data_ts = data_ts \
+            #     .replace(second=0, microsecond=0, tzinfo=pytz.utc) \
+            #     .astimezone(pytz.timezone("Asia/Manila")) \
+            #     .replace(tzinfo=None)
             current_validity = datetime.strptime(
                 current_event_alert["event"]["validity"], "%Y-%m-%d %H:%M:%S")
             is_end_of_validity = current_validity == data_ts + \
