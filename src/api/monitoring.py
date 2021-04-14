@@ -449,10 +449,6 @@ def process_release_internal_alert():
         # then it is safe to say no extension of validity will happen
         if not above_threshold:
             data_ts = format_ts(json_data["data_ts"], as_datetime=True)
-            # data_ts = data_ts \
-            #     .replace(second=0, microsecond=0, tzinfo=pytz.utc) \
-            #     .astimezone(pytz.timezone("Asia/Manila")) \
-            #     .replace(tzinfo=None)
             current_validity = datetime.strptime(
                 current_event_alert["event"]["validity"], "%Y-%m-%d %H:%M:%S")
             is_end_of_validity = current_validity == data_ts + \
@@ -465,7 +461,11 @@ def process_release_internal_alert():
 
             # if end-of-validity release
             if is_end_of_validity:
-                if is_rx:
+                if any((x["alert_level"] == -1) for x in triggers_above_threshold.values()):
+                    to_lower = False
+                    note = "Alert validity will be extended because " + \
+                        "one or more of the raised trigger(s) has no data."
+                elif is_rx:
                     to_lower = False
                     note = "Alert validity will be extended due to rainfall intermediate threshold."
                 elif is_at_or_beyond_alert_extension_limit:
@@ -473,20 +473,13 @@ def process_release_internal_alert():
                     has_no_ground_data = check_for_ground_data()
                     note = "Alert will end because it reached/exceeded " + \
                         "the maximum limit of validity extensions."
+                elif current_alert_level == 1 and has_no_ground_data:
+                    to_lower = False
+                    note = "Alert validity will be extended because there is " + \
+                        "no ground data (surficial and subsurface, MOMS included " + \
+                        "if both previous sources were already defunct)."
                 else:
-                    if current_alert_level > 1:
-                        if any((x["alert_level"] == -1) for x in triggers_above_threshold.values()):
-                            to_lower = False
-                            note = "Alert validity will be extended because " + \
-                                "one or more of the raised trigger(s) has no data."
-                        else:
-                            to_lower = True
-                    else:
-                        # check for ground data
-                        to_lower = not has_no_ground_data
-                        note = "Alert validity will be extended because there is " + \
-                            "no ground data (surficial and subsurface, MOMS included " + \
-                            "if both previous sources were already defunct)."
+                    to_lower = True
     else:
         has_no_ground_data = check_for_ground_data()
         if not above_threshold:
@@ -533,7 +526,7 @@ def process_release_internal_alert():
         "internal_alert": internal_alert,
         "note": note,
         "trigger_list": above_threshold_list,
-        "to_extend_validity": to_lower,
+        "to_extend_validity": not to_lower,
         "trigger_list_str": trigger_string
     }
 
