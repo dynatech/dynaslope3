@@ -57,7 +57,7 @@ function AlertReleaseFormModal (props) {
     }, [isOpen, dispatch, current_ct]);
 
     useEffect(() => {
-        if (chosenCandidateAlert) {
+        if (chosenCandidateAlert && chosenCandidateAlert.general_status !== "routine") {
             setActiveStep(2);
             Actions.useCandidateAlert({ dispatch, payload: chosenCandidateAlert });
         }
