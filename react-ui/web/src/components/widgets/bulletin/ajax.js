@@ -7,7 +7,7 @@ export function getBulletinEmailDetails (release_id, callback) {
     makeGETAxiosRequest(api_link, callback);
 }
 
-export async function downloadBulletin (release_id, callback) {
+export function downloadBulletin (release_id, callback) {
     const api_link = `${host}/api/bulletin/download_bulletin/${release_id}`;
     axios.get(api_link, { responseType: "blob" })
     .then((response) => {

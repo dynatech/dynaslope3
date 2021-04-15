@@ -1,6 +1,5 @@
 import axios from "axios";
 import moment from "moment";
-import { func } from "prop-types";
 import { host } from "../../config";
 import { makeGETAxiosRequest, makePOSTAxiosRequest } from "../../UtilityFunctions";
 
@@ -177,12 +176,18 @@ export function saveEOSDataAnalysis (json_data, callback) {
 
 export function downloadEosCharts (json_data, callback) {
     const api_link = `${host}/api/end_of_shift/download_eos_charts`;
-    makePOSTAxiosRequest(api_link, json_data, callback);
+    axios.post(api_link, json_data, { responseType: "blob" })
+    .then((response) => {
+        const { data } = response;
+        callback(data);
+    })
+    .catch((error) => {
+        console.log(error);
+    });
 }
 
 export function getBulletinEmailDetails (release_id, callback) {
     const api_link = `${host}/api/monitoring/get_eos_subject/${release_id}`;
-
     makeGETAxiosRequest(api_link, callback);
 }
 
