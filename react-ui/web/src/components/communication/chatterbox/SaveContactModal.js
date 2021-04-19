@@ -1,4 +1,5 @@
 import React, { useState, useContext } from "react";
+
 import Dialog from "@material-ui/core/Dialog";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
@@ -11,13 +12,13 @@ import DialogActions from "@material-ui/core/DialogActions";
 import Button from "@material-ui/core/Button";
 import Grid from "@material-ui/core/Grid";
 import Checkbox from "@material-ui/core/Checkbox";
+import Tooltip from "@material-ui/core/Tooltip";
 
 import { useSnackbar } from "notistack";
 
-import { Tooltip } from "@material-ui/core";
-import { CommsContext } from "./Container";
 import ContactForm from "../contacts/ContactForm";
 import SelectMultipleWithSuggest from "../../reusables/SelectMultipleWithSuggest";
+import { CommsContext } from "./CommsContext";
 import { attachMobileNumberToExistingUser } from "../ajax";
 
 function SaveContactModal (props) {

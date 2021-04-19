@@ -10,7 +10,6 @@ import { useSnackbar } from "notistack";
 import RoutineReleaseForm from "./RoutineReleaseForm";
 import { sendWSMessage } from "../../../websocket/monitoring_ws";
 import { getCurrentUser } from "../../sessions/auth";
-import { CTContext } from "../../monitoring/dashboard/CTContext";
 import { GeneralContext } from "../../contexts/GeneralContext";
 import { getUnreleasedRoutineSites } from "./ajax";
 
@@ -39,7 +38,6 @@ function RoutineReleaseFormModal (props) {
         setChosenCandidateAlert
     } = props;
     const { user_id: reporter_id_mt } = getCurrentUser();
-    const { reporter_id_ct: tmp_ct } = React.useContext(CTContext);
     const { sites } = useContext(GeneralContext);
 
     const [ewiPayload, setEwiPayload] = useState({});
@@ -51,7 +49,7 @@ function RoutineReleaseFormModal (props) {
         data_ts: null,
         release_time: moment(),
         general_status: "routine",
-        reporter_id_ct: tmp_ct,
+        reporter_id_ct: "",
         reporter_id_mt,
         non_triggering_moms: {}
     };
@@ -73,7 +71,11 @@ function RoutineReleaseFormModal (props) {
     const [site_options, setSiteOptions] = useState([]);
     const [dataTimestamp, setDataTimestamp] = useState(null);
 
-    const disabled = (a0SiteList.site_id_list.length === 0 && NDSiteList.site_id_list.length === 0) || tmp_ct === "";
+    const [disabled, setDisabled] = useState(true);
+
+    useEffect(() => {
+        setDisabled((a0SiteList.site_id_list.length === 0 && NDSiteList.site_id_list.length === 0) || routineData.reporter_id_ct === "");
+    }, [a0SiteList.site_id_list, NDSiteList.site_id_list, routineData.reporter_id_ct]);
 
     useEffect(() => {
         setRoutineData({ ...initial_routine_data });
@@ -154,7 +156,6 @@ function RoutineReleaseFormModal (props) {
             ...routineData,
             data_timestamp: f_data_ts,
             release_time: f_rel_time,
-            reporter_id_ct: tmp_ct,
             routine_details: [
                 { ...a0SiteList },
                 { ...NDSiteList }
@@ -174,49 +175,44 @@ function RoutineReleaseFormModal (props) {
     };
 
     return (
-        <div>
-            <Dialog
-                fullWidth
-                fullScreen={fullScreen}
-                open={isOpen}
-                aria-labelledby="form-dialog-title"
-            >
-                <DialogTitle id="form-dialog-title">Routine Release Form</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Transfer site codes to their respective list if needed. Put sites with ground data on A0 Sites list
-                        while put sites without ground data on ND Sites. 
-                    </DialogContentText>
-                    <RoutineReleaseForm
-                        routineData={routineData}
-                        setRoutineData={setRoutineData}
-                        a0SiteList={a0SiteList}
-                        setA0SiteList={setA0SiteList}
-                        NDSiteList={NDSiteList}
-                        setNDSiteList={setNDSiteList}
-                        dataTimestamp={dataTimestamp}
-                        setDataTimestamp={setDataTimestamp}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <div>
-                        <div>
-                            <Button onClick={handleClose} color="primary">
-                                Cancel
-                            </Button>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={handleSubmit}
-                                disabled={disabled}
-                            >
-                                Submit
-                            </Button>
-                        </div>
-                    </div>
-                </DialogActions>
-            </Dialog>
-        </div>
+        <Dialog
+            fullWidth
+            fullScreen={fullScreen}
+            open={isOpen}
+            aria-labelledby="form-dialog-title"
+        >
+            <DialogTitle id="form-dialog-title">Routine Release Form</DialogTitle>
+            <DialogContent>
+                <DialogContentText>
+                    Transfer site codes to their respective list if needed. Put sites with ground data on A0 Sites list
+                    while put sites without ground data on ND Sites. 
+                </DialogContentText>
+                    
+                <RoutineReleaseForm
+                    routineData={routineData}
+                    setRoutineData={setRoutineData}
+                    a0SiteList={a0SiteList}
+                    setA0SiteList={setA0SiteList}
+                    NDSiteList={NDSiteList}
+                    setNDSiteList={setNDSiteList}
+                    dataTimestamp={dataTimestamp}
+                    setDataTimestamp={setDataTimestamp}
+                />
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={handleClose} color="primary">
+                    Cancel
+                </Button>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleSubmit}
+                    disabled={disabled}
+                >
+                    Submit
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
 }
 

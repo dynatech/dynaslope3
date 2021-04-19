@@ -45,36 +45,6 @@ const useStyles = makeStyles(theme => ({
     link: { textDecoration: "none" }
 }));
 
-function useFetchTagOptions (tag_selection) {
-    const [tags, update_tags] = useState([]);
-
-    useEffect(() => {
-        // AJAX CALLS HERE FOR OPRIONS
-        // axios.get(host + "/api/users/get_dynaslope_users")
-        // .then(response => {
-        //     const arr = prepareUsersArray(response.data);
-        //     this.setState({ users: arr });
-        // })
-        // .catch(error => {
-        //     console.log(error);
-        // });
-
-        let json = [];
-        if (tag_selection === "messages") {
-            json = [
-                "#ewireponse", "#ewimessage", "#groundmeasreminder",
-                "#groundmeas", "#groundobs", "#groundobsreminder"
-            ].map(val => ({
-                value: val,
-                label: val
-            }));
-        }
-
-        update_tags(json);
-    }, [tag_selection]);
-
-    return tags;
-}
 
 function getSiteCodes (site_list) {
     const site_codes = [];

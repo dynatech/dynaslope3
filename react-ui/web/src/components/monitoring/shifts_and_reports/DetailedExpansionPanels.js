@@ -283,26 +283,32 @@ function DetailedAccordion (props) {
         };
 
         downloadEosCharts(input, response => {
-            const { message, file_response: { file_path, message: render_msg } } = response;
-            console.log("response", render_msg);
-            if (message === "success") {
+            const { status } = response;
+            if (status === false) {
+                const { file_response: { message: render_msg } } = response;
                 enqueueSnackbar(
-                    `Charts Saved! Path: ${file_path}`,
-                    {
-                        variant: "success",
-                        autoHideDuration: 7000,
-                        action: snackBarActionFn
-                    }
-                );
-            } else {
-                enqueueSnackbar(
-                    "Error saving charts...",
+                    render_msg,
                     {
                         variant: "error",
                         autoHideDuration: 7000,
                         action: snackBarActionFn
                     }
                 );
+            } else {
+                enqueueSnackbar(
+                    "Download success!",
+                    {
+                        variant: "success",
+                        autoHideDuration: 7000,
+                        action: snackBarActionFn
+                    }
+                );
+                const url = window.URL.createObjectURL(new Blob([response]));
+                const link = document.createElement("a");
+                link.href = url;
+                link.setAttribute("download", `${site_code}_chart.pdf`);
+                document.body.appendChild(link);
+                link.click();
             }
         });
     };

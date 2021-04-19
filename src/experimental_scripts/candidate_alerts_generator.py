@@ -30,7 +30,8 @@ from src.utils.extra import (
 from src.utils.monitoring import (
     build_internal_alert_level,
     get_ongoing_extended_overdue_events,
-    round_to_nearest_release_time
+    round_to_nearest_release_time,
+    get_latest_site_event_details
 )
 
 # Every how many hours per release
@@ -215,6 +216,7 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
     to release_details
     Publisher details will come from user entry form
     """
+
     site_id = alert_entry["site_id"]
     site_code = alert_entry["site_code"]
     alert_level = alert_entry["alert_level"]
@@ -235,14 +237,10 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
 
     current_triggers_status = []
     for row in current_trigger_alerts:
-        trigger_type = row["type"]
-        details = row["details"]
-
-        if details["alert_level"] < 0:  # accept only nd and rx
-            current_triggers_status.append({
-                "trigger_source": trigger_type,
-                **details
-            })
+        current_triggers_status.append({
+            "trigger_source": row["type"],
+            **row["details"]
+        })
 
     formatted_alerts_for_ewi = {
         **site_details,
@@ -256,7 +254,8 @@ def format_alerts_for_ewi_insert(alert_entry, general_status):
         "general_status": general_status,
         "current_triggers_status": current_triggers_status,
         "non_triggering_moms": non_triggering_moms,
-        "unresolved_moms_list": alert_entry["unresolved_moms_list"]
+        "unresolved_moms_list": alert_entry["unresolved_moms_list"],
+        "previous_release": get_latest_site_event_details(site_id)
     }
 
     try:

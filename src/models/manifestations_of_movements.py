@@ -23,7 +23,7 @@ class ManifestationsOfMovements(DB.Model):
         return f"Class Representation"
 
 
-class ManifestationsOfMovementsSchema(MARSHMALLOW.ModelSchema):
+class ManifestationsOfMovementsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of ManifestationsOfMovements class
     """

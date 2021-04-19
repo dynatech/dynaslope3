@@ -41,7 +41,7 @@ def get_users_categorized_by_org(site_code=None, return_schema_format=False):
 
     if return_schema_format:
         users_by_org = UserOrganizationsSchema(
-            many=True).dump(users_by_org).data
+            many=True).dump(users_by_org)
 
     return users_by_org
 
@@ -156,9 +156,9 @@ def get_users(
                 excludes = prepare_excludes(include_list)
 
             data = UsersRelationshipSchema(
-                many=True, exclude=excludes).dump(users).data
+                many=True, exclude=excludes).dump(users)
         else:
-            data = UsersSchema(many=True).dump(users).data
+            data = UsersSchema(many=True).dump(users)
 
         if return_jsonify_format:
             return jsonify(data)
@@ -221,7 +221,7 @@ def get_dynaslope_users(active_only=True, return_schema_format=False, include_co
     if return_schema_format:
         exclude_list = [
             "organizations", "ewi_restriction",
-            "landline_numbers", "mobile_numbers.mobile_number.blocked_mobile"
+            "landline_numbers", #NOTE EXCLUDE: "mobile_numbers.mobile_number.blocked_mobile"
         ]
 
         include_list = ["emails", "mobile_numbers", "teams"]
@@ -230,7 +230,7 @@ def get_dynaslope_users(active_only=True, return_schema_format=False, include_co
             include_list = []
 
         result = UsersRelationshipSchema(
-            many=True, exclude=exclude_list, include=include_list).dump(result).data
+            many=True, exclude=exclude_list, include=include_list).dump(result)
 
     return result
 

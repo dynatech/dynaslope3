@@ -30,7 +30,7 @@ def get_all_field_survey():
         FieldSurveyLog.field_survey_id.desc()).all()
 
     result = FieldSurveyLogSchema(
-        many=True).dump(query).data
+        many=True).dump(query)
     data = []
     for row in result:
         data.append({
@@ -57,7 +57,7 @@ def get_field_survey_data():
     query = FieldSurveyLog.query.filter(
         FieldSurveyLog.field_survey_id == field_survey_id).first()
 
-    result = FieldSurveyLogSchema().dump(query).data
+    result = FieldSurveyLogSchema().dump(query)
 
     return jsonify(result)
 
@@ -67,7 +67,7 @@ def get_latest_field_survey_data():
     query = FieldSurveyLog.query.order_by(
         FieldSurveyLog.field_survey_id.desc()).first()
 
-    result = FieldSurveyLogSchema().dump(query).data
+    result = FieldSurveyLogSchema().dump(query)
 
     feedback = [result]
     return jsonify(feedback)
@@ -174,7 +174,7 @@ def latest_field_survey():
     query = FieldSurveyLog.query.order_by(
         FieldSurveyLog.field_survey_id.desc()).first()
 
-    result = FieldSurveyLogSchema().dump(query).data
+    result = FieldSurveyLogSchema().dump(query)
 
     return result
 

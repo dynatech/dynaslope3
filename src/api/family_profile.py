@@ -17,7 +17,7 @@ def get_all_family_profile():
         FamilyProfile.family_profile_id.desc()).all()
 
     result = FamilyProfileSchema(
-        many=True).dump(query).data
+        many=True).dump(query)
     data = []
     for row in result:
         data.append({
@@ -35,7 +35,7 @@ def get_all_risk_profile():
         RiskProfile.risk_profile_id.desc()).all()
 
     result = RiskProfileSchema(
-        many=True).dump(query).data
+        many=True).dump(query)
     data = []
     for row in result:
         data.append({
@@ -57,7 +57,7 @@ def get_family_profile_data():
     query = FamilyProfile.query.filter(
         FamilyProfile.family_profile_id == family_profile_id).first()
 
-    result = FamilyProfileSchema().dump(query).data
+    result = FamilyProfileSchema().dump(query)
 
     return jsonify(result)
 

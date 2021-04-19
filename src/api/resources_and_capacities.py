@@ -17,7 +17,7 @@ def get_all_resources_and_capacities():
         ResourcesAndCapacities.resources_and_capacities_id.desc()).all()
 
     result = ResourcesAndCapacitiesSchema(
-        many=True).dump(query).data
+        many=True).dump(query)
     data = []
     for row in result:
         data.append({
@@ -39,7 +39,7 @@ def get_resources_and_capacities_data():
     query = ResourcesAndCapacities.query.filter(
         ResourcesAndCapacities.resources_and_capacities_id == resources_and_capacities_id).first()
 
-    result = ResourcesAndCapacitiesSchema().dump(query).data
+    result = ResourcesAndCapacitiesSchema().dump(query)
 
     return jsonify(result)
 

@@ -32,7 +32,7 @@ class Membership(UserMixin, DB.Model):
                 f" User ID: {self.user_fk_id}")
 
 
-class MembershipSchema(MARSHMALLOW.ModelSchema):
+class MembershipSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Membership class
     """

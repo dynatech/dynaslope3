@@ -217,7 +217,7 @@ function buildTimelineElements (timelineItems, bulletinHandler, site_code, site_
                         <Grid item xs={12}><Divider /></Grid>
                         <Grid item xs={12} container justify="space-between">
                             <Typography variant="body2" style={{ color: card_color }}>
-                                Release Time: <strong>{release_time}</strong>
+                                Data Timestamp: <strong>{data_ts}</strong>
                             </Typography>
                             <Typography variant="body2" style={{ color: card_color }}>
                                 Internal Alert Level: <strong>{internal_alert_level}</strong>

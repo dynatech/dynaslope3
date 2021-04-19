@@ -2,7 +2,7 @@
 """
 
 from datetime import datetime
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
 
@@ -111,12 +111,12 @@ class SimPrefixes(DB.Model):
         return f"Class Representation"
 
 
-class GsmServersSchema(MARSHMALLOW.ModelSchema):
+class GsmServersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of GsmServers class
     """
 
-    sim_prefixes = fields.Nested(
+    sim_prefixes = MARSHMALLOW.Nested(
         "SimPrefixesSchema", many=True, exclude=["gsm_server"])
 
     class Meta:
@@ -124,53 +124,57 @@ class GsmServersSchema(MARSHMALLOW.ModelSchema):
         exclude = ["sim_prefixes"]
 
 
-class GsmModulesSchema(MARSHMALLOW.ModelSchema):
+class GsmModulesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of GsmModules class
     """
 
     gsm_server_id = fields.Integer()
     network_id = fields.Integer()
-    gsm_server = fields.Nested(GsmServersSchema, exclude=["gsm_modules"])
-    network = fields.Nested("NetworkCarrierSchema", exclude=["gsm_modules"])
-    # sim_prefixes = fields.Nested(
+    gsm_server = MARSHMALLOW.Nested(GsmServersSchema, exclude=["gsm_modules"])
+    network = MARSHMALLOW.Nested(
+        "NetworkCarrierSchema", exclude=["gsm_modules"])
+    # sim_prefixes = MARSHMALLOW.Nested(
     #     "SimPrefixesSchema", many=True, exclude=["gsm_module"])
 
     class Meta:
         model = GsmModules
-        exlude = ["gsm_server", "sim_prefixes"]
+        unknown = EXCLUDE
+        exlude = ["gsm_server"]
 
 
-class GsmCsqLogsSchema(MARSHMALLOW.ModelSchema):
+class GsmCsqLogsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     class Meta:
         model = GsmCsqLogs
 
 
-class NetworkCarriersSchema(MARSHMALLOW.ModelSchema):
+class NetworkCarriersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of NetworkCarriers class
     """
 
-    sim_prefixes = fields.Nested(
+    sim_prefixes = MARSHMALLOW.Nested(
         "SimPrefixesSchema", many=True, exclude=["network"])
-    gsm_modules = fields.Nested(
+    gsm_modules = MARSHMALLOW.Nested(
         GsmModulesSchema, many=True, exclude=["network"])
 
     class Meta:
         model = NetworkCarriers
 
 
-class SimPrefixesSchema(MARSHMALLOW.ModelSchema):
+class SimPrefixesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of SimPrefixes class
     """
 
     network_id = fields.Integer()
     gsm_id = fields.Integer()
-    network = fields.Nested(NetworkCarriersSchema, exclude=["sim_prefixes"])
-    # gsm_module = fields.Nested(GsmModulesSchema, exclude=["sim_prefixes"])
+    network = MARSHMALLOW.Nested(
+        NetworkCarriersSchema, exclude=["sim_prefixes"])
+    # gsm_module = MARSHMALLOW.Nested(GsmModulesSchema, exclude=["sim_prefixes"])
 
     class Meta:
         """Saves table class structure as schema model"""
         model = SimPrefixes
-        exclude = ["gsm_server"]
+        unknown = EXCLUDE
+        # exclude = ["gsm_server"]

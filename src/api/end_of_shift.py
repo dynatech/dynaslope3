@@ -8,7 +8,7 @@ NAMING CONVENTION
 
 import json
 from datetime import datetime, timedelta
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 from connection import DB
 from config import APP_CONFIG
 from instance.config import EMAILS
@@ -50,6 +50,7 @@ BASIS_TO_RAISE = {
 def download_eos_charts():
     """
     """
+
     json_data = request.get_json()
 
     response = render_charts(
@@ -59,10 +60,16 @@ def download_eos_charts():
         file_name=json_data["file_name"]
     )
 
+    if response["status"]:
+        return send_file(
+            response["file_path"], as_attachment=True,
+            mimetype="application/pdf"
+        )
+
     return jsonify({
-        "message": "success",
+        "message": "error",
         "file_response": response,
-        "status": True
+        "status": False
     })
 
 
@@ -235,7 +242,7 @@ def wrap_get_monitoring_events(event_id):
     Sample
     """
     event = get_monitoring_events(event_id=event_id)
-    ev_data = MonitoringEventsSchema().dump(event).data
+    ev_data = MonitoringEventsSchema().dump(event)
     return jsonify(ev_data)
 
 

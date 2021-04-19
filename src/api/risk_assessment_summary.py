@@ -17,7 +17,7 @@ def get_all_risk_assessment_summary():
         RiskAssessmentSummary.summary_id.desc()).all()
 
     result = RiskAssessmentSummarySchema(
-        many=True).dump(query).data
+        many=True).dump(query)
     data = []
     for row in result:
         data.append({
@@ -40,7 +40,7 @@ def get_risk_assessment_summary_data():
     query = RiskAssessmentSummary.query.filter(
         RiskAssessmentSummary.summary_id == summary_id).first()
 
-    result = RiskAssessmentSummarySchema().dump(query).data
+    result = RiskAssessmentSummarySchema().dump(query)
 
     return jsonify(result)
 

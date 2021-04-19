@@ -4,7 +4,7 @@ Analysis tables
 """
 
 import datetime
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 from sqlalchemy.dialects.mysql import DECIMAL, TEXT
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
@@ -590,11 +590,14 @@ class AlertStatus(DB.Model):
     user_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['commons_db']}.users.user_id"), nullable=False)
 
-    trigger = DB.relationship(OperationalTriggers,
-                              backref=DB.backref(
-                                  "alert_status", lazy="select", uselist=False),
-                              primaryjoin="AlertStatus.trigger_id==OperationalTriggers.trigger_id",
-                              lazy="joined", innerjoin=True)
+    trigger = DB.relationship(
+        OperationalTriggers,
+        backref=DB.backref(
+            "alert_status", lazy="subquery",
+            order_by="desc(AlertStatus.stat_id)"
+        ),
+        primaryjoin="AlertStatus.trigger_id==OperationalTriggers.trigger_id",
+        lazy="joined", innerjoin=True)
 
     user = DB.relationship(
         "Users", backref=DB.backref("alert_status_ack", lazy="dynamic"), lazy="select")
@@ -721,7 +724,7 @@ def tilt_table_schema(table):
     """
     """
 
-    class GenericTiltTableSchema(MARSHMALLOW.ModelSchema):
+    class GenericTiltTableSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
         """
         """
 
@@ -807,14 +810,15 @@ class MarkerDataTags(DB.Model):
 # Start of Schema Declarations #
 ################################
 
-class EarthquakeAlertsSchema(MARSHMALLOW.ModelSchema):
+class EarthquakeAlertsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Analysis Earthquake Alerts class
     """
     distance = fields.Decimal(as_string=True)
-    eq_event = fields.Nested("EarthquakeEventsSchema", exclude=("eq_alerts", ))
+    eq_event = MARSHMALLOW.Nested(
+        "EarthquakeEventsSchema", exclude=("eq_alerts", ))
     site_id = fields.Integer()
-    site = fields.Nested("SitesSchema", only=(
+    site = MARSHMALLOW.Nested("SitesSchema", only=(
         "site_code", "purok", "sitio", "barangay", "municipality", "province"))
 
     class Meta:
@@ -822,7 +826,7 @@ class EarthquakeAlertsSchema(MARSHMALLOW.ModelSchema):
         model = EarthquakeAlerts
 
 
-class AccelerometerStatusSchema(MARSHMALLOW.ModelSchema):
+class AccelerometerStatusSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Analysis Accelerometer Status class
     """
@@ -834,20 +838,20 @@ class AccelerometerStatusSchema(MARSHMALLOW.ModelSchema):
         model = AccelerometerStatus
 
 
-class AccelerometersSchema(MARSHMALLOW.ModelSchema):
+class AccelerometersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Analysis Accelerometer Status class
     """
     tsm_id = fields.Integer()
-    status = fields.Nested("AccelerometerStatusSchema",
-                           many=True, exclude=["accelerometers"])
+    # NOTE EXCLUDE: accelerometers
+    status = MARSHMALLOW.Nested("AccelerometerStatusSchema", many=True)
 
     class Meta:
         """Saves table class structure as schema model"""
         model = Accelerometers
 
 
-class EarthquakeEventsSchema(MARSHMALLOW.ModelSchema):
+class EarthquakeEventsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Analysis Earthquake Events class
     """
@@ -857,15 +861,15 @@ class EarthquakeEventsSchema(MARSHMALLOW.ModelSchema):
     latitude = fields.Decimal(as_string=True)
     longitude = fields.Decimal(as_string=True)
     critical_distance = fields.Decimal(as_string=True)
-    eq_alerts = fields.Nested(EarthquakeAlertsSchema,
-                              many=True, exclude=("eq_event", ))
+    eq_alerts = MARSHMALLOW.Nested(EarthquakeAlertsSchema,
+                                   many=True, exclude=("eq_event", ))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = EarthquakeEvents
 
 
-class SiteMarkersSchema(MARSHMALLOW.ModelSchema):
+class SiteMarkersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Site Markers class
     """
@@ -886,20 +890,21 @@ class SiteMarkersSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = SiteMarkers
+        unknown = EXCLUDE
         exclude = ["history"]
 
 
-class MarkersSchema(MARSHMALLOW.ModelSchema):
+class MarkersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Markers class
     """
 
-    site = fields.Nested("SitesSchema")
-    marker_data = fields.Nested(
+    site = MARSHMALLOW.Nested("SitesSchema")
+    marker_data = MARSHMALLOW.Nested(
         "MarkerDataSchema", many=True, exclude=("marker",))
-    marker_history = fields.Nested(
+    marker_history = MARSHMALLOW.Nested(
         "MarkerHistorySchema", many=True, exclude=("marker",))
-    marker_alerts = fields.Nested(
+    marker_alerts = MARSHMALLOW.Nested(
         "MarkerAlertsSchema", many=True, exclude=("marker",))
 
     class Meta:
@@ -907,21 +912,22 @@ class MarkersSchema(MARSHMALLOW.ModelSchema):
         model = Markers
 
 
-class MarkerHistorySchema(MARSHMALLOW.ModelSchema):
+class MarkerHistorySchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of MarkerHistory class
     """
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    marker_name = fields.Nested(
-        "MarkerNamesSchema", exclude=("history",))
+    marker_name = MARSHMALLOW.Nested(
+        "MarkerNamesSchema")  # NOTE EXCLUDE: exclude=("history",)
 
     class Meta:
         """Saves table class structure as schema model"""
         model = MarkerHistory
         exclude = ["marker_copy"]
+        unknown = EXCLUDE
 
 
-class MarkerNamesSchema(MARSHMALLOW.ModelSchema):
+class MarkerNamesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of MarkerNames class
     """
@@ -930,13 +936,13 @@ class MarkerNamesSchema(MARSHMALLOW.ModelSchema):
         model = MarkerNames
 
 
-class MarkerObservationsSchema(MARSHMALLOW.ModelSchema):
+class MarkerObservationsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Analysis Marker Observations class
     """
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    site = fields.Nested("SitesSchema")
-    marker_data = fields.Nested(
+    site = MARSHMALLOW.Nested("SitesSchema")
+    marker_data = MARSHMALLOW.Nested(
         "MarkerDataSchema", many=True, exclude=("marker_observation_report",))
 
     class Meta:
@@ -944,15 +950,15 @@ class MarkerObservationsSchema(MARSHMALLOW.ModelSchema):
         model = MarkerObservations
 
 
-class MarkerDataSchema(MARSHMALLOW.ModelSchema):
+class MarkerDataSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of MarkerData class
     """
 
-    # marker = fields.Nested("Markers", exclude=("marker_data",))
-    marker_data_tags = fields.Nested(
+    # marker = MARSHMALLOW.Nested("Markers", exclude=("marker_data",))
+    marker_data_tags = MARSHMALLOW.Nested(
         "Marker_data_tags", exclude=("marker_data",))
-    marker_observation_report = fields.Nested(
+    marker_observation_report = MARSHMALLOW.Nested(
         "MarkerObservationsSchema", exclude=("marker_data",))
 
     class Meta:
@@ -960,19 +966,19 @@ class MarkerDataSchema(MARSHMALLOW.ModelSchema):
         model = MarkerData
 
 
-class MarkerAlertsSchema(MARSHMALLOW.ModelSchema):
+class MarkerAlertsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of MarkerAlerts class
     """
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    marker = fields.Nested("Markers")
+    marker = MARSHMALLOW.Nested("Markers")
 
     class Meta:
         """Saves table class structure as schema model"""
         model = MarkerAlerts
 
 
-class RainfallAlertsSchema(MARSHMALLOW.ModelSchema):
+class RainfallAlertsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of RainfallAlerts class
     """
@@ -981,18 +987,20 @@ class RainfallAlertsSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = RainfallAlerts
+        unknown = EXCLUDE
 
 
-class RainfallThresholdsSchema(MARSHMALLOW.ModelSchema):
+class RainfallThresholdsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of RainfallThresholds class
     """
     class Meta:
         """Saves table class structure as schema model"""
         model = RainfallThresholds
+        unknown = EXCLUDE
 
 
-class RainfallGaugesSchema(MARSHMALLOW.ModelSchema):
+class RainfallGaugesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of RainfallGauges class
     """
@@ -1004,9 +1012,10 @@ class RainfallGaugesSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = RainfallGauges
+        unknown = EXCLUDE
 
 
-class RainfallDataTagsSchema(MARSHMALLOW.ModelSchema):
+class RainfallDataTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of RainfallDataTags class
     """
@@ -1014,36 +1023,40 @@ class RainfallDataTagsSchema(MARSHMALLOW.ModelSchema):
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_start = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_end = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    tagger = fields.Nested(UsersSchema, exclude=("rainfall_tags", ))
+    tagger = MARSHMALLOW.Nested(UsersSchema)  # exclude: rainfall_data_tags
 
     class Meta:
         """Saves table class structure as schema model"""
         model = RainfallDataTags
+        unknown = EXCLUDE
 
 
-class RainfallPrioritiesSchema(MARSHMALLOW.ModelSchema):
+class RainfallPrioritiesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of RainfallPriorities class
     """
     class Meta:
         """Saves table class structure as schema model"""
         model = RainfallPriorities
+        unknown = EXCLUDE
 
 
-class TSMSensorsSchema(MARSHMALLOW.ModelSchema):
+class TSMSensorsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of TSMSensors class
     """
-    logger = fields.Nested(LoggersSchema, exclude=("site", "tsm_sensor"))
-    accelerometers = fields.Nested("AccelerometersSchema", many=True)
+    logger = MARSHMALLOW.Nested(LoggersSchema, exclude=(
+        "tsm_sensor",))  # NOTE EXCLUDE: "site",
+    accelerometers = MARSHMALLOW.Nested("AccelerometersSchema", many=True)
 
     class Meta:
         """Saves table class structure as schema model"""
         model = TSMSensors
+        unknown = EXCLUDE
         exclude = ["tsm_alert", "node_alerts", "data_presence"]
 
 
-class TSMAlertsSchema(MARSHMALLOW.ModelSchema):
+class TSMAlertsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of TSMAlerts class
     """
@@ -1055,12 +1068,12 @@ class TSMAlertsSchema(MARSHMALLOW.ModelSchema):
         model = TSMAlerts
 
 
-class AlertStatusSchema(MARSHMALLOW.ModelSchema):
+class AlertStatusSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of AlertStatus class
     """
 
-    user = fields.Nested(UsersSchema, exclude=("alert_status_ack", ))
+    user = MARSHMALLOW.Nested(UsersSchema)
     ts_ack = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_last_retrigger = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_set = fields.DateTime("%Y-%m-%d %H:%M:%S")
@@ -1068,60 +1081,63 @@ class AlertStatusSchema(MARSHMALLOW.ModelSchema):
     class Meta:
         """Saves table class structure as schema model"""
         model = AlertStatus
+        unknown = EXCLUDE
 
 
-class DataPresenceRainGaugesSchema(MARSHMALLOW.ModelSchema):
+class DataPresenceRainGaugesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of DataPresenceRainGauges class
     """
     last_data = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_updated = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    rain_gauge = fields.Nested(
-        RainfallGaugesSchema, exclude=("data_presence",))
+    rain_gauge = MARSHMALLOW.Nested(
+        RainfallGaugesSchema)  # NOTE EXCLUDE: data_presence
 
     class Meta:
         """Saves table class structure as schema model"""
         model = DataPresenceRainGauges
+        unknown = EXCLUDE
 
 
-class DataPresenceTSMSchema(MARSHMALLOW.ModelSchema):
+class DataPresenceTSMSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of DataPresenceTSM class
     """
     last_data = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_updated = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    tsm_sensor = fields.Nested(
-        TSMSensorsSchema, exclude=("data_presence", "tsm_alert", "site",
-                                   "node_alerts", "logger.data_presence"))
+    tsm_sensor = MARSHMALLOW.Nested(TSMSensorsSchema)
+    # NOTE EXCLUDE: data_presence, logger.data_presence, "tsm_alert", "site", "node_alerts"
 
     class Meta:
         """Saves table class structure as schema model"""
         model = DataPresenceTSM
+        unknown = EXCLUDE
 
 
-class DataPresenceLoggersSchema(MARSHMALLOW.ModelSchema):
+class DataPresenceLoggersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of DataPresenceLoggers class
     """
     last_data = fields.DateTime("%Y-%m-%d %H:%M:%S")
     ts_updated = fields.DateTime("%Y-%m-%d %H:%M:%S")
     logger_id = fields.Integer()
-    logger = fields.Nested(
-        LoggersSchema, exclude=("data_presence", "tsm_sensor", "logger_model"))
+    logger = MARSHMALLOW.Nested(
+        LoggersSchema, exclude=("tsm_sensor", "logger_model"))  # NOTE EXCLUDE: "data_presence",
 
     class Meta:
         """Saves table class structure as schema model"""
         model = DataPresenceLoggers
+        unknown = EXCLUDE
 
 
-class MarkerDataTagsSchema(MARSHMALLOW.ModelSchema):
+class MarkerDataTagsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of MarkerDataTags class
     """
 
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
     data_id = fields.Integer()
-    tagger = fields.Nested(UsersSchema, exclude=("marker_tags", ))
+    tagger = MARSHMALLOW.Nested(UsersSchema)  # exclude=("marker_tags", )
 
     class Meta:
         """Saves table class structure as schema model"""

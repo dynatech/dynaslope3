@@ -11,12 +11,9 @@ from src.models.analysis import (
     RainfallGauges, DataPresenceTSM, DataPresenceTSMSchema,
     DataPresenceLoggers, DataPresenceLoggersSchema,
     EarthquakeEvents, EarthquakeEventsSchema,
-    TSMSensors, TSMSensorsSchema)
-from src.models.loggers import (
-    Loggers, LoggersSchema
-)
+    TSMSensors)
+from src.models.loggers import Loggers
 from src.utils.surficial import get_surficial_data_presence
-from src.utils.chart_rendering import render_charts
 from src.utils.rainfall import get_all_site_rainfall_data
 from src.utils.earthquake import insert_earthquake_event_to_db
 
@@ -42,7 +39,7 @@ def get_latest_data_presence(group, item_name="all"):
         table = DataPresenceRainGauges
         options = DB.joinedload("rain_gauge").raiseload("*")
         schema = DataPresenceRainGaugesSchema(
-            many=is_many, exclude=("rain_gauge.rainfall_alerts", "rain_gauge.rainfall_priorities"))
+            many=is_many)  # NOTE EXCLUDE: exclude=("rain_gauge.rainfall_alerts", "rain_gauge.rainfall_priorities")
         join_table = [RainfallGauges]
         order = RainfallGauges.gauge_name
         filter_attr = RainfallGauges.gauge_name
@@ -62,8 +59,8 @@ def get_latest_data_presence(group, item_name="all"):
     elif group == "surficial":
         pass
     else:
-        return (f"Data group inputs for querying data presence can " +
-                f"only be 'rain_gauges', 'surficial', 'tsm' or 'loggers'")
+        return (f"Data group inputs for querying data presence can "
+                + f"only be 'rain_gauges', 'surficial', 'tsm' or 'loggers'")
 
     if group != "surficial":
         query = DB.session.query(table)
@@ -79,7 +76,7 @@ def get_latest_data_presence(group, item_name="all"):
         else:
             query = query.order_by(order).all()
 
-        result = schema.dump(query).data
+        result = schema.dump(query)
     else:
         result = get_surficial_data_presence()
 
@@ -93,7 +90,7 @@ def get_earthquake_events():
     # .filter(EarthquakeEvents.eq_id == 13385)
     query = EarthquakeEvents.query.order_by(
         EarthquakeEvents.ts.desc()).limit(limit).offset(offset).all()
-    result = EarthquakeEventsSchema(many=True).dump(query).data
+    result = EarthquakeEventsSchema(many=True).dump(query)
 
     return jsonify(result)
 
@@ -125,7 +122,7 @@ def get_earthquake_alerts():
         EarthquakeEvents.eq_id.desc()
     ).filter(EarthquakeEvents.eq_alerts.any()
              ).limit(limit).offset(offset).all()
-    data = EarthquakeEventsSchema(many=True).dump(query).data
+    data = EarthquakeEventsSchema(many=True).dump(query)
 
     count = EarthquakeEvents.query.filter(EarthquakeEvents.eq_alerts.any()
                                           ).count()
@@ -137,7 +134,7 @@ def get_earthquake_alerts():
 
     # query = EarthquakeAlerts.query.order_by(
     #     EarthquakeAlerts.ea_id.desc()).all()
-    # result = EarthquakeAlertsSchema(many=True).dump(query).data
+    # result = EarthquakeAlertsSchema(many=True).dump(query)
 
     return jsonify(result)
 

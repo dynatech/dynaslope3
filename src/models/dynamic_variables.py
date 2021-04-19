@@ -2,6 +2,7 @@
 """
 
 from instance.config import SCHEMA_DICT
+from marshmallow import EXCLUDE
 from connection import DB, MARSHMALLOW
 
 
@@ -22,7 +23,7 @@ class DynamicVariables(DB.Model):
                 f" Variable Name: {self.var_name} Variable Value: {self.var_value}")
 
 
-class DynamicVariablesSchema(MARSHMALLOW.ModelSchema):
+class DynamicVariablesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of DynamicVariables class
     """

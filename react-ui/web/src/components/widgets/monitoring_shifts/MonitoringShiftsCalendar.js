@@ -1,14 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 
 import moment from "moment";
 import { Popover, Typography } from "@material-ui/core";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
-import {
-    receiveMonitoringShiftData, getMonitoringShifts,
-    removeReceiveMonitoringShiftData
-} from "../../../websocket/misc_ws";
+import { MonitoringShiftsContext } from "../../contexts/MonitoringShiftsContext";
 
 
 function Event ({ event }) {
@@ -55,26 +52,11 @@ function MonitoringShiftsCalendar (props) {
     const { nickname } = props;
     const has_nickname = typeof nickname !== "undefined"; // Return one user only
     // used in Profiles Page
+    
+    const { monitoring_shifts: allShifts } = useContext(MonitoringShiftsContext);
 
     const localizer = momentLocalizer(moment);
-    const [rows, setRows] = useState([]);
-    const [allShifts, setShifts] = useState([]);
     const [events, setEvents] = useState([]);
-
-    useEffect(() => {
-        receiveMonitoringShiftData(shift_data => setRows(shift_data));
-        getMonitoringShifts();
-
-        return function cleanup () {
-            removeReceiveMonitoringShiftData();
-        };
-    }, []);
-
-    useEffect(() => {
-        if (rows !== null || rows !== "undefined") {
-            setShifts(rows);
-        }
-    }, [rows]);
 
     useEffect(() => {
         const data = allShifts.flatMap(row => {

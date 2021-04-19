@@ -35,7 +35,7 @@ class RiskProfile(DB.Model):
         return f"Class Representation"
 
 
-class FamilyProfileSchema(MARSHMALLOW.ModelSchema):
+class FamilyProfileSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of FamilyProfile class
     """
@@ -45,7 +45,7 @@ class FamilyProfileSchema(MARSHMALLOW.ModelSchema):
         model = FamilyProfile
 
 
-class RiskProfileSchema(MARSHMALLOW.ModelSchema):
+class RiskProfileSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of RiskProfile class
     """

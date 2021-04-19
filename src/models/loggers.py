@@ -1,5 +1,8 @@
-import datetime
-from marshmallow import fields
+"""
+Model for Loggers
+"""
+
+from marshmallow import fields, EXCLUDE
 from sqlalchemy.dialects.mysql import DECIMAL, TEXT
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
@@ -7,6 +10,8 @@ from connection import DB, MARSHMALLOW
 ################################
 # Start of Class Declarations #
 ################################
+
+
 class Loggers(DB.Model):
     """
     Class representation of loggers table
@@ -60,7 +65,7 @@ class LoggerModels(DB.Model):
                 f" TSM Name: {self.tsm_name} Number of Segments: {self.number_of_segments}"
                 f"Date Activated: {self.date_activated}")
 
-    
+
 class DeploymentLogs(DB.Model):
     """
     Class representation of deployment_logs
@@ -133,7 +138,7 @@ class LoggerMobile(DB.Model):
         return (f"Type <{self.__class__.__name__}> mobile_id: {self.mobile_id}"
                 f" logger_id: {self.logger_id} date_activated: {self.date_activated}"
                 f" sim_num: {self.sim_num} gsm_id: {self.gsm_id}")
-    
+
 
 def get_rain_table(table_name, schema="senslopedb"):
     """
@@ -258,34 +263,38 @@ def get_soms_table(table_name):
 ################################
 # Start of Schema Declarations #
 ################################
-class LoggersSchema(MARSHMALLOW.ModelSchema):
+class LoggersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Loggers class
     """
 
     model_id = fields.Integer()
-    tsm_sensor = fields.Nested("TSMSensorsSchema", exclude=("logger", ))
-    logger_mobile = fields.Nested("LoggerMobileSchema", exclude=("logger", ))
-    logger_model = fields.Nested("LoggerModelsSchema", exclude=("loggers", ))
+    tsm_sensor = MARSHMALLOW.Nested("TSMSensorsSchema", exclude=("logger", ))
+    logger_mobile = MARSHMALLOW.Nested(
+        "LoggerMobileSchema", exclude=("logger", ))
+    logger_model = MARSHMALLOW.Nested(
+        "LoggerModelsSchema", exclude=("loggers", ))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = Loggers
-        exclude = ["data_presence"]
+        unknown = EXCLUDE
+        # exclude = ["data_presence"]
 
 
-class LoggerModelsSchema(MARSHMALLOW.ModelSchema):
+class LoggerModelsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of LoggerModels class
     """
-    loggers = fields.Nested(LoggersSchema, exclude=("logger_model", ))
+    loggers = MARSHMALLOW.Nested(LoggersSchema, exclude=("logger_model", ))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = LoggerModels
+        unknown = EXCLUDE
 
 
-class DeploymentLogsSchema(MARSHMALLOW.ModelSchema):
+class DeploymentLogsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of DeploymentLogs class
     """
@@ -298,7 +307,7 @@ class DeploymentLogsSchema(MARSHMALLOW.ModelSchema):
         model = DeploymentLogs
 
 
-class DeployedNodeSchema(MARSHMALLOW.ModelSchema):
+class DeployedNodeSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of DeployedNode class
     """
@@ -308,14 +317,14 @@ class DeployedNodeSchema(MARSHMALLOW.ModelSchema):
         model = DeployedNode
 
 
-class LoggerMobileSchema(MARSHMALLOW.ModelSchema):
+class LoggerMobileSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of LoggerMobile class
     """
-    logger = fields.Nested(
+    logger = MARSHMALLOW.Nested(
         LoggersSchema, exclude=("data_presence", "tsm_sensor", "logger_model"))
 
     class Meta:
         """Saves table class structure as schema model"""
         model = LoggerMobile
-
+        unknown = EXCLUDE

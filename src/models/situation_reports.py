@@ -20,7 +20,7 @@ class SituationReport(DB.Model):
         return f"Class Representation"
 
 
-class SituationReportSchema(MARSHMALLOW.ModelSchema):
+class SituationReportSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of SituationReport class
     """

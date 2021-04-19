@@ -549,8 +549,8 @@ def create_monitoring_bulletin(release_id):
 
     next_ewi_release_ts = get_next_ewi_release_ts(data_ts, is_onset)
 
-    schema = MonitoringReleasesSchema(
-        exclude=["event_alert.event.eos_analysis"]).dump(release).data
+    # NOTE EXCLUDE exclude=["event_alert.event.eos_analysis"]
+    schema = MonitoringReleasesSchema().dump(release)
 
     schema = {
         **schema,
@@ -578,13 +578,15 @@ def download_monitoring_bulletin(release_id):
     """
     Handles the download of bulletin. 
     """
+
     ret = BROWSER_DRIVER.render_bulletin(release_id)
 
-    var_checker("ret", ret, True)
-
     if ret["success"]:
-        return send_file(ret["pdf_path"], as_attachment=True,
-                         attachment_filename=APP_CONFIG["bulletin_save_path"])
+        return send_file(
+            ret["pdf_path"], as_attachment=True,
+            mimetype="application/pdf",
+            attachment_filename=APP_CONFIG["bulletin_save_path"]
+        )
 
     return ret["error"]
 

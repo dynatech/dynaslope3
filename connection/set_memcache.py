@@ -14,6 +14,9 @@ from src.models.dynamic_variables import (
     DynamicVariables as dv, DynamicVariablesSchema as dvS)
 from src.models.analysis import (
     SiteMarkers as sm, SiteMarkersSchema as smS)
+from src.models.inbox_outbox import (
+    SmsTags as st, SmsTagsSchema as stS
+)
 from src.utils.extra import set_data_to_memcache
 
 
@@ -26,11 +29,13 @@ def main():
         "dynamic_variables": (dv, dvS(many=True)),
         "bulletin_responses": (br, brS(many=True)),
         "bulletin_triggers": (bt, btS(many=True)),
-        "site_markers": (sm, smS(many=True))
+        "site_markers": (sm, smS(many=True)),
+        "sms_tags": (st, stS(many=True))
     }
 
     for key in table_list:
         table = table_list[key][0].query.all()
-        table_data = table_list[key][1].dump(table).data
+        table_data = table_list[key][1].dump(table)
+        
         set_data_to_memcache(
             name=key.upper(), data=table_data, raise_if_empty=True)

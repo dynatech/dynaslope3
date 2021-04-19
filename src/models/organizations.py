@@ -57,12 +57,12 @@ class UserOrganizations(DB.Model):
         return f"{self.org_name}"
 
 
-class OrganizationsSchema(MARSHMALLOW.ModelSchema):
+class OrganizationsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of Organizations class
     """
 
-    users = fields.Nested("UserOrganizationsSchema",
+    users = MARSHMALLOW.Nested("UserOrganizationsSchema",
                           many=True, exclude=["organization"])
 
     class Meta:
@@ -70,13 +70,13 @@ class OrganizationsSchema(MARSHMALLOW.ModelSchema):
         model = Organizations
 
 
-class UserOrganizationsSchema(MARSHMALLOW.ModelSchema):
+class UserOrganizationsSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of User Organizations class
     """
 
-    site = fields.Nested("SitesSchema")
-    organization = fields.Nested(OrganizationsSchema, exclude=["users"])
+    site = MARSHMALLOW.Nested("SitesSchema")
+    organization = MARSHMALLOW.Nested(OrganizationsSchema, exclude=["users"])
 
     class Meta:
         """Saves table class structure as schema model"""

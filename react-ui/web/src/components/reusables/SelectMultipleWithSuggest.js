@@ -6,11 +6,13 @@ import { withStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import NoSsr from "@material-ui/core/NoSsr";
 import TextField from "@material-ui/core/TextField";
+import FormHelperText from "@material-ui/core/FormHelperText";
 import Paper from "@material-ui/core/Paper";
 import Chip from "@material-ui/core/Chip";
 import MenuItem from "@material-ui/core/MenuItem";
 import CancelIcon from "@material-ui/icons/Cancel";
 import { emphasize } from "@material-ui/core/styles/colorManipulator";
+import { FormControl } from "@material-ui/core";
 
 const styles = theme => ({
     root: {
@@ -81,7 +83,7 @@ function inputComponent ({ inputRef, ...props }) {
 function Control (props) {
     const {
         selectProps, innerRef,
-        children, innerProps
+        children, innerProps, isDisabled
     } = props;
     
     return (
@@ -97,6 +99,7 @@ function Control (props) {
                 },
             }}
             {...selectProps.textFieldProps}
+            disabled={isDisabled}
         />
     );
 }
@@ -180,7 +183,8 @@ function SelectMultipleWithSuggest (props) {
         classes, changeHandler, isRequired,
         options, value, label, placeholder,
         renderDropdownIndicator, openMenuOnClick, isMulti,
-        isDisabled, isClearable, hasAlternativeChipLabel
+        isDisabled, isClearable, hasAlternativeChipLabel,
+        isError, helperText
     } = props;
 
     const selectStyles = {
@@ -242,6 +246,11 @@ function SelectMultipleWithSuggest (props) {
                     isClearable={is_clearable}
                     hasAlternativeChipLabel={hasAlternativeChipLabel}
                 />
+                {
+                    Boolean(isError) && <FormControl error>
+                        <FormHelperText id="component-error-text">{helperText}</FormHelperText>
+                    </FormControl>
+                }
             </NoSsr>
         </div>
     );

@@ -18,7 +18,7 @@ def get_all_situation_report():
         SituationReport.situation_report_id.desc()).all()
 
     result = SituationReportSchema(
-        many=True).dump(query).data
+        many=True).dump(query)
     data = []
     for row in result:
         data.append({
@@ -36,7 +36,7 @@ def get_latest_situation_report_data():
     query = SituationReport.query.order_by(
         SituationReport.situation_report_id.desc()).first()
 
-    result = SituationReportSchema().dump(query).data
+    result = SituationReportSchema().dump(query)
 
     feedback = [result]
     return jsonify(feedback)
@@ -143,7 +143,7 @@ def latest_situation_report():
     query = SituationReport.query.order_by(
         SituationReport.situation_report_id.desc()).first()
 
-    result = SituationReportSchema().dump(query).data
+    result = SituationReportSchema().dump(query)
 
     return result
 

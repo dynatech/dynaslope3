@@ -22,7 +22,7 @@ GENERAL_DATA_TAG_BLUEPRINT = Blueprint("general_data_tag_blueprint", __name__)
 def get_general_data_tag():
     general_data_tag = get_all_tag(tag_id=None)
     schema = GeneralDataTagManagerSchema(
-        many=True).dump(general_data_tag).data
+        many=True).dump(general_data_tag)
 
     return jsonify(schema)
 
@@ -63,14 +63,15 @@ def handle_update_insert_tags():
         # TODO: change tags when new tags came or use tag_ids
         if tag_description in [
                 "#GroundMeas", "#GroundObs", "#EwiResponse",
-                "#RainInfo", "#EwiMessage", "#AlertFYI"]:
+                "#RainInfo", "#EwiMessage", "#AlertFYI",
+                "#Permission", "#Erratum"]:
             get_process_status_log(key="Writing narratives", status="request")
 
             try:
                 additional_data = contact_person
                 if tag_description in ["#GroundObs", "#EwiResponse"]:
                     additional_data += f" - {message}"
-                elif tag_description == "#AlertFYI":
+                elif tag_description in ["#AlertFYI", "#Permission", "#Erratum"]:
                     additional_data = message
 
                 narrative = get_narrative_text(

@@ -257,6 +257,9 @@ def round_down_data_ts(date_time):
 
 def get_saved_event_triggers(event_id):
     """
+    Gets all the unique triggers per internal symbol and their max timestamps
+    (e.g. g trigger is different from G trigger)
+
     Returns a tuple of (internal_sym_id, max trigger timestamp)
     """
 
@@ -281,7 +284,9 @@ def check_if_alert_status_entry_in_db(trigger_id):
     alert_status_result = []
     try:
         alert_status_result = AlertStatus.query.filter(
-            AlertStatus.trigger_id == trigger_id).first()
+            AlertStatus.trigger_id == trigger_id) \
+            .order_by(AlertStatus.stat_id.desc()) \
+            .first()
     except Exception as err:
         print(err)
         raise
@@ -522,7 +527,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
                 "releases.moms_releases",
                 "releases.release_publishers",
                 "releases.triggers"
-            ]).dump(event_alert).data
+            ]).dump(event_alert)
         public_alert_level = event_alert.public_alert_symbol.alert_level
         trigger_list = latest_release.trigger_list
         event_alert_data["internal_alert_level"] = build_internal_alert_level(
@@ -547,7 +552,7 @@ def get_ongoing_extended_overdue_events(run_ts=None):
             "release", "trigger_misc.moms_releases.moms_details.narrative.site",
             "trigger_misc.moms_releases.moms_details.moms_instance.site"])
         event_alert_data["latest_event_triggers"] = mts.dump(
-            latest_triggers_per_kind).data
+            latest_triggers_per_kind)
 
         highest_event_alert_level = max(
             map(lambda x: x.public_alert_symbol.alert_level, event.event_alerts))
@@ -870,7 +875,7 @@ def get_qa_data(ts_start=None, ts_end=None):
         ))
 
     return_data = base.all()
-    result = release_schema.dump(return_data).data
+    result = release_schema.dump(return_data)
 
     i = 0
     for row in return_data:
@@ -920,6 +925,7 @@ def get_monitoring_releases(
         ts_start (Datetime) -
         ts_end (Datetime) -
     """
+
     me = MonitoringEvents
     mea = MonitoringEventAlerts
     mr = MonitoringReleases
@@ -965,7 +971,6 @@ def get_monitoring_releases(
     if release_id:
         return_data = base.filter(
             mr.release_id == release_id).first()
-
     else:
         if ts_start and ts_end:
             base = base.filter(DB.and_(
@@ -1027,6 +1032,7 @@ def get_monitoring_triggers(
     """
     NOTE: To fill
     """
+
     mt = MonitoringTriggers
     me = MonitoringEvents
     mea = MonitoringEventAlerts
@@ -1051,7 +1057,8 @@ def get_monitoring_triggers(
         base = base.filter(ts_start <= mt.ts)
 
     if ts_end:
-        base = base.filter(mt.ts <= ts_end)
+        # Added 30 minutes to accomodate data before next data_ts
+        base = base.filter(mt.ts < ts_end + timedelta(minutes=30))
 
     if event_id:
         base = base.join(mr).join(mea).join(me).filter(me.event_id == event_id)
@@ -1118,25 +1125,29 @@ def check_if_has_moms_or_earthquake_trigger(event_id):
 #   MONITORING_EVENT RELATED FUNCTIONS   #
 ##########################################
 
-def get_public_alert(site_id):
-    me = MonitoringEvents
-    mea = MonitoringEventAlerts
-    result = mea.query.order_by(DB.desc(mea.event_alert_id)).join(
-        me).filter(me.site_id == site_id).first()
-    if result:
-        result = result.public_alert_symbol
-
-    return result
-
-
-def get_latest_release_per_site(site_id):
+def get_latest_release_per_site(site_id, load_options=False):
     """
     Searches latest release regardless of event type
+
+    Args:
+
+    site_id (int)
+    load_options (boolean)    currenty catered for get_latest_site_event_details
     """
+
     mr = MonitoringReleases
     me = MonitoringEvents
     mea = MonitoringEventAlerts
-    latest_release = mr.query.order_by(
+
+    query = mr.query
+    if load_options:
+        query = query.options(
+            DB.raiseload("triggers"),
+            DB.raiseload("release_publishers"),
+            DB.raiseload("moms_releases")
+        )
+
+    latest_release = query.order_by(
         DB.desc(mr.release_id)) \
         .join(mea).join(me).filter(me.site_id == site_id) \
         .first()
@@ -1157,6 +1168,7 @@ def format_events_table_data(events):
     """
     Organizes data required by the front end table
     """
+
     event_data = []
     for event in events:
         if event.status == 2:
@@ -1207,6 +1219,7 @@ def get_monitoring_events_table(offset, limit, site_ids, entry_types, include_co
             include_count
             search
     """
+
     me = MonitoringEvents
     mea = MonitoringEventAlerts
 
@@ -1320,6 +1333,28 @@ def get_latest_monitoring_event_per_site(site_id, raise_load=False):
 
     return latest_event
 
+
+def get_latest_site_event_details(site_id):
+    """
+    Function that gets the most recent release details (including event)
+    for the site
+    """
+
+    latest_release = get_latest_release_per_site(site_id, load_options=True)
+    latest_release_dump = MonitoringReleasesSchema(
+        exclude=["triggers", "release_publishers", "moms_releases"]).dump(latest_release)
+
+    pas = latest_release_dump["event_alert"]["public_alert_symbol"]
+    alert_level = pas["alert_level"]
+
+    trigger_list = latest_release_dump["trigger_list"]
+    internal_alert = build_internal_alert_level(
+        alert_level, trigger_list=trigger_list)
+
+    latest_release_dump["internal_alert"] = internal_alert
+
+    return latest_release_dump
+
 ##########################################################
 # List of Functions for early input before release times #
 ##########################################################
@@ -1334,7 +1369,9 @@ def write_monitoring_on_demand_to_db(od_details, tech_info):
             request_ts=od_details["request_ts"],
             narrative_id=od_details["narrative_id"],
             reporter_id=od_details["reporter_id"],
-            tech_info=tech_info
+            tech_info=tech_info,
+            site_id=od_details["site_id"],
+            alert_level=od_details["alert_level"]
         )
         DB.session.add(on_demand)
         DB.session.flush()
@@ -2016,7 +2053,7 @@ def write_monitoring_moms_releases_to_db(moms_id, trig_misc_id=None, release_id=
                 moms_id=moms_id
             )
         DB.session.add(moms_release)
-        # DB.session.flush()
+        DB.session.flush()
     except Exception as err:
         print(err)
         raise
@@ -2053,7 +2090,8 @@ def get_moms_id_list(moms_dictionary, site_id, event_id):
             except KeyError:
                 moms_id = write_monitoring_moms_to_db(
                     item, site_id, event_id)
-                moms_id_list.append(moms_id)
+
+            moms_id_list.append(moms_id)
     except KeyError as err:
         print(err)
         if not has_moms_ids:
@@ -2284,7 +2322,7 @@ def process_unique_triggers_data(query):
 
         site = Sites.query.options(DB.raiseload("*")) \
             .filter(Sites.site_id == site_id).first()
-        site_result = SitesSchema().dump(site).data
+        site_result = SitesSchema().dump(site)
 
         temp = {
             "event_id": row[0],
@@ -2323,3 +2361,64 @@ def process_unique_triggers_data(query):
         }
 
     return table_data, donut_chart_data
+
+
+def get_narrative_site_id_on_demand():
+    """
+    """
+    query = MonitoringOnDemand.query.all()
+    data = []
+    for row in query:
+        narrative_id = row.narrative_id
+        od_id = row.od_id
+        site_id = row.site_id
+        print("-------------------------")
+        print("updating.......")
+        print("narrative_id", narrative_id)
+        print("od_id", od_id)
+        print("site_id", site_id)
+        update = Narratives.query.get(narrative_id)
+        narrative_site_id = update.site_id
+        print("narrative_site_id", narrative_site_id)
+        update_on_demand = MonitoringOnDemand.query.get(od_id)
+        print("update_on_demand.site_id", update_on_demand)
+        update_on_demand.site_id = narrative_site_id
+        print("update sucess")
+    DB.session.commit()
+    return "success update on demand site_ids"
+
+
+def save_monitoring_on_demand_data(data):
+    """
+    """
+    status = None
+    try:
+        tech_info = data["tech_info"]
+        site_id = data["site_id"]
+        alert_level = int(data["alert_level"])
+        operational_trigger_symbols = retrieve_data_from_memcache("operational_trigger_symbols", {
+            "alert_level": alert_level, "source_id": 5})
+        trigger_sym_id = operational_trigger_symbols["trigger_sym_id"]
+        ts = data["request_ts"]
+        user_id = data["reporter_id"]
+        latest_event = get_latest_monitoring_event_per_site(site_id=site_id)
+        event_id = latest_event.event_id
+        narrative_id = write_narratives_to_db(
+            site_id, ts, tech_info, 1,
+            user_id, event_id
+        )
+        data["narrative_id"] = narrative_id
+        write_monitoring_on_demand_to_db(data, tech_info)
+        insert_op_trigger = OperationalTriggers(ts=ts, site_id=site_id,
+                                                trigger_sym_id=trigger_sym_id,
+                                                ts_updated=ts)
+        DB.session.add(insert_op_trigger)
+        status = True
+        message = "Successfully saved on demand data"
+    except Exception as err:
+        DB.session.rollback()
+        print(err)
+        status = False
+        message = f"Error: {err}"
+
+    return status, message

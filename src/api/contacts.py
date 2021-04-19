@@ -180,11 +180,11 @@ def wrap_get_recipients_option(site_code=None):
             if key in data:
                 temp[key] = data[key]
 
-    data = get_recipients_option(site_ids=temp["site_ids"],
-                                 site_codes=temp["site_codes"],
-                                 only_ewi_recipients=temp["only_ewi_recipients"],
-                                 alert_level=temp["alert_level"],
-                                 org_ids=temp["org_ids"])
+    data = get_recipients_option(
+        site_ids=temp["site_ids"],
+        only_ewi_recipients=temp["only_ewi_recipients"],
+        alert_level=temp["alert_level"],
+        org_ids=temp["org_ids"])
     return jsonify(data)
 
 

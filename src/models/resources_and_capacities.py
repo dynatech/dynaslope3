@@ -19,7 +19,7 @@ class ResourcesAndCapacities(DB.Model):
         return f"Class Representation"
 
 
-class ResourcesAndCapacitiesSchema(MARSHMALLOW.ModelSchema):
+class ResourcesAndCapacitiesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of ResourcesAndCapacities class
     """

@@ -61,8 +61,8 @@ def get_latest_alerts():
     max_alerts = DB.session.query(DB.func.max(mm.op_trigger), subquery.c.site_id).join(mi).join(subquery, DB.and_(
         mm.observance_ts == subquery.c.max_ts, mi.instance_id == subquery.c.instance_id)).group_by(subquery.c.site_id).all()
 
-    sites = get_sites_data()
-    sites_data = SitesSchema(many=True).dump(sites).data
+    sites = get_sites_data(raise_load=True)
+    sites_data = SitesSchema(many=True).dump(sites)
 
     for site in sites_data:
         site_id = site["site_id"]
@@ -78,8 +78,7 @@ def get_latest_alerts():
 def get_moms_instances(site_code):
     mi = MomsInstances
     query = mi.query.join(Sites).filter(Sites.site_code == site_code).all()
-    result = MomsInstancesSchema(many=True, exclude=(
-        "moms.moms_releases", )).dump(query).data
+    result = MomsInstancesSchema(many=True).dump(query) #NOTE EXCLUDE:  exclude=("moms.moms_releases", )
 
     return jsonify(result)
 
@@ -90,7 +89,7 @@ def get_moms_features(site_code=None):
     features = MomsFeatures.query.all()
 
     result = MomsFeaturesSchema(
-        many=True, exclude=("instances.site", )).dump(features).data
+        many=True, exclude=("instances.site", )).dump(features)
 
     if site_code:
         sites_data = get_sites_data(site_code=site_code)

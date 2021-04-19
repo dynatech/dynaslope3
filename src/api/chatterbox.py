@@ -9,14 +9,14 @@ from src.utils.chatterbox import (
     get_quick_inbox, get_message_tag_options,
     insert_message_on_database, get_latest_messages,
     get_messages_schema_dict, resend_message,
-    get_formatted_unsent_messages
+    get_search_results
 )
 from src.utils.ewi import create_ewi_message, insert_ewi_sms_narrative
 from src.utils.general_data_tag import insert_data_tag
 from src.utils.narratives import write_narratives_to_db
 from src.utils.contacts import get_contacts_per_site, get_org_ids
 from src.websocket.monitoring_tasks import execute_update_db_alert_ewi_sent_status
-from src.utils.extra import var_checker
+from src.utils.extra import var_checker, retrieve_data_from_memcache
 
 CHATTERBOX_BLUEPRINT = Blueprint("chatterbox_blueprint", __name__)
 
@@ -57,7 +57,12 @@ def wrap_send_routine_ewi_sms():
     for site in site_list:
         try:
             site_code = site["site_code"]
-            # site_id = site["site_id"]
+            site_id = site["site_id"]
+
+            # NOTE: UMI special case
+            if site_id == 50:
+                continue
+
             release_id = site["release_id"]
             event_id = site["event_id"]
 
@@ -138,7 +143,7 @@ def wrap_get_message_tag_options(source):
     """
 
     tags = get_message_tag_options(source)
-    sms_tags = SmsTagsSchema(many=True).dump(tags).data
+    sms_tags = SmsTagsSchema(many=True).dump(tags)
 
     return jsonify(sms_tags)
 
@@ -246,10 +251,32 @@ def wrap_resend_message(outbox_status_id):
     return jsonify({"status": status, "message": message})
 
 
-@CHATTERBOX_BLUEPRINT.route("/chatterbox/check_unsent_messages", methods=["GET"])
-def check_unsent_messages():
+@CHATTERBOX_BLUEPRINT.route("/chatterbox/get_all_tags", methods=["GET"])
+def get_all_tags():
     """
     """
 
-    unsent_messages = get_formatted_unsent_messages()
-    return jsonify(unsent_messages)
+    sms_tags = retrieve_data_from_memcache("sms_tags")
+    return jsonify(sms_tags)
+
+
+@CHATTERBOX_BLUEPRINT.route("/chatterbox/test_search_string", methods=["GET"])
+def test_search_string():
+    """
+    """
+
+    obj = {
+        "site_ids": [],
+        "org_ids": [],
+        "only_ewi_recipients": False,
+        "string_search": "maaraw",
+        "ts_start": "2020-09-08 00:36:00",
+        "ts_end": "2020-10-09 01:36:00",
+        "include_inactive_numbers": False,
+        "tag_search": "",
+        "mobile_number_search": "",
+        "name_search": "",
+        "updated_offset": 0
+    }
+    data = get_search_results(obj)
+    return jsonify(data)

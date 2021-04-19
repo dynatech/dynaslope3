@@ -3,7 +3,7 @@ File containing class representation of
 tables related to mobile numbers
 """
 
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 from sqlalchemy.dialects.mysql import TINYINT, SMALLINT
 from instance.config import SCHEMA_DICT
 from connection import DB, MARSHMALLOW
@@ -90,43 +90,47 @@ class BlockedMobileNumbers(DB.Model):
                 f" TS: {self.ts}")
 
 
-class MobileNumbersSchema(MARSHMALLOW.ModelSchema):
+class MobileNumbersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of MobileNumbers class
     """
 
-    users = fields.Nested(
+    users = MARSHMALLOW.Nested(
         "UserMobilesSchema", exclude=["mobile_number"], many=True)
 
     class Meta:
         """Saves table class structure as schema model"""
         model = MobileNumbers
+        # unknown = EXCLUDE
 
 
-class UserMobilesSchema(MARSHMALLOW.ModelSchema):
+class UserMobilesSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of UserMobiles class
     """
 
-    user = fields.Nested(UsersRelationshipSchema, exclude=["mobile_numbers"])
-    mobile_number = fields.Nested(
+    user = MARSHMALLOW.Nested(UsersRelationshipSchema,
+                              exclude=["mobile_numbers"])
+    mobile_number = MARSHMALLOW.Nested(
         MobileNumbersSchema, exclude=["users"])
 
     class Meta:
         """Saves table class structure as schema model"""
         model = UserMobiles
+        unknown = EXCLUDE
 
 
-class BlockedMobileNumbersSchema(MARSHMALLOW.ModelSchema):
+class BlockedMobileNumbersSchema(MARSHMALLOW.SQLAlchemyAutoSchema):
     """
     Schema representation of BlockedNumbers class
     """
 
     ts = fields.DateTime("%Y-%m-%d %H:%M:%S")
-    reporter = fields.Nested("UsersSchema")
-    mobile_number = fields.Nested(
-        "MobileNumbersSchema", exclude=["blocked_mobile"])
+    reporter = MARSHMALLOW.Nested("UsersSchema")
+    mobile_number = MARSHMALLOW.Nested(
+        "MobileNumbersSchema")  # NOTE EXCLUDE: exclude=["blocked_mobile"]
 
     class Meta:
         """Saves table class structure as schema model"""
         model = BlockedMobileNumbers
+        # unknown = EXCLUDE

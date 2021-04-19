@@ -1,9 +1,8 @@
 import React, { Fragment } from "react";
-import PropTypes from "prop-types";
 import { withStyles } from "@material-ui/core/styles";
-import FormLabel from "@material-ui/core/FormLabel";
+// import FormLabel from "@material-ui/core/FormLabel";
 import FormControl from "@material-ui/core/FormControl";
-import FormGroup from "@material-ui/core/FormGroup";
+// import FormGroup from "@material-ui/core/FormGroup";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import FormHelperText from "@material-ui/core/FormHelperText";
 import Switch from "@material-ui/core/Switch";
@@ -15,10 +14,8 @@ const styles = theme => ({
         width: "-webkit-fill-available"
     },
     formLabel: {
-        display: "flex",
-        alignItems: "center",
         justifyContent: "space-between",
-        width: "100%"
+        marginLeft: 0,
     },
     radios: {
         paddingTop: 4,
@@ -43,7 +40,7 @@ function CheckboxesGroup (props) {
 
     return (
         <FormControl component="fieldset" className={classes.formControl}>
-            <FormLabel component="legend" className={classes.formLabel}>
+            {/* <FormLabel component="legend" className={classes.formLabel}>
                 <span>{label}</span>
 
                 <Switch
@@ -51,7 +48,18 @@ function CheckboxesGroup (props) {
                     onChange={switchHandler}
                     value={switchValue}
                 />
-            </FormLabel>
+            </FormLabel> */}
+
+            <FormControlLabel
+                className={classes.formLabel}
+                control={<Switch
+                    checked={switchState}
+                    onChange={switchHandler}
+                    value={switchValue}
+                />}
+                label={label}
+                labelPlacement="start"
+            />
 
             {
                 switchState ? (

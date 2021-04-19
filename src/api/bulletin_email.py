@@ -23,7 +23,7 @@ def wrap_download_bulletin(release_id):
 
     try:
         ret = download_monitoring_bulletin(release_id=release_id)
-        return "Success"
+        return ret
     except KeyError:
         return "Bulletin download FAILED."
     except Exception as err:
@@ -57,8 +57,8 @@ def prepare_base_email_body(address, alert_level, data_ts):
     """
     Prepare the basic bulletin email content.
     """
-    f_r_time = datetime.strftime(data_ts, "%B %e, %Y, %I:%M %p")
 
+    f_r_time = datetime.strftime(data_ts, "%B %e, %Y, %I:%M %p")
     return f"\nDynaslope Bulletin for {f_r_time}\n{alert_level} - {address}"
 
 

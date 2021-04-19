@@ -538,8 +538,13 @@ function MainSection (props) {
         longitude, logger_id, logger_mobile: { sim_num, mobile_id },
         logger_model: { logger_type }
     } = selectedLogger;
+    
+    let conformed_sim = "---";
+    if(sim_num){
+        const { conformedValue } = conformToMask(sim_num, conforming_mobile_mask);
+        conformed_sim = conformedValue;
+    }
 
-    const { conformedValue: conformed_sim } = conformToMask(sim_num, conforming_mobile_mask);
     const initial_value = {
         date_deactivated: { value: date_deactivated, helper_text: "", required: false },
         logger_number: { value: conformed_sim, helper_text: "", required: true },
@@ -630,7 +635,7 @@ function MainSection (props) {
                         item xs={12} sm={6} lg={4}
                         variant="body1" align="center"
                     >
-                        <strong>Logger number:</strong> +{data.logger_number.value}
+                        <strong>Logger number:</strong> {data.logger_number.value}
                     </Typography>
 
                     <Typography component={Grid}
@@ -668,23 +673,26 @@ function MainSection (props) {
                             />
                         </Grid> 
                     </MuiPickersUtilsProvider>
-
-                    <Grid item xs={6} lg={3}>
-                        <TextField
-                            required
-                            fullWidth
-                            label="Logger Number"
-                            InputProps={{
-                                inputComponent: TextMaskCustom,
-                                inputProps: { mask: logger_number_mask }
-                            }}
-                            InputLabelProps={{ shrink: true }}
-                            value={data.logger_number.value}
-                            onChange={e => update("logger_number", e.target.value)}
-                            helperText={data.logger_number.helper_text || ""}
-                            error={Boolean(data.logger_number.helper_text)}
-                        />
-                    </Grid>
+                    {
+                        data.logger_number.value !== "---" && (
+                            <Grid item xs={6} lg={3}>
+                                <TextField
+                                    required
+                                    fullWidth
+                                    label="Logger Number"
+                                    InputProps={{
+                                        inputComponent: TextMaskCustom,
+                                        inputProps: { mask: logger_number_mask }
+                                    }}
+                                    InputLabelProps={{ shrink: true }}
+                                    value={data.logger_number.value}
+                                    onChange={e => update("logger_number", e.target.value)}
+                                    helperText={data.logger_number.helper_text || ""}
+                                    error={Boolean(data.logger_number.helper_text)}
+                                />
+                            </Grid>
+                        )
+                    }
 
                     <Grid item xs={6} lg={3}>
                         <TextField
