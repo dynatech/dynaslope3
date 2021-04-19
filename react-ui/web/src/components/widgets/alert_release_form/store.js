@@ -323,8 +323,10 @@ function insertCandidateAlertDetails (candidate_alert, current_state) {
     const state_copy = cloneDeep(initial_state);
 
     const source_set = new Set();
+    const temp_trig_arr = [];
+    let note = null;
     candidate_alert.trigger_list_arr.forEach((row, i) => {
-        const { trigger_type: source } = row;
+        const { trigger_type: source, invalid } = row;
         source_set.add(source);
         state_copy[source].value = "1";
 
@@ -349,11 +351,14 @@ function insertCandidateAlertDetails (candidate_alert, current_state) {
             }
         }
 
-        // eslint-disable-next-line no-param-reassign
-        candidate_alert.trigger_list_arr[i] = { 
+        if (invalid) {
+            note = "Above threshold triggers tagged as invalid were already removed from this release. Review them if necessary."; 
+            return;
+        }
+        temp_trig_arr.push({ 
             ...row, source, alert_symbol: row.alert[0],
             ts: row.ts_updated
-        };
+        });
     });
 
     candidate_alert.current_triggers_status.forEach(row => {
@@ -367,8 +372,8 @@ function insertCandidateAlertDetails (candidate_alert, current_state) {
     const temp = {
         public_alert_level: candidate_alert.public_alert_level,
         internal_alert: candidate_alert.internal_alert_level,
-        note: null,
-        trigger_list: candidate_alert.trigger_list_arr,
+        note,
+        trigger_list: temp_trig_arr,
         trigger_list_str: candidate_alert.release_details.trigger_list_str,
         to_extend_validity: candidate_alert.to_extend_validity
     };
