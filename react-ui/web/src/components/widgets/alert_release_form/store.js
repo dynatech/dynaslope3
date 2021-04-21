@@ -251,6 +251,7 @@ function reducer (state, action) {
             const trigger_list_str = has_no_ground_data ? "ND" : "A0";
 
             let temp = {
+                public_alert_level: 0,
                 internal_alert: trigger_list_str,
                 trigger_list_str,
                 note: "You are manually lowering an alert. We are encouraging you to REVIEW ALL THE INPUTS in the previous section. " +
