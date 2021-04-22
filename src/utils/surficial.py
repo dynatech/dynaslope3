@@ -434,11 +434,21 @@ def insert_unreliable_data(data):
     data_id = data["data_id"]
     tagger_id = data["tagger_id"]
     remarks = data["remarks"]
+    tag_type = data["tag_type"]
 
     insert_query = MarkerDataTags(
         data_id=data_id,
         tagger_id=tagger_id,
-        remarks=remarks
+        remarks=remarks,
+        tag_type=tag_type
     )
 
     DB.session.add(insert_query)
+
+
+def update_unreliable_data(data):
+    row = MarkerDataTags.query.get(data["marker_tag_id"])
+
+    row.tagger_id = data["tagger_id"]
+    row.remarks = data["remarks"]
+    row. tag_type = data["tag_type"]

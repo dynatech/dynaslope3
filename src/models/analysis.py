@@ -784,6 +784,7 @@ class MarkerDataTags(DB.Model):
     tagger_id = DB.Column(DB.Integer, DB.ForeignKey(
         f"{SCHEMA_DICT['commons_db']}.users.user_id"))
     remarks = DB.Column(DB.String(250))
+    tag_type = DB.Column(DB.Integer)
 
     marker_data = DB.relationship(
         "MarkerData", backref=DB.backref(

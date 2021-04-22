@@ -11,7 +11,7 @@ from src.models.analysis import SiteMarkersSchema, MarkerHistorySchema, MarkerDa
 from src.utils.surficial import (
     get_surficial_markers, get_surficial_data, delete_surficial_data,
     create_new_marker, insert_marker_event, insert_new_marker_name,
-    insert_unreliable_data
+    insert_unreliable_data, update_unreliable_data
 )
 from analysis_scripts.analysis.surficial import markeralerts
 from src.utils.extra import var_checker
@@ -34,6 +34,7 @@ def wrap_get_surficial_markers(site_code=None, get_complete_data=None):
         Args:
             site_code -> Can be None if you want to get all columns regardless of site
     """
+
     markers_schema = SiteMarkersSchema(many=True)
     markers = get_surficial_markers(
         site_code, get_complete_data)
@@ -111,7 +112,8 @@ def extract_formatted_surficial_data_string(filter_val, start_ts=None, end_ts=No
         for item in data_set:
             ts = item.marker_observation.ts
             final_ts = int(ts.timestamp() * 1000)
-            unreliable_data = MarkerDataTagsSchema().dump(item.marker_data_tags) #NOTE EXCLUDE: exclude=["marker_data"]
+            unreliable_data = MarkerDataTagsSchema() \
+                .dump(item.marker_data_tags)  # NOTE EXCLUDE: exclude=["marker_data"]
 
             new_list.append({
                 "x": final_ts, "y": item.measurement,
@@ -445,7 +447,11 @@ def save_unreliable_marker_data():
     status = None
     message = ""
     try:
-        insert_unreliable_data(data)
+        if data["marker_tag_id"]:
+            update_unreliable_data(data)
+        else:
+            insert_unreliable_data(data)
+
         DB.session.commit()
         message = "Succesfully saved unreliable data."
         status = True

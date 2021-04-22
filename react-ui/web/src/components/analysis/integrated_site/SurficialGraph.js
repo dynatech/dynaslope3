@@ -545,7 +545,7 @@ function UpdateDeleteModal (props) {
                             {siteCode.toUpperCase()} - Marker {name}
                         </Typography>
                         <Typography variant="body2">
-                            Timestamp: {moment(chosen_ts).format("DD MMMM YYYY, HH:mm:ss")}
+                            Observation Timestamp: {moment(chosen_ts).format("DD MMMM YYYY, HH:mm:ss")}
                         </Typography>
                         <Typography variant="body2">
                             Measurement: {chosen_meas} cm
@@ -626,7 +626,7 @@ function UpdateDeleteModal (props) {
                                 onChange={changeRadioValueFn}
                             >
                                 <FormControlLabel value="one" control={<Radio />} label="Delete measurement of this marker only" />
-                                <FormControlLabel value="all" control={<Radio />} label="Delete all measurements from given marker observation" />
+                                <FormControlLabel value="all" control={<Radio />} label="Delete all measurements from given marker observation (i.e. all data from observation timestamp)" />
                             </RadioGroup>
                         </FormControl>
                     </Grid>
@@ -680,13 +680,25 @@ function SurficialDataTagModal (props) {
     } = surficialDataTagModal;
 
     const { user_id } = getCurrentUser();
+    const [show_form, setShowForm] = useState(false);
     const [remarks, setRemarks] = useState("");
+    const [tag_type, setTagType] = useState("");
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-    const changeHandlerFn = (prop, value) => x => {
+    useEffect(() => {
+        setShowForm(!surficialDataTagModal.unreliable_data);
+    }, [surficialDataTagModal]);
+
+    const changeHandlerFn = (prop, value) => {
         setSurficialDataTagModal({
             ...surficialDataTagModal, [prop]: value 
         });
+    };
+
+    const handleCancel = () => {
+        changeHandlerFn("is_open", false);
+        setRemarks("");
+        setTagType("");
     };
 
     const snackBarActionFn = key => {
@@ -699,10 +711,17 @@ function SurficialDataTagModal (props) {
     };
 
     const saveFunction = () => {
+        let temp = null;
+        if (unreliable_data) {
+            temp = unreliable_data.marker_tag_id;
+        }
+
         const input = {
+            marker_tag_id: temp,
             data_id,
             tagger_id: user_id,
-            remarks
+            remarks,
+            tag_type: parseInt(tag_type, 10)
         };
 
         saveUnreliableMarkerData(input, data => {
@@ -731,13 +750,19 @@ function SurficialDataTagModal (props) {
         });
     };
 
+    const toggle_edit = () => {
+        setShowForm(true);
+        setRemarks(unreliable_data.remarks);
+        setTagType(unreliable_data.tag_type.toString());
+    };
+
     return (
         <Dialog
             open={is_open}
             aria-labelledby="form-dialog-title"    
         >
             <DialogTitle id="form-dialog-title">
-                { unreliable_data ? "Unreliable data tag information" : "Tag unreliable data"}
+                { unreliable_data ? "Marker data tag information" : "Tag marker data"}
             </DialogTitle>
 
             <DialogContent>
@@ -758,34 +783,62 @@ function SurficialDataTagModal (props) {
 
                     <Grid item xs={12} align="center">
                         {
-                            unreliable_data ? (
-                                <Grid container justify="center">
-                                    <Grid item xs={12} sm={6}>
-                                        <Typography variant="body1">
-                                            <strong>Tagger:</strong>
-                                        </Typography>
-                                        <Typography variant="body1" gutterBottom>
-                                            {`${unreliable_data.tagger.first_name} ${unreliable_data.tagger.last_name}`}
-                                        </Typography>
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <Typography variant="body1">
-                                            <strong>Timestamp:</strong>
-                                        </Typography>
-                                        <Typography variant="body1" gutterBottom>
-                                            {moment(unreliable_data.ts).format("DD MMMM YYYY, HH:mm:ss")}
-                                        </Typography>
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <Typography variant="body1">
-                                            <strong>Remarks:</strong>
-                                        </Typography>
-                                        <Typography variant="body1">
-                                            {unreliable_data.remarks}
-                                        </Typography>
-                                    </Grid>
+                            unreliable_data && !show_form && <Grid container justify="center">
+                                <Grid item xs={12} sm={4}>
+                                    <Typography variant="body1">
+                                        <strong>Tag Type:</strong>
+                                    </Typography>
+                                    <Typography variant="body1" gutterBottom>
+                                        {{ "-1": "Unreliable", "0": "Validating", "1": "Confirmed" }[unreliable_data.tag_type]}
+                                    </Typography>
                                 </Grid>
-                            ) : (
+                                <Grid item xs={12} sm={4}>
+                                    <Typography variant="body1">
+                                        <strong>Timestamp:</strong>
+                                    </Typography>
+                                    <Typography variant="body1" gutterBottom>
+                                        {moment(unreliable_data.ts).format("DD MMMM YYYY, HH:mm:ss")}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <Typography variant="body1">
+                                        <strong>Tagger:</strong>
+                                    </Typography>
+                                    <Typography variant="body1" gutterBottom>
+                                        {`${unreliable_data.tagger.first_name} ${unreliable_data.tagger.last_name}`}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <Typography variant="body1">
+                                        <strong>Remarks:</strong>
+                                    </Typography>
+                                    <Typography variant="body1">
+                                        {unreliable_data.remarks}
+                                    </Typography>
+                                </Grid>
+                            </Grid>
+                        }
+
+                        {
+                            show_form && <Fragment>
+                                <FormControl component="fieldset" style={{ display: "flex", marginBottom: "1rem" }}>
+                                    <RadioGroup
+                                        aria-label="tag_type"
+                                        name="tag_type"
+                                        row
+                                        style={{ justifyContent: "space-around" }}
+                                        value={tag_type}
+                                        onChange={x => setTagType(x.target.value)}
+                                    >
+                                        <FormControlLabel value="-1" control={<Radio />} label="Unreliable" />
+                                        <FormControlLabel 
+                                            value="0" control={<Radio />} label="Validating" 
+                                            disabled={unreliable_data && unreliable_data.tag_type !== 0} 
+                                        />
+                                        <FormControlLabel value="1" control={<Radio />} label="Confirmed" />
+                                    </RadioGroup>
+                                </FormControl>
+
                                 <TextField 
                                     label="Remarks"
                                     value={remarks}
@@ -795,7 +848,7 @@ function SurficialDataTagModal (props) {
                                     error={remarks === ""}
                                     helperText={remarks ? "" : "Required"}
                                 />
-                            )
+                            </Fragment>
                         }
                     </Grid>
                 </Grid>
@@ -803,18 +856,25 @@ function SurficialDataTagModal (props) {
 
             <DialogActions>
                 {
-                    !unreliable_data && <Button
+                    show_form ? <Button
                         variant="contained"
                         color="secondary"
                         size="small"
                         onClick={saveFunction}
-                        disabled={remarks === ""}
+                        disabled={remarks === "" || tag_type === ""}
                     >
                         Save
+                    </Button> : <Button
+                        variant="contained"
+                        color="secondary"
+                        size="small"
+                        onClick={toggle_edit}
+                    >
+                        Edit
                     </Button>
                 }
 
-                <Button color="primary" onClick={changeHandlerFn("is_open", false)}>
+                <Button color="primary" onClick={handleCancel}>
                     Cancel
                 </Button>
             </DialogActions>
@@ -829,7 +889,7 @@ function ClickPointModal (props) {
         setGenerateTrending, setSurficialDataTagModal
     } = props;
 
-    const { ts: chosen_ts, measurement: chosen_meas, name, unreliable_data } = chosenPoint;
+    const { ts: chosen_ts, measurement: chosen_meas, name } = chosenPoint;
     const handleClose = () => {
         setIsOpenClickModal(false);
     };
@@ -887,24 +947,13 @@ function ClickPointModal (props) {
                     </ListItemIcon>
                     <ListItemText primary="Generate trending chart" />
                 </ListItem>
-                {
-                    unreliable_data === false ? (
-                        <ListItem button onClick={hadleSurficialDataTagClick("tag")}>
-                            <ListItemIcon>
-                                <LocalOffer />
-                            </ListItemIcon>
-                            <ListItemText primary="Tag data as unreliable" />
-                        </ListItem>
-                    ) : (
-                        <ListItem button onClick={hadleSurficialDataTagClick("show")}>
-                            <ListItemIcon>
-                                <Info />
-                            </ListItemIcon>
-                            <ListItemText primary="Show unreliable tag info" />
-                        </ListItem>
-                    )
-                }
-                
+
+                <ListItem button onClick={hadleSurficialDataTagClick("tag")}>
+                    <ListItemIcon>
+                        <LocalOffer />
+                    </ListItemIcon>
+                    <ListItemText primary="Add/Edit data tag info" />
+                </ListItem>
             </List>
         </Dialog>
     );
@@ -1041,10 +1090,17 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
         series_data.forEach(series_data_row => {
             const { unreliable_data } = series_data_row;
             if (Object.keys(unreliable_data).length !== 0) {
+                const { tag_type } = unreliable_data;
+                let symbol;
+                let fillColor;
+                if (tag_type === -1) { symbol = "triangle-down"; fillColor = "#FF0000"; }
+                else if (tag_type === 0) { symbol = "circle"; fillColor = "#FFFF00"; }
+                else { symbol = "triangle"; fillColor = "#06e606"; }
+
                 const marker = {
-                    symbol: "triangle-down",
+                    symbol,
                     radius: 8,
-                    fillColor: "#FFFF00",
+                    fillColor,
                     lineColor: "#000000",
                     lineWidth: 1
                 };
@@ -1054,6 +1110,7 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
             }
         }); 
     });
+
     return {
         title: {
             text: `<b>Surficial Data History Chart of ${site_code.toUpperCase()}</b>`,
