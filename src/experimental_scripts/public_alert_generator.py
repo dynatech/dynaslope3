@@ -505,8 +505,8 @@ def update_positive_triggers_with_no_data(highest_unique_positive_triggers_list,
         if any(trig_source == trigger_source for trig_source in no_data_list):
             # If positive trigger is not within release time interval,
             # replace symbol to its respective ND symbol.
-            if not (ts_updated >= round_to_nearest_release_time(query_ts_end, interval)
-                    - timedelta(hours=interval)):
+            if not (ts_updated >= round_to_nearest_release_time(query_ts_end, interval) -
+                    timedelta(hours=interval)):
                 has_no_data_positive_trigger = True
 
                 nd_row = retrieve_data_from_memcache(
@@ -754,7 +754,7 @@ def get_rainfall_rx_symbol(rain_trigger_index):
 
 def get_current_trigger_alert_conditions(release_op_triggers_list, surficial_moms_window_ts,
                                          latest_rainfall_alert, subsurface_alerts_list,
-                                         moms_trigger_condition):
+                                         moms_trigger_condition, has_on_demand):
     """
     This function adds the special details to each triggers.
 
@@ -779,9 +779,13 @@ def get_current_trigger_alert_conditions(release_op_triggers_list, surficial_mom
                 lambda x: x.trigger_symbol.source_id == source_id, release_op_triggers_list), None)
             trigger_source = th["trigger_source"]
 
+            to_skip_nd = False
+            if trigger_source == "on demand" and has_on_demand["lowering"]:
+                to_skip_nd = True
+
             # If the trigger_type/_source does not exist in release trigger list,
             # It is ND. Add default ND values.
-            if not rel_trigger_entry:
+            if not rel_trigger_entry or to_skip_nd:
                 no_data_list.append(th)
                 nd_alert_symbol = retrieve_data_from_memcache(
                     "operational_trigger_symbols", {
@@ -827,6 +831,10 @@ def get_current_trigger_alert_conditions(release_op_triggers_list, surficial_mom
         if not moms_trigger_condition["has_positive_moms_trigger"] and \
                 current_trigger_alerts["moms"]["alert_level"] == -1:
             del current_trigger_alerts["moms"]
+
+    # Remove on-demand if there's no raised on demand data
+    if not has_on_demand["raising"]:
+        del current_trigger_alerts["on demand"]
 
     # If none, subsurface is not active
     if subsurface_alerts_list is not None:
@@ -1104,8 +1112,8 @@ def get_operational_triggers_within_monitoring_period(
     op_trigger_of_site = s_op_triggers_query.order_by(DB.desc(ot.ts)).filter(
         and_(
             ot.ts_updated >= monitoring_start_ts,
-            ot.ts < query_ts_end +
-            timedelta(minutes=30)
+            ot.ts < query_ts_end
+            + timedelta(minutes=30)
         )).join(ots).filter(ots.alert_level != -1)
 
     return op_trigger_of_site
@@ -1394,9 +1402,26 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_d
             latest_rainfall_alert = site.rainfall_alerts.order_by(DB.desc(ra.ts)).filter(
                 ra.ts == query_ts_end).first()
 
+        has_on_demand = {"raising": False, "lowering": False}
+        if highest_public_alert > 0:
+            on_demand_trigger_symbols = retrieve_data_from_memcache(
+                "trigger_hierarchies", {"trigger_source": "on demand"},
+                retrieve_attr="trigger_symbols")
+            od_trig_sym_ids = {}
+            for x in on_demand_trigger_symbols:
+                if x["alert_level"] in [0, 1]:
+                    od_trig_sym_ids[x["alert_level"]] = x["trigger_sym_id"]
+
+            od_trigs = [x.trigger_sym_id for x in op_triggers_list
+                        if x.trigger_sym_id in list(od_trig_sym_ids.values())]
+
+            has_on_demand["raising"] = od_trig_sym_ids[1] in od_trigs
+            has_on_demand["lowering"] = od_trig_sym_ids[0] in od_trigs
+
         current_trigger_alerts = get_current_trigger_alert_conditions(
             release_op_triggers_list, surficial_moms_window_ts,
-            latest_rainfall_alert, subsurface_alerts_list, moms_trigger_condition)
+            latest_rainfall_alert, subsurface_alerts_list, moms_trigger_condition,
+            has_on_demand)
 
         ###################
         # INTERNAL ALERTS #
@@ -1543,8 +1568,8 @@ def get_site_public_alerts(active_sites, query_ts_start, query_ts_end, s_g_a_t_d
         # is no latest data
         minute = int(query_ts_start.strftime('%M'))
         if data_ts > query_ts_end or \
-            ((minute >= 45 or 15 <= minute and minute < 30) and
-             data_ts != query_ts_end):
+            ((minute >= 45 or 15 <= minute and minute < 30)
+             and data_ts != query_ts_end):
             data_ts = query_ts_end
 
         data_ts = str(data_ts)
