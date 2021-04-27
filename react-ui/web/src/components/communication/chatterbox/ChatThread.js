@@ -14,7 +14,7 @@ import {
     RadioButtonUnchecked, CheckCircle, Cancel
 } from "@material-ui/icons";
 import GenericAvatar from "../../../images/generic-user-icon.jpg";
-import GeneralDataTagModal from "../../widgets/GeneralDataTagModal";
+import ChatterboxTagModal from "./ChatterboxTagModal";
 import { loadMoreMessages, resendMessage } from "../ajax";
 
 const useStyles = makeStyles(theme => ({
@@ -418,7 +418,7 @@ function ChatThread (props) {
                 }
             </List>
 
-            <GeneralDataTagModal
+            <ChatterboxTagModal
                 isOpen={is_gdt_modal_open}
                 closeHandler={set_gdt_fn(false)}
                 tagOption={tag_object.source} // UPDATE THIS FOR GOD SAKE

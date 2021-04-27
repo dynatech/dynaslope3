@@ -1,5 +1,6 @@
 import axios from "axios";
 import { host } from "../../config";
+import { makePOSTAxiosRequest } from "../../UtilityFunctions";
 
 export function getListOfMunicipalities (callback) {
     const api_link = `${host}/api/sites/get_all_geographical_selection_per_category/municipality?include_inactive=false`;
@@ -220,4 +221,14 @@ export function getAllTags (callback) {
     .catch(error => {
         console.error(error);
     });
+}
+
+export function handleUpdateInsertTags (payload, callback) {
+    const api_link = `${host}/api/general_data_tag/handle_update_insert_tags`;
+    makePOSTAxiosRequest(api_link, payload, callback);
+}
+
+export function handleDeleteTags (payload, callback) {
+    const api_link = `${host}/api/general_data_tag/handle_delete_tags`;
+    makePOSTAxiosRequest(api_link, payload, callback);
 }

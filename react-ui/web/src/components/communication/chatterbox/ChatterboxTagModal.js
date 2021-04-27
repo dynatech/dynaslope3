@@ -5,20 +5,21 @@ import {
     DialogContentText, DialogActions,
     Button, withMobileDialog, makeStyles,
     Radio, RadioGroup, FormControlLabel,
-    FormLabel
+    FormLabel,
+    CircularProgress
 } from "@material-ui/core";
 
 import axios from "axios";
 import moment from "moment";
 
-import GeneralStyles from "../../GeneralStyles";
-import SelectMultipleWithSuggest from "../reusables/SelectMultipleWithSuggest";
-import { SlideTransition, FadeTransition } from "../reusables/TransitionList";
-import { host } from "../../config";
-import { handleUpdateInsertTags, handleDeleteTags } from "./ajax";
-import { getCurrentUser } from "../sessions/auth";
-import { mobileUserFormatter } from "../communication/chatterbox/MessageList";
-import DynaslopeSiteSelectInputForm from "../reusables/DynaslopeSiteSelectInputForm";
+import GeneralStyles from "../../../GeneralStyles";
+import SelectMultipleWithSuggest from "../../reusables/SelectMultipleWithSuggest";
+import { SlideTransition, FadeTransition } from "../../reusables/TransitionList";
+import { host } from "../../../config";
+import { handleUpdateInsertTags, handleDeleteTags } from "../ajax";
+import { getCurrentUser } from "../../sessions/auth";
+import { mobileUserFormatter } from "./MessageList";
+import DynaslopeSiteSelectInputForm from "../../reusables/DynaslopeSiteSelectInputForm";
 
 const useStyles = makeStyles(theme => GeneralStyles(theme));
 
@@ -83,7 +84,7 @@ function preparePassedTags (tag_obj) {
     return tag_arr;
 }
 
-function GeneralDataTagModal (props) {
+function ChatterboxTagModal (props) {
     const {
         fullScreen, isOpen,
         closeHandler, tagOption,
@@ -101,24 +102,24 @@ function GeneralDataTagModal (props) {
     const [fyi_purpose, setFyiPurspose] = useState("");
     const [permission_purpose, setPermissionPurpose] = useState("");
 
+    const [has_rainfall_tag, setHasRainfallTag] = useState(false);
+    const [attach_narrative_to, setAttachNarrativeTo] = useState("");
+
     const is_saved_number = mobileDetails.users.length > 0;
 
     useEffect(() => {
         let fyi_bool = false;
         let permission_bool = false;
+        let rainfall_bool = false;
         if (tags !== null) {
             fyi_bool = tags.some(x => x.label === "#AlertFYI");
             permission_bool = tags.some(x => x.label === "#Permission");
-
-            if (fyi_bool) {
-                permission_bool = false;
-            } else if (permission_bool) {
-                fyi_bool = false;
-            }
+            rainfall_bool = tags.some(x => x.label === "#RainInfo");
         }
+
         setHasFyiTag(fyi_bool);
         setHasPermissionTag(permission_bool);
-        // console.log(tags)
+        setHasRainfallTag(rainfall_bool);
     }, [tags]);
 
     const [is_disabled, setIsDisabled] = useState(false);
@@ -133,11 +134,19 @@ function GeneralDataTagModal (props) {
             if (has_permission_tag) {
                 if (sites === null || permission_purpose === "") bool = true;
             }
+
+            if (has_rainfall_tag) {
+                bool = sites === null && attach_narrative_to === "specified-sites" || attach_narrative_to === "";
+            }
         } else {
             bool = true;
         }
         setIsDisabled(bool);
-    }, [has_fyi_tag, sites, fyi_purpose, has_permission_tag, permission_purpose]);
+    }, [
+        has_fyi_tag, sites, fyi_purpose, 
+        has_permission_tag, permission_purpose,
+        has_rainfall_tag, attach_narrative_to
+    ]);
 
     useEffect(() => {
         const tag_arr = preparePassedTags(tagObject);
@@ -152,7 +161,8 @@ function GeneralDataTagModal (props) {
 
         let contact_person = null;
         let site_id_list = [];
-        if (is_saved_number && !has_fyi_tag) {
+
+        if (!has_fyi_tag) {
             mobileDetails.users.forEach(row => {
                 const { user } = row;
 
@@ -164,7 +174,10 @@ function GeneralDataTagModal (props) {
             });
 
             contact_person = prepareContactPerson(mobileDetails);
-        } else if (has_fyi_tag) {
+        }
+        
+        if (has_fyi_tag || (has_rainfall_tag && attach_narrative_to === "specified-sites")) {
+            site_id_list = [];
             site_id_list = sites.map(x => x.value);
         }
 
@@ -257,72 +270,109 @@ function GeneralDataTagModal (props) {
                     by a tag when removing a tag to a message.
                 </DialogContentText>
 
-                <div style={{ margin: "24px 0" }}>
-                    <SelectMultipleWithSuggest
-                        label="Tags"
-                        options={tag_options}
-                        value={tags}
-                        changeHandler={update_tags_fn}
-                        placeholder="Select tags"
-                        renderDropdownIndicator={false}
-                        openMenuOnClick
-                        isMulti
-                    />
-                </div>
                 {
-                    has_fyi_tag && <Fragment>
-                        <DialogContentText color="textPrimary">
-                            Alert FYI
-                        </DialogContentText>
-
-                        <DynaslopeSiteSelectInputForm
-                            value={sites}
-                            changeHandler={value => setSites(value)}
+                    tag_options.length === 0 ? <div style={{ 
+                        display: "flex", justifyContent: "center"
+                    }}>
+                        <CircularProgress />
+                    </div> : <Fragment>
+                        <SelectMultipleWithSuggest
+                            label="Tags"
+                            options={tag_options}
+                            value={tags}
+                            changeHandler={update_tags_fn}
+                            placeholder="Select tags"
+                            renderDropdownIndicator={false}
+                            openMenuOnClick
                             isMulti
-                            required
                         />
 
-                        <FormLabel component="legend" style={{ marginTop: 24 }}>Purpose</FormLabel>
-                        <RadioGroup
-                            aria-label="fyi-purpose"
-                            name="fyi-purpose"
-                            row
-                            style={{ justifyContent: "space-around" }}
-                            value={fyi_purpose}
-                            onChange={e => setFyiPurspose(e.target.value)}
-                        >
-                            <FormControlLabel value="alert raising" control={<Radio />} label="Alert raising" />
-                            <FormControlLabel value="alert lowering" control={<Radio />} label="Alert lowering" />
-                        </RadioGroup>
-                    </Fragment>
-                }
+                        {
+                            has_fyi_tag && <div style={{ marginTop: 18 }}>
+                                <DialogContentText color="textPrimary">
+                                    Alert FYI
+                                </DialogContentText>
 
-                {
-                    has_permission_tag && <Fragment>
-                        <DialogContentText color="textPrimary">
-                            Permission
-                        </DialogContentText>
+                                <DynaslopeSiteSelectInputForm
+                                    value={sites}
+                                    changeHandler={value => setSites(value)}
+                                    isMulti
+                                    required
+                                />
 
-                        <DynaslopeSiteSelectInputForm
-                            value={sites}
-                            changeHandler={value => setSites(value)}
-                            isMulti
-                            required
-                        />
+                                <FormLabel component="legend" style={{ marginTop: 24 }}>Purpose</FormLabel>
+                                <RadioGroup
+                                    aria-label="fyi-purpose"
+                                    name="fyi-purpose"
+                                    row
+                                    style={{ justifyContent: "space-around" }}
+                                    value={fyi_purpose}
+                                    onChange={e => setFyiPurspose(e.target.value)}
+                                >
+                                    <FormControlLabel value="alert raising" control={<Radio />} label="Alert raising" />
+                                    <FormControlLabel value="alert lowering" control={<Radio />} label="Alert lowering" />
+                                </RadioGroup>
+                            </div>
+                        }
 
-                        <FormLabel component="legend" style={{ marginTop: 24 }}>Purpose</FormLabel>
-                        <RadioGroup
-                            aria-label="permission-purpose"
-                            name="permission-purpose"
-                            row
-                            style={{ justifyContent: "space-around" }}
-                            value={permission_purpose}
-                            onChange={e => setPermissionPurpose(e.target.value)}
-                        >
-                            <FormControlLabel value="alert 3 raising" control={<Radio />} label="Alert 3 Raising" />
-                            <FormControlLabel value="alert 3 lowering" control={<Radio />} label="Alert 3 Lowering" />
-                            <FormControlLabel value="on demand raising" control={<Radio />} label="On Demand Raising" />
-                        </RadioGroup>
+                        {
+                            has_rainfall_tag && <div style={{ marginTop: 18 }}>
+                                <DialogContentText color="textPrimary">
+                                    Rain Information
+                                </DialogContentText>
+
+                                <FormLabel component="legend" style={{ marginTop: 12 }}>Attach narrative to</FormLabel>
+                                <RadioGroup
+                                    aria-label="attach-narrative"
+                                    name="attach-narrative"
+                                    row
+                                    style={{ justifyContent: "space-around", marginBottom: 12 }}
+                                    value={attach_narrative_to}
+                                    onChange={e => setAttachNarrativeTo(e.target.value)}
+                                >
+                                    <FormControlLabel value="default-sites" control={<Radio />} label="All sites of stakeholder" />
+                                    <FormControlLabel value="specified-sites" control={<Radio />} label="Specify sites" />
+                                </RadioGroup>
+
+                                {
+                                    attach_narrative_to === "specified-sites" && <DynaslopeSiteSelectInputForm
+                                        value={sites}
+                                        changeHandler={value => setSites(value)}
+                                        isMulti
+                                        required
+                                    />
+                                }
+                            </div>
+                        }
+
+                        {
+                            has_permission_tag && <div style={{ marginTop: 18 }}>
+                                <DialogContentText color="textPrimary">
+                                    Permission
+                                </DialogContentText>
+
+                                <DynaslopeSiteSelectInputForm
+                                    value={sites}
+                                    changeHandler={value => setSites(value)}
+                                    isMulti
+                                    required
+                                />
+
+                                <FormLabel component="legend" style={{ marginTop: 24 }}>Purpose</FormLabel>
+                                <RadioGroup
+                                    aria-label="permission-purpose"
+                                    name="permission-purpose"
+                                    row
+                                    style={{ justifyContent: "space-around" }}
+                                    value={permission_purpose}
+                                    onChange={e => setPermissionPurpose(e.target.value)}
+                                >
+                                    <FormControlLabel value="alert 3 raising" control={<Radio />} label="Alert 3 Raising" />
+                                    <FormControlLabel value="alert 3 lowering" control={<Radio />} label="Alert 3 Lowering" />
+                                    <FormControlLabel value="on demand raising" control={<Radio />} label="On Demand Raising" />
+                                </RadioGroup>
+                            </div>
+                        }
                     </Fragment>
                 }
             </DialogContent>
@@ -342,4 +392,4 @@ function GeneralDataTagModal (props) {
     );
 }
 
-export default withMobileDialog()(GeneralDataTagModal);
+export default withMobileDialog()(ChatterboxTagModal);
