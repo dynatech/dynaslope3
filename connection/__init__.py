@@ -104,12 +104,12 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
 
     @app.route("/api/memcache/update_dashboard", methods=["GET"])
     def update_dashboard():
-        alert_generation_background_task()
+        CELERY.send_task("alert_generation_background_task")
         return "Called update dashboard memcache."
 
     @app.route("/api/memcache/update_comms", methods=["GET"])
     def update_comms():
-        initialize_comms_data()
+        CELERY.send_task("initialize_comms_data")
         return "Called update communications memcache."
 
     from src.api.sites import SITES_BLUEPRINT
