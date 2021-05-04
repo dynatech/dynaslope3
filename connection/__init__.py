@@ -89,19 +89,6 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
     if enable_webdriver:
         create_browser_driver_instance()
 
-    # from src.websocket.monitoring_ws import monitoring_background_task
-    # from src.websocket.communications_ws import (
-    #     main as comms_ws_main,
-    #     communication_background_task
-    # )
-    # from src.websocket.misc_ws import server_time_background_task
-
-    # if not skip_websocket:
-    # start_ws_bg_task("monitoring", monitoring_background_task)
-    # comms_ws_main()  # outside from skip_websocket for now
-    # start_ws_bg_task("communication", communication_background_task)
-    # start_ws_bg_task("misc", server_time_background_task)
-
     #####################################################
     # Import all created blueprint from each controller
     # and register it to the app instance
@@ -111,6 +98,20 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
     #
     # Also register your blueprints with url_prefix="/api"
     #####################################################
+    @app.route("/api/memcache", methods=["GET"])
+    def api_memcache_info():
+        return "Use /api/memcache/update_dashboard or /api/memcache/update_comms"
+
+    @app.route("/api/memcache/update_dashboard", methods=["GET"])
+    def update_dashboard():
+        alert_generation_background_task()
+        return "Called update dashboard memcache."
+
+    @app.route("/api/memcache/update_comms", methods=["GET"])
+    def update_comms():
+        initialize_comms_data()
+        return "Called update communications memcache."
+
     from src.api.sites import SITES_BLUEPRINT
     app.register_blueprint(SITES_BLUEPRINT, url_prefix="/api")
 
@@ -164,33 +165,6 @@ def create_app(config_name, skip_memcache=False, enable_webdriver=False):
 
     from src.api.login import LOGIN_BLUEPRINT
     app.register_blueprint(LOGIN_BLUEPRINT, url_prefix="/api")
-
-    # from src.api.register import REGISTER_BLUEPRINT
-    # app.register_blueprint(REGISTER_BLUEPRINT, url_prefix="/api")
-
-    # from src.api.family_profile import FAMILY_PROFILE_BLUEPRINT
-    # app.register_blueprint(FAMILY_PROFILE_BLUEPRINT, url_prefix="/api")
-
-    # from src.api.risk_assessment_summary import RISK_ASSESSMENT_BLUEPRINT
-    # app.register_blueprint(RISK_ASSESSMENT_BLUEPRINT, url_prefix="/api")
-
-    # from src.api.hazard_data import HAZARD_DATA_BLUEPRINT
-    # app.register_blueprint(HAZARD_DATA_BLUEPRINT, url_prefix="/api")
-
-    # from src.api.resources_and_capacities import RESOURCES_AND_CAPACITIES_BLUEPRINT
-    # app.register_blueprint(
-    #     RESOURCES_AND_CAPACITIES_BLUEPRINT, url_prefix="/api")
-
-    # from src.api.field_survey_logs import FIELD_SURVEY_LOGS_BLUEPRINT
-    # app.register_blueprint(
-    #     FIELD_SURVEY_LOGS_BLUEPRINT, url_prefix="/api")
-
-    # from src.api.sensor_maintenance import SENSOR_MAINTENANCE_BLUEPRINT
-    # app.register_blueprint(
-    #     SENSOR_MAINTENANCE_BLUEPRINT, url_prefix="/api")
-
-    # from src.api.situation_report import SITUATION_REPORT_BLUEPRINT
-    # app.register_blueprint(SITUATION_REPORT_BLUEPRINT, url_prefix="/api")
 
     from src.api.rainfall import RAINFALL_BLUEPRINT
     app.register_blueprint(RAINFALL_BLUEPRINT, url_prefix="/api")
