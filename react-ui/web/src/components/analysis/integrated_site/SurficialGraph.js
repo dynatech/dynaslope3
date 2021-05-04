@@ -7,6 +7,7 @@ import HighchartsReact from "highcharts-react-official";
 import MomentUtils from "@date-io/moment";
 import moment from "moment";
 import { useSnackbar } from "notistack";
+import Chroma from "chroma-js";
 
 import { 
     Button, ButtonGroup,
@@ -19,7 +20,7 @@ import {
     ListItemIcon, ListItemText, Tooltip,
     TableRow, TableCell
 } from "@material-ui/core";
-import { ArrowDropDown, Edit, TrendingUp, Add, LocalOffer, Info } from "@material-ui/icons";
+import { ArrowDropDown, Edit, TrendingUp, Add, LocalOffer } from "@material-ui/icons";
 import { isWidthDown } from "@material-ui/core/withWidth";
 import { MuiPickersUtilsProvider, KeyboardDateTimePicker } from "@material-ui/pickers";
 import MUIDataTable from "mui-datatables";
@@ -445,7 +446,7 @@ function UpdateDeleteModal (props) {
     };
 
     const deleteDataFn = () => {
-        const { data_id, mo_id } = editModal;
+        // const { data_id, mo_id } = editModal;
         let id = data_id;
         if (delete_quantity === "all") {
             id = mo_id;
@@ -1085,6 +1086,7 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
     }
 
     data.forEach(row => {
+        // eslint-disable-next-line no-param-reassign
         row.turboThreshold = 100000;
         const { data: series_data } = row;
         series_data.forEach(series_data_row => {
@@ -1104,8 +1106,10 @@ function prepareOptions (input, data, width, setIsOpenClickModal, setChosenPoint
                     lineColor: "#000000",
                     lineWidth: 1
                 };
+                // eslint-disable-next-line no-param-reassign
                 series_data_row.marker = marker;
             } else {
+                // eslint-disable-next-line no-param-reassign
                 series_data_row.unreliable_data = false;
             }
         }); 
@@ -1321,12 +1325,16 @@ function SurficialGraph (props) {
     useEffect(() => {
         if (!historical_markers && surficial_data.length !== 0) {
             const markers = [];
-            surficial_data.forEach(({ marker_history }) => {
+            const rainbow_colors = Chroma.scale(["#f00", "#0f0", "#00f"]).mode("lch")
+            .domain([0, surficial_data.length - 1]);
+            surficial_data.forEach(({ marker_history }, i) => {
                 marker_history.forEach(({ marker_name }) => {
                     if (marker_name) {
                         markers.push(marker_name.marker_name);
                     }
                 });
+
+                surficial_data[i].color = rainbow_colors(i).name();
             });
             setHistoricalMarkers(markers);
         }
@@ -1428,8 +1436,8 @@ function SurficialGraph (props) {
 
             
                 <Route path={`${url}/:marker_name`} render={
-                    props => {
-                        const { match: { params: { marker_name } } } = props;
+                    sub_props => {
+                        const { match: { params: { marker_name } } } = sub_props;
 
                         if (!selected_marker) return "";
                         return (
